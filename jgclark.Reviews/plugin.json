@@ -116,6 +116,11 @@
       "name": "test:buttonTriggerOpenNote",
       "description": "test Button Trigger OpenNote",
       "jsFunction": "testButtonTriggerOpenNote"
+    },
+    {
+      "name": "test:redisplayProjectListHTML",
+      "description": "test redisplay Project List HTML",
+      "jsFunction": "redisplayProjectListHTML"
     }
   ],
   "plugin.settings": [
@@ -146,13 +151,12 @@
     {
       "key": "foldersToIgnore",
       "title": "Folders to ignore in reviews",
-      "description": "A comma-separated list of folders to ignore in reviews. Can be empty. Where an ignored folder has a sub-folder these will also be ignored.",
+      "description": "A comma-separated list of folders to ignore in reviews. Can be empty. Where an ignored folder has a sub-folder these will also be ignored. (Note that @Trash, @Templates and @Archive are always excluded.)",
       "type": "[string]",
       "default": [
-        "@Templates",
         "Reviews",
         "Summaries",
-        "@Archive"
+        "Saved Searches"
       ],
       "required": false
     },

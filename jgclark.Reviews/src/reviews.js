@@ -19,7 +19,7 @@ import {
 } from '@helpers/dateTime'
 import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
-  filterFolderList,
+  getFilteredFolderList,
 } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 // import { showHTML } from '@helpers/HTMLView'
@@ -58,7 +58,9 @@ export function logReviewList(): void{
 export async function makeReviewList(): Promise<void> {
   try {
     const config = await getReviewSettings()
-    const filteredFolderList = filterFolderList(config.foldersToIgnore)
+
+    // Get list of folders, excluding @specials and our foldersToIgnore setting
+    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true)
     const summaryArray = []
 
     logDebug(pluginJson, `makeReviewList: starting for ${config.noteTypeTags.toString()} tags:`)

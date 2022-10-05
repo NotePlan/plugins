@@ -21,7 +21,8 @@ export {
 } from './reviews'
 export {
   makeProjectLists,
-  makeProjectListsHTML
+  makeProjectListsHTML,
+  redisplayProjectListHTML
 } from './projectLists'
 export {
   completeProject,

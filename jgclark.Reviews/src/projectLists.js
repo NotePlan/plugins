@@ -5,8 +5,9 @@
 // Last updated 19.9.2022 for v0.8.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 // FIXME: button again ... use the DataStore.invokePluginCommandByName method ?
+// TODO: add button/link for Refresh?
+// TODO: add option for kicking off /overdue for the note?
 // TODO: Ignore all @folders automatically
-// TODO: Swap order of 2 date columns
 
 import pluginJson from "../plugin.json"
 import {
@@ -22,7 +23,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithStringArgs, timer } from '@helpers/dev'
 import {
-  filterFolderList,
+  getFilteredFolderList,
 } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { makeSVGPercentRing, redToGreenInterpolation, showHTML } from '@helpers/HTMLView'
@@ -73,7 +74,10 @@ const startReviewsCommandCall = (`(function() {
     DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
   })()`
 )
-// logDebug('makeProjectListsHTML','startReviewsCommandCall');
+const projectListsCommandCall = (`(function() {
+    DataStore.invokePluginCommandByName("project lists", "jgclark.Reviews");
+  })()`
+)
 
 function makeCommandCall(commandCallJSON: string): string {
   return `<script>
@@ -84,7 +88,8 @@ function makeCommandCall(commandCallJSON: string): string {
       id: "1"
     });
   };
-</script>`
+</script>
+`
 }
 
 export const setPercentRingJSFunc: string = `<script>
@@ -110,7 +115,19 @@ export const setPercentRingJSFunc: string = `<script>
   `
 
 /**
- * Decide which of the project list outputs to call.
+ * Temporary function to re-display previous project list HTML
+ */
+export function redisplayProjectListHTML(): void {
+  // read the saved HTML file from data/jgclark.Reviews/project_list.html
+  const filename = "project_list.html"
+  const html = DataStore.loadData(filename, true) ?? ''
+  logDebug(pluginJson, `Read ${html.length} bytes from ${filename} to re-display`)
+
+  HTMLView.showWindow(html, 're-dispay project list')
+}
+
+/**
+ * Decide which of the project list output functions to call.
  * Now includes support for calling from x-callback, using simple "a=b,x=y" version of settings and values.
  */
 export async function makeProjectLists(argsIn?: string | null = null): Promise<void> {
@@ -140,8 +157,8 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
  * Generate human-readable lists of project notes for each tag of interest using HTML output. 
  * Note: Requires NP 3.7.0 (build 844) or greater.
  * @author @jgclark
-* @param {any} config - from settings (and any passed args)
-*/
+ * @param {any} config - from settings (and any passed args)
+ */
 export async function makeProjectListsHTML(config: any): Promise<void> {
   try {
     // Check to see if we're running v3.6.2, build 844) or later
@@ -160,7 +177,7 @@ export async function makeProjectListsHTML(config: any): Promise<void> {
         // handle #hashtags in the note title (which get stripped out by NP, it seems)
         const tagWithoutHash = tag.replace('#', '')
         const noteTitle = `${tag} Review List`
-        const noteTitleWithoutHash = `${tagWithoutHash} List.HTML`
+        const noteTitleForFilename = `${tagWithoutHash}_list.html`
 
         // Do the main work
         // Calculate the Summary list(s)
@@ -177,14 +194,14 @@ export async function makeProjectListsHTML(config: any): Promise<void> {
           reviewListCSS,
           false, // = not modal window
           setPercentRingJSFunc,
-          makeCommandCall(startReviewsCommandCall),
-          noteTitleWithoutHash) // not giving window dimensions
+          makeCommandCall(startReviewsCommandCall) + makeCommandCall(projectListsCommandCall),
+          noteTitleForFilename) // not giving window dimensions
         logDebug(pluginJson, `- written results to HTML`)
       }
     } else {
       // We will just use all eligible project notes in one group
       const title = `Review List`
-      const noteTitle = `Review List.HTML`
+      const noteTitle = `Review List.html`
       // Calculate the Summary list(s)
       const outputArray = await makeNoteTypeSummary('', style, config)
       outputArray.unshift(`<h1>${noteTitle}</h1>`)
@@ -286,7 +303,8 @@ async function makeNoteTypeSummary(noteTag: string, style: string, config: any):
   try {
     logDebug('makeNoteTypeSummary', `Starting for '${noteTag}' in ${style} style`)
 
-    const filteredFolderList = filterFolderList(config.foldersToIgnore)
+    // Get list of folders, excluding @specials and our foldersToIgnore setting
+    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true)
     logDebug('makeNoteTypeSummary', `- for ${filteredFolderList.length} folders: '${String(filteredFolderList)}'`)
 
     let noteCount = 0

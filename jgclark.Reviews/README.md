@@ -3,13 +3,17 @@ Unlike many task or project management apps, NotePlan has very little enforced s
 
 This plugin provides commands to help **review** Project-based notes, and it helps me manage over 50 such projects. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. (It probably won't have much applicability to people who just use NotePlan as a Zettelkasten-style knowledge base.)
 
-If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.
+If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 50 of these.
 
-User George Crump (@george65) has created a [great video showing how the plugin works](https://bit.ly/3l1tSw4).
+User George Crump (@george65) has created a [great video showing how the plugin works](https://storone.zoom.us/rec/play/Pgo9gL24JcZeLJfMW23GWVMGgYGMIN9NZgK5eJwhec8Xg0kyqTZG-uxJjjQh3tK2CvIAYAK5QheSTKis.0Qf5Lu0zvNIIIra3). (Note: it was created before v0.8 was released.)
+[![video thumbnail](georgec-video-thumbnail.png)](https://storone.zoom.us/rec/play/Pgo9gL24JcZeLJfMW23GWVMGgYGMIN9NZgK5eJwhec8Xg0kyqTZG-uxJjjQh3tK2CvIAYAK5QheSTKis.0Qf5Lu0zvNIIIra3)
 
 ## Using NotePlan for Project-like work
+Each **Project** is described by a separate note, and has a lifecycle something like this:
 
-Each **Project** is described by a separate note. Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on a line (which I suggest comes after the title).  For example:
+![project lifecycle](project-flowchart-bordered.png)
+
+Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on a line (which I suggest comes after the title).  For example:
 
 ```markdown
 # Secret Undertaking
@@ -18,18 +22,20 @@ Aim: Do this amazing secret thing
 
 ## Details
 * recruit James Bond
-* task Q with building a new spy gadget
-* set up Deliveroo account
+* task Q with building a personal jetpack (with USB ports)
+* set up team Deliveroo account
 ...
 ```
 
 The fields I use are:
-- `@review(...)`: interval to use between reviews, of form [nn][dwmqy]
+- `@review(...)`: interval to use between reviews, of form [number][bdwmqy]:
+    - After the [number] is a character, which is one of: **b**usiness days (ignore weekends, but doesn't ignore public holidays, as they're different for each country), **d**ays, **w**eeks, **m**onths, **q**uarters, **y**ears.
 - `@reviewed(YYYY-MM-DD)`: last time this project was reviewed, using this plugin
 - `@start(YYY-MM-DD)`: project's start date
 - `@due(YYY-MM-DD)`: project's due date
 - `@completed(YYY-MM-DD)`: date project was completed (if relevant)
 - `@cancelled(YYY-MM-DD)`: date project was cancelled (if relevant)
+
 
 Similarly, if you follow the PARA method, then you will also have "**Areas** of responsibility" to maintain, and I use a `#area` tag to mark these. These don't normally have a start/end/completed dates, but they also need reviewing.  For example:
 
@@ -63,14 +69,14 @@ Context: <%- prompt('context') %>
 Use the 'Note Type Hashtags' setting to control which notes are included in the review lists:
 - If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
 - if it is set (e.g. `#project, #area`), then it will include just those notes which also have one or more of those tags.
-You can specify folders to ignore using the `foldersToIgnore` setting; I have this set to `Summaries, Reviews, @Templates, @Archive, @Trash`.
+- You can specify folders to ignore using the `foldersToIgnore` setting; I have this set to `Summaries, Reviews, @Templates, @Archive, @Trash`. <!-- ??? -->
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
 ### /project lists
 This creates/updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). For example:
 
-![/project lists example](project-list-example.png)
+![/project lists example](project-list-example.png) <!-- ??? -->
 
 From v0.8 you can now set the '**Output style to use**'. This is either a new 'rich' (HTML) or original 'NotePlan' (Markdown) output style.
 <!-- ??? -->(_Note:  the 'rich' style provides a richer view (using a web view), but it isn't a normal NotePlan note that is saved and can be accessed again later. You will need to re-run the command to see the list again._)
@@ -113,15 +119,15 @@ This add an #archive tag, and a `@cancelled(date)` mention to the metadata line 
 ## Configuration
 These commands require configuration, which is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel.
 
-## To do
-- look at updating the plugin to take advantage of YAML frontmatter blocks, introduced in v3.4.x
+## Thanks
+Thanks to George Crump for his suggestions and beta testing.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
-![https://www.buymeacoffee.com/revjgc](https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 

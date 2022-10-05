@@ -377,7 +377,6 @@ export class Project {
    * Generate a one-line tab-sep summary line ready for MD note 
    */
   generateMetadataLine(): string {
-
     let output = ''
     // output = (this.isActive) ? '#active ' : ''
     // output = (this.isCancelled) ? '#cancelled ' : ''
@@ -475,7 +474,7 @@ export class Project {
 \t<col width="15%">
 </colgroup>
 \t<tr class="sticky-row">
-\t<th>%</th><th>Project/Area Title</th><th>Due Date</th><th>Next Review</th>
+\t<th>%</th><th>Project/Area Title</th><th>Next Review</th><th>Due Date</th>
 \t</tr>
 </thead>
 <tbody>
@@ -498,7 +497,7 @@ export class Project {
         else if (displayDates && !displayProgress) {
           return `<thead>
 \t<tr class="sticky-row">
-\t<th>%</th><th>Project/Area Title</th><th>Due Date</th><th>Next Review</th>
+\t<th>%</th><th>Project/Area Title</th><th>Next Review</th><th>Due Date</th>
 \t</tr>
 </thead>
 <tbody>
@@ -506,7 +505,7 @@ export class Project {
         } else {
           return `<thead>
 \t<tr class="sticky-row">
-\t<th>%</th><th>Project/Area Title</th><th>Due Date</th><th>Next Review</th>
+\t<th>%</th><th>Project/Area Title</th><th>Next Review</th><th>Due Date</th>
 \t</tr>
 </thead>
 <tbody>
@@ -521,7 +520,7 @@ export class Project {
             // output += '#tasks open / complete / waiting / future'
             output += '\tProgress'
           }
-          output += '\tNext review / Due date_'
+          output += '\tDue date / Next review_'
           return output
         }
 
@@ -550,11 +549,11 @@ export class Project {
         output = '\t<tr>'
         if (this.isCompleted) {
           output += '<td>' + this.addNPStateIcon('#00D050', 'a') + '</td>' // ✓
-          output += `<td colspan=2>${this.decoratedProjectTitle(style, includeFolderName)}`
+          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (this.isCancelled) {
           output += '<td>' + this.addNPStateIcon('#D00050', 'c') + '</td>' // X
-          output += `<td colspan=2>${this.decoratedProjectTitle(style, includeFolderName)}`
+          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (isNaN(this.percentComplete)) { // NaN
           output += '<td>' + this.addSVGPercentRing(100, 'grey', '0') + '</td>'
@@ -583,20 +582,20 @@ export class Project {
         }
         if (displayDates) {
           if (this.completedDate != null) {
-            output += `<td class="task-checked">Completed ${relativeDateFromDate(this.completedDate)}</td><td></td>`
+            output += `<td colspan=2 class="task-checked">Completed ${relativeDateFromDate(this.completedDate)}</td><td></td>`
           } else if (this.cancelledDate != null) {
-            output += `<td class="task-cancelled">Cancelled ${relativeDateFromDate(this.cancelledDate)}</td><td></td>`
+            output += `<td colspan=2 class="task-cancelled">Cancelled ${relativeDateFromDate(this.cancelledDate)}</td><td></td>`
           }
           if (!this.isCompleted && !this.isCancelled) {
-            output = (this.dueDays != null)
-              ? (this.dueDays > 0)
-                ? `${output}<td>${relativeDateFromNumber(this.dueDays)}`
-                : `${output}<td><b>${relativeDateFromNumber(this.dueDays)}</b></td>`
-              : `${output}<td></td>`
             output = (this.nextReviewDays != null)
               ? (this.nextReviewDays > 0)
                 ? `${output}<td>${relativeDateFromNumber(this.nextReviewDays)}</td>`
                 : `${output}<td><b>${relativeDateFromNumber(this.nextReviewDays)}</b></td>`
+              : `${output}<td></td>`
+            output = (this.dueDays != null)
+              ? (this.dueDays > 0)
+                ? `${output}<td>${relativeDateFromNumber(this.dueDays)}`
+                : `${output}<td><b>${relativeDateFromNumber(this.dueDays)}</b></td>`
               : `${output}<td></td>`
           }
         }
@@ -604,7 +603,6 @@ export class Project {
         break
 
       case 'markdown':
-        // TEST: implement displayDates & displayProgress
         output = '- '
         output += `${this.decoratedProjectTitle(style, includeFolderName)}`
         if (displayDates) {
@@ -630,13 +628,13 @@ export class Project {
           }
         }
         if (displayDates && !this.isCompleted && !this.isCancelled) {
+          output = this.dueDays != null ? `${output}\t${relativeDateFromNumber(this.dueDays)}` : `${output}\t-`
           output =
             this.nextReviewDays != null
               ? this.nextReviewDays > 0
                 ? `${output} / ${relativeDateFromNumber(this.nextReviewDays)}`
                 : `${output} / **${relativeDateFromNumber(this.nextReviewDays)}**`
-              : `${output} / -`
-          output = this.dueDays != null ? `${output} / ${relativeDateFromNumber(this.dueDays)}` : `${output} / -`
+            : `${output} / -`
         }
         break
 
@@ -649,7 +647,7 @@ export class Project {
 
   /**
    * Add SVG ready for percent ring with the number in the middle.
-   * @@@
+   * Note: this is kept in this file as it is specific to Review functionality. But it relies on the more generic 'makeSVGPercentRing' helper function.
    * Note: It needs to be followed by call to JS function setPercentRing() to set the ring's state.
    * @param {number} percent 0-100
    * @param {string?} color for ring and text (as colour name or #RGB), or 'multicol' to mean shading between red and green

@@ -3,7 +3,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 <!-- TODO: Think about saving 'noteplan' view as well as 'rich' style each time -->
 
-## [0.8.0] - 2022-09-18
+## [0.8.0] - 2022-09-???
 Major new version of the **/project lists** command:
 - option for 'rich' style output which shows an HTML view (requires NotePlan 3.7) complete with coloured progress rings
 - now opens the review list note (if previous 'NotePlan' style used)
