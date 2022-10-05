@@ -19,6 +19,36 @@ export {
 export { insertProgressUpdate } from './progress'
 export { statsPeriod } from './stats'
 
+/** 
+ * The following test functions were removed from the plugin.json file:
+ *
+    {
+      "_name": "test:update Summaries plugin settings",
+      "description": "Summaries: test update settings",
+      "jsFunction": "testUpdate"
+    },
+    {
+      "_name": "test:GenStats",
+      "description": "test daily gen stats",
+      "jsFunction": "testGenStats"
+    },
+    {
+      "_name": "test:HeatMapGeneration1",
+      "description": "test heatmap gen 1",
+      "jsFunction": "testHeatMapGeneration1"
+    },
+    {
+      "_name": "test:HeatMapGeneration2",
+      "description": "test heatmap gen 2",
+      "jsFunction": "testHeatMapGeneration2"
+    },
+    {
+      "_name": "test:HeatMapGeneration3",
+      "description": "test heatmap gen 3",
+      "jsFunction": "testHeatMapGeneration3"
+    }
+ */
+
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
@@ -47,7 +77,7 @@ export function onSettingsUpdated(): void {
   logDebug(pluginID, `new version = ${updatedPluginVersion} (${updatedPluginVersionAsNumber})`)
 
   // ** FOLLOWING IS GETTING READY FOR FUTURE RELEASE **
-  // If this was upgrade to v0.13.0 (semver ???)
+  // If this was upgrade to v0.13???.0 (semver ???)
   // if (updatedPluginVersionAsNumber >= 12288) {
   //   logDebug(pluginID, `Will try to update further settings for v0.12.0 ...`)
   //   // Empty setting 'progressYesNo' has been added automatically

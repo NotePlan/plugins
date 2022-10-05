@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
-  "plugin.version": "0.19.0",
-  "plugin.lastUpdateInfo": "For '/shift dates' a new setting 'Remove @done dates?', and ability to work on week-based dates.",
+  "plugin.version": "0.19.1",
+  "plugin.lastUpdateInfo": "For '/shift dates' new settings 'Remove @done dates?' and 'Set complete tasks as not complete?', and ability to work on week-based dates.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -212,6 +212,14 @@
       "key": "removeDoneDates",
       "title": "Remove @done dates?",
       "description": "Whether or not to remove @done(...) dates (if present) when shifting dates.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "uncompleteTasks",
+      "title": "Set any completed tasks to not complete?",
+      "description": "Whether or not to change any completed tasks back to not complete.",
       "type": "bool",
       "default": true,
       "required": true

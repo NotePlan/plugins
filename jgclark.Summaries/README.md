@@ -8,7 +8,7 @@ This Plugin lets you do the following sorts of things:
 - count the times you've met with staff member `@alice` this year so far
 - sum the length of your `@run`s in the last quarter
 - show a heatmap chart of how many tasks you've completed recently
-![Heatmap example](heatmap-1y.jpg)
+![Heatmap example](heatmap-0140.jpg)
 
 It does this by providing commands that generate several different sorts of **summaries** and **basic stats from your daily notes**.
 
@@ -35,9 +35,11 @@ In particular it uses the `code` attribute of the theme (if set). Here's an exam
 Note: According to [several](https://wiki.mobileread.com/wiki/List_of_fonts_included_with_each_device) [sources](http://iosfonts.com/) the only monospace fonts on iPhone/iPad are forms of Courier (e.g. `Courier-Bold`) and Menlo (e.g. `Menlo-Regular`).
 
 ## /heatmap for complete tasks
-This displays a 'heatmap' chart of many tasks you've completed on each day (see example above). This checks in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you don't set it, the plugin will generate a sensible period up to 12 months.
+This displays a 'heatmap' chart of many tasks you've completed on each day (see example above). It uses the `@done(...)` dates in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you don't set it, the plugin will generate a sensible period up to 12 months.  It also counts completed tasks without `@done(...)` dates on Calendar notes, assuming the tasks were completed on the day or start of week in question.
 
-Note: This is a first attempt at generating heatmaps, and I want to make it much more flexible in future. But this will require rolling my own charts, rather than using one from AnyChart, which if you rely on it should be licensed.
+(NotePlan automatically appends a 'completion date' to completed tasks if you have the Preferences > Todo > Append Completion Date setting turned on.)
+
+Note: This is a first attempt at generating heatmaps, and I want to make it much more flexible in future. But this will probably require rolling my own charts, rather than using one from AnyChart, which if you rely on it should be licensed.
 
 ## /insertProgressUpdate
 As NotePlan is such a flexible app, there are [various ways people use it to track habits](https://help.noteplan.co/article/144-habit-tracking). 
@@ -46,7 +48,7 @@ This Plugin command helps show progress within the current week, fortnight or mo
 
 For example, it produces for me: 
 
-![Habit Tracker example](ipu-2w-with-sparkline.png)
+![Habit Tracker example](ipu-2w-with-sparkline.jpg)
 
 (The leading @ or # is removed in the output, to avoid double-counting problems.)
 

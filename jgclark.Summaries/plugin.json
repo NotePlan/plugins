@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
   "plugin.version": "0.14.0",
-  "plugin.lastUpdateInfo": "Adds /showTaskCompletionHeatmap command.",
+  "plugin.lastUpdateInfo": "Adds '/heatmap for complete tasks' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -41,9 +41,9 @@
       "jsFunction": "statsPeriod"
     },
     {
-      "name": "heatmap for complete tasks",
+      "name": "heatmap for task completion",
       "alias": [],
-      "description": "Show a heatmap for complete tasks",
+      "description": "Show a heatmap for completion of tasks",
       "jsFunction": "showTaskCompletionHeatmap"
     },
     {
@@ -55,31 +55,6 @@
       ],
       "description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a note",
       "jsFunction": "weeklyStats"
-    },
-    {
-      "name": "test:update Summaries plugin settings",
-      "description": "Summaries: test update settings",
-      "jsFunction": "testUpdate"
-    },
-    {
-      "name": "test:GenStats",
-      "description": "test daily gen stats",
-      "jsFunction": "testGenStats"
-    },
-    {
-      "name": "test:HeatMapGeneration1",
-      "description": "test heatmap gen 1",
-      "jsFunction": "testHeatMapGeneration1"
-    },
-    {
-      "name": "test:HeatMapGeneration2",
-      "description": "test heatmap gen 2",
-      "jsFunction": "testHeatMapGeneration2"
-    },
-    {
-      "name": "test:HeatMapGeneration3",
-      "description": "test heatmap gen 3",
-      "jsFunction": "testHeatMapGeneration3"
     }
   ],
   "plugin.settings": [

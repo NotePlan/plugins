@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 2.9.2022 for v0.13.0
+// Last updated 3.10.2022 for v0.14.0
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -10,8 +10,6 @@
 
 import pluginJson from '../plugin.json'
 import {
-  // calcHashtagStatsPeriod, // previous method
-  // calcMentionStatsPeriod, // previous method
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
@@ -19,10 +17,9 @@ import {
 } from './summaryHelpers'
 import { getWeek, unhyphenatedDate } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
-import { logInfo, logDebug, logError } from '@helpers/dev'
+import { logDebug, logError, logInfo } from '@helpers/dev'
 import { CaseInsensitiveMap, displayTitle } from '@helpers/general'
 import { getOrMakeNote, printNote, replaceSection } from '@helpers/note'
-// import { logAllEnvironmentSettings } from '@helpers/NPDev'
 import { caseInsensitiveCompare } from '@helpers/sorting'
 import {
   chooseOption,
@@ -52,79 +49,6 @@ export async function statsPeriod(): Promise<void> {
     const fromDateStr = unhyphenatedDate(fromDate)
     const toDateStr = unhyphenatedDate(toDate)
     logInfo(pluginJson, `statsPeriod: starting for ${periodString} (${fromDateStr} - ${toDateStr})`)
-
-    // // Calc hashtags stats (returns two maps)
-    // const hOutputArray = []
-    // let results = await calcHashtagStatsPeriod(fromDateStr, toDateStr, config.includeHashtags, config.excludeHashtags)
-    // const hCounts: CaseInsensitiveMap<number> = results?.[0] ?? new CaseInsensitiveMap < number > ()
-    // const hSumTotals: CaseInsensitiveMap<number> = results?.[1] ?? new CaseInsensitiveMap < number > ()
-    // if (hSumTotals == null || hCounts == null) {
-    //   logInfo(pluginJson, `no matching hashtags found in ${periodString}`)
-    //   return
-    // }
-
-    // // First process more complex 'SumTotals', calculating appropriately
-    // for (const [key, value] of hSumTotals.entries()) {
-    //   const hashtagString = config.showAsHashtagOrMention ? key : key.slice(1)
-    //   const count = hSumTotals.get(key) ?? NaN
-    //   if (isNaN(count)) {
-    //     logDebug(`  no totals for ${key}`)
-    //   } else {
-    //     const count = hCounts.get(key) ?? NaN
-    //     const totalStr: string = value.toLocaleString()
-    //     const avgStr: string = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
-    //     hOutputArray.push(`${hashtagString}\t${count}\t(total ${totalStr}\taverage ${avgStr})`)
-    //     hCounts.delete(key) // remove the entry from the next map, as no longer needed
-    //   }
-    // }
-    // // Then process simpler 'Counts'
-    // for (const [key, value] of hCounts.entries()) {
-    //   const hashtagString = config.showAsHashtagOrMention ? key : key.slice(1)
-    //   hOutputArray.push(`${hashtagString}\t${value}`)
-    // }
-    // // If there's nothing to report, let's make that clear, otherwise sort output
-    // if (hOutputArray.length > 0) {
-    //   hOutputArray.sort(caseInsensitiveCompare)
-    // } else {
-    //   hOutputArray.push('(none)')
-    // }
-
-    // // --------------------------------------------------------------------------
-    // // Calc mentions stats (returns two maps)
-    // const mOutputArray = []
-    // results = await calcMentionStatsPeriod(fromDateStr, toDateStr, config.includeMentions, config.excludeMentions)
-    // const mCounts: CaseInsensitiveMap<number> = results?.[0] ?? new CaseInsensitiveMap < number > ()
-    // const mSumTotals: CaseInsensitiveMap<number> = results?.[1] ?? new CaseInsensitiveMap < number > ()
-    // if (mCounts == null || mSumTotals == null) {
-    //   logDebug(pluginJson, `no matching mentions found in ${periodString}`)
-    //   return
-    // }
-
-    // // First process more complex 'SumTotals', calculating appropriately
-    // for (const [key, value] of mSumTotals.entries()) {
-    //   const mentionString = config.showAsHashtagOrMention ? key : key.slice(1)
-    //   const total = mSumTotals.get(key) ?? NaN
-    //   if (isNaN(total)) {
-    //     logDebug(`  no totals for ${key}`)
-    //   } else {
-    //     const count = mCounts.get(key) ?? NaN
-    //     const totalStr: string = value.toLocaleString()
-    //     const avgStr: string = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
-    //     mOutputArray.push(`${mentionString}\t${count}\t(total ${totalStr}\taverage ${avgStr})`)
-    //     mCounts.delete(key) // remove the entry from the next map, as not longer needed
-    //   }
-    // }
-    // // Then process simpler 'Counts'
-    // for (const [key, value] of mCounts.entries()) {
-    //   const mentionString = config.showAsHashtagOrMention ? key : key.slice(1)
-    //   mOutputArray.push(`${mentionString}\t${value}`)
-    // }
-    // // If there's nothing to report, let's make that clear, otherwise sort output
-    // if (mOutputArray.length > 0) {
-    //   mOutputArray.sort(caseInsensitiveCompare)
-    // } else {
-    //   mOutputArray.push('(none)')
-    // }
 
     // Main work: calculate the progress update as an array of strings
     const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.includeHashtags, config.excludeHashtags, config.includeMentions, config.excludeMentions, [])

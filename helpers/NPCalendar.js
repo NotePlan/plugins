@@ -52,7 +52,8 @@ export type EventsConfig = {
   removeTimeBlocksWhenProcessed?: boolean,
   calendarToWriteTo?: string,
   defaultEventDuration: number,
-  removeDoneDates: boolean
+  removeDoneDates: boolean,
+  uncompleteTasks: boolean
 }
 
 // ----------------------------------------------------------------------
