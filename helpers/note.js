@@ -1,6 +1,7 @@
 // @flow
 //-------------------------------------------------------------------------------
 // Note-level Functions
+import { log } from 'util'
 import moment from 'moment'
 import { RE_PLUS_DATE_G, hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, isWeeklyNote } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from './dev'
@@ -14,7 +15,7 @@ import { findOverdueWeeksInString } from './NPnote'
 export const noteType = (filename: string): NoteType => (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes')
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
-  const note = DataStore.noteByFilename(filename, noteType)
+  const note = DataStore.noteByFilename(filename, noteType(filename))
   if (!note) {
     return '<error>'
   }
@@ -566,7 +567,10 @@ export function findOverdueDatesInString(line: string): Array<string> {
  */
 export function getOverdueParagraphs(note: TNote, replaceOverdueDatesWith: string = ''): Array<TParagraph> {
   const fileType = note.type === 'Notes' ? 'Notes' : note.type === 'Calendar' && isWeeklyNote(note) ? 'Weekly' : 'Daily'
+  logDebug(`note/getOverdueParagraphs`, `fileType: ${fileType}`)
+  clo(note?.datedTodos, 'note/getOverdueParagraphs note?.datedTodos before filter')
   const datedOpenTodos = note?.datedTodos?.filter((t) => t.type === 'open') || [] // only open tasks
+  clo(datedOpenTodos, 'note/getOverdueParagraphs datedOpenTodos after filter for open')
   const updatedParas = []
   datedOpenTodos.forEach((todo) => {
     if (fileType === 'Notes' || fileType === 'Daily') {

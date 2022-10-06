@@ -326,43 +326,44 @@ async function saveBackup(taskList) {
   }
 }
 
-async function deleteExistingTasks(note, tasks, shouldBackupTasks = true) {
+async function deleteExistingTasks(note: CoreNoteFields, tasks, shouldBackupTasks = true) {
+  const tasksToDelete = []
   for (const typ of TASK_TYPES) {
-    if (tasks[typ].length) logDebug(`\tDeleting ${tasks[typ].length} ${typ} tasks from note`)
-    // Have to find all the paragraphs again
+    if (tasks[typ].length) logDebug(`\Queing ${tasks[typ].length} ${typ} tasks for deletion from note`)
     if (shouldBackupTasks) {
       await saveBackup(tasks[typ])
     }
-    try {
-      let tasksAndIndented = []
-      tasks[typ].forEach((taskPara) => {
-        tasksAndIndented = [...tasksAndIndented, taskPara]
-        if (taskPara.children.length) {
-          tasksAndIndented = [...tasksAndIndented, ...taskPara.children]
-        }
-      })
-      // if (tasksAndIndented.length) logDebug(`tasksAndIndented=${tasksAndIndented.length}=${JSON.stringify(tasksAndIndented)}`)
-      const deleteList = note
-        ? tasksAndIndented.map((t) => {
-            // clo(t.paragraph, `deleteExistingTasks map t`)
-            // $FlowFixMe
-            // return findRawParagraph(note, t.raw || null)
-            return t.paragraph
-          })
-        : []
-      //$FlowIgnore
-      // logDebug(`deleteList.length=${deleteList.length} \n${JSON.stringify(deleteList)}`)
-      // deleteList.map(t=>logDebug(`Before: lineIndex:${t.lineIndex} content:${t.content}`))
-      // logDebug(`Editor content before remove: ${Editor.content || ''}`)
+    let tasksAndIndented = []
+    tasks[typ].forEach((taskPara) => {
+      tasksAndIndented = [...tasksAndIndented, taskPara]
+      if (taskPara.children.length) {
+        tasksAndIndented = [...tasksAndIndented, ...taskPara.children]
+      }
+    })
+    // if (tasksAndIndented.length) logDebug(`tasksAndIndented=${tasksAndIndented.length}=${JSON.stringify(tasksAndIndented)}`)
+    tasksAndIndented.forEach((t) => {
+      // clo(t.paragraph, `deleteExistingTasks map t`)
       // $FlowFixMe
-      const deleteListByIndex = sortListBy(deleteList, ['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
-      if (deleteList && deleteList.length) Editor.removeParagraphs(deleteListByIndex)
-      // Editor.paragraphs.map(t=>logDebug(`After: lineIndex:${t.lineIndex} content:${t.content}`))
+      // return findRawParagraph(note, t.raw || null)
+      tasksToDelete.push(t.paragraph)
+    })
+    //$FlowIgnore
+    // logDebug(`deletesForThisType.length=${deletesForThisType.length} \n${JSON.stringify(deletesForThisType)}`)
+    // deletesForThisType.map(t=>logDebug(`Before: lineIndex:${t.lineIndex} content:${t.content}`))
+    // logDebug(`Editor content before remove: ${Editor.content || ''}`)
+    // $FlowFixMe
+    // if (deletesForThisType && deletesForThisType.length) tasksToDelete.push(deletesForThisType)
+    // Editor.paragraphs.map(t=>logDebug(`After: lineIndex:${t.lineIndex} content:${t.content}`))
 
-      // logDebug(`Editor content after remove: ${Editor.content || ''}`)
-    } catch (e) {
-      logDebug(`**** ERROR deleting ${typ} ${JSON.stringify(e)}`)
-    }
+    // logDebug(`Editor content after remove: ${Editor.content || ''}`)
+  }
+  if (tasksToDelete.length) {
+    logDebug(`sortTasks/deleteExistingTasks`, `Before Sort Lines in Note:${note.paragraphs.length} | Lines to delete:${tasksToDelete.length}`)
+    const tasksToDeleteByIndex = sortListBy(tasksToDelete, ['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
+    logDebug(`sortTasks/deleteExistingTasks`, `After Sort Lines in Note:${note.paragraphs.length} | Lines to delete:${tasksToDelete.length}`)
+    clo(tasksToDelete, `sortTasks/deleteExistingTasks=`)
+    note.removeParagraphs(tasksToDeleteByIndex)
+    logDebug(`sortTasks/deleteExistingTasks`, `After Remove Paragraphs, Lines in note:${note.paragraphs.length}`)
   }
 }
 
@@ -477,7 +478,7 @@ export default async function sortTasks(
   // logDebug(`\tFinished wantSubHeadings()=${String(printSubHeadings)}, now running sortTasksInNote`)
   const sortedTasks = sortTasksInNote(Editor, sortOrder)
   // logDebug(`\tFinished sortTasksInNote, now running deleteExistingTasks`)
-  await deleteExistingTasks(Editor, sortedTasks, MAKE_BACKUP) // need to do this before adding new lines to preserve line numbers
+  await deleteExistingTasks(Editor.note, sortedTasks, MAKE_BACKUP) // need to do this before adding new lines to preserve line numbers
   // logDebug(`\tFinished deleteExistingTasks, now running writeOutTasks`)
 
   if (Editor) {
@@ -485,7 +486,7 @@ export default async function sortTasks(
       // TODO: come back to this with new template fields
       // await deleteParagraphsContainingString(Editor)
     }
-    await writeOutTasks(Editor, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '')
+    await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '')
   }
   logDebug(`\tFinished writeOutTasks, now finished`)
   if (eliminateSpinsters) {

@@ -103,7 +103,7 @@
     },
     {
       "name": "Review overdue tasks (by Note)",
-      "description": "Search for overdue tasks in all notes and review them one note at a time. Update tasks to >today if today is >= the date",
+      "description": "Search for overdue tasks in all notes and review them one note at a time.",
       "jsFunction": "reviewOverdueTasksByNote",
       "alias": [
         "updateNoteTasks"
@@ -115,7 +115,7 @@
     },  
     {
       "name": "Review overdue tasks (by Task)",
-      "description": "Search for overdue tasks in all notes and review them individually, setting to >today if today is >= the date",
+      "description": "Search for overdue tasks in all Calendar (and optionally Project) Notes",
       "jsFunction": "reviewOverdueTasksByTask",
       "alias": [
         "updateTasks"
@@ -133,7 +133,7 @@
     },
     {
       "name": "Review overdue tasks (in Active Note)",
-      "description": "Search for overdue tasks in the foreground note and review them individually, setting to >today if today is >= the date",
+      "description": "Search for overdue tasks in the foreground note",
       "jsFunction": "reviewOverdueTasksInNote",
       "alias": [
         "updatenoteTaskList"

@@ -453,6 +453,7 @@ export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Arra
  */
 export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<Array<TParagraph>> {
   const { foldersToIgnore = [], /* openOnly = true, datePlusOnly = true, replaceDate = true, */ noteTaskList = null, noteFolder = false } = options
+  logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || ''}`)
   let notesWithDates = []
   if (!noteTaskList) {
     if (noteFolder) {
@@ -462,6 +463,8 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
     } else {
       notesWithDates = [...DataStore.projectNotes, ...DataStore.calendarNotes].filter((n) => (n?.datedTodos ? n.datedTodos?.length > 0 : false))
     }
+  } else {
+    clo(noteTaskList, `getNotesAndTasksToReview noteTaskList`)
   }
   if (!noteTaskList && foldersToIgnore) {
     notesWithDates = notesWithDates.filter((note) =>
@@ -474,10 +477,6 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
   if (!noteTaskList) {
     for (const n of notesWithDates) {
       if (n) {
-        // FIXME: I am here. maybe this function need to change now that it's not really about today
-        // Yes, this is way too >today focused. needs to be refactored to deal with >week dates also
-
-        // const updates = updateDatePlusTags(n, { openOnly, datePlusOnly, replaceDate })
         const updates = getOverdueParagraphs(n, '')
         if (updates.length > 0) {
           notesToUpdate.push(updates)

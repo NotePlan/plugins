@@ -158,7 +158,7 @@ export async function reviewOverdueTasksByTask(incoming: string): Promise<void> 
 /**
  * Find and update all overdue tasks, including >date and >date+ in Active Note in Editor
  *  DISPLAY EACH NOTE'S TASK FIRST, WITH OPTION TO EXPLORE EACH TASK
- * (plugin entry point for "/Review overdue tasks (by Note)")
+ * (plugin entry point for "/Review overdue tasks in active note")
  * @param {string} incoming - comes from xcallback - any string runs this command silently
  */
 export async function reviewOverdueTasksInNote(incoming: string): Promise<void> {
@@ -167,6 +167,7 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
     const confirmResults = incoming ? false : true
     const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate, confirm } = DataStore.settings
     const overdues = Editor.note ? getOverdueParagraphs(Editor?.note) : []
+    logDebug(pluginJson, `reviewOverdueTasksInNote: overdues.length=${overdues.length}`)
     const options = {
       openOnly: overdueOpenOnly,
       foldersToIgnore: overdueFoldersToIgnore,
@@ -181,8 +182,10 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
     }
     // $FlowIgnore
     const notesToReview = getNotesAndTasksToReview(options)
+    clo(notesToReview, 'reviewOverdueTasksInNote: notesToReview')
     await reviewTasksInNotes(notesToReview, options)
     // find tasks in Editor note that are not in overdues (match by lineIndex property)
+    logDebug(pluginJson, `reviewOverdueTasksInNote: after reviewTasksInNotes`)
     const paras = Editor?.note?.paragraphs || []
     const diffTasks = paras.filter((task) => task.type === 'open' && !overdues.find((ot) => ot.lineIndex !== undefined && ot.lineIndex === task.lineIndex))
     // if there are more tasks in the note than the overdue ones we found, ask if we should review the rest
