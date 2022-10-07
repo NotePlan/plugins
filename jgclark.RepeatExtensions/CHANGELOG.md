@@ -1,4 +1,5 @@
 # What's changed in 🔁 Repeat Extensions plugin?
+For more details see the [README](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/)
 
 ## [0.3.1] - 2022-02-20
 ### Changed

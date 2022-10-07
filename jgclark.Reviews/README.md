@@ -15,17 +15,20 @@ Each **Project** is described by a separate note, and has a lifecycle something 
 
 Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on a line (which I suggest comes after the title).  For example:
 
-```markdown
+![Example of a Project and the fields to use](secret-undertaking-example-bordered.jpg)
+<!-- ```markdown
 # Secret Undertaking
 #project @review(2w) @reviewed(2021-07-20) @start(2021-04-05) @due(2021-11-30)
 Aim: Do this amazing secret thing
+Progress: 10@2022-01-07: Had the briefing and got 007 on the case
 
 ## Details
-* recruit James Bond
+* [x] Get briefing from 'M' at HQ
+* [x] recruit James Bond
 * task Q with building a personal jetpack (with USB ports)
 * set up team Deliveroo account
 ...
-```
+``` -->
 
 The fields I use are:
 - `@review(...)`: interval to use between reviews, of form [number][bdwmqy]:
@@ -35,7 +38,8 @@ The fields I use are:
 - `@due(YYY-MM-DD)`: project's due date
 - `@completed(YYY-MM-DD)`: date project was completed (if relevant)
 - `@cancelled(YYY-MM-DD)`: date project was cancelled (if relevant)
-
+- `Aim: free text`: optional, and not used in any processing
+- `Progress: N:YYYY-MM-DD: free text ...`: your latest summary of progress for this N% (optional)
 
 Similarly, if you follow the PARA method, then you will also have "**Areas** of responsibility" to maintain, and I use a `#area` tag to mark these. These don't normally have a start/end/completed dates, but they also need reviewing.  For example:
 
@@ -49,6 +53,8 @@ Aim: Make sure car continues to run well, is legal etc.
 * book yearly service @repeat(1y) >2022-02-01
 ...
 ```
+
+(These use my related [Repeat Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/) to give more flexibility than the built-in repeats.)
 
 ## Reviewing Projects and/or Areas
 Use the 'Hashtags to review' setting to control which notes are included in the review lists:
