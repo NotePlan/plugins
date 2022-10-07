@@ -1562,86 +1562,86 @@ rename(newFilename: string): string;
   /**
    * Appends a todo at the end of the note
    */
-  appendTodo(title: string): void;
+appendTodo(content: string): void;
 
   /**
    * Prepends a todo at the beginning of the note (after the title heading)
    */
-  prependTodo(title: string): void;
+prependTodo(content: string): void;
 
   /**
    * Appends a paragraph at the end of the note
    */
-  appendParagraph(title: string, type: ParagraphType): void;
+appendParagraph(content: string, type: ParagraphType): void;
 
   /**
    * Prepends a paragraph at the beginning of the note (after the title heading)
    */
-  prependParagraph(title: string, type: ParagraphType): void;
+prependParagraph(content: string, type: ParagraphType): void;
 
   /**
    * Inserts a todo below the given title of a heading (at the beginning or end of existing text)
-   * @param {string} title - Text of the todo
+   * @param {string} content - Text of the todo
    * @param {string} headingTitle - Title of the heading (without '#  Markdown)
    * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
    * @param {boolean} shouldCreate - If the heading should be created if non-existing
    */
-  addTodoBelowHeadingTitle(title: string, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
+addTodoBelowHeadingTitle(content: string, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
 
   /**
    * Inserts a paragraph below the given title of a heading (at the beginning or end of existing text)
-   * @param {string} title - Text of the paragraph
+   * @param {string} content - Text of the paragraph
    * @param {ParagraphType} paragraphType
    * @param {string} headingTitle - Title of the heading (without '#  Markdown)
    * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
    * @param {boolean} shouldCreate - If the heading should be created if non-existing
    */
-  addParagraphBelowHeadingTitle(title: string, paragraphType: ParagraphType, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
+addParagraphBelowHeadingTitle(content: string, paragraphType: ParagraphType, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
 
   /**
    * Appends a todo below the given heading index (at the end of existing text)
-   * @param {string} title - Text of the todo
+   * @param {string} content - Text of the todo
    * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object)
    */
-  appendTodoBelowHeadingLineIndex(title: string, headingLineIndex: number): void;
+appendTodoBelowHeadingLineIndex(content: string, headingLineIndex: number): void;
 
   /**
    * Appends a paragraph below the given heading index (at the end of existing text)
-   * @param {string} title - Text of the paragraph
+   * @param {string} content - Text of the paragraph
    * @param {paragraphType} paragraphType
    * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object)
    */
-  appendParagraphBelowHeadingLineIndex(title: string, paragraphType: ParagraphType, headingLineIndex: number): void;
+appendParagraphBelowHeadingLineIndex(content: string, paragraphType: ParagraphType, headingLineIndex: number): void;
 
   /**
    * Inserts a todo after a given paragraph
-   * @param {string} title - Text of the paragraph
+   * @param {string} content - Text of the paragraph
    * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
    */
-  insertTodoAfterParagraph(title: string, otherParagraph: TParagraph): void;
+insertTodoAfterParagraph(content: string, otherParagraph: TParagraph): void;
 
   /**
    * Inserts a todo before a given paragraph
-   * @param {string} title - Text of the paragraph
+   * @param {string} content - Text of the paragraph
    * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
    */
-  insertTodoBeforeParagraph(title: string, otherParagraph: TParagraph): void;
+insertTodoBeforeParagraph(content: string, otherParagraph: TParagraph): void;
 
   /**
    * Inserts a paragraph after a given paragraph
-   * @param {string} title - Text of the paragraph
+   * @param {string} content - Text of the paragraph
    * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
    * @param {paragraphType} paragraphType
    */
-  insertParagraphAfterParagraph(title: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
+insertParagraphAfterParagraph(content: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
 
   /**
    * Inserts a paragraph before a given paragraph
-   * @param {string} title - Text of the paragraph
+   * @param {string} content - Text of the paragraph
    * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
    * @param {paragraphType} paragraphType
    */
-  insertParagraphBeforeParagraph(title: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
+insertParagraphBeforeParagraph(content: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
 
   /**
    * Removes a paragraph at a given line index
