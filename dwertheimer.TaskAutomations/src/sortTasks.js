@@ -479,14 +479,21 @@ export function removeEmptyHeadings(note: CoreNoteFields) {
  */
 export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<TParagraph> } {
   const paragraphs = note?.paragraphs || []
-  return paragraphs.reduce((acc, para) => {
-    if (para.type === 'title') {
-      acc[para.content] = []
-    } else {
-      acc[para.heading].push(para)
-    }
-    return acc
-  }, {})
+  try {
+    const tasksObj = paragraphs.reduce((acc, para) => {
+      logDebug(`getTasksByHeading`, `para.type=${para.type} para.heading="${para.heading}" para.content="${para.content}"`)
+      if (para.type === 'title') {
+        acc[para.content.trim()] = []
+      } else {
+        acc[para.heading.trim()].push(para)
+      }
+      return acc
+    }, {})
+    return tasksObj
+  } catch (e) {
+    logError(pluginJson, JSON.stringify(e))
+    return {}
+  }
 }
 
 /**
@@ -524,11 +531,17 @@ export default async function sortTasks(
   if (sortOrder.length) {
     sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
     printSubHeadings = ['hashtags', 'mentions'].indexOf(sortField1) !== -1 ? (withSubHeadings === null ? await wantSubHeadings() : true) : false
-    logDebug(`\twithSubHeadings=${String(withSubHeadings)} printSubHeadings=${String(printSubHeadings)}  cat=${printSubHeadings ? sortField1 : ''}`)
+    logDebug(`\twithSubHeadings=${String(withSubHeadings)} printSubHeadings=${String(printSubHeadings)}  cat=${printSubHeadings ? sortField1 : 'none'}`)
   }
   // logDebug(`\tFinished wantSubHeadings()=${String(printSubHeadings)}, now running sortTasksInNote`)
-  if (!Editor.note) return // doing this to make Flow happy
-  const sortGroups = byHeading && Editor.note ? getTasksByHeading(Editor.note) : { [Editor.note.title || '']: Editor.note.paragraphs }
+  if (!Editor.note) {
+    logError(pluginJson, `sortTasks: There is no Editor.note. Bailing`)
+    clo(Editor, `sortTasks Editor`)
+    return // doing this to make Flow happy
+  }
+  logDebug(pluginJson, `sortTasks about to get sortGroups object`)
+  const sortGroups = byHeading && Editor?.note?.title ? getTasksByHeading(Editor.note) : { [Editor?.note?.title || '']: Editor?.note?.paragraphs }
+  logDebug(pluginJson, `sortTasks have sortGroups object. key count=${Object.keys(sortGroups).length}. About to start the display loop`)
 
   for (const key in sortGroups) {
     logDebug(`\tsortTasks: heading Group title="${key}" (${sortGroups[key].length} tasks)`)

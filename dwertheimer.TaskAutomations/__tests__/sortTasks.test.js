@@ -222,5 +222,14 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = f.getTasksByHeading({ paragraphs: [p1, p2, p3, p4, p5] })
       expect(result).toEqual({ foo: [p2], baz: [p4], soy: [] })
     })
+    test('should work with emojis and stuff', () => {
+      const p1 = { type: 'title', content: '# ✈️ dallas (2022-10-07 - 2023-10-08) ) - Travel Checklist' }
+      const p2 = { type: 'text', content: 'bar', heading: 'foo' }
+      const p3 = { type: 'title', content: 'baz' }
+      const p4 = { type: 'text', content: 'bam', heading: 'baz' }
+      const p5 = { type: 'title', content: 'soy' }
+      const result = f.getTasksByHeading({ paragraphs: [p1, p2, p3, p4, p5] })
+      expect(result).toEqual({ foo: [p2], baz: [p4], soy: [] })
+    })
   })
 })
