@@ -9,6 +9,7 @@ export interface SortableParagraphSubset {
   exclamations: Array<string>;
   parensPriority: Array<string>;
   due: ?Date;
+  heading: ?string;
   priority?: number;
   filename: string;
   indents: number;
@@ -204,6 +205,7 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
           mentions,
           exclamations,
           parensPriority,
+          heading: para.heading,
           filename: para?.filename || '',
           indents: para.indents,
           children: [],

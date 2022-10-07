@@ -222,8 +222,16 @@
       "title": "Default Output Style (Include Headings?)"
     },
     {
+      "key": "sortInHeadings",
+      "title": "Sort tasks separately for each heading?",
+      "description": "For all quick task sorting commands (other than /ts), do you want each set of tasks under each heading to be sorted separately and placed back underneath the heading? Uncheck this if you want to ignore the headings in the sort.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },    
+    {
       "key": "includeHeading",
-      "title": "Include Task Status Heading in Output",
+      "title": "Include Task Status Heading in Output?",
       "description": "For all quick task sorting commands (other than /ts), you can specify whether you want the headings to be in the output or not. Task Status headings are, e.g. 'Open Tasks', 'Completed Tasks’, etc.",
       "type": "bool",
       "default": true,
@@ -231,7 +239,7 @@
     },
     {
       "key": "includeSubHeading",
-      "title": "Include Primary Sort Key Heading in Output",
+      "title": "Include Primary Sort Key Heading in Output?",
       "description": "For all quick task sorting commands (other than /ts), you can specify whether you want the subheadings to be in the output or not. Sort Key headings are, e.g. '#tagA', or '@PersonB', etc.",
       "type": "bool",
       "default": true,
