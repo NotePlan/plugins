@@ -181,7 +181,7 @@ const MAKE_BACKUP = false
  * @param {string} subHeadingCategory
  * @return {int} next line number  // @jgclark comment: no such type as 'int'
  */
-function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', subHeadingCategory = '') {
+function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', subHeadingCategory = '', title: string = '') {
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
   logDebug(`InsertTodos: subHeadingCategory=${String(subHeadingCategory)} typeof=${typeof subHeadingCategory} ${todos.length} todos`)
@@ -238,11 +238,17 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
     .join(`\n`)
   // logDebug(`Inserting tasks into Editor:\n${contentStr}`)
   // logDebug(`inserting tasks: \n${JSON.stringify(todosWithSubheadings)}`)
-  note.insertParagraph(`${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`, note.type === 'Calendar' ? 0 : 1, 'text')
+  const content = `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`
+  if (title !== '') {
+    // const headingIndex = findHeading(note, title)?.lineIndex || 0
+    note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
+  } else {
+    note.insertParagraph(content, note.type === 'Calendar' ? 0 : 1, 'text')
+  }
 }
 
 /**
- *  @param {TNote} note - the note
+ *  @param {Array<TParagraph>} paragraphs to sort
  *  @param {array} sortOrder - sort fields order  // @jgclark comment: needs type not just array
  *  sortOrder can be an array-order of:
  *        content,
@@ -256,10 +262,9 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
  *  any item can be in DESC order by placing a minus in front, e.g. "-priority"
  *  @return the a sorted list of the tasks from the note
  */
-function sortTasksInNote(note, sortOrder = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields) {
+function sortTasksInNote(paragraphs: $ReadOnlyArray<TParagraph>, sortOrder = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields) {
   const sortedList = {}
-  if (note) {
-    const paragraphs = note.paragraphs
+  if (paragraphs?.length) {
     logDebug(`\t${paragraphs.length} total lines in note`)
     if (paragraphs.length) {
       const taskList = getTasksByType(paragraphs)
@@ -270,20 +275,20 @@ function sortTasksInNote(note, sortOrder = SORT_ORDERS[DEFAULT_SORT_INDEX].sortF
       logDebug(`\tAfter Sort - Open Tasks:${sortedList.open.length}`)
     }
   } else {
-    logDebug(`\tsorttasksInNote: no note to sort`)
+    logDebug(`\tsorttasksInNote: no paragraphs to sort`)
   }
   // logDebug(JSON.stringify(sortedList))
   return sortedList
 }
 
 async function getUserSort(sortChoices = SORT_ORDERS) {
-  logDebug(`\tgetUserSort(${JSON.stringify(sortChoices)}`)
+  // logDebug(`\tgetUserSort(${JSON.stringify(sortChoices)}`)
   // [String] list of options, placeholder text, callback function with selection/
   const choice = await CommandBar.showOptions(
     sortChoices.map((a) => a.name),
     `Select sort order:`,
   )
-  logDebug(`\tgetUserSort returning ${JSON.stringify(sortChoices[choice.index].sortFields)}`)
+  // logDebug(`\tgetUserSort returning ${JSON.stringify(sortChoices[choice.index].sortFields)}`)
   return sortChoices[choice.index].sortFields
 }
 
@@ -375,7 +380,7 @@ async function deleteExistingTasks(note: CoreNoteFields, tasks, shouldBackupTask
  * @param {boolean} withHeadings
  * @param {any|null|string} withSubheadings // @jgclark comment: suggest change name to subHeadingCategory, as otherwise it sounds like a boolean
  */
-async function writeOutTasks(note: CoreNoteFields, tasks: any, drawSeparators = false, withHeadings = false, withSubheadings = null): Promise<void> {
+async function writeOutTasks(note: CoreNoteFields, tasks: any, drawSeparators = false, withHeadings = false, withSubheadings = null, title: string = ''): Promise<void> {
   const headings = TOP_LEVEL_HEADINGS
   const tasksTypesReverse = TASK_TYPES.slice().reverse()
   for (let i = 0; i < tasksTypesReverse.length; i++) {
@@ -384,7 +389,14 @@ async function writeOutTasks(note: CoreNoteFields, tasks: any, drawSeparators = 
       logDebug(`\tEDITOR_FILE TASK_TYPE=${ty} -- withHeadings=${String(withHeadings)}`)
       try {
         note
-          ? await insertTodos(note, tasks[ty], withHeadings ? `### ${headings[ty]}:` : '', drawSeparators ? `${i === tasks[ty].length - 1 ? '---' : ''}` : '', withSubheadings)
+          ? await insertTodos(
+              note,
+              tasks[ty],
+              withHeadings ? `### ${headings[ty]}:` : '',
+              drawSeparators ? `${i === tasks[ty].length - 1 ? '---' : ''}` : '',
+              withSubheadings,
+              title,
+            )
           : null
       } catch (e) {
         logError(pluginJson, JSON.stringify(e))
@@ -407,6 +419,17 @@ async function wantHeadings() {
 async function wantSubHeadings() {
   return await chooseOption(
     `Include sort field subheadings in the output?`,
+    [
+      { label: 'Yes', value: true },
+      { label: 'No', value: false },
+    ],
+    true,
+  )
+}
+
+async function sortInsideHeadings() {
+  return await chooseOption(
+    `Sort each heading's tasks individually?`,
     [
       { label: 'Yes', value: true },
       { label: 'No', value: false },
@@ -450,20 +473,48 @@ export function removeEmptyHeadings(note: CoreNoteFields) {
   }
 }
 
+/**
+ * Build an object list of tasks from the note filtered by task
+ * @param {TNote} note
+ */
+export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<TParagraph> } {
+  const paragraphs = note?.paragraphs || []
+  return paragraphs.reduce((acc, para) => {
+    if (para.type === 'title') {
+      acc[para.content] = []
+    } else {
+      acc[para.heading].push(para)
+    }
+    return acc
+  }, {})
+}
+
+/**
+ * Sort tasks (main)
+ * (Plugin entrypoint for /ts - Task Sort)
+ * @param {*} withUserInput
+ * @param {*} sortFields
+ * @param {*} withHeadings
+ * @param {*} withSubHeadings
+ * @returns
+ */
 export default async function sortTasks(
   withUserInput: boolean = true,
   sortFields: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
   withHeadings: boolean | null = null,
   withSubHeadings: boolean | null = null,
 ) {
-  const { eliminateSpinsters } = DataStore.settings
+  const { eliminateSpinsters, sortInHeadings } = DataStore.settings
 
-  if (Editor == null) {
-    return // if no note, stop. Should resolve 2 flow errors below, but only resolves 1 :-(
-  }
-  logDebug(`\n\nStarting sortTasks(${String(withUserInput)},${JSON.stringify(sortFields)},${String(withHeadings)}):`)
+  const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadings
+
+  logDebug(
+    `\n\nStarting sortTasks(withUserInput:${String(withUserInput)},default sortFields:${JSON.stringify(sortFields)},withHeadings:${String(withHeadings)},byHeading:${String(
+      byHeading,
+    )}):`,
+  )
   const sortOrder = withUserInput ? await getUserSort() : sortFields
-  logDebug(`\tUser specified sort=${JSON.stringify(sortOrder)}`)
+  logDebug(`\tsortTasks: User chose sort=${JSON.stringify(sortOrder)}`)
   // logDebug(`\tFinished getUserSort, now running wantHeadings`)
 
   const printHeadings = withHeadings === null ? await wantHeadings() : withHeadings
@@ -476,18 +527,30 @@ export default async function sortTasks(
     logDebug(`\twithSubHeadings=${String(withSubHeadings)} printSubHeadings=${String(printSubHeadings)}  cat=${printSubHeadings ? sortField1 : ''}`)
   }
   // logDebug(`\tFinished wantSubHeadings()=${String(printSubHeadings)}, now running sortTasksInNote`)
-  const sortedTasks = sortTasksInNote(Editor, sortOrder)
+  if (!Editor.note) return // doing this to make Flow happy
+  const sortGroups = byHeading && Editor.note ? getTasksByHeading(Editor.note) : { [Editor.note.title || '']: Editor.note.paragraphs }
+
+  for (const key in sortGroups) {
+    logDebug(`\tsortTasks: heading Group title="${key}" (${sortGroups[key].length} tasks)`)
+    if (sortGroups[key].length) {
+      const sortedTasks = sortTasksInNote(sortGroups[key], sortOrder)
+      if (Editor.note) await deleteExistingTasks(Editor.note, sortedTasks, MAKE_BACKUP) // need to do this before adding new lines to preserve line numbers
+      // TODO: come back to this with new template fields
+      if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', key)
+    }
+  }
+
+  // const sortedTasks = sortTasksInNote(Editor.paragraphs, sortOrder)
   // logDebug(`\tFinished sortTasksInNote, now running deleteExistingTasks`)
-  await deleteExistingTasks(Editor.note, sortedTasks, MAKE_BACKUP) // need to do this before adding new lines to preserve line numbers
   // logDebug(`\tFinished deleteExistingTasks, now running writeOutTasks`)
 
-  if (Editor) {
-    if (printSubHeadings) {
-      // TODO: come back to this with new template fields
-      // await deleteParagraphsContainingString(Editor)
-    }
-    await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '')
-  }
+  // if (Editor) {
+  //   if (printSubHeadings) {
+  //     // TODO: come back to this with new template fields
+  //     // await deleteParagraphsContainingString(Editor)
+  //   }
+  //   // if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '')
+  // }
   logDebug(`\tFinished writeOutTasks, now finished`)
   if (eliminateSpinsters) {
     removeEmptyHeadings(Editor)

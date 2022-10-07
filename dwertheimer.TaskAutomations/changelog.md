@@ -15,6 +15,7 @@
 - Added preference to review today's tasks after overdue review
 - Removed Date+ - no longer necessary with overdue scan
 - /ts - changed the way deletes are done under the hood to make it more reliable
+- /ts - add task sort under headings
 
 ## [2.4.1] (@dwertheimer) 2022-09-04
 

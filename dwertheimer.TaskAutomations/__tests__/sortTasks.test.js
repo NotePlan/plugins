@@ -195,4 +195,32 @@ describe(`${PLUGIN_NAME}`, () => {
       spy.mockRestore()
     })
   })
+  /*
+   * getTasksByHeading()
+   */
+  describe('getTasksByHeading()' /* function */, () => {
+    test('should send back empty if no note', () => {
+      const result = f.getTasksByHeading(null)
+      expect(result).toEqual({})
+    })
+    test('should send back empty if no paras', () => {
+      const result = f.getTasksByHeading({ paragraphs: [] })
+      expect(result).toEqual({})
+    })
+    test('should put one item under a title', () => {
+      const p1 = { type: 'title', content: 'foo' }
+      const p2 = { type: 'text', content: 'bar', heading: 'foo' }
+      const result = f.getTasksByHeading({ paragraphs: [p1, p2] })
+      expect(result).toEqual({ foo: [p2] })
+    })
+    test('should work for two titles and content underneath', () => {
+      const p1 = { type: 'title', content: 'foo' }
+      const p2 = { type: 'text', content: 'bar', heading: 'foo' }
+      const p3 = { type: 'title', content: 'baz' }
+      const p4 = { type: 'text', content: 'bam', heading: 'baz' }
+      const p5 = { type: 'title', content: 'soy' }
+      const result = f.getTasksByHeading({ paragraphs: [p1, p2, p3, p4, p5] })
+      expect(result).toEqual({ foo: [p2], baz: [p4], soy: [] })
+    })
+  })
 })
