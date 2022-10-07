@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.8.0-beta6",
-  "plugin.lastUpdateInfo": "Offers HTML view of '/project lists', requiring NP v3.7. Can also now be run from x-callback.",
+  "plugin.version": "0.8.0",
+  "plugin.lastUpdateInfo": "Major new version. Offers Rich HTML view of '/project lists', requiring NP v3.7. Can also now be run from x-callback.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -83,14 +83,22 @@
       "jsFunction": "makeReviewList"
     },
     {
+      "name": "test:generateCSSFromTheme",
+      "description": "test generateCSSFromTheme",
+      "jsFunction": "testGenerateCSSFromTheme"
+    }
+  ],
+  "plugin.inactiveCommands": [
+    {
+      "comment": "Note: saved for later use",
       "name": "rev:test update Reviews plugin",
       "description": "upgrade Reviews plugin settings",
       "jsFunction": "testUpdated"
     },
     {
-      "name": "test:generateCSSFromTheme",
-      "description": "generateCSSFromTheme",
-      "jsFunction": "generateCSSFromTheme"
+      "name": "test:redToGreenInterpolation",
+      "description": "test red - green interpolation",
+      "jsFunction": "testRedToGreenInterpolation"
     },
     {
       "name": "test:NoteplanstateFont",
@@ -101,11 +109,6 @@
       "name": "test:CSS-circle",
       "description": "test CSS Circle",
       "jsFunction": "testCSSCircle"
-    },
-    {
-      "name": "test:redToGreenInterpolation",
-      "description": "test red - green interpolation",
-      "jsFunction": "testRedToGreenInterpolation"
     },
     {
       "name": "test:ButtonTriggerCommand",
@@ -131,14 +134,15 @@
     {
       "key": "outputStyle",
       "title": "Output style to use",
-      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use the original 'NotePlan' (Markdown) output style.\nNote: the 'Rich' output doesn't result in a saved note.",
+      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use NotePlan's original 'Markdown' output style.\nNote: the 'Rich' output can't result in a saved note.",
       "type": "string",
       "choices": [
         "Rich",
-        "NotePlan"
+        "Markdown"
       ],
-      "default": "markdown",
-      "required": true
+      "default": "Rich",
+      "required": true,
+      "comment": "TODO: add in \"Rich + Markdown\" later, and add ', so that's why there's also an option to do both.' to description"
     },
     {
       "key": "folderToStore",
@@ -146,6 +150,17 @@
       "description": "Folder where review notes will be stored (will be created if necessary)",
       "type": "string",
       "default": "Reviews",
+      "required": true
+    },
+    {
+      "key": "noteTypeTags",
+      "title": "Hashtags to review",
+      "description": "A comma-separated list of hashtags to indicate notes to include in this review system.\nIf this setting is empty, then it will include all notes for review that include a `@review(...)` string.\nIf it is set (e.g. `#project, #area`), then it will include just those notes which also have one or more of those tags.",
+      "type": "[string]",
+      "default": [
+        "#area",
+        "#project"
+      ],
       "required": true
     },
     {
@@ -159,17 +174,6 @@
         "Saved Searches"
       ],
       "required": false
-    },
-    {
-      "key": "noteTypeTags",
-      "title": "Note type hashtags",
-      "description": "A comma-separated list of hashtags to indicate notes to include in this review system.\nIf this setting is empty, then it will include all notes for review that include a `@review(...)` string.\nIf it is set (e.g. `#project, #area`), then it will include just those notes which also have one or more of those tags.",
-      "type": "[string]",
-      "default": [
-        "#area",
-        "#project"
-      ],
-      "required": true
     },
     {
       "key": "confirmNextReview",

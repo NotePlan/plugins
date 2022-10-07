@@ -247,7 +247,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
   else {
     // If last line is empty, ignore it.
     if (paras[paras.length - 1].type === 'empty') {
-      logDebug('paragraph/findEndOfActivePartOfNote', `last para is empty so ignoring it`)
+      // logDebug('paragraph/findEndOfActivePartOfNote', `last para is empty so ignoring it`)
       lineCount--
     }
 
@@ -270,7 +270,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
       : cancelledHeaderLine > 1 ? cancelledHeaderLine - 1
         : lineCount > 1 ? lineCount - 1
           : 0
-    logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
+    // logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
     return endOfActive
   }
 }

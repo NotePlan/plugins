@@ -3,15 +3,19 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 <!-- TODO: Think about saving 'noteplan' view as well as 'rich' style each time -->
 
-## [0.8.0] - 2022-09-???
-Major new version of the **/project lists** command:
-- option for 'rich' style output which shows an HTML view (requires NotePlan 3.7) complete with coloured progress rings
-- now opens the review list note (if previous 'NotePlan' style used)
-- project progress is now shown as either as your most recent `Progress:` field, or as the stats it can calculate (e.g. `75% done (of 32 tasks)`)
-- now removes folders with no active projects from the output lists
+## [0.8.0] - 2022-10-10
+This is a major new version of the **/project lists** command:
+### Added
+- option for 'Rich' style output which shows a list in a new window complete with coloured progress rings and tables (requires NotePlan 3.7)
+- now opens the new review list note (if previous 'NotePlan' style used)
+- project progress is now shown either as your most recent `Progress:` field, or as the stats it can calculate (e.g. `75% done (of 32 tasks)`)
+- new 'Refresh' button to update the review list (in either style) (suggested by @George65)
 - new option 'Display dates?' that can suppress printing project dates if you want (for @LaurenaRehbein)
 - new option 'Display progress?' that can suppress printing project progress if you want (for @LaurenaRehbein)
 - now can be triggered by an x-callback call (see README for details)
+### Changes
+- now removes folders with no active projects from the output lists
+- now hides the progress spinner when running background updates
 
 ## [0.7.1] - 2022-08-03
 ### Fixed

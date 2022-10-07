@@ -2,10 +2,9 @@
 //-----------------------------------------------------------------------------
 // Commands for producing Project lists
 // by @jgclark
-// Last updated 19.9.2022 for v0.8.0-beta, @jgclark
+// Last updated 7.10.2022 for v0.8.0, @jgclark
 //-----------------------------------------------------------------------------
 // FIXME: button again ... use the DataStore.invokePluginCommandByName method ?
-// TODO: add button/link for Refresh?
 // TODO: add option for kicking off /overdue for the note?
 // TODO: Ignore all @folders automatically
 
@@ -20,6 +19,7 @@ import {
   hyphenatedDateString,
   nowLocaleDateTime,
   RE_DATE,
+  toLocaleDateTimeString
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithStringArgs, timer } from '@helpers/dev'
 import {
@@ -41,15 +41,11 @@ import {
 //-----------------------------------------------------------------------------
 
 export const reviewListCSS: string = [
-  '',
-  '/* CSS specific to reviewList() from jgclark.Reviews plugin */',
-  `@font-face {
-  font-family: "noteplanstate";
-  src: url('noteplanstate.ttf') format('truetype');
-}`, // local font that needs to be in the plugin's bundle
+  '\n/* CSS specific to reviewList() from jgclark.Reviews plugin */\n',
+  `@font-face { font-family: "noteplanstate"; src: url('noteplanstate.ttf') format('truetype'); }`, // local font that needs to be in the plugin's bundle
   'table { font-size: 0.9rem;', // make text a little smaller
-  '\tborder-collapse: collapse;', // always!
-  '\tempty-cells: show; }',
+  '  border-collapse: collapse;', // always!
+  '  empty-cells: show; }',
   '.sticky-row { position: sticky; top: 0; }', // Keep a header stuck to top of window
   'th { text-align: left; padding: 4px; border-left: 0px solid --tint-color; border-right: 0px solid --tint-color; border-bottom: 1px solid --tint-color; }', // // removed L-R borders for now
   'th td:first-child {text-align: center;}',
@@ -61,12 +57,13 @@ export const reviewListCSS: string = [
   'table tr td:last-child, table tr th:last-child { border-right: 0px; }', // turn off outer table right borders
   'a, a:visited, a:active { color: inherit }', // note links: turn off text color
   // 'a:hover { }', // perhaps use hover for note links
-  'button { font-size: 1.0rem; font-weight: 700; }',
+  // 'button { font-size: 1.0rem; font-weight: 500; }',
+  // '.top-right-fix { position: fixed; top: 3rem; right: 2rem; }', // a top-right fixed position, even when scrolled
   '.noteTitle { font-weight: 700; }', // make noteTitles bold
   '.checkbox { font-family: "noteplanstate"; font-size: 1.4rem; }', // make checkbox display larger, and like in the app
   '.percent-ring { width: 2rem; height: 2rem; }', // Set size of percent-display rings
   '.percent-ring-circle { transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%; }', // details of ring-circle that can be set in CSS
-  '.circle-percent-text { font-size: 2.2rem; color: --fg-main-color; }', // details of ring text that can be set in CSS
+  '.circle-percent-text { font-family: "Avenir Next"; font-size: 2.2rem; font-weight: 700; color: --fg-main-color; }', // details of ring text that can be set in CSS
   '.circle-char-text { font-size: 1.9rem; font-family: "noteplanstate" }' // details of ring text that can be set in CSS, including font, locally set above
 ].join('\n\t')
 
@@ -74,7 +71,8 @@ const startReviewsCommandCall = (`(function() {
     DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
   })()`
 )
-const projectListsCommandCall = (`(function() {
+
+const makeProjectListsCommandCall = (`(function() {
     DataStore.invokePluginCommandByName("project lists", "jgclark.Reviews");
   })()`
 )
@@ -84,12 +82,11 @@ function makeCommandCall(commandCallJSON: string): string {
   const callCommand = () => {
     window.webkit.messageHandlers.jsBridge.postMessage({
       code: ${commandCallJSON},
-      onHandle: "onHandleUpdateLabel",
+      onHandle: "onHandleUpdateLabel", // TODO: remove in time
       id: "1"
     });
   };
-</script>
-`
+</script>`
 }
 
 export const setPercentRingJSFunc: string = `<script>
@@ -115,20 +112,8 @@ export const setPercentRingJSFunc: string = `<script>
   `
 
 /**
- * Temporary function to re-display previous project list HTML
- */
-export function redisplayProjectListHTML(): void {
-  // read the saved HTML file from data/jgclark.Reviews/project_list.html
-  const filename = "project_list.html"
-  const html = DataStore.loadData(filename, true) ?? ''
-  logDebug(pluginJson, `Read ${html.length} bytes from ${filename} to re-display`)
-
-  HTMLView.showWindow(html, 're-dispay project list')
-}
-
-/**
- * Decide which of the project list output functions to call.
- * Now includes support for calling from x-callback, using simple "a=b,x=y" version of settings and values.
+ * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
+ * Now includes support for calling from x-callback, using simple "a=b;x=y" version of settings and values that will override ones in the user's settings.
  */
 export async function makeProjectLists(argsIn?: string | null = null): Promise<void> {
   try {
@@ -143,14 +128,23 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
     }
 
     // Call the relevant function with the updated config
-    if (config.outputStyle === 'Rich' && NotePlan.environment.buildVersion >= 845) {
+    if (config.outputStyle.match(/rich/i) && NotePlan.environment.buildVersion >= 845) {
       await makeProjectListsHTML(config)
-    } else {
+    }
+    if (config.outputStyle.match(/markdown/i)) {
       await makeProjectListsMarkdown(config)
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+}
+
+export function redisplayProjectListHTML(): void {
+  // Placeholder for now
+}
+
+export function redisplayProjectListMarkdown(): void {
+  // Placeholder for now
 }
 
 /**
@@ -163,7 +157,7 @@ export async function makeProjectListsHTML(config: any): Promise<void> {
   try {
     // Check to see if we're running v3.6.2, build 844) or later
     if (NotePlan.environment.buildVersion <= 844) {
-      await showMessage('Sorry: need to be running NP 3.6.2 or later', 'Shame', "Sorry, Dave, I can't do that")
+      await showMessage('Sorry: need to be running NP 3.6.2 or later', 'Shame', "Sorry, Dave, I can't do that.")
       return
     }
 
@@ -173,11 +167,13 @@ export async function makeProjectListsHTML(config: any): Promise<void> {
 
     if (config.noteTypeTags.length > 0) {
       // We have defined tag(s) to filter and group by
+      // Need to change a single string (1 tag) to an array (multiple tags)
+      if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
       for (const tag of config.noteTypeTags) {
         // handle #hashtags in the note title (which get stripped out by NP, it seems)
         const tagWithoutHash = tag.replace('#', '')
         const noteTitle = `${tag} Review List`
-        const noteTitleForFilename = `${tagWithoutHash}_list.html`
+        const noteTitleWithoutHash = `${tagWithoutHash}_list.html`
 
         // Do the main work
         // Calculate the Summary list(s)
@@ -194,8 +190,8 @@ export async function makeProjectListsHTML(config: any): Promise<void> {
           reviewListCSS,
           false, // = not modal window
           setPercentRingJSFunc,
-          makeCommandCall(startReviewsCommandCall) + makeCommandCall(projectListsCommandCall),
-          noteTitleForFilename) // not giving window dimensions
+          makeCommandCall(startReviewsCommandCall),
+          noteTitleWithoutHash) // not giving window dimensions
         logDebug(pluginJson, `- written results to HTML`)
       }
     } else {
@@ -237,6 +233,7 @@ export async function makeProjectListsMarkdown(config: any): Promise<void> {
     logDebug(pluginJson, `makeProjectLists: starting for ${config.noteTypeTags.toString()} tags`)
 
     if (config.noteTypeTags.length > 0) {
+      if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
       // We have defined tag(s) to filter and group by
       for (const tag of config.noteTypeTags) {
         // handle #hashtags in the note title (which get stripped out by NP, it seems)
@@ -255,7 +252,8 @@ export async function makeProjectListsMarkdown(config: any): Promise<void> {
           note.content = outputArray.join('\n')
           logDebug(pluginJson, `- written results to note '${noteTitle}'`)
           // Open the note in a new window
-          await Editor.openNoteByFilename(note.filename, true, 0, 0, false)
+          // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+          await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
         } else {
           await showMessage('Oops: failed to find or make project summary note', 'OK')
           logError(pluginJson, "Shouldn't get here -- no valid note to write to!")
@@ -275,7 +273,7 @@ export async function makeProjectListsMarkdown(config: any): Promise<void> {
         note.content = outputArray.join('\n')
         logInfo(pluginJson, `written results to note '${noteTitle}'`)
         // Open the note in a new window
-        // TODO: Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+        // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
         await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
       } else {
         await showMessage('Oops: failed to find or make project summary note', 'OK')
@@ -292,6 +290,7 @@ export async function makeProjectListsMarkdown(config: any): Promise<void> {
 //-------------------------------------------------------------------------------
 /** 
  * Return summary of notes that contain a particular tag, for all relevant folders
+ * TODO: Change to write to intermediate TSV file in data/ folder that will be used by one/more renderers.
  * @author @jgclark
  * 
  * @param {string} noteTag - hashtag to look for
@@ -303,8 +302,7 @@ async function makeNoteTypeSummary(noteTag: string, style: string, config: any):
   try {
     logDebug('makeNoteTypeSummary', `Starting for '${noteTag}' in ${style} style`)
 
-    // Get list of folders, excluding @specials and our foldersToIgnore setting
-    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true)
+    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore)
     logDebug('makeNoteTypeSummary', `- for ${filteredFolderList.length} folders: '${String(filteredFolderList)}'`)
 
     let noteCount = 0
@@ -367,6 +365,7 @@ async function makeNoteTypeSummary(noteTag: string, style: string, config: any):
         }
 
         // Write new folder header
+        // FIXME: Sort better displauy for / root
         if (config.displayGroupedByFolder) {
           if (style === 'markdown') {
             outputArray.push(`### ${(folder !== '' ? folder : '/')} (${sortedProjects.length} notes)`)
@@ -393,8 +392,11 @@ async function makeNoteTypeSummary(noteTag: string, style: string, config: any):
     CommandBar.showLoading(false)
     logDebug('makeNoteTypeSummary', `${processed} notes reviewed in ${timer(startTime)}s`)
 
+    // Add summary/ies and 'start review' and 'refresh' buttons onto the start (remember: unshift adds to the very front each time)
     let startReviewButton = ''
-    // Add summary/ies and 'start review' button onto the start (remember: unshift adds to the very front each time)
+    let refreshXCallbackButton = ''
+    let args = ''
+    const nowDateTime = toLocaleDateTimeString(new Date())
     switch (style) {
       case 'HTML':
         // Create the HTML for the 'start review button'
@@ -405,21 +407,30 @@ async function makeNoteTypeSummary(noteTag: string, style: string, config: any):
         // - Version 3: using proper link to the internal function FIXME: doesn't yet work
         // startReviewButton = `<button onclick=callCommand()>Start reviewing ${overdue} ready for review</button>`
 
+        // Add (pseduo-)button for Refresh
+        args = encodeURIComponent(`noteTypeTags=${noteTag};outputStyle=Rich`)
+        refreshXCallbackButton = `<a href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=${args}">🔄 Refresh</a>`
+
         // writing backwards to suit .unshift
         outputArray.unshift(Project.detailedSummaryLineHeader(style, config.displayDates, config.displayProgress))
         outputArray.unshift('\n<table>')
         if (!config.displayGroupedByFolder) {
           outputArray.unshift(`<h3>All folders (${noteCount} notes)</h3>`)
         }
-        outputArray.unshift(`<p>Total: ${noteCount} active notes${(overdue > 0) ? `, <b>${startReviewButton}</b>` : ''}. <i>Last updated: ${nowLocaleDateTime}</i></p>`)
+        outputArray.unshift(`<p>Total ${noteCount} active notes${(overdue > 0) ? `: <span class="fake-button">${startReviewButton}</span>` : '.'} Last updated: ${nowDateTime} <span class="fake-button">${refreshXCallbackButton}</span></p>`)
+
+        // TODO: in time make a 'timeago' relative display, e.g. using https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html or https://theprogrammingexpert.com/javascript-count-up-timer/
         break
 
       default: // include 'markdown'
         startReviewButton = `[Start reviewing ${overdue} ready for review](noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review)`
+        args = encodeURIComponent(`noteTypeTags=${noteTag};outputStyle=Markdown`)
+        refreshXCallbackButton = `[🔄 Refresh](noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=${args})`
+
         if (noteCount > 0) { // print just the once
           outputArray.unshift(Project.detailedSummaryLineHeader(style, config.displayDates, config.displayProgress))
         }
-        outputArray.unshift(`Total: ${noteCount} active notes${(overdue > 0) ? `, **${startReviewButton}**` : ''}. _Last updated: ${nowLocaleDateTime}_`)
+        outputArray.unshift(`Total ${noteCount} active notes${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
         if (!config.displayGroupedByFolder) {
           outputArray.unshift(`### All folders (${noteCount} notes)`)
         }

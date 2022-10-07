@@ -3,8 +3,12 @@
 // Tests for various HTML developments
 //-------------------------------------------------------
 
-import { makeSVGPercentRing, redToGreenInterpolation, showHTML } from '@helpers/HTMLView'
+import { generateCSSFromTheme, makeSVGPercentRing, redToGreenInterpolation, showHTML } from '@helpers/HTMLView'
 import { reviewListCSS, setPercentRingJSFunc } from './projectLists'
+
+export function testGenerateCSSFromTheme(): void {
+  console.log(`generateCSSFromTheme ->\n${generateCSSFromTheme()}`)
+}
 
 /**
  * Show progress circle, just using HTML and CSS
@@ -117,7 +121,7 @@ body {
 export function testRedToGreenInterpolation(): void {
   let body = '<p>Testing out the red to green colour interpolation.</p>'
   for (let i = 0; i <= 100; i = i + 5) {
-    body += `${makeSVGPercentRing(100, redToGreenInterpolation(i), `${i}%`, `id${i}`)}
+    body += `${redToGreenInterpolation(i)}: ${makeSVGPercentRing(100, redToGreenInterpolation(i), `${i}`, `id${i}`)}
 `
   }
   showHTML(

@@ -2,11 +2,10 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark
-// Last updated 16.9.2022
+// Last updated 7.10.2022
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
-// import { getOrMakeNote } from '@helpers/note'
 const pluginJson = 'helpers/HTMLView'
 
 let baseFontSize = 14
@@ -67,6 +66,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     let tempSel = []
     const rootSel = [] // for special :root selector which sets variables picked up in several places below
     let styleObj: Object
+    const islightTheme = themeJSON.style === 'Light'
 
     // Set 'html':
     // - main font size
@@ -135,19 +135,54 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // Set core table features from theme:
     const altColor = RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30'
+    const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
     output.push(makeCSSSelector('tr:nth-child(even)', [`background-color: ${altColor}`]))
     output.push(makeCSSSelector('th', [`background-color: ${altColor}`]))
     rootSel.push(`--bg-alt-color: ${altColor}`)
-    const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
     output.push(makeCSSSelector('table tbody tr:first-child', [`border-top: 1px solid ${tintColor}`]))
     output.push(makeCSSSelector('table tbody tr:last-child', [`border-bottom: 1px solid ${RGBColourConvert(themeJSON.editor?.tintColor)}` ?? '1px solid #E9C0A2']))
     rootSel.push(`--tint-color: ${tintColor}`)
+
+    // Set core button style from macOS based on dark or light:
+    // Similarly for fake-buttons (i.e. from <a href ...>)
+    if (islightTheme) {
+      output.push(makeCSSSelector('button',
+        ['background-color: #FFFFFF',
+          'font-size: 1.0rem',
+          'font-weight: 500']))
+      output.push(makeCSSSelector('.fake-button a',
+        ['background-color: #FFFFFF',
+          'font-size: 1.0rem',
+          'font-weight: 500',
+          'text-decoration: none',
+          'border-color: #DFE0E0',
+          'border-radius: 4px',
+          'box-shadow: 0 1px 1px #CBCBCB',
+          'padding: 1px 7px 1px 7px',
+          'margin: 1px 4px']))
+    }
+    else { // dark theme
+      output.push(makeCSSSelector('button',
+        ['background-color: #5E5E5E',
+          'font-size: 1.0rem',
+          'font-weight: 500']))
+      output.push(makeCSSSelector('.fake-button a',
+        ['background-color: #5E5E5E',
+          'font-size: 1.0rem',
+          'font-weight: 500',
+          'text-decoration: none',
+          'border-color: #5E5E5E',
+          'border-radius: 4px',
+          'box-shadow: 0 -1px 1px #6F6F6F',
+          'padding: 1px 7px 1px 7px',
+          'margin: 1px 4px']))
+    }
 
     // Set bold text if present
     tempSel = []
     styleObj = themeJSON.styles.bold
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#CC6666') // FIXME:
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#CC6666')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('b', tempSel))
     }
@@ -155,7 +190,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.italic
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#96CBFE') // FIXME:
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#96CBFE')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('i', tempSel))
     }
@@ -165,7 +200,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.checked
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#9DC777')
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#098308A0')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.task-checked', tempSel))
     }
@@ -175,7 +210,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['checked-canceled']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#9DC777')
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#E04F57A0')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.task-cancelled', tempSel))
     }
@@ -185,7 +220,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['checked-scheduled']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#9DC777')
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#7B7C86A0')
     }
     tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
     output.push(makeCSSSelector('.task-scheduled', tempSel))
@@ -194,7 +229,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     output.unshift(makeCSSSelector(':root', rootSel))
     output.unshift(`/* Generated by @jgclark's translateFontNameNPToCSS from NotePlan theme '${themeName}' by jgc */`)
 
-    logDebug('generateCSSFromTheme', `Generated CSS:\n${output.join('\n')}`)
+    // logDebug('generateCSSFromTheme', `Generated CSS:\n${output.join('\n')}`)
     return output.join('\n')
   } catch (error) {
     logError('generateCSSFromTheme', error.message)
@@ -305,7 +340,7 @@ function RGBColourConvert(RGBIn: string): string {
   // we have ARGB, so need to switch things round
   let output = RGBIn
   if (RGBIn.match(/#[0-9A-Fa-f]{8}/)) {
-    output = `#${RGBIn.slice(7, 9)}${RGBIn.slice(1, 7)}`
+    output = `#${RGBIn.slice(3, 9)}${RGBIn.slice(1, 3)}`
   }
   return output
 }
@@ -572,7 +607,7 @@ export function makeSVGPercentRing(percent: number, color: string, textToShow: s
 export function redToGreenInterpolation(percent: number): string {
   // Work out colour ranges from nearly pure red to nearly full green, passing through yellow
   const red = (percent > 60 ? 1 - 2 * (percent - 60) / 100.0 : 1.0) * 223
-  const green = (percent > 40 ? 1.0 : 2 * percent / 100.0) * 223
+  const green = (percent > 40 ? 1.0 : 2 * percent / 100.0) * 187 // 223
   const blue = Math.abs(50.0 - percent) // add some blue increasingly at both red and green ends
   return rgbToHex(Math.round(red), Math.round(green), Math.round(blue))
 }

@@ -335,6 +335,7 @@ export function timer(startTime: Date): string {
  * Tested with strings, ints, floats, boolean and simple array of strings.
  * Note: Different parameters are separated by ';' (not the more usual ',' to allow for comma-separated arrays)
  * Note: use the advanced version to pass more advanced quoted arrays, and items containing commas or semicolons.
+ * Note: This can't tell the difference between single-element arrays and strings, so that processing needs to be done by the calling function.
  * @author @jgclark and @dwertheimer
  * @param {any} config object
  * @param {string} argsAsString e.g. 'field1=Bob Skinner;field2=false;field3=simple,little,array'
@@ -346,7 +347,6 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
     if (argsAsString) {
       const argObj = {}
       argsAsString.split(';').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
-
       // use the built-in way to add (or override) from argObj into config
       const configOut = Object.assign(config)
 

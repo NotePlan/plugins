@@ -1,7 +1,6 @@
 // @flow
 //-------------------------------------------------------------------------------
 // Note-level Functions
-import { log } from 'util'
 import moment from 'moment'
 import { RE_PLUS_DATE_G, hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, isWeeklyNote } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from './dev'

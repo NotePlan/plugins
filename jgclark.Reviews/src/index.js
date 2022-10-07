@@ -22,7 +22,8 @@ export {
 export {
   makeProjectLists,
   makeProjectListsHTML,
-  redisplayProjectListHTML
+  redisplayProjectListHTML,
+  redisplayProjectListMarkdown
 } from './projectLists'
 export {
   completeProject,
@@ -36,6 +37,7 @@ export {
 // export { testNoteplanStateFont } from '../test/noteplanstateFontTest.js'
 
 export {
+  testGenerateCSSFromTheme,
   testButtonTriggerCommand,
   testButtonTriggerOpenNote,
   testCSSCircle,

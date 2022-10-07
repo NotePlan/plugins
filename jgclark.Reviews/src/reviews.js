@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 13.9.2022 for v0.8.0-beta3, @jgclark
+// Last updated 5.10.2022 for v0.8.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -22,7 +22,6 @@ import {
   getFilteredFolderList,
 } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-// import { showHTML } from '@helpers/HTMLView'
 import {
   findNotesMatchingHashtag,
   findNotesMatchingHashtags,
@@ -55,7 +54,7 @@ export function logReviewList(): void{
  * This is V2, which uses reviewList pref to store the list
  * @author @jgclark
  */
-export async function makeReviewList(): Promise<void> {
+export async function makeReviewList(runInForeground: boolean = false): Promise<void> {
   try {
     const config = await getReviewSettings()
 
@@ -63,10 +62,12 @@ export async function makeReviewList(): Promise<void> {
     const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true)
     const summaryArray = []
 
-    logDebug(pluginJson, `makeReviewList: starting for ${config.noteTypeTags.toString()} tags:`)
+    logDebug('makeReviewList', `starting for ${config.noteTypeTags.toString()} tags:`)
 
-    CommandBar.showLoading(true, `Generating Project Review list`)
-    await CommandBar.onAsyncThread()
+    if (runInForeground) {
+      CommandBar.showLoading(true, `Generating Project Review list`)
+      await CommandBar.onAsyncThread()
+    }
 
     const startTime = new Date()
     // Iterate over the folders ...
@@ -79,12 +80,11 @@ export async function makeReviewList(): Promise<void> {
 
       // Get notes that include noteTag in this folder, ignoring subfolders
       const projectNotesArrArr = findNotesMatchingHashtags(tags, folder, false)
-      logDebug(pluginJson, `- After findNotesMatchingHashtags, before loop`)
       const projectsReadyToReview = []
       for (const pnarr of projectNotesArrArr) {
         if (pnarr.length > 0) {
-          // Get Project class representation of each note,
-          // saving those which are ready for review in projectsReadyToReview array
+          // Get Project class representation of each note.
+          // Save those which are ready for review in projectsReadyToReview array
           for (const n of pnarr) {
             const np = new Project(n)
             if (np.isReadyForReview && !config.foldersToIgnore.includes(np.folder)) {
@@ -100,8 +100,10 @@ export async function makeReviewList(): Promise<void> {
       }
     }
     logDebug(pluginJson, `- ${Number(config.noteTypeTags.length * filteredFolderList.length)} folder/tag combinations reviewed in ${timer(startTime)}s`)
-    await CommandBar.onMainThread()
-    CommandBar.showLoading(false)
+    if (runInForeground) {
+      await CommandBar.onMainThread()
+      CommandBar.showLoading(false)
+    }
 
     // dedupe the list, in case it contains duplicates
     const dedupedArray = []
@@ -117,7 +119,9 @@ export async function makeReviewList(): Promise<void> {
 
     // write summary to reviewList pref
     DataStore.setPreference(reviewListPref, outputArray.join('\n'))
-    logInfo(pluginJson, `-> Now ${outputArray.length} lines in the reviewListPref`)
+    logReviewList()
+    // logInfo(pluginJson, `-> Now ${outputArray.length} lines in the reviewListPref`)
+
   }
   catch (error) {
     logError(pluginJson, `makeReviewList: ${error.message}`)
@@ -136,7 +140,7 @@ export async function startReviews(): Promise<void> {
     const config = await getReviewSettings()
 
     // Make/update list of projects ready for review
-    await makeReviewList()
+    await makeReviewList(true)
 
     // Now offer first review
     const noteToReview = await getNextNoteToReview()
@@ -173,7 +177,6 @@ export async function nextReview(): Promise<void> {
     const config = await getReviewSettings()
 
     // First update @review(date) on current open note
-    // eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
     const openNote: ?TNote = await finishReview()
 
     // Read review list to work out what's the next one to review
@@ -216,7 +219,7 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
     let reviewList = DataStore.preference(reviewListPref)
     if (reviewList === undefined) {
       logDebug(pluginJson, `Can't find pref ${reviewListPref}. Will run makeReviewList() ...`)
-      await makeReviewList()
+      await makeReviewList(false)
       return
     }
 
@@ -239,7 +242,7 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
       logDebug(pluginJson, `- Removed line ${lineNum} from reviewList pref as its review is completed`)
     } else {
       logDebug(pluginJson, `- Couldn't find '${reviewedTitle}' to remove from review list. Will run makeReviewList ...`)
-      await makeReviewList()
+      await makeReviewList(false)
       return
     }
   }
@@ -259,8 +262,8 @@ async function getNextNoteToReview(): Promise<?TNote> {
     // Get pref that contains the project list
     let reviewList = DataStore.preference(reviewListPref)
     if (reviewList === undefined) {
-      logWarn(pluginJson, `getNextNoteToReview: Couldn't find pref ${reviewListPref}. Please run makeReviewList() ...`)
-      await makeReviewList()
+      logWarn(pluginJson, `getNextNoteToReview: Couldn't find pref ${reviewListPref}. Please run /rev:makeReviewList ...`)
+      await makeReviewList(true)
       reviewList = DataStore.preference(reviewListPref)
       return
     }

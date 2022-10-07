@@ -271,12 +271,12 @@ export class Project {
     // make project archived if #archive tag present
     this.isArchived = getStringFromList(hashtags, '#archive') !== ''
     // make project cancelled if #cancelled or #someday flag set or @cancelled date set
-    this.isCancelled = getStringFromList(hashtags, '#cancelled') !== '' || getStringFromList(hashtags, '#someday') !== '' || this.completedDate != null
+    this.isCancelled = getStringFromList(hashtags, '#cancelled') !== '' || getStringFromList(hashtags, '#someday') !== '' || this.cancelledDate != null
 
     // set project to active if #active is set or a @review date found,
     // and not completed / cancelled.
     this.isActive = (getStringFromList(hashtags, '#active') !== '' || this.reviewInterval != null) && !this.isCompleted && !this.isCancelled && !this.isArchived ? true : false
-    logDebug(pluginJson, `Project object created OK with Metadata = '${this.generateMetadataLine()}'`)
+    // logDebug(pluginJson, `Project object created OK with Metadata = '${this.generateMetadataLine()}'`)
   }
 
   /**
@@ -285,7 +285,7 @@ export class Project {
    * @return {boolean}
    */
   get isReadyForReview(): boolean {
-    logDebug(pluginJson, `isReadyForReview: ${this.title}:  ${String(this.nextReviewDays)} ${String(this.isActive)}`)
+    // logDebug(pluginJson, `isReadyForReview: ${this.title}:  ${String(this.nextReviewDays)} ${String(this.isActive)}`)
     return this.nextReviewDays != null && this.nextReviewDays <= 0 && this.isActive
   }
 
@@ -418,10 +418,11 @@ export class Project {
   decoratedProjectTitle(style: string, includeFolderName: boolean): string {
     const folderNamePart = includeFolderName ? this.folder + ' ' : ''
     const titlePart = this.title ?? '(error, not available)'
+    const titlePartEncoded = encodeURIComponent(this.title) ?? '(error, not available)'
     switch (style) {
       case 'HTML':
         // Method 1: make [[notelinks]] via x-callbacks
-        const noteTitleWithOpenAction = `<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${titlePart}">${folderNamePart}${titlePart}</a></span>`
+        const noteTitleWithOpenAction = `<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${titlePartEncoded}">${folderNamePart}${titlePart}</a></span>`
         // Method 2: internal links
         // see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
         // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
@@ -513,16 +514,18 @@ export class Project {
         }
 
       case 'markdown':
-        // only add header if putting dates, otherwise not needed
-        if (displayDates) {
-          let output = '_Key:  Project/Area Title'
-          if (displayProgress) {
-            // output += '#tasks open / complete / waiting / future'
-            output += '\tProgress'
-          }
-          output += '\tDue date / Next review_'
-          return output
-        }
+        // Currently disable this:
+        //   // only add header if putting dates, otherwise not needed
+        //   if (displayDates) {
+        //     let output = '_Key:  Project/Area Title'
+        //     if (displayProgress) {
+        //       // output += '#tasks open / complete / waiting / future'
+        //       output += '\tProgress'
+        //     }
+        //     output += '\tDue date / Next review_'
+        //     return output
+        //   }
+        return ''
 
       default:
         logWarn('Project::detailedSummaryLineHeader', `Unknown style '${style}'; nothing returned.`)
@@ -548,11 +551,11 @@ export class Project {
       case 'HTML':
         output = '\t<tr>'
         if (this.isCompleted) {
-          output += '<td>' + this.addNPStateIcon('#00D050', 'a') + '</td>' // ✓
+          output += '<td class="task-checked">' + this.addNPStateIcon('a') + '</td>' // ✓
           output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (this.isCancelled) {
-          output += '<td>' + this.addNPStateIcon('#D00050', 'c') + '</td>' // X
+          output += '<td class="task-cancelled">' + this.addNPStateIcon('c') + '</td>' // X
           output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (isNaN(this.percentComplete)) { // NaN
@@ -628,13 +631,13 @@ export class Project {
           }
         }
         if (displayDates && !this.isCompleted && !this.isCancelled) {
-          output = this.dueDays != null ? `${output}\t${relativeDateFromNumber(this.dueDays)}` : `${output}\t-`
+          output = this.dueDays != null ? `${output}\tdue ${relativeDateFromNumber(this.dueDays)}` : output
           output =
             this.nextReviewDays != null
               ? this.nextReviewDays > 0
-                ? `${output} / ${relativeDateFromNumber(this.nextReviewDays)}`
-                : `${output} / **${relativeDateFromNumber(this.nextReviewDays)}**`
-            : `${output} / -`
+              ? `${output}\tnext review ${relativeDateFromNumber(this.nextReviewDays)}`
+              : `${output}\treview due **${relativeDateFromNumber(this.nextReviewDays)}**`
+            : output
         }
         break
 
@@ -665,11 +668,15 @@ export class Project {
   /**
    * Insert one of NP's state icons in given color.
    * Other styling comes from CSS for 'circle-char-text'
-   * @param {string} color 
+   * @param {string} colorStr 
    * @param {string} char to display (normally just 1 character)
    * @returns HTML string to insert
    */
-  addNPStateIcon(color: string, char: string): string {
-    return `<span class="circle-char-text" style="color: ${color}">${char}</span>`
+  addNPStateIcon(char: string, colorStr: string = ''): string {
+    if (colorStr !== '') {
+      return `<span class="circle-char-text" style="color: ${colorStr}">${char}</span>`
+    } else {
+      return `<span class="circle-char-text">${char}</span>`
+    }
   }
 }
