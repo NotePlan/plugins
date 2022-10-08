@@ -365,7 +365,7 @@ export default class NPTemplating {
       for (const template of templateList) {
         const parts = template.value.split('/')
         const filename = parts.pop()
-        let label = template.value.replace(`${TEMPLATE_FOLDER_NAME}/`, '').replace(filename, template.label)
+        let label = template.value.replace(`${TEMPLATE_FOLDER_NAME}/`, '').replace(filename, template.label.replace('/', '-'))
         if (!templateGroupTemplatesByFolder) {
           const parts = label.split('/')
           label = parts[parts.length - 1]
