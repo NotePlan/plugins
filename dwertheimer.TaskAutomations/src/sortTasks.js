@@ -14,6 +14,8 @@ const TOP_LEVEL_HEADINGS = {
   cancelled: 'Cancelled Tasks',
 }
 
+const ROOT = '__'
+
 // Note: not currently using getOverdueTasks from taskHelpers (because if it's open, we are moving it)
 // But the functions exist to look for open items with a date that is less than today
 //
@@ -181,7 +183,8 @@ const MAKE_BACKUP = false
  * @param {string} subHeadingCategory
  * @return {int} next line number  // @jgclark comment: no such type as 'int'
  */
-function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', subHeadingCategory = '', title: string = '') {
+function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', subHeadingCategory = '', theTitle: string = '') {
+  const title = theTitle === ROOT ? '' : theTitle // root level tasks in Calendar note have no heading
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
   logDebug(`InsertTodos: subHeadingCategory=${String(subHeadingCategory)} typeof=${typeof subHeadingCategory} ${todos.length} todos`)
@@ -480,19 +483,30 @@ export function removeEmptyHeadings(note: CoreNoteFields) {
 export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<TParagraph> } {
   const paragraphs = note?.paragraphs || []
   try {
-    const tasksObj = paragraphs.reduce((acc, para) => {
-      logDebug(`getTasksByHeading`, `para.type=${para.type} para.heading="${para.heading}" para.content="${para.content}"`)
-      if (para.type === 'title') {
-        acc[para.content.trim()] = []
-      } else {
-        acc[para.heading.trim()].push(para)
-      }
-      return acc
-    }, {})
+    const tasksObj = paragraphs.reduce(
+      (acc: any, para) => {
+        logDebug(`getTasksByHeading`, `para.type=${para.type} para.heading="${para.heading}" para.content="${para.content}"`)
+        if (para.type === 'title') {
+          if (para.content.trim()) {
+            acc[para.content.trim()] = []
+          }
+        } else {
+          const headTrimmed = para.heading.trim()
+          const head = headTrimmed.length ? headTrimmed : ROOT
+          if (!acc.hasOwnProperty(head)) {
+            logError(`getTasksByHeading`, `Could not find this paragraph's heading: para.heading="${para.heading}" para.content="${para.content}"`)
+            acc[ROOT].push(para)
+          }
+          acc[head].push(para)
+        }
+        return acc
+      },
+      { [ROOT]: [] },
+    ) // start with root heading
     return tasksObj
   } catch (e) {
-    logError(pluginJson, JSON.stringify(e))
-    return {}
+    logError(pluginJson, JSP(e))
+    return { [ROOT]: [] }
   }
 }
 
@@ -541,6 +555,7 @@ export default async function sortTasks(
   }
   logDebug(pluginJson, `sortTasks about to get sortGroups object`)
   const sortGroups = byHeading && Editor?.note?.title ? getTasksByHeading(Editor.note) : { [Editor?.note?.title || '']: Editor?.note?.paragraphs }
+  clo(sortGroups, `sortTasks -- sortGroups obj=`)
   logDebug(pluginJson, `sortTasks have sortGroups object. key count=${Object.keys(sortGroups).length}. About to start the display loop`)
 
   for (const key in sortGroups) {
