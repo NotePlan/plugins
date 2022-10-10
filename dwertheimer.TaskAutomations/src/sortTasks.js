@@ -246,12 +246,15 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
   const content = `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`
   if (title !== '') {
     // const headingIndex = findHeading(note, title)?.lineIndex || 0
+    logDebug(pluginJson, `insertTodos tasksToTop=${tasksToTop} title="${title}"`)
     if (tasksToTop) {
       note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
     } else {
       const paras = getBlockUnderHeading(note, title)
       const lastPara = paras[paras.length - 1]
       const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
+      logDebug(pluginJson, `insertTodos ${insertFunc} "${lastPara.content}"`)
+      // $FlowIgnore - calling function by name is not very Flow friendly (but it works!)
       note[insertFunc](content, lastPara)
     }
   } else {
