@@ -3,9 +3,10 @@
 import pluginJson from '../plugin.json'
 import { chooseOption } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
-import { removeHeadingFromNote } from '@helpers/NPParagraph'
+import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagraph'
 import { sortListBy, getTasksByType, TASK_TYPES } from '@helpers/sorting'
 import { logDebug, logError, clo, JSP } from '@helpers/dev'
+import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
 
 const TOP_LEVEL_HEADINGS = {
   open: 'Open Tasks',
@@ -185,6 +186,7 @@ const MAKE_BACKUP = false
  */
 function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', subHeadingCategory = '', theTitle: string = '') {
   const title = theTitle === ROOT ? '' : theTitle // root level tasks in Calendar note have no heading
+  const { tasksToTop } = DataStore.settings
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
   logDebug(`InsertTodos: subHeadingCategory=${String(subHeadingCategory)} typeof=${typeof subHeadingCategory} ${todos.length} todos`)
@@ -244,9 +246,17 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
   const content = `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`
   if (title !== '') {
     // const headingIndex = findHeading(note, title)?.lineIndex || 0
-    note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
+    if (tasksToTop) {
+      note.addParagraphBelowHeadingTitle(content, 'text', title, false, true)
+    } else {
+      const paras = getBlockUnderHeading(note, title)
+      const lastPara = paras[paras.length - 1]
+      const insertFunc = lastPara.type === 'separator' ? `insertTodoBeforeParagraph` : `insertParagraphAfterParagraph`
+      note[insertFunc](content, lastPara)
+    }
   } else {
-    note.insertParagraph(content, note.type === 'Calendar' ? 0 : 1, 'text')
+    const insertionIndex = tasksToTop ? findStartOfActivePartOfNote(note) : findEndOfActivePartOfNote(note) + 1
+    note.insertParagraph(content, insertionIndex, 'text')
   }
 }
 

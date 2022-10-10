@@ -219,7 +219,7 @@
     },
     {
       "type": "heading",
-      "title": "Default Output Style (Include Headings?)"
+      "title": "Default Task Sorting Output Settings"
     },
     {
       "key": "sortInHeadings",
@@ -228,7 +228,15 @@
       "type": "bool",
       "default": true,
       "required": true
-    },    
+    }, 
+    {
+      "key": "tasksToTop",
+      "title": "Put tasks at the top (before any textual items)?",
+      "description": "After tasks are sorted, do you want to put all the tasks at the top of the note (or section), before any other text? Uncheck this if you want the tasks to float to the bottom beneath any other text.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },   
     {
       "key": "includeHeading",
       "title": "Include Task Status Heading in Output?",

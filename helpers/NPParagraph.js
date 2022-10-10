@@ -255,7 +255,7 @@ export function getParagraphBlock(
  * @param {boolean} returnHeading - whether to return the heading or not with the results (default: true)
  * @returns {TParagraph | null} - returns
  */
-export function getBlockUnderHeading(note: TNote, heading: TParagraph | string, returnHeading: boolean = true): Array<TParagraph> {
+export function getBlockUnderHeading(note: CoreNoteFields, heading: TParagraph | string, returnHeading: boolean = true): Array<TParagraph> {
   let headingPara = null
   if (typeof heading === 'string') {
     headingPara = findHeading(note, heading)
