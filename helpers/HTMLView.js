@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark
-// Last updated 7.10.2022
+// Last updated 10.10.2022
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
@@ -11,46 +11,59 @@ const pluginJson = 'helpers/HTMLView'
 let baseFontSize = 14
 
 /**
- * Generate CSS instructions from the given theme (or current one if not given)
- * to use as an embedded style sheet
+ * Generate CSS instructions from the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
+ * Note: used to have 'if (NotePlan.environment.buildVersion > 849) {}' to check we are on 3.6.2+ which means we can get current theme name. Hopefully no longer needed.
  * @author @jgclark
  * @param {string?} themeNameIn
  * @returns {string} outputCSS
  */
-// $FlowIgnore[incompatible-return]
 export function generateCSSFromTheme(themeNameIn: string = ''): string {
   try {
     let themeName = ''
     let themeJSON: Object
-    if (NotePlan.environment.buildVersion > 849) {
-      logDebug('generateCSSFromTheme', `Current theme = '${String(Editor.currentTheme.name)}', mode '${String(Editor.currentTheme.mode)}'`)
+    const availableThemeNames = Editor.availableThemes.map((m) => (m.name.endsWith('.json') ? m.name.slice(0, -5) : m.name))
+    let matchingThemeObjs = []
 
-      // log list of available themes
-      const availableThemeNames = Editor.availableThemes.map((m) => (m.name.endsWith('.json') ? m.name.slice(0, -5) : m.name))
-      logDebug('generateCSSFromTheme', availableThemeNames.toString())
-
-      // if themeName is blank, then use Editor.currentTheme
-      themeName = themeNameIn && themeNameIn !== '' ? themeNameIn : Editor.currentTheme.name
-
-      if (!availableThemeNames.includes(themeName)) {
-        logError('generateCSSFromTheme', `Theme '${themeName}' is not in list of available themes. Stopping`)
-        return ''
+    // If we havee a supplied themeName, then attempt to use it
+    if (themeNameIn !== '') {
+      // get list of available themes
+      logDebug('generateCSSFromTheme', String(availableThemeNames))
+      matchingThemeObjs = Editor.availableThemes.filter((f) => (f.name === themeNameIn))
+      if (matchingThemeObjs.length > 0) {
+        themeName = themeNameIn
+        logDebug('generateCSSFromTheme', `Reading theme '${themeName}'`)
+        themeJSON = matchingThemeObjs[0].values
+      } else {
+        logWarn('generateCSSFromTheme', `Theme '${themeNameIn}' is not in list of available themes. Will try to use current theme instead.`)
       }
-    } else {
-      // if themeName is blank, then use user's dark theme (which we can access before NP 3.6.2)
-      themeName = themeNameIn && themeNameIn !== '' ? themeNameIn : String(DataStore.preference('themeDark'))
     }
 
-    // try simplest way first (for NP b850+)
-    themeName = Editor.currentTheme.name
-    logDebug('generateCSSFromTheme', `Reading theme '${themeName}'`)
-
-    // eslint-disable-next-line prefer-const
-    themeJSON = Editor.currentTheme.values
+    // If that hasn't worked, they currentTheme
+    if (themeName === '') {
+      themeName = Editor.currentTheme.name ?? ''
+      logDebug('generateCSSFromTheme', `Reading your current theme '${themeName}'`)
+      if (themeName !== '') {
+        themeJSON = Editor.currentTheme.values
+        // let currentThemeMode = Editor.currentTheme.mode ?? 'dark'
+      } else {
+        logWarn('generateCSSFromTheme', `Cannot get settings for your current theme '${themeName}'`)
+      }
+    }
+    themeName = ''
+    // If that hasn't worked, try dark theme
+    if (themeName === '') {
+      themeName = String(DataStore.preference('themeDark'))
+      matchingThemeObjs = Editor.availableThemes.filter((f) => (f.name === themeName))
+      if (matchingThemeObjs.length > 0) {
+        logDebug('generateCSSFromTheme', `Reading your dark theme '${themeName}'`)
+        themeJSON = matchingThemeObjs[0].values
+      } else {
+        logWarn('generateCSSFromTheme', `Cannot get settings for your dark theme '${themeName}'`)
+      }
+    }
 
     // TODO: allow for specified theme, not just current one
-    // logDebug('generateCSSFromTheme', `Reading theme '${themeName}'`)
-    // const relativeThemeFilepath = `../../../Themes/${themeName}.json` // TODO: will need updating
+    // const relativeThemeFilepath = `../../../Themes/${themeName}.json`
     // const themeJSON = DataStore.loadJSON(relativeThemeFilepath)
     // const themeJSON = availableThemes
 
@@ -66,17 +79,17 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     let tempSel = []
     const rootSel = [] // for special :root selector which sets variables picked up in several places below
     let styleObj: Object
-    const islightTheme = themeJSON.style === 'Light'
+    const isLightTheme = themeJSON.style === 'Light'
 
     // Set 'html':
     // - main font size
     // set global variable
     baseFontSize = Number(DataStore.preference('fontSize')) ?? 14
-    // tempSel.push(`color: ${themeJSON.styles.body.color}` ?? "#DAE3E8")
-    tempSel.push(`background: ${themeJSON.editor.backgroundColor}` ?? '#1D1E1F')
+    // tempSel.push(`color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
+    tempSel.push(`background: ${themeJSON.editor.backgroundColor ?? "#1D1E1F"}`)
     output.push(makeCSSSelector('html', tempSel))
-    // rootSel.push(`--fg-main-color: ${themeJSON.styles.body.color}` ?? "#DAE3E8")
-    rootSel.push(`--bg-main-color: ${themeJSON.editor.backgroundColor}` ?? '#1D1E1F')
+    // rootSel.push(`--fg-main-color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
+    rootSel.push(`--bg-main-color: ${themeJSON.editor.backgroundColor ?? "#1D1E1F"}`)
 
     // Set body:
     // - main font = styles.body.font)
@@ -86,7 +99,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.body
     if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.editor.textColor) ?? '#CC6666'
+      const thisColor = RGBColourConvert(themeJSON.editor.textColor ?? '#CC6666')
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('body', tempSel))
@@ -97,43 +110,43 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.title1
     if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.styles.title1.color) ?? '#CC6666'
+      const thisColor = RGBColourConvert(themeJSON.styles.title1.color ?? '#CC6666')
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h1', tempSel))
       rootSel.push(`--h1-color: ${thisColor}`)
     }
-    // Set H2 similarly:
+    // Set H2 similarly
     tempSel = []
     styleObj = themeJSON.styles.title2
     if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.styles.title2.color) ?? '#E9C062'
+      const thisColor = RGBColourConvert(themeJSON.styles.title2.color ?? '#E9C062')
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h2', tempSel))
       rootSel.push(`--h2-color: ${thisColor}`)
     }
-    // Set H3 similarly:
+    // Set H3 similarly
     tempSel = []
     styleObj = themeJSON.styles.title3
     if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.styles.title3.color) ?? '#E9C062'
+      const thisColor = RGBColourConvert(themeJSON.styles.title3.color ?? '#E9C062')
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h3', tempSel))
       rootSel.push(`--h3-color: ${thisColor}`)
     }
-    // Set H4 similarly:
+    // Set H4 similarly
     tempSel = []
     styleObj = themeJSON.styles.title4
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(themeJSON.styles.title4.color)}` ?? '#E9C062')
+      tempSel.push(`color: ${RGBColourConvert(themeJSON.styles.title4.color ?? '#E9C062')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h4', tempSel))
     }
     // NP doesn't support H5 styling
 
-    // Set core table features from theme:
+    // Set core table features from theme
     const altColor = RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30'
     const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
     output.push(makeCSSSelector('tr:nth-child(even)', [`background-color: ${altColor}`]))
@@ -145,7 +158,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // Set core button style from macOS based on dark or light:
     // Similarly for fake-buttons (i.e. from <a href ...>)
-    if (islightTheme) {
+    if (isLightTheme) { // light theme
       output.push(makeCSSSelector('button',
         ['background-color: #FFFFFF',
           'font-size: 1.0rem',
@@ -182,7 +195,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.bold
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#CC6666')
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#CC6666')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('b', tempSel))
     }
@@ -190,7 +203,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.italic
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#96CBFE')
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('i', tempSel))
     }
@@ -200,7 +213,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.checked
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#098308A0')
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#098308A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.task-checked', tempSel))
     }
@@ -210,7 +223,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['checked-canceled']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#E04F57A0')
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#E04F57A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.task-cancelled', tempSel))
     }
@@ -220,10 +233,10 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['checked-scheduled']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#7B7C86A0')
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#7B7C86A0')}`)
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      output.push(makeCSSSelector('.task-scheduled', tempSel))
     }
-    tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-    output.push(makeCSSSelector('.task-scheduled', tempSel))
 
     // Now put the important info and rootSel at the start of the output
     output.unshift(makeCSSSelector(':root', rootSel))
@@ -233,6 +246,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     return output.join('\n')
   } catch (error) {
     logError('generateCSSFromTheme', error.message)
+    return '<error>'
   }
 }
 
@@ -336,13 +350,19 @@ function pxToRem(thisFontSize: number, baseFontSize: number): string {
  * @returns {string} #RGB[A]
  */
 function RGBColourConvert(RGBIn: string): string {
-  // default to just passing the colour through, unless
-  // we have ARGB, so need to switch things round
-  let output = RGBIn
-  if (RGBIn.match(/#[0-9A-Fa-f]{8}/)) {
-    output = `#${RGBIn.slice(3, 9)}${RGBIn.slice(1, 3)}`
+  try {
+    // default to just passing the colour through, unless
+    // we have ARGB, so need to switch things round
+    let output = RGBIn
+    if (RGBIn.match(/#[0-9A-Fa-f]{8}/)) {
+      output = `#${RGBIn.slice(3, 9)}${RGBIn.slice(1, 3)}`
+    }
+    return output
   }
-  return output
+  catch (error) {
+    logError('RGBColourConvert', `${error.message} for RGBIn '${RGBIn}'`)
+    return '#888888' // for completeness
+  }
 }
 
 /**

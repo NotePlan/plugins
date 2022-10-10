@@ -148,9 +148,8 @@ export class TMOccurrences {
       // logDebug('TMOccurrences:addOccurrence', `- found tagParts ${key} / ${value.toString()}`)
     }
 
-    // if this has a numeric value add to total, taking into account that the
-    // day may have several values.
-    // $FlowFixMe
+    // if this has a numeric value add to total, taking into account that the day may have several values.
+    // $FlowFixMe[incompatible-type]
     const prevValue: number = isNaN(this.valuesMap.get(dateStr)) ? 0 : this.valuesMap.get(dateStr)
     if (!isNaN(value)) {
       this.valuesMap.set(dateStr, prevValue + value)
@@ -321,7 +320,6 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
     //------------------------------
     // Review each wanted YesNo type
-    // FIXME: Allow simple @mentions as well.
     const YesNoListArr = (typeof progressYesNo === 'string') ? progressYesNo.split(',') : progressYesNo
     for (let wantedItem of YesNoListArr) {
       // initialise a new TMOccurence for this YesNo item
@@ -330,6 +328,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       // For each daily note in the period
       for (const n of periodDailyNotes) {
         const thisDateStr = getDateStringFromCalendarFilename(n.filename)
+
         // Look at hashtags first ...
         const seenTags = n.hashtags.slice().reverse()
         let lastTag = ''
@@ -737,7 +736,7 @@ function makeSparkline(data: Array<number>, options: Object = {}): string {
   values = values.map(v => v - min)
   const sum = realNumberValues.reduce((x, y) => x + y, 0)
   const avg = sum / realNumberValues.length
-  // clo(values, 'values to sparkline')
+  clo(values, 'values to sparkline')
   // logDebug('makeSparkline', `-> ${min} - ${max} / ${sum} from ${values.length}`)
 
   const value_mapper = (value, i) => {

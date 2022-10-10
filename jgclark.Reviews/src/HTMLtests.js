@@ -7,7 +7,12 @@ import { generateCSSFromTheme, makeSVGPercentRing, redToGreenInterpolation, show
 import { reviewListCSS, setPercentRingJSFunc } from './projectLists'
 
 export function testGenerateCSSFromTheme(): void {
-  console.log(`generateCSSFromTheme ->\n${generateCSSFromTheme()}`)
+  let themeName = ''
+  console.log(`\ngenerateCSSFromTheme ->\n${generateCSSFromTheme(themeName)}`)
+  themeName = 'Orange'
+  console.log(`\ngenerateCSSFromTheme ->\n${generateCSSFromTheme(themeName)}`)
+  themeName = 'Invalid Theme Name'
+  console.log(`\ngenerateCSSFromTheme ->\n${generateCSSFromTheme(themeName)}`)
 }
 
 /**
