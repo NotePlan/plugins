@@ -41,6 +41,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // If that hasn't worked, they currentTheme
     if (themeName === '') {
       themeName = Editor.currentTheme.name ?? ''
+      themeName = (themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName)
       logDebug('generateCSSFromTheme', `Reading your current theme '${themeName}'`)
       if (themeName !== '') {
         themeJSON = Editor.currentTheme.values
@@ -49,10 +50,11 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
         logWarn('generateCSSFromTheme', `Cannot get settings for your current theme '${themeName}'`)
       }
     }
-    themeName = ''
+
     // If that hasn't worked, try dark theme
     if (themeName === '') {
       themeName = String(DataStore.preference('themeDark'))
+      themeName = (themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName)
       matchingThemeObjs = Editor.availableThemes.filter((f) => (f.name === themeName))
       if (matchingThemeObjs.length > 0) {
         logDebug('generateCSSFromTheme', `Reading your dark theme '${themeName}'`)
@@ -61,11 +63,6 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
         logWarn('generateCSSFromTheme', `Cannot get settings for your dark theme '${themeName}'`)
       }
     }
-
-    // TODO: allow for specified theme, not just current one
-    // const relativeThemeFilepath = `../../../Themes/${themeName}.json`
-    // const themeJSON = DataStore.loadJSON(relativeThemeFilepath)
-    // const themeJSON = availableThemes
 
     // Check we can proceed
     if (themeJSON == null || themeJSON.length === 0) {
