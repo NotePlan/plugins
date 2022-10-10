@@ -4,7 +4,7 @@ import { trimString } from './dataManipulation'
 import { hyphenatedDate } from './dateTime'
 import { toLocaleDateTimeString } from './NPdateTime'
 import { JSP, log, logDebug, logError, clo, logWarn, timer } from './dev'
-import { findStartOfActivePartOfNote, findEndOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
+import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
@@ -119,17 +119,18 @@ export async function replaceContentUnderHeading(
  * This is how we identify the block:
  * - current line, plus any children (indented paragraphs) that directly follow it
  * - if this line is a heading, then the current line and its following section
- *   (up until the next empty line, same-level heading or horizontal line).
+ * - if 'useTightBlockDefinition' is false (the default), then section finishes at the next same-level heading
+ * - if 'useTightBlockDefinition' is true, then section finishes at the next empty line, same-level heading or horizontal line.
  *
- * If setting 'includeFromStartOfSection' is true (and it is by default false), then it can include more lines:
- * it will work as if the cursor is on the preceding heading line, and then using the same rules as above.
- * (This used to be called 'useExtendedBlockDefinition'.)
+ * If 'includeFromStartOfSection' is true (and it is by default false), then it can include more lines, working as if the cursor is on the preceding heading line, and then using the same rules as above.
+ * - Note: the title line of a note is not included in 'includeFromStartOfSection', as it makes no sense to move the title of a note.
  * @author @jgclark
  * @tests available in jest file
  *
  * @param {Array<TParagraph>} allParas - all selectedParas in the note
  * @param {number} selectedParaIndex - the index of the current Paragraph
  * @param {boolean} includeFromStartOfSection
+ * @param {boolean} useTightBlockDefinition
  * @returns {Array<TParagraph>} the set of selectedParagraphs in the block
  */
 export function getParagraphBlock(
@@ -140,13 +141,13 @@ export function getParagraphBlock(
 ): Array<TParagraph> {
   const parasInBlock: Array<TParagraph> = [] // to hold set of paragraphs in block to return
   const startActiveLineIndex = findStartOfActivePartOfNote(note)
-  const endActiveLineIndex = findEndOfActivePartOfNote(note)
   const allParas = note.paragraphs
+  const lastLineIndex = allParas.length - 1
   let startLine = selectedParaIndex
   let selectedPara = allParas[startLine]
   logDebug(
     `NPParagraph / getParagraphBlock`,
-    `getParaBlock: starting with start/end active = ${startActiveLineIndex}/${endActiveLineIndex} at lineIndex ${selectedParaIndex} ('${trimString(selectedPara.content, 50)}')`,
+    `getParaBlock: starting with start active/last line = ${startActiveLineIndex}/${lastLineIndex} at lineIndex ${selectedParaIndex} ('${trimString(selectedPara.content, 50)}')`,
   )
 
   if (includeFromStartOfSection) {
@@ -190,7 +191,7 @@ export function getParagraphBlock(
     parasInBlock.push(selectedPara) // make this the first line to move
     // Work out how far this section extends. (NB: headingRange doesn't help us here.)
     logDebug(`NPParagraph / getParagraphBlock`, `- Scanning forward through rest of note ...`)
-    for (let i = startLine + 1; i <= endActiveLineIndex; i++) {
+    for (let i = startLine + 1; i <= lastLineIndex; i++) {
       const p = allParas[i]
       if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
         logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found new heading of same or higher level: "${p.content}" -> stopping`)
@@ -213,7 +214,7 @@ export function getParagraphBlock(
     parasInBlock.push(selectedPara)
 
     // See if there are following indented lines to move as well
-    for (let i = startLine + 1; i <= endActiveLineIndex; i++) {
+    for (let i = startLine + 1; i <= lastLineIndex; i++) {
       const p = allParas[i]
       // logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${trimString(p.content, 50)}`)
       if (useTightBlockDefinition && p.type === 'separator') {
@@ -227,7 +228,7 @@ export function getParagraphBlock(
         logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found heading -> stopping`)
         break
       } else if (p.indents < startingIndentLevel && !includeFromStartOfSection) {
-        // if we aren't using the Extended Block Definition, then
+        // if we aren't using the Tight Block Definition, then
         // stop as this selectedPara is less indented than the starting line
         logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found same or lower indent -> stopping`)
         break

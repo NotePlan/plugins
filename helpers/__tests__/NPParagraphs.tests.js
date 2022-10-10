@@ -1,6 +1,6 @@
 /* global describe, expect, test, beforeAll, beforeEach */
 import * as p from '../NPParagraph'
-import { clo, logDebug } from '../dev'
+import { clo, logDebug, logInfo } from '../dev'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
 
@@ -13,6 +13,7 @@ beforeAll(() => {
   global.Note = Note
   global.Paragraph = Paragraph
   global.NotePlan = NotePlan
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging | none for quiet
 })
 
 // mimicking a project note
@@ -20,10 +21,14 @@ let paragraphs = [
   new Paragraph({ type: 'title', content: 'theTitle', headingLevel: 1, indents: 0, lineIndex: 0 }),
   new Paragraph({ type: 'text', content: 'line 2', headingLevel: 1, indents: 0, lineIndex: 1 }),
   new Paragraph({ type: 'text', content: 'line 3 (child of 2)', headingLevel: 1, indents: 1, lineIndex: 2 }),
-  new Paragraph({ type: 'text', content: 'task on line 4', headingLevel: 1, indents: 0, lineIndex: 3 }),
+  new Paragraph({ type: 'open', content: 'task on line 4', headingLevel: 1, indents: 0, lineIndex: 3 }),
   new Paragraph({ type: 'empty', content: '', headingLevel: 1, indents: 0, lineIndex: 4 }),
   new Paragraph({ type: 'separator', content: '---', lineIndex: 5 }),
   new Paragraph({ type: 'title', content: 'Done', headingLevel: 2, indents: 0, lineIndex: 6 }),
+  new Paragraph({ type: 'done', content: 'done task on line 7', headingLevel: 2, indents: 0, lineIndex: 7 }),
+  new Paragraph({ type: 'done', content: 'done task on line 8', headingLevel: 2, indents: 0, lineIndex: 8 }),
+  new Paragraph({ type: 'empty', content: '', headingLevel: 2, indents: 0, lineIndex: 9 }),
+  new Paragraph({ type: 'title', content: 'Cancelled', headingLevel: 2, indents: 0, lineIndex: 10 }),
 ]
 Editor.note = new Note({ paragraphs, type: 'Notes' })
 // Note: This used to be set in a
@@ -45,7 +50,7 @@ describe('findHeading()' /* function */, () => {
     expect(result).toEqual(null)
   })
   test('should return a paragraph when fully matched', () => {
-    const result = p.findHeading(Editor.note, 'theTitle') // FIXME:
+    const result = p.findHeading(Editor.note, 'theTitle')
     expect(result?.content).toEqual(`theTitle`)
   })
   test('should return null on partial match in middle with includesString false', () => {
@@ -53,7 +58,7 @@ describe('findHeading()' /* function */, () => {
     expect(result).toEqual(null)
   })
   test('should return partial match in middle with includesString true', () => {
-    const result = p.findHeading(Editor.note, 'eTit', true) // FIXME:
+    const result = p.findHeading(Editor.note, 'eTit', true)
     expect(result?.content).toEqual('theTitle')
   })
 })
@@ -85,17 +90,23 @@ describe('getParagraphBlock() for project note' /* function */, () => {
     expect(result).toEqual(Editor.note.paragraphs.slice(0, 4))
   })
 
-  test('should return block lineIndex 1-4 from 1/false/false', () => {
+  test('should return block lineIndex 1-5 from 1/false/false', () => {
     const result = p.getParagraphBlock(Editor.note, 1, false, false)
-    expect(result).toEqual(Editor.note.paragraphs.slice(1, 5))
+    // const firstIndex = result[0].lineIndex
+    // const lastIndex = firstIndex + result.length - 1
+    // logInfo('testGPB1', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
+    expect(result).toEqual(Editor.note.paragraphs.slice(1, 6))
   })
   test('should return block lineIndex 1-3 from 1/false/true', () => {
     const result = p.getParagraphBlock(Editor.note, 1, false, true)
     expect(result).toEqual(Editor.note.paragraphs.slice(1, 4))
   })
-  test('should return block lineIndex 1-4 from 1/true/false', () => {
+  test('should return block lineIndex 1-5 from 1/true/false', () => {
     const result = p.getParagraphBlock(Editor.note, 1, true, false)
-    expect(result).toEqual(Editor.note.paragraphs.slice(1, 5))
+    // const firstIndex = result[0].lineIndex
+    // const lastIndex = firstIndex + result.length - 1
+    // logInfo('testGPB2', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
+    expect(result).toEqual(Editor.note.paragraphs.slice(1, 6))
   })
   test('should return block lineIndex 1-3 from 1/true/true', () => {
     const result = p.getParagraphBlock(Editor.note, 1, true, true)
@@ -110,13 +121,24 @@ describe('getParagraphBlock() for project note' /* function */, () => {
     const result = p.getParagraphBlock(Editor.note, 2, false, true)
     expect(result).toEqual(Editor.note.paragraphs.slice(2, 3))
   })
-  test('should return block lineIndex 1-4 from 2/true/false', () => {
+  test('should return block lineIndex 0-5 from 2/true/false', () => {
     const result = p.getParagraphBlock(Editor.note, 2, true, false)
-    expect(result).toEqual(Editor.note.paragraphs.slice(1, 5))
+    // const firstIndex = result[0].lineIndex
+    // const lastIndex = firstIndex + result.length - 1
+    // logInfo('testGPB3', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
+    expect(result).toEqual(Editor.note.paragraphs.slice(1, 6))
   })
   test('should return block lineIndex 1-3 from 2/true/true', () => {
     const result = p.getParagraphBlock(Editor.note, 2, true, true)
     expect(result).toEqual(Editor.note.paragraphs.slice(1, 4))
+  })
+  test('should return block lineIndex 6-9 from 7/true/false', () => {
+    const result = p.getParagraphBlock(Editor.note, 7, true, false)
+    expect(result).toEqual(Editor.note.paragraphs.slice(6, 10))
+  })
+  test('should return block lineIndex 6-8 from 7/true/true', () => {
+    const result = p.getParagraphBlock(Editor.note, 7, true, true)
+    expect(result).toEqual(Editor.note.paragraphs.slice(6, 9))
   })
 })
 
@@ -144,36 +166,32 @@ describe('getParagraphBlock() for calendar note' /* function */, () => {
   })
 
   test('should return block lineIndex 0-3 from 2/true/true [for calendar note]', () => {
-    // FIXME: returns 1-3
     const result = p.getParagraphBlock(Editor.note, 2, true, true)
-    const firstIndex = result[0].lineIndex
-    const lastIndex = firstIndex + result.length - 1
-    logDebug('test1', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
+    // const firstIndex = result[0].lineIndex
+    // const lastIndex = firstIndex + result.length - 1
+    // logDebug('testGPB4', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
     expect(result).toEqual(Editor.note.paragraphs.slice(0, 4))
   })
-  test('should return block lineIndex 0-4 from 2/true/false [for calendar note]', () => {
-    // FIXME: returns 1-4
+  test('should return block lineIndex 0-5 from 2/true/false [for calendar note]', () => {
     const result = p.getParagraphBlock(Editor.note, 2, true, false)
-    const firstIndex = result[0].lineIndex
-    const lastIndex = firstIndex + result.length - 1
-    logDebug('test2', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
-    expect(result).toEqual(Editor.note.paragraphs.slice(0, 5))
+    // const firstIndex = result[0].lineIndex
+    // const lastIndex = firstIndex + result.length - 1
+    // logDebug('testGPB5', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
+    expect(result).toEqual(Editor.note.paragraphs.slice(0, 6))
   })
   test('should return block lineIndex 2-3 from 2/false/true [for calendar note]', () => {
-    // FIXME: returns 2-2
     const result = p.getParagraphBlock(Editor.note, 2, false, true)
-    const firstIndex = result[0].lineIndex
-    const lastIndex = firstIndex + result.length - 1
-    logDebug('test3', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
+    // const firstIndex = result[0].lineIndex
+    // const lastIndex = firstIndex + result.length - 1
+    // logDebug('testGPB5', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
     expect(result).toEqual(Editor.note.paragraphs.slice(2, 4))
   })
-  test('should return block lineIndex 2-4 from 2/false/false [for calendar note]', () => {
-    // FIXME: returns 2-2
+  test('should return block lineIndex 2-5 from 2/false/false [for calendar note]', () => {
     const result = p.getParagraphBlock(Editor.note, 2, false, false)
-    const firstIndex = result[0].lineIndex
-    const lastIndex = firstIndex + result.length - 1
-    logDebug('test4', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
-    expect(result).toEqual(Editor.note.paragraphs.slice(2, 5))
+    // const firstIndex = result[0].lineIndex
+    // const lastIndex = firstIndex + result.length - 1
+    // logDebug('testGPB6', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
+    expect(result).toEqual(Editor.note.paragraphs.slice(2, 6))
   })
 })
 
@@ -219,7 +237,6 @@ describe('getBlockUnderHeading()', () => {
 
   test.skip('should return block (without title) when passed a title string (even when asking for heading)', () => {
     const result = p.getBlockUnderHeading(Editor.note, 'theTitle', true)
-    clo(result, 'test 5')
     expect(result).toEqual(Editor.note.paragraphs.slice(1, 4))
   })
   test('should return block (without title) when passed a title string', () => {
