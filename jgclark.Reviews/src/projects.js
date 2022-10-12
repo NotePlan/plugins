@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 24.7.2022 for v0.7.0+, @jgclark
+// Last updated 9.10.2022 for v0.9.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -16,6 +16,7 @@ import {
 } from './reviewHelpers'
 import { hyphenatedDateString } from '@helpers/dateTime'
 import { logDebug, logInfo, logWarn, logError } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 import { getOrMakeNote } from '@helpers/note'
 import {
   // getInput,
@@ -56,9 +57,6 @@ export async function completeProject(): Promise<void> {
 
   // If this has worked, then ...
   if (res) {
-    // remove this note from the review list
-    await updateReviewListAfterReview(note)
-
     // Now add to the Summary note for this year (if present)
     if (DataStore.folders.includes('Summaries')) {
       const lineToAdd = projectNote.detailedSummaryLine('markdown', true)
@@ -76,13 +74,19 @@ export async function completeProject(): Promise<void> {
     }
 
     // ... and finally ask whether to move it to the @Archive
-    if (filename != null &&
-      (await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No'])) === 'Yes') {
-      // eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
-      const newFilename = DataStore.moveNote(filename, '@Archive')
+    if (filename != null) {
+      if (await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No']) === 'Yes') {
+        const newFilename = DataStore.moveNote(filename, '@Archive')
+        // delete the project line from the full-review-list
+        await updateReviewListAfterReview(note, true)
+      } else {
+        // update the full-review-list,
+        // TODO: ??? passing the machineSummaryLine we got from completeProject()
+        await updateReviewListAfterReview(note)
+      }
     }
   } else {
-    logError(pluginJson, `Error: something has gone wrong in Completing this project note`)
+    logError(pluginJson, `Error: something has gone wrong in Completing project note ${displayTitle(note)}`)
   }
 }
 
@@ -136,9 +140,13 @@ export async function cancelProject(): Promise<void> {
     // ... and finally ask whether to move it to the @Archive
     if (filename != null &&
       (await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No'])) === 'Yes') {
-      // eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
       const newFilename = DataStore.moveNote(filename, '@Archive')
-      logInfo(pluginJson, `Project note has been moved to the @Archive.`)
+      // delete the project line from the full-review-list
+      await updateReviewListAfterReview(note, true)
+    } else {
+      // update the full-review-list,
+      // TODO: ??? passing the machineSummaryLine we got from cancelProject()
+      await updateReviewListAfterReview(note)
     }
   } else {
     logError(pluginJson, `Something has gone wrong in Cancelling this project note.`)
