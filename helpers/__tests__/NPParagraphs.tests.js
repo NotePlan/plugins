@@ -161,6 +161,9 @@ describe('getParagraphBlock() for calendar note' /* function */, () => {
       new Paragraph({ type: 'empty', content: '', headingLevel: 1, indents: 0, lineIndex: 4 }),
       new Paragraph({ type: 'separator', content: '---', lineIndex: 5 }),
       new Paragraph({ type: 'title', content: 'Done', headingLevel: 2, indents: 0, lineIndex: 6 }),
+      new Paragraph({ type: 'text', content: 'line under done', headingLevel: 0, indents: 0, lineIndex: 2 }),
+      new Paragraph({ type: 'title', content: 'Cancelled', headingLevel: 2, indents: 0, lineIndex: 6 }),
+      new Paragraph({ type: 'text', content: 'line under cancelled', headingLevel: 0, indents: 0, lineIndex: 2 }),
     ]
     Editor.note = new Note({ paragraphs, type: 'Calendar' })
   })
@@ -192,6 +195,13 @@ describe('getParagraphBlock() for calendar note' /* function */, () => {
     // const lastIndex = firstIndex + result.length - 1
     // logDebug('testGPB6', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
     expect(result).toEqual(Editor.note.paragraphs.slice(2, 6))
+  })
+  test('should return block lineIndex 8-9 (title "Cancelled") from 8/false/false [for calendar note]', () => {
+    const result = p.getParagraphBlock(Editor.note, 8, false, false)
+    // const firstIndex = result[0].lineIndex
+    // const lastIndex = firstIndex + result.length - 1
+    // logDebug('testGPB6', `-> lineIndex ${String(firstIndex)} - ${String(lastIndex)}`)
+    expect(result).toEqual(Editor.note.paragraphs.slice(8, 9))
   })
 })
 

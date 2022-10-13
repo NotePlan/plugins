@@ -187,3 +187,32 @@ export function getEditor(): any {
 export function getNotePlan(): any {
   return NotePlan
 }
+
+/**
+ * outputEditorJson
+ * Plugin entrypoint for "/Output Editor Doc as JSON"
+ */
+export function outputEditorJson() {
+  try {
+    const e = Editor
+    const nObj = { title: e.title, filename: e.filename, type: e.type, paragraphs: [] }
+    nObj.paragraphs = e.paragraphs.map((p) => ({
+      content: p.content,
+      rawContent: p.rawContent,
+      type: p.type,
+      heading: p.heading,
+      headingLevel: p.headingLevel,
+      lineIndex: p.lineIndex,
+      isRecurring: p.isRecurring,
+      indents: p.indents,
+      noteType: p.noteType,
+    }))
+    console.log(`--- Editor ---`)
+    console.log(JSON.stringify(nObj, null, 2))
+    console.log(`--- /Editor ---`)
+    console.log(`--- For debugging paras ---`)
+    nObj.paragraphs.forEach((p) => console.log(`[${p.lineIndex}]: type=${p.type} content="${p.content}" heading:"${p.heading}"`))
+  } catch (error) {
+    logError(pluginJson, JSON.stringify(error))
+  }
+}

@@ -5,7 +5,14 @@
  * Note: nested object example data are there for reference only -- will need to be deleted or cleaned up before use (consider using a factory)
  * For functions: check whether async or not & add params & return value
  *
+ * TODO: IMPORTANT NOTE
+ * - @dwertheimer started adding some of the underlying methods to Note.mock.js, but it's not complete
+ * - if you need to add a method to Editor that's in Note also, add it to Note.mock.js and then add it here
+ *
  */
+
+import { Note } from './Note.mock'
+const note = new Note()
 
 const Editor = {
   // async addBlockID() { return null },
@@ -84,9 +91,15 @@ const Editor = {
   // async prependTodo() { return null },
   // async printNote() { return null },
   // async removeBlockID() { return null },
-  // async removeParagraph() { return null },
+
+  async removeParagraph(para) {
+    return note.removeParagraph(para)
+  },
+  async removeParagraphs(paras) {
+    return note.removeParagraphs(paras)
+  },
+
   // async removeParagraphAtIndex() { return null },
-  // async removeParagraphs() { return null },
   // async renderedSelect() { return null },
   /* renderedSelection: {
 		"start": 36,
@@ -128,8 +141,13 @@ const Editor = {
     return null
   },
   // type: VALUE ,
-  // async updateParagraph() { return null },
-  // async updateParagraphs() { return null },
+
+  async updateParagraph(para) {
+    return note.updateParagraph(para)
+  },
+  async updateParagraphs(paras) {
+    return note.updateParagraphs(paras)
+  },
 }
 
 module.exports = Editor

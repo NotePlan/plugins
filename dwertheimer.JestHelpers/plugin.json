@@ -18,7 +18,16 @@
       "alias": [
       ],
       "arguments": ["Append this text to document"]
+    },
+    {
+      "name": "Output Editor document as JSON",
+      "description": "Output the current document as a JSON that can be used as a test",
+      "jsFunction": "outputEditorJson",
+      "alias": [
+      ],
+      "arguments": []
     }
+
   ],
   "plugin.settings": [
     {

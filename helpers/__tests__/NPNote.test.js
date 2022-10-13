@@ -1,8 +1,7 @@
 /* global jest, describe, test, expect, beforeAll */
 import { format } from 'date-fns'
 import * as NPNote from '../NPnote'
-import { DataStore, Paragraph, Note, Editor, Calendar } from '@mocks/index'
-import { mockWasCalledWith } from '@mocks/mockHelpers'
+import { DataStore, Paragraph, Note, Editor, Calendar, mockWasCalledWithString } from '@mocks/index'
 import { unhyphenatedDate } from '@helpers/dateTime'
 
 beforeAll(() => {
@@ -44,7 +43,7 @@ describe(`${PLUGIN_NAME}`, () => {
         Editor.note = null
         const result = await NPNote.getTodaysReferences(null)
         expect(result).toEqual([])
-        expect(mockWasCalledWith(spy, /timeblocking could not open Note/)).toBe(true)
+        expect(mockWasCalledWithString(spy, /timeblocking could not open Note/)).toBe(true)
         spy.mockRestore()
         Editor.note = editorWas
         DataStore.settings['_logLevel'] = oldLogLevel

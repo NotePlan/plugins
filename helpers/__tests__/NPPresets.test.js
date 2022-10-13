@@ -15,10 +15,10 @@ beforeAll(() => {
 expect(result).toMatch(/someString/)
 expect(result).not.toMatch(/someString/)
 expect(result).toEqual([])
-import { mockWasCalledWith } from '@mocks/mockHelpers'
+import { mockWasCalledWithString } from '@mocks/index'
       const spy = jest.spyOn(console, 'log')
       const result = mainFile.getConfig()
-      expect(mockWasCalledWith(spy, /config was empty/)).toBe(true)
+      expect(mockWasCalledWithString(spy, /config was empty/)).toBe(true)
 */
 
 describe(`${PLUGIN_NAME}`, () => {

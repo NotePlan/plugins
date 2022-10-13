@@ -1,0 +1,49 @@
+// Created using JestHelpers /Output Editor as json
+//
+[0]: type=separator content="---" heading:
+[1]: type=text content="title: taskSorter TEST cases (@jgclark)" heading:
+[2]: type=text content="note: first thing: don't mess with this front matter!" heading:
+[3]: type=text content="link: [NotePlan Publish](https://noteplan.co/n/F70B9F76-C2EB-4085-AF8E-BA3457BE9617)" heading:
+[4]: type=separator content="---" heading:
+[5]: type=text content="#test some metadata here @start(2022-03-01) etc." heading:
+[6]: type=text content="Aim: help  @dwertheimer to test my rather edge-y cases. Including leaving these starter lines where they are." heading:
+[7]: type=title content="Title-1 (H3)" heading:
+[8]: type=text content="Here's a note line right under the heading" heading:Title-1 (H3)
+[9]: type=quote content="and some reference to leave" heading:Title-1 (H3)
+[10]: type=open content="Now Task-1" heading:Title-1 (H3)
+[11]: type=done content="with Subtask1-1 @done(2022-10-07)" heading:Title-1 (H3)
+[12]: type=open content="with Subtask1-2" heading:Title-1 (H3)
+[13]: type=quote content="A quote after Subtask1-2" heading:Title-1 (H3)
+[14]: type=done content="with Subtask1-3 @done(2022-10-09)" heading:Title-1 (H3)
+[15]: type=open content="with Subtask1-4" heading:Title-1 (H3)
+[16]: type=text content="And a note under Task-1" heading:Title-1 (H3)
+[17]: type=open content="! Task-2 that's important" heading:Title-1 (H3)
+[18]: type=text content="This is a top-level comment: these are the trickiest sort of lines to decide what to do with. I'm not really clear myself." heading:Title-1 (H3)
+[19]: type=open content="!! Task-3 that's more important" heading:Title-1 (H3)
+[20]: type=separator content="---" heading:Title-1 (H3)
+[21]: type=title content="Title-2 (H3)" heading:
+[22]: type=text content="Here's a note line right under the heading" heading:Title-2 (H3)
+[23]: type=quote content="and some reference to leave" heading:Title-2 (H3)
+[24]: type=done content="Task-4 @done(2022-10-01)" heading:Title-2 (H3)
+[25]: type=done content="Task-5 @done(2022-10-02)" heading:Title-2 (H3)
+[26]: type=done content="Task-6 @done(2022-10-03)" heading:Title-2 (H3)
+[27]: type=done content="with Subtask6-1 @done(2022-10-01)" heading:Title-2 (H3)
+[28]: type=done content="with Subtask6-2 @done(2022-10-01)" heading:Title-2 (H3)
+[29]: type=open content="Task-7 not done" heading:Title-2 (H3)
+[30]: type=text content="And a note under Task-7" heading:Title-2 (H3)
+[31]: type=open content="! Task-8 that's important" heading:Title-2 (H3)
+[32]: type=text content="And a note under Task-8" heading:Title-2 (H3)
+[33]: type=separator content="---" heading:Title-2 (H3)
+[34]: type=title content="Done" heading:
+[35]: type=text content="All this should be left alone!" heading:Done
+[36]: type=done content="Task-D1 @done(2022-10-01)" heading:Done
+[37]: type=done content="Task-D2 @done(2022-10-02)" heading:Done
+[38]: type=done content="Task-D3 @done(2022-10-03)" heading:Done
+[39]: type=done content="with SubtaskD3-1 @done(2022-10-01)" heading:Done
+[40]: type=done content="with SubtaskD3-2 @done(2022-10-01)" heading:Done
+[41]: type=done content="Task-D4 @done(2022-10-02)" heading:Done
+[42]: type=title content="Cancelled" heading:
+[43]: type=text content="As should these" heading:Cancelled
+[44]: type=cancelled content="Task-C1 @done(2022-10-02)" heading:Cancelled
+[45]: type=cancelled content="Task-C2 @done(2022-10-03)" heading:Cancelled
+[46]: type=empty content="" heading:Cancelled

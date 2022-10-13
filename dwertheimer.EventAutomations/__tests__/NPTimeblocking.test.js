@@ -7,8 +7,7 @@
 import * as mainFile from '../src/NPTimeblocking'
 import * as configFile from '../src/config'
 
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
-import { mockWasCalledWith } from '@mocks/mockHelpers'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, mockWasCalledWithString } from '@mocks/index'
 import { unhyphenatedDate } from '@helpers/dateTime'
 
 beforeAll(() => {
@@ -52,7 +51,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         DataStore.settings = undefined
         const spy = jest.spyOn(console, 'log')
         const result = mainFile.getConfig()
-        expect(mockWasCalledWith(spy, /config was empty/)).toBe(true)
+        expect(mockWasCalledWithString(spy, /config was empty/)).toBe(true)
         expect(Object.keys(result).length).toBeGreaterThan(1)
         spy.mockRestore()
         DataStore.settings = oldSettings
@@ -66,7 +65,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         DataStore.settings = { improper: 'key', __logLevel: 'DEBUG' }
         const spy = jest.spyOn(console, 'log')
         mainFile.getConfig()
-        expect(mockWasCalledWith(spy, /Running with default settings/)).toBe(true)
+        expect(mockWasCalledWithString(spy, /Running with default settings/)).toBe(true)
         spy.mockRestore()
         DataStore.settings = oldSettings
       })
@@ -232,7 +231,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const spy = jest.spyOn(CommandBar, 'prompt')
         await mainFile.insertTodosAsTimeblocks()
         // $FlowIgnore - jest doesn't know about this param
-        expect(mockWasCalledWith(spy, /No todos\/references marked for >today/)).toBe(true)
+        expect(mockWasCalledWithString(spy, /No todos\/references marked for >today/)).toBe(true)
         spy.mockRestore()
       })
       // [WIP]

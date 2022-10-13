@@ -31,6 +31,13 @@ export type GroupedTasks = {
   separator: Array<SortableParagraphSubset>,
 }
 
+export type ParagraphsGroupedByType = {
+  open?: ?Array<TParagraph>,
+  scheduled?: ?Array<TParagraph>,
+  cancelled?: ?Array<TParagraph>,
+  done?: ?Array<TParagraph>,
+}
+
 /**
  * Modern case insensitive sorting function
  * More details at https://stackoverflow.com/a/49004987/3238281

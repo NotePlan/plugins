@@ -1,4 +1,6 @@
 /* eslint-disable */
+// @flow
+
 /*
  * Note mock class
  *
@@ -75,16 +77,28 @@ export class Note {
   async insertList() {
     throw 'Note :: insertList Not implemented yet'
   }
-  insertParagraph(name: string, lineIndex: number, type: ParagraphType): void {
+  insertParagraph(content: string, lineIndex: number, type: ParagraphType): void {
     //TODO: deal with the lineIndex?
-    this.paragraphs.push({ content: name, type })
+    // .insertParagraph(content, lineIndex, type)
+    // if string contains "\n" then split into multiple paragraphs
+    const paras = content.split('\n').map((c) => ({ content: c, type: type, rawContent: c, lineIndex: -1 }))
+    this.paragraphs.splice(lineIndex, 0, ...paras)
+    this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
     return
   }
-  async insertParagraphAfterParagraph() {
-    throw 'Note :: insertParagraphAfterParagraph Not implemented yet'
+  async insertParagraphAfterParagraph(content, otherParagraph, paragraphType) {
+    // .insertParagraphAfterParagraph(content, otherParagraph, paragraphType)
+    // TODO: may need to create actual rawContent for certain tests
+    const paras = content.split('\n').map((c) => ({ content: c, type: type, rawContent: c, lineIndex: -1 }))
+    this.paragraphs.splice(otherParagraph.lineIndex + 1, 0, ...paras)
+    this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
   }
-  async insertParagraphBeforeParagraph() {
-    throw 'Note :: insertParagraphBeforeParagraph Not implemented yet'
+  async insertParagraphBeforeParagraph(content, otherParagraph, type: paragraphType) {
+    // .insertParagraphBeforeParagraph(content, otherParagraph, paragraphType)
+    // TODO: may need to create actual rawContent for certain tests
+    const paras = content.split('\n').map((c) => ({ content: c, type: type, rawContent: c, lineIndex: -1 }))
+    this.paragraphs.splice(otherParagraph.lineIndex, 0, ...paras)
+    this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
   }
   async insertQuote() {
     throw 'Note :: insertQuote Not implemented yet'
@@ -119,23 +133,31 @@ export class Note {
   async removeBlockID() {
     throw 'Note :: removeBlockID Not implemented yet'
   }
-  async removeParagraph() {
-    throw 'Note :: removeParagraph Not implemented yet'
+  async removeParagraph(para) {
+    this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
+    this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
   }
   async removeParagraphAtIndex() {
     throw 'Note :: removeParagraphAtIndex Not implemented yet'
   }
-  async removeParagraphs(pd) {
-    return
+  async removeParagraphs(paras) {
+    paras.forEach((para) => {
+      this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
+    })
+    this.paragraphs.forEach((p, i) => {
+      this.paragraphs[i].lineIndex = i
+    })
   }
   async replaceTextInCharacterRange() {
     throw 'Note :: replaceTextInCharacterRange Not implemented yet'
   }
-  async updateParagraph() {
-    throw 'Note :: updateParagraph Not implemented yet'
+  async updateParagraph(para) {
+    this.paragraphs[para.lineIndex] = para
   }
-  async updateParagraphs() {
-    throw 'Note :: updateParagraphs Not implemented yet'
+  async updateParagraphs(paras) {
+    paras.forEach((para) => {
+      this.paragraphs[para.lineIndex] = para
+    })
   }
 
   constructor(data?: any = {}) {

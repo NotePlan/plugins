@@ -61,6 +61,23 @@ export class Paragraph {
 
   constructor(data?: any = {}) {
     this.__update(data)
+    if (!data.rawContent) {
+      // set rawContent from content
+      switch (this.type) {
+        case 'open':
+          this.rawContent = `- [ ] ${this.content}`
+          break
+        case 'cancelled':
+          this.rawContent = `- [-] ${this.content}`
+          break
+        case 'done':
+          this.rawContent = `- [x] ${this.content}`
+          break
+        case 'scheduled':
+          this.rawContent = `- [>] ${this.content}`
+          break
+      }
+    }
   }
 
   __update(data?: any = {}) {
