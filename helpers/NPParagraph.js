@@ -147,15 +147,15 @@ export function getParagraphBlock(
   let selectedPara = allParas[startLine]
   logDebug(
     `NPParagraph / getParagraphBlock`,
-    `getParaBlock: starting with start active/last line = ${startActiveLineIndex}/${lastLineIndex} at lineIndex ${selectedParaIndex} ('${trimString(selectedPara.content, 50)}')`,
+    `Starting at lineIndex ${selectedParaIndex} with start active/last line = ${startActiveLineIndex}/${lastLineIndex} with ${String(includeFromStartOfSection)}/${String(useTightBlockDefinition)}: '${trimString(selectedPara.content, 50)}'`,
   )
 
   if (includeFromStartOfSection) {
     // First look earlier to find earlier lines up to a blank line or horizontal rule;
     // include line unless we hit a new heading, an empty line, or a less-indented line.
-    for (let i = selectedParaIndex - 1; i >= startActiveLineIndex; i--) {
+    for (let i = selectedParaIndex; i >= startActiveLineIndex; i--) {
       const p = allParas[i]
-      // logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / ${p.type} / ${trimString(p.content, 50)}`)
+      logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / ${p.type} / ${trimString(p.content, 50)}`)
       if (p.type === 'separator') {
         logDebug(`NPParagraph / getParagraphBlock`, `   - ${i}: Found separator line`)
         startLine = i + 1
@@ -216,7 +216,7 @@ export function getParagraphBlock(
     // See if there are following indented lines to move as well
     for (let i = startLine + 1; i <= lastLineIndex; i++) {
       const p = allParas[i]
-      // logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${trimString(p.content, 50)}`)
+      logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${trimString(p.content, 50)}`)
       if (useTightBlockDefinition && p.type === 'separator') {
         // stop if horizontal line
         logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found HR -> stopping`)
