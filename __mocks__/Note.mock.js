@@ -89,14 +89,14 @@ export class Note {
   async insertParagraphAfterParagraph(content, otherParagraph, paragraphType) {
     // .insertParagraphAfterParagraph(content, otherParagraph, paragraphType)
     // TODO: may need to create actual rawContent for certain tests
-    const paras = content.split('\n').map((c) => ({ content: c, type: type, rawContent: c, lineIndex: -1 }))
+    const paras = content.split('\n').map((c) => ({ content: c, type: c.type, rawContent: c, lineIndex: -1 }))
     this.paragraphs.splice(otherParagraph.lineIndex + 1, 0, ...paras)
     this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
   }
   async insertParagraphBeforeParagraph(content, otherParagraph, type: paragraphType) {
     // .insertParagraphBeforeParagraph(content, otherParagraph, paragraphType)
     // TODO: may need to create actual rawContent for certain tests
-    const paras = content.split('\n').map((c) => ({ content: c, type: type, rawContent: c, lineIndex: -1 }))
+    const paras = content.split('\n').map((c) => ({ content: c, type: c.type, rawContent: c, lineIndex: -1 }))
     this.paragraphs.splice(otherParagraph.lineIndex, 0, ...paras)
     this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
   }

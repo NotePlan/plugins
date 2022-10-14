@@ -584,7 +584,7 @@ export async function sortTasks(
   }
   logDebug(pluginJson, `sortTasks about to get sortGroups object`)
   const sortGroups = byHeading && Editor?.note?.title ? getTasksByHeading(Editor.note) : { [Editor?.note?.title || '']: Editor?.note?.paragraphs }
-  clo(sortGroups, `sortTasks -- sortGroups obj=`)
+  // clo(sortGroups, `sortTasks -- sortGroups obj=`)
   logDebug(pluginJson, `sortTasks have sortGroups object. key count=${Object.keys(sortGroups).length}. About to start the display loop`)
 
   for (const key in sortGroups) {

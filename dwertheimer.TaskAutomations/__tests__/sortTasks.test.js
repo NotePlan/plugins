@@ -4,9 +4,8 @@ import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note b
 import * as f from '../src/sortTasks'
 import * as testNote from './factories/taskDocument.json'
 import * as testNoteAfterSortByTitle from './factories/taskDocumentAfterSortByTitle.json'
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, simpleFormatter, mockWasCalledWithString /*, Paragraph */ } from '@mocks/index'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, simpleFormatter, mockWasCalledWithString, Paragraph } from '@mocks/index'
 import { getTasksByType } from '@helpers/sorting'
-import { Paragraph } from '../../__mocks__'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -336,6 +335,64 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result[3].content).toEqual('- [ ] 1-open')
         global.Editor = editorBackup
       })
+      test('should append to Editor when content exists', async () => {
+        const editorBackup = Editor
+        const note = new Note({
+          paragraphs: [
+            new Paragraph({ type: 'title', content: 'theTitle' }),
+            new Paragraph({ type: 'open', content: 'openTask' }),
+            new Paragraph({ type: 'separator', content: '---' }),
+          ],
+        })
+        const tasks = [new Paragraph({ type: 'open', content: '1-open' })]
+        const tByType = getTasksByType(tasks)
+        await f.writeOutTasks(note, tByType)
+        const result = note.paragraphs
+        expect(result.length).toEqual(4)
+        expect(result[3].content).toEqual('- [ ] 1-open')
+        global.Editor = editorBackup
+      })
+      test('should write to Editor under a title', async () => {
+        const editorBackup = Editor
+        const note = new Note({
+          paragraphs: [
+            new Paragraph({ type: 'title', content: 'docTitle' }),
+            new Paragraph({ type: 'title', content: 'theTitle' }),
+            new Paragraph({ type: 'cancelled', content: 'xclTask' }),
+            new Paragraph({ type: 'separator', content: '---' }),
+          ],
+        })
+        // will get ReferenceError: type is not defined if there is no lineIndex
+        note.paragraphs.forEach((p, i) => (note.paragraphs[i].lineIndex = i))
+
+        const tasks = [new Paragraph({ type: 'open', content: '1-open' })]
+        const tByType = getTasksByType(tasks)
+        await f.writeOutTasks(note, tByType, false, false, false, 'theTitle')
+        const result = note.paragraphs
+        expect(result.length).toEqual(5)
+        expect(result[3].content).toEqual('- [ ] 1-open')
+        global.Editor = editorBackup
+      })
+      test('should append to Editor when frontmatter exists', async () => {
+        const editorBackup = Editor
+        const note = new Note({
+          paragraphs: [
+            new Paragraph({ type: 'separator', content: '---' }),
+            new Paragraph({ type: 'text', content: 'test: frontmatter' }),
+            new Paragraph({ type: 'separator', content: '---' }),
+            new Paragraph({ type: 'title', content: 'theTitle' }),
+            new Paragraph({ type: 'open', content: 'openTask' }),
+            new Paragraph({ type: 'separator', content: '---' }),
+          ],
+        })
+        const tasks = [new Paragraph({ type: 'open', content: '1-open' })]
+        const tByType = getTasksByType(tasks)
+        await f.writeOutTasks(note, tByType)
+        const result = note.paragraphs
+        expect(result.length).toEqual(7)
+        expect(result[6].content).toEqual('- [ ] 1-open')
+        global.Editor = editorBackup
+      })
       test('should perform a basic write to Editor of testNote content', async () => {
         const editorBackup = Editor
         const note = new Note({ paragraphs: [] })
@@ -344,7 +401,8 @@ describe(`${PLUGIN_NAME}`, () => {
         await f.writeOutTasks(note, tByType)
         const result = note.paragraphs
         expect(result.length).toEqual(9)
-        expect(result.open[0].content).toEqual("!! Task-3 that's more important")
+        expect(result[0].content).toEqual('* [x] Task-4 @done(2022-10-01)')
+        expect(result[8].content).toEqual('\tAnd a note under Task-8')
         global.Editor = editorBackup
       })
     })
@@ -394,6 +452,7 @@ describe(`${PLUGIN_NAME}`, () => {
             // expect().toEqual(`[${i}] ${result[i].content}`)
             const shouldBe = `[${i}] ${p.content}`
             const newContent = `[${i}] ${result[i].content}`
+            console.log(`(result)"${newContent}" "${shouldBe}" (should be)`)
             // Put breakpoint on the expect and compare the objects in the debugger
             expect(newContent).toEqual(shouldBe)
           })
