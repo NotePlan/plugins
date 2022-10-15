@@ -95,9 +95,16 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
     }
   }
 
+  // logDebug('heatmap', `languageCode = ${NotePlan.environment.languageCode ?? '<undefined>'}`)
+  // logDebug('heatmap', `regionCode   = ${NotePlan.environment.regionCode ?? '<undefined>'}`)
+  // Set locale for momnet library
+  moment.locale(`${NotePlan.environment.languageCode}-${NotePlan.environment.regionCode}`)
+  // logDebug('heatmap', `moment locale -> ${moment.locale()}`)
+
+  const fromDateLocale = moment(fromDateStr, 'YYYY-MM-DD').format('L')
   await generateHeatMap(
     'NotePlan Task Completion Heatmap',
-    `Task Completion Heatmap (${total.toLocaleString()} since ${moment(fromDateStr, 'YYYY-MM-DD').format('L')})`, // i.e. locale date (according to moment)
+    `Task Completion Heatmap (${total.toLocaleString()} since ${fromDateLocale})`,
     config.foldersToExclude,
     statsMap,
     '["#F4FFF4", "#10B010"]',
