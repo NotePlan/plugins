@@ -80,9 +80,9 @@ export async function completeProject(): Promise<void> {
         // delete the project line from the full-review-list
         await updateReviewListAfterReview(note, true)
       } else {
-        // update the full-review-list,
-        // TODO: ??? passing the machineSummaryLine we got from completeProject()
-        await updateReviewListAfterReview(note)
+        // update the full-review-list, using the machineSummaryLine
+        // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
+        await updateReviewListAfterReview(note, false, projectNote.machineSummaryLine())
       }
     }
   } else {
@@ -118,16 +118,13 @@ export async function cancelProject(): Promise<void> {
 
   // If this has worked, then ...
   if (res) {
-    // remove this note from the review list
-    await updateReviewListAfterReview(note)
-
-    // Now add to the Summary note for this year (if present)
+    // Add to the Summary note for this year (if present)
     if (DataStore.folders.includes(config.folderToStore)) {
       const lineToAdd = projectNote.detailedSummaryLine('markdown', true)
-      const yearlyNote = await getOrMakeNote(thisYearStr, config.folderToStore)
-      if (yearlyNote != null) {
-        logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
-        yearlyNote.addParagraphBelowHeadingTitle(
+      const summaryNote = await getOrMakeNote(thisYearStr, config.folderToStore)
+      if (summaryNote != null) {
+        logInfo(pluginJson, `Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
+        summaryNote.addParagraphBelowHeadingTitle(
           lineToAdd,
           'text', // bullet character gets included in the passed in string
           config.finishedListHeading,
@@ -137,16 +134,16 @@ export async function cancelProject(): Promise<void> {
       }
     }
 
-    // ... and finally ask whether to move it to the @Archive
+    // Ask whether to move it to the @Archive
     if (filename != null &&
       (await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No'])) === 'Yes') {
       const newFilename = DataStore.moveNote(filename, '@Archive')
       // delete the project line from the full-review-list
       await updateReviewListAfterReview(note, true)
     } else {
-      // update the full-review-list,
-      // TODO: ??? passing the machineSummaryLine we got from cancelProject()
-      await updateReviewListAfterReview(note)
+      // update the full-review-list, using the machineSummaryLine
+      // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
+      await updateReviewListAfterReview(note, false, projectNote.machineSummaryLine())
     }
   } else {
     logError(pluginJson, `Something has gone wrong in Cancelling this project note.`)

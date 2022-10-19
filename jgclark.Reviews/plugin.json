@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.8.0",
-  "plugin.lastUpdateInfo": "Major new version. Offers Rich HTML view of '/project lists', requiring NP v3.7. Can also now be run from x-callback.",
+  "plugin.version": "0.9.0-beta1",
+  "plugin.lastUpdateInfo": "Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -73,6 +73,23 @@
       "jsFunction": "cancelProject"
     },
     {
+      "name": "rev:logFullReviewList",
+      "description": "write full-review-list file to log",
+      "jsFunction": "logFullReviewList"
+    },
+    {
+      "name": "rev:makeFullReviewList",
+      "description": "make/update full review list note",
+      "jsFunction": "makeFullReviewList"
+    },
+    {
+      "name": "test:generateCSSFromTheme",
+      "description": "test generateCSSFromTheme",
+      "jsFunction": "testGenerateCSSFromTheme"
+    }
+  ],
+  "plugin.inactiveCommands": [
+    {
       "name": "rev:logReviewList",
       "description": "write reviewList pref to log",
       "jsFunction": "logReviewList"
@@ -82,13 +99,6 @@
       "description": "make/update reviewList pref",
       "jsFunction": "makeReviewList"
     },
-    {
-      "name": "test:generateCSSFromTheme",
-      "description": "test generateCSSFromTheme",
-      "jsFunction": "testGenerateCSSFromTheme"
-    }
-  ],
-  "plugin.inactiveCommands": [
     {
       "comment": "Note: saved for later use",
       "name": "rev:test update Reviews plugin",
@@ -134,15 +144,15 @@
     {
       "key": "outputStyle",
       "title": "Output style to use",
-      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use NotePlan's original 'Markdown' output style.\nNote: the 'Rich' output can't result in a saved note.",
+      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use NotePlan's original 'Markdown' output style.\nNote: the 'Rich' output can't result in a saved note, so that's why there's also an option to do both.",
       "type": "string",
       "choices": [
         "Rich",
-        "Markdown"
+        "Markdown",
+        "Rich + Markdown"
       ],
       "default": "Rich",
-      "required": true,
-      "comment": "TODO: add in \"Rich + Markdown\" later, and add ', so that's why there's also an option to do both.' to description"
+      "required": true
     },
     {
       "key": "folderToStore",
@@ -317,6 +327,6 @@
       ],
       "default": "INFO",
       "required": true
-     }
+    }
   ]
 }

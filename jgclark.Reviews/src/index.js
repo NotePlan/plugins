@@ -3,27 +3,30 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 17.9.2022 for v0.8.0-betas, @jgclark
+// Last updated 14.10.2022 for v0.9.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 // import { generateCSSFromTheme } from '@helpers/HTMLView'
 import pluginJson from '../plugin.json'
+import { makeFullReviewList } from "./reviews";
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logError, logInfo } from '@helpers/dev'
 
 export {
+  logFullReviewList,
   logReviewList,
+  makeFullReviewList,
   makeReviewList,
   startReviews,
   nextReview,
   finishReview,
+  makeProjectLists,
+  redisplayProjectList,
 } from './reviews'
 export {
-  makeProjectLists,
-  makeProjectListsHTML,
-  redisplayProjectListHTML,
-  redisplayProjectListMarkdown
+  renderProjectListsHTML,
+  renderProjectListsMarkdown,
 } from './projectLists'
 export {
   completeProject,
@@ -61,8 +64,9 @@ export async function testUpdated(): Promise<void> {
   await onUpdateOrInstall(true)
 }
 
-export function onSettingsUpdated(): void {
-  // Placeholder only to stop error in logs
+export async function onSettingsUpdated(): Promise<void> {
+  // Update the full-review-list in case there's a change in a relevant setting
+  await makeFullReviewList(false)
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {

@@ -61,7 +61,8 @@ When you have [configured the plugin](#configuration), and added suitable metada
 ### "/project lists" command
 This creates or updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). For example:
 
-From v0.8 you can now set the '**Output style to use**'. This is either a new 'Rich' (HTML) or original 'Markdown' (normal NotePlan) output style.
+From v0.8 you can now set the '**Output style to use**'. This is either a new 'Rich' (HTML) or original 'Markdown' (normal NotePlan) output style.  
+<!-- From v0.9 ... ??? -->
 
 ![Example of Markdown style of "/project lists"](project-list-markdown_bordered.jpg) ![Example of Rich style of "/project lists"](project-list-rich.jpg)
 
@@ -92,8 +93,8 @@ The name of the settings are taken from the `key`s from the plugin's `plugin.jso
 ### "/start reviews" command
 This creates a hidden list of notes ready for review, and then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
 
-### "/complete review" command
-This updates the current open project's `@reviewed(date)`.
+### "/finish review" command
+This simply updates the current open project's `@reviewed(date)`.
 
 ### "/next review" command
 This updates this project's `@reviewed(date)`, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
@@ -114,10 +115,10 @@ Context: <%- prompt('context') %>
 ```
 
 ## "/complete project" command
-This adds an #archive tag, and a `@completed(date)` mention to the metadata line of the open project note, removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+This adds an #archive tag, and a `@completed(date)` to the metadata line of the open project note, and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
 
 ## "/cancel project" command
-This adds an #archive tag, and a `@cancelled(date)` mention to the metadata line of the open project note, removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+This adds an #archive tag, and a `@cancelled(date)` to the metadata line of the open project note, and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
 
 ## Configuration
 These commands require configuration, which is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel.
