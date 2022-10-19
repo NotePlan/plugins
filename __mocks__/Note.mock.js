@@ -46,8 +46,14 @@ export class Note {
   async addBlockID() {
     throw 'Note :: addBlockID Not implemented yet'
   }
-  async addParagraphBelowHeadingTitle() {
-    throw 'Note :: addParagraphBelowHeadingTitle Not implemented yet'
+  async addParagraphBelowHeadingTitle(content, paragraphType, headingTitle, shouldAppend, shouldCreate) {
+    // TODO: may need to create actual rawContent for certain tests
+    const paras = content.split('\n').map((c) => ({ content: c, type: paragraphType, rawContent: c, lineIndex: -1 }))
+    const paragraphs = this.paragraphs
+    // find paragraph with content === headingTitle
+    const headingIndex = paragraphs.findIndex((p) => p.content === headingTitle)
+    this.paragraphs.splice(headingIndex + 1, 0, ...paras)
+    this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
   }
   async addTodoBelowHeadingTitle() {
     throw 'Note :: addTodoBelowHeadingTitle Not implemented yet'

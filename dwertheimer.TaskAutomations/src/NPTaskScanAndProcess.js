@@ -250,12 +250,15 @@ async function showOverdueNote(note: TNote, updates: Array<TParagraph>, index: n
  * @returns {number} the new note index (e.g. to force it to review this note again) by default, just return the index you got. -2 means user canceled. noteIndex-1 means show this note again
  */
 async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: number, options: OverdueSearchOptions): Promise<number> {
+  // clo(options, `reviewNote: noteIndex=${noteIndex} options=`)
+  // clo(notesToUpdate[noteIndex], `reviewNote: notesToUpdate[${noteIndex}]`)
   const { showNote, confirm } = options
   let updates = sortListBy(notesToUpdate[noteIndex], '-lineIndex'), //reverse so we can delete from the end without messing up the lineIndexes and confusing NotePlan
     currentTaskIndex = showNote ? -1 : 0,
     currentTaskLineIndex = updates[0].lineIndex,
     res
   const note = updates[0].note
+  // clo(updates, `reviewNote: updates after sort=`)
   logDebug(pluginJson, `reviewNote starting review of note: "${note?.title || ''}" tasksToUpdate=${updates.length}`)
   // clo(updates, `reviewNote updates`)
   if (note) {
@@ -272,9 +275,9 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
           }
           if (!isNaN(res)) {
             // this was an index of a line to edit
-            logDebug(`NPnote`, `reviewNote "${note.paragraphs[Number(res) || 0].content}"`)
+            clo(note.paragraphs, `reviewNote: note.paragraphs=`)
+            logDebug(`NPnote`, `reviewNote lineIndex of task to work on in note is:${res} "${note.paragraphs[Number(res) || 0].content}"`)
             // edit a single task item
-            // clo(note.paragraphs[Number(res) || 0], `reviewNote paraClicked=`)
             const origPara = note.paragraphs[Number(res) || 0]
             const index = updates.findIndex((u) => u.lineIndex === origPara.lineIndex) || 0
             const updatedPara = updates[index]
@@ -282,21 +285,21 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
             logDebug(pluginJson, `reviewNote: back from promptUser, calling processUserActionOnLine with: ${JSP(res)}`)
             const result = await processUserActionOnLine(origPara, updatedPara, choice && choice.value) //FIXME: use modifiers key
             logDebug(pluginJson, `reviewNote: back from processUserActionOnLine: result=${JSP(result)}`)
-            // clo(result, 'NPNote::reviewNote result')
+            // clo(result, 'NPTaskScan::reviewNote result')
             if (result) {
               switch (result.action) {
                 case 'set':
-                  logDebug('NPNote::reviewNote', `received set command; index= ${index}`)
+                  logDebug('NPTaskScan::reviewNote', `received set command; index= ${index}`)
                   if (result?.changed) {
                     updates[index] = result.changed
                     logDebug(
-                      'NPNote::reviewNote',
+                      'NPTaskScan::reviewNote',
                       `after set command; updates[index].content="${updates[index].content}" origPara.content="${origPara.content}" | "${
                         note.paragraphs[Number(res) || 0].content
                       }"`,
                     )
                     if (choice && choice.keyModifiers.length) {
-                      logDebug('NPNote::reviewNote', `received set+cmd key; index= ${index}`)
+                      logDebug('NPTaskScan::reviewNote', `received set+cmd key; index= ${index}`)
                       const success = await userChoseModifier(updates[index], choice.keyModifiers, result.userChoice || '')
                       if (success) {
                         updates[index]?.note?.removeParagraph(updates[index])
@@ -308,7 +311,7 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                     }
                     updates.splice(index, 1) //remove item which was updated from note's updates
                     logDebug(
-                      'NPNote::reviewNote',
+                      'NPTaskScan::reviewNote',
                       `after splice/remove this line from updates.length=${updates.length} noteIndex=${noteIndex} ; will return noteIndex=${
                         updates.length ? noteIndex - 1 : noteIndex
                       }`,
@@ -384,7 +387,7 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
       }
       if (makeChanges) {
         // updatedParas = updatedParas.concat(updates)
-        logDebug(`NPNote::reviewNote`, `about to update ${updates.length} todos in note "${note.filename || ''}" ("${note.title || ''}")`)
+        logDebug(`NPTaskScan::reviewNote`, `about to update ${updates.length} todos in note "${note.filename || ''}" ("${note.title || ''}")`)
         clo(updates, `\nreviewNote updates`)
         note?.updateParagraphs(updates)
         updates.forEach(async (para) => {
@@ -397,9 +400,9 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
             return
           }
         })
-        logDebug(`NPNote::reviewNote`, `...after note.updateParagraphs...`)
+        logDebug(`NPTaskScan::reviewNote`, `...after note.updateParagraphs...`)
       } else {
-        logDebug(`NPNote::reviewNote`, `No update because makeChanges = ${String(makeChanges)}`)
+        logDebug(`NPTaskScan::reviewNote`, `No update because makeChanges = ${String(makeChanges)}`)
       }
       // clo(updatedParas,`overdue tasks to be updated`)
     }
@@ -453,9 +456,10 @@ export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Arra
  */
 export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<Array<TParagraph>> {
   const { foldersToIgnore = [], /* openOnly = true, datePlusOnly = true, replaceDate = true, */ noteTaskList = null, noteFolder = false } = options
-  logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || ''}`)
+  logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || 'undefined'}`)
   let notesWithDates = []
   if (!noteTaskList) {
+    logDebug(`NPNote::getNotesAndTasksToReview`, `no noteTaskList, so searching for notes`)
     if (noteFolder) {
       notesWithDates = [...DataStore.projectNotes, ...DataStore.calendarNotes]
         .filter((n) => (n?.filename ? n.filename.includes(`${noteFolder}/`) : false))
@@ -505,8 +509,13 @@ export async function reviewTasksInNotes(notesToUpdate: Array<Array<TParagraph>>
 
   // loop through all notes and process each individually
   for (let i = 0; i < notesToUpdate.length; i++) {
-    logDebug(`NPNote::reviewTasksInNotes`, `starting note loop:${i} of ${notesToUpdate.length} notes;  number of updates left: notesToUpdate[i].length=${notesToUpdate[i].length}`)
+    logDebug(
+      `NPNote::reviewTasksInNotes`,
+      `starting note loop:${i} of ${notesToUpdate.length} notes;  number of updates left: notesToUpdate[${i}].length=${notesToUpdate[i].length}`,
+    )
     if (notesToUpdate[i].length) {
+      logDebug(`reviewTasksInNotes`, `calling reviewNote on notesToUpdate[${i}]: "${notesToUpdate[i].filename || ''}"`)
+      clo(notesToUpdate[i], `notesToUpdate[${i}]`)
       i = await reviewNote(notesToUpdate, i, options) // result may decrement index to see the note again after one line change
       if (i === -2) break //user selected cancel
     }

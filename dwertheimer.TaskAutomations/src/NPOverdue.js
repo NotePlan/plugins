@@ -240,7 +240,6 @@ export async function reviewEditorReferencedTasks(incoming: string | null = null
       noteTaskList: arrayOfOpenNotesAndTasks,
       overdueOnly: false,
     }
-    // const notesToReview = getNotesAndTasksToReview(options) //FIXME I AM HERE! maybe can skip this step because of REFACTORING
     await reviewTasksInNotes(arrayOfOpenNotesAndTasks, options)
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -371,7 +370,6 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledTasks: boolean
       logDebug(pluginJson, `Project Notes after exclude folder filter: ${recentProjNotes.length}`)
     }
 
-    // sort  // TODO: test/check sort option - searchForgottenTasksOldestToNewest
     recentCalNotes = await getOpenTasksByNote(recentCalNotes, searchForgottenTasksOldestToNewest ? 'filename' : '-filename', ignoreScheduledTasks)
     recentProjNotes = await getOpenTasksByNote(recentProjNotes, searchForgottenTasksOldestToNewest ? 'changedDate' : '-changedDate', ignoreScheduledTasks)
     logDebug(pluginJson, `Calendar Notes after filtering for open tasks: ${recentCalNotes.length}`)

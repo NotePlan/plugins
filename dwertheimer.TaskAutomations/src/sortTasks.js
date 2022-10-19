@@ -103,15 +103,15 @@ export function openTasksToTop(heading: string = '## Tasks:\n', separator: strin
 //FIXME: need to finish this...
 /**
  * This template/macro is going to headlessly sort all tasks in the note based on certain criteria.
- * e.g. {{sortTasks({withUserInput: false, withHeadings: true, withSubHeadings: true, sortOrder: ['-priority', 'content'], })}}
+ * e.g. {{sortTasks({withUserInput: false, withHeadings: true, subHeadingCategory: true, sortOrder: ['-priority', 'content'], })}}
  */
 export async function sortTasksViaTemplate(paramStr: string = ''): Promise<void> {
   logDebug(`tasksortTasksViaTemplateToTop(): calling sortTasks`)
   const withUserInput: boolean = await getTagParamsFromString(paramStr, 'withUserInput', true)
   const sortFields: string[] = await getTagParamsFromString(paramStr, 'sortFields', SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields)
   const withHeadings: boolean = await getTagParamsFromString(paramStr, 'withHeadings', false)
-  const withSubHeadings: boolean = await getTagParamsFromString(paramStr, 'withSubHeadings', false)
-  await sortTasks(withUserInput, sortFields, withHeadings, withSubHeadings)
+  const subHeadingCategory: boolean = await getTagParamsFromString(paramStr, 'subHeadingCategory', false)
+  await sortTasks(withUserInput, sortFields, withHeadings, subHeadingCategory)
 }
 
 /**
@@ -189,7 +189,7 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
   // THE API IS SUPER SLOW TO INSERT TASKS ONE BY ONE
   // SO INSTEAD, JUST PASTE THEM ALL IN ONE BIG STRING
   logDebug(`\tInsertTodos: subHeadingCategory=${String(subHeadingCategory)} typeof=${typeof subHeadingCategory} ${todos.length} todos`)
-  let todosWithSubheadings = []
+  let todossubHeadingCategory = []
   const headingStr = heading ? `${heading}\n` : ''
   if (heading) {
     logDebug(`\tInsertTodos: heading=${heading}`)
@@ -221,17 +221,17 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
         // logDebug(pluginJson, `insertTodos subCat:"${subCat}" typeof=${typeof subCat} length=${subCat.length}`)
 
         const headingStr = `#### ${subCat}:`
-        todosWithSubheadings.push({ raw: `\n${headingStr}` })
+        todossubHeadingCategory.push({ raw: `\n${headingStr}` })
         // delete the former version of this subheading
         removeHeadingFromNote(note, subCat)
       }
-      todosWithSubheadings.push(todos[lineIndex])
+      todossubHeadingCategory.push(todos[lineIndex])
     }
   } else {
-    todosWithSubheadings = todos
+    todossubHeadingCategory = todos
   }
 
-  const contentStr = todosWithSubheadings
+  const contentStr = todossubHeadingCategory
     .map((t) => {
       let str = t.raw
       if (t.children && t.children.length) {
@@ -241,7 +241,7 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
     })
     .join(`\n`)
   // logDebug(`Inserting tasks into Editor:\n${contentStr}`)
-  // logDebug(`inserting tasks: \n${JSON.stringify(todosWithSubheadings)}`)
+  // logDebug(`inserting tasks: \n${JSON.stringify(todossubHeadingCategory)}`)
   const content = `${headingStr}${contentStr}${separator ? `\n${separator}` : ''}`
   if (title !== '') {
     // const headingIndex = findHeading(note, title)?.lineIndex || 0
@@ -403,20 +403,23 @@ function deleteExistingTasks(note: CoreNoteFields, tasks: ParagraphsGroupedByTyp
  * @param {ParagraphsGroupedByType} tasks
  * @param {boolean} drawSeparators
  * @param {boolean} withHeadings
- * @param {any|null|string} withSubheadings // @jgclark comment: suggest change name to subHeadingCategory, as otherwise it sounds like a boolean
+ * @param {any|null|string} subHeadingCategory
  */
 export async function writeOutTasks(
   note: CoreNoteFields,
   tasks: ParagraphsGroupedByType,
   drawSeparators: boolean = false,
   withHeadings: boolean = false,
-  withSubheadings: any | null | string = null,
+  subHeadingCategory: any | null | string = null,
   title: string = '',
 ): Promise<void> {
+  const { outputOrder, tasksToTop } = DataStore.settings
+  const taskTypes = (outputOrder ?? 'open, scheduled, done, cancelled').split(',').map((t) => t.trim())
   const headings = TOP_LEVEL_HEADINGS
-  const tasksTypesReverse = TASK_TYPES.slice().reverse()
-  for (let i = 0; i < tasksTypesReverse.length; i++) {
-    const ty = tasksTypesReverse[i]
+  // need to write in reverse order if we are going to keep adding a top insertionIndex
+  const writeSequence = tasksToTop ? taskTypes.slice().reverse() : taskTypes
+  for (let i = 0; i < writeSequence.length; i++) {
+    const ty = writeSequence[i]
     if (tasks[ty]?.length) {
       logDebug(`\twriteOutTasks TASK_TYPE=${ty} -- ${tasks[ty].length} tasks -- withHeadings=${String(withHeadings)}`)
       try {
@@ -426,7 +429,7 @@ export async function writeOutTasks(
               tasks[ty],
               withHeadings ? `### ${headings[ty]}:` : '',
               drawSeparators ? `${i === tasks[ty].length - 1 ? '---' : ''}` : '',
-              withSubheadings,
+              subHeadingCategory,
               title,
             )
           : null
@@ -545,14 +548,14 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
  * @param {boolean} withUserInput - whether to ask in CommandBar
  * @param {Array<string>} sortFields (see SORT_FIELDS description above)
  * @param {boolean} withHeadings - top level headings (e.g. "Open Tasks")
- * @param {boolean} withSubHeadings - subheadings (e.g. for each tag)
+ * @param {boolean} subHeadingCategory - subheadings (e.g. for each tag)
  * @returns
  */
 export async function sortTasks(
   withUserInput: boolean = true,
   sortFields: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields,
   withHeadings: boolean | null = null,
-  withSubHeadings: boolean | null = null,
+  subHeadingCategory: boolean | null = null,
 ) {
   const { eliminateSpinsters, sortInHeadings } = DataStore.settings
 
@@ -573,8 +576,8 @@ export async function sortTasks(
   let sortField1 = ''
   if (sortOrder.length) {
     sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
-    printSubHeadings = ['hashtags', 'mentions'].indexOf(sortField1) !== -1 ? (withSubHeadings === null ? await wantSubHeadings() : true) : false
-    logDebug(`\twithSubHeadings=${String(withSubHeadings)} printSubHeadings=${String(printSubHeadings)}  cat=${printSubHeadings ? sortField1 : 'none'}`)
+    printSubHeadings = ['hashtags', 'mentions'].indexOf(sortField1) !== -1 ? (subHeadingCategory === null ? await wantSubHeadings() : true) : false
+    logDebug(`\tsubHeadingCategory=${String(subHeadingCategory)} printSubHeadings=${String(printSubHeadings)}  cat=${printSubHeadings ? sortField1 : 'none'}`)
   }
   // logDebug(`\tFinished wantSubHeadings()=${String(printSubHeadings)}, now running sortParagraphsByType`)
   if (!Editor.note) {

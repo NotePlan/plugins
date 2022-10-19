@@ -313,9 +313,12 @@ describe(`${PLUGIN_NAME}`, () => {
      * writeOutTasks()
      */
     describe('writeOutTasks()' /* function */, () => {
-      test('should write to Editor one of each task type in proper order', async () => {
+      test('should write to Editor one of each task type in default order', async () => {
+        // const taskTypes = (DataStore.settings.outputOrder ?? 'open, scheduled, done, cancelled').split(',').map((t) => t.trim())
         const editorBackup = Editor
-        const note = new Note({ paragraphs: [] })
+        const titlePara = new Paragraph({ type: 'title', content: 'NoteTitle', lineIndex: 0 })
+        const firstLine = new Paragraph({ type: 'empty', content: '', lineIndex: 1 })
+        const note = new Note({ paragraphs: [titlePara, firstLine] })
         const tasks = [
           new Paragraph({ type: 'open', content: '1-open' }),
           new Paragraph({ type: 'done', content: '2-done' }),
@@ -325,18 +328,75 @@ describe(`${PLUGIN_NAME}`, () => {
         const tByType = getTasksByType(tasks)
         await f.writeOutTasks(note, tByType)
         const result = note.paragraphs
-        expect(result.length).toEqual(4)
+        expect(result.length).toEqual(6)
         // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
         // output order is the reverse of that order
         // Note that types will be unreliable because rawContent is being pasted
-        expect(result[0].content).toEqual('- [-] 3-cancelled')
-        expect(result[1].content).toEqual('- [x] 2-done')
+        expect(result[4].content).toEqual('- [-] 3-cancelled')
+        expect(result[3].content).toEqual('- [x] 2-done')
         expect(result[2].content).toEqual('- [>] 4-scheduled')
-        expect(result[3].content).toEqual('- [ ] 1-open')
+        expect(result[1].content).toEqual('- [ ] 1-open')
         global.Editor = editorBackup
+      })
+      test('should write to Editor one of each task type in user-specified order', async () => {
+        const dataStoreBackup = { ...DataStore }
+        const editorBackup = { ...Editor }
+        DataStore.settings.outputOrder = 'cancelled, done, scheduled, open'
+        const titlePara = new Paragraph({ type: 'title', content: 'NoteTitle', lineIndex: 0 })
+        const firstLine = new Paragraph({ type: 'empty', content: '', lineIndex: 1 })
+        const note = new Note({ paragraphs: [titlePara, firstLine] })
+        const tasks = [
+          new Paragraph({ type: 'open', content: '1-open' }),
+          new Paragraph({ type: 'done', content: '2-done' }),
+          new Paragraph({ type: 'cancelled', content: '3-cancelled' }),
+          new Paragraph({ type: 'scheduled', content: '4-scheduled' }),
+        ]
+        const tByType = getTasksByType(tasks)
+        await f.writeOutTasks(note, tByType)
+        const result = note.paragraphs
+        expect(result.length).toEqual(6)
+        // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
+        // output order is the reverse of that order
+        // Note that types will be unreliable because rawContent is being pasted
+        expect(result[1].content).toEqual('- [-] 3-cancelled')
+        expect(result[2].content).toEqual('- [x] 2-done')
+        expect(result[3].content).toEqual('- [>] 4-scheduled')
+        expect(result[4].content).toEqual('- [ ] 1-open')
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
+      })
+      test('should write to Editor one of each task type in user-specified order with tasksToTop setting true', async () => {
+        const dataStoreBackup = { ...DataStore }
+        const editorBackup = { ...Editor }
+        DataStore.settings.outputOrder = 'cancelled, done, scheduled, open'
+        DataStore.settings.tasksToTop = true
+        const titlePara = new Paragraph({ type: 'title', content: 'NoteTitle', lineIndex: 0 })
+        const firstLine = new Paragraph({ type: 'empty', content: '', lineIndex: 1 })
+        const note = new Note({ paragraphs: [titlePara, firstLine] })
+        const tasks = [
+          new Paragraph({ type: 'open', content: '1-open' }),
+          new Paragraph({ type: 'done', content: '2-done' }),
+          new Paragraph({ type: 'cancelled', content: '3-cancelled' }),
+          new Paragraph({ type: 'scheduled', content: '4-scheduled' }),
+        ]
+        const tByType = getTasksByType(tasks)
+        await f.writeOutTasks(note, tByType)
+        const result = note.paragraphs
+        expect(result.length).toEqual(6)
+        // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
+        // output order is the reverse of that order
+        // Note that types will be unreliable because rawContent is being pasted
+        expect(result[1].content).toEqual('- [-] 3-cancelled')
+        expect(result[2].content).toEqual('- [x] 2-done')
+        expect(result[3].content).toEqual('- [>] 4-scheduled')
+        expect(result[4].content).toEqual('- [ ] 1-open')
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
       })
       test('should append to Editor when content exists', async () => {
         const editorBackup = Editor
+        const dataStoreBackup = { ...DataStore }
+        DataStore.settings.tasksToTop = false
         const note = new Note({
           paragraphs: [
             new Paragraph({ type: 'title', content: 'theTitle' }),
@@ -350,7 +410,8 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = note.paragraphs
         expect(result.length).toEqual(4)
         expect(result[3].content).toEqual('- [ ] 1-open')
-        global.Editor = editorBackup
+        global.Editor = { ...editorBackup }
+        global.DataStore = { ...dataStoreBackup }
       })
       test('should write to Editor under a title', async () => {
         const editorBackup = Editor

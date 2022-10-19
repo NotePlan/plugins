@@ -10,6 +10,7 @@ import { findEndOfActivePartOfNote } from './paragraph'
 import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
 import { findOverdueWeeksInString } from './NPnote'
+import { lgamma } from 'mathjs'
 
 export const noteType = (filename: string): NoteType => (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes')
 
@@ -566,23 +567,24 @@ export function findOverdueDatesInString(line: string): Array<string> {
  */
 export function getOverdueParagraphs(note: TNote, replaceOverdueDatesWith: string = ''): Array<TParagraph> {
   const fileType = note.type === 'Notes' ? 'Notes' : note.type === 'Calendar' && isWeeklyNote(note) ? 'Weekly' : 'Daily'
-  logDebug(`note/getOverdueParagraphs`, `fileType: ${fileType}`)
-  clo(note?.datedTodos, 'note/getOverdueParagraphs note?.datedTodos before filter')
+  // logDebug(`note/getOverdueParagraphs`, `fileType: ${fileType}`)
+  // clo(note?.datedTodos, `note/getOverdueParagraphs note?.datedTodos before filter: ${datedOpenTodos.length} tasks`)
   const datedOpenTodos = note?.datedTodos?.filter((t) => t.type === 'open') || [] // only open tasks
-  clo(datedOpenTodos, 'note/getOverdueParagraphs datedOpenTodos after filter for open')
+  // datedOpenTodos.length ? clo(datedOpenTodos, `note/getOverdueParagraphs datedOpenTodos after filter for open: ${datedOpenTodos.length} tasks`) : null
   const updatedParas = []
   datedOpenTodos.forEach((todo) => {
     if (fileType === 'Notes' || fileType === 'Daily') {
       const overdueDates = findOverdueDatesInString(todo.content).concat(findOverdueWeeksInString(todo.content))
-      overdueDates.forEach(
-        (d) =>
-          (todo.content = replaceOverdueDatesWith.length
-            ? todo.content.replace(d, replaceOverdueDatesWith).trim().replace(/ {2,}/, ' ')
-            : todo.content.replace(d, '').trim().replace(/ {2,}/, ' ')),
-      )
+      overdueDates.forEach((d) => {
+        // logDebug(`note/getOverdueParagraphs`, `overdue date found: ${d} in content:"${todo.content}"`)
+        todo.content = replaceOverdueDatesWith.length
+          ? todo.content.replace(d, replaceOverdueDatesWith).trim().replace(/ {2,}/, ' ')
+          : todo.content.replace(d, '').trim().replace(/ {2,}/, ' ')
+      })
       overdueDates.length ? updatedParas.push(todo) : null
     }
   })
+  updatedParas.length ? updatedParas.map((p, i) => logDebug(`note/getOverdueParagraphs ${note.filename} [${i}]: type=${p.type} content="${p.content}"`)) : null
   return updatedParas
 }
 

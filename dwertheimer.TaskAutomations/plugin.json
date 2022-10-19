@@ -4,7 +4,7 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.5.0-notreleased",
+  "plugin.version": "2.5.0",
   "plugin.lastUpdateInfo": "2.5: Added open task search (separate from overdue); Added weekly reschedule tags (to point tasks to weekly note); Added capability to review items marked for today; Added day names for rescheduling; Added preference to review today's tasks after overdue review.\n2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -222,6 +222,15 @@
       "title": "Default Task Sorting Output Settings"
     },
     {
+      "key": "outputOrder",
+      "title": "Output order (by type)",
+      "description": "After tasks are sorted, tasks are grouped by their type (status). In what order do you want the task groups outputted?",
+      "choices": ["open, scheduled, done, cancelled","done, cancelled, open, scheduled","open, done, cancelled, scheduled","open, cancelled, done, scheduled","scheduled, open, done, cancelled","scheduled, open, cancelled, done","scheduled, done, cancelled, open","scheduled, cancelled, done, open","done, open, cancelled, scheduled","done, scheduled, cancelled, open","cancelled, open, done, scheduled","cancelled, scheduled, done, open","cancelled, done, open, scheduled","cancelled, done, scheduled, open"],
+      "type": "string",
+      "default": "open, scheduled, done, cancelled",
+      "required": true
+    },   
+    {
       "key": "sortInHeadings",
       "title": "Sort tasks separately for each heading?",
       "description": "For all quick task sorting commands (other than /ts), do you want each set of tasks under each heading to be sorted separately and placed back underneath the heading? Uncheck this if you want to ignore the headings in the sort.",
@@ -236,7 +245,7 @@
       "type": "bool",
       "default": true,
       "required": true
-    },   
+    },      
     {
       "key": "includeHeading",
       "title": "Include Task Status Heading in Output?",

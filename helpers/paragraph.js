@@ -160,7 +160,7 @@ export function printParagraph(p: TParagraph) {
  * @return {number} line - the calculated line to insert/prepend at
  */
 export function calcSmartPrependPoint(note: TNote): number {
-  const lines = note.paragraphs.map(s => s.content)
+  const lines = note.paragraphs.map((s) => s.content)
   logDebug('paragraph/calcSmartPrependPoint', `Starting with ${lines.length} lines`)
 
   // By default we prepend at line 1, i.e. right after the Title line for regulat notes
@@ -183,8 +183,7 @@ export function calcSmartPrependPoint(note: TNote): number {
         logWarn('paragraph/calcSmartPrependPoint', `- Couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
         // It's not clear what to do at this point, so will leave insertion point as is
       }
-    }
-    else if (lines.length >= 2 && lines[1].match(/^#[A-z]/)) {
+    } else if (lines.length >= 2 && lines[1].match(/^#[A-z]/)) {
       // We have a hashtag at the start of the line, making this a metadata line
       // Move insertion point to after the next blank line, or before the next
       // heading line, whichever is sooner.
@@ -201,8 +200,7 @@ export function calcSmartPrependPoint(note: TNote): number {
           break
         }
       }
-    }
-    else {
+    } else {
       logDebug('paragraph/calcSmartPrependPoint', `  - neither frontmatter nor metadata line found -> line ${insertionLine}`)
     }
   }
@@ -243,8 +241,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
   // If no lines, return 0
   if (lineCount === 0) {
     return 0
-  }
-  else {
+  } else {
     // If last line is empty, ignore it.
     if (paras[paras.length - 1].type === 'empty') {
       // logDebug('paragraph/findEndOfActivePartOfNote', `last para is empty so ignoring it`)
@@ -266,10 +263,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
       cancelledHeaderLine -= 1
     }
 
-    const endOfActive = doneHeaderLine > 1 ? doneHeaderLine - 1
-      : cancelledHeaderLine > 1 ? cancelledHeaderLine - 1
-        : lineCount > 1 ? lineCount - 1
-          : 0
+    const endOfActive = doneHeaderLine > 1 ? doneHeaderLine - 1 : cancelledHeaderLine > 1 ? cancelledHeaderLine - 1 : lineCount > 1 ? lineCount - 1 : 0
     // logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
     return endOfActive
   }
@@ -412,10 +406,13 @@ export function findHeadingStartsWith(note: TNote, headingToFind: string): strin
   if (headingToFind) {
     const headingToFindLC = headingToFind.toLowerCase()
     const paragraphs = note.paragraphs
-    const para = paragraphs.find((paragraph) => paragraph.type === 'title'
-      && (paragraph.content.toLowerCase().startsWith(headingToFindLC)
-        || headingToFindLC === paragraph.content.toLowerCase()
-        || headingToFindLC.startsWith(paragraph.content.toLowerCase())))
+    const para = paragraphs.find(
+      (paragraph) =>
+        paragraph.type === 'title' &&
+        (paragraph.content.toLowerCase().startsWith(headingToFindLC) ||
+          headingToFindLC === paragraph.content.toLowerCase() ||
+          headingToFindLC.startsWith(paragraph.content.toLowerCase())),
+    )
 
     if (para) return para.content
   }
