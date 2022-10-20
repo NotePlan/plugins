@@ -5,7 +5,10 @@
 
 ## What's Changed in this Plugin?
 
-## [2.5.0] (@dwertheimer) 2022-10-
+## [2.6.0] (@dwertheimer) 2022-10-19
+
+- Added /sth - sort tasks under heading
+## [2.5.0] (@dwertheimer) 2022-10-19
 
 - Added weekly tasks to marooned task search
 - Added open task search (separate from overdue)

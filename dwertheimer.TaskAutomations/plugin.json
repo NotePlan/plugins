@@ -4,16 +4,22 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.5.0",
-  "plugin.lastUpdateInfo": "2.5: Added open task search (separate from overdue); Added weekly reschedule tags (to point tasks to weekly note); Added capability to review items marked for today; Added day names for rescheduling; Added preference to review today's tasks after overdue review.\n2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
+  "plugin.version": "2.6.0",
+  "plugin.lastUpdateInfo": "2.6.0: Add /sth - sort tasks under heading\n2.5: Added open task search (separate from overdue); Added weekly reschedule tags (to point tasks to weekly note); Added capability to review items marked for today; Added day names for rescheduling; Added preference to review today's tasks after overdue review.\n2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
   "plugin.commands": [
     {
       "name": "ts",
-      "description": "Tasks Sort - Sort tasks on the page (e.g. after a sweep)",
+      "description": "Tasks Sort - Sort tasks on the page",
       "jsFunction": "sortTasks"
+    },
+    {
+      "name": "sth",
+      "description": "Sort tasks under heading (choose)",
+      "jsFunction": "sortTasksUnderHeading",
+      "alias": ["tsh"]
     },
     {
       "name": "tsd",
@@ -188,7 +194,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Task Sorting Output Settings"
+      "title": "Task Sorting Default Settings"
     },
     {
       "key": "defaultSort1",
@@ -216,10 +222,6 @@
       "default": "mentions",
       "required": true,
       "choices": ["priority","-priority","due","-due","mentions","-mentions","hashtags","-hashtags","content","-content"]
-    },
-    {
-      "type": "heading",
-      "title": "Default Task Sorting Output Settings"
     },
     {
       "key": "outputOrder",

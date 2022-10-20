@@ -1,12 +1,13 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { chooseOption } from '@helpers/userInput'
+import { chooseOption, chooseHeading } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
 import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagraph'
 import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType } from '@helpers/sorting'
 import { logDebug, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { showMessage } from '../../helpers/userInput'
 
 const TOP_LEVEL_HEADINGS = {
   open: 'Open Tasks',
@@ -302,7 +303,7 @@ async function getUserSort(sortChoices = SORT_ORDERS) {
   // [String] list of options, placeholder text, callback function with selection/
   const choice = await CommandBar.showOptions(
     sortChoices.map((a) => a.name),
-    `Select sort order:`,
+    `Sort by type/status and then:`,
   )
   // logDebug(`\tgetUserSort returning ${JSON.stringify(sortChoices[choice.index].sortFields)}`)
   return sortChoices[choice.index].sortFields
@@ -616,4 +617,35 @@ export async function sortTasks(
     removeEmptyHeadings(Editor)
   }
   logDebug('Finished sortTasks()!')
+}
+
+/**
+ * sortTasksUnderHeading
+ * Plugin entrypoint for "/sth"
+ */
+export async function sortTasksUnderHeading() {
+  try {
+    if (Editor.note) {
+      const heading = await chooseHeading(Editor?.note, false, false, false)
+      if (heading && Editor.note) {
+        const block = getBlockUnderHeading(Editor.note, heading)
+        if (block?.length) {
+          const sortOrder = await getUserSort()
+          if (sortOrder) {
+            const sortedTasks = sortParagraphsByType(block, sortOrder)
+            // const printHeadings = (await wantHeadings()) || false
+            // const printSubHeadings = (await wantSubHeadings()) || false
+            const sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
+            if (Editor.note) deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
+            // if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', heading)
+            if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, false, '', heading)
+          }
+        } else {
+          await showMessage(`No tasks found under heading "${heading}"`)
+        }
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, JSON.stringify(error))
+  }
 }
