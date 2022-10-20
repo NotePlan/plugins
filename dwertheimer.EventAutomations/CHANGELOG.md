@@ -4,6 +4,10 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+[1.10.4] - 2022-10-19 @dwertheimer
+
+- Minor fix to ignore calendar items which are marked as "free" time in Google calendar
+
 [1.10.3] - 2022-09-29 @dwertheimer
 
 - Bug fix to keep today todos from becoming synced copies

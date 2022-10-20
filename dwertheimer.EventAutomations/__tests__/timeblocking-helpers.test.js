@@ -133,6 +133,14 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(returnVal[2].busy).toEqual('event1')
         expect(returnVal[5].busy).toEqual(false)
       })
+      test('should not block times for an event if availability flag is 1 (free)', () => {
+        const map = tb.getBlankDayMap(5)
+        const events = [{ date: new Date('2021-01-01 00:10'), endDate: new Date('2021-01-01 00:21'), title: 'event1', availability: 1 }]
+        const returnVal = tb.blockOutEvents(events, map, config)
+        expect(returnVal[1].busy).toEqual(false)
+        expect(returnVal[2].busy).toEqual(false)
+        expect(returnVal[5].busy).toEqual(false)
+      })
       test('overlapping events should get blocked with the later events reflected in the busy field', () => {
         const map = tb.getBlankDayMap(5)
         const events = [{ date: new Date('2021-01-01 00:10'), endDate: new Date('2021-01-01 00:21'), title: 'event1' }]

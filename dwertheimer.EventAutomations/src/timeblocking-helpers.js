@@ -82,12 +82,14 @@ export function createTimeBlockLine(blockData: BlockData, config: { [key: string
  */
 export function blockOutEvents(events: Array<PartialCalendarItem>, timeMap: IntervalMap, config: { [key: string]: any }): IntervalMap {
   let newTimeMap = [...timeMap]
-  events.forEach((event) => {
-    const start = getTimeStringFromDate(event.date)
-    const end = event.endDate ? getTimeStringFromDate(event.endDate) : ''
-    const obj = event.endDate ? blockTimeFor(newTimeMap, { start, end, title: event.title }, config) : { newMap: newTimeMap }
-    newTimeMap = obj.newMap
-  })
+  events
+    .filter((e) => e.availability !== 1)
+    .forEach((event) => {
+      const start = getTimeStringFromDate(event.date)
+      const end = event.endDate ? getTimeStringFromDate(event.endDate) : ''
+      const obj = event.endDate ? blockTimeFor(newTimeMap, { start, end, title: event.title }, config) : { newMap: newTimeMap }
+      newTimeMap = obj.newMap
+    })
   return newTimeMap
 }
 

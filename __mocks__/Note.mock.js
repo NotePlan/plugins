@@ -148,7 +148,7 @@ export class Note {
   }
   async removeParagraphs(paras) {
     paras.forEach((para) => {
-      this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
+      this.paragraphs = this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
     })
     this.paragraphs.forEach((p, i) => {
       this.paragraphs[i].lineIndex = i

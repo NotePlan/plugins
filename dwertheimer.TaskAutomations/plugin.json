@@ -225,7 +225,7 @@
       "key": "outputOrder",
       "title": "Output order (by type)",
       "description": "After tasks are sorted, tasks are grouped by their type (status). In what order do you want the task groups outputted?",
-      "choices": ["open, scheduled, done, cancelled","done, cancelled, open, scheduled","open, done, cancelled, scheduled","open, cancelled, done, scheduled","scheduled, open, done, cancelled","scheduled, open, cancelled, done","scheduled, done, cancelled, open","scheduled, cancelled, done, open","done, open, cancelled, scheduled","done, scheduled, cancelled, open","cancelled, open, done, scheduled","cancelled, scheduled, done, open","cancelled, done, open, scheduled","cancelled, done, scheduled, open"],
+      "choices": ["open, scheduled, done, cancelled","open, scheduled, cancelled, done", "done, cancelled, open, scheduled","open, done, cancelled, scheduled","open, cancelled, done, scheduled","scheduled, open, done, cancelled","scheduled, open, cancelled, done","scheduled, done, cancelled, open","scheduled, cancelled, done, open","done, open, cancelled, scheduled","done, scheduled, cancelled, open","cancelled, open, done, scheduled","cancelled, scheduled, done, open","cancelled, done, open, scheduled","cancelled, done, scheduled, open"],
       "type": "string",
       "default": "open, scheduled, done, cancelled",
       "required": true

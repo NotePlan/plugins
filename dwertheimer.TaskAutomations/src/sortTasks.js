@@ -543,7 +543,7 @@ export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<
 }
 
 /**
- * Sort tasks (main)
+ * Sort tasks in Editor (main)
  * (Plugin entrypoint for /ts - Task Sort)
  * @param {boolean} withUserInput - whether to ask in CommandBar
  * @param {Array<string>} sortFields (see SORT_FIELDS description above)

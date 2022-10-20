@@ -494,34 +494,28 @@ describe(`${PLUGIN_NAME}`, () => {
           CommandBar.showOptions = CommandBar_backup.showOptions
           jest.restoreAllMocks()
         })
+        /**
+         * Use Factories to test entire note paragraphs before and after
+         */
         test('should process the whole note correctly', async () => {
-          const editorBackup = Editor
+          const editorBackup = { ...Editor }
+          const dataStoreBackup = { ...DataStore }
+          DataStore.settings.sortInHeadings = true
+          DataStore.settings.outputOrder = 'open, done, scheduled, cancelled'
           const note = new Note(testNote)
-          // writableTestNote.removeParagraphs = (args) => {
-          //   console.log('removeParagraphs', args)
-          // }
-          // writableTestNote.updateParagraphs = (args) => {
-          //   console.log('updateParagraphs', args)
-          // }
           global.Editor = note
           global.Editor.note = note
-          removeSpy = jest.spyOn(note, 'removeParagraphs')
-          updateSpy = jest.spyOn(note, 'updateParagraphs')
-          await f.sortTasks()
+          await f.sortTasks(false, ['-priority', 'content'], false, null)
           const result = global.Editor.paragraphs
           testNoteAfterSortByTitle.paragraphs.forEach((p, i) => {
-            // expect().toEqual(`[${i}] ${result[i].content}`)
-            const shouldBe = `[${i}] ${p.content}`
-            const newContent = `[${i}] ${result[i].content}`
-            console.log(`(result)"${newContent}" "${shouldBe}" (should be)`)
+            const shouldBe = `${p.rawContent}`
+            const newContent = `${result[i].rawContent}`
+            console.log(`[${i}]: (result) ${newContent} ${newContent === shouldBe ? '===' : ' !== '} "${shouldBe}" (expected)`)
             // Put breakpoint on the expect and compare the objects in the debugger
-            expect(newContent).toEqual(shouldBe)
+            expect(newContent).toMatch(shouldBe)
           })
-          // expect(mockWasCalledWithString(removeSpy, /config was empty/)).toBe(true)
-          // testNote
-          // const result = f.sortTasks Integration Tests()
-          // expect(result).toEqual(true)
-          global.Editor = editorBackup
+          global.Editor = { ...editorBackup }
+          global.DataStore = { ...dataStoreBackup }
         })
       })
     })
