@@ -62,6 +62,34 @@ describe('sorting.js', () => {
       const result = s.sortListBy(list, '-text')
       expect(result).toEqual([a, b])
     })
+    test('should sort by numeric field DESC', () => {
+      const a = { num: 2 }
+      const b = { num: 1 }
+      const list = [a, b]
+      const result = s.sortListBy(list, '-num')
+      expect(result).toEqual([a, b])
+    })
+    test('should sort by numeric field ASC', () => {
+      const a = { num: 1 }
+      const b = { num: 2 }
+      const list = [a, b]
+      const result = s.sortListBy(list, 'num')
+      expect(result).toEqual([a, b])
+    })
+    test('should sort by numeric decimal field ASC', () => {
+      const a = { num: 1.2 }
+      const b = { num: 1.1 }
+      const list = [a, b]
+      const result = s.sortListBy(list, 'num')
+      expect(result).toEqual([b, a])
+    })
+    test('should sort by numeric decimal field DESC', () => {
+      const a = { num: 1.2 }
+      const b = { num: 1.1 }
+      const list = [a, b]
+      const result = s.sortListBy(list, '-num')
+      expect(result).toEqual([a, b])
+    })
     test('should sort by date field ASC', () => {
       const a = { date: new Date('2022-01-01') }
       const b = { date: new Date('2021-01-01') }
