@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
-  "plugin.version": "0.19.1",
-  "plugin.lastUpdateInfo": "For '/shift dates' new settings 'Remove @done dates?' and 'Set complete tasks as not complete?', and ability to work on week-based dates.",
+  "plugin.version": "0.19.2",
+  "plugin.lastUpdateInfo": "New setting \"Include time blocks from completed tasks?\" for the \"/time blocks to calendar\" command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -154,6 +154,14 @@
       "title": "Settings for '/time blocks to calendar'"
     },
     {
+      "key": "includeCompletedTasks",
+      "title": "Include time blocks from completed tasks?",
+      "description": "Include time blocks from completed task lines?",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
       "key": "calendarToWriteTo",
       "title": "Name of Calendar to write to",
       "description": "The calendar name to write events to. Must be a writable calendar. If empty, then the default system calendar will be used.",
@@ -196,7 +204,7 @@
     {
       "key": "processedTagName",
       "title": "Processed tag name",
-      "description": "Tag to optionally add on a line after making its time block an event",
+      "description": "(Optional) Tag to add on a line after making its time block an event",
       "type": "string",
       "default": "#event_created",
       "required": false

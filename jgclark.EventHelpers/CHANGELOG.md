@@ -1,6 +1,10 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.19.2] - 2022-10-21
+### Added
+- new setting "Include time blocks from completed tasks?" for the "/time blocks to calendar" command.
+
 ## [0.19.1] - 2022-10-05
 ### Added
 - new setting "Set any completed tasks to not complete?" for the "/shift dates" command.

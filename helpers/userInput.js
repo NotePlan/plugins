@@ -55,12 +55,13 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
 export async function chooseOptionWithModifiers<T, TDefault = T>(
   message: string,
   options: $ReadOnlyArray<Option<T>>,
-): Promise<{ ...TDefault, index: number, keyModifiers: Array<string> }> {
+): Promise<{ ...TDefault, index: number, keyModifiers: Array < string > }> {
+  // $FlowFixMe[prop-missing]
   const { index, keyModifiers } = await CommandBar.showOptions(
     options.map((option) => option.label),
     message,
   )
-  // $FlowFixMe
+  // $FlowFixMe[incompatible-return]
   return { ...options[index], index, keyModifiers }
 }
 
@@ -129,7 +130,7 @@ export async function showMessage(message: string, confirmButton: string = 'OK',
 /**
  * Show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar.
  * Will now use newer native dialog if available (from 3.3.2), which adds a title.
- * Note: There's a copy in helpersNPParagaph.js to avoid a circular dependency
+ * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
  * @author @jgclark, updating @nmn
  *
  * @param {string} message - text to display to user
@@ -147,6 +148,21 @@ export async function showMessageYesNo(message: string, choicesArray: Array<stri
     const answerObj = await CommandBar.showOptions(choicesArray, `${message}`)
     answer = answerObj.index
   }
+  return choicesArray[answer]
+}
+
+/**
+ * Show a simple yes/no/cancel (or OK/No/Cancel, etc.) native dialog.
+ * @author @jgclark
+ *
+ * @param {string} message - text to display to user
+ * @param {?Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
+ * @param {?string} dialogTitle - title for the dialog (default: empty)
+ * @param {?boolean} useCommandBar - force use NP CommandBar instead of native prompt (default: false)
+ * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
+ */
+export async function showMessageYesNoCancel(message: string, choicesArray: Array<string> = ['Yes', 'No', 'Cancel'], dialogTitle: string = ''): Promise<string> {
+  const answer = await CommandBar.prompt(dialogTitle, message, choicesArray)
   return choicesArray[answer]
 }
 

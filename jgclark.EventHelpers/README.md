@@ -70,6 +70,7 @@ For example:
     "holiday" : "*|TITLE|*\nHoliday:: *|NOTES|*"
   }
   ```
+- **Include time blocks from completed tasks?**: whether to include time blocks from lines with completed tasks.
 - **Name of Calendar to write to**: the name of the calendar for `/time blocks to calendar` to write events to. Must be a writable calendar. If empty, then the default system calendar will be used. (Note: you have to specifically set a default calendar in the settings of the macOS Calendar app or in iOS Settings app > Calendar > Default Calendar.)
 - **Default event duration**: Event duration (in minutes) to use when making an event from a time block, if no end time is given.
 - **Confirm Event Creation?**: optional boolean tag to indicate whether to ask user to confirm each event to be created
