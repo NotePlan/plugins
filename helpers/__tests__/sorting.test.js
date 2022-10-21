@@ -90,6 +90,33 @@ describe('sorting.js', () => {
       const result = s.sortListBy(list, '-num')
       expect(result).toEqual([a, b])
     })
+    test('should sort by negative numbers too', () => {
+      const a = { num: 1 }
+      const b = { num: 0 }
+      const c = { num: -1 }
+      const d = { num: -10 }
+      const list = [a, b, c, d]
+      const result = s.sortListBy(list, 'num')
+      expect(result).toEqual([d, c, b, a])
+    })
+    test('should sort by negative numbers that *look* like strings!', () => {
+      const a = { num: '1' }
+      const b = { num: '0' }
+      const c = { num: '-1' }
+      const list = [a, b, c]
+      const result = s.sortListBy(list, 'num')
+      expect(result).toEqual([c, b, a])
+    })
+    test('should sort by multi-digit negative numbers that *look* like strings!', () => {
+      const a = { num: '1' }
+      const b = { num: '0' }
+      const c = { num: '-100' }
+      const d = { num: '-10' }
+      const e = { num: '-1' }
+      const list = [a, b, c, d, e]
+      const result = s.sortListBy(list, 'num')
+      expect(result).toEqual([c, d, e, b, a])
+    })
     test('should sort by date field ASC', () => {
       const a = { date: new Date('2022-01-01') }
       const b = { date: new Date('2021-01-01') }

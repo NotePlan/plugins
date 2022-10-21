@@ -140,9 +140,14 @@ export const fieldSorter =
  * @param {any} val
  * @returns
  */
-export const firstValue = (val: any): string => {
-  const retVal = Array.isArray(val) ? val[0] : val
-  return typeof retVal === 'string' ? retVal.toLowerCase() : retVal
+export const firstValue = (val: any): string | number => {
+  let retVal = Array.isArray(val) ? val[0] : val
+  if (retVal == null) {
+    return retVal
+  } else {
+    retVal = typeof retVal === 'number' || (typeof retVal !== 'object' && !isNaN(retVal)) ? Number(retVal) : retVal
+    return typeof retVal === 'string' ? retVal.toLowerCase() : retVal
+  }
 }
 
 export const HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
