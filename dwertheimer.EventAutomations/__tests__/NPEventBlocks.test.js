@@ -1,8 +1,7 @@
 // Jest testing docs: https://jestjs.io/docs/using-matchers
 /* global describe, test, beforeEach, beforeAll */
 
-import * as mainFile from '../src/NPEventBlocks'
-import { copyObject } from '@helpers/dev'
+// import * as mainFile from '../src/NPEventBlocks'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
 
@@ -29,8 +28,8 @@ beforeEach(() => {
 describe('dwertheimer.EventBlocks' /* pluginID */, () => {
   describe('NPPluginMain' /* file */, () => {
     describe('createEvents' /* function */, () => {
-      test('should create events', () => {
-        const ret = mainFile.createEvents('theTitle', 'no')
+      test.skip('should create events', () => {
+        // const ret = mainFile.createEvents('theTitle', 'no')
       })
     })
   })

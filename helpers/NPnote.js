@@ -17,8 +17,8 @@ const pluginJson = 'NPnote.js'
 /**
  * Return array of all project notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
  * @author @jgclark
- * @param {Array<string>} foldersToExclude 
- * @param {boolean} excludeSpecialFolders 
+ * @param {Array<string>} foldersToExclude
+ * @param {boolean} excludeSpecialFolders
  * @returns {Array<TNote>} wanted notes
  */
 export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
@@ -141,7 +141,7 @@ export function findTodayTodosInNote(note: TNote): Array<TParagraph> {
  * ","prefix":"* ","contentRange":{},"lineIndex":2,"date":"2021-11-07T07:00:00.000Z","heading":"_Testing scheduled sweeping","headingRange":{},"headingLevel":1,"isRecurring":0,"indents":0,"filename":"zDELETEME/Test scheduled.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[]}
  */
 export function getTodaysReferences(pNote: TNote | null = null): $ReadOnlyArray<TParagraph> {
-  logDebug(pluginJson, `getTodaysReferences starting`)
+  // logDebug(pluginJson, `getTodaysReferences starting`)
   const note = pNote || Editor.note
   if (note == null) {
     logDebug(pluginJson, `timeblocking could not open Note`)

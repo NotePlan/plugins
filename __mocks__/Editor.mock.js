@@ -14,7 +14,7 @@
 import { Note } from './Note.mock'
 const note = new Note()
 
-const Editor = {
+export const Editor = {
   // async addBlockID() { return null },
   // async addParagraphBelowHeadingTitle() { return null },
   // async addTheme() { return null },
@@ -150,4 +150,4 @@ const Editor = {
   },
 }
 
-module.exports = Editor
+// module.exports = Editor

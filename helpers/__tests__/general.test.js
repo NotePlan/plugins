@@ -314,19 +314,29 @@ describe(`${FILE}`, () => {
       })
       test('should not replace anything with empty object', () => {
         const template = `Sample {{foo}}`
-        const result = g.formatWithFields(template, {foo:"bar"})
+        const result = g.formatWithFields(template, { foo: 'bar' })
         expect(result).toEqual(`Sample bar`)
       })
       test('should replace multiple copies of the same string', () => {
         const template = `{{foo}} Sample {{foo}}`
-        const result = g.formatWithFields(template, {foo:"bar"})
+        const result = g.formatWithFields(template, { foo: 'bar' })
         expect(result).toEqual(`bar Sample bar`)
       })
       test('should replace multiple strings', () => {
         const template = `{{sam}} Sample {{foo}}`
-        const result = g.formatWithFields(template, {foo:"bar", sam:"baz"})
+        const result = g.formatWithFields(template, { foo: 'bar', sam: 'baz' })
         expect(result).toEqual(`baz Sample bar`)
       })
-     })
+      test('should work with a boolean replacement value (ignore it)', () => {
+        const template = `{{sam}} Sample {{foo}}`
+        const result = g.formatWithFields(template, { foo: 'bar', sam: 'baz', quux: true })
+        expect(result).toEqual(`baz Sample bar`)
+      })
+      test('should work with a boolean template', () => {
+        const template = true
+        const result = g.formatWithFields(template, { foo: 'bar', sam: 'baz', quux: true })
+        expect(result).toEqual(template)
+      })
+    })
   })
 })

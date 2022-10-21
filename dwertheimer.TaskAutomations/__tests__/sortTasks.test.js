@@ -15,7 +15,7 @@ beforeAll(() => {
   global.Editor = Editor
   global.NotePlan = NotePlan
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter)
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
 
 const PLUGIN_NAME = `dwertheimer.TaskAutomations`
@@ -30,7 +30,7 @@ expect(result).toMatch(/someString/)
 expect(result).not.toMatch(/someString/)
 expect(result).toEqual([])
 
-      const spy = jest.spyOn(console, 'log')
+      const spy = jest.spyOn(console, 'log') 
       const result = mainFile.getConfig()
       expect(mockWasCalledWithString(spy, /config was empty/)).toBe(true)
       spy.mockRestore()
@@ -477,7 +477,7 @@ describe(`${PLUGIN_NAME}`, () => {
         let removeSpy, updateSpy
         beforeAll(() => {
           CommandBar_backup.showOptions = CommandBar.showOptions
-          CommandBar.showOptions = async function (options, text) {
+          CommandBar.showOptions = function (options, text) {
             switch (text) {
               case "Sort each heading's tasks individually?":
                 return { index: 0, value: 'Yes' }
@@ -510,7 +510,8 @@ describe(`${PLUGIN_NAME}`, () => {
           testNoteAfterSortByTitle.paragraphs.forEach((p, i) => {
             const shouldBe = `${p.rawContent}`
             const newContent = `${result[i].rawContent}`
-            console.log(`[${i}]: (result) ${newContent} ${newContent === shouldBe ? '===' : ' !== '} "${shouldBe}" (expected)`)
+            // uncomment the following line if this test is failing and it will give you more clues on how far it got
+            // console.log(`sortTasks: [${i}]: (result) ${newContent} ${newContent === shouldBe ? '===' : ' !== '} "${shouldBe}" (expected)`)
             // Put breakpoint on the expect and compare the objects in the debugger
             expect(newContent).toMatch(shouldBe)
           })

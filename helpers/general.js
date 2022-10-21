@@ -459,10 +459,15 @@ export function inFolderList(filenameStr: string, folderListArr: Array<string>, 
  * Note: if you do not want a string to show, set the field to null in the fieldValues map
  * @returns {string} the resulting string
  */
-export function formatWithFields(templateString: string, fieldValues: { [string]: string }): string {
-  return Object.keys(fieldValues)
-    .reduce((textbody, key) => textbody.replace(new RegExp(`{{${key}}}`, 'gm'), fieldValues[key] !== null ? fieldValues[key] : ''), templateString)
-    .replace(/ +/g, ' ')
+export function formatWithFields(templateString: string, fieldValues: { [string]: any }): string {
+  const newString = Object.keys(fieldValues).reduce(
+    (textbody, key) =>
+      typeof textbody === 'string' && typeof fieldValues[key] === 'string'
+        ? textbody.replace(new RegExp(`{{${key}}}`, 'gm'), fieldValues[key] !== null ? fieldValues[key] : '')
+        : textbody,
+    templateString,
+  )
+  return typeof newString === 'string' ? newString.replace(/ +/g, ' ') : newString
   // const field = textbody.replace(/{([^{}]+)}/g, function(textMatched, key) {
   //     return user[key] || "";
   // }

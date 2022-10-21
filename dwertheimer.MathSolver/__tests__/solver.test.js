@@ -432,27 +432,27 @@ describe('dwertheimer.MathSolver' /* pluginID */, () => {
     describe('removeParentheticals()' /* function */, () => {
       test('should find and remove quoted in middle', () => {
         const input = 'this is "quoted" string'
-        const result = s.removeParentheticals(input)[1]
+        const result = s.removeParentheticals(input)[0]
         expect(result).toEqual('this is string')
       })
       test('should find and remove bracketed in middle', () => {
         const input = 'this is {quoted} string'
-        const result = s.removeParentheticals(input)[1]
+        const result = s.removeParentheticals(input)[0]
         expect(result).toEqual('this is string')
       })
       test('should find and remove multiple items in a line', () => {
         const input = 'this is {quoted} string and "quoted"'
-        const result = s.removeParentheticals(input)[1]
+        const result = s.removeParentheticals(input)[0]
         expect(result).toEqual('this is string and')
       })
       test('should remove spaces at front and end', () => {
         const input = ' {this} is string and "quoted" '
-        const result = s.removeParentheticals(input)[1]
+        const result = s.removeParentheticals(input)[0]
         expect(result).toEqual('is string and')
       })
       test('should return the found part(s) as the first var in the tuple (type Array)', () => {
         const input = ' {this} is string and "quoted"'
-        const result = s.removeParentheticals(input)[0]
+        const result = s.removeParentheticals(input)[1]
         expect(result[0]).toEqual('this')
         expect(result[1]).toEqual('quoted')
       })

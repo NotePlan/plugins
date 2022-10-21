@@ -19,7 +19,7 @@
  * {string} typeOfResultFormat: N for normal, % for percentage, B for assigned total (A=total)
  */
 
-const pluginJson = 'dwertheimer.MathSolver/solver.js'
+// const pluginJson = 'dwertheimer.MathSolver/solver.js'
 
 export type LineInfo = {
   lineValue: number | null | { mathjs: string, value: number, unit: string, fixPrefix: string },
@@ -72,24 +72,24 @@ const currencies = ['$']
 // let statusListening = 'stop';
 
 /**
- * Remove items enclosed in quotes or square brackets to be sent directly to mathjs
+ * //TODO: Remove items enclosed in quotes or square brackets to be sent directly to mathjs
  * @param {string} inString
  * @returns {[string,string]} [stringFound, stringWithoutFoundText]
  */
 export function removeParentheticals(inString: string): [string, Array<string>] {
   const reParens = /(?:\"|{)(.*?)(?:\"|})/g
-  const matches = inString.match(reParens)
+  // const matches = inString.match(reParens)
   // matches[0] includes the delimiter, matches[1] is the inside string
   // NEED TO DO A doWhile to get them all
   // FIXME: I AM HERE
+  const quotedContent = []
   let match,
-    quotedContent = [],
     newStr = inString
   while ((match = reParens.exec(inString))) {
     newStr = newStr.replace(match[0], '').replace(/ {2,}/g, ' ').trim()
     quotedContent.push(match[1])
   }
-  return [quotedContent.length ? quotedContent : [], newStr]
+  return [newStr, quotedContent.length ? quotedContent : []]
 }
 
 /**
@@ -97,12 +97,12 @@ export function removeParentheticals(inString: string): [string, Array<string>] 
  * @param {line} - the info line to search in
  * @param {string|Array<string>} - the type to compare against
  */
-export function isLineType(line: LineInfo, searchForType: string | Array<string>) {
+export function isLineType(line: LineInfo, searchForType: string | Array<string>): boolean {
   const lineTypes = Array.isArray(searchForType) ? searchForType : [searchForType]
   return lineTypes.indexOf(line.typeOfResult) > -1
 }
 
-export function checkIfUnit(obj) {
+export function checkIfUnit(obj: any): boolean {
   return typeof obj === 'object' && obj !== null && obj.value
 }
 
@@ -137,10 +137,10 @@ export function checkIfUnit(obj) {
         [R0,R1]
     ]
 */
-function setRelation(selectedRow, presences, relations) {
-  relations[selectedRow] = presences
-  return relations
-}
+// function setRelation(selectedRow, presences, relations) {
+//   relations[selectedRow] = presences
+//   return relations
+// }
 
 export function removeTextPlusColon(strToBeParsed: string): string {
   const isTotal = /(sub)?total:/i.test(strToBeParsed) // allow total: or subtotal:

@@ -1,6 +1,6 @@
 /* globals describe, expect, test, beforeAll */
 import colors from 'chalk'
-import { /* differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, */ format } from 'date-fns'
+import /* differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, */ 'date-fns'
 import * as tb from '../src/timeblocking-helpers'
 import { getTasksByType } from '@helpers/sorting'
 

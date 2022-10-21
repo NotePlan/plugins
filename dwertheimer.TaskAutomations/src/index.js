@@ -1,16 +1,5 @@
 // @flow
-export {
-  sortTasks,
-  sortTasksByPerson,
-  sortTasksByTag,
-  sortTasksByDue,
-  tasksToTop,
-  openTasksToTop,
-  sortTasksViaTemplate,
-  sortTasksTagMention,
-  sortTasksDefault,
-  sortTasksUnderHeading,
-} from './sortTasks'
+export { sortTasks, sortTasksByPerson, sortTasksByTag, sortTasksByDue, tasksToTop, openTasksToTop, sortTasksViaTemplate, sortTasksTagMention, sortTasksDefault } from './sortTasks'
 export { default as markTasks } from './markTasks'
 export { taskSync } from './taskSync'
 export { copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'

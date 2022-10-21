@@ -7,7 +7,7 @@
  * as you calculate and recalculate, seems to cycle between totals and non-totals
  * refactor to make more modular and eliminate relations and one of the each-line-loops
  * maybe print zero in output on subtotal or total lines only
- * time-date math per George: https://discord.com/channels/763107030223290449/1009525907075113053/1012085619658334351 and 
+ * time-date math per George: https://discord.com/channels/763107030223290449/1009525907075113053/1012085619658334351 and
  *  - https://documentation.soulver.app/syntax-reference/dates-and-times
  *  - https://documentation.soulver.app/whats-new
  * 2) would be so cool if  @Eduard could tweak autocomplete inside a math block to give you choices of variables without you having to type them in.
@@ -24,7 +24,7 @@
  * (done) save variables you use frequently in preferences and reference them without defining them every time
  * (done) pricePerHour = 20  //= 20 (does not need to print this out)
  * (done) ignore date on left
-  * (done) basic time math
+ * (done) basic time math
  * Reference: https://numpad.io/
  * Playground: https://mathnotepad.com/
  */
@@ -60,9 +60,9 @@ export function getFrontmatterVariables(noteContent: string): any {
  * Round a number to a certain number of significant digits in the decimal
  * @param {*} n - the number
  * @param {*} d - the number of digits to round to (zeros will be omitted)
- * @returns 
+ * @returns
  */
-const round = (n,d) => Math.round(n*Math.pow(10,d))/Math.pow(10,d)
+const round = (n: number, d: number) => (n && d ? Math.round(n * Math.pow(10, d)) / Math.pow(10, d) : 0)
 
 /**
  * Format the output according to user preferences
@@ -71,32 +71,32 @@ const round = (n,d) => Math.round(n*Math.pow(10,d))/Math.pow(10,d)
  * @param {string} precisionSetting - the precision to round to (default "No Rounding")
  * @returns {Array<string>} formatted text
  */
-export function formatOutput(results: Array<LineInfo>, formatTemplate: string = '{{originalText}} {{value}}', precisionSetting: string = "No Rounding"): Array<string> {
-  const precision = (precisionSetting === "No Rounding") ? 14 : Number(precisionSetting)
+export function formatOutput(results: Array<LineInfo>, formatTemplate: string = '{{originalText}} {{value}}', precisionSetting: string = 'No Rounding'): Array<string> {
+  const precision = precisionSetting === 'No Rounding' ? 14 : Number(precisionSetting)
   const resultsWithStringValues = results.map((line) => {
     const isPctOf = /(\d*[\.,])?(\d+\s?)(as|as a)?(\s*%)(\s+(of)\s+)(\d*[\.,])?(\d+\s?)/g.test(line.originalText)
-    const isZero = line.lineValue === 0 && isLineType(line,["N","S","T"]) // && !/total/i.test(line.originalText)
+    const isZero = line.lineValue === 0 && isLineType(line, ['N', 'S', 'T']) // && !/total/i.test(line.originalText)
     const isNotCalc = String(line.lineValue) === line.expression && !isPctOf
     const isNumericalAssignment = line.typeOfResult === 'A' && !/(\+|\-|\*|\/)+/.test(line.originalText)
-    const isUndefined = (line.lineValue === undefined)
+    const isUndefined = line.lineValue === undefined
     let val = line.lineValue
     if (!isUndefined) {
-      logDebug(pluginJson,`checking line.lineValue: ${line.lineValue}`)
+      logDebug(pluginJson, `checking line.lineValue: ${String(line?.lineValue)}`)
       if (checkIfUnit(line.lineValue)) {
-        const strValue = String(line.lineValue).split(" ")
-        val = `${round(Number(strValue[0]),precision)} ${strValue[1]}`
-        logDebug(pluginJson,`checking val.value: ${val}`)
+        const strValue = String(line.lineValue).split(' ')
+        val = `${round(Number(strValue[0]), precision)} ${strValue[1]}`
+        logDebug(pluginJson, `checking val.value: ${val}`)
       } else {
-        val = round(val,precision)
+        val = val && precision && typeof val === 'number' ? round(val, precision) : val
       }
-    } 
+    }
     // val = val.toFixed(precision).replace(/(?:\.\d*)(0+)$/,"")
-    line.value = (!line.lineValue || isZero || isNotCalc || isNumericalAssignment || isUndefined) ? '' : `//= ${String(val)}` // eslint-disable-line eqeqeq
+    line.value = !line.lineValue || isZero || isNotCalc || isNumericalAssignment || isUndefined ? '' : `//= ${String(val)}` // eslint-disable-line eqeqeq
     if (line.error) line.value += ` //= ${line.error}`
     // logDebug(pluginJson, `line.value: ${line.value} line.expression: ${line.expression}`)
     return line
   })
-  const formatted = resultsWithStringValues.map((line) => formatWithFields(formatTemplate, line))
+  const formatted = resultsWithStringValues.map((line) => formatWithFields(formatTemplate, typeof line === 'object' ? line : {}))
   // logDebug(pluginJson, `Formatted data: ${JSON.stringify(resultsWithStringValues, null, 2)}`)
 
   return formatted
@@ -106,16 +106,16 @@ export function formatOutput(results: Array<LineInfo>, formatTemplate: string = 
  * Parse the code blocks in the current note
  * @returns {Array<LineInfo>} the results of the solver
  */
-export function parseCodeBlocks(): $ReadOnlyArray<$ReadOnly<CodeBlock>> {
-  const codeBlocks = getCodeBlocksOfType('math')
-  if (codeBlocks.length) {
-    const results = codeBlocks.map((block) => parse(block.text))
-    return results || []
-  } else {
-    logDebug(pluginJson, `There were no code blocks to parse`)
-    return []
-  }
-}
+// export function parseCodeBlocks(): void {
+//   // was: $ReadOnlyArray<$ReadOnly<CodeBlock>>
+//   // $FlowIgnore
+//   const codeBlocks = getCodeBlocksOfType('math')
+//   if (codeBlocks.length) {
+//     codeBlocks.map((block) => parse(block.text))
+//   } else {
+//     logDebug(pluginJson, `There were no code blocks to parse`)
+//   }
+// }
 
 /**
  * Show the results of the solver in the editor at cursor position
@@ -147,18 +147,18 @@ export function removeAnnotations(note: CoreNoteFields, blockData: $ReadOnly<Cod
 }
 
 export function annotateResults(note: CoreNoteFields, blockData: $ReadOnly<CodeBlock>, results: Array<LineInfo>, template: string, mode: string): void {
-  const {columnarOutput,precisionSetting} = DataStore.settings
-  logDebug(pluginJson,`mode=${mode}`)
+  const { columnarOutput /* precisionSetting */ } = DataStore.settings
+  logDebug(pluginJson, `mode=${mode} template:"${template}"`)
   const totalsOnly = mode === 'totalsOnly'
   const debug = mode === 'debug'
-  const precision = mode==="noRounding" ? "No Rounding" : precisionSetting
-  const formatted = formatOutput(results, template, precision) // writes .value using template?
+  // const precision = mode === 'noRounding' ? 'No Rounding' : precisionSetting
+  // const formatted = formatOutput(results, template, precision) // writes .value using template?
   // const updates = []
   let j = 0
   const debugOutput = []
   const outputObjects = []
   for (let i = 0; i < blockData.paragraphs.length; i++) {
-    const li = blockData.paragraphs[i].lineIndex
+    // const li = blockData.paragraphs[i].lineIndex
     const paragraph = blockData.paragraphs[i]
     const solverData = results[j]
     paragraph.content = paragraph.content.replace(/(\/\/\=.*)/g, '').trimEnd() //clean every line
@@ -166,18 +166,25 @@ export function annotateResults(note: CoreNoteFields, blockData: $ReadOnly<CodeB
     if (debug) {
       shouldPrint = true
       // Probably don't need to output error, because it's in value field: ${solverData.error.length ? ` err:"${solverData.error}"` : ''}
-      solverData.value = ` //= R${i}(${solverData.typeOfResult}): expr:"${solverData.expression}" lineValue:${solverData.lineValue} value:"${solverData.value}"`
+      solverData.value = ` //= R${i}(${solverData.typeOfResult}): expr:"${solverData.expression}" lineValue:${String(solverData.lineValue)} value:"${String(solverData.value)}"`
       // debugOutput.push(`R${String(i).padStart(2,'0')}(${solverData.typeOfResult}): orig:"${solverData.originalText}" expr:"${solverData.expression}" lineValue:${solverData.lineValue} value:"${solverData.value }"`)
-      debugOutput.push({row:`R${String(i)}`,typeOfResult:`${solverData.typeOfResult}`,originalText:`${solverData.originalText}`, expression:`${solverData.expression}`,lineValue:`${solverData.lineValue}`, value:`"${solverData.value }"`})
+      debugOutput.push({
+        row: `R${String(i)}`,
+        typeOfResult: `${solverData.typeOfResult}`,
+        originalText: `${solverData.originalText}`,
+        expression: `${solverData.expression}`,
+        lineValue: `${String(solverData.lineValue)}`,
+        value: `"${String(solverData.value)}"`,
+      })
     }
     if (solverData.value !== '' && shouldPrint) {
-      const comment = solverData.value ? ` ${solverData.value}` : '' 
+      const comment = solverData.value ? ` ${solverData.value}` : ''
       // clo(solverData, `annotateResults solverData`)
       // logDebug(pluginJson, `$comment=${comment}`)
       // const thisParaInNote = note.paragraphs[paragraph.lineIndex]
       // thisParaInNote.content.replace(/ {2}(\/\/\=.*)/g,'')
       if (columnarOutput) {
-        outputObjects.push({content:paragraph.content.trimEnd(),comment})
+        outputObjects.push({ content: paragraph.content.trimEnd(), comment })
       } else {
         paragraph.content = paragraph.content.trimEnd() + comment
       }
@@ -185,27 +192,29 @@ export function annotateResults(note: CoreNoteFields, blockData: $ReadOnly<CodeB
       //      logDebug(`${paragraph.content}${comment}`)
     } else {
       if (columnarOutput) {
-        outputObjects.push({content:paragraph.content.trimEnd(),comment:''})
+        outputObjects.push({ content: paragraph.content.trimEnd(), comment: '' })
       }
     }
     j++
   }
   if (columnarOutput) {
     // clo(blockData.paragraphs,`blockData.paragraphs`)
-  const formattedColumnarOutput = columnify(outputObjects)
-  formattedColumnarOutput.split("\n").slice(1).forEach((line,i)=>{
-    blockData.paragraphs[i].content = line
-  })
-  clo(formattedColumnarOutput,`annotateResults::formattedColumnarOutput\n`)
+    const formattedColumnarOutput = columnify(outputObjects)
+    formattedColumnarOutput
+      .split('\n')
+      .slice(1)
+      .forEach((line, i) => {
+        blockData.paragraphs[i].content = line
+      })
+    clo(formattedColumnarOutput, `annotateResults::formattedColumnarOutput\n`)
   }
-  if (debugOutput.length && DataStore.settings._logLevel === "DEBUG") {
+  if (debugOutput.length && DataStore.settings._logLevel === 'DEBUG') {
     const columns = columnify(debugOutput) //options is a 2nd param
     console.log(`\n\n${columns}\nDebug Output:\n`)
   }
   // clo(updates, `annotateResults::updates:`)
   // if (updates.length) note.updateParagraphs(blockData.paragraphs)
   note.updateParagraphs(blockData.paragraphs)
-
 }
 
 /**
@@ -214,7 +223,7 @@ export function annotateResults(note: CoreNoteFields, blockData: $ReadOnly<CodeB
  * @param {string} template - should probably be called with settings.documentTemplate
  * @param {string} title - the title of the popup
  */
-export async function showResultsInPopup(results: Array<LineInfo>, template: string, title: string): void {
+export async function showResultsInPopup(results: Array<LineInfo>, template: string, title: string): Promise<void> {
   if (results.length) {
     const formattedLines = formatOutput(results, template)
     const options = formattedLines.map((line, i) => ({ label: line, value: String(results[i].lineValue) }))
@@ -232,14 +241,14 @@ export async function showResultsInPopup(results: Array<LineInfo>, template: str
  * (plugin entrypoint for command: /Remove Annotations from Active Document)
  * @returns {void}
  */
-export  function removeAllAnnotations(): void {
+export function removeAllAnnotations(): void {
   if (Editor) {
     const codeBlocks = getCodeBlocksOfType(Editor, 'math')
     const note = Editor
     if (!note) return
     for (let i = 0; i < codeBlocks.length; i++) {
       const blockData = codeBlocks[i]
-       removeAnnotations(note, blockData)
+      removeAnnotations(note, blockData)
     }
   }
 }
@@ -251,13 +260,14 @@ export  function removeAllAnnotations(): void {
  */
 export async function calculateBlocks(incoming: string | null = null, mode: string = '', vars: any = {}): Promise<void> {
   try {
-    const { popUpTemplate, presetValues, precisionSetting } = DataStore.settings
+    const { popUpTemplate, presetValues /*, precisionSetting */ } = DataStore.settings
     // const precision = (precisionSetting === "No Rounding") ? null : Number(precisionSetting) // doing rounding inside parse does not work well. Will do it inside annotate
     const precision = null
     // get the code blocks in the editor
     await removeAllAnnotations()
-    let codeBlocks = incoming === '' || incoming === null ? getCodeBlocksOfType(Editor, `math`) : [{ type: 'unknown', code: incoming, startLineIndex: -1 }]
-    logDebug(pluginJson, `calculateEditorMathBlocks: codeBlocks.length: ${codeBlocks.length}`)
+    // let codeBlocks = incoming === '' || incoming === null ? getCodeBlocksOfType(Editor, `math`) : [{ type: 'unknown', code: incoming, startLineIndex: -1 }]
+    let codeBlocks = getCodeBlocksOfType(Editor, `math`)
+    logDebug(pluginJson, `calculateEditorMathBlocks: codeBlocks.length: ${codeBlocks.length} incoming:${incoming || ''}`)
     if (codeBlocks.length && Editor) {
       for (let b = 0; b < codeBlocks.length; b++) {
         if (b > 0) {
@@ -272,21 +282,21 @@ export async function calculateBlocks(incoming: string | null = null, mode: stri
           currentData.rows = i + 1
           currentData = parse(line, i, currentData)
         })
-        if (mode === "noRounding") {
+        if (mode === 'noRounding') {
           currentData.precision = null
         }
-        const totalData = parse('TOTAL', currentData.rows, currentData)
-        const t = totalData.info[currentData.rows]
-        const totalLine = {
-          lineValue: t.lineValue,
-          originalText: t.originalText,
-          expression: t.expression,
-          row: -1,
-          typeOfResult: t.typeOfResult,
-          typeOfResultFormat: t.typeOfResultFormat,
-          value: t.value,
-          error: '',
-        }
+        // const totalData = parse('TOTAL', currentData.rows, currentData)
+        // const t = totalData.info[currentData.rows]
+        // const totalLine = {
+        //   lineValue: t.lineValue,
+        //   originalText: t.originalText,
+        //   expression: t.expression,
+        //   row: -1,
+        //   typeOfResult: t.typeOfResult,
+        //   typeOfResultFormat: t.typeOfResultFormat,
+        //   value: t.value,
+        //   error: '',
+        // }
         // logDebug(pluginJson,`Final data: ${JSON.stringify(currentData,null,2)}`)
         // TODO: Maybe add a total if there isn't one? But maybe  people are not adding?
         // if (currentData.info[currentData.info.length-1].typeOfResult !== "T") {
@@ -333,16 +343,16 @@ export async function calculateEditorMathBlocksTotalsOnly(incoming: string | nul
 }
 
 /**
-* Calculate Math Blocks with no rounding
-* Plugin entrypoint for "/Calculate Math Blocks (no rounding)"
-*/
-export async function calculateNoRounding(incoming:string) {
+ * Calculate Math Blocks with no rounding
+ * Plugin entrypoint for "/Calculate Math Blocks (no rounding)"
+ */
+export async function calculateNoRounding(incoming: string) {
   try {
-    await calculateBlocks(incoming, 'noRounding', getFrontmatterVariables(Editor.content || ''))    
+    await calculateBlocks(incoming, 'noRounding', getFrontmatterVariables(Editor.content || ''))
   } catch (error) {
-    logError(pluginJson,JSON.stringify(error))
+    logError(pluginJson, JSON.stringify(error))
   }
- }
+}
 
 /**
  * Insert a math block and a calculate button
@@ -359,13 +369,13 @@ export async function insertMathBlock() {
     buttonLine = includeCalc ? `${buttonLine + (includeClear ? ` ` : '')}${calcLink}` : buttonLine
     buttonLine = includeTotals ? `${buttonLine + (includeClear || includeCalc ? ` ` : '')}${totLink}` : buttonLine
     buttonLine = buttonLine.length ? `${buttonLine}\n` : ''
-    const onLine = getParagraphContainingPosition(Editor, Editor.selection.start)
+    const onLine = Editor?.selection?.start && Editor.selection.start >= 0 ? getParagraphContainingPosition(Editor, Editor.selection.start) : null
     const returnIfNeeded = onLine?.type !== 'empty' ? '\n' : ''
     const block = `${returnIfNeeded}\`\`\`math\n\n\`\`\`\n${buttonLine}`
     await Editor.insertTextAtCursor(block)
     const sel = Editor.selection
     if (sel) {
-      const para = getParagraphContainingPosition(Editor, Editor.selection.start)
+      const para = Editor?.selection?.start && Editor.selection.start >= 0 ? getParagraphContainingPosition(Editor, Editor.selection.start) : null
       if (para && para.lineIndex) {
         const offset = buttonLine.length ? 3 : 2
         const range = Editor.paragraphs[para.lineIndex - offset].contentRange

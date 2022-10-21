@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @flow
 
 /*
  * Note mock class
