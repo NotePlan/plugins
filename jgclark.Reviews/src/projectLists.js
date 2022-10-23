@@ -5,8 +5,9 @@
 // Last updated 14.10.2022 for v0.9.0, @jgclark
 //-----------------------------------------------------------------------------
 // FIXME: button again ... use the DataStore.invokePluginCommandByName method ?
-// TODO: add option for kicking off @DW's /overdue for the note?
+// TODO: ? add option for kicking off @DW's /overdue for the note?
 // TODO: Ignore all @folders automatically
+// FIXME: wrong HTML Refresh button code
 
 import pluginJson from "../plugin.json"
 import fm from 'front-matter'
@@ -24,25 +25,26 @@ import {
 } from '@helpers/dateTime'
 import {
   clo, JSP, logDebug, logError, logInfo, logWarn,
-  // overrideSettingsWithStringArgs,
   timer
 } from '@helpers/dev'
 import {
   getFilteredFolderList,
 } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { makeSVGPercentRing, redToGreenInterpolation, showHTML } from '@helpers/HTMLView'
+import {
+  makeSVGPercentRing,
+  redToGreenInterpolation,
+  showHTML
+} from '@helpers/HTMLView'
 import {
   findNotesMatchingHashtag,
   findNotesMatchingHashtags,
   getOrMakeNote,
 } from '@helpers/note'
-// import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import {
   showMessage,
   showMessageYesNo,
 } from '@helpers/userInput'
-// import { makeFullReviewList } from "./reviews"
 
 //-----------------------------------------------------------------------------
 
@@ -55,12 +57,12 @@ export const reviewListCSS: string = [
   '  border-collapse: collapse;', // always!
   '  empty-cells: show; }',
   '.sticky-row { position: sticky; top: 0; }', // Keep a header stuck to top of window
-  'th { text-align: left; padding: 4px; border-left: 0px solid --tint-color; border-right: 0px solid --tint-color; border-bottom: 1px solid --tint-color; }', // // removed L-R borders for now
+  'th { text-align: left; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }', // // removed L-R borders for now
   'th td:first-child {text-align: center;}',
-  'td.new-section-header { color: --h3-color; padding-top: 1.0rem; font-size: 1.0rem; font-weight: bold }',
-  'td { padding: 4px; border-left: 0px solid --tint-color; border-right: 0px solid --tint-color; }', // removed L-R borders for now
-  // 'table tbody tr:first-child { border-top: 1px solid --tint-color; }', // turn on tbody section top border -- now set in main CSS
-  // 'table tbody tr:last-child { border-bottom: 1px solid --tint-color; }', // turn on tbody section bottom border -- now set in main CSS
+  'td.new-section-header { color: var(--h3-color); padding-top: 1.0rem; font-size: 1.0rem; font-weight: bold }',
+  'td { padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); }', // removed L-R borders for now
+  // 'table tbody tr:first-child { border-top: 1px solid var(--tint-color); }', // turn on tbody section top border -- now set in main CSS
+  // 'table tbody tr:last-child { border-bottom: 1px solid var(--tint-color); }', // turn on tbody section bottom border -- now set in main CSS
   'table tr td:first-child, table tr th:first-child { border-left: 0px; }', // turn off outer table right borders
   'table tr td:last-child, table tr th:last-child { border-right: 0px; }', // turn off outer table right borders
   'a, a:visited, a:active { color: inherit }', // note links: turn off text color
@@ -72,7 +74,7 @@ export const reviewListCSS: string = [
   '.np-task-state { font-family: "noteplanstate"; }', // use special 'noteplanstate' font
   '.percent-ring { width: 2rem; height: 2rem; }', // Set size of percent-display rings
   '.percent-ring-circle { transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%; }', // details of ring-circle that can be set in CSS
-  '.circle-percent-text { font-family: "Avenir Next"; font-size: 2.2rem; font-weight: 700; color: --fg-main-color; }', // details of ring text that can be set in CSS
+  '.circle-percent-text { font-family: "Avenir Next"; font-size: 2.2rem; font-weight: 600; color: var(--fg-main-color); }', // details of ring text that can be set in CSS
   '.circle-char-text { font-size: 1.9rem; font-family: "noteplanstate" }' // details of ring text that can be set in CSS, including font, locally set above
 ].join('\n\t')
 
@@ -141,6 +143,8 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
       // We have defined tag(s) to filter and group by
       // Need to change a single string (1 tag) to an array (multiple tags)
       if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
+
+      // FIXME: This needs to collect all tags before showHTML call
       for (const tag of config.noteTypeTags) {
         // handle #hashtags in the note title (which get stripped out by NP, it seems)
         const tagWithoutHash = tag.replace('#', '')
@@ -148,12 +152,11 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
         const filenameHTMLCopy = `${tagWithoutHash}_list.html`
 
         // Make the Summary list(s)
-        const outputArray = await returnNoteTypeSummary(tag, 'HTML', config)
+        const outputArray = await generateReviewSummaryLines(tag, 'Rich', config)
         outputArray.unshift(`<h1>${windowTitle}</h1>`)
 
         // Display the list(s) as HTML
         // TODO: when possible from the API, honour the 'openOutputWindow' direction
-        // logDebug('renderProjectListsHTML', `- writing results to HTML output ...`)
         await showHTML(
           windowTitle,
           '', // no extra header tags
@@ -163,7 +166,8 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
           false, // = not modal window
           setPercentRingJSFunc,
           makeCommandCall(startReviewsCommandCall),
-          filenameHTMLCopy) // not giving window dimensions
+          filenameHTMLCopy,
+          1800, 9999) // set width; max height
         logDebug('renderProjectListsHTML', `- written results to HTML`)
       }
     } else {
@@ -172,20 +176,20 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
       const filenameHTMLCopy = `review_list.html`
 
       // Make the Summary list
-      const outputArray = await returnNoteTypeSummary('', 'HTML', config)
+      const outputArray = await generateReviewSummaryLines('', 'Rich', config)
       outputArray.unshift(`<h1>${windowTitle}</h1>`)
 
       // Show the list as HTML, and save a copy as file
-      // logDebug('renderProjectListsHTML', `- writing results to HTML output ...`)
       await showHTML(windowTitle,
         '', // no extra header tags
         outputArray.join('\n'),
         '', // get general CSS set automatically
         reviewListCSS,
         false, // = not modal window
-        '',
-        '',
-        filenameHTMLCopy) // not giving window dimensions
+        setPercentRingJSFunc,
+        makeCommandCall(startReviewsCommandCall),
+        filenameHTMLCopy,
+        1800, 9999) // set width; max height
       logDebug('renderProjectListsHTML', `- written results to HTML window and file`)
     }
   }
@@ -218,7 +222,7 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
         const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
         if (note != null) {
           // Calculate the Summary list(s)
-          const outputArray = await returnNoteTypeSummary(tag, 'markdown', config)
+          const outputArray = await generateReviewSummaryLines(tag, 'Markdown', config)
           outputArray.unshift(`# ${noteTitle}`)
 
           // Save the list(s) to this note
@@ -241,7 +245,7 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
       const note: ?TNote = await getOrMakeNote(noteTitle, config.folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
-        const outputArray = await returnNoteTypeSummary('', 'markdown', config)
+        const outputArray = await generateReviewSummaryLines('', 'Markdown', config)
         outputArray.unshift(`# ${noteTitle}`)
 
         // Save the list(s) to this note
@@ -266,21 +270,18 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
 
 //-------------------------------------------------------------------------------
 /** 
- * Return summary of notes that contain a particular tag, for all relevant folders, in 'markdown' or 'HTML' style
- * V2 TODO: Change to read from the TSV file 'data/full-review-list.md' folder rather than calcuate from scratch.
+ * Return summary of notes that contain a particular tag, for all relevant folders, in 'Markdown' or 'Rich' style
+ * V2: Changed to read from the TSV file 'data/full-review-list.md' folder rather than calcuate from scratch.
  * @author @jgclark
  * 
  * @param {string} noteTag - hashtag to look for
- * @param {string} style - 'markdown' or 'HTML'
+ * @param {string} style - 'Markdown' or 'Rich'
  * @param {any} config - from settings (and any passed args)
  * @returns {Array<string>} output summary lines
  */
-async function returnNoteTypeSummary(noteTag: string, style: string, config: any): Promise<Array<string>> {
+async function generateReviewSummaryLines(noteTag: string, style: string, config: any): Promise<Array<string>> {
   try {
-    logDebug('returnNoteTypeSummary', `Starting for '${noteTag}' in ${style} style`)
-
-    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore)
-    logDebug('returnNoteTypeSummary', `- for ${filteredFolderList.length} folders: '${String(filteredFolderList)}'`)
+    logDebug('generateReviewSummaryLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
 
     let noteCount = 0
     let overdue = 0
@@ -288,6 +289,8 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
 
     // V1 approach
 
+    // const filteredFolderList = getFilteredFolderList(config.foldersToIgnore)
+    // logDebug('generateReviewSummaryLines', `- for ${filteredFolderList.length} folders: '${String(filteredFolderList)}'`)
     // if we want a summary broken down by folder, create list of folders
     // otherwise use a single folder
 
@@ -304,7 +307,7 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
     //   // and ignoring projects with '#archive' if wanted
     //   const notes = findNotesMatchingHashtag(noteTag, folder, false, config.displayArchivedProjects ? '' : '#archive')
     //   if (notes.length > 0) {
-    //     logDebug('returnNoteTypeSummary', `${notes.length} found in ${folder} (index ${fflCounter})).`)
+    //     logDebug('generateReviewSummaryLines', `${notes.length} found in ${folder} (index ${fflCounter})).`)
 
     //     // Create array of Project class representation of each note,
     //     // ignoring any in a folder we want to ignore (by one of the settings)
@@ -316,7 +319,7 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
     //       if (!np.isArchived || config.displayArchivedProjects) {
     //         projects.push(np)
     //       } else {
-    //         logDebug('returnNoteTypeSummary', `${np.title} ignored as it is archived`)
+    //         logDebug('generateReviewSummaryLines', `${np.title} ignored as it is archived`)
     //       }
     //       // Count up the number of notes to review
     //       if (np.isActive && np.nextReviewDays != null && np.nextReviewDays <= 0) {
@@ -346,7 +349,7 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
     //
     //     // Write new folder header
     //     if (config.displayGroupedByFolder) {
-    //       if (style === 'markdown') {
+    //       if (style === 'Markdown') {
     //         outputArray.push(`### ${(folder !== '' ? folder : '(root folder)')} (${sortedProjects.length} notes)`)
     //       } else {
     //         outputArray.push(`</tbody>\n\n<tr><td class="new-section-header" colspan="100%">${(folder !== '' ? folder : '(root folder)')} (${sortedProjects.length} notes)</td></tr>\n<tbody>`)
@@ -360,7 +363,7 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
     //     noteCount += sortedProjects.length
 
     //   } else {
-    //     logDebug('returnNoteTypeSummary', `0 notes found in ${fflCounter}=${folder} for '${noteTag}'. Will remove it from folder list.`)
+    //     logDebug('generateReviewSummaryLines', `0 notes found in ${fflCounter}=${folder} for '${noteTag}'. Will remove it from folder list.`)
     //     filteredFolderList.splice(fflCounter, 1)
     //     fflCounter--
     //   }
@@ -369,7 +372,7 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
     // }
     // await CommandBar.onMainThread()
     // CommandBar.showLoading(false)
-    // logDebug('returnNoteTypeSummary', `${processed} notes reviewed in ${timer(startTime)}s`)
+    // logDebug('generateReviewSummaryLines', `${processed} notes reviewed in ${timer(startTime)}s`)
 
     // V2 Approach
 
@@ -377,7 +380,7 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // Try to make the full-review-list
-      // TODO: Currently need to stop this, otherwise circular dependecy problem
+      // TODO: Currently needed to comment this out, to avoid circular dependency
       // await makeFullReviewList(true)
       // reviewListContents = DataStore.loadData(fullReviewListFilename, true)
       // if (!reviewListContents) {
@@ -385,46 +388,38 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
       throw new Error('full-review-list note empty or missing')
       // }
     }
-    // Now ignore frontmatter and sort rest by days before next review (first column)
-    const fmObj = fm(reviewListContents)
-    // const firstLineAfterFrontmatter = fmObj.bodyBegin - 1
-    // const fileLines = reviewListContents.split('\n')
-    const reviewLines = fmObj.body.split('\n')
-    // clo(reviewLines)
 
-    // filter to what we're configured to show
-    // TODO:
-    // logDebug('returnNoteTypeSummary', `- not yet doing any filtering'`)
+    // Now ignore frontmatter and sort rest by days before next review (first column), ignoring those for a different noteTag than we're after.
+    const fmObj = fm(reviewListContents)
+    const reviewLines = fmObj.body.split('\n').filter((f) => f.match(noteTag))
 
     // Split each TSV line into its parts
     let lastFolder = ''
     for (let thisLine of reviewLines) {
-      // logDebug('returnNoteTypeSummary', `- processing #${noteCount}: ${thisLine}`)
       const fields = thisLine.split('\t')
-      // logDebug('returnNoteTypeSummary', `  - ${fields.length} fields`)
-      const title = fields[1]
-      const folder = (fields[2] !== '' ? fields[2] : '(root folder)')
+      // logDebug('generateReviewSummaryLines', `  - ${fields.length} fields`)
+      const title = fields[2]
+      const folder = (fields[3] !== '' ? fields[3] : '(root folder)')
       const notes = DataStore.projectNoteByTitle(title)
       if (notes == null || notes.length === 0) {
-        throw new Error(`No note found matching title '${title}'`)
+        logWarn('generateReviewSummaryLines', `No note found matching title '${title}'; skipping.`)
+        continue // go on to next line
       }
       const thisProject = new Project(notes[0])
 
       const out = thisProject.detailedSummaryLine(style, false, config.displayDates, config.displayProgress)
 
       // Add to number of notes to review (if appropriate)
-      if (thisProject.isActive && thisProject.nextReviewDays != null && thisProject.nextReviewDays <= 0) {
+      if (!thisProject.isPaused && thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays) && thisProject.nextReviewDays <= 0) {
         overdue += 1
       }
 
       // Write new folder header (if change of folder)
       if (config.displayGroupedByFolder && (lastFolder !== folder)) {
-        if (style === 'HTML') {
-          // outputArray.push(`</tbody>\n\n<tr><td class="new-section-header" colspan="100%">${folder} (${sortedProjects.length} notes)</td></tr>\n<tbody>`)
+        if (style.match(/rich/i)) {
           outputArray.push(`</tbody>\n\n<tr><td class="new-section-header" colspan="100%">${folder}</td></tr>\n<tbody>`)
         }
-        else if (style === 'markdown') {
-          // outputArray.push(`### ${folder} (${sortedProjects.length} notes)`)
+        else if (style.match(/markdown/i)) {
           outputArray.push(`### ${folder}`)
         }
       }
@@ -441,10 +436,10 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
     const nextReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
     const completeXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
     const cancelXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
-    const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`${noteTag};outputStyle=${style}`)
+    const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`noteTypeTags=${noteTag};outputStyle=${style}`)
     const nowDateTime = toLocaleDateTimeString(new Date())
 
-    if (style === 'HTML') {
+    if (style.match(/rich/i)) {
       // Create the HTML for the 'start review button'
       // - Version 1: does work inside Safari, but not for some reason in a NP view. Eduard doesn't know why.
       // startReviewButton = `<button onClick="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews\&command=next%20project%20review">Start reviewing ${overdue} ready for review</button>`
@@ -454,11 +449,12 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
       // startReviewButton = `<button onclick=callCommand()>Start reviewing ${overdue} ready for review</button>`
 
       // Add (pseduo-)buttons for various commands
-      const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}">🔄 Refresh</a></span>`
+      // Webdings: refresh icon ~ glyph 80
+      const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}">🔄 Refresh</a></span>`
       const reviewedXCallbackButton = `<span class="fake-button"><a class="button" href="${reviewedXCallbackURL}">Finish Project Review</a></span>`
       const nextReviewXCallbackButton = `<span class="fake-button"><a class="button" href="${nextReviewXCallbackURL}">Finish + Next Review</a></span>`
-      const completeXCallbackButton = `<span class="fake-button"><a class="button" href="${completeXCallbackURL}"><span class="np-task-state">a</span> Complete Project</a></span>` // includes NP complete glyph
-      const cancelXCallbackButton = `<span class="fake-button"><a class="button" href="${cancelXCallbackURL}"><span class="np-task-state"></span> Cancel Project</a></span>` // includes NP cancel glyph
+      const completeXCallbackButton = `<span class="fake-button"><a class="button" href="${completeXCallbackURL}"><span class="np-task-state">a</span> Complete Project</a></span>` // includes NP complete 'a' glyph
+      const cancelXCallbackButton = `<span class="fake-button"><a class="button" href="${cancelXCallbackURL}"><span class="np-task-state">c</span> Cancel Project</a></span>` // includes NP cancel 'c' glyph
 
       // writing backwards to suit .unshift
       outputArray.unshift(`<p>For project note in main window: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}</p>`)
@@ -476,7 +472,7 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
       outputArray.push('</tbody>')
       outputArray.push('</table>')
     }
-    else if (style === 'markdown') {
+    else if (style.match(/markdown/i)) {
       const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
       const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
       const reviewedXCallbackButton = `[Finish Project Review](${reviewedXCallbackURL})`
@@ -497,7 +493,7 @@ async function returnNoteTypeSummary(noteTag: string, style: string, config: any
     return outputArray
   }
   catch (error) {
-    logError('returnNoteTypeSummary', `${error.message}`)
+    logError('generateReviewSummaryLines', `${error.message}`)
     return [] // for completeness
   }
 }

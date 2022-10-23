@@ -202,7 +202,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#098308A0')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.task-checked', tempSel))
+      output.push(makeCSSSelector('.checked', tempSel))
     }
 
     // Set class for cancelled tasks ('checked-canceled') if present
@@ -212,7 +212,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color)}` ?? '#E04F57A0')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.task-cancelled', tempSel))
+      output.push(makeCSSSelector('.cancelled', tempSel))
     }
 
     // Set class for scheduled tasks ('checked-scheduled') if present
@@ -595,6 +595,24 @@ export function makeSVGPercentRing(percent: number, color: string, textToShow: s
     <text class="circle-percent-text" x=50% y=53% dominant-baseline="middle" text-anchor="middle" fill="currentcolor" stroke="currentcolor">${textToShow}</text>
     </g>
   </svg>\n`
+}
+
+/**
+ * Draw pause icon (adapted on https://www.svgrepo.com/svg/135248/pause)
+ * Note: not animated, and doesn't need any following call to activate.
+ * @returns {string} SVG code to insert in HTML
+ */
+export function makeSVGPauseIcon(): string {
+  return `<svg id="pause" x="0px" y="0px"
+	 viewBox="0 0 58 58" style="enable-background:new 0 0 58 58;" xml:space="preserve">
+  <circle style="fill:#979797;" cx="29" cy="29" r="29"/>
+  <g>
+    <rect x="17" y="18" style="fill:#FFFFFF;" width="8" height="22"/>
+  </g>  
+  <g>
+    <rect x="33" y="18" style="fill:#FFFFFF;" width="8" height="22"/>
+  </g>
+</svg>\n`
 }
 
 /**

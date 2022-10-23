@@ -370,6 +370,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
           value = value.split(',')
         }
         configOut[key] = value
+        logDebug('overrideSettingsWithStringArgs', `- updated setting '${key}' -> value '${String(value)}'`)
       }
       return configOut
     }

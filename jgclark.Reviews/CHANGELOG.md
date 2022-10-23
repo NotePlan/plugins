@@ -1,12 +1,17 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
-## [0.9.0] - 2022-10-???
+## [0.9.0-beta2] - 2022-10-22
 ### Added
-- To speed up reviewing projects when you have the 'Rich' Project List view open, there's now a row of buttons above the table that trigger the following commands: `/finish project review`, `/next project review`, `/complete project`, `/cancel project`. They work on whatever is the project note that's in NotePlan's main editor window. (suggested by @John1)
+- To speed up reviewing projects when you have the 'Rich' Project List view open, there's now a row of buttons above the table that trigger the following commands: **/finish project review**, **/next project review**, **/complete project**, **/cancel project**. They work on whatever is the project note that's in NotePlan's main editor window (suggested by @John1).
+- The Project list view(s) now automatically update after finishing a review, or completing or cancelling a project.
+- TODO: Show more than one review #type in the HTML view.
+- Ability to pause a project, by calling new **/pause project** command or adding `#paused` to a project's metadata. This stops the note from being included in reviews, but keeps it in the project lists.
 ### Changed
+- Can now write both 'Markdown' and 'Rich' style outputs each time.
 - Can now save 'Markdown' view as well as showing the 'Rich' style for "/project lists"
 - Tasks scheduled to the future are now not counted in the % completion figures
+- Clarified the special #hashtags to use on project metadata lines: not just `#paused`; `#archive` is retired.
 ### Fixed
 - Fixed count of notes to review
 

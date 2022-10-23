@@ -50,6 +50,9 @@ Aim: Make sure car continues to run well, is legal etc.
 ...
 ```
 
+The first hashtag on the line defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you.
+NB: If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but will show up in the lists.
+
 ## Reviewing Projects and/or Areas
 Use the 'Hashtags to review' setting to control which notes are included in the review lists:
 - If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
@@ -59,16 +62,17 @@ Use the 'Hashtags to review' setting to control which notes are included in the 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
 ### "/project lists" command
-This creates or updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). For example:
+This creates or updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. 
+From v0.8 you can set the '**Output style to use**'. This is either a 'Rich' (HTML) or original 'Markdown' (normal NotePlan) output style:
 
-From v0.8 you can now set the '**Output style to use**'. This is either a new 'Rich' (HTML) or original 'Markdown' (normal NotePlan) output style.  
-<!-- From v0.9 ... ??? -->
+![Example of Rich style of "/project lists"](project-list-rich.jpg)
+![Example of Markdown style of "/project lists"](project-list-markdown_bordered.jpg) 
 
-![Example of Markdown style of "/project lists"](project-list-markdown_bordered.jpg) ![Example of Rich style of "/project lists"](project-list-rich.jpg)
+**Note**:  the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use. However, the **Markdown style** list _is_ stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). 
 
-Note:  the 'Rich' style _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use.
+**Tip**: Place this **Rich** list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.  From v0.9 it now includes the following buttons above the start of the lists:
 
-**Tip**: Place this Rich list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.
+![Example of buttons in Rich style of "/project lists"](review-list-buttons_bordered.jpg)
 
 Other settings:
 - Specify folders to ignore using the 'Folders to ignore' shared setting (as above).
@@ -115,16 +119,19 @@ Context: <%- prompt('context') %>
 ```
 
 ## "/complete project" command
-This adds an #archive tag, and a `@completed(date)` to the metadata line of the open project note, and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+This adds a `@completed(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
 
 ## "/cancel project" command
-This adds an #archive tag, and a `@cancelled(date)` to the metadata line of the open project note, and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+This adds a `@cancelled(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+
+## "/pause project" command
+This adds a `#paused` tag to the metadata line of the open project note, and stops it being offered with '/next review'. However, it keeps showing it in the review list, so you don't forget about it entirely.
 
 ## Configuration
 These commands require configuration, which is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel.
 
 ## Thanks
-Thanks to George Crump for his suggestions and beta testing.
+Thanks to George Crump and 'John1' for their suggestions and beta testing.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

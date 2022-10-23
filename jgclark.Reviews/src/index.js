@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 14.10.2022 for v0.9.0-betas, @jgclark
+// Last updated 23.10.2022 for v0.9.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -15,9 +15,7 @@ import { JSP, logError, logInfo } from '@helpers/dev'
 
 export {
   logFullReviewList,
-  logReviewList,
   makeFullReviewList,
-  makeReviewList,
   startReviews,
   nextReview,
   finishReview,
@@ -30,7 +28,8 @@ export {
 } from './projectLists'
 export {
   completeProject,
-  cancelProject
+  cancelProject,
+  pauseProject
 } from './projects'
 export {
   generateCSSFromTheme

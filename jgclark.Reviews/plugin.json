@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.9.0-beta1",
+  "plugin.version": "0.9.0-beta3",
   "plugin.lastUpdateInfo": "Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -59,7 +59,7 @@
         "complete",
         "project"
       ],
-      "description": "add @completed(date) to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
+      "description": "adds @completed(date) to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
       "jsFunction": "completeProject"
     },
     {
@@ -69,8 +69,23 @@
         "cancel",
         "project"
       ],
-      "description": "add @cancelled(date) date to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
+      "description": "adds @cancelled(date) date to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
       "jsFunction": "cancelProject"
+    },
+    {
+      "name": "pause project",
+      "alias": [
+        "gtd",
+        "pause",
+        "project"
+      ],
+      "description": "adds '#paused' to the open project note, and stops offering it as a project to review",
+      "jsFunction": "pauseProject"
+    },
+    {
+      "name": "rev:redisplayProjectList",
+      "description": "Redisplau project lists",
+      "jsFunction": "redisplayProjectList"
     },
     {
       "name": "rev:logFullReviewList",
@@ -81,6 +96,11 @@
       "name": "rev:makeFullReviewList",
       "description": "make/update full review list note",
       "jsFunction": "makeFullReviewList"
+    },
+    {
+      "name": "test:redToGreenInterpolation",
+      "description": "test red - green interpolation",
+      "jsFunction": "testRedToGreenInterpolation"
     },
     {
       "name": "test:generateCSSFromTheme",
@@ -104,11 +124,6 @@
       "name": "rev:test update Reviews plugin",
       "description": "upgrade Reviews plugin settings",
       "jsFunction": "testUpdated"
-    },
-    {
-      "name": "test:redToGreenInterpolation",
-      "description": "test red - green interpolation",
-      "jsFunction": "testRedToGreenInterpolation"
     },
     {
       "name": "test:NoteplanstateFont",
@@ -235,14 +250,6 @@
       "required": true
     },
     {
-      "key": "displayArchivedProjects",
-      "title": "Display archived projects?",
-      "description": "Whether to display project notes marked as #archive.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
       "type": "heading",
       "title": "Setting for /completeProject and /cancelProject"
     },
@@ -326,6 +333,16 @@
         "none"
       ],
       "default": "INFO",
+      "required": true
+    }
+  ],
+  "plugin.settings.unused": [
+    {
+      "key": "displayArchivedProjects",
+      "title": "Display archived projects?",
+      "description": "Whether to display project notes marked as #archive.",
+      "type": "bool",
+      "default": true,
       "required": true
     }
   ]
