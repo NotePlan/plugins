@@ -16,9 +16,9 @@ import { logDebug, logInfo, logWarn } from './dev'
 export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialFolders: boolean = true): Array<string> {
   // Get all folders as array of strings (other than @Trash).
   const folderList = DataStore.folders
-  // logDebug('filteredFolderList', `List of DataStore.folders: ${folderList.toString()}`)
+  // logDebug('folders / filteredFolderList', `List of DataStore.folders: ${folderList.toString()}`)
   const reducedList: Array<string> = []
-  logDebug('filteredFolderList', `filteredFolderList: Starting with exclusions ${exclusions.toString()}`)
+  // logDebug('folders / filteredFolderList', `filteredFolderList: Starting with exclusions ${exclusions.toString()}`)
   if (exclusions.length > 0) {
     const exclusionsTerminatedWithSlash: Array<string> = []
     for (const e of exclusions) {
@@ -33,18 +33,18 @@ export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialF
       for (const ee of exclusionsTerminatedWithSlash) {
         if (ff.startsWith(ee)) {
           matchedAnExcludedFolder = true
-          // console.log(`  ${ee} starts with ${ff}`)
+          // logDebug('folders / filteredFolderList', `  ${ee} starts with ${ff}`)
           break
         }
       }
       if (!matchedAnExcludedFolder && !(excludeSpecialFolders && ff.startsWith('@'))) {
         reducedList.push(ff.substr(0, ff.length - 1))
-          // console.log(`  ${ff} didn't match`)
+          // logDebug('folders / filteredFolderList', `  ${ff} didn't match`)
       }
     }
-    logDebug('filteredFolderList', `-> filteredList: ${reducedList.toString()}`)
+    // logDebug('folders / filteredFolderList', `-> filteredList: ${reducedList.toString()}`)
   } else {
-    logInfo('filteredFolderList', `empty excluded folder list`)
+    logInfo('folders / filteredFolderList', `empty excluded folder list`)
     reducedList.push(...folderList.slice())
   }
   return reducedList

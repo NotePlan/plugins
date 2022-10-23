@@ -388,15 +388,16 @@ export function getDateObjFromDateString(mention: string): ?Date {
   const res = mention.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
+    // logDebug('dateTime / getDateObjFromDateString', `- ${res[1]}`)
     const date = new Date(
       Number(res[1].slice(0, 4)),
       Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
       Number(res[1].slice(8, 10)),
     )
-    // logDebug('dateTime / getDateObjFromDateString', toISOShortDateTimeString(date))
+    // logDebug('dateTime / getDateObjFromDateString', `- ${toISOShortDateTimeString(date)}`)
     return date
   } else {
-    logWarn('dateTime / getDateObjFromDateString', `getDateFromString: no valid date found in '${mention}'`)
+    logWarn('dateTime / getDateObjFromDateString', `- no valid date found in '${mention}'`)
     return
   }
 }

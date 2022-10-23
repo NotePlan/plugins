@@ -183,20 +183,20 @@ export function findNotesMatchingHashtag(tag: string, folder: ?string, includeSu
 
   // Check for special conditions first
   if (tag === '') {
-    logError('findNotesMatchingHashtag', `No hashtag given. Stopping`)
+    logError('notes / findNotesMatchingHashtag', `No hashtag given. Stopping`)
     return [] // for completeness
   }
   // Filter by tag
   const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
-  logDebug('findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+  // logDebug('notes / findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
 
   // If we care about the excluded tag, then further filter out notes where it is found
   if (tagToExclude !== '') {
     const projectNotesWithTagWithoutExclusion = projectNotesWithTag.filter((n) => !n.hashtags.includes(tagToExclude))
     const removedItems = projectNotesWithTag.length - projectNotesWithTagWithoutExclusion.length
     if (removedItems > 0) {
-      logDebug('findNotesMatchingHashtag', `- but removed ${removedItems} excluded notes:`)
-      logDebug('findNotesMatchingHashtag', `= ${String(projectNotesWithTag.filter((n) => n.hashtags.includes(tagToExclude)).map((m) => m.title))}`)
+      // logDebug('notes / findNotesMatchingHashtag', `- but removed ${removedItems} excluded notes:`)
+      // logDebug('notes / findNotesMatchingHashtag', `= ${String(projectNotesWithTag.filter((n) => n.hashtags.includes(tagToExclude)).map((m) => m.title))}`)
     }
     return projectNotesWithTagWithoutExclusion
   } else {
