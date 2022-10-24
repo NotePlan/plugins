@@ -38,6 +38,13 @@ export type ParagraphsGroupedByType = {
   done?: ?Array<TParagraph>,
 }
 
+export const HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
+export const MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
+const EXCLAMATIONS: RegExp = /\B(!+\B)/g
+const PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
+export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
+export const isTask = (para: TParagraph): boolean => TASK_TYPES.indexOf(para.type) >= 0
+
 /**
  * Modern case insensitive sorting function
  * More details at https://stackoverflow.com/a/49004987/3238281
@@ -126,7 +133,8 @@ export const fieldSorter =
         if (aValue === bValue) return 0
         if (aValue == null) return isDesc ? -dir : dir //null or undefined always come last
         if (bValue == null) return isDesc ? dir : -dir
-        return aValue > bValue ? dir : -dir
+        // $FlowIgnore - flow complains about comparison of non-identical types, but I am trapping for that
+        return typeof aValue === typeof bValue ? (aValue > bValue ? dir : -dir) : 0
       })
       .reduce((p, n) => (p ? p : n), 0)
 
@@ -149,12 +157,6 @@ export const firstValue = (val: any): string | number => {
     return typeof retVal === 'string' ? retVal.toLowerCase() : retVal
   }
 }
-
-export const HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
-export const MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
-const EXCLAMATIONS: RegExp = /\B(!+\B)/g
-const PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
-export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
 
 export function getElementsFromTask(content: string, reSearch: RegExp): Array<string> {
   const found = []
@@ -200,7 +202,6 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
     const para = paragraphs[index]
     // clo(para, 'getTasksByType')
     // FIXME: non tasks are not going to get through this filter. What to do?
-    const isTask = TASK_TYPES.indexOf(para.type) >= 0
     if (isTask || (!ignoreIndents && para.indents > lastParent.indents)) {
       const content = para.content
       // console.log(`found: ${index}: ${para.type}: ${para.content}`)

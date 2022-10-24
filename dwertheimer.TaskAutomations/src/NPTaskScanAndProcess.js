@@ -515,8 +515,8 @@ export async function reviewTasksInNotes(notesToUpdate: Array<Array<TParagraph>>
       `starting note loop:${i} of ${notesToUpdate.length} notes;  number of updates left: notesToUpdate[${i}].length=${notesToUpdate[i].length}`,
     )
     if (notesToUpdate[i].length) {
-      logDebug(`reviewTasksInNotes`, `calling reviewNote on notesToUpdate[${i}]: "${(notesToUpdate && notesToUpdate[i] && String(notesToUpdate[i].filename)) || ''}"`)
-      clo(notesToUpdate[i], `notesToUpdate[${i}]`)
+      logDebug(`reviewTasksInNotes`, `calling reviewNote on notesToUpdate[${i}]: "${(notesToUpdate && notesToUpdate[i] && String(notesToUpdate[i][0].filename)) || ''}"`)
+      // clo(notesToUpdate[i], `notesToUpdate[${i}]`)
       i = await reviewNote(notesToUpdate, i, options) // result may decrement index to see the note again after one line change
       if (i === -2) break //user selected cancel
     }

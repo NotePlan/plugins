@@ -13,6 +13,7 @@ Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorti
 - Sorting tasks (by various task fields or simply bringing tasks to the top of the note)
 - Marking all tasks complete (or incomplete)
 - Copying tags/mentions from previous lines when doing multiple task entry
+- Task Sync - create a page of synced tasks matching a text search criteria (e.g. search for all open todos marked "@bob" and put them in one document)
 - Process ">date+" tags (e.g. if you entered >2020-01-01+ on a task somewhere in your notes, and today is that day or greater, the task gets converted to a >today and shows up in your daily references, and /autotimeblocking if you use it)
 
 ## Overdue Tasks: Overview
@@ -118,7 +119,6 @@ The plugin has a variety of settings you can access through the plugin settings 
 - Sort tasks via template call
 - Sort by task due date
 - Bring open tasks to top
-- `/Task Sync` (only available via xcallback/url)
 - (optionally) Leave tasks with dates in place until they are overdue? [use getOverdueTasks()]
 
 ## Acknowledgements

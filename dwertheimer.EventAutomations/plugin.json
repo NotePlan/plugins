@@ -25,6 +25,15 @@
       ]
     },
     {
+      "name": "mdatb",
+      "description": "Mark task on current line done and run /atb to re-create timeblocks",
+      "jsFunction": "markDoneAndRecreateTimeblocks",
+      "alias": [
+        "done",
+        "mark"
+      ]
+    },
+    {
       "name": "Create AutoTimeBlocks using presets",
       "description": "Read >today todos and insert them into today's calendar note as timeblocks, but using presets defined in _configuration note",
       "jsFunction": "insertTodosAsTimeblocksWithPresets",

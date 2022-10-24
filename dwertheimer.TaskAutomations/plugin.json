@@ -4,8 +4,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.6.0",
-  "plugin.lastUpdateInfo": "2.6.0: Add /sth - sort tasks under heading\n2.5: Added open task search (separate from overdue); Added weekly reschedule tags (to point tasks to weekly note); Added capability to review items marked for today; Added day names for rescheduling; Added preference to review today's tasks after overdue review.\n2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
+  "plugin.version": "2.7.1",
+  "plugin.lastUpdateInfo": "2.7.1 Beta of /task sync for testing (with API bug workaround)\n2.6.0: Add /sth - sort tasks under heading\n2.5: Added open task search (separate from overdue); Added weekly reschedule tags (to point tasks to weekly note); Added capability to review items marked for today; Added day names for rescheduling; Added preference to review today's tasks after overdue review.\n2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
@@ -77,10 +77,10 @@
       "jsFunction": "copyLineForEachHashtag"
     },
     {
-      "name": "task sync",
-      "description": "Create synced copies of tasks from frontmatter fields",
+      "name": "Task Sync",
+      "description": "Create synced copies of tasks containing a string in a new document",
       "jsFunction": "taskSync",
-      "hidden": true,
+      "hidden": false,
       "arguments": [
         "search string",
         "type of notes to search in (['calendar', 'notes'])",
@@ -398,7 +398,7 @@
     {
       "key": "defaultFolderName",
       "type": "string",
-      "default": "@OpenTaskSync",
+      "default": "@TaskSync",
       "required": true,
       "title": "Default Folder Name",
       "description": "If no filename is provided, a filename will be generated from the search string and the results will be saved in this folder. Setting a filename overrides this setting."

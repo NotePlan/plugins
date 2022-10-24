@@ -30,14 +30,14 @@ import { getTimedEntries, keepTodayPortionOnly } from '@helpers/calendar'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '@helpers/NPCalendar'
 import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated } from '@helpers/dateTime'
-import { getTasksByType, sortListBy } from '@helpers/sorting'
+import { getTasksByType, sortListBy, isTask } from '@helpers/sorting'
 import { showMessage, chooseOption } from '@helpers/userInput'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { checkNumber, checkWithDefault } from '@helpers/checkType'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { getTodaysReferences, findTodayTodosInNote } from '@helpers/NPnote'
-import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
+import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes, selectedLinesIndex } from '@helpers/NPParagraph'
 
 /**
  * Get the config for this plugin, from DataStore.settings or the defaults if settings are not valid
@@ -556,6 +556,40 @@ export async function selectCalendar(isPluginEntry: boolean = true): Promise<voi
     if (updatedCalendar) {
       settings[calendarConfigField] = updatedCalendar
       DataStore.settings = settings
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Mark task on current line done and run /atb to re-create timeblocks
+ * Plugin entrypoint for command: "/mdatb"
+ * @param {*} incoming
+ */
+export async function markDoneAndRecreateTimeblocks(incoming: string | null = null) {
+  try {
+    logDebug(pluginJson, `markDoneAndRecreateTimeblocks running with incoming:${String(incoming)}`)
+    if (Editor.selection && Editor.note?.paragraphs) {
+      // const updatedParas = []
+      const [startIndex, endIndex] = selectedLinesIndex(Editor.selection, Editor.note.paragraphs)
+      if (endIndex >= startIndex) {
+        for (let index = startIndex; index <= endIndex; index++) {
+          const para = Editor.note?.paragraphs[index]
+          if (para) {
+            logDebug(pluginJson, `markDoneAndRecreateTimeblocks: paragraph[${index}] of ${startIndex} to ${endIndex}: "${para.content || ''}"`)
+            if (para && isTask(para)) {
+              clo(para, `markDoneAndRecreateTimeblocks: before update paragraph[${index}]`)
+              para.type = 'done'
+              if (Editor.note) Editor.note.updateParagraph(para)
+              clo(para, `markDoneAndRecreateTimeblocks: after update paragraph[${index}]`)
+            }
+          }
+        }
+        // await insertTodosAsTimeblocks()
+      } else {
+        logDebug(pluginJson, `markDoneAndRecreateTimeblocks: no selection`)
+      }
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

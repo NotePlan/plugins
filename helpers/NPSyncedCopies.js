@@ -17,7 +17,7 @@ export function getSyncedCopiesAsList(parasToSync: Array<TParagraph> = [], taskT
         `NPSyncedCopies::getSyncedCopiesAsList`,
         `noteType:"${p.note?.type || ''}" noteFilename:"${p.note?.filename || ''}" noteTitle: "${p.note?.title || ''}" paraContent: "${p.content || ''}"`,
       )
-      clo(p, `NPSyncedCopies::getSyncedCopiesAsList paragraph=`)
+      // clo(p, `NPSyncedCopies::getSyncedCopiesAsList paragraph=`)
       p.note?.addBlockID(p)
       p.note?.updateParagraph(p)
       syncedLinesList.push(p.rawContent)

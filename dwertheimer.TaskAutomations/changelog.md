@@ -5,6 +5,14 @@
 
 ## What's Changed in this Plugin?
 
+## [2.7.1] (@dwertheimer) 2022-10-24
+
+- API bug workaround hack (hope to remove it soon)
+
+## [2.7.0] (@dwertheimer) 2022-10-23
+
+- Beta of /task sync for testing
+
 ## [2.6.0] (@dwertheimer) 2022-10-19
 
 - Added /sth - sort tasks under heading
