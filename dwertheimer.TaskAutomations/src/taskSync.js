@@ -101,7 +101,7 @@ function getNoteOutput(syncedCopyList: Array<string>, callbackArgs: any) {
   const { searchFor, searchInTypesStr, includeTaskTypesStr, sortByFieldsStr, inFoldersStr, notInFoldersStr, outputFilename, headings } = callbackArgs
   const { includeInstructions } = DataStore.settings
   const instructions = includeInstructions
-    ? `\n##Non-Synced Notes:\n*Clicking the "Tasks" header will refresh the items underneath the heading. You can edit lines and they will be synced/update; however, if you want to add lines, you must do that below the synced lines block, because everything under the heading gets wiped out and replaced when the tasks are refreshed.*`
+    ? `\n## Non-Synced Notes:\n*Clicking the "Tasks" header will refresh the items underneath the heading. You can edit lines and they will be synced/update; however, if you want to add lines, you must do that below the synced lines block, because everything under the heading gets wiped out and replaced when the tasks are refreshed.*`
     : ''
   const link = `[Tasks (Synced Lines)](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Task%20Sync&arg0=${encodeURIComponent(
     searchFor,
