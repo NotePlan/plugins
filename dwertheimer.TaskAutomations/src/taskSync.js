@@ -297,6 +297,8 @@ export async function taskSync(...args: Array<string>): Promise<void> {
         logDebug(pluginJson, `As a hack-workaround for the API openNoteByFilename bug, opening document a second time: "${urlMatch[1]}"`)
         await NotePlan.openURL(urlMatch[1])
       }
+    } else {
+      logDebug(`Not executing workaround, Editor.content: "${String(Editor.content)}"`)
     }
     // FIXME: end work-around
   } catch (error) {
