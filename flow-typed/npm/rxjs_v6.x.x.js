@@ -1,5 +1,5 @@
-// flow-typed signature: 21816b471cfbd50ed8e135aae0e3b61e
-// flow-typed version: d27b3bd6d1/rxjs_v6.x.x/flow_>=v0.104.x
+// flow-typed signature: 3b2f7b3fdfdfa95c58c4432164356318
+// flow-typed version: 9eddb533c4/rxjs_v6.x.x/flow_>=v0.104.x
 
 /** OPERATOR INTERFACES */
 declare interface rxjs$UnaryFunction<T, R> {
@@ -2530,20 +2530,16 @@ declare module "rxjs/operators" {
   ): rxjs$UnaryFunction<rxjs$Observable<T>, rxjs$ConnectableObservable<T>>;
 
   declare export function multicast<T>(
-    rxjs$SubjectFactory: () => rxjs$Subject<T>
-  ): rxjs$UnaryFunction<rxjs$Observable<T>, rxjs$ConnectableObservable<T>>;
-
-  declare export function multicast<T>(
-    rxjs$SubjectFactory: () => rxjs$Subject<T>,
+    subjectOrSubjectFactory: rxjs$FactoryOrValue<rxjs$Subject<T>>,
     selector?: rxjs$MonoTypeOperatorFunction<T>
   ): rxjs$MonoTypeOperatorFunction<T>;
 
   declare export function multicast<T, R>(
-    rxjs$SubjectFactory: () => rxjs$Subject<T>
+    subjectOrSubjectFactory: rxjs$FactoryOrValue<rxjs$Subject<T>>, 
   ): rxjs$UnaryFunction<rxjs$Observable<T>, rxjs$ConnectableObservable<R>>;
 
   declare export function multicast<T, R>(
-    rxjs$SubjectFactory: () => rxjs$Subject<T>,
+    subjectOrSubjectFactory: rxjs$FactoryOrValue<rxjs$Subject<T>>,
     selector?: rxjs$OperatorFunction<T, R>
   ): rxjs$OperatorFunction<T, R>;
 

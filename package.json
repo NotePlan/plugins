@@ -132,6 +132,7 @@
     "json5": "^2.2.0",
     "listr": "0.14.3",
     "lodash": "4.17.21",
+    "lodash-es": "^4.17.21",
     "mathjs": "^11.0.1",
     "moment": "2.29.1",
     "moment-business-days": "1.2.0",

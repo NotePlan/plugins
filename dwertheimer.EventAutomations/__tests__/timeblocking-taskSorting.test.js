@@ -2,7 +2,7 @@
 // import { differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075 } from 'date-fns'
 import * as tb from '../src/timeblocking-helpers'
 import { getTasksByType, sortListBy } from '@helpers/sorting'
-const _ = require('lodash')
+import _ from 'lodash'
 // import { isNullableTypeAnnotation } from '@babel/types'
 
 // Jest suite
