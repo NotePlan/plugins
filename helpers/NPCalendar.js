@@ -33,25 +33,26 @@ import {
   isTimeBlockPara,
   getTimeBlockString,
 } from './timeblocks'
-import { showMessage, showMessageYesNo, chooseOption } from './userInput'
+import { showMessage, showMessageYesNoCancel, chooseOption } from './userInput'
 
 export type EventsConfig = {
   eventsHeading: string,
   formatEventsDisplay: string,
   formatAllDayEventsDisplay: string,
   sortOrder: string,
+  calendarSet: Array<string>,
+  calendarNameMappings: Array<string>,
   matchingEventsHeading: string,
   addMatchingEvents: ?{ [string]: mixed },
   locale: string,
   timeOptions: any,
-  calendarSet: Array<string>,
-  calendarNameMappings: Array<string>,
-  addEventID: boolean,
-  confirmEventCreation?: boolean,
-  processedTagName?: string /* if not set, uses RE_EVENT_ID */,
-  removeTimeBlocksWhenProcessed?: boolean,
+  includeCompletedTasks: boolean,
   calendarToWriteTo?: string,
   defaultEventDuration: number,
+  confirmEventCreation?: boolean,
+  removeTimeBlocksWhenProcessed?: boolean,
+  addEventID: boolean,
+  processedTagName?: string /* if not set, uses RE_EVENT_ID */,
   removeDoneDates: boolean,
   uncompleteTasks: boolean
 }
@@ -151,7 +152,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
   // Look through open note to find valid time blocks, but stop at Done or Cancelled sections
   // $FlowIgnore - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
   const endOfActive = findEndOfActivePartOfNote(note)
-  const timeblockParas = paragraphs.filter((p) => isTimeBlockPara(p) && p.lineIndex <= endOfActive)
+  const timeblockParas = paragraphs.filter((p) => isTimeBlockPara(p) && p.lineIndex <= endOfActive && (p.type !== 'done' || config.includeCompletedTasks))
   if (timeblockParas.length > 0) {
     logDebug('NPCalendar / writeTimeBlocksToCalendar', `-   found ${timeblockParas.length} in '${noteTitle}'`)
     // Work out our current date context (as YYYY-MM-DD):
@@ -219,9 +220,13 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
 
           // Do we want to add this particular event?
           if (config.confirmEventCreation) {
-            const res = await showMessageYesNo(`Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`, ['Yes', 'No'], 'Make event from time block')
+            const res = await showMessageYesNoCancel(`Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`, ['Yes', 'No', 'Cancel'], 'Make event from time block')
             if (res === 'No') {
               continue // go to next time block
+            } else if (res === 'Cancel') {
+              logDebug('NPCalendar / writeTimeBlocksToCalendar', `User cancelled rest of the command.`)
+              i = timeblockParas.length
+              continue // cancel out of all time blocks
             }
           }
           const eventRange = {start: timeblockDateRange.start, end: timeblockDateRange.end}
