@@ -132,9 +132,8 @@ function getConfigErrorText(): string {
  * @param {settings} params
  * @returns
  */
-async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams = null): Promise<{ [string]: any } | null> {
-  const params = weatherParams ? weatherParams : DataStore.settings
-  const url = utils.getWeatherURLLatLong(location.lat, location.lon, params.appid, params.units || 'metric')
+async function getWeatherForLocation(location: LocationOption, weatherParams: WeatherParams = DataStore.settings): Promise<{ [string]: any } | null> {
+  const url = utils.getWeatherURLLatLong(location.lat, location.lon, weatherParams.appid, weatherParams.units || 'metric')
   logDebug(`weather-utils::getWeatherForLocation`, `url: \n${url}`)
   try {
     const res: any = await fetch(url, { timeout: 3000 })
@@ -226,7 +225,7 @@ export async function insertWeatherByLocation(incoming: ?string = '', returnLoca
             location = ''
           }
         } else {
-          logDebug(pluginJson, `insertWeatherByLocation: No location to look for: ${location}`)
+          logDebug(pluginJson, `insertWeatherByLocation: No location to look for: ${location || ''}`)
         }
       } while (location !== false)
     }

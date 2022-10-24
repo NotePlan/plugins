@@ -11,10 +11,10 @@ import { showHTML } from '@helpers/HTMLView'
  */
 export function testMathML1(): void {
   try {
-
-    // Use single HTML string 
+    // Use single HTML string
     logDebug('testMathML1', `writing results to HTML output ...`)
-    HTMLView.showWindow(`<!DOCTYPE html>
+    HTMLView.showWindow(
+      `<!DOCTYPE html>
 <html>
 <head>
 <title>MathJax MathML Test 1</title>
@@ -61,10 +61,11 @@ and they are
 </p>
 
 </body>
-</html>`) // not giving window dimensions
+</html>`,
+      'MathJax MathML Test 1',
+    ) // not giving window dimensions
     logDebug('testMathML1', `written results to HTML`)
-  }
-  catch (error) {
+  } catch (error) {
     logError('testMathML1', error.message)
   }
 }
@@ -77,7 +78,8 @@ export function testMathML2(): void {
   try {
     // Show the list(s) as HTML, and save a copy as file
     logDebug('testMathML2', `writing results to HTML output ...`)
-    showHTML('MathML TeX Test Page 2',
+    showHTML(
+      'MathML TeX Test Page 2',
       '', // no extra header tags
       `<h3>MathJax MathML Test 2</h3>
 <p>
@@ -126,11 +128,10 @@ and they are
       ``,
       'mathml-test2.html',
       600,
-      400
+      400,
     )
     logDebug('testMathML2', `written results to HTML`)
-  }
-  catch (error) {
+  } catch (error) {
     logError('testMathML2', error.message)
   }
 }
@@ -144,10 +145,10 @@ and they are
  */
 export function testMathJax1(): void {
   try {
-
-    // Use single HTML string 
+    // Use single HTML string
     logDebug('testMathJax1', `writing results to HTML output ...`)
-    HTMLView.showWindow(`<!DOCTYPE html>
+    HTMLView.showWindow(
+      `<!DOCTYPE html>
 <html>
 <head>
 <title>MathJax TeX Test Page</title>
@@ -160,10 +161,11 @@ export function testMathJax1(): void {
 When \(a \ne 0\), there are two solutions to \(ax^2 + bx + c = 0\) and they are
 $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
 </body>
-</html>`) // not giving window dimensions
+</html>`,
+      'MathJax TeX Test Page',
+    ) // not giving window dimensions
     logDebug('testMathJax1', `written results to HTML`)
-  }
-  catch (error) {
+  } catch (error) {
     logError('testMathJax1', error.message)
   }
 }
@@ -176,7 +178,8 @@ export function testMathJax2(): void {
   try {
     // Show the list(s) as HTML, and save a copy as file
     logDebug('testMathJax2', `writing results to HTML output ...`)
-    showHTML('MathJax TeX Test Page 2',
+    showHTML(
+      'MathJax TeX Test Page 2',
       '', // no extra header tags
       `<h3>Some example MathJax</h3>
 When \(a \ne 0\), there are two solutions to \(ax^2 + bx + c = 0\) and they are
@@ -191,10 +194,11 @@ $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
 </script>`,
       ``,
       'mathjax-test2.html',
-      600, 400)
+      600,
+      400,
+    )
     logDebug('testMathJax2', `written results to HTML`)
-  }
-  catch (error) {
+  } catch (error) {
     logError('testMathJax2', error.message)
   }
 }
@@ -205,10 +209,10 @@ $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
  */
 export function testMathJax3(): void {
   try {
-
     // Show the list(s) as HTML, and save a copy as file
     logDebug('testMathJax3', `writing results to HTML output ...`)
-    showHTML('MathJax TeX Test Page 3',
+    showHTML(
+      'MathJax TeX Test Page 3',
       '', // no extra header tags
       `<h3>Some example MathJax</h3>
 When \(a \ne 0\), there are two solutions to \(ax^2 + bx + c = 0\) and they are
@@ -223,10 +227,11 @@ $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
 </script>`,
       ``,
       'mathjax-test3.html',
-      600, 400)
+      600,
+      400,
+    )
     logDebug('testMathJax3', `written results to HTML`)
-  }
-  catch (error) {
+  } catch (error) {
     logError('testMathJax3', error.message)
   }
 }

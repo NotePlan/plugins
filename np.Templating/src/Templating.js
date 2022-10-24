@@ -23,7 +23,7 @@ import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
 import { initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
-import { clo, logError } from '@helpers/dev'
+import { clo, log, logError } from '@helpers/dev'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
@@ -33,6 +33,7 @@ import { migrateTemplates, migrateQuickNotes, _checkTemplatesMigrated } from './
 
 // Editor
 import { templateFileByTitleEx } from './NPEditor'
+import { checkObj, checkString } from '../../helpers/checkType'
 
 export async function init(): Promise<void> {
   try {
@@ -103,7 +104,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     // clo(pluginList)
 
     const version = await DataStore.invokePluginCommandByName('np:about', 'np.Templating', [{}])
-    console.log(version)
+    log(version)
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -561,9 +562,10 @@ export async function templateWOTD(): Promise<void> {
       },
     }
 
-    const result = await fetch(url, options)
+    const json: mixed = await fetch(url, options).then((res) => res.json())
 
-    let data = JSON.parse(result)
+    // Validating that the JSON object has a key called `word` with a string value
+    const data = checkObj({ word: checkString })(json)
 
     Editor.insertTextAtCursor(data.word)
 

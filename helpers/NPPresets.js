@@ -1,6 +1,5 @@
 // @flow
 
-const pluginJson = 'helpers/NPPresets'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getPluginJson, savePluginJson } from '@helpers/NPConfiguration'
 import { chooseOption, showMessage } from '@helpers/userInput'
@@ -187,7 +186,7 @@ export function getCommandIndex(pluginJson: any, functionName: string): number {
  * Because presets are stored in the plugin.json, we need a way to re-populate the plugin.json
  * after a new version of the plugin has been installed and overwritten plugin.json
  */
-export async function rememberPresetsAfterInstall(pluginJson: any): boolean {
+export async function rememberPresetsAfterInstall(pluginJson: any): Promise<void> {
   const settings = DataStore.settings
   const keys = Object.keys(settings)
   for (let index = 0; index < keys.length; index++) {

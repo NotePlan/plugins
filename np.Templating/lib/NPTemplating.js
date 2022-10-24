@@ -122,6 +122,7 @@ export const DEFAULT_TEMPLATE_CONFIG = {
       keys: ['"', '[0].q', '"', ' - ', '*', '[0].a', '*'],
     },
   },
+  defaultFormats: { now: '' },
 }
 
 type TemplateConfig = $ReadOnly<{
@@ -179,7 +180,7 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
     defaultFormats: {
       date: "${dateFormat}",
       time: "${timeFormat}",
-      now: "${DEFAULT_TEMPLATE_CONFIG.defaultFormats.now}"
+      now: "${DEFAULT_TEMPLATE_CONFIG.defaultFormats?.now ?? ''}"
     },
     user: {
       first: "${first}",
@@ -634,7 +635,7 @@ export default class NPTemplating {
           templateFilename = parts.pop()
 
           let templates = await DataStore.projectNoteByTitle(templateFilename, true, false)
-          if (templates.length > 1) {
+          if (templates && templates.length > 1) {
             let templatesSecondary = []
             for (const template of templates) {
               if (template && template.filename.startsWith(templateFolderName)) {
@@ -715,14 +716,14 @@ export default class NPTemplating {
       const foundNotes = DataStore.projectNoteByTitle(noteName, true, noteFolder.length === 0)
       if (typeof foundNotes !== 'undefined' && Array.isArray(foundNotes)) {
         if (foundNotes.length === 1) {
-          content = foundNotes[0].content
+          content = foundNotes[0].content ?? ''
         } else {
           for (const note of foundNotes) {
             const parts = note.filename.split('/')
             const name = parts.pop()
             const folder = parts.join('/')
             if (folder === noteFolder) {
-              content = note.content
+              content = note.content ?? ''
             }
           }
         }
@@ -769,8 +770,6 @@ export default class NPTemplating {
       } else {
         return `**An error occurred process note**`
       }
-
-      return ''
     }
 
     return ''
@@ -1489,6 +1488,7 @@ export default class NPTemplating {
             result = await new TemplatingEngine(this.constructor.templateConfig).render(executeCodeBlock, processedSessionData)
             processedTemplateData = processedTemplateData.replace(codeBlock, result)
           } else {
+            // $FlowFixMe: This seems wrong, but I'm not sure - nmn
             const fn = Function.apply(null, ['params', executeCodeBlock])
             result = fn(processedSessionData)
 

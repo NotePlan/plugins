@@ -1,14 +1,14 @@
 // @flow
-/* eslint-disable */
 
 /*-------------------------------------------------------------------------------------------
  * Copyright (c) 2022 Mike Erickson / Codedungeon.  All rights reserved.
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { getConfiguration, initConfiguration, migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
-
 import pluginJson from '../plugin.json'
+import { onUpdateOrInstall } from '../../dwertheimer.DateAutomations/src'
+import { logError } from '../../helpers/dev'
+import { initConfiguration } from '@helpers/NPConfiguration'
 
 export async function templateInit(): Promise<void> {
   try {

@@ -67,11 +67,17 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
 
   try {
+    if (selectedEvent == null) {
+      throw new Error('Did not select event')
+    }
+    if (templateFilename == null) {
+      throw new Error('Did not select templateFilename')
+    }
     logDebug(pluginJson, 'generateTemplateData')
     const templateData = generateTemplateData(selectedEvent)
 
     logDebug(pluginJson, 'get template content')
-    const templateContent = DataStore.projectNoteByFilename(templateFilename).content
+    const templateContent = DataStore.projectNoteByFilename(templateFilename)?.content
 
     logDebug(pluginJson, 'preRender template')
     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
@@ -181,6 +187,9 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
       // TODO: We don't know if its a title or a filename, so try first looking for a filename, then title
       logDebug(pluginJson, 'find the note by title')
       const availableNotes = DataStore.projectNoteByTitle(noteName)
+      if (availableNotes == null || availableNotes.length === 0) {
+        throw new Error(`No Available Notes found matching the title: "${noteName}"`)
+      }
       note = availableNotes[0]
 
       if (folder) {
