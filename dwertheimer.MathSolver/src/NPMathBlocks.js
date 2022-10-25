@@ -147,12 +147,13 @@ export function removeAnnotations(note: CoreNoteFields, blockData: $ReadOnly<Cod
 }
 
 export function annotateResults(note: CoreNoteFields, blockData: $ReadOnly<CodeBlock>, results: Array<LineInfo>, template: string, mode: string): void {
-  const { columnarOutput /* precisionSetting */ } = DataStore.settings
-  logDebug(pluginJson, `mode=${mode} template:"${template}"`)
+  const { columnarOutput, precisionSetting } = DataStore.settings
+  logDebug(pluginJson, `annotateResults mode=${mode} template:"${template}"`)
+  clo(results, `annotateResults: results obj`)
   const totalsOnly = mode === 'totalsOnly'
   const debug = mode === 'debug'
-  // const precision = mode === 'noRounding' ? 'No Rounding' : precisionSetting
-  // const formatted = formatOutput(results, template, precision) // writes .value using template?
+  const precision = mode === 'noRounding' ? 'No Rounding' : precisionSetting
+  formatOutput(results, template, precision) // important: populates the .value field for output
   // const updates = []
   let j = 0
   const debugOutput = []
@@ -183,7 +184,7 @@ export function annotateResults(note: CoreNoteFields, blockData: $ReadOnly<CodeB
       // logDebug(pluginJson, `$comment=${comment}`)
       // const thisParaInNote = note.paragraphs[paragraph.lineIndex]
       // thisParaInNote.content.replace(/ {2}(\/\/\=.*)/g,'')
-      if (columnarOutput) {
+      if (columnarOutput && !debug) {
         outputObjects.push({ content: paragraph.content.trimEnd(), comment })
       } else {
         paragraph.content = paragraph.content.trimEnd() + comment
@@ -303,6 +304,7 @@ export async function calculateBlocks(incoming: string | null = null, mode: stri
         //   currentData = parse("total",i,currentData)
         // }
         // TODO: add user pref for whether to include total or not
+        clo(currentData, `calculateEditorMathBlocks mathBlock[${b}] currentData:`)
         await annotateResults(Editor, block, currentData.info, popUpTemplate, mode)
         // await showResultsInPopup([totalLine,...currentData.info], popUpTemplate, `Block ${b+1}`)
       }

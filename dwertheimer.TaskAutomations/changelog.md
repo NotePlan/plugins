@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.7.2] (@dwertheimer) 2022-10-24
+
+- More API bug workaround hacks
+
 ## [2.7.1] (@dwertheimer) 2022-10-24
 
 - API bug workaround hack (hope to remove it soon)

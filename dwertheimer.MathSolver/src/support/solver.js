@@ -204,12 +204,12 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
 
   // let preProcessedValue = null
   try {
-    logDebug(pluginJson, `---`)
-    logDebug(pluginJson, `about to preproc str = "${strToBeParsed}"`)
-    clo(currentData, `currentData before pre-process`)
-    logDebug(pluginJson, `str = now will pre-proc "${strToBeParsed}"`)
-    const results = math.evaluate([strToBeParsed], variables)
-    clo(results, `solver::parse math.js pre-process success on: "${strToBeParsed}" Result is Array<${typeof results[0]}> =`)
+    // logDebug(pluginJson, `---`)
+    // logDebug(pluginJson, `about to preproc str = "${strToBeParsed}"`)
+    // clo(currentData, `currentData before pre-process`)
+    // logDebug(pluginJson, `str = now will pre-proc "${strToBeParsed}"`)
+    // const results = math.evaluate([strToBeParsed], variables)
+    // clo(results, `solver::parse math.js pre-process success on: "${strToBeParsed}" Result is Array<${typeof results[0]}> =`)
     // preProcessedValue = results[0]
   } catch (error) {
     // errors are to be expected since we are pre-processing

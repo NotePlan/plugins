@@ -1,13 +1,12 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { chooseOption, chooseHeading } from '@helpers/userInput'
+import { chooseOption, chooseHeading, showMessage } from '@helpers/userInput'
 import { getTagParamsFromString } from '@helpers/general'
 import { removeHeadingFromNote, getBlockUnderHeading } from '@helpers/NPParagraph'
 import { sortListBy, getTasksByType, TASK_TYPES, type ParagraphsGroupedByType } from '@helpers/sorting'
 import { logDebug, logError, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers/paragraph'
-import { showMessage } from '../../helpers/userInput'
 
 const TOP_LEVEL_HEADINGS = {
   open: 'Open Tasks',
