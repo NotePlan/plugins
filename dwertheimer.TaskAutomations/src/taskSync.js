@@ -16,8 +16,6 @@ import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import { getFolderFromFilename } from '@helpers/folders'
 
-// import type { ExtendedParagraph } from '../../dwertheimer.EventAutomations/src/timeblocking-helpers'
-
 // eslint-disable-next-line max-len
 export async function searchForTasks(searchString: string, types: Array<string>, inFolders: Array<string>, notInFolders: Array<string>): Promise<$ReadOnlyArray<TParagraph>> {
   logDebug(pluginJson, `${String(searchString)} ${String(types)} ${String(inFolders)} ${String(notInFolders)}`)

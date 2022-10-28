@@ -12,10 +12,12 @@
  */
 
 import { Note } from './Note.mock'
-const note = new Note()
+const note = new Note() // NOTE: try to reference the code in the Note mock wherever possible!
 
 export const Editor = {
-  // async addBlockID() { return null },
+  addBlockID(p) {
+    return this.note.addBlockID(p)
+  },
   // async addParagraphBelowHeadingTitle() { return null },
   // async addTheme() { return null },
   // async addTodoBelowHeadingTitle() { return null },

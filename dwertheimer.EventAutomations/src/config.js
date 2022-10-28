@@ -35,6 +35,7 @@ export function getTimeBlockingDefaults(): AutoTimeBlockingConfig {
     timeblockTextMustContainString: '' /* is set automatically when config is pulled */,
     foldersToIgnore: [],
     calendarToWriteTo: '',
+    includeAllTodos: true,
     presets: [
       { label: 'Limit Time Blocks to Work Hours', workDayStart: '08:00', workDayEnd: '17:59' },
       {
@@ -80,6 +81,7 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     presets: { type: 'array', optional: true },
     nowStrOverride: { type: /^\d{2}:\d{2}$/, optional: true },
     timeblockTextMustContainString: 'string',
+    includeAllTodos: 'boolean',
   }
   try {
     // $FlowIgnore
@@ -125,4 +127,5 @@ export type AutoTimeBlockingConfig = {
   presets?: any,
   nowStrOverride?: string,
   timeblockTextMustContainString: string,
+  includeAllTodos: boolean,
 }

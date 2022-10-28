@@ -7,7 +7,7 @@ import { getTasksByType } from '@helpers/sorting'
 // import * as ch from '../../helpers/calendar'
 import { JSP } from '@helpers/dev'
 // const _ = require('lodash')
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note /* Paragraph */ } from '@mocks/index'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -720,14 +720,18 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(res).toEqual([])
       })
       test('should add wikilink to content in form of [[title#heading]]', () => {
-        const p = [{ type: 'open', content: 'ugh', title: 'foo', heading: 'bar' }]
+        const note = new Note({ title: 'foo' })
+        const p = [{ type: 'open', content: 'ugh', heading: 'bar', note }]
+        note.paragraphs = p
         const res = tb.appendLinkIfNecessary(p, { ...config, includeLinks: '[[internal#links]]' })
-        expect(res[0].content).toEqual('ugh [[foo#bar]]')
+        expect(res[0].content).toEqual('ugh ^123456 [[foo^123456]]')
       })
       test('should add url-style link to content in form of noteplan://', () => {
-        const p = [{ type: 'open', content: 'ugh', title: 'foo', heading: 'bar', filename: 'baz' }]
+        const note = new Note({ title: 'foo' })
+        const p = [{ type: 'open', content: 'ugh', heading: 'bar', filename: 'baz', note }]
+        note.paragraphs = p
         const res = tb.appendLinkIfNecessary(p, { ...config, includeLinks: 'Pretty Links', linkText: '%' })
-        expect(res[0].content).toEqual('ugh [%](noteplan://x-callback-url/openNote?filename=baz)')
+        expect(res[0].content).toEqual('ugh ^123456 [%](noteplan://x-callback-url/openNote?noteTitle=foo%5E123456)')
       })
     })
 

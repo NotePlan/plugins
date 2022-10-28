@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------
 
 import json5 from 'json5'
-import { logError } from './dev'
+import { logError, logDebug, JSP } from './dev'
 import { showMessage } from './userInput'
 
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
@@ -210,7 +210,7 @@ export function createOpenOrDeleteNoteCallbackUrl(
   // console.log(`createOpenOrDeleteNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
   const encoded = encodeURIComponent(titleOrFilename).replace(/\(/g, '%28').replace(/\)/g, '%29')
   const openAs = openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
-  return `${xcb}${encoded}${head && head !== '' ? `#${head}` : ''}${openAs}`
+  return `${xcb}${encoded}${head && head ? `#${head}` : ''}${openAs}`
 }
 
 /**
