@@ -1,6 +1,9 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.0.0-beta2] - 2022-10-28
+- fix where trailing spaces on headings would cause data loss when using /move commands
+
 ## [1.0.0-beta1] - 2022-08-18
 ### Change to Commands
 - existing command **/move paragraphs** renamed to **/move paragraph or selection**. This moves this paragraph (or selected paragraphs) to a different note

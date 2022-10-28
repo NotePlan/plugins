@@ -260,7 +260,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
     }
 
     const result = await CommandBar.showOptions(headingStrings, `Select a heading from note '${note.title ?? 'Untitled'}'`)
-    let headingToReturn = headingStrings[result.index].trim()
+    let headingToReturn = headingStrings[result.index].trimLeft() // don't trim right as there can be valid traillng spaces
     let newHeading = ''
 
     switch (headingToReturn) {
