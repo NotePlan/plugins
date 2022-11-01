@@ -19,7 +19,7 @@ beforeAll(() => {
   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
 
-const PLUGIN_NAME = `📙 ${colors.yellow('dwertheimer.EventAutomations')}`
+const PLUGIN_NAME = `dwertheimer.EventAutomations`
 const section = colors.blue
 
 const config = {
@@ -40,7 +40,7 @@ const config = {
 
 // Jest suite
 describe(`${PLUGIN_NAME}`, () => {
-  describe(section('timeblocking-helpers.js'), () => {
+  describe('timeblocking-helpers.js', () => {
     describe('createIntervalMap ', () => {
       test('should create timeMap of 5min intervals all day ', () => {
         const result = tb.createIntervalMap({ start: new Date('2020-01-01 08:00:00'), end: new Date('2020-01-01 24:00:00') }, 'isSet', {
@@ -717,21 +717,21 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should do nothing if todo type is title', () => {
         const p = [{ type: 'title', content: 'foo' }]
         const res = tb.appendLinkIfNecessary(p, config)
-        expect(res).toEqual([])
+        expect(res).toEqual(p)
       })
       test('should add wikilink to content in form of [[title#heading]]', () => {
         const note = new Note({ title: 'foo' })
         const p = [{ type: 'open', content: 'ugh', heading: 'bar', note }]
         note.paragraphs = p
         const res = tb.appendLinkIfNecessary(p, { ...config, includeLinks: '[[internal#links]]' })
-        expect(res[0].content).toEqual('ugh ^123456 [[foo^123456]]')
+        expect(res[0].content).toEqual('ugh [[foo^123456]]')
       })
       test('should add url-style link to content in form of noteplan://', () => {
         const note = new Note({ title: 'foo' })
         const p = [{ type: 'open', content: 'ugh', heading: 'bar', filename: 'baz', note }]
         note.paragraphs = p
         const res = tb.appendLinkIfNecessary(p, { ...config, includeLinks: 'Pretty Links', linkText: '%' })
-        expect(res[0].content).toEqual('ugh ^123456 [%](noteplan://x-callback-url/openNote?noteTitle=foo%5E123456)')
+        expect(res[0].content).toEqual('ugh [%](noteplan://x-callback-url/openNote?noteTitle=foo%5E123456)')
       })
     })
 

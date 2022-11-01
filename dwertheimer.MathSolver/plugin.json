@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.MathSolver",
   "plugin.name": "🟰 Math Solver",
-  "plugin.version": "1.1.0",
-  "plugin.lastUpdateInfo": "1.1.0: Public release version.\nThx @george65 & @qualitativeEasing for all the great ideas and testing!",
+  "plugin.version": "1.2.0",
+  "plugin.lastUpdateInfo": "1.2.0: Change default calculation behavior to calculate only the block above the click.\n1.1.0: Public release version.\nThx @george65 & @qualitativeEasing for all the great ideas and testing!",
   "plugin.description": "Write basic math in your NotePlan notes and use this plugin to calculate it.",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -16,6 +16,35 @@
   "plugin.commands": [
     {
       "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the first command in the array",
+      "name": "Calculate Preceeding Math Block",
+      "description": "Calculate math block immediately above the click",
+      "hidden": true,
+      "jsFunction": "calculatePreceedingMathBlock",
+      "arguments": [
+        "no arguments. command pulls the Editor.selection of the click and calculates the math block above it"
+      ]
+    },
+    {
+      "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the second command in the array",
+      "name": "Remove Math Annotations from Preceeding Math Block",
+      "description": "Remove Calculations placed by this plugin",
+      "jsFunction": "clearPreceedingMathBlock",
+      "hidden":true,
+      "arguments": [
+        "no arguments. command pulls the Editor.selection of the click and calculates the math block above it"
+      ]
+    },   
+    {
+      "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the second command in the array",
+      "name": "Calculate Totals in Preceeding Math Block",
+      "description": "Calculate Math Block (show totals only)",
+      "jsFunction": "calculatePreceedingMathBlockTotal",
+      "hidden":true,
+      "arguments": [
+        "no arguments. command pulls the Editor.selection of the click and calculates the math block above it"
+      ]
+    }, 
+    {
       "name": "Calculate Math Code Blocks in Active Document",
       "description": "Read math text in current document and calculate the results",
       "jsFunction": "calculateEditorMathBlocks",
@@ -27,7 +56,6 @@
       ]
     },
     {
-      "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the second command in the array",
       "name": "Remove Math Annotations from Active Document",
       "description": "Remove Calculations placed by this plugin",
       "jsFunction": "removeAllAnnotations",
@@ -37,7 +65,6 @@
       "arguments": []
     },
     {
-      "COMMENT": "DO NOT INSERT ABOVE THIS COMMAND -- This command must be the third command in the array",
       "name": "Calculate Totals Only",
       "description": "Calculate Math Block (show totals only)",
       "jsFunction": "calculateEditorMathBlocksTotalsOnly",
@@ -46,6 +73,15 @@
         "mathCalcTotals"
       ],
       "arguments": []
+    },
+    {
+      "name": "Calculate Preceeding Math Block",
+      "description": "Calculate math block immediately above the click",
+      "hiden": true,
+      "jsFunction": "calculatePreceedingMathBlock",
+      "arguments": [
+        "no arguments. command pulls the Editor.selection of the click and calculates the math block above it"
+      ]
     },
     {
       "name": "Calculate Math Blocks (no rounding)",

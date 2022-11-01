@@ -357,10 +357,8 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: AutoTime
             }
           }
           e.content = `${textWithoutSyncedCopyTag(e.content)}${link}`
-          todosWithLinks.push(e)
-        } else if (isInToday) {
-          todosWithLinks.push(e)
         }
+        todosWithLinks.push(e)
       })
     } else {
       todosWithLinks = todos

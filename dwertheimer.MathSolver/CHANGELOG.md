@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dwertheimer.MathSolver/README.md) for details on available commands and use case.
 
+## [1.2.0] - 2022-10-31 (@dwertheimer)
+
+- Change default calculation behavior to calculate only the block above the click
+
 ## [1.1.0] - 2022-08-28 (@dwertheimer)
 
 - Public release

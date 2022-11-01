@@ -34,9 +34,9 @@ import pluginJson from '../plugin.json'
 import { chooseOption, showMessage } from '../../helpers/userInput'
 import type { CodeBlock } from '../../helpers/codeBlocks'
 import { type LineInfo, parse, isLineType, checkIfUnit } from './support/solver'
-import { getParagraphContainingPosition } from '@helpers/NPParagraph'
+import { getParagraphContainingPosition, getSelectedParagraphLineIndex } from '@helpers/NPParagraph'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
-import { createRunPluginCallbackUrl, formatWithFields } from '@helpers/general'
+import { createRunPluginCallbackUrl, formatWithFields, CreateUUID } from '@helpers/general'
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import { getAttributes } from '@templating/support/modules/FrontmatterModule'
 
@@ -51,7 +51,7 @@ export function getFrontmatterVariables(noteContent: string): any {
     const fmVars = getAttributes(noteContentNoTabs)
     return fmVars && fmVars.mathPresets ? fmVars.mathPresets : {}
   } catch (error) {
-    logError(pluginJson, JSON.stringify(error))
+    logError(pluginJson, JSP(error))
     return {}
   }
 }
@@ -76,12 +76,12 @@ export function formatOutput(results: Array<LineInfo>, formatTemplate: string = 
   const resultsWithStringValues = results.map((line) => {
     const isPctOf = /(\d*[\.,])?(\d+\s?)(as|as a)?(\s*%)(\s+(of)\s+)(\d*[\.,])?(\d+\s?)/g.test(line.originalText)
     const isZero = line.lineValue === 0 && isLineType(line, ['N', 'S', 'T']) // && !/total/i.test(line.originalText)
-    const isNotCalc = String(line.lineValue) === line.expression && !isPctOf
+    const isNotCalc = (String(line.lineValue) === line.expression && !isPctOf) || (Number(line.lineValue) === Number(line.expression) && !Number(line.expression) !== 0)
     const isNumericalAssignment = line.typeOfResult === 'A' && !/(\+|\-|\*|\/)+/.test(line.originalText)
     const isUndefined = line.lineValue === undefined
     let val = line.lineValue
     if (!isUndefined) {
-      logDebug(pluginJson, `checking line.lineValue: ${String(line?.lineValue)}`)
+      // logDebug(pluginJson, `checking line.lineValue: ${String(line?.lineValue)}`)
       if (checkIfUnit(line.lineValue)) {
         const strValue = String(line.lineValue).split(' ')
         val = `${round(Number(strValue[0]), precision)} ${strValue[1]}`
@@ -148,8 +148,8 @@ export function removeAnnotations(note: CoreNoteFields, blockData: $ReadOnly<Cod
 
 export function annotateResults(note: CoreNoteFields, blockData: $ReadOnly<CodeBlock>, results: Array<LineInfo>, template: string, mode: string): void {
   const { columnarOutput, precisionSetting } = DataStore.settings
-  logDebug(pluginJson, `annotateResults mode=${mode} template:"${template}"`)
-  clo(results, `annotateResults: results obj`)
+  logDebug(pluginJson, `annotateResults mode=${mode} results:${results.length} lines`)
+  // clo(results, `annotateResults: results obj`)
   const totalsOnly = mode === 'totalsOnly'
   const debug = mode === 'debug'
   const precision = mode === 'noRounding' ? 'No Rounding' : precisionSetting
@@ -207,7 +207,7 @@ export function annotateResults(note: CoreNoteFields, blockData: $ReadOnly<CodeB
       .forEach((line, i) => {
         blockData.paragraphs[i].content = line
       })
-    clo(formattedColumnarOutput, `annotateResults::formattedColumnarOutput\n`)
+    // clo(formattedColumnarOutput, `annotateResults::formattedColumnarOutput\n`)
   }
   if (debugOutput.length && DataStore.settings._logLevel === 'DEBUG') {
     const columns = columnify(debugOutput) //options is a 2nd param
@@ -242,12 +242,18 @@ export async function showResultsInPopup(results: Array<LineInfo>, template: str
  * (plugin entrypoint for command: /Remove Annotations from Active Document)
  * @returns {void}
  */
-export function removeAllAnnotations(): void {
+export function removeAllAnnotations(buttonClickedIndex: number | null): void {
   if (Editor) {
-    const codeBlocks = getCodeBlocksOfType(Editor, 'math')
     const note = Editor
     if (!note) return
-    for (let i = 0; i < codeBlocks.length; i++) {
+    const codeBlocks = getCodeBlocksOfType(Editor, 'math')
+    // logDebug(pluginJson, `removeAllAnnotations ${codeBlocks.length} "${buttonClickedIndex}"="${typeof buttonClickedIndex}"`)
+    const blockToCalc = buttonClickedIndex != null ? findBlockToCalculate(codeBlocks, buttonClickedIndex) : null
+    const startIndex = blockToCalc !== null ? blockToCalc : 0
+    const endIndex = blockToCalc !== null ? blockToCalc + 1 : codeBlocks.length
+    for (let i = startIndex; i < endIndex; i++) {
+      // logDebug(pluginJson, `removeAllAnnotations ${i}/${codeBlocks.length}`)
+      // clo(codeBlocks[i], `removeAllAnnotations::codeBlocks[${i}]`)
       const blockData = codeBlocks[i]
       removeAnnotations(note, blockData)
     }
@@ -255,22 +261,45 @@ export function removeAllAnnotations(): void {
 }
 
 /**
+ * Find the block index of the last block above the given line index
+ * @param {*} blocks
+ * @param {*} lineIndex
+ * @returns
+ */
+export function findBlockToCalculate(blocks: $ReadOnlyArray<CodeBlock>, lineIndex: number): number {
+  let blockToCalculate = -1
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]
+    const startLine = block.paragraphs[0].lineIndex
+    const endLine = block.paragraphs[block.paragraphs.length - 1].lineIndex
+    if (startLine < lineIndex && endLine < lineIndex) {
+      blockToCalculate = i
+    }
+  }
+  return blockToCalculate
+}
+
+/**
  * Generic math block processing function (can be called by calculate or totalsOnly)
- * @param {string} incoming - math block text to process
+ * @param {number|null} buttonClickedIndex - the index of the calculation button that was clicked (to look above it for the math block)
  * @param {boolean} mode - if empty, calculate normally, 'totalsOnly', only calculate totals, 'debug' - calculate with verbose debug output (default: '')
  */
-export async function calculateBlocks(incoming: string | null = null, mode: string = '', vars: any = {}): Promise<void> {
+export async function calculateBlocks(buttonClickedIndex: number | null = null, mode: string = '', vars: any = {}): Promise<void> {
   try {
     const { popUpTemplate, presetValues /*, precisionSetting */ } = DataStore.settings
     // const precision = (precisionSetting === "No Rounding") ? null : Number(precisionSetting) // doing rounding inside parse does not work well. Will do it inside annotate
     const precision = null
     // get the code blocks in the editor
-    await removeAllAnnotations()
+    await removeAllAnnotations(buttonClickedIndex)
     // let codeBlocks = incoming === '' || incoming === null ? getCodeBlocksOfType(Editor, `math`) : [{ type: 'unknown', code: incoming, startLineIndex: -1 }]
     let codeBlocks = getCodeBlocksOfType(Editor, `math`)
-    logDebug(pluginJson, `calculateEditorMathBlocks: codeBlocks.length: ${codeBlocks.length} incoming:${incoming || ''}`)
+    const blockToCalc = buttonClickedIndex !== null ? findBlockToCalculate(codeBlocks, buttonClickedIndex) : null
+    const startIndex = blockToCalc !== null ? blockToCalc : 0
+    const endIndex = blockToCalc !== null ? blockToCalc + 1 : codeBlocks.length
+    // clo(codeBlocks, `calculateBlocks::codeBlocks`)
+    logDebug(pluginJson, `calculateBlocks: codeBlocks.length:${codeBlocks.length} buttonClickedIndex:${buttonClickedIndex || ''} startIndex:${startIndex} endIndex:${endIndex}`)
     if (codeBlocks.length && Editor) {
-      for (let b = 0; b < codeBlocks.length; b++) {
+      for (let b = startIndex; b < endIndex; b++) {
         if (b > 0) {
           // get the codeblocks again because the line indexes may have changed if the last round made edits
           codeBlocks = getCodeBlocksOfType(Editor, `math`)
@@ -304,7 +333,7 @@ export async function calculateBlocks(incoming: string | null = null, mode: stri
         //   currentData = parse("total",i,currentData)
         // }
         // TODO: add user pref for whether to include total or not
-        clo(currentData, `calculateEditorMathBlocks mathBlock[${b}] currentData:`)
+        // clo(currentData, `calculateEditorMathBlocks mathBlock[${b}] currentData:`)
         await annotateResults(Editor, block, currentData.info, popUpTemplate, mode)
         // await showResultsInPopup([totalLine,...currentData.info], popUpTemplate, `Block ${b+1}`)
       }
@@ -325,9 +354,62 @@ export async function calculateBlocks(incoming: string | null = null, mode: stri
  */
 export async function calculateEditorMathBlocks(incoming: string | null = null) {
   try {
-    await calculateBlocks(incoming, '', getFrontmatterVariables(Editor.content || ''))
+    await calculateBlocks(null, '', getFrontmatterVariables(Editor.content || ''))
   } catch (error) {
-    logError(pluginJson, JSON.stringify(error))
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Calculate the math block preceeding the button that was clicked
+ * (plugin entrypoint for command: /Calculate Preceeding Math Block -- hidden, used only by xcallback)
+ */
+export async function calculatePreceedingMathBlock(id: string) {
+  try {
+    const paragraph = Editor.paragraphs.find((p) => p.content.includes(id))
+    if (paragraph) {
+      // const buttonClickedIndex = await getSelectedParagraphLineIndex()
+      const buttonClickedIndex = paragraph.lineIndex
+      logDebug(pluginJson, `calculatePreceedingMathBlock calling calculateBlocks with buttonClickedIndex=${buttonClickedIndex} content:"${paragraph.content}"`)
+      await calculateBlocks(buttonClickedIndex, '', getFrontmatterVariables(Editor.content || ''))
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Calculate the math block preceeding the button that was clicked
+ * (plugin entrypoint for command: /Calculate Preceeding Math Block -- hidden, used only by xcallback)
+ */
+export async function calculatePreceedingMathBlockTotal(id: string) {
+  try {
+    const paragraph = Editor.paragraphs.find((p) => p.content.includes(id))
+    if (paragraph) {
+      // const buttonClickedIndex = await getSelectedParagraphLineIndex()
+      const buttonClickedIndex = paragraph.lineIndex
+      logDebug(pluginJson, `calculatePreceedingMathBlock calling calculateBlocks with buttonClickedIndex=${buttonClickedIndex} content:"${paragraph.content}"`)
+      await calculateBlocks(buttonClickedIndex, 'totalsOnly', getFrontmatterVariables(Editor.content || ''))
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Calculate the math block preceeding the button that was clicked
+ * (plugin entrypoint for command: /Calculate Preceeding Math Block -- hidden, used only by xcallback)
+ */
+export function clearPreceedingMathBlock(id: string) {
+  try {
+    if (id) {
+      const paragraph = Editor.paragraphs.find((p) => p.content.includes(id))
+      if (paragraph) {
+        removeAllAnnotations(paragraph.lineIndex)
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }
 
@@ -338,9 +420,9 @@ export async function calculateEditorMathBlocks(incoming: string | null = null) 
  */
 export async function calculateEditorMathBlocksTotalsOnly(incoming: string | null = null) {
   try {
-    await calculateBlocks(incoming, 'totalsOnly', getFrontmatterVariables(Editor.content || ''))
+    await calculateBlocks(null, 'totalsOnly', getFrontmatterVariables(Editor.content || ''))
   } catch (error) {
-    logError(pluginJson, JSON.stringify(error))
+    logError(pluginJson, JSP(error))
   }
 }
 
@@ -350,9 +432,9 @@ export async function calculateEditorMathBlocksTotalsOnly(incoming: string | nul
  */
 export async function calculateNoRounding(incoming: string) {
   try {
-    await calculateBlocks(incoming, 'noRounding', getFrontmatterVariables(Editor.content || ''))
+    await calculateBlocks(null, 'noRounding', getFrontmatterVariables(Editor.content || ''))
   } catch (error) {
-    logError(pluginJson, JSON.stringify(error))
+    logError(pluginJson, JSP(error))
   }
 }
 
@@ -364,9 +446,10 @@ export async function insertMathBlock() {
   try {
     const { includeCalc, includeClear, includeTotals } = DataStore.settings
     // NOTE: this relies on the calculate command being the first in the list in plugin.json
-    const calcLink = includeCalc ? `[Calculate](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][0].name)})` : ''
-    const clrLink = includeClear ? `[Clear](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][1].name)})` : ''
-    const totLink = includeTotals ? `[Totals](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][2].name)})` : ''
+    const guid = CreateUUID(8)
+    const calcLink = includeCalc ? `[Calculate](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][0].name, [guid])})` : ''
+    const clrLink = includeClear ? `[Clear](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][1].name, [guid])})` : ''
+    const totLink = includeTotals ? `[Totals](${createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][2].name, [guid])})` : ''
     let buttonLine = includeClear ? clrLink : ''
     buttonLine = includeCalc ? `${buttonLine + (includeClear ? ` ` : '')}${calcLink}` : buttonLine
     buttonLine = includeTotals ? `${buttonLine + (includeClear || includeCalc ? ` ` : '')}${totLink}` : buttonLine
@@ -399,6 +482,6 @@ export async function debugMath() {
   try {
     await calculateBlocks(null, 'debug', getFrontmatterVariables(Editor.content || ''))
   } catch (error) {
-    logError(pluginJson, JSON.stringify(error))
+    logError(pluginJson, JSP(error))
   }
 }
