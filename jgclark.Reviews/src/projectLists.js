@@ -53,13 +53,15 @@ const fullReviewListFilename = 'full-review-list.md'
 export const reviewListCSS: string = [
   '\n/* CSS specific to reviewList() from jgclark.Reviews plugin */\n',
   `@font-face { font-family: "noteplanstate"; src: url('noteplanstate.ttf') format('truetype'); }`, // local font that needs to be in the plugin's bundle
+  `@font-face { font-family: "FontAwesome6Pro-Regular"; src: url('Font Awesome 6 Pro-Regular-400.otf') format('opentype'); }`, // local font that needs to be in the plugin's bundle
+  `@font-face { font-family: "FontAwesome6Pro-Solid"; src: url('Font Awesome 6 Pro-Solid-900.otf') format('opentype'); }`, // local font that needs to be in the plugin's bundle
   'table { font-size: 0.9rem;', // make text a little smaller
   '  border-collapse: collapse;', // always!
   '  empty-cells: show; }',
-  '.sticky-row { position: sticky; top: 0; }', // Keep a header stuck to top of window
-  'th { text-align: left; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }', // // removed L-R borders for now
-  'th td:first-child {text-align: center;}',
-  'td.new-section-header { color: var(--h3-color); padding-top: 1.0rem; font-size: 1.0rem; font-weight: bold }',
+  '.sticky-row { position: sticky; top: 0; border-bottom: 1px solid var(--tint-color); }', // Keep a header stuck to top of window
+  'th { text-align: left; vertical-align: bottom; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }', // // removed L-R borders for now
+  // 'th td:first-child {text-align: center;}', // ???
+  'tr.new-section-header { color: var(--h3-color); padding-top: 1.0rem; font-size: 1.0rem; font-weight: bold; background-color: var(--bg-main-color); border-top: 1px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }',
   'td { padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); }', // removed L-R borders for now
   // 'table tbody tr:first-child { border-top: 1px solid var(--tint-color); }', // turn on tbody section top border -- now set in main CSS
   // 'table tbody tr:last-child { border-bottom: 1px solid var(--tint-color); }', // turn on tbody section bottom border -- now set in main CSS
@@ -72,6 +74,9 @@ export const reviewListCSS: string = [
   '.noteTitle { font-weight: 700; }', // make noteTitles bold
   '.checkbox { font-family: "noteplanstate"; font-size: 1.4rem; }', // make checkbox display larger, and like in the app
   '.np-task-state { font-family: "noteplanstate"; }', // use special 'noteplanstate' font
+  '.fa-icon { font-family: "FontAwesome6Pro-Regular"; }', // use special Font Awesome 6 font
+  '.fa-icon-duotone { font-family: "FontAwesome6Duotone-Solid"; }', // use special Font Awesome 6 font
+  '.fa-icon-solid { font-family: "FontAwesome6Pro-Solid"; }', // use special Font Awesome 6 font
   '.percent-ring { width: 2rem; height: 2rem; }', // Set size of percent-display rings
   '.percent-ring-circle { transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%; }', // details of ring-circle that can be set in CSS
   '.circle-percent-text { font-family: "Avenir Next"; font-size: 2.2rem; font-weight: 600; color: var(--fg-main-color); }', // details of ring text that can be set in CSS
@@ -139,59 +144,169 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
 
     logDebug('renderProjectListsHTML', `starting for ${config.noteTypeTags.toString()} tags and openOutputWindow: ${String(openOutputWindow)}`)
 
-    if (config.noteTypeTags.length > 0) {
-      // We have defined tag(s) to filter and group by
-      // Need to change a single string (1 tag) to an array (multiple tags)
-      if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
-
-      // FIXME: This needs to collect all tags before showHTML call
-      for (const tag of config.noteTypeTags) {
-        // handle #hashtags in the note title (which get stripped out by NP, it seems)
-        const tagWithoutHash = tag.replace('#', '')
-        const windowTitle = `${tag} Review List`
-        const filenameHTMLCopy = `${tagWithoutHash}_list.html`
-
-        // Make the Summary list(s)
-        const outputArray = await generateReviewSummaryLines(tag, 'Rich', config)
-        outputArray.unshift(`<h1>${windowTitle}</h1>`)
-
-        // Display the list(s) as HTML
-        // TODO: when possible from the API, honour the 'openOutputWindow' direction
-        await showHTML(
-          windowTitle,
-          '', // no extra header tags
-          outputArray.join('\n'),
-          '', // = set general CSS from current theme
-          reviewListCSS,
-          false, // = not modal window
-          setPercentRingJSFunc,
-          makeCommandCall(startReviewsCommandCall),
-          filenameHTMLCopy,
-          1800, 9999) // set width; max height
-        logDebug('renderProjectListsHTML', `- written results to HTML`)
-      }
-    } else {
-      // We will just use all eligible project notes in one group
-      const windowTitle = `Review List`
-      const filenameHTMLCopy = `review_list.html`
-
-      // Make the Summary list
-      const outputArray = await generateReviewSummaryLines('', 'Rich', config)
-      outputArray.unshift(`<h1>${windowTitle}</h1>`)
-
-      // Show the list as HTML, and save a copy as file
-      await showHTML(windowTitle,
-        '', // no extra header tags
-        outputArray.join('\n'),
-        '', // get general CSS set automatically
-        reviewListCSS,
-        false, // = not modal window
-        setPercentRingJSFunc,
-        makeCommandCall(startReviewsCommandCall),
-        filenameHTMLCopy,
-        1800, 9999) // set width; max height
-      logDebug('renderProjectListsHTML', `- written results to HTML window and file`)
+    if (config.noteTypeTags.length === 0) {
+      throw new Error('No noteTypeTags passed to display')
     }
+
+    // Need to change a single string (1 tag) to an array (multiple tags)
+    if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
+
+    // Currently we can only display 1 HTML Window at a time, so need to include all tags in a single view. TODO: in time this can hopefully change.
+
+    // if (config.noteTypeTags.length > 0) {
+    //   // We have defined tag(s) to filter and group by
+
+    //   // FIXME: This needs to collect all tags before showHTML call
+    //   for (const tag of config.noteTypeTags) {
+    //     // handle #hashtags in the note title (which get stripped out by NP, it seems)
+    //     const tagWithoutHash = tag.replace('#', '')
+    //     const windowTitle = `${tag} Review List`
+    //     const filenameHTMLCopy = `${tagWithoutHash}_list.html`
+
+    //     // Make the Summary list(s)
+    //     const outputArray = await generateReviewSummaryLines(tag, 'Rich', config)
+    //     outputArray.unshift(`<h1>${windowTitle}</h1>`)
+
+    //     // Display the list(s) as HTML
+    //     // TODO: when possible from the API, honour the 'openOutputWindow' direction
+    //     await showHTML(
+    //       windowTitle,
+    //       '', // no extra header tags
+    //       outputArray.join('\n'),
+    //       '', // = set general CSS from current theme
+    //       reviewListCSS,
+    //       false, // = not modal window
+    //       setPercentRingJSFunc,
+    //       makeCommandCall(startReviewsCommandCall),
+    //       filenameHTMLCopy,
+    //       1800, 9999) // set width; max height
+    //     logDebug('renderProjectListsHTML', `- written results to HTML`)
+    //   }
+    // } else {
+
+    // We will use one window for each noteTag in turn
+    let outputArray = []
+    const windowTitle = `Review List`
+    const filenameHTMLCopy = `review_list.html`
+
+    // Set up x-callback URLs for various commands, to be styled into pseudo-buttons
+    const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
+    const startReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review"
+    const reviewedXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=finish%20project%20review&arg0="
+    const nextReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
+    const pauseXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
+    const completeXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
+    const cancelXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
+    const nowDateTime = toLocaleDateTimeString(new Date())
+
+    // Create the HTML for the 'start review button'
+    // - Version 1: does work inside Safari, but not for some reason in a NP view. Eduard doesn't know why.
+    // startReviewButton = `<button onClick="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews\&command=next%20project%20review">Start reviewing ${overdue} ready for review</button>`
+    // - Version 2: using x-callback: does work in NP, but doesn't look like a button
+    // const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}">Start reviewing ${overdue} ready for review</a></span>`
+    const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><span class="fa-icon-solid">&#x25B6;</span>&nbsp;Start reviewing notes ready for review</a></span>`
+    // - Version 3: using proper link to the internal function FIXME: doesn't yet work
+    // startReviewButton = `<button onclick=callCommand()>Start reviewing ${overdue} ready for review</button>`
+
+    // Add (pseduo-)buttons for various commands
+    // Webdings: refresh icon ~ glyph 80
+    const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><span class="fa-icon-solid">&#xF364;</span>&nbsp;Refresh</a></span>` // 🔄
+    const reviewedXCallbackButton = `<span class="fake-button"><a class="button" href="${reviewedXCallbackURL}"><i class="fa-regular fa-calendar-pen"></i><!--<span class="fa-icon">&#xf333;</span>-->&nbsp;Mark&nbsp;as&nbsp;Reviewed</a></span>` // calendar-pen = https://fontawesome.com/icons/calendar-pen?s=regular&f=classic <i class="fa-regular fa-calendar-pen"></i>
+    const nextReviewXCallbackButton = `<span class="fake-button"><a class="button" href="${nextReviewXCallbackURL}">Finish&nbsp;+&nbsp;<span class="fa-icon-solid">&#x25B6;</span>&nbsp;Next&nbsp;Review</a></span>`
+    const pauseXCallbackButton = `<span class="fake-button"><a class="button" href="${pauseXCallbackURL}"><span class="np-task-state"></span>toggle&nbsp;<span class="fa-icon-solid">&#x23F8;</span>&nbsp;Pause</a></span>`
+    const completeXCallbackButton = `<span class="fake-button"><a class="button" href="${completeXCallbackURL}"><span class="fa-icon">&#xF058;</span>&nbsp;Complete</a></span>` // includes NP complete 'a' glyph <span class="np-task-state">a</span>
+    const cancelXCallbackButton = `<span class="fake-button"><a class="button" href="${cancelXCallbackURL}"><span class="fa-icon">&#xF057;</span>&nbsp;Cancel</a></span>` // includes NP cancel 'c' glyph <span class="np-task-state">c</span>
+
+    // write lines before first table
+    outputArray.push(`<h1>${windowTitle}</h1>`)
+    outputArray.push(`<p>${startReviewButton} Last updated: ${nowDateTime} <span class="fake-button">${refreshXCallbackButton}</span></p>`)
+
+    // Make the Summary list, for each noteTag in turn
+    let tagCount = 0
+    for (const thisTag of config.noteTypeTags) {
+      // Get main summary lines
+      const [thisSummaryLines, noteCount, overdue] = await generateReviewSummaryLines(thisTag, 'Rich', config)
+
+      // Write out all relevant HTML
+      outputArray.push(`<h2>${thisTag}: ${noteCount} notes, ${overdue} ready for review</h2>`)
+      if (!config.displayGroupedByFolder) {
+        outputArray.push(`<h3>All folders (${noteCount} notes)</h3>`)
+      }
+      outputArray.push('\n<table>')
+
+      // Print table header which will be sticky
+      // In some cases, include colgroup to help massage widths a bit
+      const colspan2Buttons = `Reviews:&nbsp;${reviewedXCallbackButton}${nextReviewXCallbackButton} Projects:&nbsp;${pauseXCallbackButton}${completeXCallbackButton}${cancelXCallbackButton}`
+      if (config.displayDates && config.displayProgress) {
+        outputArray.push(`<thead>
+<colgroup>
+\t<col width="40px">
+\t<col>
+\t<col width="10%">
+\t<col width="10%">
+</colgroup>
+\t<tr class="sticky-row" style="vertical-align: bottom">
+\t<th colspan="2">${colspan2Buttons}</td><th>Next Review</th><th>Due Date</th>
+\t</tr>
+</thead>
+<tbody>
+`)
+      }
+      else if (!config.displayDates && config.displayProgress) {
+        outputArray.push(`<thead>
+<colgroup>
+\t<col width="40px">
+\t<col width="20%">
+\t<col>
+</colgroup>
+\t<tr class="sticky-row" style="vertical-align: bottom">
+\t<th colspan="2">${colspan2Buttons}</td><th>Progress</th>
+\t</tr>
+</thead>
+<tbody>
+`)
+      }
+      else if (config.displayDates && !config.displayProgress) {
+        outputArray.push(`<thead>
+\t<tr class="sticky-row" style="vertical-align: bottom">
+\t<th colspan="2">${colspan2Buttons}</td><th>Next Review</th><th>Due Date</th>
+\t</tr>
+</thead>
+<tbody>
+`)
+      } else {
+        outputArray.push(`<thead>
+\t<tr class="sticky-row" style="vertical-align: bottom">
+\t<th colspan="2">${colspan2Buttons}</td><th>Next Review</th><th>Due Date</th>
+\t</tr>
+</thead>
+<tbody>
+`)
+      }
+      // if (tagCount > 0) outputArray.push('<hr>') // horizontal rule between noteTags
+      outputArray.push(thisSummaryLines.join('\n'))
+      outputArray.push('</tbody>')
+      outputArray.push('</table>')
+      tagCount++
+    }
+
+    // TODO: in time make a 'timeago' relative display, e.g. using MOMENT moment.duration(-1, "minutes").humanize(true); // a minute ago
+    // or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html or https://theprogrammingexpert.com/javascript-count-up-timer/
+
+
+    // Show the list as HTML, and save a copy as file
+    await showHTML(windowTitle,
+      '', // no extra header tags
+      outputArray.join('\n'),
+      '', // get general CSS set automatically
+      reviewListCSS,
+      false, // = not modal window
+      setPercentRingJSFunc,
+      makeCommandCall(startReviewsCommandCall),
+      filenameHTMLCopy,
+      1800, 9999) // set width; max height
+    logDebug('renderProjectListsHTML', `- written results to HTML window and file`)
+    // }
   }
   catch (error) {
     logError('renderProjectListsHTML', error.message)
@@ -209,6 +324,20 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
   try {
     logDebug('renderProjectListsMarkdown', `Starting for ${config.noteTypeTags.toString()} tags and openOutputWindow: ${String(openOutputWindow)}`)
 
+    // Set up x-callback URLs for various commands, to be styled into pseudo-buttons
+    const startReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review"
+    const reviewedXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=finish%20project%20review&arg0="
+    const nextReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
+    const pauseXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
+    const completeXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
+    const cancelXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
+    const reviewedXCallbackButton = `[Mark as Reviewed](${reviewedXCallbackURL})`
+    const nextReviewXCallbackButton = `[Finish + Next Review](${nextReviewXCallbackURL})`
+    const pauseXCallbackButton = `[Toggle Pausing Project](${cancelXCallbackURL})`
+    const completeXCallbackButton = `[Complete Project](${completeXCallbackURL})`
+    const cancelXCallbackButton = `[Cancel Project](${cancelXCallbackURL})`
+    const nowDateTime = toLocaleDateTimeString(new Date())
+
     if (config.noteTypeTags.length > 0) {
       if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
       // We have defined tag(s) to filter and group by
@@ -221,17 +350,43 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
         // Do the main work
         const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
         if (note != null) {
-          // Calculate the Summary list(s)
-          const outputArray = await generateReviewSummaryLines(tag, 'Markdown', config)
-          outputArray.unshift(`# ${noteTitle}`)
+          const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`noteTypeTags=${tag}`)
 
-          // Save the list(s) to this note
-          note.content = outputArray.join('\n')
-          logDebug('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
-          // Open the note in a new window (if wanted)
-          if (openOutputWindow) {
-            // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
-            await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
+          // Calculate the Summary list(s)
+          const [outputArray, noteCount, overdue] = await generateReviewSummaryLines(tag, 'Markdown', config)
+          const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
+          const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
+          if (noteCount > 0) { // print header just the once (if any notes)
+            // Note: can't put reviewed/complete/cancel buttons here yet, because there's no way to be clear about which project they refer to. TODO: find a way round this in time.
+            // outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+
+            // outputArray.unshift(Project.detailedSummaryLineHeader('Markdown', config.displayDates, config.displayProgress))
+            // Currently disable writing a header:
+            //   // only add header if putting dates, otherwise not needed
+            //   if (displayDates) {
+            //     let output = '_Key:  Project/Area Title'
+            //     if (displayProgress) {
+            //       // output += '#tasks open / complete / waiting / future'
+            //       output += '\tProgress'
+            //     }
+            //     output += '\tDue date / Next review_'
+            //     outputArray.push(output)
+            //   }
+
+            outputArray.unshift(`Total ${noteCount} active notes${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
+            if (!config.displayGroupedByFolder) {
+              outputArray.unshift(`### All folders (${noteCount} notes)`)
+            }
+            outputArray.unshift(`# ${noteTitle}`)
+
+            // Save the list(s) to this note
+            note.content = outputArray.join('\n')
+            logDebug('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
+            // Open the note in a new window (if wanted)
+            if (openOutputWindow) {
+              // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+              await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
+            }
           }
         } else {
           await showMessage('Oops: failed to find or make project summary note', 'OK')
@@ -245,7 +400,33 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
       const note: ?TNote = await getOrMakeNote(noteTitle, config.folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
-        const outputArray = await generateReviewSummaryLines('', 'Markdown', config)
+        const [outputArray, noteCount, overdue] = await generateReviewSummaryLines('', 'Markdown', config)
+        const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
+        const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
+        const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
+
+        if (noteCount > 0) { // print header just the once (if any notes)
+          // Note: can't put reviewed/complete/cancel buttons here yet, because there's no way to be clear about which project they refer to. TODO: find a way round this in time.
+          // outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+
+          // outputArray.unshift(Project.detailedSummaryLineHeader('Markdown', config.displayDates, config.displayProgress))
+          // Currently disable writing a header:
+          //   // only add header if putting dates, otherwise not needed
+          //   if (displayDates) {
+          //     let output = '_Key:  Project/Area Title'
+          //     if (displayProgress) {
+          //       // output += '#tasks open / complete / waiting / future'
+          //       output += '\tProgress'
+          //     }
+          //     output += '\tDue date / Next review_'
+          //     outputArray.push(output)
+          //   }
+
+        }
+        if (!config.displayGroupedByFolder) {
+          outputArray.unshift(`### All folders (${noteCount} notes)`)
+        }
+        outputArray.unshift(`Total ${noteCount} active notes${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
         outputArray.unshift(`# ${noteTitle}`)
 
         // Save the list(s) to this note
@@ -270,16 +451,19 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
 
 //-------------------------------------------------------------------------------
 /** 
- * Return summary of notes that contain a particular tag, for all relevant folders, in 'Markdown' or 'Rich' style
+ * Return summary of notes that contain a specified tag, for all relevant folders, in 'Markdown' or 'Rich' style.
  * V2: Changed to read from the TSV file 'data/full-review-list.md' folder rather than calcuate from scratch.
+ * V3: Now doesn't handle output before the main list(s) start. That is now done in the calling function.
  * @author @jgclark
  * 
  * @param {string} noteTag - hashtag to look for
  * @param {string} style - 'Markdown' or 'Rich'
  * @param {any} config - from settings (and any passed args)
  * @returns {Array<string>} output summary lines
+ * @returns {number} number of notes
+ * @returns {number} number of overdue notes (ready to review)
  */
-async function generateReviewSummaryLines(noteTag: string, style: string, config: any): Promise<Array<string>> {
+async function generateReviewSummaryLines(noteTag: string, style: string, config: any): Promise<[Array<string>, number, number]> {
   try {
     logDebug('generateReviewSummaryLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
 
@@ -287,94 +471,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
     let overdue = 0
     const outputArray: Array<string> = []
 
-    // V1 approach
-
-    // const filteredFolderList = getFilteredFolderList(config.foldersToIgnore)
-    // logDebug('generateReviewSummaryLines', `- for ${filteredFolderList.length} folders: '${String(filteredFolderList)}'`)
-    // if we want a summary broken down by folder, create list of folders
-    // otherwise use a single folder
-
-    // // Iterate over the folders (ignoring any in the pref_foldersToIgnore list)
-    // const fflInitLength = filteredFolderList.length
-    // CommandBar.showLoading(true, `Summarising ${noteTag} in ${fflInitLength} folders`)
-    // await CommandBar.onAsyncThread()
-
-    // const startTime = new Date()
-    // let processed = 0
-    // for (let fflCounter = 0; fflCounter < filteredFolderList.length; fflCounter++) {
-    //   const folder = filteredFolderList[fflCounter]
-    //   // Get notes that include noteTag in this folder, ignoring subfolders
-    //   // and ignoring projects with '#archive' if wanted
-    //   const notes = findNotesMatchingHashtag(noteTag, folder, false, config.displayArchivedProjects ? '' : '#archive')
-    //   if (notes.length > 0) {
-    //     logDebug('generateReviewSummaryLines', `${notes.length} found in ${folder} (index ${fflCounter})).`)
-
-    //     // Create array of Project class representation of each note,
-    //     // ignoring any in a folder we want to ignore (by one of the settings)
-    //     const projects = []
-
-    //     for (const note of notes) {
-    //       const np = new Project(note)
-    //       // Further check to see whether to exclude archived projects
-    //       if (!np.isArchived || config.displayArchivedProjects) {
-    //         projects.push(np)
-    //       } else {
-    //         logDebug('generateReviewSummaryLines', `${np.title} ignored as it is archived`)
-    //       }
-    //       // Count up the number of notes to review
-    //       if (np.isActive && np.nextReviewDays != null && np.nextReviewDays <= 0) {
-    //         overdue += 1
-    //       }
-    //     }
-    //     // sort this array by key set in config.displayOrder
-    //     let sortedProjects = []
-    //     // NB: the Compare function needs to return negative, zero, or positive values.
-    //     switch (config.displayOrder) {
-    //       case 'due': {
-    //         sortedProjects = projects.sort(
-    //           (first, second) => (first.dueDays ?? 0) - (second.dueDays ?? 0))
-    //         break
-    //       }
-    //       case 'review': {
-    //         sortedProjects = projects.sort(
-    //           (first, second) => (first.nextReviewDays ?? 0) - (second.nextReviewDays ?? 0))
-    //         break
-    //       }
-    //       default: { // = title
-    //         sortedProjects = projects.sort(
-    //           (first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
-    //         break
-    //       }
-    //     }
-    //
-    //     // Write new folder header
-    //     if (config.displayGroupedByFolder) {
-    //       if (style === 'Markdown') {
-    //         outputArray.push(`### ${(folder !== '' ? folder : '(root folder)')} (${sortedProjects.length} notes)`)
-    //       } else {
-    //         outputArray.push(`</tbody>\n\n<tr><td class="new-section-header" colspan="100%">${(folder !== '' ? folder : '(root folder)')} (${sortedProjects.length} notes)</td></tr>\n<tbody>`)
-    //       }
-    //     }
-
-    //     // iterate over this folder's notes, using the Class's functions
-    //     for (const p of sortedProjects) {
-    //       outputArray.push(p.detailedSummaryLine(style, false, config.displayDates, config.displayProgress))
-    //     }
-    //     noteCount += sortedProjects.length
-
-    //   } else {
-    //     logDebug('generateReviewSummaryLines', `0 notes found in ${fflCounter}=${folder} for '${noteTag}'. Will remove it from folder list.`)
-    //     filteredFolderList.splice(fflCounter, 1)
-    //     fflCounter--
-    //   }
-    //   processed++
-    //   CommandBar.showLoading(true, `Summarising ${noteTag} in ${fflInitLength} folders`, (processed / fflInitLength))
-    // }
-    // await CommandBar.onMainThread()
-    // CommandBar.showLoading(false)
-    // logDebug('generateReviewSummaryLines', `${processed} notes reviewed in ${timer(startTime)}s`)
-
-    // V2 Approach
+    // V2 Approach  (V1 now deleted)
 
     // Read each line in full-review-list
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
@@ -417,7 +514,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
       // Write new folder header (if change of folder)
       if (config.displayGroupedByFolder && (lastFolder !== folder)) {
         if (style.match(/rich/i)) {
-          outputArray.push(`</tbody>\n\n<tr><td class="new-section-header" colspan="100%">${folder}</td></tr>\n<tbody>`)
+          outputArray.push(`<thead>\n<tr class="new-section-header"><td colspan="100%">${folder}</td></tr>\n</thead>\n`)
         }
         else if (style.match(/markdown/i)) {
           outputArray.push(`### ${folder}`)
@@ -429,71 +526,10 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
 
       lastFolder = folder
     }
-
-    // Set up x-callback URLs for various commands, to be styled into pseudo-buttons
-    const startReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review"
-    const reviewedXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=finish%20project%20review&arg0="
-    const nextReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
-    const completeXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
-    const cancelXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
-    const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`noteTypeTags=${noteTag};outputStyle=${style}`)
-    const nowDateTime = toLocaleDateTimeString(new Date())
-
-    if (style.match(/rich/i)) {
-      // Create the HTML for the 'start review button'
-      // - Version 1: does work inside Safari, but not for some reason in a NP view. Eduard doesn't know why.
-      // startReviewButton = `<button onClick="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews\&command=next%20project%20review">Start reviewing ${overdue} ready for review</button>`
-      // - Version 2: using x-callback: does work in NP, but doesn't look like a button
-      const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}">Start reviewing ${overdue} ready for review</a></span>`
-      // - Version 3: using proper link to the internal function FIXME: doesn't yet work
-      // startReviewButton = `<button onclick=callCommand()>Start reviewing ${overdue} ready for review</button>`
-
-      // Add (pseduo-)buttons for various commands
-      // Webdings: refresh icon ~ glyph 80
-      const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}">🔄 Refresh</a></span>`
-      const reviewedXCallbackButton = `<span class="fake-button"><a class="button" href="${reviewedXCallbackURL}">Finish Project Review</a></span>`
-      const nextReviewXCallbackButton = `<span class="fake-button"><a class="button" href="${nextReviewXCallbackURL}">Finish + Next Review</a></span>`
-      const completeXCallbackButton = `<span class="fake-button"><a class="button" href="${completeXCallbackURL}"><span class="np-task-state">a</span> Complete Project</a></span>` // includes NP complete 'a' glyph
-      const cancelXCallbackButton = `<span class="fake-button"><a class="button" href="${cancelXCallbackURL}"><span class="np-task-state">c</span> Cancel Project</a></span>` // includes NP cancel 'c' glyph
-
-      // writing backwards to suit .unshift
-      outputArray.unshift(`<p>For project note in main window: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}</p>`)
-      outputArray.unshift(Project.detailedSummaryLineHeader(style, config.displayDates, config.displayProgress))
-      outputArray.unshift('\n<table>')
-      if (!config.displayGroupedByFolder) {
-        outputArray.unshift(`<h3>All folders (${noteCount} notes)</h3>`)
-      }
-      outputArray.unshift(`<p>Total ${noteCount} active notes${(overdue > 0) ? `: ${startReviewButton}` : '.'} Last updated: ${nowDateTime} <span class="fake-button">${refreshXCallbackButton}</span></p>`)
-
-      // TODO: in time make a 'timeago' relative display, e.g. using MOMENT moment.duration(-1, "minutes").humanize(true); // a minute ago
-      // or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html or https://theprogrammingexpert.com/javascript-count-up-timer/
-
-      // Close out HTML table
-      outputArray.push('</tbody>')
-      outputArray.push('</table>')
-    }
-    else if (style.match(/markdown/i)) {
-      const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
-      const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
-      const reviewedXCallbackButton = `[Finish Project Review](${reviewedXCallbackURL})`
-      const nextReviewXCallbackButton = `[Finish + Next Review](${nextReviewXCallbackURL})`
-      const completeXCallbackButton = `[Complete Project](${completeXCallbackURL})`
-      const cancelXCallbackButton = `[Cancel Project](${cancelXCallbackURL})`
-
-      if (noteCount > 0) { // print header just the once (if any notes)
-        // Note: can't put reviewed/complete/cancel buttons here yet, because there's no way to be clear about which project they refer to. TODO: find a way round this in time.
-        // outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
-        outputArray.unshift(Project.detailedSummaryLineHeader(style, config.displayDates, config.displayProgress))
-      }
-      outputArray.unshift(`Total ${noteCount} active notes${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
-      if (!config.displayGroupedByFolder) {
-        outputArray.unshift(`### All folders (${noteCount} notes)`)
-      }
-    }
-    return outputArray
+    return [outputArray, noteCount, overdue]
   }
   catch (error) {
     logError('generateReviewSummaryLines', `${error.message}`)
-    return [] // for completeness
+    return [[], NaN, NaN] // for completeness
   }
 }

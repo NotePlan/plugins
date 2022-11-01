@@ -136,8 +136,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set core table features from theme:
     const altColor = RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30'
     const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
-    output.push(makeCSSSelector('tr:nth-child(even)', [`background-color: ${altColor}`]))
-    output.push(makeCSSSelector('th', [`background-color: ${altColor}`]))
+    // output.push(makeCSSSelector('table th', [`background-color: ${altColor}`]))
+    output.push(makeCSSSelector('tbody > tr:nth-child(odd)', [`background-color: ${altColor}`])) // i.e. won't apply to rows in thead
     rootSel.push(`--bg-alt-color: ${altColor}`)
     output.push(makeCSSSelector('table tbody tr:first-child', [`border-top: 1px solid ${tintColor}`]))
     output.push(makeCSSSelector('table tbody tr:last-child', [`border-bottom: 1px solid ${RGBColourConvert(themeJSON.editor?.tintColor)}` ?? '1px solid #E9C0A2']))
@@ -588,13 +588,12 @@ export function showHTML(
  * @returns {string} SVG code to insert in HTML
  */
 export function makeSVGPercentRing(percent: number, color: string, textToShow: string, ID: string): string {
-  return `
-  <svg id="pring${ID}" class="percent-ring" height="200" width="200" viewBox="0 0 100 100" onload="setPercentRing(${percent}, 'pring${ID}');">
+  return `<svg id="pring${ID}" class="percent-ring" height="200" width="200" viewBox="0 0 100 100" onload="setPercentRing(${percent}, 'pring${ID}');">
     <circle class="percent-ring-circle" stroke="${color}" stroke-width=12% fill="transparent" r=40% cx=50% cy=50% />
     <g class="circle-percent-text" color=${color}>
     <text class="circle-percent-text" x=50% y=53% dominant-baseline="middle" text-anchor="middle" fill="currentcolor" stroke="currentcolor">${textToShow}</text>
     </g>
-  </svg>\n`
+  </svg>`
 }
 
 /**
@@ -604,15 +603,7 @@ export function makeSVGPercentRing(percent: number, color: string, textToShow: s
  */
 export function makeSVGPauseIcon(): string {
   return `<svg id="pause" x="0px" y="0px"
-	 viewBox="0 0 58 58" style="enable-background:new 0 0 58 58;" xml:space="preserve">
-  <circle style="fill:#979797;" cx="29" cy="29" r="29"/>
-  <g>
-    <rect x="17" y="18" style="fill:#FFFFFF;" width="8" height="22"/>
-  </g>  
-  <g>
-    <rect x="33" y="18" style="fill:#FFFFFF;" width="8" height="22"/>
-  </g>
-</svg>\n`
+	 viewBox="0 0 58 58" style="enable-background:new 0 0 58 58;" xml:space="preserve"><circle style="fill:#979797;" cx="29" cy="29" r="29"/><g><rect x="17" y="18" style="fill:#FFFFFF;" width="8" height="22"/></g><g><rect x="33" y="18" style="fill:#FFFFFF;" width="8" height="22"/></g></svg>`
 }
 
 /**
