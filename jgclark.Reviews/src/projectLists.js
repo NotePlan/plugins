@@ -7,7 +7,6 @@
 // FIXME: button again ... use the DataStore.invokePluginCommandByName method ?
 // TODO: ? add option for kicking off @DW's /overdue for the note?
 // TODO: Ignore all @folders automatically
-// FIXME: wrong HTML Refresh button code
 
 import pluginJson from "../plugin.json"
 import fm from 'front-matter'
@@ -50,16 +49,21 @@ import {
 
 const fullReviewListFilename = 'full-review-list.md'
 
+const faLinksInHeader = `
+  <!-- Load in fontawesome assets (licensed for NotePlan) -->
+  <link href="css/fontawesome.css" rel="stylesheet">
+  <link href="css/regular.css" rel="stylesheet">
+  <link href="css/solid.css" rel="stylesheet">
+  <!-- <link href="css/duotone.css" rel="stylesheet"> -->
+`
+
 export const reviewListCSS: string = [
   '\n/* CSS specific to reviewList() from jgclark.Reviews plugin */\n',
-  `@font-face { font-family: "noteplanstate"; src: url('noteplanstate.ttf') format('truetype'); }`, // local font that needs to be in the plugin's bundle
-  `@font-face { font-family: "FontAwesome6Pro-Regular"; src: url('Font Awesome 6 Pro-Regular-400.otf') format('opentype'); }`, // local font that needs to be in the plugin's bundle
-  `@font-face { font-family: "FontAwesome6Pro-Solid"; src: url('Font Awesome 6 Pro-Solid-900.otf') format('opentype'); }`, // local font that needs to be in the plugin's bundle
   'table { font-size: 0.9rem;', // make text a little smaller
   '  border-collapse: collapse;', // always!
   '  empty-cells: show; }',
   '.sticky-row { position: sticky; top: 0; border-bottom: 1px solid var(--tint-color); }', // Keep a header stuck to top of window
-  'th { text-align: left; vertical-align: bottom; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }', // // removed L-R borders for now
+  'th { text-align: left; vertical-align: bottom; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }', // removed L-R borders for now
   // 'th td:first-child {text-align: center;}', // ???
   'tr.new-section-header { color: var(--h3-color); padding-top: 1.0rem; font-size: 1.0rem; font-weight: bold; background-color: var(--bg-main-color); border-top: 1px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }',
   'td { padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); }', // removed L-R borders for now
@@ -72,15 +76,24 @@ export const reviewListCSS: string = [
   // 'button { font-size: 1.0rem; font-weight: 500; }',
   // '.top-right-fix { position: fixed; top: 3rem; right: 2rem; }', // a top-right fixed position, even when scrolled
   '.noteTitle { font-weight: 700; }', // make noteTitles bold
+  'i.fa-solid, i.fa-regular { color: var(--tint-color); }', // set fa icon colour to tint, not the usual italic
   '.checkbox { font-family: "noteplanstate"; font-size: 1.4rem; }', // make checkbox display larger, and like in the app
   '.np-task-state { font-family: "noteplanstate"; }', // use special 'noteplanstate' font
-  '.fa-icon { font-family: "FontAwesome6Pro-Regular"; }', // use special Font Awesome 6 font
-  '.fa-icon-duotone { font-family: "FontAwesome6Duotone-Solid"; }', // use special Font Awesome 6 font
-  '.fa-icon-solid { font-family: "FontAwesome6Pro-Solid"; }', // use special Font Awesome 6 font
   '.percent-ring { width: 2rem; height: 2rem; }', // Set size of percent-display rings
   '.percent-ring-circle { transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%; }', // details of ring-circle that can be set in CSS
   '.circle-percent-text { font-family: "Avenir Next"; font-size: 2.2rem; font-weight: 600; color: var(--fg-main-color); }', // details of ring text that can be set in CSS
-  '.circle-char-text { font-size: 1.9rem; font-family: "noteplanstate" }' // details of ring text that can be set in CSS, including font, locally set above
+  '.circle-icon { font-size: 1.9rem; }', // details for icon that can be set in CSS, including font size
+  `/* Tooltip block */
+  .tooltip { position: relative; display: inline-block; }
+  /* Tooltip text */
+  .tooltip .tooltiptext { visibility: hidden; width: 150px; font-weight: "400"; font-style: "normal"; color: var(--fg-main-color); background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); text-align: center; padding: 5px 0; border-radius: 6px; position: absolute; z-index: 1; bottom: 150%; left: 50%; margin-left: -75px; opacity: 0; transition: opacity 0.6s; }
+  /* Fade in tooltip */
+  .tooltip:hover .tooltiptext { opacity: 1; position: absolute; z-index: 1; }
+  /* Make an arrow from tooltip */
+  .tooltip .tooltiptext::after { content: ""; position: absolute; top: 100%; /* At the bottom of the tooltip */ left: 50%; margin-left: -5px; border: 5px solid; border-color: var(--tint-color) transparent transparent transparent; }
+  /* Show the tooltip text when you mouse over the tooltip container */
+  .tooltip:hover .tooltiptext { visibility: visible; }
+`
 ].join('\n\t')
 
 const startReviewsCommandCall = (`(function() {
@@ -204,18 +217,25 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
     // startReviewButton = `<button onClick="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews\&command=next%20project%20review">Start reviewing ${overdue} ready for review</button>`
     // - Version 2: using x-callback: does work in NP, but doesn't look like a button
     // const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}">Start reviewing ${overdue} ready for review</a></span>`
-    const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><span class="fa-icon-solid">&#x25B6;</span>&nbsp;Start reviewing notes ready for review</a></span>`
+    const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-forward"></i>&nbsp;Start reviewing notes ready for review</a></span>`
     // - Version 3: using proper link to the internal function FIXME: doesn't yet work
     // startReviewButton = `<button onclick=callCommand()>Start reviewing ${overdue} ready for review</button>`
 
     // Add (pseduo-)buttons for various commands
-    // Webdings: refresh icon ~ glyph 80
-    const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><span class="fa-icon-solid">&#xF364;</span>&nbsp;Refresh</a></span>` // 🔄
-    const reviewedXCallbackButton = `<span class="fake-button"><a class="button" href="${reviewedXCallbackURL}"><i class="fa-regular fa-calendar-pen"></i><!--<span class="fa-icon">&#xf333;</span>-->&nbsp;Mark&nbsp;as&nbsp;Reviewed</a></span>` // calendar-pen = https://fontawesome.com/icons/calendar-pen?s=regular&f=classic <i class="fa-regular fa-calendar-pen"></i>
-    const nextReviewXCallbackButton = `<span class="fake-button"><a class="button" href="${nextReviewXCallbackURL}">Finish&nbsp;+&nbsp;<span class="fa-icon-solid">&#x25B6;</span>&nbsp;Next&nbsp;Review</a></span>`
-    const pauseXCallbackButton = `<span class="fake-button"><a class="button" href="${pauseXCallbackURL}"><span class="np-task-state"></span>toggle&nbsp;<span class="fa-icon-solid">&#x23F8;</span>&nbsp;Pause</a></span>`
-    const completeXCallbackButton = `<span class="fake-button"><a class="button" href="${completeXCallbackURL}"><span class="fa-icon">&#xF058;</span>&nbsp;Complete</a></span>` // includes NP complete 'a' glyph <span class="np-task-state">a</span>
-    const cancelXCallbackButton = `<span class="fake-button"><a class="button" href="${cancelXCallbackURL}"><span class="fa-icon">&#xF057;</span>&nbsp;Cancel</a></span>` // includes NP cancel 'c' glyph <span class="np-task-state">c</span>
+    // Useful fontawesome fonts include:
+    // https://fontawesome.com/icons/play
+    // https://fontawesome.com/icons/forward
+    // https://fontawesome.com/icons/forward-step
+    // https://fontawesome.com/icons/play-pause
+    // https://fontawesome.com/icons/calendar-pen
+    // https://fontawesome.com/icons/check
+    // https://fontawesome.com/icons/xmark
+    const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>` // https://fontawesome.com/icons/arrow-rotate-right?s=solid&f=classic
+    const reviewedXCallbackButton = `<span class="fake-button"><a class="button" href="${reviewedXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>&nbsp;Mark&nbsp;as&nbsp;Reviewed</a></span>` // calendar-pen = https://fontawesome.com/icons/calendar-pen
+    const nextReviewXCallbackButton = `<span class="fake-button tooltip"><a class="button" href="${nextReviewXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>&nbsp;+&nbsp;<i class="fa-solid fa-calendar-arrow-down"></i>&nbsp;Next&nbsp;Review</a><span class="tooltiptext">Mark open project note as reviewed, and start next review</span></span>`
+    const pauseXCallbackButton = `<span class="fake-button"><a class="button" href="${pauseXCallbackURL}">Toggle&nbsp;<i class="fa-solid fa-play-pause"></i>&nbsp;Pause</a></span>`
+    const completeXCallbackButton = `<span class="fake-button tooltip"><a class="button" href="${completeXCallbackURL}"><i class="fa-solid fa-check"></i>&nbsp;Complete</a><span class="tooltiptext">Complete the currently open Project note</span></span>`  // previously included NP complete 'a' glyph <span class="np-task-state">a</span>
+    const cancelXCallbackButton = `<span class="fake-button tooltip"><a class="button" href="${cancelXCallbackURL}"><i class="fa-regular fa-xmark"></i>&nbsp;Cancel</a><span class="tooltiptext">Cancel the currently open Project note</span></span>` // https://fontawesome.com/icons/xmark?s=regular&f=classic // previously included NP cancel 'c' glyph <span class="np-task-state">c</span>
 
     // write lines before first table
     outputArray.push(`<h1>${windowTitle}</h1>`)
@@ -234,11 +254,13 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
       }
       outputArray.push('\n<table>')
 
-      // Print table header which will be sticky
-      // In some cases, include colgroup to help massage widths a bit
-      const colspan2Buttons = `Reviews:&nbsp;${reviewedXCallbackButton}${nextReviewXCallbackButton} Projects:&nbsp;${pauseXCallbackButton}${completeXCallbackButton}${cancelXCallbackButton}`
-      if (config.displayDates && config.displayProgress) {
-        outputArray.push(`<thead>
+      // Start constructing table (if there any results)
+      if (noteCount > 0) {
+        // Print table header which will be sticky
+        // In some cases, include colgroup to help massage widths a bit
+        const colspan2Buttons = `Reviews:&nbsp;${reviewedXCallbackButton}${nextReviewXCallbackButton} Projects:&nbsp;${pauseXCallbackButton}${completeXCallbackButton}${cancelXCallbackButton}`
+        if (config.displayDates && config.displayProgress) {
+          outputArray.push(`<thead>
 <colgroup>
 \t<col width="40px">
 \t<col>
@@ -251,9 +273,9 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
 </thead>
 <tbody>
 `)
-      }
-      else if (!config.displayDates && config.displayProgress) {
-        outputArray.push(`<thead>
+        }
+        else if (!config.displayDates && config.displayProgress) {
+          outputArray.push(`<thead>
 <colgroup>
 \t<col width="40px">
 \t<col width="20%">
@@ -265,28 +287,28 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
 </thead>
 <tbody>
 `)
-      }
-      else if (config.displayDates && !config.displayProgress) {
-        outputArray.push(`<thead>
+        }
+        else if (config.displayDates && !config.displayProgress) {
+          outputArray.push(`<thead>
 \t<tr class="sticky-row" style="vertical-align: bottom">
 \t<th colspan="2">${colspan2Buttons}</td><th>Next Review</th><th>Due Date</th>
 \t</tr>
 </thead>
 <tbody>
 `)
-      } else {
-        outputArray.push(`<thead>
+        } else {
+          outputArray.push(`<thead>
 \t<tr class="sticky-row" style="vertical-align: bottom">
 \t<th colspan="2">${colspan2Buttons}</td><th>Next Review</th><th>Due Date</th>
 \t</tr>
 </thead>
 <tbody>
 `)
+        }
+        outputArray.push(thisSummaryLines.join('\n'))
+        outputArray.push('</tbody>')
+        outputArray.push('</table>')
       }
-      // if (tagCount > 0) outputArray.push('<hr>') // horizontal rule between noteTags
-      outputArray.push(thisSummaryLines.join('\n'))
-      outputArray.push('</tbody>')
-      outputArray.push('</table>')
       tagCount++
     }
 
@@ -296,7 +318,7 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
 
     // Show the list as HTML, and save a copy as file
     await showHTML(windowTitle,
-      '', // no extra header tags
+      faLinksInHeader, // no extra header tags
       outputArray.join('\n'),
       '', // get general CSS set automatically
       reviewListCSS,

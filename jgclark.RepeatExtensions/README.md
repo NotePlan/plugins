@@ -35,5 +35,14 @@ When the number doesn't start with a + (e.g. `1m`) it will duplicate the task fo
 ## Configuration
 For this feature to work, you need to have the '**Append Completion Date**' NotePlan setting turned on in the Preferences (and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed).
 
+## Support
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+
+Thanks!
+
 ## Changes
 Please see the [CHANGELOG](CHANGELOG.md).

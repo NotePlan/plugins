@@ -3,15 +3,15 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 23.10.2022 for v0.9.0-betas, @jgclark
+// Last updated 1.11.2022 for v0.9.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 // import { generateCSSFromTheme } from '@helpers/HTMLView'
 import pluginJson from '../plugin.json'
-import { makeFullReviewList } from "./reviews";
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logError, logInfo } from '@helpers/dev'
+import { makeFullReviewList, redisplayProjectList } from './reviews'
 
 export {
   logFullReviewList,
@@ -29,14 +29,14 @@ export {
 export {
   completeProject,
   cancelProject,
-  pauseProject
+  togglePauseProject
 } from './projects'
 export {
   generateCSSFromTheme
 } from '@helpers/HTMLView'
 
 // NB: There are other possible exports, including:
-// export { testNoteplanStateFont } from '../test/noteplanstateFontTest.js'
+export { testFonts } from '../experiments/fontTests.js'
 
 export {
   testGenerateCSSFromTheme,
@@ -66,6 +66,7 @@ export async function testUpdated(): Promise<void> {
 export async function onSettingsUpdated(): Promise<void> {
   // Update the full-review-list in case there's a change in a relevant setting
   await makeFullReviewList(false)
+  await redisplayProjectList()
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {

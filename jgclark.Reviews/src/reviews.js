@@ -16,7 +16,6 @@ import {
 import { checkString } from '@helpers/checkType'
 import {
   getTodaysDateHyphenated,
-  // hyphenatedDateString,
   nowLocaleDateTime,
   RE_DATE,
 } from '@helpers/dateTime'
@@ -42,8 +41,6 @@ import {
 } from '@helpers/userInput'
 import { fieldSorter, sortListBy } from '@helpers/sorting'
 import {
-  // makeProjectLists,
-  // redisplayProjectList,
   renderProjectListsHTML,
   renderProjectListsMarkdown,
 } from "./projectLists"
@@ -224,7 +221,7 @@ function sortAndFormFullReviewList(linesIn: Array<string>, config: any): Array<s
     outputArray.unshift(`date: ${moment().format()}`)
     outputArray.unshift("title: full-review-list")
     outputArray.unshift("---")
-    clo(outputArray, '- returning outputArray:')
+    // clo(outputArray, '- returning outputArray:')
 
     return outputArray
   }
@@ -317,16 +314,17 @@ export async function nextReview(): Promise<void> {
 /**
  * Update the full-review-list after completing a review or completing/cancelling a whole project.
  * Note: Called by functions nextReview, completeProject, cancelProject.
- * Note: The first param is now only used to get the title, so could be simplified?
  * @author @jgclark
- * @param {TNote} note that has been reviewed
+ * @param {string} title of note that has been reviewed
  * @param {boolean} simplyDelete the project line?
  * @param {any} config
  * @param {string?} updatedMachineSummaryLine to write to full-review-list (optional)
 */
-export async function updateReviewListAfterChange(note: TNote, simplyDelete: boolean, configIn: any, updatedMachineSummaryLine: string = ''): Promise<void> {
+export async function updateReviewListAfterChange(reviewedTitle: string, simplyDelete: boolean, configIn: any, updatedMachineSummaryLine: string = ''): Promise<void> {
   try {
-    const reviewedTitle = note.title ?? ''
+    if (reviewedTitle === '') {
+      throw new Error('Empty title passed.')
+    }
     logInfo('updateReviewListAfterChange', `Updating full-review-list for '${reviewedTitle}' -> ${String(simplyDelete)} / '${updatedMachineSummaryLine}'`)
 
     // Get contents of full-review-list
@@ -378,7 +376,6 @@ export async function updateReviewListAfterChange(note: TNote, simplyDelete: boo
         // re-form the file
         const outputLines = sortAndFormFullReviewList(reviewLines, configIn)
         DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
-        // TODO: OK to here
       }
     } else {
       logWarn('updateReviewListAfterChange', `- Can't find '${reviewedTitle}' to update in full-review-list. Will run makeFullReviewList ...`)
@@ -507,7 +504,7 @@ export async function finishReview(): Promise<?TNote> {
     // update this note in the review list
     const config = await getReviewSettings()
     const updatedMachineSummaryLine = thisNoteAsProject.machineSummaryLine()
-    await updateReviewListAfterChange(thisNote, false, config, updatedMachineSummaryLine)
+    await updateReviewListAfterChange(thisNote.title ?? '', false, config, updatedMachineSummaryLine)
     return thisNote
   }
   catch (error) {

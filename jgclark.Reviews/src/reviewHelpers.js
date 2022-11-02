@@ -2,12 +2,13 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 23.10.2022 for v0.9.0-beta, @jgclark
+// Last updated 1.11.2022 for v0.9.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import pluginJson from '../plugin.json'
+import moment from 'moment/min/moment-with-locales'
 import { checkString } from '@helpers/checkType'
 import { daysBetween, getDateObjFromDateString, getDateFromUnhyphenatedDateString, includesScheduledFutureDate, relativeDateFromDate, relativeDateFromNumber, toISODateString, unhyphenateString } from '@helpers/dateTime'
 import { calcOffsetDate } from '@helpers/NPDateTime'
@@ -63,7 +64,7 @@ export async function getReviewSettings(): Promise<any> {
       await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     }
-    // clo(v2Config, `Review settings:`)
+    clo(v2Config, `Review settings:`)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
     DataStore.setPreference('startMentionStr', v2Config.startMentionStr)
@@ -124,7 +125,7 @@ export function getParamMentionFromList(mentionList: $ReadOnlyArray<string>, men
  * Read lines in 'note' and return any lines that contain fields
  * (that start with 'fieldName' parameter before a colon with text after).
  * The matching is done case insensitively, and only in the active region of the note.
- * TODO: add check to see if the note uses frontmatter; if so, restrict to searching there?
+ * TODO: in time add check to see if the note uses frontmatter; if so, restrict to searching there?
  * @param {TNote} note
  * @param {string} fieldName
  * @returns {Array<string>}
@@ -187,17 +188,17 @@ export class Project {
   nextReviewDate: ?Date
   nextReviewDays: ?number
   completedDate: ?Date
+  completedDuration: ?string // string description of time to completion, or how long ago completed
   cancelledDate: ?Date
-  finishedDays: ?number // days until project was completed or cancelled
+  cancelledDuration: ?string // string description of time to cancellation, or how long ago cancelled
+  // finishedDays: number = NaN // days until project was completed or cancelled
   isCompleted: boolean = false
   openTasks: number
   completedTasks: number
   waitingTasks: number
   futureTasks: number
   isCancelled: boolean = false
-  // isArchived: boolean
   isPaused: boolean = false
-  // isActive: boolean = false
   folder: string
   percentComplete: number = NaN
   lastProgressComment: string = '' // e.g. "Progress: 60@20220809: comment
@@ -205,7 +206,8 @@ export class Project {
 
   constructor(note: TNote) {
     try {
-      this.ID = String(Math.round((Math.random()) * 99999)) // TODO: Make a one-up number
+      // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers
+      this.ID = String(Math.round((Math.random()) * 99999))
       if (note == null || note.title == null) {
         throw new Error('Error in constructor: invalid note passed')
       }
@@ -215,7 +217,7 @@ export class Project {
       const paras = note.paragraphs
       const metadataLineIndex = getOrMakeMetadataLine(note)
       this.metadataPara = paras[metadataLineIndex]
-      logDebug('Project constructor', `- for ${this.title}, metadata = ${paras[metadataLineIndex].content}`)
+      // logDebug('Project constructor', `- for ${this.title}, filename ${this.filename}, metadata = ${paras[metadataLineIndex].content}`)
       const mentions: $ReadOnlyArray<string> = note.mentions
       // FIXME(Eduard): this line returns some items out of date
       const hashtags: $ReadOnlyArray<string> = note.hashtags
@@ -256,8 +258,9 @@ export class Project {
       this.waitingTasks = paras.filter((p) => p.type === 'open').filter((p) => p.content.match('#waiting')).length
       this.futureTasks = paras.filter((p) => p.type === 'open').filter((p) => includesScheduledFutureDate(p.content)).length
       // Track percentComplete: either through calculation from counts ...
-      if (this.completedTasks > 0) {
-        this.percentComplete = Math.round((this.completedTasks / (this.completedTasks + this.openTasks - this.futureTasks)) * 100)
+      const totalTasks = this.completedTasks + this.openTasks - this.futureTasks
+      if (totalTasks > 0) {
+        this.percentComplete = Math.round((this.completedTasks / totalTasks) * 100)
         // logDebug('Project constructor', `- ${this.title}: % complete = ${this.percentComplete}`)
       } else {
         this.percentComplete = NaN
@@ -298,21 +301,7 @@ export class Project {
         this.isPaused = true
         this.nextReviewDays = undefined
       }
-      // TODO: remove this next item
-      // // make project archived if #archive[d] tag present
-      // if (getStringFromList(hashtags, '#archive') !== '' || getStringFromList(hashtags, '#archived') !== '') {
-      //   this.isArchived = true
-      //   this.nextReviewDays = undefined
-      // }
-
-      // set project to active if a @review date found,
-      // and not completed / cancelled / archived, or marked as #paused.
-      // this.isActive = !this.isPaused && this.reviewInterval != null && !this.isCompleted && !this.isCancelled /** && !this.isArchived */ ? true : false
-
-      // const rdStr = (this.reviewedDate) ? toISODateString(this.reviewedDate) : 'no date'
-      // const nrdStr = (this.nextReviewDate) ? toISODateString(this.nextReviewDate) : 'no date'
-      // logDebug('Project constructor', `= ${this.title} / ${rdStr} / ${this.reviewInterval ?? '-'} / ${nrdStr} / ${this.nextReviewDays ?? '<NaN>'}`)
-      // logDebug('Project constructor', `Project object created OK with Metadata = '${this.generateMetadataLine()}'`)
+      // logDebug('Project constructor', `- created ID ${this.ID} for '${this.title}'`)
     }
     catch (error) {
       logError('Project constructor', error.message)
@@ -333,27 +322,56 @@ export class Project {
    * From the metadata read in, calculate due/review/finished durations
    */
   calcDurations(): void {
-    const now = new Date()
-    this.dueDays =
-      this.dueDate != null
-        ? // NB: Written while there was an error in EM's Calendar.unitsBetween() function
-      daysBetween(now, this.dueDate)
-        : undefined
-    this.finishedDays =
-      this.completedDate != null && this.startDate != null
-        ? daysBetween(this.startDate, this.completedDate)
-        : this.cancelledDate != null && this.startDate != null
-        ? daysBetween(this.startDate, this.cancelledDate)
-        : undefined
-    if (this.reviewInterval != null) {
-      if (this.reviewedDate != null) {
-        this.nextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
-        this.nextReviewDays = daysBetween(now, this.nextReviewDate)
-      } else {
-        // no next review date, so set at today
-        this.nextReviewDate = now
-        this.nextReviewDays = 0
+    try {
+      // logDebug('calcDurations', `Starting for ${this.title} ...`)
+      const now = new Date()
+      this.dueDays =
+        this.dueDate != null
+          ? // NB: Written while there was an error in EM's Calendar.unitsBetween() function
+          daysBetween(now, this.dueDate)
+          : undefined
+
+      // Calculate durations or time since cancel/complete
+      if (this.startDate != null) {
+        const momTSD = moment(this.startDate)
+        if (this.completedDate != null) {
+          this.completedDuration = 'after ' + momTSD.to(moment(this.completedDate), true)
+          // logDebug(`-> completedDuration = ${this.completedDuration}`)
+        }
+        else if (this.cancelledDate != null) {
+          this.cancelledDuration = 'after ' + momTSD.to(moment(this.cancelledDate), true)
+          console.log(this.cancelledDuration)
+          // logDebug(`-> cancelledDuration = ${this.cancelledDuration}`)
+        }
       }
+      else {
+        if (this.completedDate != null) {
+          this.completedDuration = 'after ' + moment(this.completedDate).toNow(true)
+          // logDebug(`-> completedDuration = ${this.completedDuration}`)
+        }
+        else if (this.cancelledDate != null) {
+          this.cancelledDuration = 'after ' + moment(this.cancelledDate).toNow(true)
+          // logDebug(`-> completedDuration = ${this.completedDuration}`)
+        }
+        else {
+          // Nothing to do
+          // logDebug('calcDurations', `No completed or cancelled dates.`)
+        }
+      }
+
+      // Calculate next review due date
+      if (this.reviewInterval != null) {
+        if (this.reviewedDate != null) {
+          this.nextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
+          this.nextReviewDays = daysBetween(now, this.nextReviewDate)
+        } else {
+          // no next review date, so set at today
+          this.nextReviewDate = now
+          this.nextReviewDays = 0
+        }
+      }
+    } catch (error) {
+      logError('calcDurations', error.message)
     }
   }
 
@@ -369,13 +387,14 @@ export class Project {
       // this.isActive = false
       this.isCompleted = true
       this.isCancelled = false
+      this.isPaused = false
       this.completedDate = new Date()
       this.calcDurations()
 
       // re-write the note's metadata line
-      logDebug(pluginJson, `Completing ${this.title} ...`)
+      logDebug('completeProject', `Completing ${this.title} ...`)
       const newMetadataLine = this.generateMetadataLine()
-      logDebug(pluginJson, `... metadata now '${newMetadataLine}'`)
+      logDebug('completeProject', `... metadata now '${newMetadataLine}'`)
       this.metadataPara.content = newMetadataLine
 
       // send update to Editor
@@ -383,7 +402,7 @@ export class Project {
       Editor.updateParagraph(this.metadataPara)
 
       const newMSL = this.machineSummaryLine()
-      logDebug('pauseProject', `mSL should -> ${newMSL}`)
+      logDebug('completeProject', `returning mSL '${newMSL}'`)
       return newMSL
     }
     catch (error) {
@@ -404,13 +423,14 @@ export class Project {
       // this.isActive = false
       this.isCompleted = false
       this.isCancelled = true
+      this.isPaused = false
       this.cancelledDate = new Date()
       this.calcDurations()
 
       // re-write the note's metadata line
-      logDebug(pluginJson, `Cancelling ${this.title} ...`)
+      logDebug('cancelProject', `Cancelling ${this.title} ...`)
       const newMetadataLine = this.generateMetadataLine()
-      logDebug(pluginJson, `... metadata now '${newMetadataLine}'`)
+      logDebug('cancelProject', `... metadata now '${newMetadataLine}'`)
       this.metadataPara.content = newMetadataLine
 
       // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
@@ -431,24 +451,24 @@ export class Project {
    * @author @jgclark
    * @returns {string} new machineSummaryLine or empty on failure
    */
-  pauseProject(): string {
+  togglePauseProject(): string {
     try {
       // update the metadata fields
       this.isCompleted = false
       this.isCancelled = false
-      this.isPaused = true
+      this.isPaused = !this.isPaused // toggle
 
       // re-write the note's metadata line
-      logDebug(pluginJson, `Pausing ${this.title} ...`)
+      logDebug('togglePauseProject', `Paused state now = ${String(this.isPaused)} for ${this.title} ...`)
       const newMetadataLine = this.generateMetadataLine()
-      logDebug(pluginJson, `... metadata now '${newMetadataLine}'`)
+      logDebug('togglePauseProject', `... metadata now '${newMetadataLine}'`)
       this.metadataPara.content = newMetadataLine
 
       // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
       Editor.updateParagraph(this.metadataPara)
 
       const newMSL = this.machineSummaryLine()
-      logDebug('pauseProject', `mSL should -> ${newMSL}`)
+      logDebug('togglePauseProject', `returning mSL '${newMSL}'`)
       return newMSL
     }
     catch (error) {
@@ -483,7 +503,7 @@ export class Project {
   }
 
   /**
-   * v2: Returns TSV line with all the data that needs to be used in either Markdown or Rich styles
+   * v2: Returns TSV line with just the data needed to filter output lists
    * @return {string}
    */
   machineSummaryLine(): string {
@@ -499,20 +519,7 @@ export class Project {
       output += this.folder && this.folder !== undefined ? `${this.folder}\t` : '\t'
       output += (this.noteType) ? `${this.noteType} ` : ''
       output += this.isPaused ? '#paused ' : ''
-      // output = (this.isActive) ? '#active ' : ''
-      // output += (this.isCancelled) ? '#cancelled ' : ''
-      // output += this.isArchived ? '#archive ' : ''
-      // output += `\t${this.ID}\t`
-      // output += this.noteType === 'project ' || this.noteType === 'area' ? `#${this.noteType} ` : ''
-      // output += this.startDate && this.startDate !== undefined ? `${toISODateString(this.startDate)}\t` : '\t'
-      // output += this.dueDate && this.dueDate !== undefined ? `${toISODateString(this.dueDate)}\t` : '\t'
-      // output +=
-      //   this.reviewInterval && this.reviewInterval !== undefined ? `${checkString(this.reviewInterval)}\t` : '\t'
-      // output += this.reviewedDate && this.reviewedDate !== undefined ? `${toISODateString(this.reviewedDate)}\t` : '\t'
-      // output += this.completedDate && this.completedDate !== undefined ? `${toISODateString(this.completedDate)}\t` : '\t'
-      // output += this.cancelledDate && this.cancelledDate !== undefined ? `${toISODateString(this.cancelledDate)}\t` : '\t'
-      // output += this.percentComplete && this.percentComplete !== undefined ? `${this.percentComplete}\t` : '\t'
-      // output += this.lastProgressComment && this.lastProgressComment !== undefined ? this.lastProgressComment : ''
+      // output += '\t' + String(this.percentComplete)
       return output
     }
     catch (error) {
@@ -525,6 +532,7 @@ export class Project {
    * Returns title of note as folder name + link, also showing complete or cancelled where relevant.
    * Now also supports 'Markdown' or 'HTML' styling.
    * TODO: do I really support scheduled/postponed? If so style.checked-scheduled ...
+   * TODO: use FontAwesome icon here
    * @param {string} style 'Markdown' or 'HTML'
    * @param {boolean} includeFolderName whether to include folder name at the start of the entry.
    * @return {string} - title as wikilink
@@ -542,14 +550,8 @@ export class Project {
         // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
 
         if (this.isCompleted) {
-          // Looked earlier at FontAwesome icons:
-          // - <i class="fa-solid fa-square-check"></i> from https://fontawesome.com/icons/square-check?s=solid
           return `<span class="checked">${noteTitleWithOpenAction}</span>`
         } else if (this.isCancelled) {
-          // Looked earlier at FontAwesome icons:
-          // - https://fontawesome.com/icons/rectangle-xmark?s=solid
-          // - refresh = https://fontawesome.com/icons/arrow-rotate-right?s=solid
-          // - start = https://fontawesome.com/icons/circle-play?s=solid
           return `<span class="cancelled">${noteTitleWithOpenAction}</span>`
         } else if (this.isPaused) {
           return `<span class="paused">Paused: ${noteTitleWithOpenAction}</span>`
@@ -575,84 +577,9 @@ export class Project {
     }
   }
 
-  /** 
-   * Returns line to go before main output summary lines. Two output styles are available:
-   * - markdown
-   * - HTML
-   */
-  static detailedSummaryLineHeader(style: string, displayDates: boolean = true, displayProgress: boolean = true): string {
-    switch (style) {
-      case 'Rich':
-        // In some cases, include colgroup to help massage widths a bit
-        if (displayDates && displayProgress) {
-          return `<thead>
-<colgroup>
-\t<col>
-\t<col>
-\t<col width="15%">
-\t<col width="15%">
-</colgroup>
-\t<tr class="sticky-row">
-\t<th>%</th><th>Project/Area Title</th><th>Next Review</th><th>Due Date</th>
-\t</tr>
-</thead>
-<tbody>
-`
-        }
-        else if (!displayDates && displayProgress) {
-          return `<thead>
-<colgroup>
-\t<col>
-\t<col width="30%">
-\t<col>
-</colgroup>
-\t<tr class="sticky-row">
-\t<th>%</th><th>Project/Area Title</th><th>Progress</th>
-\t</tr>
-</thead>
-<tbody>
-`
-        }
-        else if (displayDates && !displayProgress) {
-          return `<thead>
-\t<tr class="sticky-row">
-\t<th>%</th><th>Project/Area Title</th><th>Next Review</th><th>Due Date</th>
-\t</tr>
-</thead>
-<tbody>
-`
-        } else {
-          return `<thead>
-\t<tr class="sticky-row">
-\t<th>%</th><th>Project/Area Title</th><th>Next Review</th><th>Due Date</th>
-\t</tr>
-</thead>
-<tbody>
-`
-        }
-
-      case 'Markdown':
-        // Currently disable this:
-        //   // only add header if putting dates, otherwise not needed
-        //   if (displayDates) {
-        //     let output = '_Key:  Project/Area Title'
-        //     if (displayProgress) {
-        //       // output += '#tasks open / complete / waiting / future'
-        //       output += '\tProgress'
-        //     }
-        //     output += '\tDue date / Next review_'
-        //     return output
-        //   }
-        return ''
-
-      default:
-        logWarn('Project::detailedSummaryLineHeader', `Unknown style '${style}'; nothing returned.`)
-        return ''
-    }
-  }
-
   /**
    * Returns line showing more detailed summary of the project, for output to a note.
+   * Now uses fontawesome icons for some indicators
    * @param {string} style
    * @param {boolean} includeFolderName
    * @param {boolean?} displayDates
@@ -667,30 +594,26 @@ export class Project {
 
     switch (style) {
       case 'Rich':
-        output = '\t<tr>'
+        output = '\t<tr>\n\t\t'
         if (this.isCompleted) {
-          output += '<td class="checked">' + this.addNPStateIcon('a') + '</td>' // ✓
+          output += '<td class="checked">' + this.addFAIcon('fa-solid fa-circle-check') + '</td>' // ('checked' gives colour)
           output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (this.isCancelled) {
-          output += '<td class="cancelled">' + this.addNPStateIcon('c') + '</td>' // X
+          output += '<td class="cancelled">' + this.addFAIcon('fa-solid fa-circle-xmark') + '</td>' // ('cancelled' gives colour)
           output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (this.isPaused) {
-          // Webdings: pause ~ glyph 30 = ;
-          // Looked at FontAwesome icons:
-          // - https://fontawesome.com/icons/circle-pause?s=solid&f=classic
-          //   - <i class="fa-solid fa-circle-pause"></i>
-          output += '<td>' + makeSVGPauseIcon() + '</td>' // create pause symbol
+          output += '<td>' + this.addFAIcon("fa-solid fa-circle-pause", "#888888") + '</td>'
           output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (isNaN(this.percentComplete)) { // NaN
           output += '<td>' + this.addSVGPercentRing(100, 'grey', '0') + '</td>'
-          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
+          output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else {
           output += '<td>' + this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete)) + '</td>'
-          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
+          output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         if (displayProgress && !this.isCompleted && !this.isCancelled) {
           // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
@@ -703,17 +626,21 @@ export class Project {
           } else {
             // write progress in next cell instead
             if (this.lastProgressComment !== '') {
-              output += `</td><td>${this.lastProgressComment}</td>`
+              output += `</td>\n\t\t\t<td>${this.lastProgressComment}</td>`
             } else {
-              output += `</td><td>${statsProgress}</td>`
+              output += `</td>\n\t\t\t<td>${statsProgress}</td>`
             }
           }
         }
         if (displayDates && !this.isPaused && !this.isCompleted && !this.isCancelled) {
           if (this.completedDate != null) {
-            output += `<td colspan=2 class="checked">Completed ${relativeDateFromDate(this.completedDate)}</td><td></td>`
+            // TODO: completed after X or cancelled X ago, depending
+            // output += `<td colspan=2 class="checked">Completed ${relativeDateFromDate(this.completedDate)}</td><td></td>`
+            output += `<td colspan=2 class="checked">Completed ${this.completedDuration ?? ''}</td><td></td>`
           } else if (this.cancelledDate != null) {
-            output += `<td colspan=2 class="cancelled">Cancelled ${relativeDateFromDate(this.cancelledDate)}</td><td></td>`
+            // TODO: cancelled after X or cancelled X ago, depending
+            // output += `<td colspan=2 class="cancelled">Cancelled ${relativeDateFromDate(this.cancelledDate)}</td><td></td>`
+            output += `<td colspan=2 class="cancelled">Cancelled ${this.cancelledDuration ?? ''}</td><td></td>`
           }
           if (!this.isCompleted && !this.isCancelled) {
             output = (this.nextReviewDays != null)
@@ -738,11 +665,14 @@ export class Project {
         output += `${this.decoratedProjectTitle(style, includeFolderName)}`
         if (displayDates) {
           if (this.completedDate != null) {
-            // $FlowIgnore[incompatible-call]
-            output += `\t(Completed ${relativeDateFromNumber(this.finishedDays)})`
+            // TODO: completed after X or cancelled X ago, depending
+            // Drop finishedDays, but create mini funcs to return ^^^ text instead
+            // output += `\t(Completed ${relativeDateFromNumber(this.finishedDays)})`
+            output += `\t(Completed ${this.completedDuration ?? ''})`
           } else if (this.cancelledDate != null) {
-            // $FlowIgnore[incompatible-call]
-            output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
+            // TODO: completed after X or cancelled X ago, depending
+            // output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
+            output += `\t(Cancelled ${this.cancelledDuration ?? ''})`
           }
         }
         if (displayProgress && !this.isCompleted && !this.isCancelled) {
@@ -794,17 +724,34 @@ export class Project {
   }
 
   /**
+   * Note: deprecated in favour of addFAIcon().
    * Insert one of NP's state icons in given color.
    * Other styling comes from CSS for 'circle-char-text'
-   * @param {string} colorStr 
    * @param {string} char to display (normally just 1 character)
+   * @param {string} colorStr 
    * @returns HTML string to insert
    */
-  addNPStateIcon(char: string, colorStr: string = ''): string {
+  // addNPStateIcon(char: string, colorStr: string = ''): string {
+  //   if (colorStr !== '') {
+  //     return `<span class="circle-char-text" style="color: ${colorStr}">${char}</span>`
+  //   } else {
+  //     return `<span class="circle-char-text">${char}</span>`
+  //   }
+  // }
+
+  /**
+   * Insert a fontawesome icon in given color.
+   * Other styling comes from CSS for 'circle-char-text'
+   * @param {string} faClasses CSS class name(s) to use for FA icons
+   * @param {string} colorStr optional
+   * @returns HTML string to insert
+   */
+  addFAIcon(faClasses: string, colorStr: string = ''): string {
     if (colorStr !== '') {
-      return `<span class="circle-char-text" style="color: ${colorStr}">${char}</span>`
+      return `<span class="${faClasses} circle-icon" style="color: ${colorStr}"></span>`
     } else {
-      return `<span class="circle-char-text">${char}</span>`
+      return `<span class="${faClasses} circle-icon"></span>`
     }
   }
 }
+

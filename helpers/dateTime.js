@@ -319,13 +319,16 @@ export function withinDateRange(testDate: string, fromDate: string, toDate: stri
  * This is v2, now using moment library instead, but tweaking slightly to produce exactly the output as my v1 did.
  * @author @jgclark
  *
- * @param {number} diffIn - number of days difference (positive or negative)
+ * @param {number} diff - number of days difference (positive or negative)
  * @param {boolean?} shortStyle?
  * @returns {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
  */
-export function relativeDateFromNumber(diffIn: number, useShortStyle: boolean = false): string {
+export function relativeDateFromNumber(diff: number, useShortStyle: boolean = false): string {
   let output = ''
-  let diff = diffIn
+  if (diff == null || diff === undefined || isNaN(diff)) {
+    logWarn('dateTime / relativeDateFromNumber', `diff param is undefined`)
+    return 'unknown date'
+  }
   let isPast = false
   // logDebug('dateTime / relativeDateFromNumber', `original diff = ${diff}`)
   if (diff < 0) {

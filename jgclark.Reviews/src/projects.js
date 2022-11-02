@@ -79,11 +79,11 @@ export async function completeProject(): Promise<void> {
         if (await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No']) === 'Yes') {
           const newFilename = DataStore.moveNote(filename, '@Archive')
           // delete the project line from the full-review-list
-          await updateReviewListAfterChange(note, false, config, newMSL)
+          await updateReviewListAfterChange(note.title ?? '', false, config, newMSL)
         } else {
           // update the full-review-list, using the machineSummaryLine
           // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-          await updateReviewListAfterChange(note, false, config, newMSL)
+          await updateReviewListAfterChange(note.title ?? '', false, config, newMSL)
         }
       }
     }
@@ -143,11 +143,11 @@ export async function cancelProject(): Promise<void> {
         (await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No'])) === 'Yes') {
         const newFilename = DataStore.moveNote(filename, '@Archive')
         // delete the project line from the full-review-list
-        await updateReviewListAfterChange(note, true, config)
+        await updateReviewListAfterChange(note.title ?? '', true, config)
       } else {
         // update the full-review-list, using the machineSummaryLine
         // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-        await updateReviewListAfterChange(note, true, config)
+        await updateReviewListAfterChange(note.title ?? '', true, config)
       }
     }
   }
@@ -157,15 +157,12 @@ export async function cancelProject(): Promise<void> {
 }
 
 /**
- * Cancel a Project/Area note by
- * - adding @cancelled(<today's date>) to the current note in the Editor
- * - add '#archive' flag to metadata line
- * - remove from this plugin's review list
- * - add to a yearly 'Finished Projects' list in the Summaries folder (if present)
- * - offer to move it to the @Archive
+ * Toggle Un/Pause of a Project/Area note:
+ * - call the instance's togglePauseProject()
+ * - update the full-review-list
  * @author @jgclark
  */
-export async function pauseProject(): Promise<void> {
+export async function togglePauseProject(): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     const { note, filename } = Editor
@@ -181,13 +178,13 @@ export async function pauseProject(): Promise<void> {
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
-    const newMSL = projectNote.pauseProject()
+    const newMSL = projectNote.togglePauseProject()
 
     // If this has worked, then ...
     if (newMSL !== '') {
       // update the full-review-list, using the machineSummaryLine
       // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-      await updateReviewListAfterChange(note, false, config, newMSL)
+      await updateReviewListAfterChange(note.title ?? '', false, config, newMSL)
     }
   }
   catch (error) {

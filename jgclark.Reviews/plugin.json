@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.9.0-beta3",
+  "plugin.version": "0.9.0-beta5",
   "plugin.lastUpdateInfo": "Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -53,6 +53,16 @@
       "jsFunction": "nextReview"
     },
     {
+      "name": "pause project toggle",
+      "alias": [
+        "gtd",
+        "pause",
+        "project"
+      ],
+      "description": "Toggles paused status by adding or removing '#paused' in the open project note. If paused, it won't be offered as a project to review",
+      "jsFunction": "togglePauseProject"
+    },
+    {
       "name": "complete project",
       "alias": [
         "gtd",
@@ -73,16 +83,6 @@
       "jsFunction": "cancelProject"
     },
     {
-      "name": "pause project",
-      "alias": [
-        "gtd",
-        "pause",
-        "project"
-      ],
-      "description": "adds '#paused' to the open project note, and stops offering it as a project to review",
-      "jsFunction": "pauseProject"
-    },
-    {
       "name": "rev:redisplayProjectList",
       "description": "Redisplau project lists",
       "jsFunction": "redisplayProjectList"
@@ -101,6 +101,11 @@
       "name": "test:redToGreenInterpolation",
       "description": "test red - green interpolation",
       "jsFunction": "testRedToGreenInterpolation"
+    },
+    {
+      "name": "test:fonts",
+      "description": "test font glyphs",
+      "jsFunction": "testFonts"
     },
     {
       "name": "test:generateCSSFromTheme",
@@ -124,11 +129,6 @@
       "name": "rev:test update Reviews plugin",
       "description": "upgrade Reviews plugin settings",
       "jsFunction": "testUpdated"
-    },
-    {
-      "name": "test:NoteplanstateFont",
-      "description": "test 'noteplanstate' font glyphs",
-      "jsFunction": "testNoteplanStateFont"
     },
     {
       "name": "test:CSS-circle",
@@ -231,7 +231,7 @@
     {
       "key": "displayOrder",
       "title": "Display order for projects",
-      "description": "The sort options  are by 'due' date, by 'review' date or 'title'.",
+      "description": "The sort options  are by 'due' date, by next 'review' date or 'title'.",
       "type": "string",
       "choices": [
         "due",
