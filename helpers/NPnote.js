@@ -118,6 +118,29 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
 }
 
 /**
+ * Get the paragraphs in the note which are tagged for today (or this week) that may not actually be in the current note
+ * @param {CoreNoteFields} note (the note or Editor)
+ * @returns {Array<TParagraph>} - paragraphs which reference today in some way
+ */
+export function getReferencedParagraphs(note: CoreNoteFields): Array<TParagraph> {
+  // getReferencedParagraphs: aliases: backlinks, references
+  // $FlowIgnore Flow(prop-missing) -- backlinks is not in Flow defs but is real
+  const backlinks: Array<TParagraph> = [...note.backlinks] // an array of notes which link to this note
+  logDebug(pluginJson, `${note.filename}: backlinks.length:${backlinks.length}`)
+  // clo(backlinks, `getTodaysReferences backlinks:${backlinks.length}=`)
+  const todayParas = []
+  backlinks.forEach((link) => {
+    // $FlowIgnore Flow(prop-missing) -- subItems is not in Flow defs but is real
+    const subItems = link.subItems
+    subItems.forEach((subItem) => {
+      // subItem.title = link.content.replace('.md', '').replace('.txt', '') // changing the shape of the Paragraph object will cause ObjC errors // cannot do this
+      todayParas.push(subItem)
+    })
+  })
+  return todayParas
+}
+
+/**
  * Get linked items from the references section (.backlinks)
  * @param { note | null} pNote
  * @returns {Array<TParagraph>} - paragraphs which reference today in some way
@@ -132,18 +155,7 @@ export function getTodaysReferences(pNote: TNote | null = null): $ReadOnlyArray<
     logDebug(pluginJson, `timeblocking could not open Note`)
     return []
   }
-  const backlinks: Array<TParagraph> = [...note.backlinks] // an array of notes which link to this note
-  logDebug(pluginJson, `backlinks.length:${backlinks.length}`)
-  const todayParas = []
-  backlinks.forEach((link) => {
-    // $FlowIgnore Flow(prop-missing) -- subItems is not in Flow defs but is real
-    const subItems = link.subItems
-    subItems.forEach((subItem) => {
-      // subItem.title = link.content.replace('.md', '').replace('.txt', '') // changing the shape of the Paragraph object will cause ObjC errors // cannot do this
-      todayParas.push(subItem)
-    })
-  })
-  return todayParas
+  return getReferencedParagraphs(note)
 }
 
 /**

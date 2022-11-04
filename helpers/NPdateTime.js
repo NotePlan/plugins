@@ -503,7 +503,8 @@ type NotePlanWeekInfo = {
 
 /**
  * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
- * @param {string} date - date string in format YYYY-MM-DD OR a Date object. NOTE:
+ * @param {string} date - date string in format YYYY-MM-DD OR a Date object (default = today).
+ *    NOTE:
  *    Make sure that if you send in a date that it's a date in the correct time/timezone you want.
  *    If you create a new date of your own without a time (e.g. new Date("2022-01-01")) it could produce a date
  *    in a previous or next day depending on your timezone. So if you are creating the date, just send through
@@ -511,6 +512,7 @@ type NotePlanWeekInfo = {
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'week')
  * @returns { NotePlanWeekInfo } - an object with all the week details
+ * getNPWeekData: alias weekInfo, weekData, getWeek, weeklyNote
  * {
  *   weekNumber: number, // e.g. 1
  *   weekYear: number, // e.g. 2022
@@ -522,7 +524,7 @@ type NotePlanWeekInfo = {
  * @author @dwertheimer
  * @test - available in jest file
  */
-export function getNPWeekData(dateIn: string | Date, offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
+export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
   function pad(n) {
     return n < 10 ? `0${n}` : n
   }
