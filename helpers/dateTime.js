@@ -607,7 +607,7 @@ export function calcWeekOffset(startWeek: number, startYear: number, offset: num
 }
 
 /**
- * Calculate an offset date of either a NP daily or weekly date, and return _in the same format as supplied_.
+ * Calculate an offset date of either a NP daily or weekly date, and return _in whichever of the two ISO formats were supplied (YYYY-MM-DD or YYYY-Wnn)_.
  * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly strings as well.
  * Moment docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark
