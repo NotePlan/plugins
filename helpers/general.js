@@ -472,3 +472,18 @@ export function formatWithFields(templateString: string, fieldValues: { [string]
   //     return user[key] || "";
   // }
 }
+
+/**
+ * Get a random GUID/UUID
+ * @param { number } - string length of the GUID to return (default, all 36 chars)
+ * @returns {string} - the GUID, e.g. "95d92b5c-f19b-45d9-bbd1-759e4f2206ea"
+ */
+export function CreateUUID(howManyChars: number = 37): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+    .replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0,
+        v = c === 'x' ? r : (r & 0x3) | 0x8
+      return v.toString(16)
+    })
+    .slice(0, howManyChars)
+}

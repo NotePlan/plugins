@@ -137,7 +137,8 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
     ...sharedOpts,
     { label: `␡ Delete this line (be sure!)`, value: '__delete__' },
   ]
-  const res = await chooseOptionWithModifiers(`Task: "${content}"`, opts)
+  const weektext = />\d{4}-W/i.test(origPara.content) ? 'Week ' : ''
+  const res = await chooseOptionWithModifiers(`${weektext}Task: "${content}"`, opts)
   logDebug(pluginJson, `promptUserToActOnLine user selection: ${JSP(res)}`)
   // clo(res, `promptUserToActOnLine after chooseOption res=`)
   return res
@@ -276,7 +277,7 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
           }
           if (!isNaN(res)) {
             // this was an index of a line to edit
-            clo(note.paragraphs, `reviewNote: note.paragraphs=`)
+            // clo(note.paragraphs, `reviewNote: note.paragraphs=`)
             logDebug(`NPnote`, `reviewNote lineIndex of task to work on in note is:${res} "${note.paragraphs[Number(res) || 0].content}"`)
             // edit a single task item
             const origPara = note.paragraphs[Number(res) || 0]

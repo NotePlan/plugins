@@ -6,7 +6,7 @@ import { showMessageYesNo, chooseFolder, showMessage, chooseOptionWithModifiers 
 import { reviewTasksInNotes, getNotesAndTasksToReview, createArrayOfNotesAndTasks } from './NPTaskScanAndProcess'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { filenameDateString, isScheduled, isWeeklyNote } from '@helpers/dateTime'
-import { getTodaysReferences } from '@helpers/NPnote'
+import { getTodaysReferences, getReferencedParagraphs } from '@helpers/NPnote'
 import { /* getTasksByType, */ sortListBy } from '@helpers/sorting'
 import { filterNotesAgainstExcludeFolders, getOverdueParagraphs } from '@helpers/note'
 import { getNPWeekData } from '@helpers/NPdateTime'
@@ -32,6 +32,19 @@ export async function askToReviewTodaysTasks(byTask: boolean = false) {
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+}
+
+/**
+ * Get open tasks from the current week's note
+ * @returns {Array<TParagraph>} Array of open tasks
+ */
+function getWeeklyOpenTasks(): Array<TParagraph> {
+  const weeklyNote = DataStore.calendarNoteByDate(new Date(), 'week')
+  const refs = weeklyNote ? getReferencedParagraphs(weeklyNote) : []
+  const combined = [...refs, ...(weeklyNote?.paragraphs || [])]
+  clo(weeklyNote, 'weeklyNote')
+  logDebug(pluginJson, `getWeeklyOpenTasks ${weeklyNote?.filename || 0}: refs:${refs.length} paras:${weeklyNote?.paragraphs.length || 0} combined:${combined.length}`)
+  return combined.filter((p) => p.type === 'open') || []
 }
 
 /**
@@ -219,13 +232,15 @@ export async function reviewEditorReferencedTasks(incoming: string | null = null
     }
     // clo(getTodaysReferences(Editor.note), `reviewEditorReferencedTasks todayReferences`)
     const confirmResults = incoming ? false : true
-    const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
+    const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate, includeWeeklyTasks } = DataStore.settings
     const refs = getTodaysReferences(Editor.note)
     logDebug(pluginJson, `reviewEditorReferencedTasks refs.length=${refs.length}`)
-    const openTasks = refs.filter((p) => p.type === 'open' && p.content !== '') //TODO: confirm with users that open-only is OK for this command
-    logDebug(pluginJson, `reviewEditorReferencedTasks openTasks.length=${openTasks.length}`)
+    const openTasks = refs.filter((p) => p.type === 'open' && p.content !== '')
+    const thisWeeksTasks = includeWeeklyTasks ? getWeeklyOpenTasks() : []
+    logDebug(pluginJson, `reviewEditorReferencedTasks openTasks.length=${openTasks.length} thisWeeksTasks=${thisWeeksTasks.length}`)
     // gather references by note
-    const arrayOfOpenNotesAndTasks = createArrayOfNotesAndTasks(openTasks)
+    const arrayOfOpenNotesAndTasks = createArrayOfNotesAndTasks([...openTasks, ...thisWeeksTasks])
+    // clo(arrayOfOpenNotesAndTasks, `reviewEditorReferencedTasks arrayOfOpenNotesAndTasks`)
     // clo(arrayOfNotesAndTasks, `NPOverdue::reviewEditorReferencedTasks arrayOfNotesAndTasks`)
     logDebug(pluginJson, `reviewEditorReferencedTasks arrayOfNotesAndTasks.length=${arrayOfOpenNotesAndTasks.length}`)
     const options = {

@@ -4,6 +4,10 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+[1.12.0] - TBD @dwertheimer
+
+- Added /mdatb - Mark Done and run ATB command
+
 [1.11.0] - 2022-10-28 @dwertheimer
 
 - Added setting to create timeblocks for undated tasks in today's note

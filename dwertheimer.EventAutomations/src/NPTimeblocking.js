@@ -572,19 +572,24 @@ export async function selectCalendar(isPluginEntry: boolean = true): Promise<voi
 export async function markDoneAndRecreateTimeblocks(incoming: string | null = null) {
   try {
     logDebug(pluginJson, `markDoneAndRecreateTimeblocks running with incoming:${String(incoming)}`)
-    if (Editor.selection && Editor.note?.paragraphs) {
+    if (Editor?.selection && Editor?.paragraphs) {
       // const updatedParas = []
-      const [startIndex, endIndex] = selectedLinesIndex(Editor.selection, Editor.note.paragraphs)
+      const [startIndex, endIndex] = selectedLinesIndex(Editor.selection, Editor.paragraphs)
       if (endIndex >= startIndex) {
         for (let index = startIndex; index <= endIndex; index++) {
-          const para = Editor.note?.paragraphs[index]
+          const para = Editor.paragraphs[index]
           if (para) {
-            logDebug(pluginJson, `markDoneAndRecreateTimeblocks: paragraph[${index}] of ${startIndex} to ${endIndex}: "${para.content || ''}"`)
+            // logDebug(pluginJson, `markDoneAndRecreateTimeblocks: paragraph[${index}] of ${startIndex} to ${endIndex}: "${para.content || ''}"`)
             if (para && isTask(para)) {
-              clo(para, `markDoneAndRecreateTimeblocks: before update paragraph[${index}]`)
+              // clo(para, `markDoneAndRecreateTimeblocks: before update paragraph[${index}]`)
               para.type = 'done'
-              if (Editor.note) Editor.note.updateParagraph(para)
-              clo(para, `markDoneAndRecreateTimeblocks: after update paragraph[${index}]`)
+              if (Editor) {
+                Editor.updateParagraph(para)
+                // clo(para, `markDoneAndRecreateTimeblocks: para after update paragraph[${index}]`)
+                // clo(Editor?.paragraphs[para.lineIndex], `markDoneAndRecreateTimeblocks: note.paragraphs[${index}]`)
+              } else {
+                logError(pluginJson, `markDoneAndRecreateTimeblocks: no Editor`)
+              }
             }
           }
         }

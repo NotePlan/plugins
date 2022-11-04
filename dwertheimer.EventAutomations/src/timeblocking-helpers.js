@@ -330,7 +330,7 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
 }
 
 /**
- * Attach links to the underlying todo note/heading if necessary
+ * Attach links to the underlying todo note/heading if open and is not a task in today's note and if the config calls for it
  * @param { [todos] } todos
  * @param { * } config
  * @returns
@@ -342,7 +342,7 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: AutoTime
       todosWithLinks = []
       todos.forEach((e) => {
         const isInToday = e.note?.filename === Editor.note?.filename
-        if (e.type !== 'title' && !isInToday) {
+        if (e.type === 'open' && !isInToday) {
           // don't create URL links for tasks in the same note
           let link = ''
           if (config.includeLinks === '[[internal#links]]') {
@@ -357,10 +357,8 @@ export function appendLinkIfNecessary(todos: Array<TParagraph>, config: AutoTime
             }
           }
           e.content = `${textWithoutSyncedCopyTag(e.content)}${link}`
-          todosWithLinks.push(e)
-        } else if (isInToday) {
-          todosWithLinks.push(e)
         }
+        todosWithLinks.push(e)
       })
     } else {
       todosWithLinks = todos

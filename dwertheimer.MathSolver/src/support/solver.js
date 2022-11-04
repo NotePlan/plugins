@@ -351,7 +351,7 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
     const results = math.evaluate(expressions, variables)
     // results.map((e, i) => variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : e)  // you put the row results in the variables
     results.map((e, i) => {
-      clo(expressions[i], `parse:expressions[${i}]`)
+      // clo(expressions[i], `parse:expressions[${i}]`)
       const rounded = precision ? Number(math.format(e, { precision })) : e
       variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : isNaN(rounded) ? e : rounded
       info[i].lineValue = variables[`R${i}`]

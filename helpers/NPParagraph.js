@@ -147,7 +147,9 @@ export function getParagraphBlock(
   let selectedPara = allParas[startLine]
   logDebug(
     `NPParagraph / getParagraphBlock`,
-    `Starting at lineIndex ${selectedParaIndex} with start active/last line = ${startActiveLineIndex}/${lastLineIndex} with ${String(includeFromStartOfSection)}/${String(useTightBlockDefinition)}: '${trimString(selectedPara.content, 50)}'`,
+    `Starting at lineIndex ${selectedParaIndex} with start active/last line = ${startActiveLineIndex}/${lastLineIndex} with ${String(includeFromStartOfSection)}/${String(
+      useTightBlockDefinition,
+    )}: '${trimString(selectedPara.content, 50)}'`,
   )
 
   if (includeFromStartOfSection) {
@@ -514,17 +516,17 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
     if (typeof p.contentRange?.start === 'number' && typeof p.contentRange.end == 'number') {
       if (p.contentRange.start >= 0 && p.contentRange.end >= 0) {
         const { start, end } = p.contentRange || {}
-        logDebug(pluginJson, `NPParagraph::getParagraphContaining start:${start} end:${end}`)
+        // logDebug(pluginJson, `NPParagraph::getParagraphContaining start:${start} end:${end}`)
         if (start <= position && end >= position) {
           foundParagraph = p
-          if (i > 0) {
-            logDebug(
-              pluginJson,
-              `getParagraphContainingPosition: paragraph before: ${i - 1} (${String(note.paragraphs[i - 1].contentRange?.start)}-${String(
-                note.paragraphs[i - 1]?.contentRange?.end || 'n/a',
-              )}) - "${note.paragraphs[i - 1].content}"`,
-            )
-          }
+          // if (i > 0) {
+          //   logDebug(
+          //     pluginJson,
+          //     `getParagraphContainingPosition: paragraph before: ${i - 1} (${String(note.paragraphs[i - 1].contentRange?.start)}-${String(
+          //       note.paragraphs[i - 1]?.contentRange?.end || 'n/a',
+          //     )}) - "${note.paragraphs[i - 1].content}"`,
+          //   )
+          // }
           logDebug(pluginJson, `getParagraphContainingPosition: found position ${position} in paragraph ${i} (${start}-${end}) -- "${p.content}"`)
         }
       }
@@ -565,6 +567,15 @@ export async function getSelectedParagraph(): Promise<TParagraph | null> {
     await showMessage(`No paragraph found selection.start: ${String(Editor.selection?.start)} Editor.selectedParagraphs.length = ${Editor.selectedParagraphs?.length}`)
   }
   return thisParagraph || null
+}
+
+/**
+ * Get the lineIndex of the selected paragraph (looks at start of selection only)
+ * @returns {Promise<number>} the lineIndex or -1 if can't be found
+ */
+export async function getSelectedParagraphLineIndex(): Promise<number> {
+  const para = await getSelectedParagraph()
+  return para?.lineIndex && para.lineIndex > -1 ? para?.lineIndex : -1
 }
 
 /**
