@@ -29,6 +29,30 @@ export function trimString(inStr: string, maxLen: number): string {
 }
 
 /**
+ * Convert a comma-separated string, which can just have a single term, to an array.
+ * Returns empty list if no input, empty or undefined input.
+ * Drawn from https://stackoverflow.com/a/19523289/3238281
+ */
+export function stringListOrArrayToArray(input: string | Array<string>, separator: string): Array<string> {
+  let fullArray = []
+  if (!input) {
+    return []
+  }
+  else if (input !== undefined && input !== '') {
+    if (typeof input === 'string') {
+      if (input.indexOf(separator) === -1) {
+        fullArray.push(input)
+      } else {
+        fullArray = input.split(separator)
+      }
+    } else {
+      fullArray = input // keep as an array
+    }
+  }
+  return fullArray
+}
+
+/**
  * Cast boolean from the config mixed. Based on @m1well's config system.
  *
  * @param val the config mixed
