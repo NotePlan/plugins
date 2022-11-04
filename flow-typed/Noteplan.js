@@ -531,6 +531,16 @@ declare class DataStore {
   static referencedBlocks(paragraph: TParagraph): TParagraph;
 
   /**
+   * Updates the cache, so you can access changes faster.
+   * 'shouldUpdateTags' parameter controls whether to update .hashtags and .mentions too.
+   * If so, the note has to be reloaded for the updated .mentions to be available.
+   * Note: Available from NotePlan v3.7.1
+   * @param {TNote} note to update
+   * @param {Boolean} shouldUpdateTags? 
+   */
+  static updateCache(note, shouldUpdateTags): void;
+
+  /**
    * Loads all available plugins asynchronously from the GitHub repository and returns a list.
    * You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
    * Note: Available from v3.5.2
