@@ -10,7 +10,6 @@ import { findEndOfActivePartOfNote } from './paragraph'
 import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
 import { findOverdueWeeksInString } from './NPnote'
-import { lgamma } from 'mathjs'
 
 export const noteType = (filename: string): NoteType => (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes')
 
@@ -460,13 +459,13 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
         break
       }
     }
-    logDebug('note / removeSection', `  - mHI ${String(matchedHeadingIndex)} sHL ${String(sectionHeadingLevel)} eOA ${String(endOfActive)}`)
+    logDebug('note / removeSection', `  - headingIndex ${String(matchedHeadingIndex)} level ${String(sectionHeadingLevel)} endOfActive ${String(endOfActive)}`)
 
     if (matchedHeadingIndex !== undefined && matchedHeadingIndex < endOfActive) {
       note.removeParagraph(paras[matchedHeadingIndex])
       // Work out the set of paragraphs to remove
       const parasToRemove = []
-      for (let i = matchedHeadingIndex + 1; i < endOfActive; i++) {
+      for (let i = matchedHeadingIndex + 1; i <= endOfActive; i++) {
         // stop removing when we reach heading of same or higher level (or end of active part of note)
         if (paras[i].type === 'title' && paras[i].headingLevel <= sectionHeadingLevel) {
           break
