@@ -59,8 +59,10 @@ The **settings** for this command are:
 - Where to write the progress update? The destination note is either the 'current'ly open note, or the current 'daily' or 'weekly' note.
 - Progress Heading: e.g. 'Progress Update'
 - #hashtags to count: e.g. '#tv, #podcast'
-- @mentions to count: e.g. '@sleep, @work, @fruitveg, @run'
-- (new) **Did/Didn't Do items**: Comma-separated list of #hashtags and/or @mentions to track by being present or not 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
+- @mentions to count: e.g. '@work' -- these are counted and displayed with count, total and average
+- @mentions to average: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average
+- @mentions to total: e.g. '@distance, @run' -- these are counted and displayed as a total
+- (new) **Yes/No items**: Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
 - Yes/No characters: sets the pair of characters to use as Yes and No in output of "Yes/No items". The first is for Yes, the second for No. Here are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□. (You can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.)
 - 'Include sparkline graphs?' true or false
 
@@ -97,11 +99,11 @@ and without:
 **family**: 6
 **dogwalk**: 10
 **closedrings**: 6
-**work**:  22, total 153.5, avg 7
-**fruitveg**:  21, total 81, avg 3.9
-**sleep**:  30, total 204.6, avg 6.8
-**steps**:  29, total 290,156, avg 10,000
-**distance**:  29, total 208.3, avg 7.2
+**distance**:  total 208.3 (from 29)
+**fruitveg**:  avg 3.9 (from 21)
+**run**:  total 24 (from 4)
+**sleep**:  avg 6.8 (from 30)
+**work**:  total 153.5, avg 7 (from 22)
 ```
 
 It starts by asking for the time period you wish to operate over:

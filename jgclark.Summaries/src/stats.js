@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 3.10.2022 for v0.14.0
+// Last updated 4.11.2022 for v0.15.0
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -15,9 +15,9 @@ import {
   getSummariesSettings,
   TMOccurrences
 } from './summaryHelpers'
-import { getWeek, unhyphenatedDate } from '@helpers/dateTime'
+import { getWeek, hyphenatedDate, unhyphenatedDate } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
-import { logDebug, logError, logInfo } from '@helpers/dev'
+import { logDebug, logError, logInfo, timer } from '@helpers/dev'
 import { CaseInsensitiveMap, displayTitle } from '@helpers/general'
 import { getOrMakeNote, printNote, replaceSection } from '@helpers/note'
 import { caseInsensitiveCompare } from '@helpers/sorting'
@@ -46,14 +46,22 @@ export async function statsPeriod(): Promise<void> {
     if (fromDate > toDate) {
       throw new Error(`Error: requested fromDate ${String(fromDate)} is after toDate ${String(toDate)}`)
     }
-    const fromDateStr = unhyphenatedDate(fromDate)
-    const toDateStr = unhyphenatedDate(toDate)
+    const fromDateStr = hyphenatedDate(fromDate)
+    const toDateStr = hyphenatedDate(toDate)
     logInfo(pluginJson, `statsPeriod: starting for ${periodString} (${fromDateStr} - ${toDateStr})`)
 
-    // Main work: calculate the progress update as an array of strings
-    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.includeHashtags, config.excludeHashtags, config.includeMentions, config.excludeMentions, [])
+    const startTime = new Date()
+    CommandBar.showLoading(true, `Creating Period Stats`)
+    await CommandBar.onAsyncThread()
 
-    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines).join('\n')
+    // Main work: calculate the progress update as an array of strings
+    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.includeHashtags, config.excludeHashtags, config.includeMentions, config.excludeMentions, [], config.progressMentions, config.progressMentionsAverage, config.progressMentionsTotal)
+
+    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, true).join('\n')
+
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
+    logDebug(pluginJson, `Created progress update in${timer(startTime)}`)
 
     // --------------------------------------------------------------------------
     // Ask where to save this summary to

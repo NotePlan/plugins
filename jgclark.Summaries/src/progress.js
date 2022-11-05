@@ -2,13 +2,13 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 2.9.2022 for v0.13.0, @jgclark
+// Last updated 4.11.2022 for v0.15.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
-  calcHashtagStatsPeriod, // previous method
-  calcMentionStatsPeriod, // previous method
+  // calcHashtagStatsPeriod, // previous method
+  // calcMentionStatsPeriod, // previous method
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
@@ -16,12 +16,14 @@ import {
 } from './summaryHelpers'
 import {
   getDateStringFromCalendarFilename,
+  hyphenatedDate,
+  toISODateString,
   toLocaleDateString,
   unhyphenatedDate,
   withinDateRange,
 } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
-import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
   displayTitle,
@@ -77,13 +79,21 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     if (fromDate > toDate) {
       throw new Error(`Error: requested fromDate ${String(fromDate)} is after toDate ${String(toDate)}`)
     }
-    const fromDateStr = unhyphenatedDate(fromDate)
-    const toDateStr = unhyphenatedDate(toDate)
+    const fromDateStr = hyphenatedDate(fromDate)
+    const toDateStr = hyphenatedDate(toDate)
+
+    const startTime = new Date()
+    CommandBar.showLoading(true, `Creating Progress Update`)
+    await CommandBar.onAsyncThread()
 
     // Main work: calculate the progress update as an array of strings
-    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.progressHashtags, [], config.progressMentions, [], config.progressYesNo)
+    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.progressHashtags, [], config.progressMentions, [], config.progressYesNo, config.progressMentions, config.progressMentionsAverage, config.progressMentionsTotal)
 
-    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', showSparklines).join('\n')
+    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', showSparklines, false).join('\n')
+
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
+    logDebug(pluginJson, `Created progress update in${timer(startTime)}`)
 
     // Send output to chosen required destination
     if (params) {
@@ -164,106 +174,106 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
  * @param {boolean?} showSparklines
  * @return {string} - return string
  */
-function calcProgressUpdate(periodString: string, fromDateStr: string, toDateStr: string, hashtagList: Array<string>, mentionList: Array<string>, showSparklines: boolean = true): string {
-  try {
-    logDebug('calcProgressUpdate', `starting for ${periodString} (= ${fromDateStr} - ${toDateStr}):`)
+// function calcProgressUpdate(periodString: string, fromDateStr: string, toDateStr: string, hashtagList: Array<string>, mentionList: Array<string>, showSparklines: boolean = true): string {
+//   try {
+//     logDebug('calcProgressUpdate', `starting for ${periodString} (= ${fromDateStr} - ${toDateStr}):`)
 
-    // Calc hashtags stats (returns two maps) for just the inclusion list 'progressHashtags'
-    const outputArray: Array<string> = []
+//     // Calc hashtags stats (returns two maps) for just the inclusion list 'progressHashtags'
+//     const outputArray: Array<string> = []
 
-    // First check progressHashtags is not empty
-    if (hashtagList.length > 0) {
-      const hResults = calcHashtagStatsPeriod(fromDateStr, toDateStr, hashtagList, [])
-      const hCounts: CaseInsensitiveMap<number> = hResults?.[0] ?? new CaseInsensitiveMap < number > ()
-      const hSumTotals: CaseInsensitiveMap<number> = hResults?.[1] ?? new CaseInsensitiveMap < number > ()
-      if (hSumTotals == null && hCounts == null) {
-        logDebug('calcProgressUpdate', `no matching hashtags found in ${periodString}`)
-      } else {
-        // logDebug('calcProgressUpdate', "hSumTotals results:")
-        // for (const [key, value] of hSumTotals.entries()) {
-        //   logDebug('calcProgressUpdate', `  ${key}: ${value}`)
-        // }
+//     // First check progressHashtags is not empty
+//     if (hashtagList.length > 0) {
+//       const hResults = calcHashtagStatsPeriod(fromDateStr, toDateStr, hashtagList, [])
+//       const hCounts: CaseInsensitiveMap<number> = hResults?.[0] ?? new CaseInsensitiveMap < number > ()
+//       const hSumTotals: CaseInsensitiveMap<number> = hResults?.[1] ?? new CaseInsensitiveMap < number > ()
+//       if (hSumTotals == null && hCounts == null) {
+//         logDebug('calcProgressUpdate', `no matching hashtags found in ${periodString}`)
+//       } else {
+//         // logDebug('calcProgressUpdate', "hSumTotals results:")
+//         // for (const [key, value] of hSumTotals.entries()) {
+//         //   logDebug('calcProgressUpdate', `  ${key}: ${value}`)
+//         // }
 
-        // First process more complex 'SumTotals', calculating appropriately
-        for (const [key, value] of hSumTotals.entries()) {
-          const tagString = key.slice(1) // show without leading '#' to avoid double counting issues
-          const total = hSumTotals.get(key) ?? NaN
-          if (isNaN(total)) {
-            logDebug('calcProgressUpdate', `  no totals for ${key}`)
-          } else {
-            const count = hSumTotals.get(key) ?? NaN
-            const totalStr = value.toLocaleString()
-            const avgStr = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
-            outputArray.push(`${tagString}\t${count}\t(total ${totalStr}\tavg ${avgStr})`)
-            hCounts.delete(key) // remove the entry from the next map, as no longer needed
-          }
-        }
+//         // First process more complex 'SumTotals', calculating appropriately
+//         for (const [key, value] of hSumTotals.entries()) {
+//           const tagString = key.slice(1) // show without leading '#' to avoid double counting issues
+//           const total = hSumTotals.get(key) ?? NaN
+//           if (isNaN(total)) {
+//             logDebug('calcProgressUpdate', `  no totals for ${key}`)
+//           } else {
+//             const count = hSumTotals.get(key) ?? NaN
+//             const totalStr = value.toLocaleString()
+//             const avgStr = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
+//             outputArray.push(`${tagString}\t${count}\t(total ${totalStr}\tavg ${avgStr})`)
+//             hCounts.delete(key) // remove the entry from the next map, as no longer needed
+//           }
+//         }
 
-        // logDebug('calcProgressUpdate', "hCounts results:")
-        // for (const [key, value] of hCounts.entries()) {
-        //   logDebug('calcProgressUpdate', `  ${key}: ${value}`)
-        // }
+//         // logDebug('calcProgressUpdate', "hCounts results:")
+//         // for (const [key, value] of hCounts.entries()) {
+//         //   logDebug('calcProgressUpdate', `  ${key}: ${value}`)
+//         // }
 
-        // Then process simpler 'Counts'
-        for (const [key, value] of hCounts.entries()) {
-          const hashtagString = key.slice(1) // show without leading '#' to avoid double counting issues
-          outputArray.push(`${hashtagString}\t${value}`)
-        }
-      }
-    }
+//         // Then process simpler 'Counts'
+//         for (const [key, value] of hCounts.entries()) {
+//           const hashtagString = key.slice(1) // show without leading '#' to avoid double counting issues
+//           outputArray.push(`${hashtagString}\t${value}`)
+//         }
+//       }
+//     }
 
-    // Calc mentions stats (returns two maps) for just the inclusion list 'progressMentions'
-    // First check progressMentions is not empty
-    if (mentionList.length > 0) {
-      const mResults = calcMentionStatsPeriod(fromDateStr, toDateStr, mentionList, [])
-      const mCounts: CaseInsensitiveMap<number> = mResults?.[0] ?? new CaseInsensitiveMap < number > ()
-      const mSumTotals: CaseInsensitiveMap<number> = mResults?.[1] ?? new CaseInsensitiveMap < number > ()
-      if (mCounts == null && mSumTotals == null) {
-        logDebug('calcProgressUpdate', `no matching mentions found in ${periodString}`)
-      } else {
-        // logDebug('calcProgressUpdate', "mSumTotals results:")
-        // for (const [key, value] of mSumTotals.entries()) {
-        //   logDebug('calcProgressUpdate', `  ${key}: ${value}`)
-        // }
+//     // Calc mentions stats (returns two maps) for just the inclusion list 'progressMentions'
+//     // First check progressMentions is not empty
+//     if (mentionList.length > 0) {
+//       const mResults = calcMentionStatsPeriod(fromDateStr, toDateStr, mentionList, [])
+//       const mCounts: CaseInsensitiveMap<number> = mResults?.[0] ?? new CaseInsensitiveMap < number > ()
+//       const mSumTotals: CaseInsensitiveMap<number> = mResults?.[1] ?? new CaseInsensitiveMap < number > ()
+//       if (mCounts == null && mSumTotals == null) {
+//         logDebug('calcProgressUpdate', `no matching mentions found in ${periodString}`)
+//       } else {
+//         // logDebug('calcProgressUpdate', "mSumTotals results:")
+//         // for (const [key, value] of mSumTotals.entries()) {
+//         //   logDebug('calcProgressUpdate', `  ${key}: ${value}`)
+//         // }
 
-        // First process more complex 'SumTotals', calculating appropriately
-        for (const [key, value] of mSumTotals.entries()) {
-          const mentionString = key.slice(1) // show without leading '@' to avoid double counting issues
-          const total = mSumTotals.get(key) ?? NaN
-          if (isNaN(total)) {
-            logDebug(`  no totals for ${key}`)
-          } else {
-            const count = mCounts.get(key) ?? NaN
-            const totalStr = value.toLocaleString()
-            const avgStr = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
-            outputArray.push(`${mentionString}\t${count}\t(total ${totalStr}\tavg ${avgStr})`)
-            mCounts.delete(key) // remove the entry from the next map, as not longer needed
-          }
-        }
-      }
+//         // First process more complex 'SumTotals', calculating appropriately
+//         for (const [key, value] of mSumTotals.entries()) {
+//           const mentionString = key.slice(1) // show without leading '@' to avoid double counting issues
+//           const total = mSumTotals.get(key) ?? NaN
+//           if (isNaN(total)) {
+//             logDebug(`  no totals for ${key}`)
+//           } else {
+//             const count = mCounts.get(key) ?? NaN
+//             const totalStr = value.toLocaleString()
+//             const avgStr = (value / count).toLocaleString([], { maximumSignificantDigits: 2 })
+//             outputArray.push(`${mentionString}\t${count}\t(total ${totalStr}\tavg ${avgStr})`)
+//             mCounts.delete(key) // remove the entry from the next map, as not longer needed
+//           }
+//         }
+//       }
 
-      // logDebug('calcProgressUpdate', "mCounts results:")
-      // for (const [key, value] of mCounts.entries()) {
-      //   logDebug('calcProgressUpdate', `  ${key}: ${value}`)
-      // }
+//       // logDebug('calcProgressUpdate', "mCounts results:")
+//       // for (const [key, value] of mCounts.entries()) {
+//       //   logDebug('calcProgressUpdate', `  ${key}: ${value}`)
+//       // }
 
-      // Then process simpler 'Counts'
-      for (const [key, value] of mCounts.entries()) {
-        const mentionString = key.slice(1) // show without leading '@' to avoid double counting issues
-        outputArray.push(`${mentionString}\t${value}`)
-      }
-    }
+//       // Then process simpler 'Counts'
+//       for (const [key, value] of mCounts.entries()) {
+//         const mentionString = key.slice(1) // show without leading '@' to avoid double counting issues
+//         outputArray.push(`${mentionString}\t${value}`)
+//       }
+//     }
 
-    // If there's been nothing to report, let's make that clear, otherwise sort output
-    if (outputArray.length > 0) {
-      outputArray.sort(caseInsensitiveCompare)
-    } else {
-      outputArray.push('(none)')
-    }
-    return outputArray.join('\n')
-  }
-  catch (error) {
-    logError('calcProgressUpdate', error.message)
-    return '' // for completeness
-  }
-}
+//     // If there's been nothing to report, let's make that clear, otherwise sort output
+//     if (outputArray.length > 0) {
+//       outputArray.sort(caseInsensitiveCompare)
+//     } else {
+//       outputArray.push('(none)')
+//     }
+//     return outputArray.join('\n')
+//   }
+//   catch (error) {
+//     logError('calcProgressUpdate', error.message)
+//     return '' // for completeness
+//   }
+// }

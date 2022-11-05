@@ -11,6 +11,7 @@ import moment from 'moment/min/moment-with-locales'
 import {
   calcHashtagStatsPeriod,
   calcMentionStatsPeriod,
+  // gatherOccurrences,
   getSummariesSettings,
   type SummariesConfig
 } from './summaryHelpers'
@@ -573,7 +574,23 @@ export async function weeklyStats(): Promise<void> {
     const [weekStartDate, weekEndDate] = weekStartEnd(w, y)
 
     // Calc hashtags stats (returns two maps)
+    // Previous method:
     let weekResults = await calcHashtagStatsPeriod(unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate), config.includeHashtags, [])
+    // TODO: Getting ready for next method:
+    // let weekResults = await gatherOccurrences(
+    //   'period',
+    //   unhyphenatedDate(weekStartDate),
+    //   unhyphenatedDate(weekEndDate),
+    //   [],
+    //   [],
+    //   config.includeMentions,
+    //   [],
+    //   [],
+    //   [],
+    //   [],
+    //   []
+    // )
+
     const hCounts = weekResults?.[0]
     const hSumTotals = weekResults?.[1]
     if (hSumTotals == null || hCounts == null) {
@@ -601,6 +618,7 @@ export async function weeklyStats(): Promise<void> {
     }
 
     // Calc mentions stats (returns two maps)
+    // Previous method:
     weekResults = await calcMentionStatsPeriod(
       unhyphenatedDate(weekStartDate),
       unhyphenatedDate(weekEndDate),
@@ -608,6 +626,20 @@ export async function weeklyStats(): Promise<void> {
       config.includeMentions,
       [],
     )
+    // TODO: Getting ready for next method:
+    // weekResults = await gatherOccurrences(
+    //   'period',
+    //   unhyphenatedDate(weekStartDate),
+    //   unhyphenatedDate(weekEndDate),
+    //   [],
+    //   [],
+    //   config.includeMentions,
+    //   [],
+    //   [],
+    //   [],
+    //   [],
+    //   []
+    // )
     const mCounts = weekResults?.[0]
     const mSumTotals = weekResults?.[1]
     if (mCounts == null || mSumTotals == null) {

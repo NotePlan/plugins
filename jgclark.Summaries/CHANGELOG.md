@@ -1,8 +1,16 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.15.0] - 2022-11-04
+### Added
+- Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting. These tailor the output to focus on average or total, not all the currently-presented statistics. (You might want to migrate some in the existing setting to the two new alternatives.)
+### Changed
+- Improved display of results of average and totals in the various stats updates
+### Fixed
+- Fixed an issue with display order in sparklines
+
 ## [0.14.0] - 2022-10-04
-## Added
+### Added
 - new **/heatmap for complete tasks** command displays a 'heatmap' chart of how many tasks you've completed on each day (see example above). This checks in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you don't set it, the plugin will generate a sensible period up to 12 months. Note: requires NotePlan v3.7.
 ### Changed
 - stop sparklines appearing in  the '**/periodStats**' command for periods of more than a month.

@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.14.0",
-  "plugin.lastUpdateInfo": "Adds '/heatmap for complete tasks' command.",
+  "plugin.version": "0.15.0",
+  "plugin.lastUpdateInfo": "Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -144,15 +144,31 @@
     {
       "key": "progressMentions",
       "title": "@mentions to count",
-      "description": "List of @mentions to include in Progress updates. If this list is empty, no mentions will be included.",
+      "description": "Optional list of simple @mentions to include in Progress updates. If this list is empty, no mentions will be included.",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "progressMentionsAverage",
+      "title": "@mentions to average",
+      "description": "Optional list of @mention(num)s to include in Progress updates, presented as an average.",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "progressMentionsTotal",
+      "title": "@mentions to total",
+      "description": "Optional list of @mention(num)s to include in Progress updates, presented as a total.",
       "type": "[string]",
       "default": [],
       "required": false
     },
     {
       "key": "progressYesNo",
-      "title": "Did/Didn't Do items",
-      "description": "Comma-separated list of #hashtags and/or @mentions to track by being present or not 'did I do it this day or not?'.",
+      "title": "Yes/No items",
+      "description": "Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'.",
       "type": "[string]",
       "default": [],
       "required": false
