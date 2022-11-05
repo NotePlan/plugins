@@ -402,7 +402,14 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
   let firstSelParaIndex = 0
   let lastSelParaIndex = 0
   const startParaRange: TRange = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  const endParaRange: TRange = Editor.paragraphRangeAtCharacterIndex(selection.end)
+  let endParaRange: TRange = Editor.paragraphRangeAtCharacterIndex(selection.end)
+  // Deal with the edge case of highlighting a full line and Editor.paragraphRangeAtCharacterIndex(selection.end) incorrectly returns the next line
+  if (endParaRange.start === endParaRange.end) {
+    endParaRange = Editor.paragraphRangeAtCharacterIndex(selection.end - 1)
+  }
+  //
+  clo(startParaRange, `selectedLinesIndex: startParaRange`)
+  clo(endParaRange, `selectedLinesIndex: endParaRange`)
 
   // Get the set of selected paragraphs (which can be different from selection),
   // and work out what selectedPara number(index) this selected selectedPara is

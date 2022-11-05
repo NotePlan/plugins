@@ -11,6 +11,7 @@ Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorti
 - Find and change overdue tasks (and change their status/reschedule them to a date in the future)
 - Find (undated and potentially forgotten) tasks in a previous daily note or buried in a project note
 - Sorting tasks (by various task fields or simply bringing tasks to the top of the note)
+- Marking a task (or multiple) done and creating a follow-up/related task with a link to the done one
 - Marking all tasks complete (or incomplete)
 - Copying tags/mentions from previous lines when doing multiple task entry
 - Task Sync - create a page of synced tasks matching a text search criteria (e.g. search for all open todos marked "@bob" and put them in one document)
@@ -40,6 +41,21 @@ Same as above, but limited to the foreground note in the Editor
 ### Command `/Review overdue tasks in <Choose Folder>`
 
 In this version, you will be prompted for a folder in which to search for overdue tasks
+
+## Follow-up Tasks
+
+You can select (or just be on the same line as) a task or multiple tasks and mark them done, while at the same time creating a follow-up or related task underneath the selected task or in a future calendar/weekly note. In either of the commands below, the follow-up task will look like:
+
+- [ ] #FollowUp test1 [original task](noteplan://x-callback-url/openNote?noteTitle=*%20test1%5El1xagv) >2022-11-04`
+or
+- [ ] #FollowUp test2 [[* [x] test1 ^l1xagv^onk7l6]] >2022-11-05
+The format can be set in preferences (the preamble -- `#FollowUp` by default) and whether to use [[wikiLinks]] or [URLs]()
+
+### Command `/Mark done and create follow-up underneath`
+
+Select a task or tasks and this command will mark it/them done/complete and create a follow-up task with a link to the original in the form of:
+
+### Command `/Mark done and create follow-up in future note`
 
 ## Sorting Tasks
 
