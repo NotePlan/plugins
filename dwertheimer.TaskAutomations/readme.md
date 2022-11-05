@@ -44,11 +44,16 @@ In this version, you will be prompted for a folder in which to search for overdu
 
 ## Follow-up Tasks
 
+<img width="386" alt="Screen Cap 2022-11-05 at 00 01 42@2x" src="https://user-images.githubusercontent.com/8949588/200107300-2e3d5f44-c08e-4a44-8b69-b3cb9f43888b.png">
+
 You can select (or just be on the same line as) a task or multiple tasks and mark them done, while at the same time creating a follow-up or related task underneath the selected task or in a future calendar/weekly note. In either of the commands below, the follow-up task will look like:
 
-- [ ] #FollowUp test1 [original task](noteplan://x-callback-url/openNote?noteTitle=*%20test1%5El1xagv) >2022-11-04`
+- [ ] #FollowUp test1 [original task](noteplan://x-callback-url/openNote?noteTitle=*%20test1%5El1xagv) >2022-11-04
+
 or
+
 - [ ] #FollowUp test2 [[* [x] test1 ^l1xagv^onk7l6]] >2022-11-05
+
 The format can be set in preferences (the preamble -- `#FollowUp` by default) and whether to use [[wikiLinks]] or [URLs]()
 
 ### Command `/Mark done and create follow-up underneath`
