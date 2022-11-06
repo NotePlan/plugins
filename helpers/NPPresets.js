@@ -72,12 +72,11 @@ And passes it through to the callback passed (themePresetChosen in above example
  */
 
 /**
- * Show Users a list of command names and return the command
- * @param {*} pluginJson
- * @param {*} msg
- * @param {*} presetDesc
- * @param {boolean} showHiddenValueOf - show commands that have a hidden field of true|false (leave blank for both)
- * @returns {string} - jsFunction string of command chosen or false
+ * Show Users a list of command names and return the chosen command's jsFunction
+ * @param {object} pluginJson - the entire settings object for a plugin
+ * @param {?string} msg - to display to user
+  * @param {?boolean} showHiddenValueOf - show commands that have a hidden field of true|false (leave blank for both)
+ * @returns {string | false} - jsFunction string of command chosen or false
  * @author @dwertheimer
  */
 export async function choosePreset(pluginJson: any, msg: string = 'Choose a preset to change', showHiddenValueOf: boolean | null = null): Promise<string | false> {
@@ -103,8 +102,9 @@ export async function choosePreset(pluginJson: any, msg: string = 'Choose a pres
  * Change the name and description of a plugin command inside the plugin.json object
  * Returns the updated object (does not save anything) -- this function is called by savePluginCommand() which does save it
  * the functionName is the key of the command in the plugin.commands array to find
+ * @author @dwertheimer
  * @param {object} pluginJson - the entire settings object for a plugin
- * @param {string} fields - object with fields to set {jsFunction,name,description}
+ * @param {PresetCommand} fields - object with fields to set {jsFunction,name,description}
  * @param {boolean} commandHidden - should the command be hidden (not shown in the command bar) default is false
  * @return {object} pluginJson object
  */
@@ -121,16 +121,14 @@ export function updateJSONForFunctionNamed(pluginJson: any, fields: PresetComman
 }
 
 /**
- * Change the name and description of a plugin command inside the plugin.json object
- * Returns the updated object (does not save anything) -- this function is called by savePluginCommand() which does save it
- * the functionName is the key of the command in the plugin.commands array to find
- * @param {any} pluginJson - the existing pluginJson (used for pulling the plugin's ID)
- * @param {string} fields - object with fields to set {jsFunction,name,description}
- * @param {string} jsFunction - the name of the command's jsFunction (this is the key)
- * @param {string} name - new name field (what the user will see)
- * @param {string} description - new description (string to be added as a description -- can be used for variable passing).
+ * Update details of a plugin's command in its plugin.json file.
+ * Also saves it to settings, so it can be recovered after a plugin upgrade.
+ * @author @dwertheimer
+ * @param {object} pluginJson - the existing pluginJson (used for pulling the plugin's ID)
+ * @param {PresetCommand} fields - object with fields to set {jsFunction,name,description}
+ * @returns {object | false} index of the found item in the commands array (or false)
  */
-export async function savePluginCommand(pluginJson: any, fields: PresetCommand): Promise<boolean> {
+export async function savePluginCommand(pluginJson: any, fields: PresetCommand): Promise<any | false> {
   const { jsFunction } = fields
   if (jsFunction && jsFunction !== '') {
     logDebug(pluginJson, `savePluginCommand: setting: ${String(jsFunction)} to: "${JSP(fields)}"; First will pull the existing plugin.json`)
@@ -146,13 +144,15 @@ export async function savePluginCommand(pluginJson: any, fields: PresetCommand):
 
 /**
  * Get a preset command object chosen by user and send it to a specific
- * callback for processing
- * @param {*} jsFunction - the jsFunction (key) of the command chosen
- * @param {*} callback - a function to pass the chosen object to
- * @param {*} callbackArgs - arguments to pass to the callback function (after the command object) - empty args for error
+ * callback for processing.
+ * @author @dwertheimer
+ * @param {object} pluginJson - the contents of plugin.json file
+ * @param {string} jsFunction - the jsFunction (key) of the command chosen
+ * @param {function} callback - a function to pass the chosen object to
+ * @param {Array<any>} callbackArgs - arguments to pass to the callback function (after the command object) - empty args for error
  * NOTE: See function themePresetChosen in np.ThemeChooser for example callback
  */
-export async function presetChosen(pluginJson: any, jsFunction: string, callback: function, callbackArgs: ?Array<any> = []) {
+export async function presetChosen(pluginJson: any, jsFunction: string, callback: function, callbackArgs: ?Array<any> = []): Promise<void> {
   const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
   logDebug(pluginJson, `presetChosen: ${jsFunction}`)
   const index = getCommandIndex(livePluginJson, jsFunction)
@@ -167,9 +167,10 @@ export async function presetChosen(pluginJson: any, jsFunction: string, callback
 }
 
 /**
- * Find a command inside the pluginJson with the jsFunction (functionName) matching param
- * @param {*} pluginJson - the entire settings object
- * @param {*} functionName - the name of the function to look for
+ * Find a command inside the pluginJson with the jsFunction (functionName) matching param.
+ * @author @dwertheimer
+ * @param {object} pluginJson - the entire settings object
+ * @param {string} functionName - the name of the function to look for
  * @returns {number} index of the found item in the commands array (or -1)
  */
 export function getCommandIndex(pluginJson: any, functionName: string): number {
@@ -186,8 +187,10 @@ export function getCommandIndex(pluginJson: any, functionName: string): number {
  * Migrate user presets to fresh plugin.json after install
  * Because presets are stored in the plugin.json, we need a way to re-populate the plugin.json
  * after a new version of the plugin has been installed and overwritten plugin.json
+ * @author @dwertheimer
+ * @param {object} pluginJson - the entire settings object
  */
-export async function rememberPresetsAfterInstall(pluginJson: any): boolean {
+export async function rememberPresetsAfterInstall(pluginJson: any): Promise<void> {
   const settings = DataStore.settings
   const keys = Object.keys(settings)
   for (let index = 0; index < keys.length; index++) {
