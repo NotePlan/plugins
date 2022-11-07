@@ -1,14 +1,16 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { getDateOptions, replaceArrowDatesInString, RE_DATE, RE_WEEKLY_NOTE_FILENAME } from '@helpers/dateTime'
+import { appendTaskToDailyNote } from '../../jgclark.QuickCapture/src/quickCapture'
+import { followUpSaveHere, followUpInFuture } from './NPFollowUp'
+import { getDateOptions, replaceArrowDatesInString, RE_DATE, RE_WEEKLY_NOTE_FILENAME, getTodaysDateHyphenated } from '@helpers/dateTime'
 import { getWeekOptions } from '@helpers/NPdateTime'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { chooseOptionWithModifiers, showMessage } from '@helpers/userInput'
 import { eliminateDuplicateSyncedParagraphs, textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { getOverdueParagraphs, noteType } from '@helpers/note'
-import { calcSmartPrependPoint } from '@helpers/paragraph'
 import { sortListBy } from '@helpers/sorting'
+import { moveParagraphToNote } from '@helpers/NPParagraph'
 
 export type OverdueSearchOptions = {
   openOnly: boolean,
@@ -31,43 +33,22 @@ type RescheduleUserAction =
   | '__skip__'
   | '__xcl__'
   | '__list__'
+  | '__mdhere__'
+  | '__mdfuture__'
+  | '__newTask__'
   | string /* >dateOptions */
   | number /* lineIndex of item to pop open */
-
-function noteHasContent(note, content): boolean {
-  return note.paragraphs.some((p) => p.content === content)
-}
-
-/**
- * Move the tasks to the specified note
- * Thx @jgclark for code lifted from fileItems.js
- * TODO: add user preference for where to move tasks in note - see @jgclark's code fileItems.js
- */
-export function moveParagraph(para: TParagraph, destinationNote: TNote): boolean {
-  // for now, insert at the top of the note
-  if (!para || !para.note || !destinationNote) return false
-  const insertionIndex = calcSmartPrependPoint(destinationNote)
-  // logDebug(pluginJson, `moveParagraph -> top of note "${destinationNote.title || ''}", line ${insertionIndex}`)
-  destinationNote.insertParagraph(para.rawContent, insertionIndex, 'text')
-  // because I am nervous about people losing data, I am going to check that the paragraph has been inserted before deleting the original
-  if (noteHasContent(destinationNote, para.content)) {
-    logDebug(pluginJson, `NPTaskScan...moveParagraph verified content got moved. to new note @ line: ${insertionIndex}. So deleting from old note...`)
-    // para?.note?.removeParagraphs([para]) // this is not working for some reason (adding but not deleting)
-    return true
-  }
-  return false
-}
 
 /**
  * An individual task command was selected with a modifier key pressed
  * @param {*} para
  * @param {*} keyModifiers
  * @param {*} userChoice
- * @return {boolean} true if moved
+ * @return {boolean} true if moved (used to work around API inconsistencies after changes in Editor and Editor.note)
  */
-export async function userChoseModifier(para: TParagraph, keyModifiers: Array<string>, userChoice: string = ''): Promise<boolean> {
-  logDebug(pluginJson, `userChoseModifier(): ${keyModifiers.toString()} userChoice=${userChoice}`)
+export async function processModifierKey(para: TParagraph, keyModifiers: Array<string>, userChoice: string = ''): Promise<boolean> {
   if (userChoice.length && userChoice[0] === '>') {
+    logDebug(pluginJson, `processModifierKey(): is >date command [${keyModifiers.toString()}] + userChoice=${userChoice}`)
     let date = userChoice?.slice(1)
     if (new RegExp(RE_DATE).test(date)) {
       date = date.replace(/-/g, '') // convert 8601 date to daily note filename
@@ -79,12 +60,15 @@ export async function userChoseModifier(para: TParagraph, keyModifiers: Array<st
       // MOVE TASK TO SPECIFIED NOTE
       const note = await DataStore.noteByFilename(filename, nType)
       if (note) {
-        logDebug(pluginJson, `userChoseModifier ready to write task to: ${filename}`)
-        return moveParagraph(para, note)
+        logDebug(pluginJson, `processModifierKey ready to write task to: ${filename}`)
+        return moveParagraphToNote(para, note)
       } else {
-        logDebug(pluginJson, `userChoseModifier could not open: ${filename}. Leaving task in place (${para.content})`)
+        logDebug(pluginJson, `processModifierKey could not open: ${filename}. Leaving task in place (${para.content})`)
       }
     }
+  } else {
+    // non-date commands
+    logDebug(pluginJson, `processModifierKey(): not a >date command [${keyModifiers.toString()}] + userChoice=${userChoice}`)
   }
   return false
 }
@@ -134,6 +118,9 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
     { label: `➡️ Skip - Do not change "${content}" (and continue)`, value: '__skip__' },
     ...todayLines,
     { label: `✏️ Edit this task in note: "${origPara.note?.title || ''}"`, value: '__edit__' },
+    { label: `✓⏎ Mark done and add follow-up in same note`, value: '__mdhere__' },
+    { label: `✓📆 Mark done and add follow-up in future note`, value: '__mdfuture__' },
+    { label: `💡 This reminds me...(create new task then continue)`, value: '__newTask__' },
     ...sharedOpts,
     { label: `␡ Delete this line (be sure!)`, value: '__delete__' },
   ]
@@ -184,6 +171,11 @@ export async function processUserActionOnLine(
         return { action: 'set', changed: origPara }
       case `__delete__`:
         return { action: 'delete' }
+      case `__newTask__`:
+      case `__mdhere__`:
+      case `__mdfuture__`: {
+        return { action: userChoice }
+      }
       case `__yes__`: {
         origPara.content = replaceArrowDatesInString(origPara.content, '>today')
         return { action: 'set', changed: updatedPara }
@@ -302,12 +294,15 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                     )
                     if (choice && choice.keyModifiers.length) {
                       logDebug('NPTaskScan::reviewNote', `received set+cmd key; index= ${index}`)
-                      const success = await userChoseModifier(updates[index], choice.keyModifiers, result.userChoice || '')
-                      if (success) {
-                        updates[index]?.note?.removeParagraph(updates[index])
-                      } else {
-                        note.updateParagraph(updates[index]) //have to do this to eliminate race condition on set/delete
-                      }
+                      await processModifierKey(updates[index], choice.keyModifiers, result.userChoice || '')
+                      // TODO: check if this works and delete this code
+                      // I don't think checking success should be necessary now with the DataStore.updateCache implemented
+                      // const success = await processModifierKey(updates[index], choice.keyModifiers, result.userChoice || '')
+                      // if (success) {
+                      //   updates[index]?.note?.removeParagraph(updates[index])
+                      // } else {
+                      //   note.updateParagraph(updates[index]) //have to do this to eliminate race condition on set/delete
+                      // }
                     } else {
                       note.updateParagraph(updates[index])
                     }
@@ -335,6 +330,19 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                 }
                 case 'skip': {
                   updates.splice(index, 1) //remove item which was updated from note's updates
+                  return updates.length ? noteIndex - 1 : noteIndex
+                }
+                case `__mdhere__`:
+                  updates.splice(index, 1) //remove item which was updated from note's updates
+                  await followUpSaveHere()
+                  return updates.length ? noteIndex - 1 : noteIndex
+                case `__mdfuture__`: {
+                  updates.splice(index, 1) //remove item which was updated from note's updates
+                  await followUpInFuture()
+                  return updates.length ? noteIndex - 1 : noteIndex
+                }
+                case '__newTask__': {
+                  await appendTaskToDailyNote(getTodaysDateHyphenated())
                   return updates.length ? noteIndex - 1 : noteIndex
                 }
               }

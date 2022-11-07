@@ -30,9 +30,7 @@ If you remember to do that work every day and check those items, then bully for 
 
 ### Command `/Review overdue tasks (by Task)`
 
-Find all overdue tasks (tasks which have a >date earlier than yesterday, and (by default) change those tasks to have a [>today](https://help.noteplan.co/article/139-workflow-for-daily-recurring-tasks-using-today) tag. After that tag is applied, the task will show up in References of your Daily Note until the task is marked complete). Optionally, you can:
-
-- select an individual task to make a specific date change edit to that one task
+Find all overdue tasks (tasks which have a >date earlier than yesterday, and will ask you how you want to deal with that task. After that tag is applied, the task will show up in References of your Daily Note until the task is marked complete). By default, the task will stay where it is but the new date you choose will be appended to it (so it will show up in that day's references). However, if you are on the desktop app, you also have the option of holding down the CMD key when you choose the new date, and the task in question will be moved to the daily or weekly note chosen.
 
 ### Command `/Review overdue tasks (in Active Note)`
 

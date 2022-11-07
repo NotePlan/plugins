@@ -4,7 +4,9 @@ import { trimString } from './dataManipulation'
 import { hyphenatedDate } from './dateTime'
 import { toLocaleDateTimeString } from './NPdateTime'
 import { JSP, log, logDebug, logError, clo, logWarn, timer } from './dev'
-import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
+import { calcSmartPrependPoint, findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
+
+const pluginJson = 'NPParagraph'
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
@@ -632,4 +634,53 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
     logError('NPparagraph/getOrMakeMetadataLine', error.message)
     return 0
   }
+}
+
+/**
+ * Convenience function to insert a paragraph into a note and ensure it's placed after the frontmatter
+ * @param {CoreNotefields} note - the note to insert into
+ * @param {string} content - the content to insert
+ * @param {number} index - the index to insert at, or blank/null to use smart prepend (top of note, after frontmatter)
+ * @param {ParagraphType} type - the type of paragraph to insert (default 'text')
+ * @author @dwertheimer
+ */
+export function insertParagraph(note: TNote, content: string, index: number | null = null, type: ParagraphType = 'text'): void {
+  const insertionIndex = index ?? calcSmartPrependPoint(note)
+  logDebug(pluginJson, `insertParagraph -> top of note "${note.title || ''}", line ${insertionIndex}`)
+  note.insertParagraph(content, insertionIndex, type)
+}
+
+/**
+ * Check a note to confirm a line of text exists (exact .content match)
+ * @param {CoreNoteFields} note
+ * @param {string} content string to search for
+ * @returns {boolean} whether it exists or not
+ * @author @dwertheimer
+ */
+function noteHasContent(note, content): boolean {
+  return note.paragraphs.some((p) => p.content === content)
+}
+
+/**
+ * Move the tasks to the specified note
+ * @param {TParagraph} para - the paragraph to move
+ * @param {TNote} destinationNote - the note to move to
+ * @returns {boolean} whether it worked or not
+ * @author @dwertheimer based on @jgclark code lifted from fileItems.js
+ * Note: Originally, if you were using Editor.* commands, this would not delete the original paragraph (need to use Editor.note.* or note.*)
+ * Hoping that adding DataStore.updateCache() will fix that
+ * TODO: add user preference for where to move tasks in note - see @jgclark's code fileItems.js
+ */
+export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): boolean {
+  // for now, insert at the top of the note
+  if (!para || !para.note || !destinationNote) return false
+  insertParagraph(destinationNote, para.rawContent)
+  // dbw note: because I am nervous about people losing data, I am going to check that the paragraph has been inserted before deleting the original
+  if (noteHasContent(destinationNote, para.content)) {
+    para?.note?.removeParagraph(para) // this may not work if you are using Editor.* commands rather than Editor.note.* commands
+    // $FlowFixMe - not in the type defs yet
+    if (Editor) DataStore.updateCache(Editor) // try to force Editor and Editor.note to be in synce after the move
+    return true
+  }
+  return false
 }

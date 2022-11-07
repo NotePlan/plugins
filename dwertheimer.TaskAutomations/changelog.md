@@ -5,6 +5,14 @@
 
 ## What's Changed in this Plugin?
 
+## [2.9.0] (@dwertheimer) 2022-11-07
+
+- Added 'This reminds me (new task) so you can add a task that just came to mind without stopping the overdue scan
+
+## [2.8.0] (@dwertheimer) 2022-11-06
+
+- Added follow-up tasks (thx @cyberz @antony.sklyar && @QualitativeEasing)
+
 ## [2.7.2] (@dwertheimer) 2022-10-24
 
 - More API bug workaround hacks
@@ -20,6 +28,7 @@
 ## [2.6.0] (@dwertheimer) 2022-10-19
 
 - Added /sth - sort tasks under heading
+
 ## [2.5.0] (@dwertheimer) 2022-10-19
 
 - Added weekly tasks to marooned task search
