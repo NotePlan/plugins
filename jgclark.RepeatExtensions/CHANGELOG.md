@@ -1,4 +1,10 @@
 # What's changed in 🔁 Repeat Extensions plugin?
+Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings.
+
+## [0.4.0] - 2022-11-08
+### Added
+- will now find and process repeats in Weekly notes as well as other notes
+- added logging options
 
 ## [0.3.1] - 2022-02-20
 ### Changed

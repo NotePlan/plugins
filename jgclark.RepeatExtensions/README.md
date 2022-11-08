@@ -16,7 +16,8 @@ and the task will show up again 2 weeks later.
 ## Running it
 It runs on the _currently open note_, by typing `/generate repeats` (or its alias `/rpt`) in the command bar.  
 - When run on a _project note_, it creates the new repeated task straight after the completed task.
-- When run on a _daily note_, it creates the new repeated task on the date of the new repeat.
+- When run on a _daily note_, it creates the new repeated task in the relevant daily note.
+- When run on a _weekly note_, it creates the new repeated task in the relevant weekly note.
 
 There is no automatic way to trigger plugins in NotePlan at the moment, so it needs to be run each time one of these `@repeat(interval)` tasks is completed.
 
