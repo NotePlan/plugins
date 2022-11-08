@@ -51,7 +51,23 @@ export function getTodaysDateUnhyphenated(): string {
   return strftime(`%Y%m%d`)
 }
 
-export const isWeeklyNote = (note: TNote): boolean => new RegExp(`^${RE_WEEKLY_NOTE_FILENAME}(md|txt)$`).test(note.filename)
+/**
+ * True if passed note is a daily note
+ * @param {TNote} note 
+ */
+export function isWeeklyNote(note: TNote): boolean {
+  const thisRE = new RegExp(`^${RE_WEEKLY_NOTE_FILENAME}(md|txt)$`)
+  return thisRE.test(note.filename)
+}
+
+/**
+ * True if passed note is a daily note
+ * @param {TNote} note 
+ */
+export function isDailyNote(note: TNote): boolean {
+  const thisRE = new RegExp(`^${RE_DAILY_NOTE_FILENAME}(md|txt)$`)
+  return thisRE.test(note.filename)
+}
 
 /**
  * Test if a string has a date (e.g. was scheduled for a specific date/week or has a >today tag)
