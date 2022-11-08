@@ -704,7 +704,7 @@ export function includesScheduledFutureDate(line: string): boolean {
  * @param {string} date - date string in format YYYY-MM-DD OR a Date object
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType - 'day'|'week'|'month'|'year' (default: 'week')
- * @returns {string} - week number string in format 'YYYYWww'
+ * @returns {string} - week number string in format 'YYYY-Www'
  * @author @dwertheimer
  * @test - available in jest file
  */
