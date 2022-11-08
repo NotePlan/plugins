@@ -20,10 +20,11 @@ const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFile
  */
 export async function askToReviewTodaysTasks(byTask: boolean = false) {
   try {
-    const { askToReviewTodaysTasks } = DataStore.settings
+    const { askToReviewTodaysTasks, includeWeeklyTasks } = DataStore.settings
+    const weeklyText = includeWeeklyTasks ? ' and this week' : ''
     if (askToReviewTodaysTasks) {
       await Editor.openNoteByDate(new Date())
-      const answer = await showMessageYesNo('Want to review tasks scheduled for today?', ['Yes', 'No'], "Review Today's Tasks", true)
+      const answer = await showMessageYesNo(`Want to review tasks scheduled for today${weeklyText}?`, ['Yes', 'No'], 'Review Current Tasks', true)
       if (answer === 'Yes') {
         logDebug(pluginJson, `askToReviewTodaysTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
         await reviewEditorReferencedTasks(null, byTask)
@@ -58,11 +59,11 @@ export async function askToReviewForgottenTasks(byTask: boolean = false) {
     const { askToReviewForgottenTasks, ignoreScheduledInForgottenReview } = DataStore.settings
     if (askToReviewForgottenTasks) {
       await Editor.openNoteByDate(new Date())
-      const answer = await showMessageYesNo('Review undated tasks from prev days?', ['Yes', 'No'], "Review Today's Tasks", true)
+      const answer = await showMessageYesNo('Review undated tasks from prev days?', ['Yes', 'No'], 'Review Undated Tasks', true)
       if (answer === 'Yes') {
         // Commented out this ask about ignoring scheduled tasks. It works cand can be uncommented, but it felt like too many questions
         // added a user preference for it instead
-        // answer = await showMessageYesNo('Ignore items which have dates/are scheduled?', ['Yes', 'No'], "Review Today's Tasks", true)
+        // answer = await showMessageYesNo('Ignore items which have dates/are scheduled?', ['Yes', 'No'], "Ignore Scheduled Tasks", true)
         logDebug(pluginJson, `askToReviewForgottenTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
         await searchForOpenTasks(null, byTask, ignoreScheduledInForgottenReview)
       }

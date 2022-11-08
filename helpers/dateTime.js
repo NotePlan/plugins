@@ -34,8 +34,7 @@ export const RE_DONE_DATE_TIME_CAPTURES = `@done\\((${RE_DATE})( ${RE_TIME})\\)`
 export const RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE = `@done\\((${RE_DATE})( ${RE_TIME})?\\)` // find @done(DATE TIME) and return date-time part
 export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME})?\\)`
 
-
-export const todaysDateISOString: string = moment().toDate().toISOString().slice(0, 10)
+export const todaysDateISOString: string = moment().toISOString().slice(0, 10)
 export const nowLocaleDateTime: string = moment().toDate().toLocaleString()
 export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
 
@@ -245,7 +244,6 @@ export function getISODateStringFromYYYYMMDD(filename: string): string {
   }
 }
 
-
 /**
  * Remove >date and <date from a string
  * @author @nmn
@@ -442,7 +440,7 @@ export const getDateObjFromDateTimeString = (dateTimeString: string): Date => {
 /**
  * Turn a YYYYMMDD string into a JS Date. If no valid date found, then warning written to the log.
  * @param {string} - YYYYMMDD string
- * @return {?Date} - JS Date version of 
+ * @return {?Date} - JS Date version of
  */
 export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
   // logDebug('dateTime / getDateFromUnhyphenatedDateString', inputString)
@@ -453,7 +451,10 @@ export function getDateFromUnhyphenatedDateString(inputString: string): ?Date {
       Number(res[1].slice(0, 4)),
       Number(res[1].slice(4, 6)) - 1, // only needed for months!
       Number(res[1].slice(6, 8)),
-      0, 0, 0, 0 // HH:MM:SS:mmm
+      0,
+      0,
+      0,
+      0, // HH:MM:SS:mmm
     )
     // logDebug('dateTime / getDateFromUnhyphenatedDateString', toLocaleDateTimeString(date))
     return date
@@ -643,11 +644,9 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
     let momentDateFormat = ''
     if (baseDateISO.match(RE_ISO_DATE)) {
       momentDateFormat = 'YYYY-MM-DD'
-    }
-    else if (baseDateISO.match(RE_YYYY_Wnn_DATE)) {
+    } else if (baseDateISO.match(RE_YYYY_Wnn_DATE)) {
       momentDateFormat = 'YYYY-[W]WW'
-    }
-    else {
+    } else {
       throw new Error('Invalid date string')
     }
     const baseDateMoment = moment(baseDateISO, momentDateFormat)

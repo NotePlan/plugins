@@ -11,6 +11,7 @@ Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorti
 - Find and change overdue tasks (and change their status/reschedule them to a date in the future)
 - Find (undated and potentially forgotten) tasks in a previous daily note or buried in a project note
 - Sorting tasks (by various task fields or simply bringing tasks to the top of the note)
+- Marking a task (or multiple) done and creating a follow-up/related task with a link to the done one
 - Marking all tasks complete (or incomplete)
 - Copying tags/mentions from previous lines when doing multiple task entry
 - Task Sync - create a page of synced tasks matching a text search criteria (e.g. search for all open todos marked "@bob" and put them in one document)
@@ -29,9 +30,7 @@ If you remember to do that work every day and check those items, then bully for 
 
 ### Command `/Review overdue tasks (by Task)`
 
-Find all overdue tasks (tasks which have a >date earlier than yesterday, and (by default) change those tasks to have a [>today](https://help.noteplan.co/article/139-workflow-for-daily-recurring-tasks-using-today) tag. After that tag is applied, the task will show up in References of your Daily Note until the task is marked complete). Optionally, you can:
-
-- select an individual task to make a specific date change edit to that one task
+Find all overdue tasks (tasks which have a >date earlier than yesterday, and will ask you how you want to deal with that task. After that tag is applied, the task will show up in References of your Daily Note until the task is marked complete). By default, the task will stay where it is but the new date you choose will be appended to it (so it will show up in that day's references). However, if you are on the desktop app, you also have the option of holding down the CMD key when you choose the new date, and the task in question will be moved to the daily or weekly note chosen.
 
 ### Command `/Review overdue tasks (in Active Note)`
 
@@ -40,6 +39,26 @@ Same as above, but limited to the foreground note in the Editor
 ### Command `/Review overdue tasks in <Choose Folder>`
 
 In this version, you will be prompted for a folder in which to search for overdue tasks
+
+## Follow-up Tasks
+
+<img width="386" alt="Screen Cap 2022-11-05 at 00 01 42@2x" src="https://user-images.githubusercontent.com/8949588/200107300-2e3d5f44-c08e-4a44-8b69-b3cb9f43888b.png">
+
+You can select (or just be on the same line as) a task or multiple tasks and mark them done, while at the same time creating a follow-up or related task underneath the selected task or in a future calendar/weekly note. In either of the commands below, the follow-up task will look like:
+
+- [ ] #FollowUp test1 [original task](noteplan://x-callback-url/openNote?noteTitle=*%20test1%5El1xagv) >2022-11-04
+
+or
+
+- [ ] #FollowUp test2 [[* [x] test1 ^l1xagv^onk7l6]] >2022-11-05
+
+The format can be set in preferences (the preamble -- `#FollowUp` by default) and whether to use [[wikiLinks]] or [URLs]()
+
+### Command `/Mark done and create follow-up underneath`
+
+Select a task or tasks and this command will mark it/them done/complete and create a follow-up task with a link to the original in the form of:
+
+### Command `/Mark done and create follow-up in future note`
 
 ## Sorting Tasks
 
