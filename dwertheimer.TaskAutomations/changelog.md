@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.9.1] (@dwertheimer) 2022-11-08
+
+- Open follow up when placed in a future note (so you can edit it)
+
 ## [2.9.0] (@dwertheimer) 2022-11-07
 
 - Added 'This reminds me (new task) so you can add a task that just came to mind without stopping the overdue scan

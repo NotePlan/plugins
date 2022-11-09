@@ -326,6 +326,7 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                 case 'delete': {
                   updates.splice(index, 1) //remove item which was updated from note's updates
                   origPara.note?.removeParagraph(origPara)
+                  //FIXME: should i add an update here?
                   return updates.length ? noteIndex - 1 : noteIndex
                 }
                 case 'skip': {
