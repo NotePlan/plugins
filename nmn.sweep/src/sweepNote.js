@@ -129,6 +129,7 @@ export default async function sweepNote(
       // rescheduleTasks = returnValue ? 'reschedule' : isProjectNote ? 'reschedule' : 'move'
       rescheduleTasks = isProjectNote ? 'reschedule' : 'move'
     }
+    console.log(`\t\tsweepNote: rescheduleTasks=${rescheduleTasks}`)
     if (withUserConfirm) {
       let choices = [
         {
@@ -157,9 +158,11 @@ export default async function sweepNote(
         label: '❌ Cancel',
         value: false,
       })
-      Editor.openNoteByFilename(note.filename)
+      console.log(`\t\tsweepNote: opening file=${note.filename} (note.filename)`)
+      await Editor.openNoteByFilename(note.filename)
       rescheduleTasks = await chooseOption<RescheduleType>(`Found ${numTasksToMove} tasks`, choices, false)
     }
+    console.log(`\t\tsweepNote: file opened in Editor. new file=${Editor.filename} (Editor.filename)`)
 
     if (rescheduleTasks === 'move') {
       // Add Tasks to Today
@@ -246,7 +249,7 @@ export default async function sweepNote(
       }
     }
   }
-  // console.log(`About to return: ${JSON.stringify(paragraphsToReturn)}`) //does not print paragraphs...
+  console.log(`Moved ${numTasksToMove} tasks; About to return: ${paragraphsToReturn.length} paragraphs`) //does not print paragraphs...
   return {
     status: 'ok',
     msg: `Moved ${numTasksToMove}`,
