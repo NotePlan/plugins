@@ -11,6 +11,7 @@ import { eliminateDuplicateSyncedParagraphs, textWithoutSyncedCopyTag } from '@h
 import { getOverdueParagraphs, noteType } from '@helpers/note'
 import { sortListBy } from '@helpers/sorting'
 import { moveParagraphToNote } from '@helpers/NPParagraph'
+import { noteHasContent } from '../../helpers/NPParagraph'
 
 export type OverdueSearchOptions = {
   openOnly: boolean,
@@ -325,8 +326,10 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                 }
                 case 'delete': {
                   updates.splice(index, 1) //remove item which was updated from note's updates
+                  const before = noteHasContent(origPara.note, origPara.content)
                   origPara.note?.removeParagraph(origPara)
-                  //FIXME: should i add an update here?
+                  const after = noteHasContent(origPara.note, origPara.content)
+                  logDebug(pluginJson, `reviewNote delete content is in note:  before:${String(before)} | after:${String(after)}`)
                   return updates.length ? noteIndex - 1 : noteIndex
                 }
                 case 'skip': {
