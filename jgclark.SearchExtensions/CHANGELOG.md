@@ -2,8 +2,11 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-## [1.0.0-beta2] - 2022-09-07
+## [1.0.0-beta2] - 2022-11-11
+### Added
+- new '/searchOpenTasks' command.
 ### Changed
+- when returning an open task in a result (when using the 'Noteplan' style of output) the task line will be a sync'd copy of the original, not a copy of it. This means checking it off in the results will complete it in the original location too. (This is necessary for the new /searchOpenTasks command.) (For @dwertheimer and @JPR1972).
 ### Fixed
 - fixed requested sort order getting ignored in some scenarios
 - fixed highlight on consecutive matched words
