@@ -655,9 +655,10 @@ export function insertParagraph(note: TNote, content: string, index: number | nu
  * @param {CoreNoteFields} note
  * @param {string} content string to search for
  * @returns {boolean} whether it exists or not
+ * alias containsContent containsParagraph paragraphExists paragraphContains
  * @author @dwertheimer
  */
-function noteHasContent(note, content): boolean {
+export function noteHasContent(note, content): boolean {
   return note.paragraphs.some((p) => p.content === content)
 }
 

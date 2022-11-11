@@ -27,7 +27,7 @@ export async function getFutureDate(isMultiple: boolean = false): Promise<string
  * Add the task to the top of the future note chosen by the user
  * @param {string} content - the string to save in the future
  */
-export function saveTodoInFuture(content: string, futureDate: string) {
+export async function saveTodoInFuture(content: string, futureDate: string) {
   if (futureDate.length > 0) {
     // chop off first character (>) of futureDate
     let dateStr = futureDate.slice(1)
@@ -38,6 +38,7 @@ export function saveTodoInFuture(content: string, futureDate: string) {
     const futureNote = DataStore.calendarNoteByDateString(dateStr)
     if (futureNote) {
       futureNote.prependTodo(content)
+      await Editor.openNoteByDateString(dateStr)
     } else {
       logDebug(pluginJson, `saveTodoInFuture could not open futureNote for date:${dateStr}`)
     }
@@ -87,7 +88,7 @@ export async function createFollowUps(saveHere: boolean) {
                       endIndex++
                     } else {
                       const content = `${fuText}${origText} ${linkInfo}`
-                      saveTodoInFuture(content, futureDate)
+                      await saveTodoInFuture(content, futureDate)
                     }
                   }
                   // clo(para, `createFollowUps: para after update paragraph[${index}]`)
