@@ -48,6 +48,7 @@ export type SummariesConfig = {
   includedMentions: Array<string>,
   excludedMentions: Array<string>,
   weeklyStatsDuration: ?number,
+  weeklyStatsItems: Array<string>,
   progressPeriod: string,
   progressDestination: string,
   progressHeading: string,
@@ -83,15 +84,16 @@ export async function getSummariesSettings(): Promise<any> {
 
 //------------------------------------------------------------------------------
 /**
- * Class to hold occurence summary of Hashtags and/or Mentions ('TM') for a given time period.
+ * Class to hold occurence summary of Hashtags and/or Mentions ('TM') for a given time interval.
  * A progress term has a 'type': 'daily-average', 'item-average', 'total', 'yesno', 'count'
- * These tailor the display
+ * These tailor the display.
  */
 export class TMOccurrences {
   // the class instance properties
   term: string
   type: string // 'daily-average', 'item-average', 'total', 'yesno', 'count'
-  period: string
+  interval: string // currently only 'day' supported
+  dateStr: string // typically YYYY-MM-DD, but also YYYY-Wnn
   numDays: number
   valuesMap: Map<string, number>
   total: number
@@ -105,11 +107,13 @@ export class TMOccurrences {
    * @param {string} fromDateStr of type YYYY-MM-DD
    * @param {string} toDateStr of type YYYY-MM-DD
    */
-  constructor(term: string, type: string, fromDateStr: string, toDateStr: string) {
+  constructor(term: string, type: string, fromDateStr: string, toDateStr: string, interval: string = 'day') {
     try {
-      this.term = term
-      this.type = type
       if (toDateStr && fromDateStr) {
+        this.term = term
+        this.type = type
+        this.interval = interval
+        this.dateStr = fromDateStr
         // Calc number of days to cover
         // (Moment's diff function returns a truncated number by default, not rounded, so work around that, in case we're getting 6.9 days because of timezone issues)
         const momFromDate = new moment(fromDateStr, 'YYYY-MM-DD')
@@ -192,6 +196,45 @@ export class TMOccurrences {
   }
 
   /**
+   * Summarise this TMOcc into a larger time interval.
+   * Note: dates are inclusive and need to be in YYYY-MM-DD form.
+   * @param {string} fromDateStr YYYY-MM-DD
+   * @param {string} toDateStr YYYY-MM-DD
+   * @param {string} interval to summarise to, e.g. 'week'
+   * @returns {string} CSV output, including term
+   */
+  summariseToInterval(fromDateStr: string, toDateStr: string, interval: string): string {
+    // Create new empty TMOccurrences object
+    let summaryOcc = new TMOccurrences(this.term, this.type, fromDateStr, toDateStr, interval)
+    const momFromDate = new moment(fromDateStr, 'YYYY-MM-DD')
+    const momToDate = new moment(toDateStr, 'YYYY-MM-DD')
+    this.numDays = Math.round(momToDate.diff(momFromDate, 'days', true)) + 1
+    logDebug('summariseToInterval', `For ${this.numDays} days`)
+    // Now calculate summary from this (existing) object
+    let count = 0
+    let total = 0
+    this.valuesMap.forEach((v, k, m) => {
+      // logDebug('summariseToInterval', `- ${k}`)
+      if (withinDateRange(k, unhyphenateString(fromDateStr), unhyphenateString(toDateStr))) {
+        logDebug('summariseToInterval', `- ${k} in date range`)
+        if (!isNaN(v)) {
+          count++
+          total += v
+          logDebug('summariseToInterval', `  - added ${v}`)
+        }
+      }
+    })
+    // Add this to the summaryOcc object
+    summaryOcc.total = total
+    summaryOcc.count = count
+
+    // NOTE: tested and looks ok for @mention(...)
+    // FIXME: simple #tag -- #pray, #bible sometimes 8 days in the period
+    // FIXME: now test for #tag/4
+    return summaryOcc.getStats('CSV')
+  }
+
+  /**
    * Return the term for the current occObj, remove leading '@' or '#',
    * and optionally right-padded to a given width.
    * @param {number?} paddingSize
@@ -250,7 +293,8 @@ export class TMOccurrences {
 
   /**
    * Get stats for a particular term, over the current period, in a specified style.
-   * Currently the only style available is 'text'.
+   * Currently the only available styles are 'text' and 'CSV'.
+   * Currently the only available interval is 'day'.
    * It also changes depending on the 'type' of the 'term'. By default it will give all stats, but 
    */
   getStats(style: string): string {
@@ -260,11 +304,14 @@ export class TMOccurrences {
     const countStr = (!isNaN(this.count)) ? this.count.toLocaleString() : `none`
     const totalStr = (!isNaN(this.total) && this.total > 0) ? `total ${this.total.toLocaleString()}` : ''
     // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
-    const itemAvgStr = (!isNaN(this.total) && this.count > 0) ? `avg ${(this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 })}` : ''
-    // const dailyAvgStr = (!isNaN(this.total)) ? `dailyAvg ${(this.total / this.numDays).toLocaleString([], { maximumSignificantDigits: 2 })}` : ''
+    const itemAvgStr = (!isNaN(this.total) && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
 
     switch (style) {
-      case 'text': {
+      case 'CSV': {
+        output = `${this.term},${this.dateStr},${this.count},${this.total},${itemAvgStr}`
+        break
+      }
+      default: { // style 'text'
         // If we have no items, or simple single-unit counts, then just put count
         if (this.total === this.count) {
           output = `${countStr}`
@@ -281,25 +328,20 @@ export class TMOccurrences {
               break
             }
             case 'average': {
-              if (itemAvgStr !== '') output += itemAvgStr
+              if (itemAvgStr !== '') output += "avg " + itemAvgStr
               // if (dailyAvgStr !== '') output += ", " + dailyAvgStr
               output += ` (from ${countStr})`
               break
             }
             default: { // 'all'
               if (totalStr !== '') output += totalStr
-              if (itemAvgStr !== '') output += ", " + itemAvgStr
+              if (itemAvgStr !== '') output += ", avg " + itemAvgStr
               // if (dailyAvgStr !== '') output += ", " + dailyAvgStr
               output += ` (from ${countStr})`
               break
             }
           }
         }
-        break
-      }
-      default: {
-        logError('TMOcc:getStats', `style '${style}' is not available`)
-        output = '(unsupported style)'
         break
       }
     }
@@ -336,6 +378,8 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
   try {
 
     logDebug('gatherOccurrences', `starting for ${periodString} (${fromDateStr} - ${toDateStr})`)
+    logDebug('gatherOccurrences', `with [${String(includedHashtags)}] and [${String(includedMentions)}]`)
+
     const periodDailyNotes = DataStore.calendarNotes.filter(
       (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), unhyphenateString(fromDateStr), unhyphenateString(toDateStr)))
     if (periodDailyNotes.length === 0) {
@@ -444,6 +488,8 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
     averageMentionsArr.forEach((m) => { combinedMentions.push([m, 'average']) })
     totalMentionsArr.forEach((m) => { combinedMentions.push([m, 'total']) })
     combinedMentions.sort()
+
+    logDebug(pluginJson, `sorted combinedMentions: ${String(combinedMentions)}`)
 
     for (let thisMention of combinedMentions) {
       // initialise a new TMOccurence for this mention
