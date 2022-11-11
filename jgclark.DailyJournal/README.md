@@ -2,8 +2,9 @@
 This plugin helps you write daily, weekly, monthly and/or quarterly **journals**, by prompting you for review questions that you set in advance. It also speeds up applying a pre-set daily template each day.
 
 The commands are:
-- `/dayStart`: Apply your 'Daily Note' Template to the currently open calendar note
+- `/dayStart`: Apply your 'Daily Note' Template to the currently open daily note (or today's note if you're not editing a daily note)
 - `/todayStart`: Apply your 'Daily Note' Template to today's calendar note
+- `/weekStart`: Apply your 'Weekly Note' Template to the currently open weekly note (or the current weekly note if you're not editing a weekly note)
 - `/dayReview`: Ask journal questions for an end-of-day review, and write answers in the currently open daily note. See below for details and examples.
 - `/weekReview`: Ask journal questions for an end-of-week review, and write answers in the currently open weekly note.
 - `/monthReview`: Ask journal questions for an end-of-month review, and write answers in the currently open note.

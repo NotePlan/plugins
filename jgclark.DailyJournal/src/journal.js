@@ -2,13 +2,13 @@
 //-----------------------------------------------------------------------------
 // Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 21.8.2022 for v0.13.0 by @jgclark
+// last update 11.11.2022 for v0.14.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import strftime from 'strftime'
-import { getWeek } from '@helpers/dateTime'
-import { clo, logDebug, logError, logWarn } from '@helpers/dev'
+import { getWeek, isDailyNote, isWeeklyNote } from '@helpers/dateTime'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { findHeadingStartsWith } from '@helpers/paragraph'
 import NPTemplating from 'NPTemplating'
@@ -21,7 +21,8 @@ import { getInputTrimmed, isInt, showMessage } from '@helpers/userInput'
 const pluginID = 'jgclark.DailyJournal' // now out of date, but tricky to rename
 
 type JournalConfigType = {
-  templateTitle: string,
+  templateTitle: string, // named over a year before weekly notes became possible
+  weeklyTemplateTitle: string,
   reviewSectionHeading: string,
   reviewQuestions: string, // named over a year before weekly notes became possible
   weeklyReviewQuestions: string,
@@ -41,20 +42,8 @@ async function getJournalSettings(): Promise<any> { // want to use Promise<Journ
       const config: JournalConfigType = tempConfig
       // clo(config, `\t${pluginID} settings from V2:`)
       return config
-
     } else {
-      logError(pluginJson, `couldn't read config for '${pluginID}. Will use defaults instead.`)
-      // Will just use defaults
-      const config: JournalConfigType = {
-        templateTitle: "Daily Note Template",
-        reviewSectionHeading: "Journal",
-        reviewQuestions: '@sleep(<number>)\\n@work(<number>)\\n@fruitveg(<int>)\\nMood:: <mood>\\nExercise:: <string>\\nGratitude:: <string>\\nGod was:: <string>\\nAlive:: <string>\\nNot Great:: <string>\\nWife:: <string>\\nRemember:: <string>',
-        weeklyReviewQuestions: "Big win: <string>\\nNew/improved: <string>\\nRegret: <string>\\nFocus for next week: <string>",
-        monthlyReviewQuestions: "What's working well in processes: <string>\\nProcesses that need work: <string>Personal Goals progress: <string>",
-        quarterlyReviewQuestions: "Goals met: <string>\\nNew goals identified: <string>\\nProjects finished: <string>\\nNew projects identified: <string>",
-        moods: "🤩 Great,🙂 Good,😇 Blessed,🥱 Tired,😫 Stressed,😤 Frustrated,😔 Low,🥵 Sick,Other"
-      }
-      return config
+      throw new Error(`couldn't read settings for '${pluginID}.`)
     }
   }
   catch (error) {
@@ -67,6 +56,64 @@ async function getJournalSettings(): Promise<any> { // want to use Promise<Journ
 //------------------------------------------------------------------
 // Main functions
 
+// Start the currently open weekly note with the user's Weekly Note Template
+export async function weekStart(): Promise<void> {
+  try {
+    const config: JournalConfigType = await getJournalSettings()
+
+    if (Editor.note && isWeeklyNote(Editor.note)) {
+      // apply weekly template in the currently-open weekly note
+      logDebug('weekStart', `Will work on the open weekly note '${displayTitle(Editor.note)}'`)
+    }
+    else {
+      // apply weekly template in the current weekly note
+      logInfo('weekStart', `Started without a weekly note open, so will open and work in this week's note.`)
+      // open today's date in the main window, and read content
+      await Editor.openNoteByDate(new Date(), false, 0, 0, false, 'week') // open the 'weekly' note for today
+      logDebug('weekStart', `- for '${displayTitle(Editor.note)}'`)
+    }
+
+    // First check we can get the Template
+    const templateData = await NPTemplating.getTemplate(config.weeklyTemplateTitle)
+    if (templateData == null || templateData === '') {
+      throw new Error(`Cannot find Template '${config.weeklyTemplateTitle}'. Stopping.`)
+    }
+
+    // Then render the template, using recommended decoupled method of invoking a different plugin
+    const result = await DataStore.invokePluginCommandByName('renderTemplate', 'np.Templating', [config.weeklyTemplateTitle])
+    if (result == null || result === '') {
+      throw new Error(`No result from running Template '${config.weeklyTemplateTitle}'. Stopping.`)
+    }
+    // Work out where to insert it in the note, by reading the template, and checking
+    // the frontmatter attributes for a 'location' field (append/insert/cursor)
+    const attrs = getAttributes(templateData)
+    const requestedTemplateLocation = attrs.location ?? 'insert'
+    let pos = 0
+    switch (requestedTemplateLocation) {
+      case 'insert': {
+        logDebug('weekStart', `- Will insert to start of Editor`)
+        Editor.insertTextAtCharacterIndex(result, 0)
+        break
+      }
+      case 'append': {
+        pos = Editor.content?.length ?? 0 // end
+        logDebug('weekStart', `- Will insert to end of Editor (pos ${pos})`)
+        Editor.insertTextAtCharacterIndex(result, pos)
+        break
+      }
+      case 'cursor': {
+        logDebug('weekStart', `- Will insert to Editor at cursor position`)
+        Editor.insertTextAtCursor(result)
+        break
+      }
+    }
+  } catch (error) {
+    logError('weekStart', error.message)
+    await showMessage(`/weekStart command: ${error.message}`)
+    return
+  }
+}
+
 // Start today's daily note with the user's Daily Note Template
 export async function todayStart(): Promise<void> {
   try {
@@ -77,51 +124,36 @@ export async function todayStart(): Promise<void> {
 }
 
 // Start the currently open daily note with the user's Daily Note Template
-export async function dayStart(today: boolean = false): Promise<void> {
+export async function dayStart(workToday: boolean = false): Promise<void> {
   try {
-    let workToday = today
-    if (!workToday) {
-      // apply daily template in the currently open daily note
-      if (Editor.type !== 'Calendar') {
-        logWarn(pluginJson, '/dayStart only works on calendar notes; will run /todayStart instead.')
-        workToday = true
-      }
-      else if (Editor.note == null) {
-        // we must be in an uninitialized Calendar note
-        await showMessage('Error: this calendar note is not initialized. Stopping.')
-        return
-      }
-    }
-    if (workToday) {
-      // open today's date in the main window, and read content
-      await Editor.openNoteByDate(new Date(), false) // defaults to 'daily' note
-    }
-    // if (today) {
-    //   // open today's date in the main window, and read content
-    //   await Editor.openNoteByDate(new Date(), false)
-    // } else {
-    //   // apply daily template in the currently open daily note
-    //   if (Editor.type !== 'Calendar') {
-    //     await showMessage('Note: /dayStart only works on calendar notes.')
-    //     return
-    //   }
-    //   else if (Editor.note == null) {
-    //     // we must be in an uninitialized Calendar note
-    //     await showMessage('Error: this calendar note is not initialized. Stopping.')
-    //     return
-    //   }
-    // }
-    logDebug(pluginJson, `for '${displayTitle(Editor.note)}'`)
     const config: JournalConfigType = await getJournalSettings()
+    if (Editor.note && isDailyNote(Editor.note) && !workToday) {
+      // apply daily template in the currently-open daily note
+      logDebug('dayStart', `Will work on the open daily note '${displayTitle(Editor.note)}'`)
+    }
+    else {
+      // apply daily template in today's daily note
+      logInfo('dayStart', `Started without a daily note open, so will open and work in this day's note.`)
+      // open today's date in the main window, and read content
+      await Editor.openNoteByDate(new Date(), false, 0, 0, false, 'day') // open the 'daily' note for today
+      logDebug('dayStart', `for '${displayTitle(Editor.note)}'`)
+    }
+
+    // First check we can get the Template
+    const templateData = await NPTemplating.getTemplate(config.templateTitle)
+    if (templateData == null || templateData === '') {
+      throw new Error(`Cannot find Template '${config.templateTitle}'. Stopping.`)
+    }
 
     // render the template, using recommended decoupled method of invoking a different plugin
     const result = await DataStore.invokePluginCommandByName('renderTemplate', 'np.Templating', [config.templateTitle])
-
+    if (result == null || result === '') {
+      throw new Error(`No result from running Template '${config.templateTitle}'. Stopping.`)
+    }
     // Work out where to insert it in the note, by reading the template, and checking
     // the frontmatter attributes for a 'location' field (append/insert/cursor)
-    const templateData = await NPTemplating.getTemplate(config.templateTitle)
     const attrs = getAttributes(templateData)
-    const requestedTemplateLocation = attrs.location ?? 'append'
+    const requestedTemplateLocation = attrs.location ?? 'insert'
     let pos = 0
     switch (requestedTemplateLocation) {
       case 'insert': {
@@ -141,9 +173,9 @@ export async function dayStart(today: boolean = false): Promise<void> {
         break
       }
     }
-
   } catch (error) {
     logError(pluginJson, `(to)dayStart(): ${error.message}`)
+    await showMessage(`/(to)dayStart command: ${error.message}`)
   }
 }
 
