@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.9.2] (@dwertheimer) 2022-11-11
+
+- Improve overdue messaging for Skip/Leave item
+
 ## [2.9.1] (@dwertheimer) 2022-11-08
 
 - Open follow up when placed in a future note (so you can edit it)

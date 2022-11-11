@@ -116,7 +116,7 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
   const todayLines = sharedOpts.splice(0, 2) // get the two >today lines and bring to top
   const content = textWithoutSyncedCopyTag(origPara.content)
   const opts = [
-    { label: `➡️ Skip - Do not change "${content}" (and continue)`, value: '__skip__' },
+    { label: `➡️ Leave "${content}" (and continue)`, value: '__skip__' },
     ...todayLines,
     { label: `✏️ Edit this task in note: "${origPara.note?.title || ''}"`, value: '__edit__' },
     { label: `✓⏎ Mark done and add follow-up in same note`, value: '__mdhere__' },
