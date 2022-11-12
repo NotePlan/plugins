@@ -44,7 +44,7 @@ Note: This is a first attempt at generating heatmaps, and I want to make it much
 ## /insertProgressUpdate
 As NotePlan is such a flexible app, there are [various ways people use it to track habits](https://help.noteplan.co/article/144-habit-tracking). 
  
-This Plugin command helps show progress within the current week, fortnight or month against items you track (e.g. `@work(9)`, `@run(5.3)` or `#prayed`). It does this by generating stats for the configured hashtags or mentions over the time interval you select, and inserts it as a section into the destination note. If the progress update section already exists in the destination note -- if for example you have it set to insert in the weekly note -- it will be updated, rather than be repeated.
+This Plugin command helps show progress within the current week, fortnight or month against items you track (e.g. `@work(9)`, `@run(5.3)` or `#prayed`). It does this by generating stats for the configured #hashtags or @mentions over the time interval you select, and inserts it as a section into the destination note. If the progress update section already exists in the destination note -- if for example you have it set to insert in the weekly note -- it will be updated, rather than be repeated.
 
 For example, it produces for me: 
 
@@ -75,8 +75,6 @@ in a Template. This has 3 optional parameters, _which if present override the ma
 1. `period` or `interval`: time period: 'wtd' or 'userwtd' (week to date), 'mtd' (month to date), 'last7d', 'last2w', or 'last4w'.
 2. `heading` to use before the results.
 3. `showSparklines`: true (default) or false.
-
-<!-- Status: ✅ = Done, 👎 = Missed, 🟠 = Average, 🟢 = Good, 🔴 = Bad -->
 
 ## /periodStats (alias: /countsInPeriod or /cip)
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify, and saves them into notes in a special 'Summaries' folder. For example:
@@ -126,17 +124,17 @@ The settings for this command are:
 - Include Mentions: e.g. '@work','@fruitveg','@water', '@sleep'
 - Exclude Mentions: e.g. '@done', '@repeat'
 
-> (Why use `@run(...)` rather than `#run(...)`? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value. And in NotePlan, hashtags that end with a decimal number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`).  However, you can use a `#hashtag/value` if you don't mind this limitation.
+> (Why use `@run(...)` rather than `#run(...)`? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a decimal number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`).  However, you can use a `#hashtag/value` if you don't mind this limitation.
 
 ## /weeklyStatsToCSV
-This is a very niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV table to 'Summaries/weekly_stats'. This is designed for plotting using the third-party gnuplot tool.
+This is a niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV table to 'Summaries/weekly_stats'. This is designed to be used by third-party graphing tools, though in a future release I will bring this natively into NotePlan. 
 
 The relevant settings for this command are:
-- Folder name: e.g. 'Summaries'
 - Chart Duration (in weeks): e.g. 26. If no number is given, the plugin will generate a sensible longish period up to 1 year.
+- Items to Chart: Comma-separated list of @mentions or #hashtags to chart. Note: currently they will share the same scaling on the Y-axis.
 
 ## To do
-- if/when NotePlan makes this possible, show proper graphs of numeric summaries. (The 'ASCII art' sparklines are hopefully an interim step towards this.)
+- now NotePlan has begun to make HTML content possible, I am working to create proper charts/graphs of numeric summaries. (The 'ASCII art' sparklines were an interim step towards this.)
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

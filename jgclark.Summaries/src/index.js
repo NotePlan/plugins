@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 2.10.2022 for v0.14.0
+// Last updated 5.11.2022 for v0.15.1
 //-----------------------------------------------------------------------------
 
 export {
@@ -14,45 +14,24 @@ export {
 export {
   showTaskCompletionHeatmap,
   testGenStats,
-  weeklyStats
+  weeklyStats,
+  weeklyStats2
 } from './forCharting'
 export { insertProgressUpdate } from './progress'
 export { statsPeriod } from './stats'
 
-/** 
- * The following test functions were removed from the plugin.json file:
- *
-    {
-      "_name": "test:update Summaries plugin settings",
-      "description": "Summaries: test update settings",
-      "jsFunction": "testUpdate"
-    },
-    {
-      "_name": "test:GenStats",
-      "description": "test daily gen stats",
-      "jsFunction": "testGenStats"
-    },
-    {
-      "_name": "test:HeatMapGeneration1",
-      "description": "test heatmap gen 1",
-      "jsFunction": "testHeatMapGeneration1"
-    },
-    {
-      "_name": "test:HeatMapGeneration2",
-      "description": "test heatmap gen 2",
-      "jsFunction": "testHeatMapGeneration2"
-    },
-    {
-      "_name": "test:HeatMapGeneration3",
-      "description": "test heatmap gen 3",
-      "jsFunction": "testHeatMapGeneration3"
-    }
- */
-
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
-import { pluginUpdated, semverVersionToNumber, updateSettingData } from '@helpers/NPConfiguration'
+import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { updateJSONForFunctionNamed } from '@helpers/NPPresets'
+import {
+  getPluginJson,
+  getSettings,
+  pluginUpdated,
+  savePluginJson,
+  semverVersionToNumber,
+  updateSettingData
+} from '@helpers/NPConfiguration'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const pluginID = "jgclark.Summaries"
@@ -68,35 +47,53 @@ export function init(): void {
   }
 }
 
-export function onSettingsUpdated(): void {
-  logDebug(pluginID, 'starting onSettingsUpdated')
-  const newSettings = {}
-  const currentSettingData = DataStore.settings
-  const updatedPluginVersion = pluginJson["plugin.version"]
-  const updatedPluginVersionAsNumber = semverVersionToNumber(updatedPluginVersion)
-  logDebug(pluginID, `new version = ${updatedPluginVersion} (${updatedPluginVersionAsNumber})`)
+export async function onSettingsUpdated(): Promise<void> {
+  try {
+    logDebug(pluginID, 'starting onSettingsUpdated')
 
-  // ** FOLLOWING IS GETTING READY FOR FUTURE RELEASE **
-  // If this was upgrade to v0.13???.0 (semver ???)
-  // if (updatedPluginVersionAsNumber >= 12288) {
-  //   logDebug(pluginID, `Will try to update further settings for v0.12.0 ...`)
-  //   // Empty setting 'progressYesNo' has been added automatically
-  //   // Empty setting 'progressTotal' has been added automatically
-  //   // Empty setting 'progressAverage' has been added automatically
-  //   // Default setting 'progressYesNoChars' has been added automatically
+    // See if we need to hide or unhide the test: commands in this plugin, depending whether _logLevel is DEBUG or not
+    // Get the commands' details
+    const initialPluginJson = await getPluginJson(pluginID)
+    const initialSettings = await getSettings(pluginID) ?? `{".logLevel": "INFO"}`
+    // $FlowFixMe[incompatible-type]
+    const logLevel = initialSettings["_logLevel"]
+    logInfo('onSettingsUpdated', `Starting with _logLevel ${logLevel}`)
+    // clo(initialPluginJson, 'initialPluginJson')
 
-  //   const pluginSettings = pluginJson.hasOwnProperty('plugin.settings') ? pluginJson['plugin.settings'] : []
-  //   if (pluginSettings === []) {
-  //     logError(pluginID, `Cannot find any plugin.settings in ${pluginID}/plugin.json`)
-  //     return
-  //   }
-  //   // Copy 'progressMentions' to new 'progressAll' setting (for now without deleting the original)
-  //   // TODO: const progressMentionsSetting = pluginJson.hasOwnProperty('plugin.settings') ? pluginJson['plugin.settings'] : []
+    let updatedPluginJson = initialPluginJson
+    if (initialPluginJson) {
+      const commands = updatedPluginJson['plugin.commands']
+      clo(commands, 'commands')
+      let testCommands = commands.filter((command) => {
+        const start = command.name.slice(0, 4)
+        return start === 'test'
+      })
+      logInfo('onSettingsUpdated', `- found ${testCommands.length} test commands`)
 
-  //   // Copy 'progressHashtags' to new 'progressCount' setting (for now without deleting the original)
-  //   // TODO:
-  //   logDebug(pluginID, `... done.`)
-  // }
+      // WARNING: savePluginJson causes an infinite loop!
+      // WARNING: So all these lines are commented out.
+      // if (logLevel === 'DEBUG') {
+      //   for (let command of testCommands) {
+      //     updatedPluginJson = updateJSONForFunctionNamed(updatedPluginJson, command, false)
+      //   }
+      //   clo(updatedPluginJson, `updatedPluginJson after unhiding:`)
+      // }
+      // else {
+      //   for (let command of testCommands) {
+      //     updatedPluginJson = updateJSONForFunctionNamed(updatedPluginJson, command, true)
+      //   }
+      //   clo(updatedPluginJson, `updatedPluginJson after hiding:`)
+
+      // }
+      // logDebug('onSettingsUpdated', `- before savePluginJson ...`)
+
+      // await savePluginJson(pluginJson['plugin.id'], updatedPluginJson)
+      // logDebug('onSettingsUpdated', `  - NOT CALLED OTHERWISE AN INFINITE LOOP!`)
+    }
+  }
+  catch (error) {
+    logError('onSettingsUpdated', error.message)
+  }
 }
 
 // test the update mechanism, including display to user
