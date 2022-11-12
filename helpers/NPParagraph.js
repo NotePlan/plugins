@@ -442,18 +442,20 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
 /**
  * Remove all previously written blocks under a given heading in all notes (e.g. for deleting previous "TimeBlocks" or "SyncedCopoes")
  * WARNING: This is DANGEROUS. Could delete a lot of content. You have been warned!
- * @author @mikeerickson
+ * @author @dwertheimer
  * @param {Array<string>} noteTypes - the types of notes to look in -- e.g. ['calendar','notes']
- * @param {string} heading - the heading too look for in the notes
+ * @param {string} heading - the heading too look for in the notes (without the #)
  * @param {boolean} keepHeading - whether to leave the heading in place afer all the content underneath is
  * @param {boolean} runSilently - whether to show CommandBar popups confirming how many notes will be affected - you should set it to 'yes' when running from a template
  */
 export async function removeContentUnderHeadingInAllNotes(noteTypes: Array<string>, heading: string, keepHeading: boolean = false, runSilently: string = 'no'): Promise<void> {
   try {
-    logDebug(`NPParagraph`, `removeContentUnderHeadingInAllNotes running`)
+    logDebug(`NPParagraph`, `removeContentUnderHeadingInAllNotes "${heading}" in ${noteTypes.join(', ')}`)
     // For speed, let's first multi-core search the notes to find the notes that contain this string
-    const prevCopies = await DataStore.search(heading, noteTypes)
+    let prevCopies = await DataStore.search(heading, noteTypes) // returns all the potential matches, but some may not be headings
+    prevCopies = prevCopies.filter((n) => n.type === 'title' && n.content === heading)
     if (prevCopies.length) {
+      clo(prevCopies, `removeContentUnderHeadingInAllNotes: prevCopies`)
       let res = 'Yes'
       if (!(runSilently === 'yes')) {
         res = await showMessageYesNo(`Remove "${heading}"+content in ${prevCopies.length} notes?`)
