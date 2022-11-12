@@ -107,13 +107,13 @@ describe('paragraph.js', () => {
       const result = p.isTermInMarkdownPath('cabbage', 'Something in [this link](http://example.com/cabbage/patch).')
       expect(result).toEqual(true)
     })
-    test('should not find search term with Initial Caps', () => {
+    test('should find search term with Initial Caps', () => {
       const result = p.isTermInMarkdownPath('Cabbage', 'Something in [this link](http://example.com/cabbage/patch).')
-      expect(result).toEqual(false)
+      expect(result).toEqual(true)
     })
-    test('should not find search term with All CAPS', () => {
+    test('should find search term with All CAPS', () => {
       const result = p.isTermInMarkdownPath('CABBAGE', 'Something in [this link](http://example.com/cabbage/patch).')
-      expect(result).toEqual(false)
+      expect(result).toEqual(true)
     })
   })
 
