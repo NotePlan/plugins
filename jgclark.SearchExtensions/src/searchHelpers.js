@@ -15,51 +15,28 @@ import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 import { showMessage } from '@helpers/userInput'
 
+//------------------------------------------------------------------------------
+// Data types
+
+// Minimal data type needed to pass right through to result display
+// Note: named before needing to add the 'type' item
 export type noteAndLine = {
   noteFilename: string,
-  line: string
+  line: string,  // contents of the paragraph
+  index: number, // index number of the paragraph, to do any necessary further lookups
 }
-
-// export type noteAndLines = {
-//   noteFilename: string,
-//   lines: Array<string>
-// }
-
-// export type resultObjectType = {
-//   searchTerm: string,
-//   resultLines: noteAndLines,
-//   resultCount: number,
-// }
 
 export type typedSearchTerm = {
   term: string, // (e.g. 'fixed')
-  type: 'must' | 'may' | 'not-line' | 'not-note',  // (e.g. 'not-line')
-  termRep: string // short for termRepresentation (e.g. '-fixed')
+  termRep: string, // short for termRepresentation (e.g. '-fixed')
+  type: 'must' | 'may' | 'not-line' | 'not-note',
 }
-
-// export type resultObjectTypeV2 = {
-//   searchTerm: typedSearchTerm,
-//   resultNoteAndLinesArr: Array<noteAndLines>,
-//   resultCount: number,
-// }
 
 export type resultObjectTypeV3 = {
   searchTerm: typedSearchTerm,
   resultNoteAndLineArr: Array<noteAndLine>,
   resultCount: number,
 }
-
-// export type resultOutputType = {
-//   searchTermsRep: string,
-//   resultNoteAndLinesArr: Array<noteAndLines>,
-//   resultCount: number,
-// }
-
-// export type resultOutputTypeV2 = {
-//   searchTermsRepArr: Array<string>,
-//   resultNoteAndLinesArr: Array<noteAndLines>,
-//   resultCount: number,
-// }
 
 export type resultOutputTypeV3 = {
   searchTermsRepArr: Array<string>,
@@ -68,6 +45,7 @@ export type resultOutputTypeV3 = {
   resultNoteCount: number,
 }
 
+// Reduced set of paragraph.* fields
 export type reducedFieldSet = {
   filename: string,
   changedDate?: Date,
@@ -138,7 +116,7 @@ export function normaliseSearchTerms(
   logDebug("normaliseSearchTerms()", `starting for [${searchArg}] with modifyQuotedTermsToAndedTerms ${String(modifyQuotedTermsToAndedTerms)}`)
   let outputArray = []
   // Take a simple string and process it to turn into an array of string, according to one of several schemes:
-  if (!searchArg.match(/\w{3,}/)) {
+  if (!searchArg.match(/\w{2,}/)) {
     // this has no words (at least 3 long) -> empty
     logWarn(pluginJson, `No valid words found in [${searchArg}]`)
     return []
@@ -247,7 +225,7 @@ export function validateAndTypeSearchTerms(searchArg: string): Array<typedSearch
   const validatedTerms: Array<typedSearchTerm> = []
   for (const u of normalisedTerms) {
     let t = u.trim()
-    if (t.length >= 3) {
+    if (t.length >= 2) {
       let thisType = ''
       const thisRep = t
       if (t[0] === '+') {
@@ -363,12 +341,12 @@ export function differenceByObjectEquality<P: string, T: { +[P]: mixed, ... }> (
  */
 export function noteAndLineIntersection(arrA: Array<noteAndLine>, arrB: Array<noteAndLine>):
   Array<noteAndLine> {
-  const modA = arrA.map((m) => m.noteFilename + ':::' + m.line)
-  const modB = arrB.map((m) => m.noteFilename + ':::' + m.line)
+  const modA = arrA.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
+  const modB = arrB.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
   const intersectionModArr = modA.filter(f => modB.includes(f))
   const intersectionArr: Array<noteAndLine> = intersectionModArr.map((m) => {
-    let firstPart = (m.split(':::', 1))[0]
-    return { noteFilename: firstPart, line: m.slice(firstPart.length + 3) }
+    let parts = m.split(':::')
+    return { noteFilename: parts[0], index: Number(parts[1]), line: parts[2] }
   })
   return intersectionArr
 }
@@ -604,12 +582,12 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV3>): r
  * @tests in jest file
  */
 export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteAndLine> {
-  const simplifiedArray = inArray.map((m) => m.noteFilename + ':::' + m.line)
+  const simplifiedArray = inArray.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
   // const sortedArray = simplifiedArray.sort()
   const reducedArray = [... new Set(simplifiedArray)]
   const outputArray: Array<noteAndLine> = reducedArray.map((m) => {
     let parts = m.split(':::')
-    return { noteFilename: parts[0], line: parts[1] }
+    return { noteFilename: parts[0], index: Number(parts[1]), line: parts[2] }
   })
   // clo(outputArray, 'output')
   return outputArray
@@ -638,7 +616,7 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
  * @param {Array<string>} foldersToExclude (can be empty list)
  * @param {SearchConfig} config object for various settings
  * @param {Array<string>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
- * @returns {resultOutputTypeV2} results optimised for output
+ * @returns {resultOutputTypeV3} results optimised for output
  */
 export async function runSearchesV2(
   termsToMatchArr: Array<typedSearchTerm>,
@@ -646,7 +624,7 @@ export async function runSearchesV2(
   foldersToInclude: Array<string>,
   foldersToExclude: Array<string>,
   config: SearchConfig,
-  paraTypesToInclude?: Array<string> = [], // TODO: ideally Array<ParagraphType> instead
+  paraTypesToInclude?: Array<ParagraphType> = [],
 ): Promise<resultOutputTypeV3> {
   try {
     const termsResults: Array<resultObjectTypeV3> = []
@@ -687,9 +665,9 @@ export async function runSearchesV2(
 
 /**
  * Run a search for 'searchTerm' over the set of notes determined by the parameters.
- * Returns a special resultObjectTypeV2 data structure: {
+ * Returns a special resultObjectTypeV3 data structure: {
  *   searchTerm: typedSearchTerm
- *   resultNotesAndLines: Array<noteAndLines>  -- note: array
+ *   resultNoteAndLineArr: Array<noteAndLine>  -- note: array
  *   resultCount: number
  * }
  * Has an optional 'paraTypesToInclude' parameter of paragraph type(s) to include (e.g. ['open'] to include only open tasks). If not given, then no paragraph types will be excluded.
@@ -700,7 +678,7 @@ export async function runSearchesV2(
  * @param {Array<string>} foldersToExclude (can be empty list)
  * @param {SearchConfig} config object for various settings
  * @param {Array<string>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
- * @returns {resultOutputType} combined result set optimised for output
+ * @returns {resultOutputTypeV3} combined result set optimised for output
  */
 export async function runSearchV2(
   typedSearchTerm: typedSearchTerm,
@@ -708,7 +686,7 @@ export async function runSearchV2(
   foldersToInclude: Array<string>,
   foldersToExclude: Array<string>,
   config: SearchConfig,
-  paraTypesToInclude?: Array<string> = [], // TODO: ideally Array<ParagraphType> instead
+  paraTypesToInclude?: Array<ParagraphType> = [],
 ): Promise<resultObjectTypeV3> {
   try {
     const headingMarker = '#'.repeat(config.headingLevel)
@@ -775,7 +753,8 @@ export async function runSearchV2(
       for (let i = 0; i < sortedFieldSets.length; i++) {
         noteAndLineArr.push({
           noteFilename: sortedFieldSets[i].filename,
-          line: sortedFieldSets[i].rawContent
+          index: sortedFieldSets[i].lineIndex,
+          line: sortedFieldSets[i].rawContent,
         })
       }
     }
@@ -866,9 +845,9 @@ export async function writeSearchResultsToNote(
 }
 
 /**
- * Create nicely-formatted lines to display resultSet
- * There's a special case; if no results are found, then the resultSet will have an empty filename. If so, don't try to display the filename
- * @param {resultOutputTypeV2} resultSet 
+ * Create nicely-formatted lines to display 'resultSet', using settings from 'config'
+ * @author @jgclark
+ * @param {resultOutputTypeV2} resultSet
  * @param {SearchConfig} config 
  * @returns {Array<string>} formatted search reuslts
  */
@@ -883,7 +862,7 @@ export function createFormattedResultLines(resultSet: resultOutputTypeV3, config
     // Take off leading + or ! if necessary
     const mayOrMustTerms = mayOrMustTermsRep.map((f) => (f.match(/^[\+\!]/)) ? f.slice(1) : f)
     // Add each result line to output array
-    let lastFilename = undefined
+    let lastFilename: string
     let nc = 0
     for (const rnal of resultSet.resultNoteAndLineArr) {
       if (config.groupResultsByNote) {
@@ -894,12 +873,12 @@ export function createFormattedResultLines(resultSet: resultOutputTypeV3, config
           resultOutputLines.push(`${headingMarker} ${getNoteTitleFromFilename(rnal.noteFilename, true)}`)
           nc++
         }
-        const outputLine = trimAndHighlightTermInLine(rnal.line, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
+        const outputLine = trimAndHighlightTermInLine(rnal, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
         resultOutputLines.push(outputLine)
         lastFilename = thisFilename
       } else {
         // Write the line, first transforming it to add context on the end, and make other changes according to what the user has configured
-        const outputLine = trimAndHighlightTermInLine(rnal.line, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength) + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
+        const outputLine = trimAndHighlightTermInLine(rnal, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength) + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
         resultOutputLines.push(outputLine)
       }
     }

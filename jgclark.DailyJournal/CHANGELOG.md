@@ -1,7 +1,11 @@
 # What's changed in 💭 Journalling Plugin?
-_Please also see the Plugin [README]()._
+_Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md)._
 
 <!-- TODO: improved flexibility of questions -->
+## [0.14.0] - 2022-11-11
+### Added
+- added **/weekStart** command, which applies your 'Weekly Note' Template to the currently open weekly note (or the current weekly note if you're not editing a weekly note). (For @tastapod.)
+
 ## [0.13.0] - 2022-08-21
 ### Added
 - added **/weekReview**, **/monthReview** and **/quarterReview** commands, each with a setting so you can tailor the questions to them as suits your life and work. (None need to be used!)

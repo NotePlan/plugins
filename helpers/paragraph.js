@@ -12,7 +12,17 @@ export const RE_URI = '(\\w+:\\/\\/[\\w\\.\\/\\?\\#\\&\\d\\-\\=%*,]+)'
 export const RE_MARKDOWN_PATH = '\\[.+?\\]\\(([^\\s]*?)\\)'
 
 /**
- * Check to see if search term is present within a URL or file path, using case sensitive searching.
+ * Perform substring match, ignoring case
+ * Note: COPY TO AVOID CIRCULAR DEPENDENCY
+ */
+function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string): boolean {
+  const re = new RegExp(`${searchTerm}`, "i") // = case insensitive match
+  return re.test(textToSearch)
+}
+
+
+/**
+ * Check to see if search term is present within a URL or file path, using case insensitive searching.
  * Now updated to _not match_ if the search term is present in the rest of the line.
  * @author @jgclark
  *
@@ -26,22 +36,26 @@ export function isTermInURL(term: string, searchString: string): boolean {
   const URIMatches = searchString.match(RE_URI) ?? []
   const thisURI = URIMatches[1] ?? ''
   if (thisURI !== '') {
+    logDebug('paragraph/isTermInURL', `thisURI: ${thisURI}`)
     const restOfLine = searchString.replace(thisURI, '')
-    if (restOfLine.match(term)) {
+    logDebug('paragraph/isTermInURL', `restOfLine: ${restOfLine}`)
+    logDebug('paragraph/isTermInURL', String(caseInsensitiveSubstringMatch(term, restOfLine)))
+    if (caseInsensitiveSubstringMatch(term, restOfLine)) {
       return false
     } else {
       // create tailored Regex to test for presence of the term
       // const testTermInURI = `(\\w+:\\/\\/)[^\\s]*?${term}.*?[\\s\\.$]`
-      return !!thisURI.match(term)
+      logDebug('paragraph/isTermInURL', String(caseInsensitiveSubstringMatch(term, thisURI)))
+      return caseInsensitiveSubstringMatch(term, thisURI)
     }
   } else {
-    // logDebug('???', `  No URI -> false`)
+    // logDebug('paragraph/isTermInURL', `- No URI -> false`)
     return false
   }
 }
 
 /**
- * Check to see if search term is present within the path of a [...](path), using case sensitive searching.
+ * Check to see if search term is present within the path of a [...](path), using case insensitive searching.
  * Now updated to _not match_ if the search term is present in the rest of the line.
  * @author @jgclark
  *
@@ -56,12 +70,12 @@ export function isTermInMarkdownPath(term: string, searchString: string): boolea
   const thisMDPath = MDPathMatches[1] ?? ''
   if (thisMDPath !== '') {
     const restOfLine = searchString.replace(thisMDPath, '')
-    if (restOfLine.match(term)) {
+    if (caseInsensitiveSubstringMatch(term, restOfLine)) {
       return false
     } else {
       // create tailored Regex to test for presence of the term
       // const testTermInMDPath = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
-      return !!thisMDPath.match(term)
+      return caseInsensitiveSubstringMatch(term, thisMDPath)
     }
   } else {
     // logDebug('paragraph/isTermInMarkdownPath', `No MD path -> false`)

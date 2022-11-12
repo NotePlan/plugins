@@ -11,6 +11,7 @@ export {
   removeSyncedCopiesOfTodayTodos,
   removeTimeBlocks,
   removePreviousSyncedCopies,
+  removePreviousDaysParagraphNamed,
   removePreviousTimeBlocks,
   markDoneAndRecreateTimeblocks,
 } from './NPTimeblocking'

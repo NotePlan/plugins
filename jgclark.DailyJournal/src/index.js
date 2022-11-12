@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// Last updated 21.8.22 for v0.13.0
+// Last updated 11.11.22 for v0.14.0
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -14,10 +14,11 @@ import { showMessage } from '@helpers/userInput'
 
 export {
   dayStart,
+  todayStart,
+  weekStart,
   dailyJournalQuestions,
   monthlyJournalQuestions,
   quarterlyJournalQuestions,
-  todayStart,
   weeklyJournalQuestions
 } from './journal'
 

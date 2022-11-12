@@ -421,7 +421,7 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
   return [fromDate, toDate, periodType, periodString, periodPartStr]
 }
 
-type NotePlanWeekInfo = {
+export type NotePlanWeekInfo = {
   weekNumber: number,
   weekYear: number,
   weekString: string,

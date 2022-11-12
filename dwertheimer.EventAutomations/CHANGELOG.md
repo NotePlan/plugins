@@ -4,6 +4,10 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+[1.13.0] - 2022-11-11 @dwertheimer
+
+- Added undocumented feature for a template to remove previous days paragraphs under any heading (dbw using to remove "Daily Recurring Tasks" after the day has passed)
+
 [1.12.0] - TBD @dwertheimer
 
 - Added /mdatb - Mark Done and run ATB command

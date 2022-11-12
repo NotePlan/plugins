@@ -1,5 +1,5 @@
 # 🔎 Search Extensions plugin
-NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin attempts to add some power and usability to searching.  Most things can be configured, but by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
+NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin adds some extra power and usability to searching.  Most things can be configured, but by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
 
 ![demo](qs+repeat-demo.gif)
 
@@ -9,17 +9,30 @@ There are several /commands to use in NotePlan's command bar:
 
 1. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
 2. **/search** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
-3. **/searchOverNotes** searches across **all regular** (non-calendar) notes.
-4. **/searchOverCalendar** searches across **all calendar**  notes.
-5. **/searchResultsInPeriod**: searches over the **calendar and weekly notes of the time period you select**:
+3. **/searchOpenTasks** searches just across **open tasks** in all notes.
+4. **/searchOverNotes** searches across **all regular** (non-calendar) notes.
+5. **/searchOverCalendar** searches across **all calendar**  notes.
+6. **/searchResultsInPeriod**: searches over the **calendar and weekly notes of the time period you select**:
 
 ![selecting a period](period-selection.png)
 
-The note is saved with the search terms as its title (apart from /quickSearch), in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  But you also are given the option of saving to the current note, or to the plugin console.
+## Results Display
+The results are always **saved to a note** is saved with the search terms as its title (apart from /quickSearch), in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  But you also are given the option of saving to the current note, or to the plugin console.
 
 As the results are saved to a note, the following sorts of uses are then possible:
+- keep a note with all open tasks for a particular `@person` -- as live tasks that can be ticked off
 - keep track of all the great `@win`s or clever `#idea`s you noted down
 - show all the things you had `Gratitude:` for in your daily journal
+
+There are two **display styles**: 
+1. '**NotePlan**': all results are shown as the usual NotePlan style of tasks, bullets, quotes or just notes. Where a task is an open one, then a sync'd copy of it is shown, to stop duplication of tasks in NotePlan.
+2. '**Simplified**': all results are shown as bullets, and can be reduced in length if required using the 'Result quote length' setting.
+
+You can also set:
+- a 'Group results by Note?' setting, where matches found within the same note are grouped together ('true' by default).
+- Where the match is in a calendar note, 'Date style' setting lets you choose where that link is shown as a 'date' using your locale, or as a NP date 'link' ([[2022-06-30]]), `at` (`@2022-06-30`), 'date' (date formatted for your locale, or 'scheduled' (`>2022-06-30`).
+- the ordering of the results by the title, created date or changed date of the note the search term is found in.
+- the commands to automatically decides the name of the note to save the search results to based on the search term, which avoids the final prompt, by the 'Automatically save?' setting.
 
 ## Refreshing Results
 Each results note has a ` [🔄 Click to refresh results]` pseudo-button under the title of the note. Clicking that runs the search again, and replaces the earlier set of results. (Thanks to @dwertheimer for the suggestion, which is a good use of the x-callback mechanism -- see below.)
@@ -35,16 +48,6 @@ Each results note has a ` [🔄 Click to refresh results]` pseudo-button under t
 - you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
 - all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be exluded too using the 'Folders to exclude' setting.
 - multi-word search phrases in quotes (e.g. `"Holy Spirit"`) aren't supported by the underlying API, but instead they will be treated as `+Holy +Spirit`, which means a match will only happen if they are at least on the same line.
-
-## Notes about results output
-There are two ways results can be displayed, controlled by the 'Group results by Note?' setting:
-1. matches found within the same note are grouped together ('true', the default)
-2. every match is shown with a note link at the end of the match ('false')
-
-You can also set:
-- the length of the quote of the matched line can be limited by the 'Result quote length' setting.
-- the ordering of the results by the title, created date or changed date of the note the search term is found in.
-- the commands to automatically decides the name of the note to save the search results to based on the search term, which avoids the final prompt, by the 'Automatically save?' setting.
 
 ## Settings
 To change the default **settings**, click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.

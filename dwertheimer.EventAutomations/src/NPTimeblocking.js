@@ -495,6 +495,22 @@ export async function removePreviousTimeBlocks(runSilently: string = 'no'): Prom
 }
 
 /**
+ * Remove a section from all previous days
+ * (entry point for /removePreviousSection)
+ * @param {boolean} headingName - the name of the heading to remove
+ */
+export async function removePreviousDaysParagraphNamed(headingName: string = '', runSilently: string = 'no'): Promise<void> {
+  try {
+    logDebug(pluginJson, `removePreviousDaysParagraphNamed running for "${headingName}"`)
+    if (headingName?.length) {
+      await removeContentUnderHeadingInAllNotes(['calendar'], headingName, false, runSilently)
+    }
+  } catch (error) {
+    logError(pluginJson, `removePreviousTimeBlocks error: ${JSP(error)}`)
+  }
+}
+
+/**
  * Insert todos marked >today into the editor
  * (entry point for /atb)
  * @param {*} note

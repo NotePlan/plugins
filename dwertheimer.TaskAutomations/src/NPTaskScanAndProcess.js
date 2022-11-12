@@ -11,6 +11,7 @@ import { eliminateDuplicateSyncedParagraphs, textWithoutSyncedCopyTag } from '@h
 import { getOverdueParagraphs, noteType } from '@helpers/note'
 import { sortListBy } from '@helpers/sorting'
 import { moveParagraphToNote } from '@helpers/NPParagraph'
+import { noteHasContent } from '../../helpers/NPParagraph'
 
 export type OverdueSearchOptions = {
   openOnly: boolean,
@@ -115,7 +116,7 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
   const todayLines = sharedOpts.splice(0, 2) // get the two >today lines and bring to top
   const content = textWithoutSyncedCopyTag(origPara.content)
   const opts = [
-    { label: `➡️ Skip - Do not change "${content}" (and continue)`, value: '__skip__' },
+    { label: `➡️ Leave "${content}" (and continue)`, value: '__skip__' },
     ...todayLines,
     { label: `✏️ Edit this task in note: "${origPara.note?.title || ''}"`, value: '__edit__' },
     { label: `✓⏎ Mark done and add follow-up in same note`, value: '__mdhere__' },
@@ -325,8 +326,10 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                 }
                 case 'delete': {
                   updates.splice(index, 1) //remove item which was updated from note's updates
+                  const before = noteHasContent(origPara.note, origPara.content)
                   origPara.note?.removeParagraph(origPara)
-                  //FIXME: should i add an update here?
+                  const after = noteHasContent(origPara.note, origPara.content)
+                  logDebug(pluginJson, `reviewNote delete content is in note:  before:${String(before)} | after:${String(after)}`)
                   return updates.length ? noteIndex - 1 : noteIndex
                 }
                 case 'skip': {

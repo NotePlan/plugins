@@ -3,7 +3,7 @@
 // Note-level Functions
 import moment from 'moment'
 import { RE_PLUS_DATE_G, hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, isWeeklyNote } from './dateTime'
-import { clo, JSP, logDebug, logError, logInfo } from './dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { getFolderFromFilename } from './folders'
 import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
@@ -86,7 +86,28 @@ export async function noteOpener(fullPath: string, desc: string, useProjNoteByFi
 }
 
 /**
+ * Open a note using whatever method works (open by title, filename, etc.)
+ * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
+ * Leaving it here for the moment in case any plugins are still using it
+ * @author @jgclark, building on @dwertheimer
+ * @param {string} filename of either Calendar or Notes type
+ * @returns {?TNote} - the note that was opened
+ */
+export function getNoteByFilename(filename: string): ?TNote {
+  logDebug('note/getNoteByFilename', `Started for '${filename}'`)
+  const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
+  if (newNote != null) {
+    logDebug('note/getNoteByFilename', `-> note '${displayTitle(newNote)}`)
+    return newNote
+  } else {
+    logWarn('note/getNoteByFilename', `-> couldn't find a note in either Notes or Calendar`)
+    return null
+  }
+}
+
+/**
  * Get or create the relevant regular note in the given folder (not calendar notes)
+ * Now extended to cope with titles with # characters: these are stripped out first, as they are stripped out by NP when reporting a note.title
  * @author @jgclark
  *
  * @param {string} noteTitle - title of note to look for
@@ -100,9 +121,10 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string, parti
 
   // If we want to do a partial match, see if matching note(s) have already been created (ignoring @Archive and @Trash)
   if (partialTitleToMatch) {
+    const partialTestString = partialTitleToMatch.split('#').join('')
     const allNotesInFolder = getProjectNotesInFolder(noteFolder)
-    existingNotes = allNotesInFolder.filter((f) => f.title?.startsWith(partialTitleToMatch))
-    logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing partial '${partialTitleToMatch}' note matches`)
+    existingNotes = allNotesInFolder.filter((f) => f.title?.startsWith(partialTestString))
+    logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing partial '${partialTestString}' note matches`)
   } else {
     // Otherwise do an exact match on noteTitle
     const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []

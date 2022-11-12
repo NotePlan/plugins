@@ -2,13 +2,14 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 19.8.2022 for v1.0.0-beta1
+// Last updated 25.10.2022 for v1.0.0-beta
 //-----------------------------------------------------------------------------
 
 export {
   quickSearch,
   saveSearch,
   searchOverAll,
+  searchOpenTasks,
   searchOverNotes,
   searchOverCalendar
 } from './saveSearch'
