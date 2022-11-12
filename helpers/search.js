@@ -9,7 +9,7 @@ import { clo, logDebug, logError } from '@helpers/dev'
 import { getNoteByFilename } from '@helpers/note'
 
 /**
- * Perform string match, ignoring case
+ * Perform string exact match, ignoring case
  * @author @jgclark
  * @param {string} searchTerm 
  * @param {string} textToSearch 
@@ -18,6 +18,19 @@ import { getNoteByFilename } from '@helpers/note'
  */
 export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): boolean {
   const re = new RegExp(`^${searchTerm}$`, "i") // = case insensitive match
+  return re.test(textToSearch)
+}
+
+/**
+ * Perform substring match, ignoring case
+ * @author @jgclark
+ * @param {string} searchTerm 
+ * @param {string} textToSearch 
+ * @returns {boolean}
+ * @tests available in jest file
+ */
+export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string): boolean {
+  const re = new RegExp(`${searchTerm}`, "i") // = case insensitive match
   return re.test(textToSearch)
 }
 

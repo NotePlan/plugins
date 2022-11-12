@@ -10,7 +10,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
 })
 
 beforeEach(() => {
@@ -29,8 +29,12 @@ describe('paragraph.js', () => {
       const result = p.isTermInURL('tennis', 'Something about http://www.tennis.org/')
       expect(result).toEqual(true)
     })
-    test('should not find search term in a URL as it is also in rest of line', () => {
+    test('should not find search term in a URL as it is also in rest of line (1)', () => {
       const result = p.isTermInURL('tennis', 'Something about tennis in http://www.tennis.org/')
+      expect(result).toEqual(false)
+    })
+    test('should not find search term in a URL as it is also in rest of line (2)', () => {
+      const result = p.isTermInURL('return', '* TEST  [Returns](https://www.energyavenue.com/returns/)')
       expect(result).toEqual(false)
     })
     test('should find search term in a markdown link URL', () => {
@@ -60,13 +64,13 @@ describe('paragraph.js', () => {
       const result = p.isTermInURL('tennis', 'And http://www.bbc.co.uk/ and then tennis.org')
       expect(result).toEqual(false)
     })
-    test('should not find term in regular text with mixed Caps', () => {
+    test('should find term in regular text with mixed Caps', () => {
       const result = p.isTermInURL('Tennis', 'And http://www.tennis.org/')
-      expect(result).toEqual(false)
+      expect(result).toEqual(true)
     })
-    test('should not find term in regular text with ALL CAPS', () => {
+    test('should find term in regular text with ALL CAPS', () => {
       const result = p.isTermInURL('TENNIS', 'And http://www.tennis.org/')
-      expect(result).toEqual(false)
+      expect(result).toEqual(true)
     })
     test('should not find term in string with no URI', () => {
       const result = p.isTermInURL('tennis', 'Lots about tennis, but no URI at all')

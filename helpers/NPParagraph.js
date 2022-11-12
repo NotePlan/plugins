@@ -3,13 +3,14 @@
 import { trimString } from './dataManipulation'
 import { hyphenatedDate } from './dateTime'
 import { toLocaleDateTimeString } from './NPdateTime'
-import { JSP, log, logDebug, logError, clo, logWarn, timer } from './dev'
+import { clo, JSP, logDebug, logError, logWarn, timer } from './dev'
 import { calcSmartPrependPoint, findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
 
 const pluginJson = 'NPParagraph'
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
+ * @author @dwertheimer
  * @param {CoreNoteFields} note
  * @param {string} headingStr - the heading text to look for
  * @param {boolean} search rawText (headingStr above includes the #'s etc) default=false
@@ -49,19 +50,20 @@ export function deleteEntireBlock(note: CoreNoteFields, para: TParagraph, includ
  * Given a heading (string), delete all the content of the block under this heading (optionally and the heading also)
  * See getParagraphBlock below for definition of what constitutes a block an definition of includeFromStartOfSection
  * (Note: if the heading occurs more than once, acts on the first one only)
+ * @author @mikeerickson
  * @param {CoreNoteFields} note
  * @param {string} heading
  * @param {boolean} includeFromStartOfSection (default: false)
  * @param {boolean} keepHeading - keep the heading after deleting contents (default: true)
  */
 export function removeContentUnderHeading(note: CoreNoteFields, heading: string, includeFromStartOfSection: boolean = false, keepHeading: boolean = true) {
-  // log(`NPParagraph/removeContentUnderHeading`, `In '${note.title ?? ''}' remove items under title: "${heading}"`)
+  // logDebug(`NPParagraph/removeContentUnderHeading`, `In '${note.title ?? ''}' remove items under title: "${heading}"`)
   const paras = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
   if (paras && paras.lineIndex != null) {
     deleteEntireBlock(note, paras, includeFromStartOfSection, keepHeading)
     logDebug(`NPParagraph/removeContentUnderHeading`, `Note now has ${note.paragraphs.length} lines`)
     // for (const p of note.paragraphs) {
-    //   log('NPParagraph / removeContentUnderHeading', `- ${p.lineIndex}: ${p.rawContent}`)
+    //   logDebug('NPParagraph / removeContentUnderHeading', `- ${p.lineIndex}: ${p.rawContent}`)
     // }
   } else {
     logWarn(`NPParagraph/removeContentUnderHeading`, `Did not find heading: "${heading}", so nothing removed.`)
@@ -72,13 +74,14 @@ export function removeContentUnderHeading(note: CoreNoteFields, heading: string,
  * Insert text content under a given section heading.
  * If section heading is not found, then insert that section heading first at the start of the note.
  * The 'headingToFind' uses a startsWith not exact match, to allow datestamps or number of results etc. to be used in headings
+ * @author @mikeerickson
  * @param {CoreNoteFields} destNote
  * @param {string} headingToFind - without leading #
  * @param {string} parasAsText - text to insert (multiple lines, separated by newlines)
  * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
  */
 export async function insertContentUnderHeading(destNote: CoreNoteFields, headingToFind: string, parasAsText: string, headingLevel: number = 2) {
-  log(`NPParagraph/insertContentUnderHeading`, `Called for '${headingToFind}' with ${parasAsText.split('\n').length} paras)`)
+  logDebug(`NPParagraph/insertContentUnderHeading`, `Called for '${headingToFind}' with ${parasAsText.split('\n').length} paras)`)
   const headingMarker = '#'.repeat(headingLevel)
   const startOfNote = findStartOfActivePartOfNote(destNote)
   let insertionIndex = startOfNote // top of note by default
@@ -111,7 +114,7 @@ export async function replaceContentUnderHeading(
   includeFromStartOfSection: boolean = false,
   headingLevel: number = 2,
 ) {
-  log(`NPParagraph / replaceContentUnderHeading`, `In '${note.title ?? 'Untitled Note'}' replace items under heading: "${heading}"`)
+  logDebug(`NPParagraph / replaceContentUnderHeading`, `In '${note.title ?? 'Untitled Note'}' replace items under heading: "${heading}"`)
   removeContentUnderHeading(note, heading, includeFromStartOfSection)
   await insertContentUnderHeading(note, heading, newContentText, headingLevel)
 }
@@ -243,7 +246,7 @@ export function getParagraphBlock(
 
   logDebug(`NPParagraph / getParagraphBlock`, `  - Found ${parasInBlock.length} paras in block starting with: "${parasInBlock[0].content}"`)
   for (const pib of parasInBlock) {
-    log(`NPParagraph / getParagraphBlock`, `  ${pib.content}`)
+    logDebug(`NPParagraph / getParagraphBlock`, `  ${pib.content}`)
   }
   return parasInBlock
 }
@@ -332,11 +335,11 @@ export async function gatherMatchingLines(
       let matchLine = p.content
       // If the test is within a URL or the path of a [!][link](path) skip this result
       if (isTermInURL(stringToLookFor, matchLine)) {
-        log('NPParagraph/gatherMatchingLines', `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a URL`)
+        logDebug('NPParagraph/gatherMatchingLines', `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a URL`)
         continue
       }
       if (isTermInMarkdownPath(stringToLookFor, matchLine)) {
-        log('NPParagraph/gatherMatchingLines', `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a [...](path)`)
+        logDebug('NPParagraph/gatherMatchingLines', `- Info: Match '${stringToLookFor}' ignored in '${matchLine} because it's in a [...](path)`)
         continue
       }
       // If the stringToLookFor is in the form of an 'attribute::' and found at the start of a line,
@@ -350,14 +353,14 @@ export async function gatherMatchingLines(
         matchLine = matchLine.replace(stringToLookFor, `==${stringToLookFor}== `)
       }
       matches.push(matchLine.trim())
-      // log('NPParagraph/gatherMatchingLines', `${n.title ?? ''}: ${matchLine}`)
+      // logDebug('NPParagraph/gatherMatchingLines', `${n.title ?? ''}: ${matchLine}`)
       noteContexts.push(noteContext)
     }
     if (i % 50 === 0) {
       CommandBar.showLoading(true, `Searching in ${notes.length} notes ...`, i / notes.length)
     }
   }
-  log('NPParagraph/gatherMatchingLines', `... in ${timer(startDT)}`)
+  logDebug('NPParagraph/gatherMatchingLines', `... in ${timer(startDT)}`)
   await CommandBar.onMainThread()
   CommandBar.showLoading(false)
 
@@ -378,7 +381,7 @@ export function getSelectedParaIndex(): number {
     return 0
   }
   const range = Editor.paragraphRangeAtCharacterIndex(selection.start)
-  // log('NPParagraph/getSelectedParaIndex', `  Cursor/Selection.start: ${rangeToString(range)}`)
+  // logDebug('NPParagraph/getSelectedParaIndex', `  Cursor/Selection.start: ${rangeToString(range)}`)
 
   // Work out what selectedPara number(index) this selected selectedPara is
   let firstSelParaIndex = 0
@@ -389,7 +392,7 @@ export function getSelectedParaIndex(): number {
       break
     }
   }
-  // log('NPParagraph/getSelectedParaIndex', `  firstSelParaIndex = ${firstSelParaIndex}`)
+  // logDebug('NPParagraph/getSelectedParaIndex', `  firstSelParaIndex = ${firstSelParaIndex}`)
   return firstSelParaIndex
 }
 
@@ -658,7 +661,7 @@ export function insertParagraph(note: TNote, content: string, index: number | nu
  * alias containsContent containsParagraph paragraphExists paragraphContains
  * @author @dwertheimer
  */
-export function noteHasContent(note, content): boolean {
+export function noteHasContent(note: CoreNoteFields, content: string): boolean {
   return note.paragraphs.some((p) => p.content === content)
 }
 
