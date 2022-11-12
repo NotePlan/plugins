@@ -215,6 +215,7 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
  * @param {TNote} note - note to draw headings from
  * @param {boolean} optionAddAtBottom - whether to add '(bottom of note)' option. Default: true.
  * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top or bottom of the note. Default: false.
+ * @param {boolean} includeArchive - whether to include headings in the Archive section of the note (i.e. after 'Done'). Default: false.
  * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note.
  */
 export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = true, optionCreateNewHeading: boolean = false, includeArchive: boolean = false): Promise<string> {
