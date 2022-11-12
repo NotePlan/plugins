@@ -1174,6 +1174,7 @@ declare interface Paragraph {
   +note: ?TNote;
   /**
    * Returns the given blockId if any.
+   * WARNING: This has a different capitalisation than '.addBlockID'
    * Note: Available from v3.5.2
    * @type {string?}
    */
@@ -1756,6 +1757,14 @@ declare class NotePlan {
    * Note: available from v3.5.0
    */
   static resetCaches(): void;
+  /**
+   * Updates the cache, so you can access changes faster. And returns the updated note (from the updated cache).
+   * Note: Available from NotePlan v3.7.1
+   * @param {TNote}
+   * @param {boolean}
+   * @returns {TNote}
+   */
+  static updateCache(note: TNote, shouldUpdateTags: boolean): TNote;
   /**
    * Note: Available from v3.5.2
    * Opens the given URL using the default browser (x-callback-urls can also be triggered with this).
