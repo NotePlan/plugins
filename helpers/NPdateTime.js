@@ -185,7 +185,11 @@ export const periodTypesAndDescriptions = [
  * @param {string} periodType optional; if not provided ask user instead
  * @returns {[Date, Date, string, string, string]}
  */
-export async function getPeriodStartEndDates(question: string = 'Create stats for which period?', periodTypeToUse?: string): Promise<[Date, Date, string, string, string]> {
+export async function getPeriodStartEndDates(
+  question: string = 'Create stats for which period?',
+  periodTypeToUse?: string,
+  includeToday: boolean = true /* currently only used when a date is passed through as periodTypeToUse */,
+): Promise<[Date, Date, string, string, string]> {
   let periodType: string
   // If we're passed the period, then use that, otherwise ask user
   if (periodTypeToUse) {
@@ -409,9 +413,13 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
         periodString = `Days Since ${periodType}`
         periodPartStr = ``
         toDateMom = moment(toDate).startOf('day')
+        if (!includeToday) {
+          toDateMom = toDateMom.subtract(1, 'day')
+          toDate = toDateMom.toDate()
+        }
         fromDateMom = moment(periodType)
         fromDate = fromDateMom.toDate()
-        logDebug('8601date', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+        logDebug('getPeriodStartEndDates 8601date', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
         break
       }
       periodString = `<Error: couldn't parse interval type '${periodType}'>`

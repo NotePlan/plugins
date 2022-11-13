@@ -54,11 +54,11 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     if (periodParam !== '') {
       period = periodParam
     }
-
-    logDebug(pluginJson, `starting for period ${period} titled '${heading}' and showSparklines? ${showSparklines}`)
+    const includeToday = await getTagParamsFromString(params ?? '', 'includeToday', true)
+    logDebug(pluginJson, `starting for period ${period} titled '${heading}' and showSparklines? ${showSparklines} includeToday:${String(includeToday)}`)
 
     // Get time period of interest
-    const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates('', period)
+    const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates('', period, includeToday)
     if (fromDate == null || toDate == null) {
       throw new Error(`Error: failed to calculate dates`)
     }
