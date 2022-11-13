@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.9.0-beta5",
+  "plugin.version": "0.9.0-beta6",
   "plugin.lastUpdateInfo": "Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -83,17 +83,17 @@
       "jsFunction": "cancelProject"
     },
     {
-      "name": "rev:redisplayProjectList",
+      "name": "test:redisplayProjectList",
       "description": "Redisplau project lists",
       "jsFunction": "redisplayProjectList"
     },
     {
-      "name": "rev:logFullReviewList",
+      "name": "test:logFullReviewList",
       "description": "write full-review-list file to log",
       "jsFunction": "logFullReviewList"
     },
     {
-      "name": "rev:makeFullReviewList",
+      "name": "test:makeFullReviewList",
       "description": "make/update full review list note",
       "jsFunction": "makeFullReviewList"
     },
@@ -115,12 +115,12 @@
   ],
   "plugin.inactiveCommands": [
     {
-      "name": "rev:logReviewList",
+      "name": "test:logReviewList",
       "description": "write reviewList pref to log",
       "jsFunction": "logReviewList"
     },
     {
-      "name": "rev:makeReviewList",
+      "name": "test:makeReviewList",
       "description": "make/update reviewList pref",
       "jsFunction": "makeReviewList"
     },

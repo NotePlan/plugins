@@ -47,6 +47,7 @@ export type ReviewConfig = {
   reviewIntervalMentionStr: string,
   reviewedMentionStr: string,
   confirmNextReview: boolean,
+  _logLevel: string
 }
 
 /**
@@ -64,7 +65,7 @@ export async function getReviewSettings(): Promise<any> {
       await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     }
-    clo(v2Config, `Review settings:`)
+    // clo(v2Config, `Review settings:`)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
     DataStore.setPreference('startMentionStr', v2Config.startMentionStr)
@@ -206,7 +207,7 @@ export class Project {
 
   constructor(note: TNote) {
     try {
-      // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers
+      // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
       this.ID = String(Math.round((Math.random()) * 99999))
       if (note == null || note.title == null) {
         throw new Error('Error in constructor: invalid note passed')
@@ -217,14 +218,20 @@ export class Project {
       const paras = note.paragraphs
       const metadataLineIndex = getOrMakeMetadataLine(note)
       this.metadataPara = paras[metadataLineIndex]
-      // logDebug('Project constructor', `- for ${this.title}, filename ${this.filename}, metadata = ${paras[metadataLineIndex].content}`)
       const mentions: $ReadOnlyArray<string> = note.mentions
       // FIXME(Eduard): this line returns some items out of date
-      const hashtags: $ReadOnlyArray<string> = note.hashtags
-      // logDebug('Project constructor', `mentions: ${mentions}`)
       // Note: So here's an alternate that just gets mentions from the metadataline
       const altMentions = (paras[metadataLineIndex].content + ' ').split(' ').filter((f) => f[0] === '@')
-      // logDebug('Project constructor', `altMentions: ${altMentions}`)
+      const hashtags: $ReadOnlyArray<string> = note.hashtags
+      const altHashtags = (paras[metadataLineIndex].content + ' ').split(' ').filter((f) => f[0] === '#')
+      if (this.folder.startsWith('TEST')) {
+        logDebug('Project constructor', `- for ${this.title}, folder ${this.folder}`)
+        logDebug('Project constructor', `  - metadataLine = ${paras[metadataLineIndex].content}`)
+        logDebug('Project constructor', `  - mentions: ${String(mentions)}`)
+        logDebug('Project constructor', `  - altMentions: ${String(altMentions)}`)
+        logDebug('Project constructor', `  - hashtags: ${String(hashtags)}`)
+        logDebug('Project constructor', `  - altHashtags: ${String(altHashtags)}`)
+      }
 
       // work out noteType (if any)
       const firstHashtag = hashtags[0]
@@ -340,7 +347,6 @@ export class Project {
         }
         else if (this.cancelledDate != null) {
           this.cancelledDuration = 'after ' + momTSD.to(moment(this.cancelledDate), true)
-          console.log(this.cancelledDuration)
           // logDebug(`-> cancelledDuration = ${this.cancelledDuration}`)
         }
       }
@@ -392,17 +398,22 @@ export class Project {
       this.calcDurations()
 
       // re-write the note's metadata line
-      logDebug('completeProject', `Completing ${this.title} ...`)
+      logDebug('completeProject', `Completing '${this.title}' ...`)
       const newMetadataLine = this.generateMetadataLine()
-      logDebug('completeProject', `... metadata now '${newMetadataLine}'`)
-      this.metadataPara.content = newMetadataLine
+      logDebug('completeProject', `- metadata now '${newMetadataLine}'`)
 
       // send update to Editor
       // TODO: Will need updating when supporting frontmatter for metadata
+      this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
+      // Now need to update the Cache 
+      const updatedNote = DataStore.updateCache(Editor.note, true)
+      logDebug('completeProject', `- called updateCache(Editor.note, true) -> ???`)
+      // and now reload the note into this Project instance
+      // TODO: somehow!
 
       const newMSL = this.machineSummaryLine()
-      logDebug('completeProject', `returning mSL '${newMSL}'`)
+      logDebug('completeProject', `- returning mSL '${newMSL}'`)
       return newMSL
     }
     catch (error) {
@@ -428,15 +439,20 @@ export class Project {
       this.calcDurations()
 
       // re-write the note's metadata line
-      logDebug('cancelProject', `Cancelling ${this.title} ...`)
+      logDebug('cancelProject', `Cancelling '${this.title}' ...`)
       const newMetadataLine = this.generateMetadataLine()
-      logDebug('cancelProject', `... metadata now '${newMetadataLine}'`)
-      this.metadataPara.content = newMetadataLine
+      logDebug('cancelProject', `- metadata now '${newMetadataLine}'`)
 
       // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
+      this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
+      // Now need to update the Cache 
+      const updatedNote = DataStore.updateCache(Editor.note, true)
+      logDebug('cancelProject', `- called updateCache(Editor.note, true) -> ???`)
+      // and now reload the note into this Project instance
+      // TODO: somehow!
 
-      logDebug('cancelProject', `mSL should -> ${this.machineSummaryLine()}`)
+      logDebug('cancelProject', `- mSL should -> ${this.machineSummaryLine()}`)
       return true
     }
     catch (error) {
@@ -459,16 +475,21 @@ export class Project {
       this.isPaused = !this.isPaused // toggle
 
       // re-write the note's metadata line
-      logDebug('togglePauseProject', `Paused state now = ${String(this.isPaused)} for ${this.title} ...`)
+      logDebug('togglePauseProject', `Paused state now = ${String(this.isPaused)} for '${this.title}' ...`)
       const newMetadataLine = this.generateMetadataLine()
-      logDebug('togglePauseProject', `... metadata now '${newMetadataLine}'`)
-      this.metadataPara.content = newMetadataLine
+      logDebug('togglePauseProject', `- metadata now '${newMetadataLine}'`)
 
       // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
+      this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
+      // Now need to update the Cache 
+      const updatedNote = DataStore.updateCache(Editor.note, true)
+      logDebug('togglePauseProject', `- called updateCache(Editor.note, true) -> ???`)
+      // and now reload the note into this Project instance
+      // TODO: somehow!
 
       const newMSL = this.machineSummaryLine()
-      logDebug('togglePauseProject', `returning mSL '${newMSL}'`)
+      logDebug('togglePauseProject', `- returning mSL '${newMSL}'`)
       return newMSL
     }
     catch (error) {

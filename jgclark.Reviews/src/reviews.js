@@ -28,6 +28,7 @@ import {
   getFilteredFolderList,
 } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
+import { showHTML } from '@helpers/HTMLView'
 import {
   findNotesMatchingHashtag,
   findNotesMatchingHashtags,
@@ -357,7 +358,7 @@ export async function updateReviewListAfterChange(reviewedTitle: string, simplyD
       if (titleField === reviewedTitle) {
         thisLineNum = i
         thisTitle = reviewedTitle
-        logDebug('updateReviewListAfterChange', `- Found '${reviewedTitle}' to update from '${line}' at line number ${i}`)
+        // logDebug('updateReviewListAfterChange', `- Found '${reviewedTitle}' to update from '${line}' at line number ${i}`)
         break
       }
     }
@@ -499,6 +500,7 @@ export async function finishReview(): Promise<?TNote> {
     }
     // send update to Editor
     thisNote.updateParagraph(metadataPara)
+    DataStore.updateCache(Editor.note, true)
     logDebug('finishReview', `- After update ${metadataPara.content}.`)
 
     // update this note in the review list
@@ -568,12 +570,33 @@ export async function redisplayProjectList(): Promise<void> {
     logDebug('redisplayProjectList', `Started`)
     const config = await getReviewSettings()
 
-    // Call the relevant function with config, but don't open up the display window unless already open
-    if (config.outputStyle.match(/rich/i) && NotePlan.environment.buildVersion >= 845) {
-      await renderProjectListsHTML(config, false)
-    }
+    // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
       await renderProjectListsMarkdown(config, false)
+    }
+
+    // If we want HTML display, then currently only 1 window is allowed: TODO(Eduard): !
+    // Re-load the saved HTML if it's available.
+    if (config.outputStyle.match(/rich/i) && config._logLevel === 'DEBUG') {
+      // Try loading HTML saved copy
+      const windowTitle = `Review List`
+      const filenameHTMLCopy = 'review_list.html'
+      const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
+      if (savedHTML !== '') {
+        await showHTML(windowTitle,
+          '', // no extra header tags
+          savedHTML,
+          '', // get general CSS set automatically
+          '', // CSS in HTML
+          false, // = not modal window
+          '',
+          '',
+          '',
+          812, 1200) // set width; max height
+        logDebug('redisplayProjectList', `Displayed HTML from saved file ${filenameHTMLCopy}`)
+      } else {
+        logWarn('redisplayProjectList', `Couldn't read HTML from saved file ${filenameHTMLCopy}`)
+      }
     }
   }
   catch (error) {

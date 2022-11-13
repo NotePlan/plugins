@@ -2,11 +2,10 @@
 //-----------------------------------------------------------------------------
 // Commands for producing Project lists
 // by @jgclark
-// Last updated 14.10.2022 for v0.9.0, @jgclark
+// Last updated 4.11.2022 for v0.9.0, @jgclark
 //-----------------------------------------------------------------------------
 // FIXME: button again ... use the DataStore.invokePluginCommandByName method ?
 // TODO: ? add option for kicking off @DW's /overdue for the note?
-// TODO: Ignore all @folders automatically
 
 import pluginJson from "../plugin.json"
 import fm from 'front-matter'
@@ -64,7 +63,6 @@ export const reviewListCSS: string = [
   '  empty-cells: show; }',
   '.sticky-row { position: sticky; top: 0; border-bottom: 1px solid var(--tint-color); }', // Keep a header stuck to top of window
   'th { text-align: left; vertical-align: bottom; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }', // removed L-R borders for now
-  // 'th td:first-child {text-align: center;}', // ???
   'tr.new-section-header { color: var(--h3-color); padding-top: 1.0rem; font-size: 1.0rem; font-weight: bold; background-color: var(--bg-main-color); border-top: 1px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }',
   'td { padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); }', // removed L-R borders for now
   // 'table tbody tr:first-child { border-top: 1px solid var(--tint-color); }', // turn on tbody section top border -- now set in main CSS
@@ -145,9 +143,9 @@ export const setPercentRingJSFunc: string = `<script>
  * Note: Requires NP 3.7.0 (build 844) or greater.
  * @author @jgclark
  * @param {any} config - from settings (and any passed args)
- * @param {boolean} openOutputWindow if not already open? Note: Currently can't honour this request.
+ * @param {boolean} redisplayOnly if not already open? Note: Currently can't honour this request.
  */
-export async function renderProjectListsHTML(config: any, openOutputWindow: boolean = true): Promise<void> {
+export async function renderProjectListsHTML(config: any, redisplayOnly: boolean = false): Promise<void> {
   try {
     // Check to see if we're running v3.6.2, build 844) or later
     if (NotePlan.environment.buildVersion <= 844) {
@@ -155,8 +153,9 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
       return
     }
 
-    logDebug('renderProjectListsHTML', `starting for ${config.noteTypeTags.toString()} tags and openOutputWindow: ${String(openOutputWindow)}`)
+    logDebug('renderProjectListsHTML', `starting for ${config.noteTypeTags.toString()} tags and redisplayOnly: ${String(redisplayOnly)}`)
 
+    if (!redisplayOnly) { }
     if (config.noteTypeTags.length === 0) {
       throw new Error('No noteTypeTags passed to display')
     }
@@ -165,42 +164,11 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
     if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
 
     // Currently we can only display 1 HTML Window at a time, so need to include all tags in a single view. TODO: in time this can hopefully change.
-
-    // if (config.noteTypeTags.length > 0) {
-    //   // We have defined tag(s) to filter and group by
-
-    //   // FIXME: This needs to collect all tags before showHTML call
-    //   for (const tag of config.noteTypeTags) {
-    //     // handle #hashtags in the note title (which get stripped out by NP, it seems)
-    //     const tagWithoutHash = tag.replace('#', '')
-    //     const windowTitle = `${tag} Review List`
-    //     const filenameHTMLCopy = `${tagWithoutHash}_list.html`
-
-    //     // Make the Summary list(s)
-    //     const outputArray = await generateReviewSummaryLines(tag, 'Rich', config)
-    //     outputArray.unshift(`<h1>${windowTitle}</h1>`)
-
-    //     // Display the list(s) as HTML
-    //     // TODO: when possible from the API, honour the 'openOutputWindow' direction
-    //     await showHTML(
-    //       windowTitle,
-    //       '', // no extra header tags
-    //       outputArray.join('\n'),
-    //       '', // = set general CSS from current theme
-    //       reviewListCSS,
-    //       false, // = not modal window
-    //       setPercentRingJSFunc,
-    //       makeCommandCall(startReviewsCommandCall),
-    //       filenameHTMLCopy,
-    //       1800, 9999) // set width; max height
-    //     logDebug('renderProjectListsHTML', `- written results to HTML`)
-    //   }
-    // } else {
-
-    // We will use one window for each noteTag in turn
-    let outputArray = []
     const windowTitle = `Review List`
-    const filenameHTMLCopy = `review_list.html`
+    // Set filename for HTML copy if _logLevel set to DEBUG
+    const filenameHTMLCopy = (config._logLevel === 'DEBUG') ? 'review_list.html' : ''
+    // String array to save all output
+    let outputArray = []
 
     // Set up x-callback URLs for various commands, to be styled into pseudo-buttons
     const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
@@ -326,7 +294,7 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
       setPercentRingJSFunc,
       makeCommandCall(startReviewsCommandCall),
       filenameHTMLCopy,
-      1800, 9999) // set width; max height
+      812, 1200) // set width; max height
     logDebug('renderProjectListsHTML', `- written results to HTML window and file`)
     // }
   }
@@ -340,11 +308,11 @@ export async function renderProjectListsHTML(config: any, openOutputWindow: bool
  * and write out to note(s) in the config.folderToStore folder.
  * @author @jgclark
  * @param {any} config - from settings (and any passed args)
- * @param {boolean} openOutputWindow if not already open?
+ * @param {boolean} redisplayOnly if not already open?
  */
-export async function renderProjectListsMarkdown(config: any, openOutputWindow: boolean = true): Promise<void> {
+export async function renderProjectListsMarkdown(config: any, redisplayOnly: boolean = true): Promise<void> {
   try {
-    logDebug('renderProjectListsMarkdown', `Starting for ${config.noteTypeTags.toString()} tags and openOutputWindow: ${String(openOutputWindow)}`)
+    logDebug('renderProjectListsMarkdown', `Starting for ${config.noteTypeTags.toString()} tags and redisplayOnly: ${String(redisplayOnly)}`)
 
     // Set up x-callback URLs for various commands, to be styled into pseudo-buttons
     const startReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review"
@@ -380,20 +348,6 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
           const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
           if (noteCount > 0) { // print header just the once (if any notes)
             // Note: can't put reviewed/complete/cancel buttons here yet, because there's no way to be clear about which project they refer to. TODO: find a way round this in time.
-            // outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
-
-            // outputArray.unshift(Project.detailedSummaryLineHeader('Markdown', config.displayDates, config.displayProgress))
-            // Currently disable writing a header:
-            //   // only add header if putting dates, otherwise not needed
-            //   if (displayDates) {
-            //     let output = '_Key:  Project/Area Title'
-            //     if (displayProgress) {
-            //       // output += '#tasks open / complete / waiting / future'
-            //       output += '\tProgress'
-            //     }
-            //     output += '\tDue date / Next review_'
-            //     outputArray.push(output)
-            //   }
 
             outputArray.unshift(`Total ${noteCount} active notes${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
             if (!config.displayGroupedByFolder) {
@@ -405,7 +359,7 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
             note.content = outputArray.join('\n')
             logDebug('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
             // Open the note in a new window (if wanted)
-            if (openOutputWindow) {
+            if (redisplayOnly) {
               // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
               await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
             }
@@ -429,21 +383,7 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
 
         if (noteCount > 0) { // print header just the once (if any notes)
           // Note: can't put reviewed/complete/cancel buttons here yet, because there's no way to be clear about which project they refer to. TODO: find a way round this in time.
-          // outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
-
-          // outputArray.unshift(Project.detailedSummaryLineHeader('Markdown', config.displayDates, config.displayProgress))
-          // Currently disable writing a header:
-          //   // only add header if putting dates, otherwise not needed
-          //   if (displayDates) {
-          //     let output = '_Key:  Project/Area Title'
-          //     if (displayProgress) {
-          //       // output += '#tasks open / complete / waiting / future'
-          //       output += '\tProgress'
-          //     }
-          //     output += '\tDue date / Next review_'
-          //     outputArray.push(output)
-          //   }
-
+          // TODO: should there be something here?
         }
         if (!config.displayGroupedByFolder) {
           outputArray.unshift(`### All folders (${noteCount} notes)`)
@@ -455,7 +395,7 @@ export async function renderProjectListsMarkdown(config: any, openOutputWindow: 
         note.content = outputArray.join('\n')
         logInfo('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
         // Open the note in a new window (if wanted)
-        if (openOutputWindow) {
+        if (redisplayOnly) {
           // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
           await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
         }

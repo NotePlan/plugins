@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 9.10.2022 for v0.9.0-beta, @jgclark
+// Last updated 3.11.2022 for v0.9.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -174,7 +174,7 @@ export async function togglePauseProject(): Promise<void> {
     // Get settings
     const config = await getReviewSettings()
 
-    // Construct a Project class object from this note
+    // Construct a Project class object from the open note
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
@@ -184,7 +184,7 @@ export async function togglePauseProject(): Promise<void> {
     if (newMSL !== '') {
       // update the full-review-list, using the machineSummaryLine
       // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-      await updateReviewListAfterChange(note.title ?? '', false, config, newMSL)
+      await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
     }
   }
   catch (error) {
