@@ -4,9 +4,9 @@
 // Jonathan Clark
 //-----------------------------------------------------------------------------
 
-import { trimString } from '@helpers/dataManipulation'
+// import { trimString } from '@helpers/dataManipulation'
 import { clo, logDebug, logError } from '@helpers/dev'
-import { getNoteByFilename } from '@helpers/note'
+// import { getNoteByFilename } from '@helpers/note'
 
 /**
  * Perform string exact match, ignoring case
@@ -151,12 +151,6 @@ export function simplifyRawContent(input: string): string {
   }
 }
 
-type noteAndLine = {
-  noteFilename: string,
-  line: string,  // contents of the paragraph
-  index: number, // index number of the paragraph, to do any necessary further lookups
-}
-
 /**
  * Takes a line of text and prepares it for display, in 'Simplified' or 'NotePlan' style.
  * - if its NotePlan and an 'open' task we need to make it a sync results using blockIDs
@@ -165,7 +159,7 @@ type noteAndLine = {
  * - adds ==highlight== to matching terms if wanted (and if not already highlighted)
  * @author @jgclark
  * 
- * @param {noteAndLine} nalInput noteAndLine data structure for this result
+ * @param {string} input this result content
  * @param {Array<string>} terms to find/highlight (without search operator prefixes)
  * @param {boolean} simplifyLine trim off leading markdown markers?
  * @param {string} resultPrefix string to use if line is simplified
@@ -175,7 +169,7 @@ type noteAndLine = {
  * @tests in jest file
  */
 export function trimAndHighlightTermInLine(
-  nalInput: noteAndLine,
+  input: string,
   terms: Array<string>,
   simplifyLine: boolean,
   addHighlight: boolean,
@@ -183,13 +177,11 @@ export function trimAndHighlightTermInLine(
   maxChars: number = 0,
 ): string {
   try {
-    let output = ''
-    const input = nalInput.line
-    const inputShort = trimString(input, 20)
     // Take off starting markdown markers, and right trim
     const startOfMainLineContentPos = getLineMainContentPos(input)
     const startOfLineMarker = input.slice(0, startOfMainLineContentPos)
     let mainPart = input.slice(startOfMainLineContentPos)
+    let output = ''
 
     // If using Simplified style ...
     if (simplifyLine) {
@@ -219,6 +211,8 @@ export function trimAndHighlightTermInLine(
           // For some reason we didn't find the matching term, so return the first part of line
           output = (output.length >= maxChars) ? output.slice(0, maxChars) : output
         }
+      } else {
+        output = mainPart
       }
 
       // Now add on the appropriate prefix
@@ -226,32 +220,8 @@ export function trimAndHighlightTermInLine(
     }
     // If using NotePlan style, then ...
     else {
-      // - if this is an open task line, then sync lines by adding a blockID (having checked there isn't one already)
-      // - don't do any shortening, as that would mess up sync'd lines
-
-      // Get the line details (have to get from DataStore)
-      const thisNote = getNoteByFilename(nalInput.noteFilename)
-      const thisPara = thisNote?.paragraphs?.[nalInput.index]
-      const thisType = thisPara?.type ?? ''
-      if (thisNote && thisPara && thisType === 'open') {
-        if (thisPara.blockId) {
-          // Don't do anything as it has a blockID already
-          const thisBlockID = thisPara.blockId
-          logDebug('trimAndHighlight...', `- existing blockId ${thisBlockID} in line '${input}', so not adding again`)
-        } else {
-          // Add blockID to source, and append to result
-          logDebug('trimAndHighlight...', `- will add blockId to source line '${inputShort}'`)
-          thisNote.addBlockID(thisPara)
-          thisNote.updateParagraph(thisPara)
-          const thisBlockID = thisPara.blockId ?? '<error>'
-          logDebug('trimAndHighlight...', `- added blockId '${thisBlockID}' to source line`)
-          mainPart += ` ${thisBlockID}`
-          logDebug('trimAndHighlight...', `- appended blockId to result -> '${mainPart}'`)
-        }
-      } else {
-        logDebug('trimAndHighlight...', `- not an 'open' type: ${thisType}: '${inputShort}'`)
-      }
-      // Now add on the appropriate prefix
+      // - don't do any shortening, as that would mess up any sync'd lines
+      // - just add on the appropriate prefix
       output = startOfLineMarker + mainPart
     }
 

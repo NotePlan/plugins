@@ -36,16 +36,10 @@ export function isTermInURL(term: string, searchString: string): boolean {
   const URIMatches = searchString.match(RE_URI) ?? []
   const thisURI = URIMatches[1] ?? ''
   if (thisURI !== '') {
-    logDebug('paragraph/isTermInURL', `thisURI: ${thisURI}`)
     const restOfLine = searchString.replace(thisURI, '')
-    logDebug('paragraph/isTermInURL', `restOfLine: ${restOfLine}`)
-    logDebug('paragraph/isTermInURL', String(caseInsensitiveSubstringMatch(term, restOfLine)))
     if (caseInsensitiveSubstringMatch(term, restOfLine)) {
       return false
     } else {
-      // create tailored Regex to test for presence of the term
-      // const testTermInURI = `(\\w+:\\/\\/)[^\\s]*?${term}.*?[\\s\\.$]`
-      logDebug('paragraph/isTermInURL', String(caseInsensitiveSubstringMatch(term, thisURI)))
       return caseInsensitiveSubstringMatch(term, thisURI)
     }
   } else {
@@ -73,9 +67,9 @@ export function isTermInMarkdownPath(term: string, searchString: string): boolea
     if (caseInsensitiveSubstringMatch(term, restOfLine)) {
       return false
     } else {
-      // create tailored Regex to test for presence of the term
-      // const testTermInMDPath = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
       return caseInsensitiveSubstringMatch(term, thisMDPath)
+      // earlier: create tailored Regex to test for presence of the term
+      // const testTermInMDPath = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
     }
   } else {
     // logDebug('paragraph/isTermInMarkdownPath', `No MD path -> false`)

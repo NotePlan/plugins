@@ -159,7 +159,7 @@ export async function searchPeriod(
     // CommandBar.showLoading(true, `Running search for ${String(termsToMatchArr)} ...`)
     // await CommandBar.onAsyncThread()
 
-    // $FlowFixMe[incompatible-exact]
+    // $FlowFixMe
     const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], config.foldersToExclude, config, paraTypesToInclude) // Note: no await
 
     // await CommandBar.onMainThread()

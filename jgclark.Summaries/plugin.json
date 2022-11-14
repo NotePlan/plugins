@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
   "plugin.version": "0.16.0",
-  "plugin.lastUpdateInfo": "0.16.0: Adds ability to run since a specific date (e.g. 2022-02-15)\n0.15.0: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting.",
+  "plugin.lastUpdateInfo": "0.16.0: Adds ability to run since a specific date (e.g. 2022-02-15)\n0.15.1: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting. Also new 'Items to Chart' setting for /weeklyStatsToCSV command.\n0.15.0: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -53,8 +53,35 @@
         "stats",
         "count"
       ],
-      "description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a note",
-      "jsFunction": "weeklyStats"
+      "description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a file",
+      "jsFunction": "weeklyStats2"
+    },
+    {
+      "name": "test:update Summaries plugin settings",
+      "description": "Summaries: test update settings",
+      "jsFunction": "testUpdate"
+    },
+    {
+      "name": "test:GenStats",
+      "description": "test daily gen stats",
+      "jsFunction": "testGenStats"
+    }
+  ],
+  "plugin.commands-disabled": [
+    {
+      "name": "test:HeatMapGeneration1",
+      "description": "test heatmap gen 1",
+      "jsFunction": "testHeatMapGeneration1"
+    },
+    {
+      "name": "test:HeatMapGeneration2",
+      "description": "test heatmap gen 2",
+      "jsFunction": "testHeatMapGeneration2"
+    },
+    {
+      "name": "test:HeatMapGeneration3",
+      "description": "test heatmap gen 3",
+      "jsFunction": "testHeatMapGeneration3"
     }
   ],
   "plugin.settings": [
@@ -136,7 +163,7 @@
     {
       "key": "progressHashtags",
       "title": "#hashtags to count",
-      "description": "List of #hashtags to include in Progress updates. If this list is empty, no hashtags will be included.",
+      "description": "List of #hashtags to include in Progress updates. If this list is empty, no hashtags will be included.\n(Note: you need to include the # of the #hashtag.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -144,7 +171,7 @@
     {
       "key": "progressMentions",
       "title": "@mentions to count",
-      "description": "Optional list of simple @mentions to include in Progress updates. If this list is empty, no mentions will be included.",
+      "description": "Optional list of simple @mentions to include in Progress updates. If this list is empty, no mentions will be included.\n(Note: you need to include the @ of the @mention.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -152,7 +179,7 @@
     {
       "key": "progressMentionsAverage",
       "title": "@mentions to average",
-      "description": "Optional list of @mention(num)s to include in Progress updates, presented as an average.",
+      "description": "Optional list of @mention(num)s to include in Progress updates, presented as an average.\n(Note: you need to include the @ of the @mention.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -160,7 +187,7 @@
     {
       "key": "progressMentionsTotal",
       "title": "@mentions to total",
-      "description": "Optional list of @mention(num)s to include in Progress updates, presented as a total.",
+      "description": "Optional list of @mention(num)s to include in Progress updates, presented as a total.\n(Note: you need to include the @ of the @mention.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -168,7 +195,7 @@
     {
       "key": "progressYesNo",
       "title": "Yes/No items",
-      "description": "Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'.",
+      "description": "Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'.\n(Note: you do need to include the @ or # on the front.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -279,6 +306,14 @@
       "type": "number",
       "default": 26,
       "required": true
+    },
+    {
+      "key": "weeklyStatsItems",
+      "title": "Items to Chart",
+      "description": "List of @mentions or #hashtags to chart.\nNote: they will share the same scaling on the Y-axis.",
+      "type": "[string]",
+      "default": [],
+      "required": false
     },
     {
       "type": "separator"

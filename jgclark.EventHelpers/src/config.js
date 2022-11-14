@@ -56,7 +56,8 @@ export async function getEventsSettings(): Promise<any> {
         calendarToWriteTo: "",
         defaultEventDuration: 60,
         removeDoneDates: true,
-        uncompleteTasks: true
+        uncompleteTasks: true,
+        includeCompletedTasks: true
       }
       v2Config = defaultConfig
     }
