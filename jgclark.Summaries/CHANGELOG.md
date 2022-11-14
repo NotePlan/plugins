@@ -1,6 +1,11 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.16.0] - 2022-11-09 @dwertheimer
+### Added
+- Add ability to specify a date to run the summary report since
+- ???
+
 ## [0.15.1] - 2022-11-12
 ### Added
 - Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting. These tailor the output to focus on just the average or total, rather than all the currently-presented statistics (count, total and average). You might want to migrate some in the existing setting to the two new alternatives.

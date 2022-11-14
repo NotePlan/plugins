@@ -12,29 +12,15 @@ import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
-  TMOccurrences
+  TMOccurrences,
 } from './summaryHelpers'
-import {
-  getDateStringFromCalendarFilename,
-  hyphenatedDate,
-  toISODateString,
-  toLocaleDateString,
-  unhyphenatedDate,
-  withinDateRange,
-} from '@helpers/dateTime'
+import { getDateStringFromCalendarFilename, hyphenatedDate, toISODateString, toLocaleDateString, unhyphenatedDate, withinDateRange } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import {
-  CaseInsensitiveMap,
-  displayTitle,
-  getTagParamsFromString,
-} from '@helpers/general'
+import { CaseInsensitiveMap, displayTitle, getTagParamsFromString } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { getSelectedParaIndex } from '@helpers/NPParagraph'
-import {
-  caseInsensitiveMatch,
-  caseInsensitiveStartsWith,
-} from '@helpers/search'
+import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
 import { caseInsensitiveCompare } from '@helpers/sorting'
 
 //-------------------------------------------------------------------------------
@@ -68,11 +54,11 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     if (periodParam !== '') {
       period = periodParam
     }
-
-    logDebug(pluginJson, `starting for period ${period} titled '${heading}' and showSparklines? ${showSparklines}`)
+    const includeToday = await getTagParamsFromString(params ?? '', 'includeToday', true)
+    logDebug(pluginJson, `starting for period ${period} titled '${heading}' and showSparklines? ${showSparklines} includeToday:${String(includeToday)}`)
 
     // Get time period of interest
-    const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates('', period)
+    const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates('', period, includeToday)
     if (fromDate == null || toDate == null) {
       throw new Error(`Error: failed to calculate dates`)
     }
@@ -87,7 +73,19 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     await CommandBar.onAsyncThread()
 
     // Main work: calculate the progress update as an array of strings
-    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.progressHashtags, [], config.progressMentions, [], config.progressYesNo, config.progressMentions, config.progressMentionsAverage, config.progressMentionsTotal)
+    const tmOccurrencesArray = await gatherOccurrences(
+      periodString,
+      fromDateStr,
+      toDateStr,
+      config.progressHashtags,
+      [],
+      config.progressMentions,
+      [],
+      config.progressYesNo,
+      config.progressMentions,
+      config.progressMentionsAverage,
+      config.progressMentionsTotal,
+    )
 
     const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', showSparklines, false).join('\n')
 
@@ -99,7 +97,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
     if (params) {
       // this was a template command call, so simply return the output text
       logDebug(pluginJson, `-> returning text to template for '${heading}: ${periodPartStr} for ${periodString}'`)
-      return `${'#'.repeat(config.headingLevel)} ${heading}: ${periodPartStr} for ${periodString}\n${output}`
+      return `${'#'.repeat(config.headingLevel)} ${heading}${periodPartStr.length ? ` ${periodPartStr}` : ''} for ${periodString}\n${output}`
     } else {
       // This is called by a plugin command
       // Mow decide whether to write to current note (the only option before v0.10)
@@ -110,7 +108,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
           if (destNote) {
             logDebug(pluginJson, `- about to update section '${heading}' in daily note '${destNote.filename}' for ${periodPartStr}`)
             // Replace or add Section
-            replaceSection(destNote, heading, `${heading}: ${periodPartStr} for ${periodString}`, config.headingLevel, output)
+            replaceSection(destNote, heading, `${heading}:${periodPartStr.length ? ` ${periodPartStr}` : ''} for ${periodString}`, config.headingLevel, output)
             logInfo(pluginJson, `Updated section '${heading}' in daily note '${destNote.filename}' for ${periodPartStr}`)
           } else {
             logError(pluginJson, `Cannot find weekly note to write to`)
@@ -123,7 +121,7 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
           if (destNote) {
             logDebug(pluginJson, `- about to update section '${heading}' in weekly note '${destNote.filename}' for ${periodPartStr}`)
             // Replace or add Section
-            replaceSection(destNote, heading, `${heading}: ${periodPartStr} for ${periodString}`, config.headingLevel, output)
+            replaceSection(destNote, heading, `${heading}:${periodPartStr.length ? ` ${periodPartStr}` : ''} for ${periodString}`, config.headingLevel, output)
             logInfo(pluginJson, `Updated section '${heading}' in weekly note '${destNote.filename}' for ${periodPartStr}`)
           } else {
             logError(pluginJson, `Cannot find weekly note to write to`)
@@ -145,22 +143,21 @@ export async function insertProgressUpdate(params?: string): Promise<string | vo
             }
             logDebug(pluginJson, `\tinserting results to current note (${currentNote.filename ?? ''}) at line ${currentLineIndex}`)
             // Replace or add Section
-            replaceSection(currentNote, heading, `${heading}: ${periodPartStr} for ${periodString}`, config.headingLevel, output)
+            replaceSection(currentNote, heading, `${heading}:${periodPartStr.length ? ` ${periodPartStr}` : ''} for ${periodString}`, config.headingLevel, output)
             logInfo(pluginJson, `Appended progress update for ${periodPartStr} to current note`)
           }
           break
         }
       }
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, error.message)
   }
 }
 
 /**
  * NOTE: NOW DEPRECATED IN FAVOUR OF gatherOccurrences and generateProgressUpdate.
- * 
+ *
  * Work out the progress stats of interest (on hashtags and/or mentions) so far this week or month, and return a string.
  * Default to looking at week to date ("wtd") but allow month to date ("mtd") as well.
  * If it's week to date, then use the user's first day of week

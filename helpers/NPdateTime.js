@@ -6,14 +6,7 @@
 import moment from 'moment'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
-import {
-  RE_YYYYMMDD_DATE,
-  getWeek,
-  monthNameAbbrev,
-  todaysDateISOString,
-  toISOShortDateTimeString,
-  weekStartEnd
-} from './dateTime'
+import { RE_YYYYMMDD_DATE, getWeek, monthNameAbbrev, todaysDateISOString, toISOShortDateTimeString, weekStartEnd, RE_DATE } from './dateTime'
 import { logDebug, logError, clo, JSP } from './dev'
 import { chooseOption, getInput } from './userInput'
 
@@ -192,7 +185,11 @@ export const periodTypesAndDescriptions = [
  * @param {string} periodType optional; if not provided ask user instead
  * @returns {[Date, Date, string, string, string]}
  */
-export async function getPeriodStartEndDates(question: string = 'Create stats for which period?', periodTypeToUse?: string): Promise<[Date, Date, string, string, string]> {
+export async function getPeriodStartEndDates(
+  question: string = 'Create stats for which period?',
+  periodTypeToUse?: string,
+  includeToday: boolean = true /* currently only used when a date is passed through as periodTypeToUse */,
+): Promise<[Date, Date, string, string, string]> {
   let periodType: string
   // If we're passed the period, then use that, otherwise ask user
   if (periodTypeToUse) {
@@ -411,6 +408,20 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       break
     }
     default: {
+      // check to see if it's an ISO8601 date instead
+      if (new RegExp(`^${RE_DATE}$`).test(periodType)) {
+        periodString = `Days Since ${periodType}`
+        periodPartStr = ``
+        toDateMom = moment(toDate).startOf('day')
+        if (!includeToday) {
+          toDateMom = toDateMom.subtract(1, 'day')
+          toDate = toDateMom.toDate()
+        }
+        fromDateMom = moment(periodType)
+        fromDate = fromDateMom.toDate()
+        logDebug('getPeriodStartEndDates 8601date', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+        break
+      }
       periodString = `<Error: couldn't parse interval type '${periodType}'>`
     }
   }

@@ -71,10 +71,15 @@ This functionality is primarily designed to be used from a **Template** (particu
 ```
 <%- progressUpdate({period: 'wtd', heading: 'Habits', showSparklines: true}) %>
 ```
-in a Template. This has 3 optional parameters, _which if present override the main setting described above_:
-1. `period` or `interval`: time period: 'wtd' or 'userwtd' (week to date), 'mtd' (month to date), 'last7d', 'last2w', or 'last4w'.
+or
+```
+<%- progressUpdate({period: '2022-02-15', includeToday: false, heading: 'Post-Birthday Habits', showSparklines: true}) %>
+```
+in a Template. This has 4 optional parameters, _which if present override the main setting described above_:
+1. `period` (alias `interval`): time period to run report for, e.g. 'wtd' or 'userwtd' (week to date), 'mtd' (month to date), 'last7d', 'last2w', or 'last4w' or a specific ISO8601 date to report since (e.g. 2022-10-15)
 2. `heading` to use before the results.
 3. `showSparklines`: true (default) or false.
+4. `includeToday`: true (default) or false (applies when you set a date for period and you don't want to include today in the visualization -- e.g. if you use this template as part of your /dayStart routine and you haven't had time to do the habit yet!)
 
 ## /periodStats (alias: /countsInPeriod or /cip)
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify, and saves them into notes in a special 'Summaries' folder. For example:
