@@ -2,19 +2,18 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 5.8.2022 for v0.5.0 by @jgclark
+// Last updated 13.11.2022 for v1.0.0-beta3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { formatNoteDate, nowLocaleDateTime, toISOShortDateTimeString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle, type headingLevelType, titleAsLink } from '@helpers/general'
-import { getNoteContextAsSuffix, getNoteTitleFromFilename, getOrMakeNote, getProjectNotesInFolder } from '@helpers/note'
+import { getNoteByFilename, getNoteContextAsSuffix, getNoteTitleFromFilename, getOrMakeNote, getProjectNotesInFolder } from '@helpers/note'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 import { showMessage } from '@helpers/userInput'
-
 //------------------------------------------------------------------------------
 // Data types
 
@@ -158,10 +157,8 @@ export function normaliseSearchTerms(
   //       }
   //     }
   //   }
-
   //   // Now need to add terms not in quotes
   //   // ???
-
   // }
 
   // else treat as [x y z], with or without quoted phrases.
@@ -350,72 +347,6 @@ export function noteAndLineIntersection(arrA: Array<noteAndLine>, arrB: Array<no
   })
   return intersectionArr
 }
-
-/**
- * Compute difference of two arrays, by a given property value
- * from https://stackoverflow.com/a/68151533/3238281 example 2
- * @param {Array<noteAndLines>} arr The initial array
- * @param {Array<noteAndLines>} exclude The array to remove
- * @param {string} propertyName the key of the object to match on
- * @return {Array<noteAndLines>}
- * @tests in jest file
- */
-// export function excludeFromArr(arr: $ReadOnlyArray<noteAndLines>, exclude: $ReadOnlyArray<noteAndLines>, propertyName: string): Array<noteAndLines> {
-//   return arr.filter((o1) => !exclude.some((o2) => o1[propertyName] === o2[propertyName]))
-// }
-
-// export function differenceByInnerArrayLine(arr: $ReadOnlyArray<noteAndLines>, exclude: $ReadOnlyArray<noteAndLines>): Array<noteAndLines> {
-//   // return arr.filter((o1) => !exclude.some((o2) => o1[propertyName] === o2[propertyName]))
-//   if (exclude.length === 0) {
-//     return arr.slice() // null transform if no exclude terms
-//   }
-//   if (arr.length === 0) {
-//     return [] // empty return if no arr input terms
-//   }
-
-//   // turn arrays into simpler data structures, so I can more easily think about them!
-//   // (using the hack of concatenating with ':::' separator)
-//   const flatterArr: Array<string> = []
-//   for (const a of arr) {
-//     for (const b of a.lines) {
-//       flatterArr.push(`${a.noteFilename}:::${b}`)
-//     }
-//   }
-//   const flatterExclude: Array<string> = []
-//   for (const a of exclude) {
-//     for (const b of a.lines) {
-//       flatterExclude.push(`${a.noteFilename}:::${b}`)
-//     }
-//   }
-
-//   // Now find non-matches
-//   const flatDifference: Array<string> = flatterArr.filter((a) => !flatterExclude.includes(a))
-//   // clo(flatDifference, 'flatDifference: ')
-
-//   // Now un-flatten again
-//   const diff: Array<noteAndLines> = []
-//   let linesAccumulator: Array<string> = []
-//   let lastFilename = ''
-//   let thisFilename = ''
-//   let thisLine = ''
-//   for (const d of flatDifference) {
-//     const parts = d.split(':::')
-//     thisFilename = parts[0]
-//     thisLine = parts[1]
-//     // console.log(`${thisFilename} / ${thisLine}`)
-//     if (lastFilename === '' || thisFilename === lastFilename) {
-//       linesAccumulator.push(thisLine)
-//     } else {
-//       diff.push({ noteFilename: lastFilename, lines: linesAccumulator })
-//       // console.log(`- pushed { noteFilename: '${lastFilename}', lines: ${String(linesAccumulator)} }`)
-//       linesAccumulator = []
-//       linesAccumulator.push(thisLine)
-//     }
-//     lastFilename = thisFilename
-//   }
-//   diff.push({ noteFilename: lastFilename, lines: linesAccumulator }) // make sure we add the last items
-//   return diff
-// }
 
 /**
  * Work out what subset of results to return, using the must/may/not terms
@@ -653,15 +584,68 @@ export async function runSearchesV2(
     // Work out what subset of results to return, taking into the must/may/not terms
     // clo(termsResults, 'before applySearchOperators, termsResults =')
     const consolidatedResultSet: resultOutputTypeV3 = applySearchOperators(termsResults)
-    // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
-    return consolidatedResultSet
+
+    // For open tasks, add line sync with blockIDs (if we're using 'NotePlan' display style)
+    if (config.resultStyle === 'NotePlan') {
+      // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
+      const syncdConsolidatedResultSet = makeAnySyncs(consolidatedResultSet)
+      // clo(syncdConsolidatedResultSet, 'after makeAnySyncs, syncdConsolidatedResultSet =')
+      return syncdConsolidatedResultSet
+    } else {
+      // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
+      return consolidatedResultSet
+    }
   }
   catch (err) {
     logError('runSearchesV2', err.message)
     // $FlowFixMe[incompatible-return]
-    return [] // for completeness
+    return null // for completeness
   }
 }
+
+/**
+ * Go through results, and if there are open task linea, then sync lines by adding a blockID (having checked there isn't one already).
+ * @author @jgclark
+ * @param {resultOutputTypeV3} input
+ * @returns {resultOutputTypeV3}
+ */
+function makeAnySyncs(results: resultOutputTypeV3): resultOutputTypeV3 {
+  try {
+    // Go through each line looking for open tasks
+    for (let rnal of results.resultNoteAndLineArr) {
+      // Get the line details (have to get from DataStore)
+      const thisLine = rnal.line
+      const thisNote = getNoteByFilename(rnal.noteFilename)
+      const thisPara = thisNote?.paragraphs?.[rnal.index]
+      const thisType = thisPara?.type ?? ''
+      if (thisNote && thisPara && thisType === 'open') {
+        if (thisPara.blockId) {
+          // Don't do anything as it has a blockID already
+          const thisBlockID = thisPara.blockId
+          logDebug('makeAnySyncs', `- existing blockId ${thisBlockID} in line '${thisLine}', so not adding again`)
+        } else {
+          // Add blockID to source, and append to result
+          logDebug('makeAnySyncs', `- will add blockId to source line '${thisLine}'`)
+          thisNote.addBlockID(thisPara)
+          thisNote.updateParagraph(thisPara)
+          const thisBlockID = thisPara.blockId ?? '<error>'
+          logDebug('makeAnySyncs', `- added blockId '${thisBlockID}' to source line`)
+          rnal.line += ` ${thisBlockID}`
+          logDebug('makeAnySyncs', `- appended blockId to result -> '${rnal.line}'`)
+        }
+      } else {
+        logDebug('makeAnySyncs', `- not an 'open' type: ${thisType}: '${thisLine}'`)
+      }
+    }
+    return results
+  }
+  catch (err) {
+    logError('makeAnySyncs', err.message)
+    // $FlowFixMe[incompatible-return]
+    return null
+  }
+}
+
 
 /**
  * Run a search for 'searchTerm' over the set of notes determined by the parameters.
@@ -873,12 +857,12 @@ export function createFormattedResultLines(resultSet: resultOutputTypeV3, config
           resultOutputLines.push(`${headingMarker} ${getNoteTitleFromFilename(rnal.noteFilename, true)}`)
           nc++
         }
-        const outputLine = trimAndHighlightTermInLine(rnal, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
+        const outputLine = trimAndHighlightTermInLine(rnal.line, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
         resultOutputLines.push(outputLine)
         lastFilename = thisFilename
       } else {
         // Write the line, first transforming it to add context on the end, and make other changes according to what the user has configured
-        const outputLine = trimAndHighlightTermInLine(rnal, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength) + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
+        const outputLine = trimAndHighlightTermInLine(rnal.line, mayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength) + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
         resultOutputLines.push(outputLine)
       }
     }
