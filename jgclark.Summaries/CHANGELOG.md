@@ -1,10 +1,16 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [0.16.0] - 2022-11-09 @dwertheimer
+## [0.16.0] - 2022-11-???
 ### Added
-- Add ability to specify a date to run the summary report since
-- ???
+- Greater flexibility for using **insert progress update** from templates, all of which can override what is in the various settings:
+  - 'period' setting: pass a specific YYY-MM-DD date to run the summary report from (thanks to @dwertheimer)
+  - 'excludeToday' setting which if true excludes today's date from the output. (thanks to @dwertheimer)
+  - ??? arbitrary tags (for @dwertheimer)
+  - ??? 'heading' is more flexible ... (for @dwertheimer)
+- Also greater flexibility when using as a command with following new settings:
+  - 'excludeToday' setting which if true excludes today's date from the output. (thanks to @dwertheimer)
+  - ??? 'heading' is more flexible ...
 
 ## [0.15.1] - 2022-11-12
 ### Added
