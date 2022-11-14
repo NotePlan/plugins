@@ -116,7 +116,7 @@ export function normaliseSearchTerms(
   let outputArray = []
   // Take a simple string and process it to turn into an array of string, according to one of several schemes:
   if (!searchArg.match(/\w{2,}/)) {
-    // this has no words (at least 3 long) -> empty
+    // this has no words (at least 2 long) -> empty
     logWarn(pluginJson, `No valid words found in [${searchArg}]`)
     return []
   }
