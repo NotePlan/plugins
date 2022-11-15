@@ -23,6 +23,7 @@ export {
   reviewEditorReferencedTasks,
   searchForOpenTasks,
   askToReviewForgottenTasks,
+  reviewWeeklyTasks,
 } from './NPOverdue'
 export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
 export { followUpSaveHere, followUpInFuture } from './NPFollowUp'
