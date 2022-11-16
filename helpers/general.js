@@ -240,16 +240,23 @@ export function createAddTextCallbackUrl(note: TNote | string, options: { text: 
  * @author @dwertheimer
  * @param {string} pluginID - ID of the plugin from plugin.json
  * @param {boolean} commandName - the "name" of the command in plugin.json
- * @param {Array<string>} args - a flat array of arguments to be sent
+ * @param {Array<string> | string} args - either array of arguments to be sent, or JSON string representation
  * @returns {string} the x-callback-url URL string (not the pretty part)
  * @tests available
  */
-export function createRunPluginCallbackUrl(pluginID: string, commandName: string, args: Array<string> = []): string {
+export function createRunPluginCallbackUrl(pluginID: string, commandName: string, args: Array<string> | string): string {
   let xcb = `noteplan://x-callback-url/runPlugin?pluginID=${pluginID}&command=${encodeURIComponent(commandName)}`
-  if (args?.length) {
-    args.forEach((arg, i) => {
-      xcb += `&arg${i}=${encodeURIComponent(arg)}`
-    })
+  if (!args || args === undefined) {
+    // no useful input: no params in output
+  }
+  else if (typeof args !== 'string') {
+    if (args?.length) {
+      args.forEach((arg, i) => {
+        xcb += `&arg${i}=${encodeURIComponent(arg)}`
+      })
+    }
+  } else {
+    xcb += `&arg0=${encodeURIComponent(args)}`
   }
   return xcb.replace(/\(/g, '%28').replace(/\)/g, '%29')
 }
@@ -258,17 +265,28 @@ export function createRunPluginCallbackUrl(pluginID: string, commandName: string
  * A generic function for creating xcallback text for running a plugin
  * @author @dwertheimer
  * @param {string} commandName - the command (e.g. "search", "addNote", etc.)
- * @param {object} paramObj - key/value pairs of parameters to be sent (all strings)
+ * @param {object | string} paramObjOrString - key/value pairs of parameters to be sent (all strings), or JSON string
  * @returns {string} the x-callback-url URL string (not the pretty part)
  * @tests available
  */
-export function createCallbackUrl(commandName: string, paramObj: { [string]: string } = {}): string {
+export function createCallbackUrl(commandName: string, paramObjOrString: { [string]: string } | string): string {
   const params = []
-  Object.keys(paramObj).forEach((key) => {
-    paramObj[key] = encodeURIComponent(paramObj[key])
-    params.push(`${key}=${paramObj[key]}`)
-  })
-  const paramStr = params.length ? `?${params.join('&')}` : ''
+  let paramStr = ''
+  if (!paramObjOrString || paramObjOrString === undefined) {
+    // no useful input: no params in output
+    paramStr = ''
+  }
+  else if (typeof paramObjOrString === 'object') {
+    const paramObj = paramObjOrString
+    Object.keys(paramObj).forEach((key) => {
+      paramObj[key] = encodeURIComponent(paramObj[key])
+      params.push(`${key}=${paramObj[key]}`)
+    })
+    paramStr = params.length ? `?${params.join('&')}` : ''
+  }
+  else if (typeof paramObjOrString === 'string') {
+    paramStr = `?arg0=${encodeURIComponent(paramObjOrString)}`
+  }
   const xcb = `noteplan://x-callback-url/${commandName}${paramStr}`
   return xcb
 }
@@ -276,7 +294,7 @@ export function createCallbackUrl(commandName: string, paramObj: { [string]: str
 /**
  * Create a pretty/short link to open a note, hiding an xcallback link text from title string (and optional heading string)
  * e.g. [linkText](x-callback-url)
- * @dwertheimer
+ * @author @dwertheimer FIXME: this jsDoc looks wrong
  * @param {string} linkText - the text to display for the link
  * @param {string} pluginID - ID of the plugin from plugin.json
  * @param {boolean} command - the "name" of the command in plugin.json
@@ -291,7 +309,7 @@ export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: stri
 /**
  * Create a pretty/short link hiding an xcallback link text for running a plugin
  * e.g. [linkText](x-callback-url)
- * @dwertheimer
+ * @author @dwertheimer FIXME: this jsDoc looks wrong
  * @param {string} linkText - the text to display for the link
  * @param {string} titleOrFilename - title of the note or the filename
  * @param {boolean} isFilename - true if title is a filename instead of note title
@@ -299,7 +317,7 @@ export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: stri
  * @returns {string} the x-callback-url string
  * @tests available
  */
-export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> = []): string {
+export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> | string): string {
   return `[${linkText}](${createRunPluginCallbackUrl(pluginID, command, args)})`
 }
 
