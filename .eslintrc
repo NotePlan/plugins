@@ -95,7 +95,8 @@
     "node_modules",
     "flow-typed",
     "*/script.js",
-    "np.Templating/lib/support/ejs.js"
+    "np.Templating/lib/support/ejs.js",
+    "**/*.min.js"
   ],
   "settings": {
     "import/resolver": {
