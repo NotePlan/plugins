@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
   "plugin.version": "0.16.0",
-  "plugin.lastUpdateInfo": "0.16.0: Adds ability to run since a specific date (e.g. 2022-02-15)\n0.15.1: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting. Also new 'Items to Chart' setting for /weeklyStatsToCSV command.\n0.15.0: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting.",
+  "plugin.lastUpdateInfo": "0.16.0: Adds ability to run since a specific date (e.g. 2022-02-15). Adds ability to run from x-callbacks. When run from Template or x-callback, can now specify any settings to override whats in the main settings.\n0.15.1: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting. Also new 'Items to Chart' setting for /weeklyStatsToCSV command.\n0.15.0: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -23,7 +23,16 @@
         "track"
       ],
       "description": "Insert weekly/monthly habit and progress update",
-      "jsFunction": "insertProgressUpdate",
+      "jsFunction": "makeProgressUpdate",
+      "arguments": [
+        "JSON-formatted parameter list"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "progressUpdate",
+      "description": "x-callback entry point to /insertProgressUpdate",
+      "jsFunction": "progressUpdate",
       "arguments": [
         "JSON-formatted parameter list"
       ]
@@ -155,7 +164,7 @@
     {
       "key": "progressHeading",
       "title": "Progress heading",
-      "description": "Heading to go before Progress Update output",
+      "description": "Heading to go before this output, to which is added the period that's covered. However, if it contains the string '{{PERIOD}}, then the covered period will be inserted in place of this string wherever you want in the heading.",
       "type": "string",
       "default": "Progress Update",
       "required": false
@@ -209,11 +218,19 @@
       "required": false
     },
     {
+      "key": "excludeToday",
+      "title": "Exclude today's entries?",
+      "description": "Whether to exclude today's entries in progress updates. Can be enabled if you tend to run the progress update as part of a start-of-day routine, and only add the updates later in the day.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "type": "separator"
     },
     {
       "type": "heading",
-      "title": "/progressStats command settings"
+      "title": "/periodStats command settings"
     },
     {
       "key": "folderToStore",
@@ -226,7 +243,7 @@
     {
       "key": "statsHeading",
       "title": "Stats heading",
-      "description": "Heading to go before progressResults' output section",
+      "description": "Heading to go before the output section. The plugin adds to it the period that the stats covers.",
       "type": "string",
       "default": "Period Stats",
       "required": true

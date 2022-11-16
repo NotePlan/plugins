@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 5.11.2022 for v0.15.1
+// Last updated 16.11.2022 for v0.16.0
 //-----------------------------------------------------------------------------
 
 export {
@@ -17,7 +17,10 @@ export {
   weeklyStats,
   weeklyStats2
 } from './forCharting'
-export { insertProgressUpdate } from './progress'
+export {
+  makeProgressUpdate,
+  progressUpdate
+} from './progress'
 export { statsPeriod } from './stats'
 
 // allow changes in plugin.json to trigger recompilation

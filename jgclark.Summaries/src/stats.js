@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 4.11.2022 for v0.15.0
+// Last updated 16.11.2022 for v0.16.0
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -39,7 +39,7 @@ export async function statsPeriod(): Promise<void> {
     const config = await getSummariesSettings()
 
     // Get time period of interest
-    const [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates()
+    const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates()
     if (fromDate == null || toDate == null) {
       throw new Error(`Error: failed to calculate dates`)
     }
@@ -91,9 +91,9 @@ export async function statsPeriod(): Promise<void> {
         if (currentNote == null) {
           logError(pluginJson, `No note is open in the Editor, so I can't write to it.`)
         } else {
-          logDebug(pluginJson, `- about to update section '${config.statsHeading}' in weekly note '${currentNote.filename}' for ${periodPartStr}`)
+          logDebug(pluginJson, `- about to update section '${config.statsHeading}' in weekly note '${currentNote.filename}' for ${periodAndPartStr}`)
           // Replace or add output section
-          replaceSection(currentNote, config.statsHeading, `${config.statsHeading} ${periodPartStr}`, config.headingLevel, output)
+          replaceSection(currentNote, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
           logDebug(pluginJson, `Written results to note '${periodString}'`)
         }
         break
@@ -107,9 +107,9 @@ export async function statsPeriod(): Promise<void> {
           await showMessage('There was an error getting the new note ready to write')
         } else {
 
-          logDebug(pluginJson, `- about to update section '${config.statsHeading}' in weekly note '${note.filename}' for ${periodPartStr}`)
+          logDebug(pluginJson, `- about to update section '${config.statsHeading}' in weekly note '${note.filename}' for ${periodAndPartStr}`)
           // Replace or add output section
-          replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodPartStr}`, config.headingLevel, output)
+          replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
           logDebug(pluginJson, `Written results to note '${periodString}'`)
 
           // open this note as a new split window in the Editor
@@ -132,7 +132,7 @@ export async function statsPeriod(): Promise<void> {
           await showMessage('There was an error getting the Weekly ready to write')
         } else {
           // Replace or add output section
-          replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodPartStr}`, config.headingLevel, output)
+          replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
           logDebug(pluginJson, `Written results to note '${periodString}'`)
 
           // open this note as a new split window in the Editor
@@ -143,7 +143,7 @@ export async function statsPeriod(): Promise<void> {
       }
 
       case 'log': {
-        logInfo(pluginJson, `${config.statsHeading} for ${periodString} at ${periodPartStr}`)
+        logInfo(pluginJson, `${config.statsHeading} for ${periodAndPartStr ? periodAndPartStr : periodString}`)
         logInfo(pluginJson, output)
         break
       }

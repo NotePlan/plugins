@@ -69,7 +69,7 @@ export async function getSummariesSettings(): Promise<any> {
   try {
     // Get settings using ConfigV2
     const v2Config: SummariesConfig = await DataStore.loadJSON('../jgclark.Summaries/settings.json')
-    clo(v2Config, `${pluginID} settings from V2:`)
+    // clo(v2Config, `${pluginID} settings from V2:`)
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
       throw new Error(`Cannot find settings for '${pluginID}' plugin`)
@@ -129,7 +129,7 @@ export class TMOccurrences {
           // logDebug('TMOcc:constructor', `- +${i}d -> date ${thisDateStr}`)
           this.valuesMap.set(thisDateStr, (this.type == 'yesno') ? 0 : NaN)
         }
-        logDebug('TMOcc:constructor', `Constructed ${term} type ${this.type} for date ${fromDateStr} - ${toDateStr} -> valuesMap for ${this.valuesMap.size} / ${this.numDays} days `)
+        // logDebug('TMOcc:constructor', `Constructed ${term} type ${this.type} for date ${fromDateStr} - ${toDateStr} -> valuesMap for ${this.valuesMap.size} / ${this.numDays} days `)
       } else {
         logError('TMOcc:constructor', `Couldn't construct as passed date(s) were empty`)
       }
@@ -152,7 +152,7 @@ export class TMOccurrences {
       if (!dateStr.match(RE_YYYYMMDD_DATE)) {
         throw new Error(`Passed invalid date string '${dateStr}'`)
       }
-      logDebug('TMOcc:addOccurrence', `starting for ${occurrenceStr} on date = ${dateStr}`)
+      // logDebug('TMOcc:addOccurrence', `starting for ${occurrenceStr} on date = ${dateStr}`)
 
       // isolate the value
       let key = occurrenceStr
@@ -302,7 +302,7 @@ export class TMOccurrences {
     // logDebug('TMOcc:getStats', `starting for ${ this.term } type ${ this.type } style ${ style } `)
 
     const countStr = (!isNaN(this.count)) ? this.count.toLocaleString() : `none`
-    const totalStr = (!isNaN(this.total) && this.total > 0) ? `total ${this.total.toLocaleString()}` : ''
+    const totalStr = (!isNaN(this.total) && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
     // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
     const itemAvgStr = (!isNaN(this.total) && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
 
@@ -313,14 +313,14 @@ export class TMOccurrences {
       }
       default: { // style 'text'
         // If we have no items, or simple single-unit counts, then just put count
-        if (this.total === this.count) {
-          output = `${countStr}`
-        }
-        else {
+        // if (this.count === 0) {
+        //   output = `0`
+        // }
+        // else {
           // Otherwise the output depends on the type
           switch (this.type) {
             case 'yesno': {
-              output = `${countStr} (from ${this.numDays})`
+              output = `${countStr} / ${this.numDays}`
               break
             }
             case 'total': {
@@ -340,7 +340,7 @@ export class TMOccurrences {
               output += ` (from ${countStr})`
               break
             }
-          }
+          // }
         }
         break
       }
@@ -377,13 +377,13 @@ export class TMOccurrences {
 export function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, includedHashtags: Array<string>, excludedHashtags: Array<string>, includedMentions: Array<string>, excludedMentions: Array<string>, progressYesNo: Array<string> | string, progressMentions: Array<string> | string, progressMentionsAverage: Array<string> | string, progressMentionsTotal: Array<string> | string): Array<TMOccurrences> {
   try {
 
-    logDebug('gatherOccurrences', `starting for ${periodString} (${fromDateStr} - ${toDateStr})`)
-    logDebug('gatherOccurrences', `with [${String(includedHashtags)}] and [${String(includedMentions)}]`)
+    logDebug('gatherOccurrences', `starting for '${periodString}' (${fromDateStr} - ${toDateStr})`)
+    logDebug('gatherOccurrences', `- with [${String(includedHashtags)}] and [${String(includedMentions)}]`)
 
     const periodDailyNotes = DataStore.calendarNotes.filter(
       (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), unhyphenateString(fromDateStr), unhyphenateString(toDateStr)))
     if (periodDailyNotes.length === 0) {
-      logWarn('gatherOccurrences', `no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
+      logWarn('gatherOccurrences', `- no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
       return [] // for completeness
     }
 
@@ -543,7 +543,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
  * @param {string} toDateStr 
  * @param {string} style 
  * @param {boolean} showSparklines 
- * @param {boolean} sortOutput 
+ * @param {boolean} sortOutput
  * @returns Array<string>
  */
 export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: string, fromDateStr: string, toDateStr: string, style: string, showSparklines: boolean, sortOutput: boolean): Array<string> {

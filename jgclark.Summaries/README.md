@@ -44,7 +44,7 @@ Note: This is a first attempt at generating heatmaps, and I want to make it much
 ## /insertProgressUpdate
 As NotePlan is such a flexible app, there are [various ways people use it to track habits](https://help.noteplan.co/article/144-habit-tracking). 
  
-This Plugin command helps show progress within the current week, fortnight or month against items you track (e.g. `@work(9)`, `@run(5.3)` or `#prayed`). It does this by generating stats for the configured #hashtags or @mentions over the time interval you select, and inserts it as a section into the destination note. If the progress update section already exists in the destination note -- if for example you have it set to insert in the weekly note -- it will be updated, rather than be repeated.
+This Plugin command helps show progress for items you track (e.g. `@work(9)`, `@run(5.3)` or `#prayed`) over various time periods. It does this by generating stats for the configured #hashtags or @mentions over the time interval you select, and inserts it as a section into the destination note. If the progress update section already exists in the destination note -- if for example you have it set to insert in the weekly note -- it will be updated, rather than be repeated.
 
 For example, it produces for me: 
 
@@ -52,34 +52,54 @@ For example, it produces for me:
 
 (The leading @ or # is removed in the output, to avoid double-counting problems.)
 
-The **settings** for this command are:
-- What time period should the Progress update cover? Pick one of the options: 'wtd' or 'userwtd' (week to date), 'last7d' (last 7 days), 'mtd' (month to date), 'last2w' (last 2 weeks), 'last4w' (last 4 weeks). Note: `wtd` and `userwtd` behave slightly differently to each other:
+There are now 3 ways of running this: as /insertProgressUpdate **command**; through **templates**, or by **x-callback** call. The various settings are common, but how they are applied differ depending which method is used to invoke it. The settings and their meaning are introduced next, and differences in how they're applied are described in the following sections.
+
+### Calling by Command
+The many **settings** for this command are set in the Plugin Prererence pane:
+- What time period should the Progress update cover? Pick one of the options: 'wtd' or 'userwtd' (two week to date options), 'last7d' (last 7 days), 'mtd' (month to date), 'last2w' (last 2 weeks), 'last4w' (last 4 weeks). Note: `wtd` and `userwtd` behave slightly differently to each other:
   - `wtd` is the week to date using ISO standard (Monday)
   - `userwtd` is week to date using whatever you've set the start of week to be in NotePlan's 'Calendars' Preferences pane.
 - Where to write the progress update? The destination note is either the 'current'ly open note, or the current 'daily' or 'weekly' note.
-- Progress Heading: e.g. 'Progress Update'
+- Progress heading: this is the heading to go before the output, to which is added the period that's covered. However, if it contains the string '{{PERIOD}}, then the covered period will be inserted in place of this string wherever you want in the heading.
 - #hashtags to count: e.g. '#tv, #podcast'
 - @mentions to count: e.g. '@work' -- these are counted and displayed with count, total and average
 - @mentions to average: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average
 - @mentions to total: e.g. '@distance, @run' -- these are counted and displayed as a total
 - (new) **Yes/No items**: Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
 - Yes/No characters: sets the pair of characters to use as Yes and No in output of "Yes/No items". The first is for Yes, the second for No. Here are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□. (You can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.)
+- Exclude today's entries? Whether to exclude today's entries in progress updates. Can be enabled if you tend to run the progress update as part of a start-of-day routine, and only add the updates later in the day.
 - 'Include sparkline graphs?' true or false
 
-### Using from a Template
-This functionality is primarily designed to be used from a **Template** (particularly a "Daily Note Template") by including the command tag:
+### Calling from a Template
+This can be used in any Template, but is particularly designed to be used from a "Daily Note Template" by including a command tag in a template such as:
 ```
-<%- progressUpdate({period: 'wtd', heading: 'Habits', showSparklines: true}) %>
+<%- progressUpdate({period: 'wtd', progressHeading: 'Habits', showSparklines: true}) %>
 ```
 or
 ```
-<%- progressUpdate({period: '2022-02-15', includeToday: false, heading: 'Post-Birthday Habits', showSparklines: true}) %>
+<%- progressUpdate({period: '2022-02-15', excludeToday: true, progressHeading: 'Post-Birthday Habits', showSparklines: true}) %>
 ```
-in a Template. This has 4 optional parameters, _which if present override the main setting described above_:
-1. `period` (alias `interval`): time period to run report for, e.g. 'wtd' or 'userwtd' (week to date), 'mtd' (month to date), 'last7d', 'last2w', or 'last4w' or a specific ISO8601 date to report since (e.g. 2022-10-15)
-2. `heading` to use before the results.
+You can add many parameters, _which if present override the main settings described above_. The main ones are:
+1. `period` (alias `interval`): time period to run report for, e.g. 'wtd' or 'userwtd' (week to date), 'mtd' (month to date), 'last7d', 'last2w', or 'last4w' or give a specific ISO8601 date to report since (e.g. '2022-10-25')
+2. `progressHeading` to use before the results.
 3. `showSparklines`: true (default) or false.
-4. `includeToday`: true (default) or false (applies when you set a date for period and you don't want to include today in the visualization -- e.g. if you use this template as part of your /dayStart routine and you haven't had time to do the habit yet!)
+4. `excludeToday`: false (default) or true (applies when you set a date for period and you don't want to include today in the visualization -- e.g. if you use this template as part of your /dayStart routine and you haven't had time to do the habit yet!)
+
+Each must be a`key:value` pair, with following pairs separated by commas, and all enclosed in curly brackets. The 'key' names of the other possible settings are found in the `plugin.json` file installed as part of the plugin.
+
+Note: if you specifiy any of the settings that take hashtags or mentions, then _only those ones will be used_. E.g. `{... "progressYesNo":"#read,#pray,#exercise", ...}` will not use any of the usual '#hashtags or count' or '@mentions to count', but only show Yes/No for each of those 3 tags.
+
+### Calling by x-callback
+This is similar to using from a Template: create a JSON version of "key":"value" pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=`
+
+For example:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0={"period": "2022-02-15", "excludeToday": true, "progressHeading": "Post-Birthday Habits", "showSparklines": true}
+```
+
+Note: The 'key' part and any string-based value part must be enclosed in **double quote marks** ("like this"), to make it valid JSON.
+
+Note: The JSON parts needs to be **urlencoded** before it can be used. (For help with this, see the /Get-X-Callback-URL command from the "Link Creator" Plugin.)
 
 ## /periodStats (alias: /countsInPeriod or /cip)
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify, and saves them into notes in a special 'Summaries' folder. For example:
