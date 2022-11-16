@@ -40,6 +40,10 @@ Same as above, but limited to the foreground note in the Editor
 
 In this version, you will be prompted for a folder in which to search for overdue tasks
 
+### Command `/Review/Reschedule Tasks Scheduled for this week`
+
+Review tasks either on this week's note or tagged for this week
+
 ## Follow-up Tasks
 
 <img width="386" alt="Screen Cap 2022-11-05 at 00 01 42@2x" src="https://user-images.githubusercontent.com/8949588/200107300-2e3d5f44-c08e-4a44-8b69-b3cb9f43888b.png">
@@ -52,7 +56,7 @@ or
 
 - [ ] #FollowUp test2 [[* [x] test1 ^l1xagv^onk7l6]] >2022-11-05
 
-The format can be set in preferences (the preamble -- `#FollowUp` by default) and whether to use [[wikiLinks]] or [URLs]()
+The format can be set in preferences (the preamble -- `#FollowUp` by default) and whether to use wikilinks or URLs
 
 ### Command `/Mark done and create follow-up underneath`
 

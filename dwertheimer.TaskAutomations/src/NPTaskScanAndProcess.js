@@ -2,6 +2,7 @@
 
 import pluginJson from '../plugin.json'
 import { appendTaskToDailyNote } from '../../jgclark.QuickCapture/src/quickCapture'
+import { noteHasContent, moveParagraphToNote } from '../../helpers/NPParagraph'
 import { followUpSaveHere, followUpInFuture } from './NPFollowUp'
 import { getDateOptions, replaceArrowDatesInString, RE_DATE, RE_WEEKLY_NOTE_FILENAME, getTodaysDateHyphenated } from '@helpers/dateTime'
 import { getWeekOptions } from '@helpers/NPdateTime'
@@ -10,8 +11,6 @@ import { chooseOptionWithModifiers, showMessage } from '@helpers/userInput'
 import { eliminateDuplicateSyncedParagraphs, textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { getOverdueParagraphs, noteType } from '@helpers/note'
 import { sortListBy } from '@helpers/sorting'
-import { moveParagraphToNote } from '@helpers/NPParagraph'
-import { noteHasContent } from '../../helpers/NPParagraph'
 
 export type OverdueSearchOptions = {
   openOnly: boolean,
@@ -93,7 +92,6 @@ function getSharedOptions(origPara: TParagraph | { note: TNote }, isSingleLine: 
     ...skip,
     ...todayLine,
     { label: `> Change ${taskText} to >today (repeating until complete)`, value: '__yes__' },
-    { label: `✓ Mark ${taskText} done/complete`, value: '__mark__' },
     { label: `🚫 Mark ${taskText} cancelled`, value: '__canceled__' },
     { label: `⌫ Remove the >date from ${taskText}`, value: '__remove__' },
     { label: `⦿ Convert task to a bullet/list item`, value: '__list__' },
@@ -119,6 +117,7 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
     { label: `➡️ Leave "${content}" (and continue)`, value: '__skip__' },
     ...todayLines,
     { label: `✏️ Edit this task in note: "${origPara.note?.title || ''}"`, value: '__edit__' },
+    { label: `✓ Mark task done/complete`, value: '__mark__' },
     { label: `✓⏎ Mark done and add follow-up in same note`, value: '__mdhere__' },
     { label: `✓📆 Mark done and add follow-up in future note`, value: '__mdfuture__' },
     { label: `💡 This reminds me...(create new task then continue)`, value: '__newTask__' },
@@ -229,6 +228,7 @@ async function showOverdueNote(note: TNote, updates: Array<TParagraph>, index: n
     { label: '>> SELECT A TASK INDIVIDUALLY OR MARK THEM ALL (below) <<', value: '-----' },
     ...options,
     { label: '----------------------------------------------------------------', value: '-----' },
+    { label: `✓ Mark done/complete`, value: '__mark__' },
     ...getSharedOptions({ note }, false),
   ]
   const res = await chooseOptionWithModifiers(`Note (${index + 1}/${totalNotesToUpdate}): "${note?.title || ''}"`, opts)
@@ -326,10 +326,12 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                 }
                 case 'delete': {
                   updates.splice(index, 1) //remove item which was updated from note's updates
-                  const before = noteHasContent(origPara.note, origPara.content)
-                  origPara.note?.removeParagraph(origPara)
-                  const after = noteHasContent(origPara.note, origPara.content)
-                  logDebug(pluginJson, `reviewNote delete content is in note:  before:${String(before)} | after:${String(after)}`)
+                  if (origPara && origPara.note) {
+                    const before = noteHasContent(origPara.note, origPara.content)
+                    origPara.note?.removeParagraph(origPara)
+                    const after = origPara.note ? noteHasContent(origPara.note, origPara.content) : null
+                    logDebug(pluginJson, `reviewNote delete content is in note:  before:${String(before)} | after:${String(after)}`)
+                  }
                   return updates.length ? noteIndex - 1 : noteIndex
                 }
                 case 'skip': {

@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.10.0] (@dwertheimer) 
+
+- Added weekly note review question after overdue (and \n'/Review/Reschedule Tasks Scheduled for this week' command
+
 ## [2.9.2] (@dwertheimer) 2022-11-11
 
 - Improve overdue messaging for Skip/Leave item

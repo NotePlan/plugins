@@ -4,8 +4,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.9.2",
-  "plugin.lastUpdateInfo": "2.9.2: Minor messaging improvement for overdues.\n2.9.1: Added 'This reminds me (new task) so you can add a task that just came to mind without stopping the overdue scan\n2.8.0: Added follow-up tasks (thx @cyberz @antony.sklyar && @QualitativeEasing)\n2.7.2 Beta of /task sync for testing (with some API bug workarounds)\n2.6.0: Add /sth - sort tasks under heading\n2.5: Added open task search (separate from overdue); Added weekly reschedule tags (to point tasks to weekly note); Added capability to review items marked for today; Added day names for rescheduling; Added preference to review today's tasks after overdue review.\n2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
+  "plugin.version": "2.10.0",
+  "plugin.lastUpdateInfo": "2.10.0: Added weekly note review question after overdue (and \n'/Review/Reschedule Tasks Scheduled for this week' command).\n2.9.1: Added 'This reminds me (new task) so you can add a task that just came to mind without stopping the overdue scan\n2.8.0: Added follow-up tasks (thx @cyberz @antony.sklyar && @QualitativeEasing)\n2.7.2 Beta of /task sync for testing (with some API bug workarounds)\n2.6.0: Add /sth - sort tasks under heading\n2.5: Added open task search (separate from overdue); Added weekly reschedule tags (to point tasks to weekly note); Added capability to review items marked for today; Added day names for rescheduling; Added preference to review today's tasks after overdue review.\n2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
@@ -148,6 +148,17 @@
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
       ]
     }, 
+    {
+      "name": "Review/Reschedule Tasks Scheduled for this week",
+      "description": "Review all tasks marked for or on this week's note",
+      "jsFunction": "reviewWeeklyTasks",
+      "alias": [
+        "weekly"
+      ],
+      "arguments": [
+        "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
+      ]
+    },   
     {
       "name": "Review/Reschedule Tasks Dated Today",
       "description": "Review all tasks marked for today's date",
@@ -380,9 +391,9 @@
       "required": true
     },
     {
-      "key": "includeWeeklyTasks",
-      "title": "Include Weekly Open Tasks in Today's Review",
-      "description": "In today's task review (see above), include items on this week's weekly note for review and potential tagging to be done today.",
+      "key": "askToReviewWeeklyTasks",
+      "title": "Review Weekly Tasks After Overdue",
+      "description": "After reviewing overdue tasks, if this box is checked, you will be asked if you want to interactively review all tasks which are on this week's note or tagged for this >week.",
       "type": "bool",
       "default": true,
       "required": true
