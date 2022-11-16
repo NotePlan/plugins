@@ -442,11 +442,11 @@ export function replaceSection(
 
     // Set place to insert either after the found section heading, or at end of note
     // write in reverse order to avoid having to calculate insertion point again
-    logDebug('note / replaceSection', `- before insertHeading() there are ${note.paragraphs.length} paras`)
+    logDebug('note / replaceSection', `- before insertHeading() call there are ${note.paragraphs.length} paras`)
     note.insertHeading(newSectionHeading, insertionLineIndex, newSectionHeadingLevel)
-    logDebug('note / replaceSection', `- after insertHeading() there are ${note.paragraphs.length} paras`)
+    logDebug('note / replaceSection', `- after insertHeading() call there are ${note.paragraphs.length} paras`)
     note.insertParagraph(newSectionContent, insertionLineIndex + 1, 'text')
-    logDebug('note / replaceSection', `- after insertParagraph() there are ${note.paragraphs.length} paras`)
+    logDebug('note / replaceSection', `- after insertParagraph() call there are ${note.paragraphs.length} paras`)
   } catch (error) {
     logError('note / replaceSection', error.message)
   }
