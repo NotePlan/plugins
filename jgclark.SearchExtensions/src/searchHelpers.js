@@ -794,7 +794,7 @@ export async function writeSearchResultsToNote(
     let noteFilename = ''
     const headingMarker = '#'.repeat(config.headingLevel)
     const searchTermsRepStr = resultSet.searchTermsRepArr.join(' ')
-    const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Click to refresh results for '${searchTermsRepStr}'](${xCallbackURL})` : ''
+    const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Refresh results for '${searchTermsRepStr}'](${xCallbackURL})` : ''
 
     // Get array of 'may' or 'must' search terms
     const mayOrMustTerms = resultSet.searchTermsRepArr.filter((f) => f[0] !== '-')

@@ -156,7 +156,7 @@ export function simplifyRawContent(input: string): string {
  * - if its NotePlan and an 'open' task we need to make it a sync results using blockIDs
  * - shortens it to maxChars characters around the first matching term (if maxChars > 0 and Simplified style). This uses some very powerful regex magic.
  *   - TODO: Ideally doesn't chop in the middle of a URI
- * - adds ==highlight== to matching terms if wanted (and if not already highlighted)
+ * - adds ==highlight== to matching terms if wanted (and if not already highlighted, and using 'Simplified' style)
  * @author @jgclark
  * 
  * @param {string} input this result content
@@ -227,7 +227,7 @@ export function trimAndHighlightTermInLine(
 
     // Add highlighting if wanted (using defined Regex so can use 'g' flag)
     // (A simple .replace() command doesn't work as it won't keep capitalisation)
-    if (addHighlight) {
+    if (simplifyLine && addHighlight) {
       // regex: find any of the match terms in all the text
       const re = new RegExp(`(?:[^=](${terms.join('|')})(?=$|[^=]))`, "gi")
       const termMatches = output.matchAll(re)

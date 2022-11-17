@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.0.0-beta3",
-  "plugin.lastUpdateInfo": "beta3: internal changes.\nbeta2: adds /searchOpenTasks command, and now syncs result lines that include open tasks.",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "1.0.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -230,15 +230,6 @@
       "description": "Length of matching line to quote in the search results. To always quote the full line set this to 0. Note: this only applies in the 'Simplified' display style.",
       "type": "number",
       "default": 100,
-      "required": true
-    },
-    {
-      "todo": "TODO: review. was 'bool' type",
-      "key": "matchCase",
-      "title": "Match case when searching?",
-      "description": "Do searches match case (capitalisation) or not?",
-      "type": "hidden",
-      "default": false,
       "required": true
     },
     {
