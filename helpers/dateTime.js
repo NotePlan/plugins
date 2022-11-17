@@ -50,6 +50,8 @@ export function getTodaysDateUnhyphenated(): string {
   return strftime(`%Y%m%d`)
 }
 
+export const isDailyNote = (note: TNote): boolean => new RegExp(`^${RE_DAILY_NOTE_FILENAME}(md|txt)$`).test(note.filename)
+
 export const isWeeklyNote = (note: TNote): boolean => new RegExp(`^${RE_WEEKLY_NOTE_FILENAME}(md|txt)$`).test(note.filename)
 
 /**

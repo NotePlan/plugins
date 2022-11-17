@@ -34,8 +34,7 @@ import { caseInsensitiveCompare } from '@helpers/sorting'
 export async function progressUpdate(params: string = ''): Promise<string> {
   try {
     logDebug('progressUpdate (for xcb)', `Starting with params '${params}'`)
-    // $FlowFixMe[incompatible-call]
-    return await makeProgressUpdate(params, 'xcb')
+    return await makeProgressUpdate(params, 'xcb') ?? '<error>'
   }
   catch (err) {
     logError('progressUpdate (for xcb)', err.message)

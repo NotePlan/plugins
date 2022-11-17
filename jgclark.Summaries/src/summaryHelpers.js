@@ -834,7 +834,7 @@ function makeSparkline(data: Array<number>, options: Object = {}): string {
   clo(values, 'values to sparkline')
   // logDebug('makeSparkline', `-> ${min} - ${max} / ${sum} from ${values.length}`)
 
-  const value_mapper = (value, i) => {
+  const value_mapper = (value: number, i: number) => {
     if (isNaN(value)) {
       return missingDataChar
     } else if (value === 0) {
@@ -874,7 +874,7 @@ function makeYesNoLine(data: Array<number>, options: Object = {}): string {
   let values = data
   clo(values, 'values to yesNoLine')
 
-  const value_mapper = (value, i) => {
+  const value_mapper = (value: number, i: number) => {
     return (value > 0) ? yesChar : noChar
   }
 

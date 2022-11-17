@@ -238,7 +238,7 @@ async function processJournalQuestions(period: string): Promise<void> {
   try {
     const config: JournalConfigType = await getJournalSettings()
 
-    let questionLines = []
+    let questionLines: Array<string> = []
     switch (period) {
       case 'day': {
         questionLines = config.reviewQuestions.split('\n')

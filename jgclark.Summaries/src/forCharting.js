@@ -70,7 +70,7 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
   // Work out time interval to use
   const toDateStr = moment().startOf('day').format('YYYY-MM-DD')
   let fromDateStr = ''
-  if (config.weeklyStatsDuration !== undefined && config.weeklyStatsDuration > 0) {
+  if (config.weeklyStatsDuration !== null && config.weeklyStatsDuration > 0) {
     // Look back the specified number of weeks
     fromDateStr = moment().subtract(config.weeklyStatsDuration, 'week').format('YYYY-MM-DD')
   }
@@ -282,6 +282,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     }
 
     // Function that sums occurences(in value) of key(date).
+    // $FlowFixMe[missing-local-annot]
     const addToObj = key => {
       // $FlowIgnore[unsafe-addition]
       dateCounterMap.set(key, (dateCounterMap.has(key) && !isNaN(dateCounterMap.get(key)) ? (dateCounterMap.get(key)) + 1 : 1))
@@ -299,7 +300,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     for (let n of projNotes) {
       const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
       for (let dp of doneParas) {
-        let doneDate = undefined
+        let doneDate = null
         if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
           // get completed date and time
           const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
@@ -327,7 +328,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
       for (let n of periodCalendarNotes) {
         const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
         for (let dp of doneParas) {
-          let doneDate = undefined
+          let doneDate = null
           if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
             // get completed date (and ignore time)
             const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
@@ -356,7 +357,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
       for (let n of beforePeriodCalendarNotes) {
         const doneParas = n.paragraphs.filter((p) => p.type.includes('done'))
         for (let dp of doneParas) {
-          let doneDate = undefined
+          let doneDate = null
           if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
             // get completed date (and ignore time)
             const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
@@ -443,7 +444,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
  * @param {[string]} inArray - array of CSV strings
  * @return {[string]} - output array ready for gnuplot
  */
-function formatForGnuplotCSV(inArray): Array<string> {
+function formatForGnuplotCSV(inArray: Array<string>): Array<string> {
   const outArray = []
   let lastKey = ''
   let thisKey = ''
@@ -485,7 +486,7 @@ function formatForGnuplotCSV(inArray): Array<string> {
  * @param {[string]} inArray - array of CSV strings
  * @return {[string]} - output array ready for gnuplot
  */
-function formatForSimpleCSV(inArray): Array<string> {
+function formatForSimpleCSV(inArray: Array<string>): Array<string> {
   const outArray = []
   let lastKey = ''
   let thisKey = ''
@@ -530,7 +531,7 @@ export async function weeklyStats(): Promise<void> {
 
     // If preference for weekly stats duration is not given,
     // ask user what time interval to do tag counts for
-    if (config.weeklyStatsDuration === undefined) {
+    if (config.weeklyStatsDuration === null) {
       period = await chooseOption < number > (
         'Select which time period to cover',
         [
@@ -686,7 +687,7 @@ export async function weeklyStats(): Promise<void> {
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 
-    let hOutputArray = []
+    let hOutputArray: Array<string> = []
     // If there are no Hashtags results, log warning, otherwise process ready for output
     if (hResultsArray.length > 0) {
       hResultsArray.sort()
@@ -696,7 +697,7 @@ export async function weeklyStats(): Promise<void> {
       logInfo(pluginJson, `no Hashtags found in weekly summaries`)
     }
 
-    let mOutputArray = []
+    let mOutputArray: Array<string> = []
     // If there are no Mentions results, log warning, otherwise process ready for output
     if (mResultsArray.length > 0) {
       mResultsArray.sort()

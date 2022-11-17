@@ -157,11 +157,11 @@ export async function indexFolders(): Promise<void> {
 
     if (outputNote == null) {
       // make a new note for this
-      outputFilename = await DataStore.newNote('_index', thisFolder)
+      outputFilename = await DataStore.newNote('_index', thisFolder) ?? ''
       logDebug(pluginJson, `\tnewNote filename: ${String(outputFilename)}`)
       // outputFilename = `${pref_folderToStore}/${String(outputFilename)}` ?? '(error)'
       // NB: filename here = folder + filename
-      if (outputFilename == null) {
+      if (outputFilename !== '') {
         return
       }
       outputNote = await DataStore.projectNoteByFilename(outputFilename)
