@@ -420,7 +420,7 @@ export async function getPeriodStartEndDates(
         fromDateMom = moment(periodType)
         fromDate = fromDateMom.toDate()
         periodString = `since ${periodType}`
-        const daysBetween = fromDateMom.diff(toDateMom)
+        const daysBetween = toDateMom.diff(fromDateMom, 'days')
         periodAndPartStr = `${daysBetween} days since ${periodType}`
         logDebug('getPeriodStartEndDates 8601date', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
         break
@@ -470,7 +470,7 @@ export type NotePlanWeekInfo = {
  * @test - available in jest file
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
-  function pad(n) {
+  function pad(n: number) {
     return n < 10 ? `0${n}` : n
   }
   let dateStrFormat = 'YYYY-MM-DD',

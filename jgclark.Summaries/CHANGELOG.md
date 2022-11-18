@@ -1,6 +1,9 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.16.1] - 2022-11-17
+### Fixed
+- error in template `progressUpdate(...)` when using `heading` field with new `{{OPTION}}`, and `period` field with a YYYY-MM-DD date. (Spotted by @dwertheimer)
 ## [0.16.0] - 2022-11-16
 ### Added
 - Allow to be used by **x-callback calls** -- see README for details
