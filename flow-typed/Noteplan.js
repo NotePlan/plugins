@@ -1498,7 +1498,14 @@ rename(newFilename: string): string;
    * updated.
    * TODO: Should this really be $ReadOnlyArray?
    */
-  paragraphs: $ReadOnlyArray<TParagraph>;
+paragraphs: $ReadOnlyArray < TParagraph >;
+/**
+* Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
+* You can use this in combination with note triggers and diffs to figure out what has changed inside the note.
+* The first entry in the array is the current version and the second contains the content of the previous version, etc.
+* Note: Available from v3.7.2
+*/
++versions: $ReadOnlyArray < string, Date >;
   /**
    * Inserts the given text at the given character position (index)
    * Note: this is not quite the same as Editor.insertTextAtCharacterIndex()
@@ -1770,6 +1777,14 @@ declare class NotePlan {
    * Opens the given URL using the default browser (x-callback-urls can also be triggered with this).
    */
   static openURL(url: string): void;
+  /**
+  * Returns the ranges that have changed between the two versions.
+  * Note: Available from v3.7.2
+  * @param {string}
+  * @param {string}
+  * @returns {Array<RangeObject>}
+  */
+  static stringDiff(version1: string, version2: string): Array < RangeObject >;
 }
 
 declare class HTMLView {
