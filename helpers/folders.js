@@ -51,7 +51,7 @@ export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialF
 }
 
 /**
- * Get the folder name from the full NP (project) note filename.
+ * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
  * @author @jgclark
  *
  * @param {string} fullFilename - full filename to get folder name part from
