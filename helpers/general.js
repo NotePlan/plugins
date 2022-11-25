@@ -6,6 +6,7 @@
 import json5 from 'json5'
 import { logError, logDebug, JSP } from './dev'
 import { showMessage } from './userInput'
+import { getDateStringFromCalendarFilename } from './dateTime'
 
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
 
@@ -144,20 +145,17 @@ export function rangeToString(r: TRange): string {
 
 /**
  * Return title of note useful for display, including for
- * - daily calendar notes (the YYYYMMDD)
- * - weekly notes (the YYYY-Wnn)
+ * - calendar notes based on the filename
  * Note: local copy of this in helpers/paragraph.js to avoid circular dependency.
  * @author @jgclark
  *
- * @param {?TNote} n - note to get title for
+ * @param {?CoreNoteFields} n - note to get title for
  * @return {string}
  */
-export function displayTitle(n: ?TNote): string {
-  return !n
-    ? 'error'
-    : n.type === 'Calendar' && n.date != null
-    ? n.filename.split('.')[0] // without file extension
-    : n.title ?? ''
+export function displayTitle(n: ?CoreNoteFields): string {
+  return (!n) ? '(error)'
+    : (n.type === 'Calendar') ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
+      : n.title ?? '(error)'
 }
 
 /**

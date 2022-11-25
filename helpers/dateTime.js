@@ -245,27 +245,28 @@ export function getTimeStringFromDate(date: Date): string {
 }
 
 /**
- * Return
+ * Returns a string representation of a calendar note, based on its filename
  * @param {string} filename
- * @returns string YYYYMMDD date
+ * @returns {string} YYYYMMDD / YYYY-Wnn / YYYY-mm / YYYY-Qn / YYYY date (some only from NP v3.7.2)
  * @tests in jest file
  */
 export function getDateStringFromCalendarFilename(filename: string): string {
   try {
+    // logDebug('gDSFCF', `for ${filename} ...`)
     if (filename.match(RE_DAILY_NOTE_FILENAME)) {
-      // logDebug('gDSFCF', `${filename} = daily`)
+      // logDebug('gDSFCF', `= daily`)
       return filename.slice(0, 8)
     } else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
-      // logDebug('gDSFCF', `${filename} = weekly`)
+      logDebug('gDSFCF', `${filename} = weekly`)
       return weekStartDateStr(filename.slice(0, 8))
     } else if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
-      // logDebug('gDSFCF', `${filename} = monthly`)
+      logDebug('gDSFCF', `${filename} = monthly`)
       return filename.slice(0, 7)
     } else if (filename.match(RE_QUARTERLY_NOTE_FILENAME)) {
-      // logDebug('gDSFCF', `${filename} = quarterly`)
+      logDebug('gDSFCF', `${filename} = quarterly`)
       return filename.slice(0, 7)
     } else if (filename.match(RE_YEARLY_NOTE_FILENAME)) {
-      // logDebug('gDSFCF', `${filename} = yearly`)
+      logDebug('gDSFCF', `${filename} = yearly`)
       return filename.slice(0, 4)
     } else {
       throw new Error(`Invalid calendar filename: ${filename}`)
