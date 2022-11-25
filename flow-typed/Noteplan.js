@@ -143,7 +143,7 @@ declare interface TEditor extends CoreNoteFields {
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
    * @param {boolean} splitView - (optional) Open note in a new split view
-   * @param {string} timeframe - (optional) Timeframe "day" (default) or "week"
+   * @param {string} timeframe - (optional) Use "week", "month", "quarter" or "year" to open a calendar note other than a daily one
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote | void>;
@@ -204,20 +204,20 @@ declare interface TEditor extends CoreNoteFields {
    */
   pasteClipboard(): void;
   /**
-   * Scrolls to and highlights the given paragraph. If the paragraph is folded,
-   * it will be unfolded.
+   * Scrolls to and highlights the given paragraph. 
+   * If the paragraph is folded, it will be unfolded.
    * @param {TParagraph} paragraph to highlight
    */
   highlight(paragraph: TParagraph): void;
   /**
-   * Scrolls to and highlights the given range. If the paragraph is folded, it
-   * will be unfolded.
+   * Scrolls to and highlights the given character range. 
+   * If the range exists in a folded heading, it will be unfolded.
    * @param {Range} range
    */
   highlightByRange(range: Range): void;
   /**
-   * Scrolls to and highlights the given range defined by the character index and
-   * the character length it should cover. If the paragraph is folded, it will be unfolded.
+   * Scrolls to and highlights the given range defined by the character index and the character length it should cover. 
+   * If the paragraph is folded, it will be unfolded.
    * Note: Available from v3.0.23
    * @param {number} index
    * @param {number} length

@@ -1,9 +1,14 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.17.0] - 2022-11-25
+### Added
+- will write **/periodStats** summaries to the new monthly/quarterly/yearly notes (available from NP v3.7.2) as well as the existing folder you can set in the settings.
+
 ## [0.16.1] - 2022-11-17
 ### Fixed
 - error in template `progressUpdate(...)` when using `heading` field with new `{{OPTION}}`, and `period` field with a YYYY-MM-DD date. (Spotted by @dwertheimer)
+
 ## [0.16.0] - 2022-11-16
 ### Added
 - Allow to be used by **x-callback calls** -- see README for details

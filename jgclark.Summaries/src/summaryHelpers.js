@@ -313,10 +313,10 @@ export class TMOccurrences {
       }
       default: { // style 'text'
         // If we have no items, or simple single-unit counts, then just put count
-        // if (this.count === 0) {
-        //   output = `0`
-        // }
-        // else {
+        if (this.count === 0 || this.count === this.total) {
+          output = countStr
+        }
+        else {
           // Otherwise the output depends on the type
           switch (this.type) {
             case 'yesno': {
@@ -340,7 +340,7 @@ export class TMOccurrences {
               output += ` (from ${countStr})`
               break
             }
-          // }
+          }
         }
         break
       }

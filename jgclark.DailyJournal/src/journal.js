@@ -1,65 +1,108 @@
 // @flow
-//-----------------------------------------------------------------------------
+//---------------------------------------------------------------
 // Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 11.11.2022 for v0.14.0 by @jgclark
-//-----------------------------------------------------------------------------
+// last update 23.11.2022 for v0.15.0 by @jgclark
+//---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import strftime from 'strftime'
-import { getWeek, isDailyNote, isWeeklyNote } from '@helpers/dateTime'
+import { getWeek, isDailyNote, isWeeklyNote, isMonthlyNote, isQuarterlyNote, isYearlyNote } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { findHeadingStartsWith } from '@helpers/paragraph'
+// import { findHeadingStartsWith } from '@helpers/paragraph'
 import NPTemplating from 'NPTemplating'
 import { getAttributes } from '@templatingModules/FrontMatterModule'
-import { getInputTrimmed, isInt, showMessage } from '@helpers/userInput'
+import { getInputTrimmed, isInt, showMessage, showMessageYesNoCancel } from '@helpers/userInput'
+import {
+  getJournalSettings,
+  type JournalConfigType,
+  processJournalQuestions,
+  returnAnsweredQuestion
+} from './journalHelpers'
 
-//-----------------------------------------------------------------------------
-// Settings
+//---------------------------------------------------------------
 
-const pluginID = 'jgclark.DailyJournal' // now out of date, but tricky to rename
-
-type JournalConfigType = {
-  templateTitle: string, // named over a year before weekly notes became possible
-  weeklyTemplateTitle: string,
-  reviewSectionHeading: string,
-  reviewQuestions: string, // named over a year before weekly notes became possible
-  weeklyReviewQuestions: string,
-  monthlyReviewQuestions: string,
-  quarterlyReviewQuestions: string,
-  moods: string
-}
-
-/**
- * Get or make config settings
- * @author @jgclark
- */
-async function getJournalSettings(): Promise<any> { // want to use Promise<JournalConfigType> but too many flow errors result
+// Start the currently open monthly note with the user's Monthly Note Template
+export async function monthStart(): Promise<void> {
   try {
-    const tempConfig: JournalConfigType = DataStore.settings
-    if ((tempConfig != null) && Object.keys(tempConfig).length > 0) {
-      const config: JournalConfigType = tempConfig
-      // clo(config, `\t${pluginID} settings from V2:`)
-      return config
+    const config: JournalConfigType = await getJournalSettings()
+
+    // First check we can get the Template
+    let templateData = ''
+    if (config.monthlyTemplateTitle === '') {
+      throw new Error(`There is no monthly template specified in the plugin settings, so can't continue.`)
     } else {
-      throw new Error(`couldn't read settings for '${pluginID}.`)
+      templateData = await NPTemplating.getTemplate(config.monthlyTemplateTitle)
+      if (templateData == null || templateData === '') {
+        throw new Error(`Cannot find Template '${config.monthlyTemplateTitle}' so can't continue.`)
+      }
     }
-  }
-  catch (error) {
-    logError(pluginJson, `getJournalSettings: ${error.message}`)
-    return // for completeness
+
+    if (Editor.note && isMonthlyNote(Editor.note)) {
+      // apply monthly template in the currently-open monthly note
+      logDebug('monthStart', `Will work on the open monthly note '${displayTitle(Editor.note)}'`)
+    }
+    else {
+      // apply monthly template in the current monthly note
+      logInfo('monthStart', `Started without a monthly note open, so will open and work in this month's note.`)
+      // open today's date in the main window, and read content
+      await Editor.openNoteByDate(new Date(), false, 0, 0, false, 'month') // open the 'monthly' note for today
+      logDebug('monthStart', `- for '${displayTitle(Editor.note)}'`)
+    }
+
+    // Then render the template, using recommended decoupled method of invoking a different plugin
+    const result = await DataStore.invokePluginCommandByName('renderTemplate', 'np.Templating', [config.monthlyTemplateTitle])
+    if (result == null || result === '') {
+      throw new Error(`No result from running Template '${config.monthlyTemplateTitle}'. Stopping.`)
+    }
+    // Work out where to insert it in the note, by reading the template, and checking
+    // the frontmatter attributes for a 'location' field (append/insert/cursor)
+    const attrs = getAttributes(templateData)
+    const requestedTemplateLocation = attrs.location ?? 'insert'
+    let pos = 0
+    switch (requestedTemplateLocation) {
+      case 'insert': {
+        logDebug('monthStart', `- Will insert to start of Editor`)
+        Editor.insertTextAtCharacterIndex(result, 0)
+        break
+      }
+      case 'append': {
+        pos = Editor.content?.length ?? 0 // end
+        logDebug('monthStart', `- Will insert to end of Editor (pos ${pos})`)
+        Editor.insertTextAtCharacterIndex(result, pos)
+        break
+      }
+      case 'cursor': {
+        logDebug('monthStart', `- Will insert to Editor at cursor position`)
+        Editor.insertTextAtCursor(result)
+        break
+      }
+    }
+  } catch (error) {
+    logError('monthStart', error.message)
+    await showMessage(`/monthStart command: ${error.message}`)
+    return
   }
 }
 
-
-//------------------------------------------------------------------
-// Main functions
+//---------------------------------------------------------------
 
 // Start the currently open weekly note with the user's Weekly Note Template
 export async function weekStart(): Promise<void> {
   try {
     const config: JournalConfigType = await getJournalSettings()
+
+    // First check we can get the Template
+    let templateData = ''
+    if (config.weeklyTemplateTitle === '') {
+      throw new Error(`There is no weekly template specified in the plugin settings, so can't continue.`)
+    } else {
+      templateData = await NPTemplating.getTemplate(config.weeklyTemplateTitle)
+      if (templateData == null || templateData === '') {
+        throw new Error(`Cannot find Template '${config.weeklyTemplateTitle}' so can't continue.`)
+      }
+    }
 
     if (Editor.note && isWeeklyNote(Editor.note)) {
       // apply weekly template in the currently-open weekly note
@@ -71,12 +114,6 @@ export async function weekStart(): Promise<void> {
       // open today's date in the main window, and read content
       await Editor.openNoteByDate(new Date(), false, 0, 0, false, 'week') // open the 'weekly' note for today
       logDebug('weekStart', `- for '${displayTitle(Editor.note)}'`)
-    }
-
-    // First check we can get the Template
-    const templateData = await NPTemplating.getTemplate(config.weeklyTemplateTitle)
-    if (templateData == null || templateData === '') {
-      throw new Error(`Cannot find Template '${config.weeklyTemplateTitle}'. Stopping.`)
     }
 
     // Then render the template, using recommended decoupled method of invoking a different plugin
@@ -113,6 +150,8 @@ export async function weekStart(): Promise<void> {
     return
   }
 }
+
+//---------------------------------------------------------------
 
 // Start today's daily note with the user's Daily Note Template
 export async function todayStart(): Promise<void> {
@@ -179,244 +218,175 @@ export async function dayStart(workToday: boolean = false): Promise<void> {
   }
 }
 
-//------------------------------------------------------------------
+//---------------------------------------------------------------
 /**
- * Gather answers to daily journal questions, writing to appropriate daily note
+ * Gather answers to daily journal questions, and inserts at the cursor.
+ * First checks to see if we're in a daily note; if not, offer to open current daily note first.
  */
 export async function dailyJournalQuestions(): Promise<void> {
-  const thisPeriodStr = strftime(`%Y-%m-%d`)
-  logDebug(pluginJson, `Starting for day ${thisPeriodStr}`)
-  await processJournalQuestions('day')
+  try {
+    const thisPeriodStr = strftime(`%Y-%m-%d`)
+    logDebug(pluginJson, `Starting for day ${thisPeriodStr}`)
+
+    // Open current daily note if wanted
+    const { note } = Editor
+    if (!note || !isDailyNote(note)) {
+      const res = await showMessageYesNoCancel(`You don't currently have a daily note open. Would you like me to open the current daily note first?`, ['Yes', 'No', 'Cancel'], 'Daily Journal')
+      switch (res) {
+        case 'Yes': {
+          Editor.openNoteByDate(new Date(), false, 0, 0, true, "day")
+          break
+        }
+        case 'No': {
+          break
+        }
+        case 'Cancel': {
+          return
+        }
+      }
+    }
+    await processJournalQuestions('day')
+  }
+  catch (error) {
+    logError(pluginJson, error.message)
+  }
 }
 
 /**
- * Gather answers to weekly journal questions, writing to appropriate weekly note
+ * Gather answers to weekly journal questions, and inserts at the cursor.
+ * First checks to see if we're in a weekly note; if not, offer to open current weekly note first.
  */
 export async function weeklyJournalQuestions(): Promise<void> {
-  const currentWeekNum = getWeek(new Date())
-  const thisPeriodStr = strftime(`%Y`) + '-W' + currentWeekNum
-  logDebug(pluginJson, `Starting for week ${thisPeriodStr}`)
-  await processJournalQuestions('week')
+  try {
+    const currentWeekNum = getWeek(new Date())
+    const thisPeriodStr = strftime(`%Y`) + '-W' + currentWeekNum
+    logDebug(pluginJson, `Starting for week ${thisPeriodStr}`)
+
+    // Open current weekly note if wanted
+    const { note } = Editor
+    if (!note || !isWeeklyNote(note)) {
+      const res = await showMessageYesNoCancel(`You don't currently have a weekly note open. Would you like me to open the current weekly note first?`, ['Yes', 'No', 'Cancel'], 'Weekly Journal')
+      switch (res) {
+        case 'Yes': {
+          Editor.openNoteByDate(new Date(), false, 0, 0, true, "week")
+          break
+        }
+        case 'No': {
+          break
+        }
+        case 'Cancel': {
+          return
+        }
+      }
+    }
+    await processJournalQuestions('week')
+  }
+  catch (error) {
+    logError(pluginJson, error.message)
+  }
 }
 
 /**
  * Gather answers to monthly journal questions, and inserts at the cursor.
- * Note: Might need updating in future if NP gets first-class support for monthly notes.
+ * First checks to see if we're in a monthly note; if not, offer to open current monthly note first.
  */
 export async function monthlyJournalQuestions(): Promise<void> {
-  const thisPeriodStr = strftime(`%Y-%m`)
-  logDebug(pluginJson, `Starting for month ${thisPeriodStr}`)
-  await processJournalQuestions('month')
+  try {
+    const thisPeriodStr = strftime(`%Y-%m`)
+    logDebug(pluginJson, `Starting for month ${thisPeriodStr}`)
+
+    // Open current monthly note if wanted
+    const { note } = Editor
+    if (!note || !isMonthlyNote(note)) {
+      const res = await showMessageYesNoCancel(`You don't currently have a monthly note open. Would you like me to open the current monthly note first?`, ['Yes', 'No', 'Cancel'], 'Monthly Journal')
+      switch (res) {
+        case 'Yes': {
+          Editor.openNoteByDate(new Date(), false, 0, 0, true, "month")
+          break
+        }
+        case 'No': {
+          break
+        }
+        case 'Cancel': {
+          return
+        }
+      }
+    }
+    await processJournalQuestions('month')
+  }
+  catch (error) {
+    logError(pluginJson, error.message)
+  }
 }
 
 /**
  * Gather answers to quarterly journal questions, and inserts at the cursor.
- * Note: Might need updating in future if NP gets first-class support for quarterly notes.
+ * First checks to see if we're in a quarterly note; if not, offer to open the current one first.
  */
 export async function quarterlyJournalQuestions(): Promise<void> {
-  const todaysDate = new Date()
-  const y = todaysDate.getFullYear()
-  const m = todaysDate.getMonth() // counting from 0
-  const thisQ = Math.floor(m / 3) + 1
-  const thisPeriodStr = strftime(`%Y`) + 'Q' + String(thisQ)
-  logDebug(pluginJson, `Starting for quarter ${thisPeriodStr}`)
-  await processJournalQuestions('quarter')
-}
-
-//------------------------------------------------------------------
-
-/**
- * Process questions for the given period, and write to the appropriate note:
- * - for 'day' period write to current open daily note or ...
- * - for 'week' period write to current open weekly note or ...
- * - for 'month' and 'quarter' period insert at the cursor position of the current note (as there are no special notes for those periods)
- * Note: Will need updating in future if NP gets first-class support for quarterly notes.
- * @param {string} period for journal questions
- * @returns 
- */
-async function processJournalQuestions(period: string): Promise<void> {
   try {
-    const config: JournalConfigType = await getJournalSettings()
+    const todaysDate = new Date()
+    const y = todaysDate.getFullYear()
+    const m = todaysDate.getMonth() // counting from 0
+    const thisQ = Math.floor(m / 3) + 1
+    const thisPeriodStr = strftime(`%Y`) + 'Q' + String(thisQ)
+    logDebug(pluginJson, `Starting for quarter ${thisPeriodStr}`)
 
-    let questionLines: Array<string> = []
-    switch (period) {
-      case 'day': {
-        questionLines = config.reviewQuestions.split('\n')
-        break
-      }
-      case 'week': {
-        questionLines = config.weeklyReviewQuestions.split('\n')
-        break
-      }
-      case 'month': {
-        questionLines = config.monthlyReviewQuestions.split('\n')
-        break
-      }
-      case 'quarter': {
-        questionLines = config.quarterlyReviewQuestions.split('\n')
-        break
-      }
-      default: {
-        logError(pluginJson, `${period} review questions aren't yet supported. Stopping.`)
-        await showMessage(`Sorry, ${period} review questions aren't yet supported.`)
-        return
-      }
-    }
-
-    // FIXME: make sure it works on whichever daily/weekly note is open if its open
-    // Work out which note to output to
-    let outputNote = Editor
-    if ((period === 'day' || period === 'week') && (Editor.note == null || Editor.type !== 'Calendar')) {
-      logError(pluginJson, `Editor isn't open with a Calendar note open. Stopping.`)
-      await showMessage('Please run again with a calendar note open.')
-      return
-    }
-
-    const question = []
-    const questionType = []
-    let output = ''
-    let i = 0
-    const numQs = questionLines.length
-    const typeRE = new RegExp('<(.*)>')
-    logDebug(pluginJson, `Found ${numQs} question lines for ${period}`)
-
-    // remove type indicators from the question string
-    for (i = 0; i < numQs; i++) {
-      question[i] = questionLines[i].replace(/:|\(|\)|<string>|<int>|<number>|<mood>|<subheading>/g, '').trim()
-      const reArray = questionLines[i].match(typeRE)
-      questionType[i] = reArray?.[1] ?? '<error in question type>'
-      // logDebug(pluginJson, '- ' + i + ': ' + question[i] + ' / ' + questionType[i])
-    }
-
-    // Ask each question in turn
-    for (i = 0; i < numQs; i++) {
-      // Each question type is handled slightly differently, but in all cases a blank
-      // or invalid answer means the question is ignored.
-      let reviewLine = ''
-      logDebug(pluginJson, `Q${i}: ${question[i]} / ${questionType[i]}`)
-
-      // Look to see if this question has already been put into the note with something following it.
-      // If so, skip this question.
-      const resAQ = returnAnsweredQuestion(question[i])
-      if (resAQ !== '') {
-        logDebug(pluginJson, `- Found existing Q answer '${resAQ}', so won't ask again`)
-        continue
-      }
-
-      // ask question, according to its type
-      switch (questionType[i]) {
-        case 'int': {
-          let reply = await getInputTrimmed(`Please enter an integer`, 'OK', `Journal Q: ${question[i]}?`)
-          if (typeof reply === 'boolean') {
-            throw ('cancelled')
-          }
-          reply = String(reply) // shouldn't be needed, but avoids Flow errors
-          if (isInt(reply)) {
-            if (questionLines[i].startsWith('-')) {
-              reviewLine = `- ${reply}`
-            } else {
-              reviewLine = questionLines[i].replace(/<int>/, reply)
-            }
-          } else {
-            logWarn(pluginJson, `- Failed to get integer answer for question '${question[i]}'`)
-          }
+    // Open current quarter note if wanted
+    const { note } = Editor
+    if (!note || !isQuarterlyNote(note)) {
+      const res = await showMessageYesNoCancel(`You don't currently have a quarterly note open. Would you like me to open the current quarterly note first?`, ['Yes', 'No', 'Cancel'], 'Quarterly Journal')
+      switch (res) {
+        case 'Yes': {
+          Editor.openNoteByDate(new Date(), false, 0, 0, true, "quarter")
           break
         }
-        case 'number': {
-          let reply = await getInputTrimmed(`Please enter a number`, 'OK', `Journal Q: ${question[i]}?`)
-          if (typeof reply === 'boolean') {
-            throw ('cancelled')
-          }
-          reply = String(reply) // shouldn't be needed, but avoids Flow errors
-          if (reply != null && Number(reply)) {
-            if (questionLines[i].startsWith('-')) {
-              reviewLine = `- ${reply}`
-            } else {
-              reviewLine = questionLines[i].replace(/<number>/, reply)
-            }
-          } else {
-            logWarn(pluginJson, `Failed to get number answer for question '${question[i]}'`)
-          }
+        case 'No': {
           break
         }
-        case 'string': {
-          let reply = await getInputTrimmed(`Please enter text`, 'OK', `Journal Q: ${question[i]}?`)
-          if (typeof reply === 'boolean') {
-            throw ('cancelled')
-          }
-          const replyString = String(reply) // shouldn't be needed, but avoids Flow errors
-          if (replyString != null && replyString !== '') {
-            if (questionLines[i].startsWith('-')) {
-              reviewLine = `- ${replyString}`
-            } else {
-              reviewLine = replyString !== '' ? questionLines[i].replace(/<string>/, replyString) : ''
-            }
-          } else {
-            logWarn(pluginJson, `- Null or empty string for answer to question '${question[i]}'`)
-          }
-          break
-        }
-        case 'mood': {
-          // Some confusion as to which type is coming through from ConfigV1 and ConfigV2. 
-          // So cope with either a string (to be turned into an array) or an array.
-          const moodArray = (typeof config.moods === 'string') ? config.moods.split(',') : config.moods
-          const reply = await CommandBar.showOptions(moodArray, 'Choose most appropriate mood for today')
-          const replyMood = moodArray[reply.index]
-          if (replyMood != null && replyMood !== '') {
-            reviewLine = `${questionLines[i].replace(/<mood>/, replyMood)}`
-          } else {
-            logWarn(pluginJson, '- Failed to get mood answer')
-          }
-          break
-        }
-        case 'subheading': {
-          reviewLine = '\n### '.concat(question[i].replace(/<subheading>/, ''))
-          break
+        case 'Cancel': {
+          return
         }
       }
-      logDebug(pluginJson, `- A${i} = ${reviewLine[i]}`)
-      if (reviewLine !== '') {
-        output += `${reviewLine}\n`
-      }
     }
-
-    // Add the finished review text to the current daily note,
-    // appending after the line found in config.reviewSectionHeading.
-    // If this doesn't exist, then append it first.
-    logDebug(pluginJson, `Appending answers to heading '${config.reviewSectionHeading}' in note ${displayTitle(Editor.note)}`)
-    // $FlowFixMe[prop-missing]
-    const matchedHeading = findHeadingStartsWith(outputNote, config.reviewSectionHeading)
-    outputNote.addParagraphBelowHeadingTitle(output,
-      'empty',
-      matchedHeading ? matchedHeading : config.reviewSectionHeading,
-      true,
-      true)
-  } catch (e) {
-    if (e === 'cancelled') {
-      logDebug(pluginJson, `Asking questions cancelled by user: stopping.`)
-    } else {
-      logDebug(pluginJson, `Stopping, following error ${e}.`)
-    }
+    await processJournalQuestions('quarter')
+  }
+  catch (error) {
+    logError(pluginJson, error.message)
   }
 }
 
 /**
- * Look to see if this question has already been answered.
- * If so return the line's content.
- * @author @jgclark
- * 
- * @param {string} question
- * @return {string} found answered question, or empty string
+ * Gather answers to yearly journal questions, and inserts at the cursor.
+ * First checks to see if we're in a yearly note; if not, offer to open the current one first.
  */
-function returnAnsweredQuestion(question: string): string {
-  const RE_Q = `${question}.+`
-  const { paragraphs } = Editor
-  let result = ''
-  for (let p of paragraphs) {
-    let m = p.content.match(RE_Q)
-    if (m != null) {
-      result = m[0]
+export async function yearlyJournalQuestions(): Promise<void> {
+  try {
+    const todaysDate = new Date()
+    const y = todaysDate.getFullYear()
+    const thisPeriodStr = strftime(`%Y`)
+    logDebug(pluginJson, `Starting for year ${thisPeriodStr}`)
+
+    // Open current yearly note if wanted
+    const { note } = Editor
+    if (!note || !isYearlyNote(note)) {
+      const res = await showMessageYesNoCancel(`You don't currently have a yearly note open. Would you like me to open the current yearly note first?`, ['Yes', 'No', 'Cancel'], 'Yearly Journal')
+      switch (res) {
+        case 'Yes': {
+          Editor.openNoteByDate(new Date(), false, 0, 0, true, "year")
+          break
+        }
+        case 'No': {
+          break
+        }
+        case 'Cancel': {
+          return
+        }
+      }
     }
+    await processJournalQuestions('year')
   }
-  return result
+  catch (error) {
+    logError(pluginJson, error.message)
+  }
 }
