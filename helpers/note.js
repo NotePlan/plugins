@@ -272,6 +272,7 @@ export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, 
  * - matching all folders that include the 'forFolder' parameter
  * - or just those in the root folder (if forFolder === '/')
  * - or all project notes if no folder given
+ * Note: ignores any sub-folders
  * Now also caters for searches just in root folder.
  * @author @dwertheimer + @jgclark
 
@@ -280,24 +281,23 @@ export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, 
  */
 export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<TNote> {
   const notes: $ReadOnlyArray<TNote> = DataStore.projectNotes
-  let filteredNotes = []
+  let filteredNotes: Array<TNote> = []
   if (forFolder === '') {
-    filteredNotes = notes
+    filteredNotes = notes.slice()  // slice() avoids $ReadOnlyArray mismatch problem
   } else if (forFolder === '/') {
     // root folder ('/') has to be treated as a special case
     filteredNotes = notes.filter((note) => !note.filename.includes('/'))
   } else {
     // if last character is a slash, remove it
-    const folderWithSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder : `${forFolder}/`
-    filteredNotes = notes.filter((note) => note.filename.includes(folderWithSlash))
+    const folderWithoutSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder.slice(0, forFolder.length) : forFolder
+    filteredNotes = notes.filter((note) => getFolderFromFilename(note.filename) === folderWithoutSlash)
   }
-  logDebug('note / getProjectNotesIFolder', `Found ${filteredNotes.length} notes in folder '${forFolder}'`)
+  logDebug('note/getProjectNotesInFolder', `Found ${filteredNotes.length} notes in folder '${forFolder}'`)
   return filteredNotes
 }
 
 /**
- * Get all notes in a given folder (or all project notes if no folder given),
- * sorted by note title
+ * Get all notes in a given folder (or all project notes if no folder given), sorted by note title.
  * @author @jgclark
  *
  * @param {string} folder - folder to scan
@@ -309,6 +309,7 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
   if (folder !== '') {
     notesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
   } else {
+    // return all project notes
     notesInFolder = DataStore.projectNotes.slice()
   }
   // Sort alphabetically on note's title
@@ -324,9 +325,9 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
  * @returns {string} the title (not filename) that was created
  */
 export function getUniqueNoteTitle(title: string): string {
-  let i = 0,
-    res = [],
-    newTitle = title
+  let i = 0
+  let res = []
+  let newTitle = title
   while (++i === 1 || res.length > 0) {
     newTitle = i === 1 ? title : `${title} ${i}`
     res = DataStore.projectNoteByTitle(newTitle, true, false)
