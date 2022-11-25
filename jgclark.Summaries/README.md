@@ -101,7 +101,7 @@ Note: The 'key' part and any string-based value part must be enclosed in **doubl
 
 Note: The JSON parts needs to be **urlencoded** before it can be used. (For help with this, see the /Get-X-Callback-URL command from the "Link Creator" Plugin.)
 
-## /periodStats (alias: /countsInPeriod or /cip)
+## /periodStats (alias: /statsPeriod or /stp)
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify, and saves them into notes in a special 'Summaries' folder. For example:
 - **count** every time you've noted you've visited  family this month -- i.e. counts the number of times `#family` is mentioned in calendar notes this month
 - **count** the times you've met with staff member Alice this year so far -- i.e. counts the number of times `@alice` is mentioned in calendar notes this year
@@ -133,12 +133,13 @@ It starts by asking for the time period you wish to operate over:
 
 ![time period selection](time-period-selection.png)
 
-It asks where to save its output: to screen, to the Plugin Console, or to a specially-created note in the Summaries folder. From NotePlan v3.6 it will also offer to write to the current Weekly note if the selected time period is 'Week (to date)'.
+It asks where to save its output: to a specially-created note in the Summaries folder, or to the current note. 
+<img alt="Calendar Notes types" src="calendar-notes@2x.jpg" width=500px align="right"/>**Note**: From NotePlan v3.7.2 it will also offer to write to the current Weekly / Monthly / Quarterly / Yearly notes if you have them enabled in the preferences.
 
 It  updates the previous note for that same time period, if it already exists.
 
 The settings for this command are:
-- Folder name: e.g. 'Summaries'
+- Folder for output: e.g. 'Summaries'
 - Folders to exclude: e.g. 'Summaries', 'TEST'
 - Heading level: e.g. 2
 - Hashtag counts heading: e.g. '#hashtag counts',
@@ -149,7 +150,9 @@ The settings for this command are:
 - Include Mentions: e.g. '@work','@fruitveg','@water', '@sleep'
 - Exclude Mentions: e.g. '@done', '@repeat'
 
-> (Why use `@run(...)` rather than `#run(...)`? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a decimal number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`).  However, you can use a `#hashtag/value` if you don't mind this limitation.
+> (Why use `@run(...)` rather than `#run(...)`? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a decimal number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside for `@run(5.3)`.  However, you can use a `#hashtag/value` if you don't mind this limitation.
+
+Note: sparklines won't show for periods of time greater than 31 days -- they just get too wide for most devices.
 
 ## /weeklyStatsToCSV
 This is a niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV table to 'Summaries/weekly_stats'. This is designed to be used by third-party graphing tools, though in a future release I will bring this natively into NotePlan. 

@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.16.1",
-  "plugin.lastUpdateInfo": "0.16.1: Minor bug fix. 0.16.0: Adds ability to run since a specific date (e.g. 2022-02-15). Adds ability to run from x-callbacks. When run from Template or x-callback, can now specify any settings to override whats in the main settings.\n0.15.1: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting. Also new 'Items to Chart' setting for /weeklyStatsToCSV command.\n0.15.0: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting.",
+  "plugin.version": "0.17.0",
+  "plugin.lastUpdateInfo": "0.17.0 Will write /periodStats summaries to the new monthly/quarterly/yearly notes available from NP 3.7.2.\n0.16.1: Minor bug fix. 0.16.0: Adds ability to run since a specific date (e.g. 2022-02-15). Adds ability to run from x-callbacks. When run from Template or x-callback, can now specify any settings to override whats in the main settings.\n0.15.1: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting. Also new 'Items to Chart' setting for /weeklyStatsToCSV command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -40,9 +40,8 @@
     {
       "name": "periodStats",
       "alias": [
-        "cip",
+        "stp",
         "period",
-        "countsInPeriod",
         "stats",
         "count"
       ],
@@ -234,11 +233,11 @@
     },
     {
       "key": "folderToStore",
-      "title": "Folder name",
-      "description": "Folder to store the summaries in",
+      "title": "Folder for output",
+      "description": "Name of the Folder to store the summaries in.\nNote: from NotePlan v3.7.2, the first option will be to use the built-in daily/weekly/monthly/quarterly or yearly notes instead. This will also be used if this is empty.",
       "type": "string",
       "default": "Summaries",
-      "required": true
+      "required": false
     },
     {
       "key": "statsHeading",
