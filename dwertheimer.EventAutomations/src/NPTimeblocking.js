@@ -259,6 +259,7 @@ function getEventsConfig(atbConfig: AutoTimeBlockingConfig): TEventConfig {
  * Find all (unduplicated) todos:
  * - todo items from references list (aka "backlinks")
  * + items in the current note marked >today or with today's >date
+ * + open todos in the note (if that setting is on)
  * + ...which include the include pattern (if specified in the config)
  * - ...which do not include items the exclude pattern (if specified in the config)
  * - items in the current note that are synced tasks to elsewhere (will be in references also)
@@ -267,7 +268,7 @@ function getEventsConfig(atbConfig: AutoTimeBlockingConfig): TEventConfig {
  * @returns
  */
 export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TParagraph> {
-  const { includeTasksWithText, excludeTasksWithText, includeAllTodos } = config
+  const { includeTasksWithText, excludeTasksWithText, includeAllTodos, timeBlockTag } = config
   const backlinkParas = getTodaysReferences(Editor.note)
   logDebug(pluginJson, `Found ${backlinkParas.length} backlink paras`)
   let todosInNote = Editor.note ? findOpenTodosInNote(Editor.note, includeAllTodos) : []
@@ -276,6 +277,8 @@ export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TP
     // eliminate linked lines (for synced lines on the page)
     // because these should be in the references from other pages
     todosInNote = todosInNote.filter((todo) => !/\^[a-zA-Z0-9]{6}/.test(todo.content))
+    todosInNote = todosInNote.filter((todo) => !isTimeBlockLine(todo.content)) // if a user is using the todo character for timeblocks, eliminate those lines
+    todosInNote = todosInNote.filter((todo) => !new RegExp(timeBlockTag).test(todo.content)) // just to be extra safe, make sure we're not adding our own timeblocks
   }
   const backLinksAndNoteTodos = [...backlinkParas, ...todosInNote]
   logDebug(pluginJson, `Found ${backLinksAndNoteTodos.length} backlinks+today-note items (may include completed items)`)
