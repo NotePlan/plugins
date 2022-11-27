@@ -1,6 +1,10 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.17.1] - 2022-11-27
+### Fixed
+- worked around newly-discovered API bug when processing repeats like @repeats(1/7) in Summaries commands.
+
 ## [0.17.0] - 2022-11-25
 ### Added
 - will write **/periodStats** summaries to the new monthly/quarterly/yearly notes (available from NP v3.7.2) as well as the existing folder you can set in the settings.

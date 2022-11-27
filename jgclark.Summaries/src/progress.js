@@ -189,10 +189,10 @@ export async function makeProgressUpdate(params: string = '', source: string = '
             logError(pluginJson, `Couldn't find correct cursor position, so will append to note instead.`)
             currentLineIndex = Editor.paragraphs.length - 1
           }
-          logDebug(pluginJson, `- inserting results to current note (${currentNote.filename ?? ''}) at line ${currentLineIndex}`)
+          logDebug(pluginJson, `- inserting results to current note (${currentNote.filename ?? '(error)'}) at line ${currentLineIndex}`)
           // Replace or add Section
           replaceSection(currentNote, thisHeading, headingAndXCBStr, config.headingLevel, output)
-          logInfo(pluginJson, `Appended progress update for ${periodAndPartStr} to current note`)
+          logInfo(pluginJson, `Appended progress update for ${periodString} to current note`)
         }
         break
       }
