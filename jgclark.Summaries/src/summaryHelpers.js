@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 2.9.2022 for v0.13.0 by @jgclark
+// Last updated 26.11.2022 for v0.13.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -377,8 +377,7 @@ export class TMOccurrences {
 export function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, includedHashtags: Array<string>, excludedHashtags: Array<string>, includedMentions: Array<string>, excludedMentions: Array<string>, progressYesNo: Array<string> | string, progressMentions: Array<string> | string, progressMentionsAverage: Array<string> | string, progressMentionsTotal: Array<string> | string): Array<TMOccurrences> {
   try {
 
-    logDebug('gatherOccurrences', `starting for '${periodString}' (${fromDateStr} - ${toDateStr})`)
-    logDebug('gatherOccurrences', `- with [${String(includedHashtags)}] and [${String(includedMentions)}]`)
+    logDebug('gatherOccurrences', `starting for '${periodString}' (${fromDateStr} - ${toDateStr}), with [${String(includedHashtags)}] and [${String(includedMentions)}]`)
 
     const periodDailyNotes = DataStore.calendarNotes.filter(
       (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), unhyphenateString(fromDateStr), unhyphenateString(toDateStr)))
@@ -410,15 +409,15 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
         for (const tag of seenTags) {
           // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
           if (caseInsensitiveStartsWith(tag, lastTag)) {
-            // logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
+            logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
           }
           else {
             // check this is one of the ones we're after, then add
             if (caseInsensitiveMatch(tag, wantedItem)) {
-              // logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
+              logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
               thisOcc.addOccurrence(tag, thisDateStr)
             } else {
-              // logDebug('gatherOccurrences', `- x ${tag} not wanted`)
+              logDebug('gatherOccurrences', `- x ${tag} not wanted`)
             }
           }
           lastTag = tag
@@ -430,10 +429,10 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
         for (const mention of seenMentions) {
           // check this is one of the ones we're after, then add
           if (caseInsensitiveMatch(mention, wantedItem)) {
-            // logDebug('gatherOccurrences', `- Found matching occurrence ${mention} on date ${n.filename}`)
+            logDebug('gatherOccurrences', `- Found matching occurrence ${mention} on date ${n.filename}`)
             thisOcc.addOccurrence(mention, thisDateStr)
           } else {
-            // logDebug('gatherOccurrences', `- x ${mention} not wanted`)
+            logDebug('gatherOccurrences', `- x ${mention} not wanted`)
           }
         }        
       }
@@ -453,20 +452,21 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
         const seenTags = n.hashtags.slice().reverse()
         let lastTag = ''
         for (const tag of seenTags) {
+          logDebug(pluginJson, `orig: ${tag} ...`)
           const reMatches = tag.match(/\/-?\d+(\.\d+)?$/) ?? []
           const tagWithoutClosingNumber = (reMatches.length >= 1) ? reMatches[1] : tag
-          // logDebug(pluginJson, `orig: ${tag} this:${tagWithoutClosingNumber} last:${lastTag} `)
+          logDebug(pluginJson, `  ... this:${tagWithoutClosingNumber} last:${lastTag} `)
           // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
           if (caseInsensitiveStartsWith(tagWithoutClosingNumber, lastTag)) {
-            // logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
+            logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
           }
           else {
             // check this is one of the ones we're after, then add
             if (caseInsensitiveMatch(tagWithoutClosingNumber, wantedTag)) {
-              // logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
+              logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
               thisOcc.addOccurrence(tag, thisDateStr)
             } else {
-              // logDebug('gatherOccurrences', `- x ${tag} not wanted`)
+              logDebug('gatherOccurrences', `- x ${tag} not wanted`)
             }
           }
           lastTag = tag
@@ -504,19 +504,19 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
         for (const mention of seenMentions) {
 
           const mentionWithoutNumberPart = (mention.split('(', 1))[0]
-          // logDebug('gatherOccurrences', `- reviewing ${mention} [${mentionWithoutNumberPart}] looking for ${thisName} on ${thisDateStr}`)
+          logDebug('gatherOccurrences', `- reviewing ${mention} [${mentionWithoutNumberPart}] looking for ${thisName} on ${thisDateStr}`)
           // if this tag is starting subset of the last one, assume this is an example of the issue, so skip this tag
           if (caseInsensitiveStartsWith(mentionWithoutNumberPart, lastMention)) {
-            // logDebug('gatherOccurrences', `- Found ${mention} but ignoring as part of a longer mention of the same name`)
+            logDebug('gatherOccurrences', `- Found ${mention} but ignoring as part of a longer mention of the same name`)
             continue
           }
           else {
             // check this is on inclusion, or not on exclusion list, before adding
             if (caseInsensitiveMatch(mentionWithoutNumberPart, thisName)) {
-              // logDebug('gatherOccurrences', `- Found matching occurrence ${mention} on date ${n.filename}`)
+              logDebug('gatherOccurrences', `- Found matching occurrence ${mention} on date ${n.filename}`)
               thisOcc.addOccurrence(mention, thisDateStr)
             } else {
-              // logDebug('gatherOccurrences', `- x ${mention} not wanted`)
+              logDebug('gatherOccurrences', `- x ${mention} not wanted`)
             }
           }
           lastMention = thisName

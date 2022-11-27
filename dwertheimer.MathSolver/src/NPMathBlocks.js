@@ -28,7 +28,7 @@
  * Reference: https://numpad.io/
  * Playground: https://mathnotepad.com/
  */
-// import {cloneDeep} from 'lodash.clonedeep' // crashes NP
+// import cloneDeep from 'lodash/cloneDeep' // Should not Crash NP anymore
 import columnify from 'columnify'
 import pluginJson from '../plugin.json'
 import { chooseOption, showMessage } from '../../helpers/userInput'
