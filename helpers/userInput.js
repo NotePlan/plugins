@@ -208,8 +208,8 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false)
 }
 
 /**
- * Ask user to select a heading from those in a given note (regular or calendar),
- * or optionally create a new heading at top or bottom of note to use.
+ * Ask user to select a heading from those in a given note (regular or calendar), or optionally create a new heading at top or bottom of note to use.
+ * TODO: Better handle case where note has no headings
  * @author @jgclark
  *
  * @param {TNote} note - note to draw headings from
@@ -223,7 +223,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
     let headingStrings = []
     const headingLevel = 2
     const spacer = '    '
-    // Decide whether to include all headings in note, or just those in the first
+    // Decide whether to include all headings in note, or just those
     // before the Done/Cancelled section
     const indexEndOfActive = findEndOfActivePartOfNote(note)
     const headingParas = includeArchive
@@ -235,19 +235,20 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         for (let i = 1; i < p.headingLevel; i++) {
           prefix += spacer
         }
-        return prefix + p.content
+        // return `${prefix}➡️ ${p.content}` // an experiment that didn't look great
+        return `${prefix}${p.content}`
       })
     }
     if (optionCreateNewHeading) {
       // Add options to add new heading at top or bottom of note
       if (note.type === 'Calendar') {
-        headingStrings.unshift('➕ ⬆️ (first insert new heading at the start of the note)') // insert at start
+        headingStrings.unshift('➕#️⃣ (first insert new heading at the start of the note)') // insert at start
       } else {
-        headingStrings.splice(1, 0, `${spacer}➕ ⬆️ (first insert new heading under the title)`) // insert as second item, after title
+        headingStrings.splice(1, 0, `➕#️⃣ (first insert new heading under the title)`) // insert as second item, after title
       }
 
-      headingStrings.unshift('➕ ⬆️ (first insert new heading at the start of the note)') // insert at second item
-      headingStrings.push(`${spacer}➕ ⬇️ (first insert new heading at the end of the note)`)
+      // headingStrings.unshift('➕#️⃣ (first insert new heading at the start of the note)') // insert at second item
+      headingStrings.push(`➕#️⃣ (first insert new heading at the end of the note)`)
     }
 
     // Had wanted to use this, but would then need to break existing return type in order to able to differentiate between 'top of note' and 'bottom of bote'
@@ -256,16 +257,22 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
     // }
 
     if (optionAddAtBottom) {
-      // Ensure we can always add at top and bottom of note
+      // Ensure we can always add at bottom of note
       headingStrings.push('⏬ (bottom of note)') // add at end
     }
 
+    // If there are no heading options to present, then just return '' = end of note
+    if (headingStrings.length === 0) {
+      return ''
+    }
+
+    // Present heading options to user and ask for choice
     const result = await CommandBar.showOptions(headingStrings, `Select a heading from note '${note.title ?? 'Untitled'}'`)
     let headingToReturn = headingStrings[result.index].trimLeft() // don't trim right as there can be valid traillng spaces
     let newHeading
 
     switch (headingToReturn) {
-      case `➕ ⬆️ (first insert new heading at the start of the note)`:
+      case `➕#️⃣ (first insert new heading at the start of the note)`:
         // ask for new heading, and insert right at top
         newHeading = await getInput(`Enter heading to add at the start of the note`)
         if (newHeading && typeof newHeading === 'string') {
@@ -278,7 +285,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         }
         break
 
-      case '➕ ⬆️ (first insert new heading under the title)':
+      case '➕#️⃣ (first insert new heading under the title)':
         // ask for new heading, find smart insertion position, and insert it
         newHeading = await getInput(`Enter heading to add at the start of the note`)
         if (newHeading && typeof newHeading === 'string') {
@@ -291,7 +298,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         }
         break
 
-      case `➕ ⬇️ (first insert new heading at the end of the note)`:
+      case `➕#️⃣ (first insert new heading at the end of the note)`:
         // ask for new heading, and then append it
         newHeading = await getInput(`Enter heading to add at the end of the note`)
         if (newHeading && typeof newHeading === 'string') {
@@ -310,7 +317,10 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         break
 
       default:
-        logDebug('userInput / chooseHeading', `User picked existing heading #${result.index + 1} ('${headingToReturn}') from ${headingStrings.length} ..`)
+        // if (headingToReturn.startsWith('➡️')) {
+        //   headingToReturn = headingToReturn.slice(1)
+        // }
+        logDebug('userInput / chooseHeading', `User picked existing heading number ${result.index + 1} ('${headingToReturn}') from ${headingStrings.length} ..`)
         break
     }
     return headingToReturn
