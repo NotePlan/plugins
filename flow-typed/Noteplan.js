@@ -454,17 +454,21 @@ declare class DataStore {
    */
   static loadData(filename: string, loadAsString: boolean): ?string;
   /**
-   * Returns the calendar note for the given date and timeframe (optional, the default is "day", use "week" for weekly notes).
+   * Returns the calendar note for the given date and timeframe (optional, the default is "day", see below for more options).
    * Note: 'timeframe' available from v3.6.0
    * @param {Date}
-   * @param {string?} - "day" (default), "week", "month" or "year"
+   * @param {string?} - "day" (default), "week", "month", "quarter" or "year"
    * @return {NoteObject}
    */
   static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
   /**
-   * Returns the calendar note for the given date string (can be undefined, if the daily note was not created yet)
-   * Use following format: "YYYYMMDD", example: "20210410"
-   * For weekly notes use "YYYY-WDD", for example "2022-W24" (Note: available from v3.6.0)
+  * Returns the calendar note for the given date string (can be undefined, if the calendar note was not created yet). See the date formats below for various types of calendar notes:
+  * Daily: "YYYYMMDD", example: "20210410"
+  * Weekly: "YYYY-Wwn", example: "2022-W24"
+  * Quarter: "YYYY-Qq", example: "2022-Q4"
+  * Monthly: "YYYY-MM", example: "2022-10"
+  * Yearly: "YYYY", example: "2022"
+  * Note: Some available from v3.7.2
    * @param {string}
    * @return {NoteObject}
    */
@@ -485,12 +489,11 @@ declare class DataStore {
   static projectNoteByTitleCaseInsensitive(title: string): ?$ReadOnlyArray<TNote>;
   /**
    * Returns the regular note with the given filename with file-extension
-   * (including folders if any, don't add "/" for root, though).
+   * Returns the regular note for the given filename with file-extension, the filename has to include the relative folder such as `folder/filename.txt`. Use no folder if it's in the root (means without leading slash).
    */
   static projectNoteByFilename(filename: string): ?TNote;
   /**
-   * Returns a regular or calendar note with the given filename.
-   * Type can be "Notes" or "Calendar". Including the file extension.
+   * Returns a regular or calendar note for the given filename. Type can be "Notes" or "Calendar". Include relative folder and file extension (`folder/filename.txt` for example).
    * Use "YYYYMMDD.ext" for calendar notes, like "20210503.txt".
    */
   static noteByFilename(filename: string, type: NoteType): ?TNote;
