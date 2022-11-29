@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Commands for producing Project lists
 // by @jgclark
-// Last updated 7.10.2022 for v0.8.0, @jgclark
+// Last updated 17.11.2022 for v0.8.0+, @jgclark
 //-----------------------------------------------------------------------------
 // FIXME: button again ... use the DataStore.invokePluginCommandByName method ?
 // TODO: add option for kicking off /overdue for the note?
@@ -344,7 +344,7 @@ async function makeNoteTypeSummary(noteTag: string, style: string, config: any):
           }
         }
         // sort this array by key set in config.displayOrder
-        let sortedProjects = []
+        let sortedProjects: Array<Project> = []
         // NB: the Compare function needs to return negative, zero, or positive values. 
         switch (config.displayOrder) {
           case 'due': {

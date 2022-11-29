@@ -1,4 +1,15 @@
 // @flow
+
+/**
+ * Imports
+ */
+import pluginJson from '../plugin.json'
+import { clo } from '@helpers/dev'
+
+/**
+ * Command Exports
+ */
+
 export { sortTasks, sortTasksByPerson, sortTasksByTag, sortTasksByDue, tasksToTop, openTasksToTop, sortTasksViaTemplate, sortTasksTagMention, sortTasksDefault } from './sortTasks'
 export { default as markTasks } from './markTasks'
 export { taskSync } from './taskSync'
@@ -12,10 +23,10 @@ export {
   reviewEditorReferencedTasks,
   searchForOpenTasks,
   askToReviewForgottenTasks,
+  reviewWeeklyTasks,
 } from './NPOverdue'
 export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
-import pluginJson from '../plugin.json'
-import { clo } from '@helpers/dev'
+export { followUpSaveHere, followUpInFuture } from './NPFollowUp'
 
 // updateSettingsData will execute whenever your plugin is installed or updated
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'

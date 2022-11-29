@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.0.0-beta2",
-  "plugin.lastUpdateInfo": "beta2 just has small small bugfixes.",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "1.0.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -37,6 +37,20 @@
       ],
       "description": "Save results from a search over all notes",
       "jsFunction": "searchOverAll",
+      "arguments": [
+        "search term(s) (separated by commas)",
+        "terms to filter by paragraph type (separated by commas)"
+      ]
+    },
+    {
+      "name": "searchOpenTasks",
+      "alias": [
+        "sot",
+        "search",
+        "sync"
+      ],
+      "description": "Save results from a search over all open tasks in all notes",
+      "jsFunction": "searchOpenTasks",
       "arguments": [
         "search term(s) (separated by commas)",
         "terms to filter by paragraph type (separated by commas)"
@@ -167,6 +181,18 @@
       "required": false
     },
     {
+      "key": "resultStyle",
+      "title": "Display style for search result lines",
+      "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings\n- Use 'Simplified' text, more like web search engine results.\nNote: this affect some of the following settings.",
+      "type": "string",
+      "choices": [
+        "NotePlan",
+        "Simplified"
+      ],
+      "default": "NotePlan-style",
+      "required": true
+    },
+    {
       "key": "sortOrder",
       "title": "Sort order for results",
       "description": "This controls the order that the results are displayed",
@@ -191,21 +217,9 @@
       "required": true
     },
     {
-      "key": "resultStyle",
-      "title": "Style for search result lines",
-      "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings\n- Use 'Simplified' text, more like web search engine results.",
-      "type": "string",
-      "choices": [
-        "NotePlan",
-        "Simplified"
-      ],
-      "default": "NotePlan-style",
-      "required": true
-    },
-    {
       "key": "resultPrefix",
       "title": "Prefix for search result lines",
-      "description": "String to put at the start of each search result line (where Style is 'Simplified'). Default is '- '. Can also be empty.",
+      "description": "String to put at the start of each search result line (where display style is 'Simplified'). Default is '- '. Can also be empty.",
       "type": "string",
       "default": "- ",
       "required": false
@@ -213,18 +227,9 @@
     {
       "key": "resultQuoteLength",
       "title": "Result quote length",
-      "description": "Length of matching line to quote in the search results. To always quote the full line set this to 0.",
+      "description": "Length of matching line to quote in the search results. To always quote the full line set this to 0. Note: this only applies in the 'Simplified' display style.",
       "type": "number",
       "default": 100,
-      "required": true
-    },
-    {
-      "todo": "TODO: review. was 'bool' type",
-      "key": "matchCase",
-      "title": "Match case when searching?",
-      "description": "Do searches match case (capitalisation) or not?",
-      "type": "hidden",
-      "default": false,
       "required": true
     },
     {
@@ -233,7 +238,7 @@
       "description": "Whether to ==highlight== the matches in the result lines. (Works best when using a theme with highlighting.)",
       "type": "bool",
       "default": true,
-      "required": false
+      "required": true
     },
     {
       "key": "dateStyle",

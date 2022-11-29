@@ -204,12 +204,12 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
 
   // let preProcessedValue = null
   try {
-    logDebug(pluginJson, `---`)
-    logDebug(pluginJson, `about to preproc str = "${strToBeParsed}"`)
-    clo(currentData, `currentData before pre-process`)
-    logDebug(pluginJson, `str = now will pre-proc "${strToBeParsed}"`)
-    const results = math.evaluate([strToBeParsed], variables)
-    clo(results, `solver::parse math.js pre-process success on: "${strToBeParsed}" Result is Array<${typeof results[0]}> =`)
+    // logDebug(pluginJson, `---`)
+    // logDebug(pluginJson, `about to preproc str = "${strToBeParsed}"`)
+    // clo(currentData, `currentData before pre-process`)
+    // logDebug(pluginJson, `str = now will pre-proc "${strToBeParsed}"`)
+    // const results = math.evaluate([strToBeParsed], variables)
+    // clo(results, `solver::parse math.js pre-process success on: "${strToBeParsed}" Result is Array<${typeof results[0]}> =`)
     // preProcessedValue = results[0]
   } catch (error) {
     // errors are to be expected since we are pre-processing
@@ -351,7 +351,7 @@ export function parse(thisLineStr: string, lineIndex: number, cd: CurrentData): 
     const results = math.evaluate(expressions, variables)
     // results.map((e, i) => variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : e)  // you put the row results in the variables
     results.map((e, i) => {
-      clo(expressions[i], `parse:expressions[${i}]`)
+      // clo(expressions[i], `parse:expressions[${i}]`)
       const rounded = precision ? Number(math.format(e, { precision })) : e
       variables[`R${i}`] = checkIfUnit(e) ? math.unit(e) : isNaN(rounded) ? e : rounded
       info[i].lineValue = variables[`R${i}`]

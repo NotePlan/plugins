@@ -1,8 +1,16 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.0.0-beta3] - 2022-11-28
+### Changed
+- polished the heading picker, particularly for Calendar notes
+
+## [1.0.0-beta2] - 2022-10-28
+### Fixed
+- fix where trailing spaces on headings could cause data loss when using /move commands
+
 ## [1.0.0-beta1] - 2022-08-18
-### Change to Commands
+### Changed
 - existing command **/move paragraphs** renamed to **/move paragraph or selection**. This moves this paragraph (or selected paragraphs) to a different note
 - added command **/move paragraph block** moves all paragraphs in the current block to a different note. Use the settings to determine how far before and after the current paragraph the block will extend.
 - retired the command alias **/file paragraphs**, as **/move paragraphs** is clearer

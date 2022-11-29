@@ -36,7 +36,7 @@ import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { checkNumber, checkWithDefault } from '@helpers/checkType'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
-import { getTodaysReferences, findTodayTodosInNote } from '@helpers/NPnote'
+import { getTodaysReferences, findOpenTodosInNote } from '@helpers/NPnote'
 import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes, selectedLinesIndex } from '@helpers/NPParagraph'
 
 /**
@@ -259,6 +259,7 @@ function getEventsConfig(atbConfig: AutoTimeBlockingConfig): TEventConfig {
  * Find all (unduplicated) todos:
  * - todo items from references list (aka "backlinks")
  * + items in the current note marked >today or with today's >date
+ * + open todos in the note (if that setting is on)
  * + ...which include the include pattern (if specified in the config)
  * - ...which do not include items the exclude pattern (if specified in the config)
  * - items in the current note that are synced tasks to elsewhere (will be in references also)
@@ -267,14 +268,17 @@ function getEventsConfig(atbConfig: AutoTimeBlockingConfig): TEventConfig {
  * @returns
  */
 export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TParagraph> {
-  const { includeTasksWithText, excludeTasksWithText } = config
+  const { includeTasksWithText, excludeTasksWithText, includeAllTodos, timeBlockTag } = config
   const backlinkParas = getTodaysReferences(Editor.note)
-  let todosInNote = Editor.note ? findTodayTodosInNote(Editor.note) : []
+  logDebug(pluginJson, `Found ${backlinkParas.length} backlink paras`)
+  let todosInNote = Editor.note ? findOpenTodosInNote(Editor.note, includeAllTodos) : []
   if (todosInNote.length > 0) {
-    logDebug(pluginJson, `getTodaysFilteredTodos: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`)
+    logDebug(pluginJson, ` getTodaysFilteredTodos: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`)
     // eliminate linked lines (for synced lines on the page)
     // because these should be in the references from other pages
     todosInNote = todosInNote.filter((todo) => !/\^[a-zA-Z0-9]{6}/.test(todo.content))
+    todosInNote = todosInNote.filter((todo) => !isTimeBlockLine(todo.content)) // if a user is using the todo character for timeblocks, eliminate those lines
+    todosInNote = todosInNote.filter((todo) => !new RegExp(timeBlockTag).test(todo.content)) // just to be extra safe, make sure we're not adding our own timeblocks
   }
   const backLinksAndNoteTodos = [...backlinkParas, ...todosInNote]
   logDebug(pluginJson, `Found ${backLinksAndNoteTodos.length} backlinks+today-note items (may include completed items)`)
@@ -299,13 +303,14 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
   const dateStr = Editor.filename ? getDateStringFromCalendarFilename(Editor.filename) : null
   logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr ?? 'null'}`)
   if (dateStr && dateStr === date) {
-    logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr} is today - we are inside`)
+    logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr} is today - starting`)
     const todosParagraphs = await getTodaysFilteredTodos(config)
     logDebug(pluginJson, `Back from getTodaysFilteredTodos, ${todosParagraphs.length} potential items`)
-    const cleanTodayTodoParas = [...removeDateTagsFromArray(todosParagraphs)]
-    logDebug(pluginJson, `After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
-    const todosWithLinksMaybe = appendLinkIfNecessary(cleanTodayTodoParas, config)
+    // the following calls addBlockID and that must be called before any content changes are made that will not be saved
+    const todosWithLinksMaybe = appendLinkIfNecessary(todosParagraphs, config)
     logDebug(pluginJson, `After appendLinkIfNecessary, ${todosWithLinksMaybe?.length ?? 0} potential items (may include headings or completed)`)
+    const cleanTodayTodoParas = [...removeDateTagsFromArray(todosWithLinksMaybe)]
+    logDebug(pluginJson, `After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
     const tasksByType = todosWithLinksMaybe.length ? getTasksByType(todosWithLinksMaybe, true) : null // puts in object by type of task and enriches with sort info (like priority)
     logDebug(pluginJson, `After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items`)
     if (deletePreviousCalendarEntries) {
@@ -493,6 +498,22 @@ export async function removePreviousTimeBlocks(runSilently: string = 'no'): Prom
 }
 
 /**
+ * Remove a section from all previous days
+ * (entry point for /removePreviousSection)
+ * @param {boolean} headingName - the name of the heading to remove
+ */
+export async function removePreviousDaysParagraphNamed(headingName: string = '', runSilently: string = 'no'): Promise<void> {
+  try {
+    logDebug(pluginJson, `removePreviousDaysParagraphNamed running for "${headingName}"`)
+    if (headingName?.length) {
+      await removeContentUnderHeadingInAllNotes(['calendar'], headingName, false, runSilently)
+    }
+  } catch (error) {
+    logError(pluginJson, `removePreviousTimeBlocks error: ${JSP(error)}`)
+  }
+}
+
+/**
  * Insert todos marked >today into the editor
  * (entry point for /atb)
  * @param {*} note
@@ -507,7 +528,7 @@ export async function insertTodosAsTimeblocks(/* note: TNote */): Promise<void> 
       logDebug(pluginJson, `Config found. Calling createTimeBlocksForTodaysTasks`)
       await createTimeBlocksForTodaysTasks(config)
     } else {
-      // logDebug(pluginJson,`insertTodosAsTimeblocks: stopping after config create`)
+      logDebug(pluginJson, `insertTodosAsTimeblocks: stopping after config create`)
     }
   } catch (error) {
     logError(pluginJson, `insertTodosAsTimeblocks error: ${JSP(error)}`)
@@ -570,23 +591,28 @@ export async function selectCalendar(isPluginEntry: boolean = true): Promise<voi
 export async function markDoneAndRecreateTimeblocks(incoming: string | null = null) {
   try {
     logDebug(pluginJson, `markDoneAndRecreateTimeblocks running with incoming:${String(incoming)}`)
-    if (Editor.selection && Editor.note?.paragraphs) {
+    if (Editor?.selection && Editor?.paragraphs) {
       // const updatedParas = []
-      const [startIndex, endIndex] = selectedLinesIndex(Editor.selection, Editor.note.paragraphs)
+      const [startIndex, endIndex] = selectedLinesIndex(Editor.selection, Editor.paragraphs)
       if (endIndex >= startIndex) {
         for (let index = startIndex; index <= endIndex; index++) {
-          const para = Editor.note?.paragraphs[index]
+          const para = Editor.paragraphs[index]
           if (para) {
-            logDebug(pluginJson, `markDoneAndRecreateTimeblocks: paragraph[${index}] of ${startIndex} to ${endIndex}: "${para.content || ''}"`)
+            // logDebug(pluginJson, `markDoneAndRecreateTimeblocks: paragraph[${index}] of ${startIndex} to ${endIndex}: "${para.content || ''}"`)
             if (para && isTask(para)) {
-              clo(para, `markDoneAndRecreateTimeblocks: before update paragraph[${index}]`)
+              // clo(para, `markDoneAndRecreateTimeblocks: before update paragraph[${index}]`)
               para.type = 'done'
-              if (Editor.note) Editor.note.updateParagraph(para)
-              clo(para, `markDoneAndRecreateTimeblocks: after update paragraph[${index}]`)
+              if (Editor) {
+                Editor.updateParagraph(para)
+                // clo(para, `markDoneAndRecreateTimeblocks: para after update paragraph[${index}]`)
+                // clo(Editor?.paragraphs[para.lineIndex], `markDoneAndRecreateTimeblocks: note.paragraphs[${index}]`)
+              } else {
+                logError(pluginJson, `markDoneAndRecreateTimeblocks: no Editor`)
+              }
             }
           }
         }
-        // await insertTodosAsTimeblocks()
+        await insertTodosAsTimeblocks()
       } else {
         logDebug(pluginJson, `markDoneAndRecreateTimeblocks: no selection`)
       }

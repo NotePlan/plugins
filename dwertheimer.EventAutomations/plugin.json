@@ -5,8 +5,8 @@
   "plugin.name": "🗓 Event Automations",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for >today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.10.4",
-  "plugin.lastUpdateInfo": "1.10.4: Minor fix to ignore calendar items which are marked as 'free' time in Google calendar",
+  "plugin.version": "1.13.1",
+  "plugin.lastUpdateInfo": "1.13.1 - Fixed bug for when the todo character is used for timeblocks. Thx @mattis for reporting!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -89,6 +89,16 @@
       ]
     },
     {
+      "name": "Remove Previous Days Paragraphs Named",
+      "description": "Remove Paragraphs from Previous Days with Confirmation",
+      "hidden": true,
+      "jsFunction": "removePreviousDaysParagraphNamed",
+      "arguments": [
+        "Name of the paragraph to remove",
+        "Run silently with no pop-up messages (e.g. running from a Template) - (yes/no) -- defaults to no, and you should probably run it this way so you get one chance to decide whether you actually want to remove the paragraphs"  
+      ]
+    },
+    {
       "name": "Remove All Previous Time Blocks in Calendar Notes Written by this Plugin",
       "description": "Remove previously written Time Blocks",
       "jsFunction": "removePreviousTimeBlocks",
@@ -124,6 +134,14 @@
       "title": "Default time block duration (minutes)",
       "description": "Any task that does not have a specific duration stated (see below) will have this default length in minutes",
       "default": 15,
+      "required": true
+    },
+    {
+      "key": "includeAllTodos",
+      "title": "Include all todos in today's note",
+      "description": "If checked, all open todos in today's note will be considered for timeblocks (time permitting). If unchecked, only todos marked with >today or >dated with today's date will be included. NOTE: if you use the todo character (e.g. '*') for your TimeBlocks leading character, this could cause issues.",
+      "type": "bool",
+      "default": true,
       "required": true
     },
     {
@@ -239,14 +257,14 @@
       "type": "string",
       "title": "Title/heading for synced copies of today's items",
       "description": "If you have turned on synced copies, they will be placed under this heading in the calendar note",
-      "default": "Today's Synced Tasks",
+      "default": " [Today's Synced Tasks](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.EventAutomations&command=Insert%20Synced%20Todos%20for%20Open%20Calendar%20Note&arg0=yes)",
       "required": true
     },
     {
       "key": "foldSyncedCopiesHeading",
       "type": "bool",
       "title": "Fold created synced copies under heading",
-      "description": "Reduce the noise on your calendar page by folding the synced copy lines  that get created under the heading.",
+      "description": "Reduce the noise on your calendar page by folding the synced copy lines that get created under the heading.",
       "default": false,
       "required": true
     },

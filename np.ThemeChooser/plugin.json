@@ -22,7 +22,7 @@
       "arguments": ["theme name"]
     },
     {
-      "name": "Set Toggleable Light/Dark Theme (for this device)",
+      "name": "Set Default Light/Dark Theme (for this device)",
       "description": "Choose from all themes",
       "jsFunction": "setDefaultLightDarkTheme"
     },

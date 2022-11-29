@@ -6,7 +6,7 @@ import { showMessageYesNo, chooseFolder, showMessage, chooseOptionWithModifiers 
 import { reviewTasksInNotes, getNotesAndTasksToReview, createArrayOfNotesAndTasks } from './NPTaskScanAndProcess'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { filenameDateString, isScheduled, isWeeklyNote } from '@helpers/dateTime'
-import { getTodaysReferences } from '@helpers/NPnote'
+import { getTodaysReferences, getReferencedParagraphs } from '@helpers/NPnote'
 import { /* getTasksByType, */ sortListBy } from '@helpers/sorting'
 import { filterNotesAgainstExcludeFolders, getOverdueParagraphs } from '@helpers/note'
 import { getNPWeekData } from '@helpers/NPdateTime'
@@ -15,15 +15,38 @@ const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFile
 
 /**
  * After an overdue task scan is complete,
+ * ask user if they want to review all the items on this week's note
+ * @param {boolean} byTask - if true, review tasks one at a time, otherwise by note
+ * @param {boolean} silent - if true, don't ask
+ */
+export async function askToReviewWeeklyTasks(byTask: boolean = false) {
+  try {
+    const { askToReviewWeeklyTasks } = DataStore.settings
+    if (askToReviewWeeklyTasks) {
+      // await Editor.openNoteByDate(new Date())
+      const answer = await showMessageYesNo(`Want to review tasks scheduled for this week?`, ['Yes', 'No'], 'Review Weekly Note Tasks', true)
+
+      if (answer === 'Yes') {
+        logDebug(pluginJson, `askToReviewTodaysTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
+        await reviewEditorReferencedTasks(null, byTask, true)
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * After an overdue task scan is complete,
  * ask user if they want to review all the items marked for >today or today's date
- * @param {*} incoming
+ * @param {boolean} byTask - if true, review tasks one at a time, otherwise by note
  */
 export async function askToReviewTodaysTasks(byTask: boolean = false) {
   try {
     const { askToReviewTodaysTasks } = DataStore.settings
     if (askToReviewTodaysTasks) {
       await Editor.openNoteByDate(new Date())
-      const answer = await showMessageYesNo('Want to review tasks scheduled for today?', ['Yes', 'No'], "Review Today's Tasks", true)
+      const answer = await showMessageYesNo(`Want to review tasks scheduled for today?`, ['Yes', 'No'], 'Review Current Tasks', true)
       if (answer === 'Yes') {
         logDebug(pluginJson, `askToReviewTodaysTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
         await reviewEditorReferencedTasks(null, byTask)
@@ -32,6 +55,19 @@ export async function askToReviewTodaysTasks(byTask: boolean = false) {
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+}
+
+/**
+ * Get open tasks from the current week's note
+ * @returns {Array<TParagraph>} Array of open tasks
+ */
+function getWeeklyOpenTasks(): Array<TParagraph> {
+  const weeklyNote = DataStore.calendarNoteByDate(new Date(), 'week')
+  const refs = weeklyNote ? getReferencedParagraphs(weeklyNote) : []
+  const combined = [...refs, ...(weeklyNote?.paragraphs || [])]
+  clo(weeklyNote, 'weeklyNote')
+  logDebug(pluginJson, `getWeeklyOpenTasks ${weeklyNote?.filename || 0}: refs:${refs.length} paras:${weeklyNote?.paragraphs.length || 0} combined:${combined.length}`)
+  return combined.filter((p) => p.type === 'open') || []
 }
 
 /**
@@ -45,11 +81,11 @@ export async function askToReviewForgottenTasks(byTask: boolean = false) {
     const { askToReviewForgottenTasks, ignoreScheduledInForgottenReview } = DataStore.settings
     if (askToReviewForgottenTasks) {
       await Editor.openNoteByDate(new Date())
-      const answer = await showMessageYesNo('Review undated tasks from prev days?', ['Yes', 'No'], "Review Today's Tasks", true)
+      const answer = await showMessageYesNo('Review undated tasks from prev days?', ['Yes', 'No'], 'Review Undated Tasks', true)
       if (answer === 'Yes') {
         // Commented out this ask about ignoring scheduled tasks. It works cand can be uncommented, but it felt like too many questions
         // added a user preference for it instead
-        // answer = await showMessageYesNo('Ignore items which have dates/are scheduled?', ['Yes', 'No'], "Review Today's Tasks", true)
+        // answer = await showMessageYesNo('Ignore items which have dates/are scheduled?', ['Yes', 'No'], "Ignore Scheduled Tasks", true)
         logDebug(pluginJson, `askToReviewForgottenTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
         await searchForOpenTasks(null, byTask, ignoreScheduledInForgottenReview)
       }
@@ -114,6 +150,7 @@ export async function reviewOverdueTasksByNote(incoming: string): Promise<void> 
     }
     const notesToReview = getNotesAndTasksToReview(options)
     await reviewTasksInNotes(notesToReview, options)
+    await askToReviewWeeklyTasks(false)
     await askToReviewTodaysTasks(false)
     await askToReviewForgottenTasks(false)
     await showMessage(`Review Complete!`, 'OK', 'Task Review', true)
@@ -147,6 +184,7 @@ export async function reviewOverdueTasksByTask(incoming: string): Promise<void> 
     }
     const notesToReview = getNotesAndTasksToReview(options)
     await reviewTasksInNotes(notesToReview, options)
+    await askToReviewWeeklyTasks(true)
     await askToReviewTodaysTasks(true)
     await askToReviewForgottenTasks(true)
     await showMessage(`Review Complete!`, 'OK', 'Task Review', true)
@@ -204,12 +242,24 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
 }
 
 /**
- *  Find all tasks in today's references (e.g. >dated today or >today)
+ * Review weekly note tasks
+ * (plugin entry point for "/Review/Weekly Tasks")
+ * @param {*} incoming
+ */
+export async function reviewWeeklyTasks(incoming: string): Promise<void> {
+  logDebug(pluginJson, `reviewWeeklyTasks starting. incoming: ${incoming}`)
+  await reviewEditorReferencedTasks(null, true, true)
+}
+
+/**
+ *  Find all tasks in today's references (either marked for today or in weekly note)
  *  DISPLAY EACH NOTE'S TASK FIRST, WITH OPTION TO EXPLORE EACH TASK
  * (plugin entry point for "/Review/Reschedule Tasks Dated Today")
  * @param {string} incoming - comes from xcallback - any string runs this command silently
+ * @param {boolean} byTask - if true, display each task individually, otherwise display all tasks in each note
+ * @param {boolean} weeklyNote - if true, use weekly note instead of today's note
  */
-export async function reviewEditorReferencedTasks(incoming: string | null = null, byTask: boolean = true): Promise<void> {
+export async function reviewEditorReferencedTasks(incoming: string | null = null, byTask: boolean = true, weeklyNote: boolean = false): Promise<void> {
   try {
     await Editor.openNoteByDate(new Date())
     logDebug(pluginJson, `reviewEditorReferencedTasks: incoming="${incoming || ''}" typeof=${typeof incoming}`)
@@ -222,10 +272,12 @@ export async function reviewEditorReferencedTasks(incoming: string | null = null
     const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
     const refs = getTodaysReferences(Editor.note)
     logDebug(pluginJson, `reviewEditorReferencedTasks refs.length=${refs.length}`)
-    const openTasks = refs.filter((p) => p.type === 'open' && p.content !== '') //TODO: confirm with users that open-only is OK for this command
-    logDebug(pluginJson, `reviewEditorReferencedTasks openTasks.length=${openTasks.length}`)
+    const openTasks = weeklyNote ? [] : refs.filter((p) => p.type === 'open' && p.content !== '')
+    const thisWeeksTasks = weeklyNote ? getWeeklyOpenTasks() : []
+    logDebug(pluginJson, `reviewEditorReferencedTasks openTasks.length=${openTasks.length} thisWeeksTasks=${thisWeeksTasks.length}`)
     // gather references by note
-    const arrayOfOpenNotesAndTasks = createArrayOfNotesAndTasks(openTasks)
+    const arrayOfOpenNotesAndTasks = createArrayOfNotesAndTasks([...thisWeeksTasks, ...openTasks])
+    // clo(arrayOfOpenNotesAndTasks, `reviewEditorReferencedTasks arrayOfOpenNotesAndTasks`)
     // clo(arrayOfNotesAndTasks, `NPOverdue::reviewEditorReferencedTasks arrayOfNotesAndTasks`)
     logDebug(pluginJson, `reviewEditorReferencedTasks arrayOfNotesAndTasks.length=${arrayOfOpenNotesAndTasks.length}`)
     const options = {
@@ -247,7 +299,7 @@ export async function reviewEditorReferencedTasks(incoming: string | null = null
 }
 
 /**
- * Find and update all overdue tasks, including >date and >date+ in a folder chosen by user
+ * Find and update all overdue tasks in a specific folder
  *  DISPLAY EACH NOTE'S TASK FIRST, WITH OPTION TO EXPLORE EACH TASK
  * (plugin entry point for "/Review overdue tasks in <Choose Folder>")
  * @param {string} incoming - comes from xcallback - any string runs this command silently
@@ -271,6 +323,7 @@ export async function reviewOverdueTasksInFolder(incoming: string): Promise<void
     }
     const notesToReview = getNotesAndTasksToReview(options)
     await reviewTasksInNotes(notesToReview, options)
+    await askToReviewWeeklyTasks(true)
     await askToReviewTodaysTasks(true)
     await askToReviewForgottenTasks(true)
   } catch (error) {

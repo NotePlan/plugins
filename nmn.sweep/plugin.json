@@ -6,10 +6,11 @@
   "plugin.icon": "f120",
   "plugin.author": "Naman Goel & Eduard & dwertheimer",
   "plugin.repoUrl": "tbd",
-  "plugin.version": "1.4.4",
+  "plugin.version": "1.4.6",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
+  "hidden": true,
   "plugin.commands": [
     {
       "name": "swt",

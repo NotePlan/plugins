@@ -348,6 +348,7 @@ export async function moveParasToCalendarDate(destDate: Date): Promise<void> {
  * Function to write text either to top of note, bottom of note, or after a heading
  * Note: When written, there was no API function to deal with multiple selectedParagraphs,
  * but we can insert a raw text string.
+ * Note: now can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports
  * @author @jgclark
  * 
  * @param {TNote} destinationNote 
@@ -361,9 +362,8 @@ export function addParasAsText(
   headingToFind: string,
   whereToAddInSection: string
 ): void {
-  // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
   const destinationNoteParas = destinationNote.paragraphs
-  let insertionIndex = undefined
+  let insertionIndex: number
   if (headingToFind === destinationNote.title || headingToFind.includes('(top of note)')) {
     // i.e. the first line in project or calendar note
     insertionIndex = calcSmartPrependPoint(destinationNote)

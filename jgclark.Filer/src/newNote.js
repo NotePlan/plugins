@@ -93,14 +93,15 @@ export async function newNoteFromSelection(): Promise<void> {
         // This question needs to be here after newNote and before noteOpener
         // to force a cache refresh after newNote.
         // Note: This API bug has probably now been fixed.
-        const iblq = await CommandBar.showOptions(['Yes', 'No'], 'Insert link to new file where selection was?')
+        // TODO: I think there are better API calls to use now
+        const res = await CommandBar.showOptions(['Yes', 'No'], 'Insert link to new file where selection was?')
 
         const newNote = await noteOpener(filename, 'using filename')
 
         if (newNote) {
           logDebug(pluginJson, `- newNote's title: ${String(newNote.title)}`)
           logDebug(pluginJson, `- newNote's content: ${String(newNote.content)} ...`)
-          const insertBackLink = iblq.index === 0
+          const insertBackLink = res.index === 0
           // $FlowFixMe[method-unbinding] - Flow thinks the function is being removed from the object, but it's not
           if (Editor.replaceSelectionWithText) {
             // for compatibility, make sure the function exists

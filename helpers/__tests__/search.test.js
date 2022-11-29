@@ -235,6 +235,10 @@ describe('search.js tests', () => {
       const output = s.trimAndHighlightTermInLine('Something in [tennis title](http://www.random-rubbish.org/)', ['tennis'], false, false, '- ', 100)
       expect(output).toEqual('Something in [tennis title](http://www.random-rubbish.org/)')
     })
+    test('should return simplified, removing blockID', () => {
+      const output = s.trimAndHighlightTermInLine('* [ ] A task that is syncd ^123ABC', ['syncd'], true, false, '- ', 100)
+      expect(output).toEqual('- A task that is syncd')
+    })
     test('should return same as input + highlight', () => {
       const output = s.trimAndHighlightTermInLine('Something in [tennis title](http://www.random-rubbish.org/)', ['tennis'], false, true, '- ', 100)
       expect(output).toEqual('Something in [==tennis== title](http://www.random-rubbish.org/)')
@@ -243,17 +247,13 @@ describe('search.js tests', () => {
       const output = s.trimAndHighlightTermInLine('Something in [link title](http://www.random-rubbish.org/)', ['cabbage'], false, true, '- ', 100)
       expect(output).toEqual('Something in [link title](http://www.random-rubbish.org/)')
     })
-    test('should return 3 highlights; not simplified; leaving padding', () => {
+    test('should return 3 highlights; not simplified', () => {
       const output = s.trimAndHighlightTermInLine("\t\t* [ ] There's Tennis and tennis.org and unTENNISlike behaviour!  ", ['tennis'], false, true, '- ', 100)
-      expect(output).toEqual("\t\t* [ ] There's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!")
+      expect(output).toEqual("\t\t* [ ] There's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!  ")
     })
     test('should return 3 highlights, dealing with padding, simplifying', () => {
       const output = s.trimAndHighlightTermInLine("  * [ ] There's Tennis and tennis.org and unTENNISlike behaviour!  ", ['tennis'], true, true, '- ', 100)
       expect(output).toEqual("- There's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!")
-    })
-    test('should return 3 highlights; not simplified; from tab padded', () => {
-      const output = s.trimAndHighlightTermInLine("\t\tThere's Tennis and tennis.org and unTENNISlike behaviour!  ", ['tennis'], false, true, '- ', 100)
-      expect(output).toEqual("There's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!")
     })
     test('should return 3 highlights; simplified; from tab padded', () => {
       const output = s.trimAndHighlightTermInLine("\t\tThere's Tennis and tennis.org and unTENNISlike behaviour!  ", ['tennis'], true, true, '- ', 100)
@@ -271,26 +271,21 @@ describe('search.js tests', () => {
       const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['tempor', 'eiusmod'], false, true, '- ', 100)
       expect(output).toEqual("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do ==eiusmod== ==tempor== incididunt")
     })
-    test('should return 1 highlight and end trimmng', () => {
-      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], false, false, '- ', 86)
-      expect(output).toEqual("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod ...")
+    test('should return 1 highlight and end trimmng, as simplifying', () => {
+      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], true, false, '- ', 86)
+      expect(output).toEqual("- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod ...")
     })
-    test('should return 1 highlight and front and end trimming', () => {
-      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], false, false, '- ', 70)
-      expect(output).toEqual("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed ...")
+    test('should return 1 highlight and front and end trimming, as simplifying', () => {
+      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], true, false, '- ', 70)
+      expect(output).toEqual("- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed ...")
     })
-    test('should return 1 highlight and front and end trimming leaving task marker', () => {
+    test('should return 1 highlight and no shortening (as no simplication)', () => {
       const output = s.trimAndHighlightTermInLine("  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], false, false, '- ', 70)
-      expect(output).toEqual("  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed ...")
+      expect(output).toEqual("  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt")
     })
     test('should return 1 highlight and front and end trimming + simplify to set prefix -', () => {
       const output = s.trimAndHighlightTermInLine("  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], true, false, '- ', 70)
       expect(output).toEqual("- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed ...")
-    })
-    // TODO: Ran out of energy to do the detail on this ...
-    test.skip('should return 1 highlight and front and end trimming', () => {
-      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], false, false, '- ', 48)
-      expect(output).toEqual("... ipsum dolor sit amet, sed consectetur adipisicing elit, ...")
     })
     test('should return 1 new highlight but not add extra to existing highlit term', () => {
       const output = s.trimAndHighlightTermInLine("Should add highlight to tennis, but not to this existing one: ==tennis==", ['tennis'], false, true, '- ')
@@ -299,6 +294,11 @@ describe('search.js tests', () => {
     test('specific case that was returning just a bullet', () => {
       const output = s.trimAndHighlightTermInLine("- Kate Dean #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to Holy Spirit", ['Holy', 'Spirit'], false, true, '- ', 200)
       expect(output).toEqual("- Kate Dean #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to ==Holy== ==Spirit==")
+    })
+    // TODO: Ran out of energy to do the detail on this ...
+    test.skip('should return 1 highlight and front and end trimming', () => {
+      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], false, false, '- ', 48)
+      expect(output).toEqual("... ipsum dolor sit amet, sed consectetur adipisicing elit, ...")
     })
   })
 })

@@ -6,7 +6,7 @@
 import moment from 'moment'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
-import { RE_YYYYMMDD_DATE, getWeek, monthNameAbbrev, todaysDateISOString, toISODateString, toISOShortDateTimeString, weekStartEnd } from './dateTime'
+import { RE_YYYYMMDD_DATE, getWeek, monthNameAbbrev, todaysDateISOString, toISOShortDateTimeString, weekStartEnd, RE_DATE } from './dateTime'
 import { logDebug, logError, clo, JSP } from './dev'
 import { chooseOption, getInput } from './userInput'
 
@@ -53,104 +53,6 @@ export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [],
 
 export function printDateRange(dr: DateRange) {
   console.log(`DateRange <${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
-}
-
-/**
- * DEPRECATED: Calculate an offset date, as a JS Date.
- * **Now use version in helpers/dateTime.js which doesn't rely on NP APIs, and has tests!**
- * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
- * @author @jgclark
- *
- * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
- * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
- * @returns {Date} new date as a JS Date (or null if there is an error)
- */
-export function calcOffsetDate(baseDateISO: string, interval: string): Date | null {
-  try {
-    const momentDate = moment(baseDateISO) // use moment() to work in the local timezone [says @dwertheimer]
-    // const baseDate = new Date(baseDateISO)
-    const baseDate = new Date(momentDate.format()) // ditto
-    // log('calcOffsetDate()', `baseDateISO:${baseDateISO} momentDate:${momentDate} baseDate:${baseDate.toString()}`)
-    let daysToAdd = 0
-    let monthsToAdd = 0
-    let yearsToAdd = 0
-    const unit = interval.charAt(interval.length - 1) // get last character
-    let num = Number(interval.substr(0, interval.length - 1)) // return all but last character
-    // log('helpers/calcOffsetDate', `base: ${toISODateString(baseDate)} / ${num} / ${unit}`)
-
-    switch (unit) {
-      case 'b': {
-        // week days
-        // Method from Arjen at https://stackoverflow.com/questions/279296/adding-days-to-a-date-but-excluding-weekends
-        // Avoids looping, and copes with negative intervals too
-        const currentDayOfWeek = baseDate.getUTCDay() // = day of week with Sunday = 0, ..Saturday = 6
-        let dayOfWeek
-        if (num < 0) {
-          dayOfWeek = (currentDayOfWeek - 12) % 7
-        } else {
-          dayOfWeek = (currentDayOfWeek + 6) % 7 // % = modulo operator in JSON
-        }
-        if (dayOfWeek === 6) {
-          num--
-        }
-        if (dayOfWeek === -6) {
-          num++
-        }
-        // console.log("    c_o_d b: " + currentDayOfWeek + " / " + num + " / " + dayOfWeek)
-        const numWeekends = Math.trunc((num + dayOfWeek) / 5)
-        daysToAdd = num + numWeekends * 2
-        break
-      }
-      case 'd':
-        daysToAdd = num // need *1 otherwise treated as a string for some reason
-        break
-      case 'w':
-        daysToAdd = num * 7
-        break
-      case 'm':
-        monthsToAdd = num
-        break
-      case 'q':
-        monthsToAdd = num * 3
-        break
-      case 'y':
-        yearsToAdd = num
-        break
-      default:
-        logError('helpers/calcOffsetDate', `Invalid date interval: '${interval}'`)
-        break
-    }
-
-    // Now add (or subtract) the number, using NP's built-in helper
-    const newDate =
-      Math.abs(daysToAdd) > 0
-        ? Calendar.addUnitToDate(baseDate, 'day', daysToAdd)
-        : Math.abs(monthsToAdd) > 0
-        ? Calendar.addUnitToDate(baseDate, 'month', monthsToAdd)
-        : Math.abs(yearsToAdd) > 0
-        ? Calendar.addUnitToDate(baseDate, 'year', yearsToAdd)
-        : baseDate // if nothing else, leave date the same
-
-    return newDate
-  } catch (e) {
-    logError('helpers/calcOffsetDate', `${e.message} for baseDateISO '${baseDateISO}'`)
-    return null
-  }
-}
-
-/**
- * DEPRECATED: Calculate an offset date, as ISO Strings.
- * v2 method, using built-in NotePlan function 'Calendar.addUnitToDate(date, type, num)'
- * NB: doesn't actually use NP functions, but to avoid a circular dependency it needs to be in this file.
- * @author @jgclark
- *
- * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
- * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
- * @returns {string} new date in ISO Date format
- */
-export function calcOffsetDateStr(baseDateISO: string, interval: string): string {
-  const newDate = calcOffsetDate(baseDateISO, interval)
-  return newDate ? toISODateString(newDate) : ''
 }
 
 /**
@@ -275,7 +177,7 @@ export const periodTypesAndDescriptions = [
  * - {Date} end (js) date of time period
  * - {string} periodType    (e.g. 'lq' for 'Last Quarter')
  * - {string} periodString  (e.g. '2022 Q2 (Apr-June)')
- * - {string} periodPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
+ * - {string} periodAndPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
  * Normally does this by asking user, unless param 'periodType' is supplied.
  * @author @jgclark
  *
@@ -283,7 +185,11 @@ export const periodTypesAndDescriptions = [
  * @param {string} periodType optional; if not provided ask user instead
  * @returns {[Date, Date, string, string, string]}
  */
-export async function getPeriodStartEndDates(question: string = 'Create stats for which period?', periodTypeToUse?: string): Promise<[Date, Date, string, string, string]> {
+export async function getPeriodStartEndDates(
+  question: string = 'Create stats for which period?',
+  periodTypeToUse?: string,
+  excludeToday: boolean = true /* currently only used when a date is passed through as periodTypeToUse */,
+): Promise<[Date, Date, string, string, string]> {
   let periodType: string
   // If we're passed the period, then use that, otherwise ask user
   if (periodTypeToUse) {
@@ -294,9 +200,11 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
     periodType = await chooseOption(question, periodTypesAndDescriptions, 'mtd')
   }
   let fromDate: Date = new Date()
+  let fromDateMom = new moment()
   let toDate: Date = new Date()
+  let toDateMom = new moment()
   let periodString = ''
-  let periodPartStr = ''
+  let periodAndPartStr = ''
 
   const todaysDate = new Date()
   // couldn't get const { y, m, d } = getYearMonthDate(todaysDate) to work ??
@@ -314,18 +222,24 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
 
   switch (periodType) {
     case 'lm': {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // go to start of this month
-      fromDate = Calendar.addUnitToDate(fromDate, 'month', -1) // -1 month
-      toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
-      toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
+      fromDateMom = fromDateMom.subtract(1, 'month').subtract(6, 'days')
+      fromDate = fromDateMom.toDate()
+      toDateMom = moment(toDate).startOf('month').subtract(1, 'days')
+      fromDate = toDateMom.toDate()
+
+      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // go to start of this month
+      // fromDate = Calendar.addUnitToDate(fromDate, 'month', -1) // -1 month
+      // toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
       periodString = `${monthNameAbbrev(fromDate.getMonth() + 1)} ${y}`
       break
     }
     case 'mtd': {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
+      fromDateMom = moment(toDate).startOf('month')
+      fromDate = fromDateMom.toDate()
+      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
+      // toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
       periodString = `${monthNameAbbrev(m)} ${y}`
-      periodPartStr = `day ${d}`
+      periodAndPartStr = `${periodString}, day ${d}`
       break
     }
     case 'om': {
@@ -357,7 +271,7 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0), 'minute', -TZOffset) // start of this quarter
       toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
       periodString = `${y} Q${thisQ} (${monthNameAbbrev(thisQStartMonth)}-${monthNameAbbrev(thisQStartMonth + 2)})`
-      periodPartStr = `(to ${todaysDateISOString})`
+      periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
       break
     }
     case 'oq': {
@@ -406,7 +320,7 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -(dateWithinInterval - 1))
       toDate = Calendar.addUnitToDate(fromDate, 'day', 6)
       periodString = `this week`
-      periodPartStr = `day ${dateWithinInterval}`
+      periodAndPartStr = `day ${dateWithinInterval} this week`
       break
     }
     case 'wtd': {
@@ -424,32 +338,47 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       periodString = `${theYear}-W${currentWeekNum}`
       // get ISO dayOfWeek (Monday = 1 to Sunday = 7)
       const todaysISODayOfWeek = moment().isoWeekday()
-      periodPartStr = `day ${todaysISODayOfWeek}`
-      logDebug('getPeriodStartEndDates()', `wtd: currentWeekNum: ${currentWeekNum}, theYear: ${theYear}, todaysISODayOfWeek: ${todaysISODayOfWeek}`)
+      periodAndPartStr = `day ${todaysISODayOfWeek}, ${periodString}`
+      // logDebug('getPeriodStartEndDates()', `wtd: currentWeekNum: ${currentWeekNum}, theYear: ${theYear}, todaysISODayOfWeek: ${todaysISODayOfWeek}`)
       break
     }
     case 'last7d': {
-      // last 7 days
-      fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -6)
-      toDate = Calendar.addUnitToDate(fromDate, 'day', 6)
+      // last 7 days, including today
+      // now using Moment library
       periodString = `last 7 days`
-      periodPartStr = ``
+      periodAndPartStr = ``
+      // fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -6)
+      // toDate = Calendar.addUnitToDate(fromDate, 'day', 6)
+      toDateMom = moment(toDate).startOf('day')
+      fromDateMom = toDateMom.subtract(6, 'days')
+      fromDate = fromDateMom.toDate()
+      logDebug('last7d', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
       break
     }
     case 'last2w': {
-      // last 2 weeks
-      fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -13)
-      toDate = Calendar.addUnitToDate(fromDate, 'day', 13)
+      // last 2 weeks, including today
+      // now using Moment library
       periodString = `last 2 weeks`
-      periodPartStr = ``
+      periodAndPartStr = ``
+      // fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -13)
+      // toDate = Calendar.addUnitToDate(fromDate, 'day', 13)
+      toDateMom = moment(toDate).startOf('day')
+      fromDateMom = toDateMom.subtract(13, 'days')
+      fromDate = fromDateMom.toDate()
+      logDebug('last2w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
       break
     }
     case 'last4w': {
-      // last 4 weeks
-      fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -27)
-      toDate = Calendar.addUnitToDate(fromDate, 'day', 27)
+      // last 4 weeks, including today
+      // now using Moment library
       periodString = `last 4 weeks`
-      periodPartStr = ``
+      periodAndPartStr = ``
+      // fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -27)
+      // toDate = Calendar.addUnitToDate(fromDate, 'day', 27)
+      toDateMom = moment(toDate).startOf('day')
+      fromDateMom = toDateMom.subtract(27, 'days')
+      fromDate = fromDateMom.toDate()
+      logDebug('last4w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
       break
     }
     case 'ow': {
@@ -474,7 +403,7 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
       toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
       periodString = `${y}`
-      periodPartStr = `(to ${todaysDateISOString})`
+      periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
       break
     }
     case 'oy': {
@@ -485,14 +414,30 @@ export async function getPeriodStartEndDates(question: string = 'Create stats fo
       break
     }
     default: {
+      // check to see if it's an ISO8601 date instead
+      if (new RegExp(`^${RE_DATE}$`).test(periodType)) {
+        toDateMom = moment(toDate).startOf('day')
+        fromDateMom = moment(periodType)
+        fromDate = fromDateMom.toDate()
+        periodString = `since ${periodType}`
+        const daysBetween = toDateMom.diff(fromDateMom, 'days')
+        periodAndPartStr = `${daysBetween} days since ${periodType}`
+        logDebug('getPeriodStartEndDates 8601date', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+        break
+      }
       periodString = `<Error: couldn't parse interval type '${periodType}'>`
     }
   }
-  // log(pluginJson, `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodPartStr}`)
-  return [fromDate, toDate, periodType, periodString, periodPartStr]
+  if (excludeToday) {
+    logDebug('getPeriodStartEndDates', `- as requested, today's date will be excluded`)
+    toDateMom = moment(toDate).subtract(1, 'day')
+    toDate = toDateMom.toDate()
+  }
+  logDebug('getPeriodStartEndDates', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodAndPartStr}`)
+  return [fromDate, toDate, periodType, periodString, periodAndPartStr]
 }
 
-type NotePlanWeekInfo = {
+export type NotePlanWeekInfo = {
   weekNumber: number,
   weekYear: number,
   weekString: string,
@@ -503,7 +448,8 @@ type NotePlanWeekInfo = {
 
 /**
  * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
- * @param {string} date - date string in format YYYY-MM-DD OR a Date object. NOTE:
+ * @param {string} date - date string in format YYYY-MM-DD OR a Date object (default = today).
+ *    NOTE:
  *    Make sure that if you send in a date that it's a date in the correct time/timezone you want.
  *    If you create a new date of your own without a time (e.g. new Date("2022-01-01")) it could produce a date
  *    in a previous or next day depending on your timezone. So if you are creating the date, just send through
@@ -511,6 +457,7 @@ type NotePlanWeekInfo = {
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'week')
  * @returns { NotePlanWeekInfo } - an object with all the week details
+ * getNPWeekData: alias weekInfo, weekData, getWeek, weeklyNote
  * {
  *   weekNumber: number, // e.g. 1
  *   weekYear: number, // e.g. 2022
@@ -522,8 +469,8 @@ type NotePlanWeekInfo = {
  * @author @dwertheimer
  * @test - available in jest file
  */
-export function getNPWeekData(dateIn: string | Date, offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
-  function pad(n) {
+export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
+  function pad(n: number) {
     return n < 10 ? `0${n}` : n
   }
   let dateStrFormat = 'YYYY-MM-DD',

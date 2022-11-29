@@ -108,9 +108,17 @@ describe(`${FILE}`, () => {
   })
 
   describe(section(`createRunPluginCallbackUrl`), () => {
-    test('should create a link with a heading', () => {
+    test('should create a link with 1 arg', () => {
       const expected = 'noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.DataQuerying&command=runSearch&arg0=New%20Note%20-%2043.9400'
       expect(g.createRunPluginCallbackUrl(`dwertheimer.DataQuerying`, `runSearch`, [`New Note - 43.9400`])).toEqual(expected)
+    })
+    test('should create a link with 2 args', () => {
+      const expected = 'noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&arg0=search%20terms&arg1=Notes'
+      expect(g.createRunPluginCallbackUrl(`jgclark.SearchExtensions`, `saveSearch`, ['search terms', 'Notes'])).toEqual(expected)
+    })
+    test('should create a link with 3 args passed as JSON string', () => {
+      const expected = 'noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=insertProgressUpdate&arg0=%7B%22excludeToday%22%3Afalse%2C%22progressHeading%22%3A%22Test%20Heading%22%2C%22progressYesNo%22%3A%22%23readbook%2C%23theology%22%7D'
+      expect(g.createRunPluginCallbackUrl(`jgclark.Summaries`, `insertProgressUpdate`, `{"excludeToday":false,"progressHeading":"Test Heading","progressYesNo":"#readbook,#theology"}`)).toEqual(expected)
     })
   })
 
@@ -231,6 +239,10 @@ describe(`${FILE}`, () => {
       test('should create callback with more than one param (urlencoded)', () => {
         const result = g.createCallbackUrl('text', { foo: 'bar baz', quux: 'quuz' })
         expect(result).toEqual(`${base}text?foo=bar%20baz&quux=quuz`)
+      })
+      test('should create urlencoded callback with more than one param passed as string', () => {
+        const result = g.createCallbackUrl('text', `{"excludeToday":false,"progressHeading":"Test Heading","progressYesNo":"#readbook,#theology"}`)
+        expect(result).toEqual(`${base}text?arg0=%7B%22excludeToday%22%3Afalse%2C%22progressHeading%22%3A%22Test%20Heading%22%2C%22progressYesNo%22%3A%22%23readbook%2C%23theology%22%7D`)
       })
     })
     /*

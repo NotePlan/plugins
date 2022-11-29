@@ -2,15 +2,14 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 15.9.2022 for v0.8.0-betas, @jgclark
+// Last updated 17.11.2022 for v0.8.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import pluginJson from '../plugin.json'
 import { checkString } from '@helpers/checkType'
-import { daysBetween, getDateObjFromDateString, getDateFromUnhyphenatedDateString, includesScheduledFutureDate, relativeDateFromDate, relativeDateFromNumber, toISODateString, unhyphenateString } from '@helpers/dateTime'
-import { calcOffsetDate } from '@helpers/NPDateTime'
+import { calcOffsetDateStr, daysBetween, getDateObjFromDateString, getDateFromUnhyphenatedDateString, includesScheduledFutureDate, relativeDateFromDate, relativeDateFromNumber, toISODateString, unhyphenateString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { getContentFromBrackets, getStringFromList } from '@helpers/general'
@@ -97,7 +96,7 @@ export function logPreference(prefName: string): void {
  */
 export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date {
   // $FlowFixMe[incompatible-type]
-  const reviewDate: Date = lastReviewDate != null ? calcOffsetDate(toISODateString(lastReviewDate), interval) : new Date() // today's date
+  const reviewDate: Date = lastReviewDate != null ? calcOffsetDateStr(toISODateString(lastReviewDate), interval) : new Date() // today's date
   return reviewDate
 }
 

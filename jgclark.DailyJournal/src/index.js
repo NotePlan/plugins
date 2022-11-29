@@ -1,10 +1,10 @@
 // @flow
 
-//-----------------------------------------------------------------------------
+//---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// Last updated 21.8.22 for v0.13.0
-//-----------------------------------------------------------------------------
+// Last updated 23.11.22 for v0.15.0 by @jgclark
+//---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
@@ -14,11 +14,14 @@ import { showMessage } from '@helpers/userInput'
 
 export {
   dayStart,
+  todayStart,
+  weekStart,
+  monthStart,
   dailyJournalQuestions,
+  weeklyJournalQuestions,
   monthlyJournalQuestions,
   quarterlyJournalQuestions,
-  todayStart,
-  weeklyJournalQuestions
+  yearlyJournalQuestions,
 } from './journal'
 
 export function init(): void {

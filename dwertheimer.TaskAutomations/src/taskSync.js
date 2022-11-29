@@ -11,10 +11,10 @@ import { clo, JSP, log, logError, logDebug, timer } from '@helpers/dev'
 import { inFolderList } from '@helpers/general'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { removeDuplicateSyncedLines, isTermInURL, isTermInMarkdownPath } from '@helpers/paragraph'
-import { getInput } from '@helpers/userInput'
+import { getInput, showMessage } from '@helpers/userInput'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
-// import type { ExtendedParagraph } from '../../dwertheimer.EventAutomations/src/timeblocking-helpers'
+import { getFolderFromFilename } from '@helpers/folders'
 
 // eslint-disable-next-line max-len
 export async function searchForTasks(searchString: string, types: Array<string>, inFolders: Array<string>, notInFolders: Array<string>): Promise<$ReadOnlyArray<TParagraph>> {
@@ -116,26 +116,44 @@ function getNoteOutput(syncedCopyList: Array<string>, callbackArgs: any) {
 
 async function openSyncedTasksNoteInEditor(filename: string, searchFor: string, outputVars: any) {
   const { link, body, instructions, whatFolders, title } = outputVars
-  logDebug(pluginJson, `Opening file: ${filename} with content`)
 
   //FIXME: this is not working due to API bug, but it will be fixed in the next release
   logDebug(pluginJson, `openSyncedTasksNoteInEditor Before open note: filename is: "${filename}"`)
   let note
   const { defaultFolderName } = DataStore.settings
-  const generatedFilename = filename === '' ? `${defaultFolderName}/${searchFor.replace('/', '-')}.${DataStore.defaultFileExtension}` : filename
+  const generatedFilename = (filename === '' ? `${defaultFolderName}/${searchFor.replace('/', '-')}.${DataStore.defaultFileExtension}` : filename)
+    .replace('//', '/')
+    .replace(' ', '_')
+    .replace(':', '-')
+  const folder = getFolderFromFilename(generatedFilename)
+  const genFileNameOnly = generatedFilename.replace(`${folder}/`, '')
+  logDebug(pluginJson, `Opening file: ${generatedFilename} with content`)
 
   if (Editor.filename === generatedFilename) {
     logDebug(pluginJson, `We are in Editor; File open already: Editor.filename is: "${Editor.filename}"`)
     note = Editor
   } else {
     logDebug(pluginJson, `Opening filename: "${generatedFilename}"`)
-    note = await Editor.openNoteByFilename(generatedFilename, false, 0, 0, true, true)
-    // note = Editor
-    if (!note) logDebug(pluginJson, `Failed to open note: ${filename}`)
-    logDebug(pluginJson, `After open note: Editor.filename is: "${Editor.filename}"`)
-    //logDebug(pluginJson, `After open note: note.filename is: "${note.filename}"`)
-    // const note = await DataStore.noteByFilename(filename, 'Notes')
+    note = await Editor.openNoteByFilename(generatedFilename, false, 0, 0, true, false)
+    clo(note, `After open note: filename is: "${note?.filename || ''}"`)
   }
+  const noteContent = `# ${title}${whatFolders}\n## ${link}\n${body}\n---${instructions}\n`
+  if (!note) {
+    logDebug(pluginJson, `Failed to open note: ${generatedFilename} (probably didn't exist yet)`)
+    // did not exist, so let's create it
+    logDebug(pluginJson, `openSyncedTasksNoteInEditor will try to create note in folder:"${folder}" filename:"${genFileNameOnly}" with content`)
+    const newNoteFilename = await DataStore.newNoteWithContent(noteContent, folder, genFileNameOnly)
+    if (generatedFilename !== newNoteFilename) {
+      await showMessage(`Could not create file named ${genFileNameOnly} in folder ${folder}. Note created was: ${newNoteFilename} instead.`)
+      return
+    } else {
+      note = await Editor.openNoteByFilename(generatedFilename, false, 0, 0, true, false)
+    }
+  }
+  logDebug(pluginJson, `After open note: Editor.filename is: "${Editor.filename}"`)
+  //logDebug(pluginJson, `After open note: note.filename is: "${note.filename}"`)
+  // const note = await DataStore.noteByFilename(filename, 'Notes')
+
   if (note) {
     logDebug(pluginJson, `Found existing note: length is: ${String(note?.content?.length)}`)
     if (note?.content?.length && note?.content?.length > 2) {
@@ -143,9 +161,9 @@ async function openSyncedTasksNoteInEditor(filename: string, searchFor: string, 
       await replaceContentUnderHeading(note, link, body, false, 2)
     } else {
       logDebug(pluginJson, `Note exists but had no content ("${String(note?.content) || ''}"), adding content`)
-      note.content = `# ${title}${whatFolders}\n## ${link}\n${body}\n---${instructions}\n`
-      //logDebug(pluginJson, `note.content set to: >>>\n# ${searchFor}\n## ${link}\n${body}---${instructions}\n<<<`)
-      logDebug(pluginJson, `note.content set. note.content.length is now: ${note.content.split('\n').length} lines`)
+      note.content =
+        //logDebug(pluginJson, `note.content set to: >>>\n# ${searchFor}\n## ${link}\n${body}---${instructions}\n<<<`)
+        logDebug(pluginJson, `note.content set. note.content.length is now: ${(note?.content && note.content.split('\n').length) || 0} lines`)
     }
     selectFirstNonTitleLineInEditor()
     // note ? (note.content = content) : ''

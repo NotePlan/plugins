@@ -4,8 +4,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.7.1",
-  "plugin.lastUpdateInfo": "2.7.1 Beta of /task sync for testing (with API bug workaround)\n2.6.0: Add /sth - sort tasks under heading\n2.5: Added open task search (separate from overdue); Added weekly reschedule tags (to point tasks to weekly note); Added capability to review items marked for today; Added day names for rescheduling; Added preference to review today's tasks after overdue review.\n2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
+  "plugin.version": "2.10.0",
+  "plugin.lastUpdateInfo": "2.10.0: Added weekly note review question after overdue (and \n'/Review/Reschedule Tasks Scheduled for this week' command).\n2.9.1: Added 'This reminds me (new task) so you can add a task that just came to mind without stopping the overdue scan\n2.8.0: Added follow-up tasks (thx @cyberz @antony.sklyar && @QualitativeEasing)\n2.7.2 Beta of /task sync for testing (with some API bug workarounds)\n2.6.0: Add /sth - sort tasks under heading\n2.5: Added open task search (separate from overdue); Added weekly reschedule tags (to point tasks to weekly note); Added capability to review items marked for today; Added day names for rescheduling; Added preference to review today's tasks after overdue review.\n2.3.1 Add single-note search, Review overdue tasks in <Choose Folder>, Add date choices to dropdown, fix documentation and command description. Previously:\nRelease of '/Review overdue tasks'",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
@@ -149,6 +149,17 @@
       ]
     }, 
     {
+      "name": "Review/Reschedule Tasks Scheduled for this week",
+      "description": "Review all tasks marked for or on this week's note",
+      "jsFunction": "reviewWeeklyTasks",
+      "alias": [
+        "weekly"
+      ],
+      "arguments": [
+        "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
+      ]
+    },   
+    {
       "name": "Review/Reschedule Tasks Dated Today",
       "description": "Review all tasks marked for today's date",
       "jsFunction": "reviewEditorReferencedTasks",
@@ -171,6 +182,28 @@
       ]
     }, 
     {
+      "name": "Mark done and create follow-up underneath",
+      "description": "Create a follow-up task and save it just below the task in question",
+      "jsFunction": "followUpSaveHere",
+      "alias": [
+        "followupunder",
+        "followuphere",
+        "fuphere",
+        "fupunder"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Mark done and create follow-up in future note",
+      "description": "Create a follow-up task in a future note",
+      "jsFunction": "followUpInFuture",
+      "alias": [
+        "followupfuture",
+        "fupfuture"
+      ],
+      "arguments": []
+    },
+    {
       "COMMENT": "HIDING FOR NOW, PROBABLY DELETING LATER, WITH OVERDUE TASK SCAN Date+ PROBABLY ISN'T NECESSARY",
       "name": "Update >date+ (Date-Plus) tags in Notes",
       "hidden": true,
@@ -192,6 +225,37 @@
     }
   ],
   "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Follow-up Task Settings"
+    },
+    {
+      "key": "followUpText",
+      "title": "Text Prepended to Follow-up Tasks",
+      "description": "When ‘Mark done and create follow-up’ tasks are created, this text will be automatically prepended to the follow-up task. Can be any text, hashtag (or blank)",
+      "type": "string",
+      "default": "#FollowUp",
+      "required": true
+    },
+    {
+      "key": "followUpLinkIsWikiLink",
+      "title": "Use [[WikiLink^123456]] for link to original task",
+      "description": "When creating a link to the original task, if this field is checked, a [[WikiLink]] will be used for the link to the original task. If unchecked, it will be a pretty link with the text below.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "followUpLinkText",
+      "title": "Text/Emoji to use for link to original task",
+      "description": "If the previous setting is unset (not checked), this text will be used for the link to the original task.",
+      "type": "string",
+      "default": "original task",
+      "required": true
+    },
+    {
+      "type":"separator"
+    },
     {
       "type": "heading",
       "title": "Task Sorting Default Settings"
@@ -322,6 +386,14 @@
       "key": "askToReviewTodaysTasks",
       "title": "Review Today's References After Overdue",
       "description": "After reviewing overdue tasks, if this box is checked, you will be asked if you want to interactively review the tasks marked for today.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "askToReviewWeeklyTasks",
+      "title": "Review Weekly Tasks After Overdue",
+      "description": "After reviewing overdue tasks, if this box is checked, you will be asked if you want to interactively review all tasks which are on this week's note or tagged for this >week.",
       "type": "bool",
       "default": true,
       "required": true

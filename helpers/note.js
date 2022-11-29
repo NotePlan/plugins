@@ -3,14 +3,13 @@
 // Note-level Functions
 import moment from 'moment'
 import { RE_PLUS_DATE_G, hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, isWeeklyNote } from './dateTime'
-import { clo, JSP, logDebug, logError, logInfo } from './dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { getFolderFromFilename } from './folders'
 import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote } from './paragraph'
 import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
 import { findOverdueWeeksInString } from './NPnote'
-import { lgamma } from 'mathjs'
 
 export const noteType = (filename: string): NoteType => (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes')
 
@@ -87,7 +86,28 @@ export async function noteOpener(fullPath: string, desc: string, useProjNoteByFi
 }
 
 /**
+ * Open a note using whatever method works (open by title, filename, etc.)
+ * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
+ * Leaving it here for the moment in case any plugins are still using it
+ * @author @jgclark, building on @dwertheimer
+ * @param {string} filename of either Calendar or Notes type
+ * @returns {?TNote} - the note that was opened
+ */
+export function getNoteByFilename(filename: string): ?TNote {
+  logDebug('note/getNoteByFilename', `Started for '${filename}'`)
+  const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
+  if (newNote != null) {
+    logDebug('note/getNoteByFilename', `-> note '${displayTitle(newNote)}`)
+    return newNote
+  } else {
+    logWarn('note/getNoteByFilename', `-> couldn't find a note in either Notes or Calendar`)
+    return null
+  }
+}
+
+/**
  * Get or create the relevant regular note in the given folder (not calendar notes)
+ * Now extended to cope with titles with # characters: these are stripped out first, as they are stripped out by NP when reporting a note.title
  * @author @jgclark
  *
  * @param {string} noteTitle - title of note to look for
@@ -101,9 +121,10 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string, parti
 
   // If we want to do a partial match, see if matching note(s) have already been created (ignoring @Archive and @Trash)
   if (partialTitleToMatch) {
+    const partialTestString = partialTitleToMatch.split('#').join('')
     const allNotesInFolder = getProjectNotesInFolder(noteFolder)
-    existingNotes = allNotesInFolder.filter((f) => f.title?.startsWith(partialTitleToMatch))
-    logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing partial '${partialTitleToMatch}' note matches`)
+    existingNotes = allNotesInFolder.filter((f) => f.title?.startsWith(partialTestString))
+    logDebug('note / getOrMakeNote', `- found ${existingNotes.length} existing partial '${partialTestString}' note matches`)
   } else {
     // Otherwise do an exact match on noteTitle
     const potentialNotes = DataStore.projectNoteByTitle(noteTitle, true, false) ?? []
@@ -251,6 +272,7 @@ export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, 
  * - matching all folders that include the 'forFolder' parameter
  * - or just those in the root folder (if forFolder === '/')
  * - or all project notes if no folder given
+ * Note: ignores any sub-folders
  * Now also caters for searches just in root folder.
  * @author @dwertheimer + @jgclark
 
@@ -259,24 +281,23 @@ export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, 
  */
 export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<TNote> {
   const notes: $ReadOnlyArray<TNote> = DataStore.projectNotes
-  let filteredNotes = []
+  let filteredNotes: Array<TNote> = []
   if (forFolder === '') {
-    filteredNotes = notes
+    filteredNotes = notes.slice()  // slice() avoids $ReadOnlyArray mismatch problem
   } else if (forFolder === '/') {
     // root folder ('/') has to be treated as a special case
     filteredNotes = notes.filter((note) => !note.filename.includes('/'))
   } else {
     // if last character is a slash, remove it
-    const folderWithSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder : `${forFolder}/`
-    filteredNotes = notes.filter((note) => note.filename.includes(folderWithSlash))
+    const folderWithoutSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder.slice(0, forFolder.length) : forFolder
+    filteredNotes = notes.filter((note) => getFolderFromFilename(note.filename) === folderWithoutSlash)
   }
-  logDebug('note / getProjectNotesIFolder', `Found ${filteredNotes.length} notes in folder '${forFolder}'`)
+  logDebug('note/getProjectNotesInFolder', `Found ${filteredNotes.length} notes in folder '${forFolder}'`)
   return filteredNotes
 }
 
 /**
- * Get all notes in a given folder (or all project notes if no folder given),
- * sorted by note title
+ * Get all notes in a given folder (or all project notes if no folder given), sorted by note title.
  * @author @jgclark
  *
  * @param {string} folder - folder to scan
@@ -288,6 +309,7 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
   if (folder !== '') {
     notesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
   } else {
+    // return all project notes
     notesInFolder = DataStore.projectNotes.slice()
   }
   // Sort alphabetically on note's title
@@ -303,9 +325,9 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
  * @returns {string} the title (not filename) that was created
  */
 export function getUniqueNoteTitle(title: string): string {
-  let i = 0,
-    res = [],
-    newTitle = title
+  let i = 0
+  let res = []
+  let newTitle = title
   while (++i === 1 || res.length > 0) {
     newTitle = i === 1 ? title : `${title} ${i}`
     res = DataStore.projectNoteByTitle(newTitle, true, false)
@@ -421,11 +443,11 @@ export function replaceSection(
 
     // Set place to insert either after the found section heading, or at end of note
     // write in reverse order to avoid having to calculate insertion point again
-    logDebug('note / replaceSection', `- before insertHeading() there are ${note.paragraphs.length} paras`)
+    logDebug('note / replaceSection', `- before insertHeading() call there are ${note.paragraphs.length} paras`)
     note.insertHeading(newSectionHeading, insertionLineIndex, newSectionHeadingLevel)
-    logDebug('note / replaceSection', `- after insertHeading() there are ${note.paragraphs.length} paras`)
+    logDebug('note / replaceSection', `- after insertHeading() call there are ${note.paragraphs.length} paras`)
     note.insertParagraph(newSectionContent, insertionLineIndex + 1, 'text')
-    logDebug('note / replaceSection', `- after insertParagraph() there are ${note.paragraphs.length} paras`)
+    logDebug('note / replaceSection', `- after insertParagraph() call there are ${note.paragraphs.length} paras`)
   } catch (error) {
     logError('note / replaceSection', error.message)
   }
@@ -460,13 +482,13 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
         break
       }
     }
-    logDebug('note / removeSection', `  - mHI ${String(matchedHeadingIndex)} sHL ${String(sectionHeadingLevel)} eOA ${String(endOfActive)}`)
+    logDebug('note / removeSection', `  - headingIndex ${String(matchedHeadingIndex)} level ${String(sectionHeadingLevel)} endOfActive ${String(endOfActive)}`)
 
     if (matchedHeadingIndex !== undefined && matchedHeadingIndex < endOfActive) {
       note.removeParagraph(paras[matchedHeadingIndex])
       // Work out the set of paragraphs to remove
       const parasToRemove = []
-      for (let i = matchedHeadingIndex + 1; i < endOfActive; i++) {
+      for (let i = matchedHeadingIndex + 1; i <= endOfActive; i++) {
         // stop removing when we reach heading of same or higher level (or end of active part of note)
         if (paras[i].type === 'title' && paras[i].headingLevel <= sectionHeadingLevel) {
           break

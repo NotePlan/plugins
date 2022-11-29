@@ -65,11 +65,11 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
   try {
     // get relevant settings
     const config: MOCsConfigType = await getMOCsSettings()
-    let termsToMatch = []
+    let termsToMatch: Array<string> = []
     let termsToMatchStr = ''
     let noteFilename = ''
     let note: ?TNote
-    let requestedTitle = ''
+    let requestedTitle: string | boolean
 
     // If we have 2 passed arguments, then use those instead of asking the user.
     // This allows use by x-callback, and therefore to have a 'refresh' pseudo-button in MOCs.
@@ -201,7 +201,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
         // remove this note title (if it exists)
         uniqTitles = uniqTitles.filter((t) => t !== requestedTitle)
 
-        if (uniqTitles.length > 0) {
+        if (uniqTitles.length > 0 && requestedTitle !== undefined) {
           // Decide whether to add this section
           const myn = await showMessageYesNo(`There are ${uniqTitles.length} matches for '${searchTerm}'. Shall I add them?`, ['Yes', 'No', 'Cancel'], `Make MOC: ${requestedTitle}`)
           if (typeof myn === 'boolean' || myn === 'Cancel') {

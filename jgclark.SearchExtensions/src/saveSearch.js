@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 5.8.2022 for v0.5.0, @jgclark
+// Last updated 25.10.2022 for v1.0.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,7 +12,6 @@ import {
   getSearchSettings,
   type resultOutputTypeV3,
   runSearchesV2,
-  // type typedSearchTerm,
   validateAndTypeSearchTerms,
   writeSearchResultsToNote,
 } from './searchHelpers'
@@ -39,10 +38,21 @@ import {
  */
 export async function searchOverAll(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
   await saveSearch(
-    searchTermsArg ?? undefined,
+    searchTermsArg,
     'both',
     'saveSearch',
-    paraTypeFilterArg ?? undefined)
+    paraTypeFilterArg)
+}
+
+/**
+ * Call the main function, searching over all open tasks, and sync (set block IDs) the results.
+ */
+export async function searchOpenTasks(searchTermsArg?: string): Promise<void> {
+  await saveSearch(
+    searchTermsArg,
+    'both',
+    'searchOpenTasks',
+    'open')
 }
 
 /**
@@ -50,10 +60,10 @@ export async function searchOverAll(searchTermsArg?: string, paraTypeFilterArg?:
  */
 export async function searchOverCalendar(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
   await saveSearch(
-    searchTermsArg ?? undefined,
+    searchTermsArg,
     'calendar',
     'searchOverCalendar',
-    paraTypeFilterArg ?? undefined)
+    paraTypeFilterArg)
 }
 
 /**
@@ -61,10 +71,10 @@ export async function searchOverCalendar(searchTermsArg?: string, paraTypeFilter
  */
 export async function searchOverNotes(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
   await saveSearch(
-    searchTermsArg ?? undefined,
+    searchTermsArg,
     'notes',
     'searchOverNotes',
-    paraTypeFilterArg ?? undefined)
+    paraTypeFilterArg)
 }
 
 /**
@@ -72,10 +82,10 @@ export async function searchOverNotes(searchTermsArg?: string, paraTypeFilterArg
  */
 export async function quickSearch(searchTermsArg?: string, paraTypeFilterArg?: string, noteTypesToIncludeArg?: string): Promise<void> {
   await saveSearch(
-    searchTermsArg ?? undefined,
+    searchTermsArg,
     noteTypesToIncludeArg ?? 'both',
     'quickSearch',
-    paraTypeFilterArg ?? undefined)
+    paraTypeFilterArg)
 }
 
 /**
@@ -83,8 +93,8 @@ export async function quickSearch(searchTermsArg?: string, paraTypeFilterArg?: s
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
  * @author @jgclark
  * 
- * @param {string} noteTypesToInclude either 'project','calendar' or 'both' -- as string not array
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
+ * @param {string} noteTypesToInclude either 'project','calendar' or 'both' -- as string not array
  * @param {string?} originatorCommand optional output desination indicator: 'quick', 'current', 'newnote', 'log'
  * @param {string?} paraTypeFilterArg optional list of paragraph types to filter by
 */
@@ -106,7 +116,7 @@ export async function saveSearch(
 
     // Get the search terms
     let termsToMatchStr = ''
-    if (searchTermsArg !== undefined) {
+    if (searchTermsArg) {
       // either from argument supplied
       termsToMatchStr = searchTermsArg
       logDebug(pluginJson, `arg1 -> search terms [${termsToMatchStr}]`)
@@ -139,7 +149,7 @@ export async function saveSearch(
 
     // Get the paraTypes to include
     // $FlowFixMe[incompatible-type]
-    const paraTypesToInclude: Array<string> = (paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : [] // TODO: ideally Array<ParagraphType> instead
+    const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : [] // TODO: ideally Array<ParagraphType> instead
     logDebug(pluginJson, `arg3 -> para types '${paraTypesToInclude.toString()}'`)
 
     //---------------------------------------------------------
@@ -220,7 +230,7 @@ export async function saveSearch(
           const requestedTitle = headingString
           const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=${originatorCommand}&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg}`
 
-          // normally I'd use await... in the next line, but can't as we're now in then...
+          // normally I'd use await... in the next line, but can't as we're now in 'then' block...
           // const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, config.folderToStore, config.resultStyle, config.headingLevel, config.groupResultsByNote, config.resultPrefix, config.highlightResults, config.resultQuoteLength, calledIndirectly, xCallbackLink)
           const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackLink)
           noteFilenameProm.then(async (filename) => {

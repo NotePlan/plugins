@@ -41,7 +41,7 @@ export async function shiftDates(): Promise<void> {
 
     // Get working selection as an array of paragraphs
     const { paragraphs, selection, note } = Editor
-    let pArr = []
+    let pArr: $ReadOnlyArray<TParagraph> = []
     if (Editor == null || paragraphs == null || note == null) {
       logError(pluginJson, `No note or content found to process. Stopping.`)
       await showMessage('No note or content found to process.', 'OK', 'Shift Dates')
@@ -72,7 +72,7 @@ export async function shiftDates(): Promise<void> {
     let updatedCount = 0
     pArr.forEach((p) => {
       const c = p.content
-      let dates = []
+      let dates: Array<string> = []
       let originalDateStr = ''
       let shiftedDateStr = ''
       // logDebug(pluginJson, `${c}`)

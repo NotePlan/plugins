@@ -12,7 +12,17 @@ export const RE_URI = '(\\w+:\\/\\/[\\w\\.\\/\\?\\#\\&\\d\\-\\=%*,]+)'
 export const RE_MARKDOWN_PATH = '\\[.+?\\]\\(([^\\s]*?)\\)'
 
 /**
- * Check to see if search term is present within a URL or file path, using case sensitive searching.
+ * Perform substring match, ignoring case
+ * Note: COPY TO AVOID CIRCULAR DEPENDENCY
+ */
+function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string): boolean {
+  const re = new RegExp(`${searchTerm}`, "i") // = case insensitive match
+  return re.test(textToSearch)
+}
+
+
+/**
+ * Check to see if search term is present within a URL or file path, using case insensitive searching.
  * Now updated to _not match_ if the search term is present in the rest of the line.
  * @author @jgclark
  *
@@ -27,21 +37,19 @@ export function isTermInURL(term: string, searchString: string): boolean {
   const thisURI = URIMatches[1] ?? ''
   if (thisURI !== '') {
     const restOfLine = searchString.replace(thisURI, '')
-    if (restOfLine.match(term)) {
+    if (caseInsensitiveSubstringMatch(term, restOfLine)) {
       return false
     } else {
-      // create tailored Regex to test for presence of the term
-      // const testTermInURI = `(\\w+:\\/\\/)[^\\s]*?${term}.*?[\\s\\.$]`
-      return !!thisURI.match(term)
+      return caseInsensitiveSubstringMatch(term, thisURI)
     }
   } else {
-    // logDebug('???', `  No URI -> false`)
+    // logDebug('paragraph/isTermInURL', `- No URI -> false`)
     return false
   }
 }
 
 /**
- * Check to see if search term is present within the path of a [...](path), using case sensitive searching.
+ * Check to see if search term is present within the path of a [...](path), using case insensitive searching.
  * Now updated to _not match_ if the search term is present in the rest of the line.
  * @author @jgclark
  *
@@ -56,12 +64,12 @@ export function isTermInMarkdownPath(term: string, searchString: string): boolea
   const thisMDPath = MDPathMatches[1] ?? ''
   if (thisMDPath !== '') {
     const restOfLine = searchString.replace(thisMDPath, '')
-    if (restOfLine.match(term)) {
+    if (caseInsensitiveSubstringMatch(term, restOfLine)) {
       return false
     } else {
-      // create tailored Regex to test for presence of the term
+      return caseInsensitiveSubstringMatch(term, thisMDPath)
+      // earlier: create tailored Regex to test for presence of the term
       // const testTermInMDPath = `\[.+?\]\([^\\s]*?${term}[^\\s]*?\)`
-      return !!thisMDPath.match(term)
     }
   } else {
     // logDebug('paragraph/isTermInMarkdownPath', `No MD path -> false`)
@@ -357,10 +365,11 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
  * Get the paragraph from the passed content (using exact match)
  * @author @jgclark
  *
+ * @param {CoreNoteFields} note
  * @param {string} contentToFind
  * @return {TParagraph | void} pargraph object with that content, or null if not found
  */
-export function getParaFromContent(note: TNote, contentToFind: string): TParagraph | void {
+export function getParaFromContent(note: CoreNoteFields, contentToFind: string): TParagraph | void {
   const { paragraphs } = note
   for (const p of paragraphs) {
     if (p.content === contentToFind) {
@@ -376,13 +385,13 @@ export function getParaFromContent(note: TNote, contentToFind: string): TParagra
  * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
  * @author @dwertheimer
  *
- * @param {TNote} note
+ * @param {CoreNoteFields} note
  * @param {string} headingToFind to find (exact match if includesString is set to false)
  * @param {boolean} includesString - search for a paragraph which simply includes the string vs. exact match (default: false - require strict match)
  * @returns {TParagraph | null} - returns the actual paragraph or null if not found
  * @tests in jest file
  */
-export function findHeading(note: TNote, heading: string, includesString: boolean = false): TParagraph | null {
+export function findHeading(note: CoreNoteFields, heading: string, includesString: boolean = false): TParagraph | null {
   if (heading && heading !== '') {
     const paragraphs = note.paragraphs
     const para = paragraphs.find((paragraph) => paragraph.type === 'title' && (includesString ? paragraph.content.includes(heading) : paragraph.content.trim() === heading.trim()))
@@ -397,12 +406,12 @@ export function findHeading(note: TNote, heading: string, includesString: boolea
  * Example: given 'JOURNAL' matches heading 'Journal for 3.4.22' or the other way around
  * @author @jgclark
  *
- * @param {TNote} note
+ * @param {CoreNoteFields} note
  * @param {string} headingToFind
  * @returns {string} - returns the matching (probably shorter) title/heading or empty if not found
  * @tests in jest file
  */
-export function findHeadingStartsWith(note: TNote, headingToFind: string): string {
+export function findHeadingStartsWith(note: CoreNoteFields, headingToFind: string): string {
   if (headingToFind) {
     const headingToFindLC = headingToFind.toLowerCase()
     const paragraphs = note.paragraphs

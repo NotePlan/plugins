@@ -2,64 +2,40 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 5.8.2022 for v0.5.0 by @jgclark
+// Last updated 13.11.2022 for v1.0.0-beta3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { formatNoteDate, nowLocaleDateTime, toISOShortDateTimeString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle, type headingLevelType, titleAsLink } from '@helpers/general'
-import { getNoteContextAsSuffix, getNoteTitleFromFilename, getOrMakeNote, getProjectNotesInFolder } from '@helpers/note'
+import { getNoteByFilename, getNoteContextAsSuffix, getNoteTitleFromFilename, getOrMakeNote, getProjectNotesInFolder } from '@helpers/note'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 import { showMessage } from '@helpers/userInput'
+//------------------------------------------------------------------------------
+// Data types
 
+// Minimal data type needed to pass right through to result display
+// Note: named before needing to add the 'type' item
 export type noteAndLine = {
   noteFilename: string,
-  line: string
+  line: string,  // contents of the paragraph
+  index: number, // index number of the paragraph, to do any necessary further lookups
 }
-
-// export type noteAndLines = {
-//   noteFilename: string,
-//   lines: Array<string>
-// }
-
-// export type resultObjectType = {
-//   searchTerm: string,
-//   resultLines: noteAndLines,
-//   resultCount: number,
-// }
 
 export type typedSearchTerm = {
   term: string, // (e.g. 'fixed')
-  type: 'must' | 'may' | 'not-line' | 'not-note',  // (e.g. 'not-line')
-  termRep: string // short for termRepresentation (e.g. '-fixed')
+  termRep: string, // short for termRepresentation (e.g. '-fixed')
+  type: 'must' | 'may' | 'not-line' | 'not-note',
 }
-
-// export type resultObjectTypeV2 = {
-//   searchTerm: typedSearchTerm,
-//   resultNoteAndLinesArr: Array<noteAndLines>,
-//   resultCount: number,
-// }
 
 export type resultObjectTypeV3 = {
   searchTerm: typedSearchTerm,
   resultNoteAndLineArr: Array<noteAndLine>,
   resultCount: number,
 }
-
-// export type resultOutputType = {
-//   searchTermsRep: string,
-//   resultNoteAndLinesArr: Array<noteAndLines>,
-//   resultCount: number,
-// }
-
-// export type resultOutputTypeV2 = {
-//   searchTermsRepArr: Array<string>,
-//   resultNoteAndLinesArr: Array<noteAndLines>,
-//   resultCount: number,
-// }
 
 export type resultOutputTypeV3 = {
   searchTermsRepArr: Array<string>,
@@ -68,6 +44,7 @@ export type resultOutputTypeV3 = {
   resultNoteCount: number,
 }
 
+// Reduced set of paragraph.* fields
 export type reducedFieldSet = {
   filename: string,
   changedDate?: Date,
@@ -138,8 +115,8 @@ export function normaliseSearchTerms(
   logDebug("normaliseSearchTerms()", `starting for [${searchArg}] with modifyQuotedTermsToAndedTerms ${String(modifyQuotedTermsToAndedTerms)}`)
   let outputArray = []
   // Take a simple string and process it to turn into an array of string, according to one of several schemes:
-  if (!searchArg.match(/\w{3,}/)) {
-    // this has no words (at least 3 long) -> empty
+  if (!searchArg.match(/\w{2,}/)) {
+    // this has no words (at least 2 long) -> empty
     logWarn(pluginJson, `No valid words found in [${searchArg}]`)
     return []
   }
@@ -180,10 +157,8 @@ export function normaliseSearchTerms(
   //       }
   //     }
   //   }
-
   //   // Now need to add terms not in quotes
   //   // ???
-
   // }
 
   // else treat as [x y z], with or without quoted phrases.
@@ -247,7 +222,7 @@ export function validateAndTypeSearchTerms(searchArg: string): Array<typedSearch
   const validatedTerms: Array<typedSearchTerm> = []
   for (const u of normalisedTerms) {
     let t = u.trim()
-    if (t.length >= 3) {
+    if (t.length >= 2) {
       let thisType = ''
       const thisRep = t
       if (t[0] === '+') {
@@ -363,81 +338,15 @@ export function differenceByObjectEquality<P: string, T: { +[P]: mixed, ... }> (
  */
 export function noteAndLineIntersection(arrA: Array<noteAndLine>, arrB: Array<noteAndLine>):
   Array<noteAndLine> {
-  const modA = arrA.map((m) => m.noteFilename + ':::' + m.line)
-  const modB = arrB.map((m) => m.noteFilename + ':::' + m.line)
+  const modA = arrA.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
+  const modB = arrB.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
   const intersectionModArr = modA.filter(f => modB.includes(f))
   const intersectionArr: Array<noteAndLine> = intersectionModArr.map((m) => {
-    let firstPart = (m.split(':::', 1))[0]
-    return { noteFilename: firstPart, line: m.slice(firstPart.length + 3) }
+    let parts = m.split(':::')
+    return { noteFilename: parts[0], index: Number(parts[1]), line: parts[2] }
   })
   return intersectionArr
 }
-
-/**
- * Compute difference of two arrays, by a given property value
- * from https://stackoverflow.com/a/68151533/3238281 example 2
- * @param {Array<noteAndLines>} arr The initial array
- * @param {Array<noteAndLines>} exclude The array to remove
- * @param {string} propertyName the key of the object to match on
- * @return {Array<noteAndLines>}
- * @tests in jest file
- */
-// export function excludeFromArr(arr: $ReadOnlyArray<noteAndLines>, exclude: $ReadOnlyArray<noteAndLines>, propertyName: string): Array<noteAndLines> {
-//   return arr.filter((o1) => !exclude.some((o2) => o1[propertyName] === o2[propertyName]))
-// }
-
-// export function differenceByInnerArrayLine(arr: $ReadOnlyArray<noteAndLines>, exclude: $ReadOnlyArray<noteAndLines>): Array<noteAndLines> {
-//   // return arr.filter((o1) => !exclude.some((o2) => o1[propertyName] === o2[propertyName]))
-//   if (exclude.length === 0) {
-//     return arr.slice() // null transform if no exclude terms
-//   }
-//   if (arr.length === 0) {
-//     return [] // empty return if no arr input terms
-//   }
-
-//   // turn arrays into simpler data structures, so I can more easily think about them!
-//   // (using the hack of concatenating with ':::' separator)
-//   const flatterArr: Array<string> = []
-//   for (const a of arr) {
-//     for (const b of a.lines) {
-//       flatterArr.push(`${a.noteFilename}:::${b}`)
-//     }
-//   }
-//   const flatterExclude: Array<string> = []
-//   for (const a of exclude) {
-//     for (const b of a.lines) {
-//       flatterExclude.push(`${a.noteFilename}:::${b}`)
-//     }
-//   }
-
-//   // Now find non-matches
-//   const flatDifference: Array<string> = flatterArr.filter((a) => !flatterExclude.includes(a))
-//   // clo(flatDifference, 'flatDifference: ')
-
-//   // Now un-flatten again
-//   const diff: Array<noteAndLines> = []
-//   let linesAccumulator: Array<string> = []
-//   let lastFilename = ''
-//   let thisFilename = ''
-//   let thisLine = ''
-//   for (const d of flatDifference) {
-//     const parts = d.split(':::')
-//     thisFilename = parts[0]
-//     thisLine = parts[1]
-//     // console.log(`${thisFilename} / ${thisLine}`)
-//     if (lastFilename === '' || thisFilename === lastFilename) {
-//       linesAccumulator.push(thisLine)
-//     } else {
-//       diff.push({ noteFilename: lastFilename, lines: linesAccumulator })
-//       // console.log(`- pushed { noteFilename: '${lastFilename}', lines: ${String(linesAccumulator)} }`)
-//       linesAccumulator = []
-//       linesAccumulator.push(thisLine)
-//     }
-//     lastFilename = thisFilename
-//   }
-//   diff.push({ noteFilename: lastFilename, lines: linesAccumulator }) // make sure we add the last items
-//   return diff
-// }
 
 /**
  * Work out what subset of results to return, using the must/may/not terms
@@ -604,12 +513,12 @@ export function applySearchOperators(termsResults: Array<resultObjectTypeV3>): r
  * @tests in jest file
  */
 export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteAndLine> {
-  const simplifiedArray = inArray.map((m) => m.noteFilename + ':::' + m.line)
+  const simplifiedArray = inArray.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
   // const sortedArray = simplifiedArray.sort()
   const reducedArray = [... new Set(simplifiedArray)]
   const outputArray: Array<noteAndLine> = reducedArray.map((m) => {
     let parts = m.split(':::')
-    return { noteFilename: parts[0], line: parts[1] }
+    return { noteFilename: parts[0], index: Number(parts[1]), line: parts[2] }
   })
   // clo(outputArray, 'output')
   return outputArray
@@ -638,7 +547,7 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
  * @param {Array<string>} foldersToExclude (can be empty list)
  * @param {SearchConfig} config object for various settings
  * @param {Array<string>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
- * @returns {resultOutputTypeV2} results optimised for output
+ * @returns {resultOutputTypeV3} results optimised for output
  */
 export async function runSearchesV2(
   termsToMatchArr: Array<typedSearchTerm>,
@@ -646,7 +555,7 @@ export async function runSearchesV2(
   foldersToInclude: Array<string>,
   foldersToExclude: Array<string>,
   config: SearchConfig,
-  paraTypesToInclude?: Array<string> = [], // TODO: ideally Array<ParagraphType> instead
+  paraTypesToInclude?: Array<ParagraphType> = [],
 ): Promise<resultOutputTypeV3> {
   try {
     const termsResults: Array<resultObjectTypeV3> = []
@@ -675,21 +584,74 @@ export async function runSearchesV2(
     // Work out what subset of results to return, taking into the must/may/not terms
     // clo(termsResults, 'before applySearchOperators, termsResults =')
     const consolidatedResultSet: resultOutputTypeV3 = applySearchOperators(termsResults)
-    // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
-    return consolidatedResultSet
+
+    // For open tasks, add line sync with blockIDs (if we're using 'NotePlan' display style)
+    if (config.resultStyle === 'NotePlan') {
+      // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
+      const syncdConsolidatedResultSet = makeAnySyncs(consolidatedResultSet)
+      // clo(syncdConsolidatedResultSet, 'after makeAnySyncs, syncdConsolidatedResultSet =')
+      return syncdConsolidatedResultSet
+    } else {
+      // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
+      return consolidatedResultSet
+    }
   }
   catch (err) {
     logError('runSearchesV2', err.message)
     // $FlowFixMe[incompatible-return]
-    return [] // for completeness
+    return null // for completeness
   }
 }
 
 /**
+ * Go through results, and if there are open task linea, then sync lines by adding a blockID (having checked there isn't one already).
+ * @author @jgclark
+ * @param {resultOutputTypeV3} input
+ * @returns {resultOutputTypeV3}
+ */
+function makeAnySyncs(results: resultOutputTypeV3): resultOutputTypeV3 {
+  try {
+    // Go through each line looking for open tasks
+    for (let rnal of results.resultNoteAndLineArr) {
+      // Get the line details (have to get from DataStore)
+      const thisLine = rnal.line
+      const thisNote = getNoteByFilename(rnal.noteFilename)
+      const thisPara = thisNote?.paragraphs?.[rnal.index]
+      const thisType = thisPara?.type ?? ''
+      if (thisNote && thisPara && thisType === 'open') {
+        if (thisPara.blockId) {
+          // Don't do anything as it has a blockID already
+          const thisBlockID = thisPara.blockId
+          logDebug('makeAnySyncs', `- existing blockId ${thisBlockID} in line '${thisLine}', so not adding again`)
+        } else {
+          // Add blockID to source, and append to result
+          logDebug('makeAnySyncs', `- will add blockId to source line '${thisLine}'`)
+          thisNote.addBlockID(thisPara)
+          thisNote.updateParagraph(thisPara)
+          const thisBlockID = thisPara.blockId ?? '<error>'
+          logDebug('makeAnySyncs', `- added blockId '${thisBlockID}' to source line`)
+          rnal.line += ` ${thisBlockID}`
+          logDebug('makeAnySyncs', `- appended blockId to result -> '${rnal.line}'`)
+        }
+      } else {
+        logDebug('makeAnySyncs', `- not an 'open' type: ${thisType}: '${thisLine}'`)
+      }
+    }
+    return results
+  }
+  catch (err) {
+    logError('makeAnySyncs', err.message)
+    // $FlowFixMe[incompatible-return]
+    return null
+  }
+}
+
+
+/**
  * Run a search for 'searchTerm' over the set of notes determined by the parameters.
- * Returns a special resultObjectTypeV2 data structure: {
+ * Returns a special resultObjectTypeV3 data structure: {
  *   searchTerm: typedSearchTerm
- *   resultNotesAndLines: Array<noteAndLines>  -- note: array
+ *   resultNoteAndLineArr: Array<noteAndLine>  -- note: array
  *   resultCount: number
  * }
  * Has an optional 'paraTypesToInclude' parameter of paragraph type(s) to include (e.g. ['open'] to include only open tasks). If not given, then no paragraph types will be excluded.
@@ -700,7 +662,7 @@ export async function runSearchesV2(
  * @param {Array<string>} foldersToExclude (can be empty list)
  * @param {SearchConfig} config object for various settings
  * @param {Array<string>?} paraTypesToInclude optional list of paragraph types to include (e.g. 'open'). If not given, then no paragraph types will be excluded.
- * @returns {resultOutputType} combined result set optimised for output
+ * @returns {resultOutputTypeV3} combined result set optimised for output
  */
 export async function runSearchV2(
   typedSearchTerm: typedSearchTerm,
@@ -708,7 +670,7 @@ export async function runSearchV2(
   foldersToInclude: Array<string>,
   foldersToExclude: Array<string>,
   config: SearchConfig,
-  paraTypesToInclude?: Array<string> = [], // TODO: ideally Array<ParagraphType> instead
+  paraTypesToInclude?: Array<ParagraphType> = [],
 ): Promise<resultObjectTypeV3> {
   try {
     const headingMarker = '#'.repeat(config.headingLevel)
@@ -775,7 +737,8 @@ export async function runSearchV2(
       for (let i = 0; i < sortedFieldSets.length; i++) {
         noteAndLineArr.push({
           noteFilename: sortedFieldSets[i].filename,
-          line: sortedFieldSets[i].rawContent
+          index: sortedFieldSets[i].lineIndex,
+          line: sortedFieldSets[i].rawContent,
         })
       }
     }
@@ -831,7 +794,7 @@ export async function writeSearchResultsToNote(
     let noteFilename = ''
     const headingMarker = '#'.repeat(config.headingLevel)
     const searchTermsRepStr = resultSet.searchTermsRepArr.join(' ')
-    const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Click to refresh results for '${searchTermsRepStr}'](${xCallbackURL})` : ''
+    const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Refresh results for '${searchTermsRepStr}'](${xCallbackURL})` : ''
 
     // Get array of 'may' or 'must' search terms
     const mayOrMustTerms = resultSet.searchTermsRepArr.filter((f) => f[0] !== '-')
@@ -866,9 +829,9 @@ export async function writeSearchResultsToNote(
 }
 
 /**
- * Create nicely-formatted lines to display resultSet
- * There's a special case; if no results are found, then the resultSet will have an empty filename. If so, don't try to display the filename
- * @param {resultOutputTypeV2} resultSet 
+ * Create nicely-formatted lines to display 'resultSet', using settings from 'config'
+ * @author @jgclark
+ * @param {resultOutputTypeV2} resultSet
  * @param {SearchConfig} config 
  * @returns {Array<string>} formatted search reuslts
  */
@@ -883,7 +846,7 @@ export function createFormattedResultLines(resultSet: resultOutputTypeV3, config
     // Take off leading + or ! if necessary
     const mayOrMustTerms = mayOrMustTermsRep.map((f) => (f.match(/^[\+\!]/)) ? f.slice(1) : f)
     // Add each result line to output array
-    let lastFilename = undefined
+    let lastFilename: string
     let nc = 0
     for (const rnal of resultSet.resultNoteAndLineArr) {
       if (config.groupResultsByNote) {

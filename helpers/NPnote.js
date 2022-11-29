@@ -39,11 +39,6 @@ export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>,
   return projectNotesToInclude
 }
 
-// A read-write expansion of Paragraph
-export interface ExtendedParagraph extends Paragraph {
-  title?: string;
-}
-
 /**
  * Convert the note to using frontmatter Syntax
  * If optional default text is given, this is added to the frontmatter.
@@ -105,37 +100,50 @@ export function selectFirstNonTitleLineInEditor(): void {
 }
 
 /**
- * Find paragraphs in note which are open and tagged for today (either >today or hyphenated date)
- * @param {*} note
- * @param {*} config
- * @returns {Array<TParagraph>} of paragraphs which are open and tagged for today
+ * Find paragraphs in note which are open and (maybe) tagged for today (either >today or hyphenated date)
+ * @param {TNote} note
+ * @param {boolean} includeAllTodos - whether to include all open todos, or just those tagged for today
+ * @returns {Array<TParagraph>} of paragraphs which are open or open+tagged for today
  */
-export function findTodayTodosInNote(note: TNote): Array<TParagraph> {
+export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = false): Array<TParagraph> {
   const hyphDate = getTodaysDateHyphenated()
   // const toDate = getDateObjFromDateTimeString(hyphDate)
   const isTodayItem = (text) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   // const todos:Array<TParagraph>  = []
   if (note.paragraphs) {
-    return note.paragraphs.filter((p) => p.type === 'open' && isTodayItem(p.content))
-    // note.paragraphs.forEach((p) => {
-    //   if (isTodayItem(p.content) && p.type === 'open') {
-    //     // Disabling .title changes for now, because this was killing the plugin
-    //     // const newP = copyObject(p)
-    //     // newP.type = 'open' // Pretend it's a todo even if it's text or a listitem
-    //     // newP.title = (p.filename ?? '').replace('.md', '').replace('.txt', '')
-    //     // todos.push(newP)
-    //     todos.push(p)
-    //   }
-    // })
+    return note.paragraphs.filter((p) => p.type === 'open' && (includeAllTodos || isTodayItem(p.content)))
   }
-  // console.log(`findTodayTodosInNote found ${todos.length} todos - adding to list`)
+  logDebug(`findOpenTodosInNote could not find note.paragraphs. returning empty array`)
   return []
+}
+
+/**
+ * Get the paragraphs in the note which are tagged for today (or this week) that may not actually be in the current note
+ * @param {CoreNoteFields} note (the note or Editor)
+ * @returns {Array<TParagraph>} - paragraphs which reference today in some way
+ */
+export function getReferencedParagraphs(note: CoreNoteFields): Array<TParagraph> {
+  // getReferencedParagraphs: aliases: backlinks, references
+  // $FlowIgnore Flow(prop-missing) -- backlinks is not in Flow defs but is real
+  const backlinks: Array<TParagraph> = [...note.backlinks] // an array of notes which link to this note
+  logDebug(pluginJson, `${note.filename}: backlinks.length:${backlinks.length}`)
+  // clo(backlinks, `getTodaysReferences backlinks:${backlinks.length}=`)
+  const todayParas = []
+  backlinks.forEach((link) => {
+    // $FlowIgnore Flow(prop-missing) -- subItems is not in Flow defs but is real
+    const subItems = link.subItems
+    subItems.forEach((subItem) => {
+      // subItem.title = link.content.replace('.md', '').replace('.txt', '') // changing the shape of the Paragraph object will cause ObjC errors // cannot do this
+      todayParas.push(subItem)
+    })
+  })
+  return todayParas
 }
 
 /**
  * Get linked items from the references section (.backlinks)
  * @param { note | null} pNote
- * @returns
+ * @returns {Array<TParagraph>} - paragraphs which reference today in some way
  * Backlinks format: {"type":"note","content":"_Testing scheduled sweeping","rawContent":"_Testing scheduled sweeping","prefix":"","lineIndex":0,"heading":"","headingLevel":0,"isRecurring":0,"indents":0,"filename":"zDELETEME/Test scheduled.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[{},{},{},{}]}
  * backlinks[0].subItems[0] =JSLog: {"type":"open","content":"scheduled for 10/4 using app >today","rawContent":"* scheduled for 10/4 using app
  * ","prefix":"* ","contentRange":{},"lineIndex":2,"date":"2021-11-07T07:00:00.000Z","heading":"_Testing scheduled sweeping","headingRange":{},"headingLevel":1,"isRecurring":0,"indents":0,"filename":"zDELETEME/Test scheduled.md","noteType":"Notes","linkedNoteTitles":[],"subItems":[]}
@@ -147,18 +155,7 @@ export function getTodaysReferences(pNote: TNote | null = null): $ReadOnlyArray<
     logDebug(pluginJson, `timeblocking could not open Note`)
     return []
   }
-  const backlinks: Array<TParagraph> = [...note.backlinks] // an array of notes which link to this note
-  logDebug(pluginJson, `backlinks.length:${backlinks.length}`)
-  const todayParas = []
-  backlinks.forEach((link) => {
-    // $FlowIgnore Flow(prop-missing) -- subItems is not in Flow defs but is real
-    const subItems = link.subItems
-    subItems.forEach((subItem) => {
-      subItem.title = link.content.replace('.md', '').replace('.txt', '')
-      todayParas.push(subItem)
-    })
-  })
-  return todayParas
+  return getReferencedParagraphs(note)
 }
 
 /**

@@ -5,6 +5,30 @@
 
 ## What's Changed in this Plugin?
 
+## [2.10.0] (@dwertheimer) 
+
+- Added weekly note review question after overdue (and \n'/Review/Reschedule Tasks Scheduled for this week' command
+
+## [2.9.2] (@dwertheimer) 2022-11-11
+
+- Improve overdue messaging for Skip/Leave item
+
+## [2.9.1] (@dwertheimer) 2022-11-08
+
+- Open follow up when placed in a future note (so you can edit it)
+
+## [2.9.0] (@dwertheimer) 2022-11-07
+
+- Added 'This reminds me (new task) so you can add a task that just came to mind without stopping the overdue scan
+
+## [2.8.0] (@dwertheimer) 2022-11-06
+
+- Added follow-up tasks (thx @cyberz @antony.sklyar && @QualitativeEasing)
+
+## [2.7.2] (@dwertheimer) 2022-10-24
+
+- More API bug workaround hacks
+
 ## [2.7.1] (@dwertheimer) 2022-10-24
 
 - API bug workaround hack (hope to remove it soon)
@@ -16,6 +40,7 @@
 ## [2.6.0] (@dwertheimer) 2022-10-19
 
 - Added /sth - sort tasks under heading
+
 ## [2.5.0] (@dwertheimer) 2022-10-19
 
 - Added weekly tasks to marooned task search

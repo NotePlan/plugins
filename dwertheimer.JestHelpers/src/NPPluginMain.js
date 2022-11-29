@@ -26,7 +26,7 @@ import { getInput } from '@helpers/userInput'
  * @param {*} object
  * @param {*} name
  */
-function createMockOutput(object: any, name: string): void {
+export function createMockOutput(object: any, name: string): void {
   // log(`NPdev::createMockOutput object type is: `, `${typeof object}`)
   const props = getFilteredProps(object).sort()
   const output = props.map((prop) => {

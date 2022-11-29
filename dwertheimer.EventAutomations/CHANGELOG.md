@@ -4,6 +4,24 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+[1.13.1] - 2022-11-26 @dwertheimer
+
+- Fix bug when timeblock character is a todo (duplicating time blocks)
+- Change default synced copies title to be the link to run it again
+
+[1.13.0] - 2022-11-11 @dwertheimer
+
+- Added undocumented feature for a template to remove previous days paragraphs under any heading (dbw using to remove "Daily Recurring Tasks" after the day has passed)
+
+[1.12.0] - TBD @dwertheimer
+
+- Added /mdatb - Mark Done and run ATB command
+
+[1.11.0] - 2022-10-28 @dwertheimer
+
+- Added setting to create timeblocks for undated tasks in today's note
+- Added line-level links to tasks from timeblocks
+
 [1.10.4] - 2022-10-19 @dwertheimer
 
 - Minor fix to ignore calendar items which are marked as "free" time in Google calendar

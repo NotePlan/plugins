@@ -143,7 +143,7 @@ declare interface TEditor extends CoreNoteFields {
    * @param {number} highlightStart - (optional) Start position of text highlighting
    * @param {number} highlightEnd - (optional) End position of text highlighting
    * @param {boolean} splitView - (optional) Open note in a new split view
-   * @param {string} timeframe - (optional) Timeframe "day" (default) or "week"
+   * @param {string} timeframe - (optional) Use "week", "month", "quarter" or "year" to open a calendar note other than a daily one
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
   openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote | void>;
@@ -204,20 +204,20 @@ declare interface TEditor extends CoreNoteFields {
    */
   pasteClipboard(): void;
   /**
-   * Scrolls to and highlights the given paragraph. If the paragraph is folded,
-   * it will be unfolded.
+   * Scrolls to and highlights the given paragraph. 
+   * If the paragraph is folded, it will be unfolded.
    * @param {TParagraph} paragraph to highlight
    */
   highlight(paragraph: TParagraph): void;
   /**
-   * Scrolls to and highlights the given range. If the paragraph is folded, it
-   * will be unfolded.
+   * Scrolls to and highlights the given character range. 
+   * If the range exists in a folded heading, it will be unfolded.
    * @param {Range} range
    */
   highlightByRange(range: Range): void;
   /**
-   * Scrolls to and highlights the given range defined by the character index and
-   * the character length it should cover. If the paragraph is folded, it will be unfolded.
+   * Scrolls to and highlights the given range defined by the character index and the character length it should cover. 
+   * If the paragraph is folded, it will be unfolded.
    * Note: Available from v3.0.23
    * @param {number} index
    * @param {number} length
@@ -454,17 +454,21 @@ declare class DataStore {
    */
   static loadData(filename: string, loadAsString: boolean): ?string;
   /**
-   * Returns the calendar note for the given date and timeframe (optional, the default is "day", use "week" for weekly notes).
+   * Returns the calendar note for the given date and timeframe (optional, the default is "day", see below for more options).
    * Note: 'timeframe' available from v3.6.0
    * @param {Date}
-   * @param {string?} - "day" (default), "week", "month" or "year"
+   * @param {string?} - "day" (default), "week", "month", "quarter" or "year"
    * @return {NoteObject}
    */
   static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
   /**
-   * Returns the calendar note for the given date string (can be undefined, if the daily note was not created yet)
-   * Use following format: "YYYYMMDD", example: "20210410"
-   * For weekly notes use "YYYY-WDD", for example "2022-W24" (Note: available from v3.6.0)
+  * Returns the calendar note for the given date string (can be undefined, if the calendar note was not created yet). See the date formats below for various types of calendar notes:
+  * Daily: "YYYYMMDD", example: "20210410"
+  * Weekly: "YYYY-Wwn", example: "2022-W24"
+  * Quarter: "YYYY-Qq", example: "2022-Q4"
+  * Monthly: "YYYY-MM", example: "2022-10"
+  * Yearly: "YYYY", example: "2022"
+  * Note: Some available from v3.7.2
    * @param {string}
    * @return {NoteObject}
    */
@@ -485,12 +489,11 @@ declare class DataStore {
   static projectNoteByTitleCaseInsensitive(title: string): ?$ReadOnlyArray<TNote>;
   /**
    * Returns the regular note with the given filename with file-extension
-   * (including folders if any, don't add "/" for root, though).
+   * Returns the regular note for the given filename with file-extension, the filename has to include the relative folder such as `folder/filename.txt`. Use no folder if it's in the root (means without leading slash).
    */
   static projectNoteByFilename(filename: string): ?TNote;
   /**
-   * Returns a regular or calendar note with the given filename.
-   * Type can be "Notes" or "Calendar". Including the file extension.
+   * Returns a regular or calendar note for the given filename. Type can be "Notes" or "Calendar". Include relative folder and file extension (`folder/filename.txt` for example).
    * Use "YYYYMMDD.ext" for calendar notes, like "20210503.txt".
    */
   static noteByFilename(filename: string, type: NoteType): ?TNote;
@@ -1174,6 +1177,7 @@ declare interface Paragraph {
   +note: ?TNote;
   /**
    * Returns the given blockId if any.
+   * WARNING: This has a different capitalisation than '.addBlockID'
    * Note: Available from v3.5.2
    * @type {string?}
    */
@@ -1497,7 +1501,14 @@ rename(newFilename: string): string;
    * updated.
    * TODO: Should this really be $ReadOnlyArray?
    */
-  paragraphs: $ReadOnlyArray<TParagraph>;
+paragraphs: $ReadOnlyArray < TParagraph >;
+/**
+* Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
+* You can use this in combination with note triggers and diffs to figure out what has changed inside the note.
+* The first entry in the array is the current version and the second contains the content of the previous version, etc.
+* Note: Available from v3.7.2
+*/
++versions: $ReadOnlyArray < string, Date >;
   /**
    * Inserts the given text at the given character position (index)
    * Note: this is not quite the same as Editor.insertTextAtCharacterIndex()
@@ -1757,10 +1768,26 @@ declare class NotePlan {
    */
   static resetCaches(): void;
   /**
+   * Updates the cache, so you can access changes faster. And returns the updated note (from the updated cache).
+   * Note: Available from NotePlan v3.7.1
+   * @param {TNote}
+   * @param {boolean}
+   * @returns {TNote}
+   */
+  static updateCache(note: TNote, shouldUpdateTags: boolean): TNote;
+  /**
    * Note: Available from v3.5.2
    * Opens the given URL using the default browser (x-callback-urls can also be triggered with this).
    */
   static openURL(url: string): void;
+  /**
+  * Returns the ranges that have changed between the two versions.
+  * Note: Available from v3.7.2
+  * @param {string}
+  * @param {string}
+  * @returns {Array<RangeObject>}
+  */
+  static stringDiff(version1: string, version2: string): Array < RangeObject >;
 }
 
 declare class HTMLView {

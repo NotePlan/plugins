@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 27.9.2022 for v0.3.1+
+// last updated 17.11.2022 for v0.3.1+
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -66,7 +66,7 @@ export async function repeats(): Promise<void> {
   let updatedLine = ''
   let completedDate = ''
   let completedTime = ''
-  let reReturnArray = []
+  let reReturnArray: Array<string> = []
 
   // Go through each line in the active part of the file
   for (let n = 0; n < endOfActive; n++) {
@@ -99,7 +99,7 @@ export async function repeats(): Promise<void> {
         let newRepeatDate = ''
         let outputLine = ''
         // get repeat to apply
-        reReturnArray = updatedLine.match(RE_EXTENDED_REPEAT_CAPTURE)
+        reReturnArray = updatedLine.match(RE_EXTENDED_REPEAT_CAPTURE) ?? []
         // $FlowIgnore[incompatible-use]
         let dateIntervalString = (reReturnArray.length > 0) ? reReturnArray[1] : ''
         logDebug(pluginJson, `  Found EXTENDED @repeat syntax: '${dateIntervalString}'`)

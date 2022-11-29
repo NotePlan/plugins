@@ -6,7 +6,7 @@
  * Usage: const myNote = new Note({ param changes here })
  *
  */
-
+import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 export class Note {
   // Properties
   backlinks = [] /* sample:  [ SOMETHING ], */
@@ -42,8 +42,12 @@ export class Note {
   type = 'Notes'
 
   // Methods
-  async addBlockID() {
-    throw 'Note :: addBlockID Not implemented yet'
+  async addBlockID(p) {
+    if (!/\^[a-zA-Z0-9]{6}/.test(p.content)) {
+      p.content = `${textWithoutSyncedCopyTag(p.content)} ^123456`
+      p.rawContent = `${textWithoutSyncedCopyTag(p.rawContent || p.content)} ^123456`
+      p.blockId = '^123456'
+    }
   }
   async addParagraphBelowHeadingTitle(content, paragraphType, headingTitle, shouldAppend, shouldCreate) {
     // TODO: may need to create actual rawContent for certain tests
@@ -135,8 +139,10 @@ export class Note {
   async printNote() {
     throw 'Note :: printNote Not implemented yet'
   }
-  async removeBlockID() {
-    throw 'Note :: removeBlockID Not implemented yet'
+  async removeBlockID(p) {
+    p.content = textWithoutSyncedCopyTag(p.content)
+    p.rawContent = textWithoutSyncedCopyTag(p.rawContent)
+    if (p.blockId) delete p.blockId
   }
   async removeParagraph(para) {
     this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)

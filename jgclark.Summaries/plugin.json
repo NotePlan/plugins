@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.14.0",
-  "plugin.lastUpdateInfo": "Adds '/heatmap for complete tasks' command.",
+  "plugin.version": "0.17.1",
+  "plugin.lastUpdateInfo": "0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.\n0.17.0 Will write /periodStats summaries to the new monthly/quarterly/yearly notes available from NP 3.7.2.\n0.16.1: Minor bug fix. 0.16.0: Adds ability to run since a specific date (e.g. 2022-02-15). Adds ability to run from x-callbacks. When run from Template or x-callback, can now specify any settings to override whats in the main settings.\n0.15.1: Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting. Also new 'Items to Chart' setting for /weeklyStatsToCSV command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -23,7 +23,16 @@
         "track"
       ],
       "description": "Insert weekly/monthly habit and progress update",
-      "jsFunction": "insertProgressUpdate",
+      "jsFunction": "makeProgressUpdate",
+      "arguments": [
+        "JSON-formatted parameter list"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "progressUpdate",
+      "description": "x-callback entry point to /insertProgressUpdate",
+      "jsFunction": "progressUpdate",
       "arguments": [
         "JSON-formatted parameter list"
       ]
@@ -31,9 +40,8 @@
     {
       "name": "periodStats",
       "alias": [
-        "cip",
+        "stp",
         "period",
-        "countsInPeriod",
         "stats",
         "count"
       ],
@@ -53,8 +61,35 @@
         "stats",
         "count"
       ],
-      "description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a note",
-      "jsFunction": "weeklyStats"
+      "description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a file",
+      "jsFunction": "weeklyStats2"
+    },
+    {
+      "name": "test:update Summaries plugin settings",
+      "description": "Summaries: test update settings",
+      "jsFunction": "testUpdate"
+    },
+    {
+      "name": "test:GenStats",
+      "description": "test daily gen stats",
+      "jsFunction": "testGenStats"
+    }
+  ],
+  "plugin.commands-disabled": [
+    {
+      "name": "test:HeatMapGeneration1",
+      "description": "test heatmap gen 1",
+      "jsFunction": "testHeatMapGeneration1"
+    },
+    {
+      "name": "test:HeatMapGeneration2",
+      "description": "test heatmap gen 2",
+      "jsFunction": "testHeatMapGeneration2"
+    },
+    {
+      "name": "test:HeatMapGeneration3",
+      "description": "test heatmap gen 3",
+      "jsFunction": "testHeatMapGeneration3"
     }
   ],
   "plugin.settings": [
@@ -128,7 +163,7 @@
     {
       "key": "progressHeading",
       "title": "Progress heading",
-      "description": "Heading to go before Progress Update output",
+      "description": "Heading to go before this output, to which is added the period that's covered. However, if it contains the string '{{PERIOD}}, then the covered period will be inserted in place of this string wherever you want in the heading.",
       "type": "string",
       "default": "Progress Update",
       "required": false
@@ -136,7 +171,7 @@
     {
       "key": "progressHashtags",
       "title": "#hashtags to count",
-      "description": "List of #hashtags to include in Progress updates. If this list is empty, no hashtags will be included.",
+      "description": "List of #hashtags to include in Progress updates. If this list is empty, no hashtags will be included.\n(Note: you need to include the # of the #hashtag.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -144,15 +179,31 @@
     {
       "key": "progressMentions",
       "title": "@mentions to count",
-      "description": "List of @mentions to include in Progress updates. If this list is empty, no mentions will be included.",
+      "description": "Optional list of simple @mentions to include in Progress updates. If this list is empty, no mentions will be included.\n(Note: you need to include the @ of the @mention.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "progressMentionsAverage",
+      "title": "@mentions to average",
+      "description": "Optional list of @mention(num)s to include in Progress updates, presented as an average.\n(Note: you need to include the @ of the @mention.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "progressMentionsTotal",
+      "title": "@mentions to total",
+      "description": "Optional list of @mention(num)s to include in Progress updates, presented as a total.\n(Note: you need to include the @ of the @mention.)",
       "type": "[string]",
       "default": [],
       "required": false
     },
     {
       "key": "progressYesNo",
-      "title": "Did/Didn't Do items",
-      "description": "Comma-separated list of #hashtags and/or @mentions to track by being present or not 'did I do it this day or not?'.",
+      "title": "Yes/No items",
+      "description": "Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'.\n(Note: you do need to include the @ or # on the front.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -166,24 +217,32 @@
       "required": false
     },
     {
+      "key": "excludeToday",
+      "title": "Exclude today's entries?",
+      "description": "Whether to exclude today's entries in progress updates. Can be enabled if you tend to run the progress update as part of a start-of-day routine, and only add the updates later in the day.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "type": "separator"
     },
     {
       "type": "heading",
-      "title": "/progressStats command settings"
+      "title": "/periodStats command settings"
     },
     {
       "key": "folderToStore",
-      "title": "Folder name",
-      "description": "Folder to store the summaries in",
+      "title": "Folder for output",
+      "description": "Name of the Folder to store the summaries in.\nNote: from NotePlan v3.7.2, the first option will be to use the built-in daily/weekly/monthly/quarterly or yearly notes instead. This will also be used if this is empty.",
       "type": "string",
       "default": "Summaries",
-      "required": true
+      "required": false
     },
     {
       "key": "statsHeading",
       "title": "Stats heading",
-      "description": "Heading to go before progressResults' output section",
+      "description": "Heading to go before the output section. The plugin adds to it the period that the stats covers.",
       "type": "string",
       "default": "Period Stats",
       "required": true
@@ -263,6 +322,14 @@
       "type": "number",
       "default": 26,
       "required": true
+    },
+    {
+      "key": "weeklyStatsItems",
+      "title": "Items to Chart",
+      "description": "List of @mentions or #hashtags to chart.\nNote: they will share the same scaling on the Y-axis.",
+      "type": "[string]",
+      "default": [],
+      "required": false
     },
     {
       "type": "separator"

@@ -1,12 +1,12 @@
 // @flow
 import { endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes, differenceInMinutes } from 'date-fns'
 import type { SortableParagraphSubset } from '../../helpers/sorting'
-import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem, ExtendedParagraph } from './timeblocking-flow-types'
+import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem } from './timeblocking-flow-types'
 import type { AutoTimeBlockingConfig } from './config'
 import { getDateObjFromDateTimeString, getTimeStringFromDate, removeDateTagsAndToday } from '@helpers/dateTime'
 import { sortListBy } from '@helpers/sorting'
-import { returnNoteLink, createPrettyOpenNoteLink } from '@helpers/general'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
+import { createPrettyLinkToLine, createWikiLinkToLine } from '@helpers/NPSyncedCopies'
 import { logError, JSP, copyObject, clo, logDebug } from '@helpers/dev'
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
@@ -330,35 +330,41 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
 }
 
 /**
- * Attach links to the underlying todo note/heading if necessary
+ * Attach links to the underlying todo note/heading if open and is not a task in today's note and if the config calls for it
  * @param { [todos] } todos
  * @param { * } config
  * @returns
  */
-export function appendLinkIfNecessary(todos: Array<ExtendedParagraph>, config: AutoTimeBlockingConfig): Array<ExtendedParagraph> {
+export function appendLinkIfNecessary(todos: Array<TParagraph>, config: AutoTimeBlockingConfig): Array<TParagraph> {
   let todosWithLinks = []
   try {
     if (todos.length && config.includeLinks !== 'OFF') {
       todosWithLinks = []
       todos.forEach((e) => {
-        if (e.type !== 'title') {
+        const isInToday = e.note?.filename === Editor.note?.filename
+        if (e.type === 'open' && !isInToday) {
+          // don't create URL links for tasks in the same note
           let link = ''
           if (config.includeLinks === '[[internal#links]]') {
-            link = ` ${returnNoteLink(e.title ?? '', e.heading)}`
+            // link = ` ${returnNoteLink(e.note?.title ?? '', e.heading)}`
+            link = ` ${createWikiLinkToLine(e)}`
           } else {
             if (config.includeLinks === 'Pretty Links') {
-              link = ` ${createPrettyOpenNoteLink(config.linkText, e.filename ?? 'unknown', true, e.heading)}`
+              // link = ` ${createPrettyOpenNoteLink(config.linkText, e.filename ?? 'unknown', true, e.heading)}`
+              // clo(e, `appendLinkIfNecessary e`) // this will cause tests to fail
+              link = ` ${createPrettyLinkToLine(e, config.linkText)}`
+              logDebug(`appendLinkIfNecessary`, ` ${link}`)
             }
           }
-          e.content = `${e.content}${link}`
-          todosWithLinks.push(e)
+          e.content = `${textWithoutSyncedCopyTag(e.content)}${link}`
         }
+        todosWithLinks.push(e)
       })
     } else {
       todosWithLinks = todos
     }
   } catch (error) {
-    logError('timeblocking-helpers::appendLinkIfNecessary', JSON.stringify(error))
+    logError('timeblocking-helpers::appendLinkIfNecessary ${error}', JSP(error))
   }
   return todosWithLinks
 }

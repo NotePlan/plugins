@@ -1,7 +1,8 @@
 // @flow
 
-// import type { ExtendedParagraph } from '../dwertheimer.EventAutomations/src/timeblocking-flow-types'
-import { log, logDebug, clo } from '@helpers/dev'
+import { createMockOutput } from '../dwertheimer.JestHelpers/src/NPPluginMain'
+import { log, logDebug, clo, JSP, getFilteredProps, getAllPropertyNames } from '@helpers/dev'
+import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 
 /**
  * Make copies of all supplied paragraphs as Synced Lines and return them as an array of strings
@@ -25,4 +26,58 @@ export function getSyncedCopiesAsList(parasToSync: Array<TParagraph> = [], taskT
   })
   logDebug(`getSyncedCopiesAsList:`, `Input length:${parasToSync.length} items | output length:${syncedLinesList.length} items`)
   return syncedLinesList
+}
+
+/**
+ * Create a link to a note and a specific line (like synced copy but just a link to that line)
+ * @param {TParagraph} paragraph
+ * @returns string with the link (or empty string if it does not work) -- e.g. noteplan://x-callback-url/openNote?noteTitle=2022-10-24%5Eywtytx
+ */
+export function createURLToLine(paragraph: TParagraph): string {
+  paragraph.note?.addBlockID(paragraph)
+  paragraph.note?.updateParagraph(paragraph)
+  if (paragraph.note?.title && paragraph?.blockId) {
+    return `${createOpenOrDeleteNoteCallbackUrl(`${paragraph.note.title}`, 'title', null, null, false)}${(paragraph?.blockId || '').replace('^', '%5E')}`
+  } else {
+    logDebug(`createURLToLine Could not create URL for title:"${paragraph.note?.title || ''}" blockId:"${paragraph?.blockId || ''}" paragraph:${JSP(paragraph)}`)
+    return ''
+  }
+}
+
+/**
+ * Create a wiki link to a note and a specific line (like synced copy but just a link to that line)
+ * @param {TParagraph} paragraph
+ * @returns string with the wikilink (or empty string if it does not work) -- e.g. [[2022-10-24^ywtytx]]
+ */
+export function createWikiLinkToLine(paragraph: TParagraph): string {
+  if (paragraph.note && !paragraph.blockId) {
+    paragraph.note?.addBlockID(paragraph)
+    paragraph.note?.updateParagraph(paragraph)
+  }
+  if (paragraph.note?.title && paragraph?.blockId) {
+    return `[[${paragraph.note.title}${paragraph?.blockId || ''}]]`
+  } else {
+    logDebug(`createWikiLinkToLine Could not create wiki link for title:"${paragraph.note?.title || ''}" blockId:"${paragraph?.blockId || ''}" paragraph:${JSP(paragraph)}`)
+    return ''
+  }
+}
+
+/**
+ * Create a pretty url [txt](url) to a note and a specific line (like synced copy but just a link to that line)
+ * @param {TParagraph} paragraph
+ * @param {string} text - text to display in the link
+ * @returns {string} - the result string or empty string if it does not work
+ */
+export function createPrettyLinkToLine(paragraph: TParagraph, text: string): string {
+  const link = createURLToLine(paragraph)
+  if (link && text) {
+    return `[${text}](${link})`
+  } else {
+    logDebug(
+      `createPrettyLinkToLine Could not create pretty link for text:"${text}" title:"${paragraph.note?.title || ''}" blockId:"${paragraph?.blockId || ''}" paragraph:${JSP(
+        paragraph,
+      )}`,
+    )
+    return ''
+  }
 }

@@ -138,8 +138,8 @@ export async function openCurrentNoteNewSplit(): Promise<void> {
 
 /**
  * Jumps the cursor to the heading of the current note that the user selects
- * NB: need to update to allow this to work with sub-windows, when EM updates API
  * @author @jgclark
+ * @param {?string} heading to jump to
  */
 export async function jumpToHeading(heading?: string): Promise<void> {
   const { paragraphs, note } = Editor
@@ -148,10 +148,11 @@ export async function jumpToHeading(heading?: string): Promise<void> {
     return
   }
 
-  const headingStr = heading ?? (await chooseHeading(note, false, false, false))
+  const headingStr = heading ?? (await chooseHeading(note, false, false, true))
   // find out position of this heading, ready to set insertion point
   // (or 0 if it can't be found)
   const startPos = getParaFromContent(note, headingStr)?.contentRange?.start ?? 0
+  logDebug('noteHelpers / jumpToHeading', `for '${headingStr}' at position ${startPos} max ${String(note.content?.length)}`)
   Editor.select(startPos, 0)
 }
 

@@ -1,8 +1,46 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.17.1] - 2022-11-27
+### Fixed
+- worked around newly-discovered API bug when processing repeats like @repeats(1/7) in Summaries commands.
+
+## [0.17.0] - 2022-11-25
+### Added
+- will write **/periodStats** summaries to the new monthly/quarterly/yearly notes (available from NP v3.7.2) as well as the existing folder you can set in the settings.
+
+## [0.16.1] - 2022-11-17
+### Fixed
+- error in template `progressUpdate(...)` when using `heading` field with new `{{OPTION}}`, and `period` field with a YYYY-MM-DD date. (Spotted by @dwertheimer)
+
+## [0.16.0] - 2022-11-16
+### Added
+- Allow to be used by **x-callback calls** -- see README for details
+- Greater flexibility for using **insert progress update** from templates, all of which can override what is in the various settings:
+    - 'period' setting: pass a specific YYY-MM-DD date to run the summary report from (thanks to @dwertheimer)
+    - 'excludeToday' setting which if true excludes today's date from the output. (thanks to @dwertheimer)
+    - allow arbitrary hashtags to be used (for @dwertheimer)
+    - added a Refresh 'button'
+- Also greater flexibility when used as a command with following new settings:
+  - 'excludeToday' setting which if true excludes today's date from the output. (thanks to @dwertheimer)
+  - the way `progressHeading` can be used is noq more flexible, as you can now insert `{{PERIOD}}` anywhere in the string, which will be replaced by the actual period you've asked to summarise (for @dwertheimer)
+
+## [0.15.1] - 2022-11-12
+### Added
+- Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting. These tailor the output to focus on just the average or total, rather than all the currently-presented statistics (count, total and average). You might want to migrate some in the existing setting to the two new alternatives.
+### Changed
+- The niche **/weeklyStatsToCSV** command has been speeded up significantly, tweaked to write to a hidden file, and made more generic. It now has a separate 'Items to Chart' setting to list the @mentions or #hashtags to include.
+
+## [0.15.0] - 2022-11-04
+### Added
+- Adds new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting. These tailor the output to focus on average or total, not all the currently-presented statistics. (You might want to migrate some in the existing setting to the two new alternatives.)
+### Changed
+- Improved display of results of average and totals in the various stats updates
+### Fixed
+- Fixed an issue with display order in sparklines
+
 ## [0.14.0] - 2022-10-04
-## Added
+### Added
 - new **/heatmap for complete tasks** command displays a 'heatmap' chart of how many tasks you've completed on each day (see example above). This checks in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you don't set it, the plugin will generate a sensible period up to 12 months. Note: requires NotePlan v3.7.
 ### Changed
 - stop sparklines appearing in  the '**/periodStats**' command for periods of more than a month.
