@@ -360,6 +360,24 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toEqual(3)
     })
 
+    it(`should return ${method('.dayNumber')} of given date for all locales`, () => {
+      const result = new DateModule().dayNumber('2022-12-04')
+
+      expect(result).toEqual(0)
+    })
+
+    it(`should return ${method('.dayNumber')} of given date for all locales`, () => {
+      const result = new DateModule().dayNumber('2022-12-03')
+
+      expect(result).toEqual(6)
+    })
+
+    it(`should return ${method('.dayNumber')} of given date`, () => {
+      const result = new DateModule().dayNumber('2022-11-20')
+
+      expect(result).toEqual(0)
+    })
+
     it(`should return ${method('.weekNumber')} of given date`, () => {
       const result = new DateModule().weekNumber('2021-12-15')
 
