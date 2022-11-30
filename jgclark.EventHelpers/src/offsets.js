@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 5.10.2022 for v0.19.1, by @jgclark
+// Last updated 30.11.2022 for v0.19.2, by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -23,8 +23,6 @@ import { log, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@helpers/userInput'
-
-// const RE_HEADING_LINE = `^#+\s`
 
 // ----------------------------------------------------------------------------
 /**
@@ -160,7 +158,6 @@ export async function processDateOffsets(): Promise<void> {
     const dateOffsetParas = paragraphs.filter((p) => p.content.match(RE_DATE_INTERVAL) && p.lineIndex < endOfActive)
     if (dateOffsetParas.length > 0) {
       logDebug(pluginJson, `Found ${dateOffsetParas.length} date offsets in '${noteTitle}'`)
-      // Find first Done or Cancelled section and get its paragraph index
 
       // Go through each line in the active part of the file
       // Keep track of the indent level when a suitable date is found, so we know
@@ -196,7 +193,7 @@ export async function processDateOffsets(): Promise<void> {
         // Try matching for the standard YYYY-MM-DD date pattern on its own
         // (check it's not got various characters before it, to defeat common usage in middle of things like URLs)
         // TODO: make a different type of CTD for in-line vs in-heading dates
-        if (line.match(RE_BARE_DATE)) {
+        if (line.match(RE_BARE_DATE) && !line.match(RE_DONE_DATE_OPT_TIME)) {
           const dateISOStrings = line.match(RE_BARE_DATE_CAPTURE) ?? ['']
           const dateISOString = dateISOStrings[1] // first capture group
           // We have a date string to use for any offsets in this line, and possibly following lines

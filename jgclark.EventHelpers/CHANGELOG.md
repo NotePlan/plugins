@@ -1,6 +1,11 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.19.3] - 2022-11-30
+### Changed
+- "/insert events" commands now de-duplicates 'ATTENDEES' and 'ATTENDEENAMES' before writing to notes (for @CDP54321)
+- "/process date offsets" command now ignores tasks which have been completed.
+
 ## [0.19.2] - 2022-10-21
 ### Added
 - new setting "Include time blocks from completed tasks?" for the "/time blocks to calendar" command.

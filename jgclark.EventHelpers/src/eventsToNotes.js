@@ -272,16 +272,26 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
   // logDebug(pluginJson, 'starting getReplacementsV2')
   const outputObject = new Map<string, string>()
 
+  // Deal with special case of ATTENDEES / ATTENDEENAMES where we need to dedupe what NP reports.
+  let attendeesToUse = ''
+  if (item.attendees) {
+    attendeesToUse = [...new Set([...item.attendees])].join(', ')
+  }
+  let attendeeNamesToUse = ''
+  if (item.attendeeNames) {
+    attendeeNamesToUse = [...new Set([...item.attendeeNames])].join(', ')
+  }
+
   outputObject.set('CAL', calendarNameWithMapping(item.calendar, config.calendarNameMappings))
   outputObject.set('TITLE', item.title)
   outputObject.set('NOTES', item.notes)
-  outputObject.set('ATTENDEENAMES', item.attendeeNames ? item.attendeeNames.join(', ') : '')
-  outputObject.set('ATTENDEES', item.attendees ? item.attendees.join(', ') : '')
+  outputObject.set('ATTENDEES', attendeesToUse)
+  outputObject.set('ATTENDEENAMES', attendeeNamesToUse)
   outputObject.set('EVENTLINK', item.calendarItemLink ? item.calendarItemLink : '')
   outputObject.set('LOCATION', item.location ? item.location : '')
   outputObject.set('DATE', toLocaleDateString(item.date, config.locale))
   outputObject.set('START', !item.isAllDay ? toLocaleTime(item.date, config.locale, config.timeOptions) : '')
-  outputObject.set('END', item.endDate != null && !item.isAllDay ? toLocaleTime(item.endDate, config.locale, config.timeOptions) : '')
+  outputObject.set('END', item.endDate != null && !item.isAllDay ? toLocaleTime(item.endDate, config.locale, config.timeOptions) : '') // must be processed after 'ATTENDEE*'
   outputObject.set('URL', item.url)
 
   // outputObject.forEach((v, k, map) => { logDebug('getReplacements', `- ${k} : ${v}`) })
