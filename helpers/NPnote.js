@@ -176,3 +176,30 @@ export function findOverdueWeeksInString(line: string): Array<string> {
   }
   return []
 }
+
+export type OpenNoteOptions = $Shape<{
+  newWindow?: boolean,
+  splitView?: boolean,
+  highlightStart?: number,
+  highlightEnd?: number,
+  createIfNeeded?: boolean,
+  content?: string,
+}>
+
+/**
+ * Convenience Method for Editor.openNoteByFilename, include only the options you care about (requires NP v3.7.2+)
+ * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`
+ * @param {OpenNoteOptions} options - options for opening the note (all optional -- see fields in type)
+ * @returns {Promise<TNote|void>} - the note that was opened
+ */
+export async function openNoteByFilename(filename: string, options: OpenNoteOptions = {}): Promise<TNote | void> {
+  return await Editor.openNoteByFilename(
+    filename,
+    options.newWindow || false,
+    options.highlightStart || 0,
+    options.highlightEnd || 0,
+    options.splitView || false,
+    options.createIfNeeded || false,
+    options.content || null,
+  )
+}
