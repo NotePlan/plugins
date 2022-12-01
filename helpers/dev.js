@@ -1,6 +1,8 @@
 // @flow
 // Development-related helper functions
 
+import { get, isUndefined, entries, keys, has, isEqual, isObjectLike } from 'lodash-es'
+
 /**
  * Returns ISO formatted date time
  * @author @codedungeon
@@ -330,7 +332,7 @@ export function timer(startTime: Date): string {
 }
 
 /**
- * Add or override parameters from args to the supplied config object. 
+ * Add or override parameters from args to the supplied config object.
  * This is the **simple version** that treats all the passed arguments as strings, leaving some of the typing to the developer.
  * Tested with strings, ints, floats, boolean and simple array of strings.
  * Note: Different parameters are separated by ';' (not the more usual ',' to allow for comma-separated arrays)
@@ -339,7 +341,7 @@ export function timer(startTime: Date): string {
  * @author @jgclark and @dwertheimer
  * @param {any} config object
  * @param {string} argsAsString e.g. 'field1=Bob Skinner;field2=false;field3=simple,little,array'
- * @returns {any} configOut 
+ * @returns {any} configOut
  */
 export function overrideSettingsWithStringArgs(config: any, argsAsString: string): any {
   try {
@@ -356,28 +358,23 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
         if (!isNaN(value)) {
           // Change to number type
           value = Number(value)
-        }
-        else if (value === "false") {
+        } else if (value === 'false') {
           // Change to boolean type
           value = false
-        }
-        else if (value === "true") {
+        } else if (value === 'true') {
           // Change to boolean type
           value = true
-        }
-        else if (value.includes(',')) {
+        } else if (value.includes(',')) {
           // Split to make an array
           value = value.split(',')
         }
         configOut[key] = value
       }
       return configOut
-    }
-    else {
+    } else {
       return config
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.log(JSP(error))
   }
 }
@@ -388,7 +385,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
  * @author @jgclark
  * @param {any} config object
  * @param {string} argsAsJSON e.g. '{"style":"markdown", "exludedFolders:["one","two","three"]}'
- * @returns {any} configOut 
+ * @returns {any} configOut
  */
 export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): any {
   try {
@@ -399,12 +396,10 @@ export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): 
       // use the built-in way to add (or override) from argObj into config
       const configOut = Object.assign(config, argObj)
       return configOut
-    }
-    else {
+    } else {
       return config
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.log(JSP(error))
   }
 }
@@ -414,13 +409,57 @@ export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): 
  * @author @jgclark
  * @param {any} config object
  * @param {string} argsAsEncodedJSON e.g. '%7B%22style%22%3A%22markdown%22%2C%20%22exludedFolders%3A%5B%22one%22%2C%22two%22%2C%22three%22%5D%7D'
- * @returns {any} configOut 
+ * @returns {any} configOut
  */
 export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJSON: string): any {
   try {
-    return (overrideSettingsWithTypedArgs(config, decodeURIComponent(argsAsEncodedJSON)))
-  }
-  catch (error) {
+    return overrideSettingsWithTypedArgs(config, decodeURIComponent(argsAsEncodedJSON))
+  } catch (error) {
     console.log(JSP(error))
   }
 }
+
+/**
+ * Deep diff between two object-likes (Object compare/differ)
+ * @author @chtseac @Aschen https://gist.github.com/Yimiprod/7ee176597fef230d1451?permalink_comment_id=3415430#gistcomment-3415430
+ * @param  {Object} fromObject the original object
+ * @param  {Object} toObject   the updated object
+ * @return {Object}            a new object which represents the diff
+ */
+export function deepDiff(fromObject: any, toObject: any): any {
+  const changes = {}
+
+  const buildPath = (path, key) => (isUndefined(path) ? key : `${String(path)}.${key}`)
+
+  const walk = (fromObject, toObject, path) => {
+    for (const key of keys(fromObject)) {
+      const currentPath = buildPath(path, key)
+      if (!has(toObject, key)) {
+        changes[currentPath] = { from: get(fromObject, key) }
+      }
+    }
+
+    for (const [key, to] of entries(toObject)) {
+      const currentPath = buildPath(path, key)
+      if (!has(fromObject, key)) {
+        changes[currentPath] = { to }
+      } else {
+        const from = get(fromObject, key)
+        if (!isEqual(from, to)) {
+          if (isObjectLike(to) && isObjectLike(from)) {
+            walk(from, to, currentPath)
+          } else {
+            changes[currentPath] = { from, to }
+          }
+        }
+      }
+    }
+  }
+
+  walk(fromObject, toObject)
+
+  return changes
+}
+
+// mom I'm on lodash
+// mixin({ deepDiff })
