@@ -1,5 +1,7 @@
 // @flow
 
+import { string } from "mathjs";
+
 /*
  * # How Flow Definitions work:
  *
@@ -101,10 +103,11 @@ declare interface TEditor extends CoreNoteFields {
    * @param {number} highlightEnd - (optional) End position of text highlighting
    * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
    * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
+   * @param {string} content - (optional) Content to fill the note (replaces contents if the note already existed) (from v3.7.2)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
    */
-  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, createIfNeeded?: false): Promise<TNote | void>;
-  openNoteByFilename(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, createIfNeeded: true): Promise<TNote>;
+openNoteByFilename(filename: string, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean, createIfNeeded ?: false, content ?: string): Promise < TNote | void>;
+openNoteByFilename(filename: string, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean, createIfNeeded: true, content ?: string): Promise < TNote >;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
@@ -314,6 +317,12 @@ saveDefaultTheme(name: string, mode: string): void;
    * @return {boolean}
    */
   addTheme(json: string, filename: string): boolean;
+/**
+* Get the current system mode, either "dark" or "light.
+* Note: Available from NotePlan v3.6.2+
+* @return {string}
+*/
++currentSystemMode: string;
 }
 
 /**
@@ -1697,7 +1706,7 @@ insertParagraphBeforeParagraph(content: string, otherParagraph: TParagraph, para
    * Remember to call .updateParagraph(p) to write it to the note.
    * You can call this on the Editor or note you got the paragraph from.
    * Note: Available from v3.5.2
-   * @param {TParagraph}
+   * @param {TParagraph} paragraph
    */
   addBlockID(paragraph: TParagraph): void;
 
@@ -1714,7 +1723,7 @@ insertParagraphBeforeParagraph(content: string, otherParagraph: TParagraph, para
    * You can use 'paragraph [0].note to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph [0])` if you make changes to the content, type, etc (like checking it off as type = "done").
    * If you pass no paragraph as argument this will return all synced lines that are available.
    * Note: Available from v3.5.2
-   * @param {TParagraph?}
+   * @param {TParagraph?} paragraph
    * @return {Array<TParagraph>}
    */
   referencedBlocks(paragraph?: TParagraph): Array<TParagraph>;
@@ -1770,21 +1779,21 @@ declare class NotePlan {
   /**
    * Updates the cache, so you can access changes faster. And returns the updated note (from the updated cache).
    * Note: Available from NotePlan v3.7.1
-   * @param {TNote}
-   * @param {boolean}
+   * @param {TNote} note
+   * @param {boolean} shouldUpdateTags
    * @returns {TNote}
    */
   static updateCache(note: TNote, shouldUpdateTags: boolean): TNote;
   /**
-   * Note: Available from v3.5.2
    * Opens the given URL using the default browser (x-callback-urls can also be triggered with this).
+   * Note: Available from v3.5.2
    */
   static openURL(url: string): void;
   /**
   * Returns the ranges that have changed between the two versions.
   * Note: Available from v3.7.2
-  * @param {string}
-  * @param {string}
+  * @param {string} version1
+  * @param {string} version2
   * @returns {Array<RangeObject>}
   */
   static stringDiff(version1: string, version2: string): Array < RangeObject >;
