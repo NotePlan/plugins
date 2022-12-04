@@ -1,6 +1,9 @@
 # What's changed in 🕓 Event Helpers?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.19.4] - 2022-12-04
+- can now send `calendars` parameter to the commands via Templates. E.g. `calendars:"list,of,calendar,names"` (for @joepindell)
+
 ## [0.19.3] - 2022-11-30
 ### Changed
 - "/insert events" commands now de-duplicates 'ATTENDEES' and 'ATTENDEENAMES' before writing to notes (for @CDP54321)

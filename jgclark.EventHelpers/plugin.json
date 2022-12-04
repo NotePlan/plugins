@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
-  "plugin.version": "0.19.3",
-  "plugin.lastUpdateInfo": "0.19.3: de-dupes lists of attendees in event lists.\n0.19.2: New setting \"Include time blocks from completed tasks?\" for the \"/time blocks to calendar\" command.",
+  "plugin.version": "0.19.4",
+  "plugin.lastUpdateInfo": "0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.\n0.19.2: New setting \"Include time blocks from completed tasks?\" for the \"/time blocks to calendar\" command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -58,8 +58,8 @@
       "jsFunction": "listMatchingDaysEvents"
     },
     {
-      "name": "events:updateSettings",
-      "description": "update settings",
+      "name": "test:eventsUpdateSettings",
+      "description": "update settings for Events Helpers",
       "hidden": false,
       "jsFunction": "onUpdateOrInstall"
     }
@@ -72,7 +72,7 @@
     {
       "key": "eventsHeading",
       "title": "Events heading",
-      "description": "Optional heading to put before list of the day's events",
+      "description": "Optional heading to put before list of the day's events (needs to include any '#' heading markers).",
       "type": "string",
       "default": "## Events",
       "required": false
@@ -133,7 +133,7 @@
     {
       "key": "matchingEventsHeading",
       "title": "Matching Events heading",
-      "description": "Optional heading to put before list of events matching list below",
+      "description": "Optional heading to put before list of matched events (needs to include any '#' heading markers).",
       "type": "string",
       "default": "## Matching Events",
       "required": false

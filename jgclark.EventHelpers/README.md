@@ -7,60 +7,16 @@ This plugin provides commands to help you do useful things with Events and Calen
 - **/process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.)
 - **/shift dates**: takes dates _in the selected lines_ and shifts them forwards or backwards by a given date interval. It works on both `>YYYY-MM-DD` and `>YYYY-Wnn` style dates.  (User George Crump (@george65) has created a [video showing how this command works](https://storone.zoom.us/rec/play/tzI6AreYeKvoyHRw11HX93IGVf2OI-U7WgKXYn2rmGJvbFHXZp8PSr6ajmOrtWymOU5jFIItScSJnL9U.tboBQEXjdw1uRTqu).)
 
-These have a number of [options described below](#configuration).
-See [Theme customisation](#theme-customisation) below for more on how to customise display of time blocks and events.
+Most of these commands require configuration, described in the sections below. Click the gear button on the 'Event Helpers' line in the Plugin Preferences panel to access the settings.  Also see [Theme customisation](#theme-customisation) below for more on how to customise display of time blocks and events.
 
-## Sort Order
-When using `/insert day's events as list` or `/insert matching events` it defaults orders the list by increasing start time of the events. If you wish to have them ordered first by calendar name then by start time, choose the 'calendar' option for the 'Sort order' setting described below, rather than the 'time' default.
-
-## /shift dates
-There is a setting to decide whether to remove `@done(...)` dates; by default it will. It doesn't remove any dates that are just in `(...)` brackets though.
-There is another setting to decide whether to set any completed tasks to not complete.
-
-## /process date offsets
-The command is best understood with some examples:
-
-- user George Crump (@george65) has created a [video showing how this command works](https://drive.google.com/file/d/10suCe0x8QPbHw_7h4Ao4zwWf_kApEOKH/view).
-
-- an example for Christmas planning:
-
-| For example ...                                                                                                                                                                        | ... becomes                                                                                                                                                                                                 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| \#\#\# Christmas Cards 2021-12-25<br />\* Write cards {-20d}<br />\* Post overseas cards {-15d}<br />\* Post cards to this country {-10d}<br />\* Store spare cards for next year {+3d} | \#\#\# Christmas Cards 2021-12-25<br />\* Write cards >2021-12-05<br />\* Post overseas cards >2021-12-10<br />* Post cards to this country >2021-12-15<br />\* Store spare cards for next year >2021-12-28 |
-| \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present {-6d}<br />&nbsp;&nbsp;\* Wrap & post present {-3d} <br />&nbsp;&nbsp;\* Call Bob {0d}                                 | \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14                                   |
-
-You can use this within a line to have both a **deadline** and a calculated **start date**:
-
-| For example ...                                                      | ... becomes                                                                       |
-| ---------------------------------------------------------- | -------------------------------------------------------------------- |
-| * Post cards deadline 2021-12-18 {-10d} | * Post cards deadline 2021-12-18 >2021-12-08 |
-
-The `/process date offsets` command looks for a valid **base date** in the previous heading, previous main task if it has sub-tasks, or in the line itself. If it does, then it changes any **date offset patterns** (such as `{-10d}`, `{+2w}`, `{-3m}`) into **dates** (e.g. `2022-05-02`). This is particularly useful when set up in **templates**, that when applied to a note, sets the due date at the start, and calculates the other dates for you.
-
-In more detail:
-- The **base date** is by default of the form `YYYY-MM-DD`, not preceded by characters `0-9(<`, all of which could confuse.
-- Valid **date offsets** are specified as `[^][+/-][0-9][bdwmqy]`. This allows for `b`usiness days,  `d`ays, `w`eeks, `m`onths, `q`uarters or `y`ears. (Business days skip weekends. If the existing date happens to be on a weekend, it's treated as being the next working day. Public holidays aren't accounted for.)  
-- `{+3d}` means three days _after_ the 'base' date
-- `{-3d}` means three days _before_ the 'base' date
-- You can use `{0d}` to mean no offset -- i.e. on the day itself.
-- An offset that starts with `{^...}` calculates before or after the _last calculated date_ (not the base date).  An example of this is:
-
-| For example ...                                                                                                                                                                        | ... becomes                                                                                                                                                                                                 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| \* Bob's birthday on 2021-09-05<br />&nbsp;&nbsp;\* Find present {^+6d}<br />&nbsp;&nbsp;\* Wrap & post present {^+3d} <br />&nbsp;&nbsp;\* Call Bob {^0d}   | \* Bob's birthday on 2021-09-05 to 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14 |
-| \#\#\# Easter Preparations >2022-03-01<br />\* Use up sweet treats (Shrove Tuesday) {0d}<br />\* Start Lent (Ash Wednesday) {^+1d}<br />\* End of Lent {^+-6w}<br />\* Remember Last Supper {^+1d} <br />\* Good Friday {^+1d} <br />\* Easter Sunday {^+2d} | \#\#\# Easter Preparations >2022-03-01 to >2022-04-17<br />\* Use up sweet treats (Shrove Tuesday) >2022-03-01<br />\* Start Lent (Ash Wednesday) >2022-03-02<br />\* End of Lent >2022-04-13<br />\* Remember Last Supper >2022-04-14<br />\* Good Friday >2022-04-15<br />\* Easter Sunday >2022-04-17 |
-
-## Configuration
-Most of these commands require configuration. In NotePlan v3.4 and above, please click the gear button on the 'Event Helpers' line in the Plugin Preferences panel.
-
-Here are details on the various settings:
-
+## /insert day's events as list  and  /insert matching events
+Settings:
 - **Events heading**: in `/insert today's events as list` command (or `events()` template call), the heading to put before the list of the day's events. Optional.
 - **Events List display format**: the format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'LOCATION', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL'.  (Default is `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`.)
 - **Events List display format for all-day events**: the format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'LOCATION', 'EVENTLINK', 'DATE', 'NOTES', 'ATTENDEES', 'NOTES', 'URL'. (Default is `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`.)
-- **Sort order of events list**: by 'time' or by 'calendar'
+- **Sort order of events list**: by 'time' (= increasing start time of events) or by 'calendar' first, which then secondarily sorts by start time.
 - **Calendars to include**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
-- **Calendar name mappings**: optional - add mappings for your calendar names to appear in the output - e.g. from "Thomas" to "Me" with "Thomas;Me".
+- **Calendar name mappings**: optional - add mappings for your calendar names to appear as in the output - e.g. from "Jonathan (iCloud)" to "Me" (and from "Us (iCloud)" to "Us") with `Jonathan (iCloud);Me, Us (iCloud);Us`. Note: separate mapping from main name by `;` a character, and separate mapping pairs with the `,` character.
 - **Matching Events heading**: in `/insert matching events` command (or `listMatchingEvents()` template call), the heading to put before the list of matching events
 - **Events match list**: for `/add matching events` is an array of pairs of strings. The first string is what is matched for in an event's title. If it does match, the second string is used as the format for how to insert the event details at the cursor.  This uses the `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*`, `*|ATTENDEES|*`, `*|EVENTLINK|*` and `*|URL|*` format items below ...  NB: At this point the 'location' field is unfortunately _not_ available through the API.
 For example:
@@ -80,7 +36,7 @@ For example:
 - **Locale**: optional Locale to use for times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.
 - **Time options**: Optional Time format settings. Default is `{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}`.
 
-## Using Event Lists from a Template
+### Using Event Lists from a Template
 If you use Templating, this command can be called when a Template is inserted (including in the `/dayStart` command which applies your `Daily Note Template`). To do this insert `<%- events() %>` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'format:"..."'` parameter to the `<%- events() %>` command that sets how to present the list, and a separate parameter for items with no start/end times (`'allday_format:"..."`).
 
 You can place  `<%- listMatchingEvents() %>` in Templates in a similar way, and similar customisations are possible. However, as each match can have a different format of output, the matches and format strings are entered in a JSON-formatted array, which is specified in the Plugin's settings.
@@ -95,19 +51,56 @@ Most of these are self-explanatory for events in most types of calendars, other 
 
 v0.15.0 added more flexibility in the formatting of event lists. So now instead of including (for example) `*|ATTENDEENAMES|*` you can now include other text (including line breaks indicated by `\n`) within the placeholder. For example in `*|\nwith ATTENDEENAMES|*` if the ATTENDEENAMES is not empty, then it will output the list after a newline and the text 'with '.
 
-If you want to disable the adding of the heading, add the following parameter `includeHeadings:false` (no double quotes around `false` as its being treated as JSON).
-
-If you want to exclude all-day events, add the following parameter `includeAllDayEvents:false` (no double quotes around `false` as its being treated as JSON).
+Other options:
+- If you want to disable the adding of the heading, add the following parameter `includeHeadings:false` (no double quotes around `false` as its being treated as JSON)
+- If you want to exclude all-day events, add the following parameter `includeAllDayEvents:false`
+- If you want to include only certain calendars, then add the following parameter `calendarSet:"list,of,calendar,names"`
+- If you want to include calendar name mapping (see disusssion above), then add something like the following parameter `calendarNameMappings:"Jonathan (iCloud);Me, Us (iCloud);Us"`
 
 For example:
 
 ```js
-<%- events( {format:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)*|\nEVENTLINK|**|with ATTENDEES|**|\nLOCATION|**|\nNOTES|*", allday_format:"### *|TITLE|**|\nEVENTLINK|**|\nNOTES|*", includeHeadings:false} ) %>
+<%- events( {format:"### *|CAL|*: *|TITLE|* (*|START|*-*|END|*)*|\nEVENTLINK|**|with ATTENDEES|**|\nLOCATION|**|\nNOTES|*", allday_format:"### *|TITLE|**|\nEVENTLINK|**|\nNOTES|*", includeHeadings:false, calendars:"home,children"} ) %>
 ```
 
 If you wish to see multiple day's output, not just the day for the active calendar note, add the `daysToCover` paramter. For example: include `daysToCover: 3` to the parameter string to see events for the selected day, plus the following 2. (Note: if you use this, then H3 date headings will be inserted between dates for clarity, even if the `includingHeadings` parameter is false.)
 
 NB: the `Sort order` setting above also controls how the output of this list is sorted.
+
+## /shift dates
+- Remove @done dates? Whether to remove `@done(...)` dates; by default it will. It doesn't remove any dates that are just in `(...)` brackets though.
+- Set any completed tasks to not complete? By default it will.
+
+## /process date offsets
+User George Crump (@george65) has created a [video showing how this command works](https://drive.google.com/file/d/10suCe0x8QPbHw_7h4Ao4zwWf_kApEOKH/view).
+
+The command is best understood with some examples. Here's some Christmas planning:
+
+| This ...                                                                                                                                                                        | ... becomes this                                                                                                                                                                                             |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \#\#\# Christmas Cards 2021-12-25<br />\* Write cards {-20d}<br />\* Post overseas cards {-15d}<br />\* Post cards to this country {-10d}<br />\* Store spare cards for next year {+3d} | \#\#\# Christmas Cards 2021-12-25<br />\* Write cards >2021-12-05<br />\* Post overseas cards >2021-12-10<br />* Post cards to this country >2021-12-15<br />\* Store spare cards for next year >2021-12-28 |
+| \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present {-6d}<br />&nbsp;&nbsp;\* Wrap & post present {-3d} <br />&nbsp;&nbsp;\* Call Bob {0d}                                 | \* Bob's birthday on 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14                                   |
+
+You can use this within a line to have both a **deadline** and a calculated **start date**:
+
+| This ...                                                      | ... becomes this                                                                 |
+| ---------------------------------------------------------- | -------------------------------------------------------------------- |
+| * Post cards deadline 2021-12-18 {-10d} | * Post cards deadline 2021-12-18 >2021-12-08 |
+
+The `/process date offsets` command looks for a valid **base date** in the previous heading, previous main task if it has sub-tasks, or in the line itself. If it does, then it changes any **date offset patterns** (such as `{-10d}`, `{+2w}`, `{-3m}`) into **dates** (e.g. `2022-05-02`). This is particularly useful when set up in **templates**, that when applied to a note, sets the due date at the start, and calculates the other dates for you.
+
+In more detail:
+- The **base date** is by default of the form `YYYY-MM-DD`, not preceded by characters `0-9(<`, all of which could confuse.
+- Valid **date offsets** are specified as `[^][+/-][0-9][bdwmqy]`. This allows for `b`usiness days,  `d`ays, `w`eeks, `m`onths, `q`uarters or `y`ears. (Business days skip weekends. If the existing date happens to be on a weekend, it's treated as being the next working day. Public holidays aren't accounted for.)  
+- `{+3d}` means three days _after_ the 'base' date
+- `{-3d}` means three days _before_ the 'base' date
+- You can use `{0d}` to mean no offset -- i.e. on the day itself.
+- An offset that starts with `{^...}` calculates before or after the _last calculated date_ (not the base date).  An example of this is:
+
+| For example ...                                                                                                                                                                        | ... becomes                                                                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \* Bob's birthday on 2021-09-05<br />&nbsp;&nbsp;\* Find present {^+6d}<br />&nbsp;&nbsp;\* Wrap & post present {^+3d} <br />&nbsp;&nbsp;\* Call Bob {^0d}   | \* Bob's birthday on 2021-09-05 to 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14 |
+| \#\#\# Easter Preparations >2022-03-01<br />\* Use up sweet treats (Shrove Tuesday) {0d}<br />\* Start Lent (Ash Wednesday) {^+1d}<br />\* End of Lent {^+-6w}<br />\* Remember Last Supper {^+1d} <br />\* Good Friday {^+1d} <br />\* Easter Sunday {^+2d} | \#\#\# Easter Preparations >2022-03-01 to >2022-04-17<br />\* Use up sweet treats (Shrove Tuesday) >2022-03-01<br />\* Start Lent (Ash Wednesday) >2022-03-02<br />\* End of Lent >2022-04-13<br />\* Remember Last Supper >2022-04-14<br />\* Good Friday >2022-04-15<br />\* Easter Sunday >2022-04-17 |
 
 ## Theme Customisation
 NotePlan allows extensive [customisation of fonts and colours through its Themes](https://help.noteplan.co/article/44-customize-themes). It also supports doing more advanced highlighting using regex. To add **colour highlighting for time blocks**, add the following to your favourite theme's .json file:
@@ -130,12 +123,11 @@ NotePlan allows extensive [customisation of fonts and colours through its Themes
  }
 ``` -->
 
-## History
-See [CHANGELOG](CHANGELOG.md) for the plugin's history.
-
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
+## History
+See [CHANGELOG](CHANGELOG.md) for the plugin's history.
