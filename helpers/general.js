@@ -396,7 +396,7 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
  * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
  * @param {string} wantedParam - the name of the parameter to get (e.g. 'template')
  * @param {any} defaultValue - default value to use if parameter not found
- * @returns {string} the value of the desired parameter if found (e.g. 'FOO'), or defaultValue if it isn't
+ * @returns {any} the value of the desired parameter if found (e.g. 'FOO'), or defaultValue if it isn't
  */
 export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: any): any {
   // log('general/getTagParamsFromString', `for '${wantedParam}' in '${paramString}'`)
