@@ -8,12 +8,13 @@ TODO: add back button to return to previous step (@qualitativeeasing)
 TODO: maybe create choosers based on arguments text
 */
 
-import { log, logError, JSP } from '../../helpers/dev'
+import { log, logError, logDebug, JSP } from '../../helpers/dev'
 import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl, createRunPluginCallbackUrl } from '../../helpers/general'
 import pluginJson from '../plugin.json'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPDev'
 import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput, getInputTrimmed } from '@helpers/userInput'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
+import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import NPTemplating from 'NPTemplating'
 
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
@@ -206,6 +207,10 @@ export async function runShortcut(): Promise<string> {
   return ''
 }
 
+/**
+ * Get link to the current line's heading
+ * @returns {string} the url - returns it and also puts it on the clipboard
+ */
 export async function getHeadingLink(): Promise<string> {
   const selectedPara = await getSelectedParagraph()
   if (selectedPara && selectedPara?.note?.title !== null) {
@@ -216,6 +221,31 @@ export async function getHeadingLink(): Promise<string> {
     const url = createOpenOrDeleteNoteCallbackUrl(selectedPara.note.title, 'title', heading) || ''
     Clipboard.string = url
     await showMessage(`Link to this note and heading "${heading}" copied to clipboard`)
+    return url
+  } else {
+    await showMessage(`Paragraph info could not be ascertained`)
+  }
+  return ''
+}
+
+/**
+ * Get link to the current line
+ * Plugin entrypoint for the "/Get Link to Line" command
+ * @returns {string} the url - returns it and also puts it on the clipboard
+ */
+export async function lineLink(): Promise<string> {
+  const selectedPara = await getSelectedParagraph()
+  if (selectedPara && selectedPara?.note?.title !== null) {
+    // if a heading is selected, use that. otherwise look for the heading this note is in
+    Editor.addBlockID(selectedPara)
+    Editor.updateParagraph(selectedPara)
+    const revisedPara = Editor.paragraphs[selectedPara.lineIndex]
+    let url = ''
+    if (revisedPara.note?.title && revisedPara.blockId) {
+      url = createOpenOrDeleteNoteCallbackUrl(revisedPara.note.title, 'title', null, null, false, revisedPara.blockId)
+    }
+    logDebug(pluginJson, `lineLink url=${url}`)
+    Clipboard.string = url
     return url
   } else {
     await showMessage(`Paragraph info could not be ascertained`)

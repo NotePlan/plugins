@@ -153,9 +153,11 @@ export function rangeToString(r: TRange): string {
  * @return {string}
  */
 export function displayTitle(n: ?CoreNoteFields): string {
-  return (!n) ? '(error)'
-    : (n.type === 'Calendar') ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-      : n.title ?? '(error)'
+  return !n
+    ? '(error)'
+    : n.type === 'Calendar'
+    ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
+    : n.title ?? '(error)'
 }
 
 /**
@@ -189,26 +191,47 @@ export function returnNoteLink(noteTitle: string, heading: string | null = ''): 
  * @param {string | null} heading - heading inside of note (optional)
  * @param {string} openType - 'subWindow' | 'splitView' | 'useExistingSubWindow' (default: null)
  * @param {boolean} isDeleteNote - whether this is actually a deleteNote
+ * @param {string} blockID - the blockID if this is a line link (includes the ^) -- only works with title (not filename)
  * @returns {string} the x-callback-url string
  * @tests available
  */
+// createOpenOrDeleteNoteCallbackUrl('theTitle', 'title', 'heading', 'openType', 'isDeleteNote')
 export function createOpenOrDeleteNoteCallbackUrl(
   titleOrFilename: string,
   paramType: 'title' | 'filename' | 'date' = 'title',
-  heading: string | null = null,
+  heading: string | null = '',
   openType: 'subWindow' | 'splitView' | 'useExistingSubWindow' | null = null,
   isDeleteNote: boolean = false,
+  blockID: string = '',
 ): string {
+  const encodePlusParens = (s: string): string => encodeURIComponent(s).replace(/\(/g, '%28').replace(/\)/g, '%29')
   const isFilename = paramType === 'filename'
-  const paramStr = isFilename ? `filename` : paramType === 'date' ? `noteDate` : `noteTitle`
+  const isLineLink = blockID.length > 0
+  const paramStr = isLineLink ? 'noteTitle' : isFilename ? `filename` : paramType === 'date' ? `noteDate` : `noteTitle`
   const xcb = `noteplan://x-callback-url/${isDeleteNote ? 'deleteNote' : 'openNote'}?${paramStr}=`
-  // FIXME: this is working around an API bug that does not allow heading references in filename xcallbacks
-  // When @eduard fixes it, this line can be removed
-  const head = paramType === 'title' && heading?.length ? encodeURIComponent(heading) : ''
+  const head = heading && heading.length ? encodePlusParens(heading.replace('#', '')) : ''
   // console.log(`createOpenOrDeleteNoteCallbackUrl: ${xcb}${titleOrFilename}${head ? `&heading=${head}` : ''}`)
-  const encoded = encodeURIComponent(titleOrFilename).replace(/\(/g, '%28').replace(/\)/g, '%29')
+  const encodedTitleOrFilename = encodePlusParens(titleOrFilename)
   const openAs = openType && ['subWindow', 'splitView', 'useExistingSubWindow'].includes(openType) ? `&${openType}=yes` : ''
-  return `${xcb}${encoded}${head && head ? `#${head}` : ''}${openAs}`
+  let retVal = ''
+  if (isLineLink) {
+    retVal = `${xcb}${encodedTitleOrFilename}${encodeURIComponent(blockID)}`
+  } else {
+    if (heading?.length) {
+      if (isFilename) {
+        retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `&heading=${head}` : ''}${openAs}`
+      } else {
+        retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `%23${head}` : ''}${openAs}`
+      }
+    } else {
+      if (isLineLink) {
+        retVal = `${xcb}${encodedTitleOrFilename}${head.length ? `&line=${head}` : ''}${openAs}`
+      } else {
+        retVal = `${xcb}${encodedTitleOrFilename}${openAs}`
+      }
+    }
+  }
+  return retVal
 }
 
 /**

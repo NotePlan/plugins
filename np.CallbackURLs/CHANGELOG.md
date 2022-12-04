@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.2.0] - 2022-12-04 (@dwertheimer)
+
+- Added links to lines 
+- Updated the way hashtags in titles are encoded (which changed in NotePlan) -- strip out hashtags in headings
+
 ## [1.1.2] - 2022-10-02 (@dwertheimer)
 
 - Renamed plugin to Link Creator

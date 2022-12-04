@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "np.CallbackURLs",
   "plugin.name": "🧩 Link Creator",
-  "plugin.version": "1.1.2",
-  "plugin.lastUpdateInfo": "1.1.2: Rename plugin to Link Creator",
+  "plugin.version": "1.2.0",
+  "plugin.lastUpdateInfo": "1.2.0: Added links to lines and updated the way hashtags in titles are encoded (which changed in NotePlan).",
   "plugin.description": "Interactively helps you form links/x-callback-urls (and also Template Tags with runPlugin commands) to perform actions from within NotePlan or between other applications and NotePlan.",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -27,6 +27,14 @@
       "jsFunction": "headingLink",
       "alias": [
         "headinglink","notelink"
+      ]
+    },
+    {
+      "name": "Create Link to Current Line",
+      "description": "External link to open note to this line",
+      "jsFunction": "lineLink",
+      "alias": [
+        "lineLink"
       ]
     }
   ],

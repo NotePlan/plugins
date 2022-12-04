@@ -1,7 +1,7 @@
 // @flow
 // Development-related helper functions
 
-import { get, isUndefined, entries, keys, has, isEqual, isObjectLike } from 'lodash-es'
+// import { get, isUndefined, entries, keys, has, isEqual, isObjectLike } from 'lodash-es'
 
 /**
  * Returns ISO formatted date time
@@ -426,40 +426,41 @@ export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJ
  * @param  {Object} toObject   the updated object
  * @return {Object}            a new object which represents the diff
  */
-export function deepDiff(fromObject: any, toObject: any): any {
-  const changes = {}
+// COMMENTING OUT BECAUSE THE IMPORTS OF LODASH-ES ARE FAILING
+// export function deepDiff(fromObject: any, toObject: any): any {
+//   const changes = {}
 
-  const buildPath = (path, key) => (isUndefined(path) ? key : `${String(path)}.${key}`)
+//   const buildPath = (path, key) => (isUndefined(path) ? key : `${String(path)}.${key}`)
 
-  const walk = (fromObject, toObject, path) => {
-    for (const key of keys(fromObject)) {
-      const currentPath = buildPath(path, key)
-      if (!has(toObject, key)) {
-        changes[currentPath] = { from: get(fromObject, key) }
-      }
-    }
+//   const walk = (fromObject, toObject, path) => {
+//     for (const key of keys(fromObject)) {
+//       const currentPath = buildPath(path, key)
+//       if (!has(toObject, key)) {
+//         changes[currentPath] = { from: get(fromObject, key) }
+//       }
+//     }
 
-    for (const [key, to] of entries(toObject)) {
-      const currentPath = buildPath(path, key)
-      if (!has(fromObject, key)) {
-        changes[currentPath] = { to }
-      } else {
-        const from = get(fromObject, key)
-        if (!isEqual(from, to)) {
-          if (isObjectLike(to) && isObjectLike(from)) {
-            walk(from, to, currentPath)
-          } else {
-            changes[currentPath] = { from, to }
-          }
-        }
-      }
-    }
-  }
+//     for (const [key, to] of entries(toObject)) {
+//       const currentPath = buildPath(path, key)
+//       if (!has(fromObject, key)) {
+//         changes[currentPath] = { to }
+//       } else {
+//         const from = get(fromObject, key)
+//         if (!isEqual(from, to)) {
+//           if (isObjectLike(to) && isObjectLike(from)) {
+//             walk(from, to, currentPath)
+//           } else {
+//             changes[currentPath] = { from, to }
+//           }
+//         }
+//       }
+//     }
+//   }
 
-  walk(fromObject, toObject)
+//   walk(fromObject, toObject)
 
-  return changes
-}
+//   return changes
+// }
 
 // mom I'm on lodash
 // mixin({ deepDiff })

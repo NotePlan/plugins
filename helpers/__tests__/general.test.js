@@ -53,7 +53,17 @@ describe(`${FILE}`, () => {
   describe(section('createOpenOrDeleteNoteCallbackUrl()'), () => {
     describe('using noteTitle', () => {
       test('should create a link with a heading', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', 'bar')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo#bar')
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', 'bar')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo%23bar')
+      })
+      test('should create a link with a heading and a hashtag in the heading', () => {
+        expect(g.createOpenOrDeleteNoteCallbackUrl('TEST Headings', 'title', 'DoSome#HealthyHabits')).toEqual(
+          'noteplan://x-callback-url/openNote?noteTitle=TEST%20Headings%23DoSomeHealthyHabits',
+        )
+      })
+      test('should create a link with a heading with parens in it', () => {
+        expect(g.createOpenOrDeleteNoteCallbackUrl('TEST Headings', 'title', 'title (with parens)')).toEqual(
+          'noteplan://x-callback-url/openNote?noteTitle=TEST%20Headings%23title%20%28with%20parens%29',
+        )
       })
       test('should create a link if heading is missing', () => {
         expect(g.createOpenOrDeleteNoteCallbackUrl('foo')).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo')
@@ -70,16 +80,16 @@ describe(`${FILE}`, () => {
       // re-enable this test when @eduard fixes API bug
       // should also add a test for a filename with parentheses
       test('should create a link with filename with parentheses', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo/bar(xx)', 'filename', 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo%2Fbar%28xx%29')
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo/bar(xx)', 'filename')).toEqual('noteplan://x-callback-url/openNote?filename=foo%2Fbar%28xx%29')
       })
       test('should create a urlencoded link for spaces', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo bar', 'filename', 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo%20bar')
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo bar', 'filename')).toEqual('noteplan://x-callback-url/openNote?filename=foo%20bar')
       })
-      test.skip('should create a link with a heading', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo#bar')
+      test('should create a link with a heading', () => {
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo&heading=bar')
       })
-      test('should create a link stripping the heading for the API bug workaround', () => {
-        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo')
+      test('should create a link with a heading', () => {
+        expect(g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar')).toEqual('noteplan://x-callback-url/openNote?filename=foo&heading=bar')
       })
     })
     describe('using date', () => {
@@ -90,19 +100,30 @@ describe(`${FILE}`, () => {
     describe('using openTypes', () => {
       test('should create a link in a floating window', () => {
         const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar', 'subWindow')
-        expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&subWindow=yes')
+        expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&heading=bar&subWindow=yes')
       })
       test('should create a link in an existing floating window', () => {
-        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar', 'useExistingSubWindow')
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', '', 'useExistingSubWindow')
         expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&useExistingSubWindow=yes')
       })
       test('should create a link in split view', () => {
-        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar', 'splitView')
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', null, 'splitView')
         expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&splitView=yes')
       })
       test('should ignore illegal openType', () => {
-        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', 'bar', 'baz')
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', '', 'baz')
         expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo')
+      })
+    })
+    describe('using blockID (for line link)', () => {
+      test('should create a link with a blockID and title', () => {
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'title', null, null, false, '^1234')
+        expect(res).toEqual('noteplan://x-callback-url/openNote?noteTitle=foo%5E1234')
+      })
+      // blockid by filename is not supported by NotePlan yet
+      test.skip('should create a link with a blockID and filename', () => {
+        const res = g.createOpenOrDeleteNoteCallbackUrl('foo', 'filename', null, false, '^1234')
+        expect(res).toEqual('noteplan://x-callback-url/openNote?filename=foo&blockID=%5E1234')
       })
     })
   })
@@ -117,8 +138,11 @@ describe(`${FILE}`, () => {
       expect(g.createRunPluginCallbackUrl(`jgclark.SearchExtensions`, `saveSearch`, ['search terms', 'Notes'])).toEqual(expected)
     })
     test('should create a link with 3 args passed as JSON string', () => {
-      const expected = 'noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=insertProgressUpdate&arg0=%7B%22excludeToday%22%3Afalse%2C%22progressHeading%22%3A%22Test%20Heading%22%2C%22progressYesNo%22%3A%22%23readbook%2C%23theology%22%7D'
-      expect(g.createRunPluginCallbackUrl(`jgclark.Summaries`, `insertProgressUpdate`, `{"excludeToday":false,"progressHeading":"Test Heading","progressYesNo":"#readbook,#theology"}`)).toEqual(expected)
+      const expected =
+        'noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=insertProgressUpdate&arg0=%7B%22excludeToday%22%3Afalse%2C%22progressHeading%22%3A%22Test%20Heading%22%2C%22progressYesNo%22%3A%22%23readbook%2C%23theology%22%7D'
+      expect(
+        g.createRunPluginCallbackUrl(`jgclark.Summaries`, `insertProgressUpdate`, `{"excludeToday":false,"progressHeading":"Test Heading","progressYesNo":"#readbook,#theology"}`),
+      ).toEqual(expected)
     })
   })
 
@@ -139,7 +163,7 @@ describe(`${FILE}`, () => {
     describe('using noteTitle', () => {
       const xcb = `noteplan://x-callback-url/openNote?noteTitle=`
       test('should create a link with a heading', () => {
-        expect(g.createPrettyOpenNoteLink('baz', 'foo', false, 'bar')).toEqual(`[baz](${xcb}foo#bar)`)
+        expect(g.createPrettyOpenNoteLink('baz', 'foo', false, 'bar')).toEqual(`[baz](${xcb}foo%23bar)`)
       })
       test('should create a link if heading is missing', () => {
         expect(g.createPrettyOpenNoteLink('baz', 'foo')).toEqual(`[baz](${xcb}foo)`)
@@ -152,8 +176,8 @@ describe(`${FILE}`, () => {
       // Note the following is the proper test for how it should work for filename with a heading
       // re-enable this test when @eduard fixes API bug
 
-      test.skip('should create a link with a heading', () => {
-        expect(g.createPrettyOpenNoteLink('baz', 'foo', true, 'bar')).toEqual('[baz](noteplan://x-callback-url/openNote?filename=foo#bar)')
+      test('should create a link with a heading', () => {
+        expect(g.createPrettyOpenNoteLink('baz', 'foo', true, 'bar')).toEqual('[baz](noteplan://x-callback-url/openNote?filename=foo&heading=bar)')
       })
     })
     describe(section('stripLinkFromString()'), () => {
@@ -242,7 +266,9 @@ describe(`${FILE}`, () => {
       })
       test('should create urlencoded callback with more than one param passed as string', () => {
         const result = g.createCallbackUrl('text', `{"excludeToday":false,"progressHeading":"Test Heading","progressYesNo":"#readbook,#theology"}`)
-        expect(result).toEqual(`${base}text?arg0=%7B%22excludeToday%22%3Afalse%2C%22progressHeading%22%3A%22Test%20Heading%22%2C%22progressYesNo%22%3A%22%23readbook%2C%23theology%22%7D`)
+        expect(result).toEqual(
+          `${base}text?arg0=%7B%22excludeToday%22%3Afalse%2C%22progressHeading%22%3A%22Test%20Heading%22%2C%22progressYesNo%22%3A%22%23readbook%2C%23theology%22%7D`,
+        )
       })
     })
     /*
