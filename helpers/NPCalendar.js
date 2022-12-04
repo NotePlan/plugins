@@ -321,10 +321,10 @@ async function createEventFromDateRange(eventTitle: string, dateRange: DateRange
  * @author @jgclark
  *
  * @param {string} dateStr YYYYMMDD date to use
- * @param {[string]} calendarSet optional list of calendars
+ * @param {Array<string>} calendarSet optional list of calendars
  * @param {HourMinObj} start optional start time in the day
  * @param {HourMinObj} end optional end time in the day
- * @return {[TCalendarItem]} array of events as CalendarItems
+ * @return {Array<TCalendarItem>} array of events as CalendarItems
  */
 export async function getEventsForDay(
   dateStr: string,
@@ -332,23 +332,31 @@ export async function getEventsForDay(
   start: HourMinObj = { h: 0, m: 0 },
   end: HourMinObj = { h: 23, m: 59 },
 ): Promise<Array<TCalendarItem>> {
-  const y = parseInt(dateStr.slice(0, 4))
-  const m = parseInt(dateStr.slice(4, 6))
-  const d = parseInt(dateStr.slice(6, 8))
-  const startOfDay = Calendar.dateFrom(y, m, d, start.h, start.m, 0)
-  const endOfDay = Calendar.dateFrom(y, m, d, end.h, end.m, 59)
-  // log('NPCalendar / getEventsForDay', `getEventsForDay: ${startOfDay.toString()} - ${endOfDay.toString()}`)
-  let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(startOfDay, endOfDay)
-  // log('NPCalendar / getEventsForDay', `\tretrieved ${eArr.length} events from NP Calendar store`)
+  try {
+    // logDebug('NPCalendar / getEventsForDay', `starting with ${dateStr} ${calendarSet.toString()}`)
+    clo(calendarSet)
+    const y = parseInt(dateStr.slice(0, 4))
+    const m = parseInt(dateStr.slice(4, 6))
+    const d = parseInt(dateStr.slice(6, 8))
+    const startOfDay = Calendar.dateFrom(y, m, d, start.h, start.m, 0)
+    const endOfDay = Calendar.dateFrom(y, m, d, end.h, end.m, 59)
+    // logDebug('NPCalendar / getEventsForDay', `starting for period ${startOfDay.toString()} - ${endOfDay.toString()}`)
+    let eArr: Array<TCalendarItem> = await Calendar.eventsBetween(startOfDay, endOfDay)
+    const allEventCount = eArr.length
 
-  // Filter out parts of multi-day events not in today
-  eArr = keepTodayPortionOnly(eArr, getDateFromUnhyphenatedDateString(dateStr) ?? new Date())
+    // Filter out parts of multi-day events not in today
+    eArr = keepTodayPortionOnly(eArr, getDateFromUnhyphenatedDateString(dateStr) ?? new Date())
 
-  // If we have a calendarSet list, use to weed out events that don't match .calendar
-  if (calendarSet.length > 0) {
-    // const filteredEventArray = calendarSet.slice().filter(c => eArr.some(e => e.calendar === c))
-    eArr = eArr.filter((e) => calendarSet.some((c) => e.calendar === c))
-    logDebug('NPCalendar / getEventsForDay', `- ${eArr.length} Events kept for ${dateStr} after filtering with ${calendarSet.toString()}`)
+    // If we have a calendarSet list, use to weed out events that don't match .calendar
+    if (calendarSet && calendarSet.length > 0) {
+      eArr = eArr.filter((e) => calendarSet.some((c) => e.calendar === c))
+      logDebug('NPCalendar / getEventsForDay', `- ${eArr.length} of ${allEventCount} Events kept for ${dateStr} after filtering with ${String(calendarSet)}`)
+    } else {
+      logDebug('NPCalendar / getEventsForDay', `- ${eArr.length} Events returned for ${dateStr}`)
+    }
+    return eArr
   }
-  return eArr
+  catch (error) {
+    logError('NPCalendar / getEventsForDay', error.message)
+  }
 }
