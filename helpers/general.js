@@ -521,3 +521,13 @@ export function CreateUUID(howManyChars: number = 37): string {
     })
     .slice(0, howManyChars)
 }
+
+/**
+ * Escape a string for use in a regex (call this before sending a string you don't know to RegExp)
+ * You can send it any type of variable. Will escape a string and otherwise send back what you sent
+ * @param {string} string
+ * @returns {string} escaped string
+ */
+export function escapeRegex(str: any): any {
+  return typeof str === 'string' ? str.replace(/[/-\^$*+?.()|[]{}]/g, '$&') : str
+}

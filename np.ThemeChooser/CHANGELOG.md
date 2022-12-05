@@ -1,5 +1,9 @@
 # np.ThemeChooser Changelog
 
+## [1.5.x] 2022-11-29 @dwertheimer
+
+- Add /Customize Themes
+
 ## [1.4.0] 2022-09-15 @dwertheimer
 
 - Allow users to change the name of the command
@@ -19,7 +23,7 @@
 
 - Save preferences so that your settings get restored when plugin gets refreshed
 
-# [1.1.1] 2022-06-24 @dwertheimer
+## [1.1.1] 2022-06-24 @dwertheimer
 
 ## Features
 
@@ -30,7 +34,7 @@
 - Added note to prefs/settings telling you how to set the presets - thanks @docjulien for the suggestion
 - Hide the presets that have not been set yet (reduce clutter)
 
-# [1.0.0] 2022-06-23 @dwertheimer
+## [1.0.0] 2022-06-23 @dwertheimer
 
 - Initial release with commands:
   - `/Choose Theme`

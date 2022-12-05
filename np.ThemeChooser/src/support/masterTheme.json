@@ -1,171 +1,450 @@
 {
-  "name": "Panda-dbw",
-  "style": "Light",
+  "_NOTE": "Assumes every legal NP field value is at least listed here",
+  "_NOT2": "Custom styles of course can be added to user themes",
+  "name": "ThemeChooserMasterTheme",
+  "name_info": {
+    "description": "The name used for this theme wherever themes will be selected"
+  },
+  "style": "Dark",
+  "style_info": {
+    "description": "Style/mode of the current theme: dark or light. This field is just for your reference, becuase you can set a light theme as your default dark theme or vice versa, so this field doesn't matter much."
+  },
   "author": {
-    "name": "Panda",
-    "email": "hello@noteplan.co"
+    "name": "Jonathan Clark++"
   },
   "editor": {
-    "backgroundColor": "#ffffff",
-    "altBackgrounfdColor": "#FAFFFF",
-    "tintColor": "#aaaaaa",
-    "tintColor2": "#DD4C4F",
-    "textColor": "#333333",
-    "toolbarBackgroundColor": "#F3F5F7",
-    "toolbarIconColor": "#dd4c4f",
-    "menuItemColor": "#dd4c4f",
-    "shouldOverwriteFont": false,
-    "timeBlockColor": "#d87001"
-  },
-  "styles": {
-    "foosball": {
-      "yo":"true"
+    "backgroundColor": "#1D1E1F",
+    "backgroundColor_info": {
+      "description": "Background color of the editor",
+      "type": "color"
     },
+    "altBackgroundColor": "#2E2F30",
+    "altBackgroundColor_info": {
+      "description": "Used mostly on iOS for sidebar, preferences, and the weekend days (thx @orionp). On Mac, used in @jgclark HTML previews",
+      "type": "color"
+    },
+    "toolbarBackgroundColor": "#2E2F30",
+    "toolbarBackgroundColor_info": {
+      "description": "Background color of the new event/reminder popup, Line separator under the references area, Hover over the buttons on the top and the dates",
+      "type": "color"
+    },
+    "tintColor": "#E9C0A2",
+    "tintColor_info": {
+      "description": "Color of cursor and all links (note links, URLs, hashtags, mentions, phone numbers, etc.",
+      "example": "\tExample: @jgclark or #hashtag or https://www.google.com"
+    },
+    "tintColor2": "#73B3C0",
+    "tintColor2_info": {
+      "description": "Color of the overlay for the selected date in the calendar",
+      "type": "color"
+    },
+    "textColor": "#DAE3E8",
+    "textColor_info": {
+      "description": "Text color of Foldername on the top left, Settings: on the top right, Calendar Dates, Calendar Times, File Icons in the folder tree"
+    },
+    "toolbarIconColor": "#c5c5c0",
+    "toolbarIconColor_info": {
+      "description": "Icons of the iPhone toolbar while editing a note"
+    },
+    "menuItemColor": "#c5c5c0",
+    "menuItemColor_info": {
+      "description": "Color of icons, month and year on the top in the iPhone app. Date and icons under the calendar (on top of the note of the selected day)"
+    },
+    "timeBlockColor": "#E9C062",
+    "timeBlockColor_info": {
+      "description": "Color of a time block rendered in the calendar (when you are in daily notes)"
+    },
+    "shouldOverwriteFont": false,
+    "shouldOverwriteFont_info": {
+      "description": "Preference settings should overwrite the font of the editor specified in the theme file. True by default, Select False if you want the font in your theme file to be used regardless of what the NotePlan user preferences say.",
+      "type": "boolean"
+    }
+  },
+  "__orderedStyles": [
+    "title-mark1",
+    "title-mark2",
+    "title-mark3",
+    "body",
+    "quote-content",
+    "bold",
+    "bold-left-mark",
+    "bold-right-mark",
+    "italic",
+    "italic-left-mark",
+    "italic-right-mark",
+    "boldItalic",
+    "boldItalic-left-mark",
+    "boldItalic-right-mark",
+    "code",
+    "code-left-backtick",
+    "code-right-backtick",
+    "special-char",
+    "checked-todo-characters",
+    "todo",
+    "checked",
+    "quote-mark",
+    "tabbed",
+    "NoteLinks-main",
+    "link",
+    "hashtag",
+    "attag",
+    "schedule-to-date-link",
+    "done-date",
+    "schedule-from-date-link",
+    "title1",
+    "title2",
+    "title3",
+    "note-title-link"
+  ],
+  "styles": {
     "body": {
-      "description": "The font size and color for body text",
+      "color": "#DAE3E8",
       "font": "AvenirNext-Regular",
-      "size": 16,
-      "color": "#444444"
+      "lineSpacing": 0.8,
+      "lineSpacing_info": {
+        "description": "The amount of space between lines of text. 1.0 is the default, 0.8 is a little less space, 1.2 is a little more space. Make sure to set the 'tabbed' (indented) settings to match what you set here."
+      },
+      "paragraphSpacing": 8,
+      "paragraphSpacing_info": {
+        "description": "The amount of space beneath the heading (in points), e.g. 8. Make sure to set the 'tabbed' (indented) settings to match what you set here."
+      },
+      "paragraphSpacingBefore": 0,
+      "paragraphSpacingBefore_info": {
+        "description": "The amount of space above the heading (in points), e.g. 0. Make sure to set the 'tabbed' (indented) settings to match what you set here."
+      },
+      "size": 18,
+      "size_info": {
+        "description": "The size of the font, e.g. 18 points"
+      }
+    },
+    "body_info": {
+      "description": "The default styles for the base body text of the note. Note: font info is controlled through the app preferences and overrides settings here in the theme (unless you set editor.shouldOverwriteFont to false).",
+      "example": "\tExample: Some basic text here"
     },
     "title1": {
-      "font": "AvenirNext-DemiBold",
-      "color": "#000000",
-      "size": 28
+      "color": "#B74746",
+      "_color": "#CC6666",
+      "size": 24,
+      "font": "AvenirNext-Bold"
+    },
+    "title1_info": {
+      "description": "The text properties associated with a title (EXCEPT FOR THE SPACING) can be set in these `titleX` settings. title1 is for a first level (# Heading), title2 is for a second level (## Heading), etc. If you want to change the paragraphSpacing, lineSpacing or, paragraphSpacingBefore for the titles, you need to add the attributes to the corresponding 'title-markX' keys instead of 'titleX' keys",
+      "example": "# Example Heading 1"
     },
     "title2": {
-      "font": "AvenirNext-DemiBold",
-      "color": "#000000",
-      "size": 24
-    },
-    "title3": {
-      "font": "AvenirNext-DemiBold",
-      "color": "#000000",
-      "size": 20
-    },
-    "title4": {
-      "regex": "^\\h*(####+ )(.*)",
-      "matchPosition": 2,
-      "isRevealOnCursorRange": true,
-      "color": "#F0A759",
-      "size": 18,
-      "underlineStyle": 1
-    },
-    "title-mark1": {
-      "color": "#40000000",
-      "size": 28,
-      "font": "AvenirNext-DemiBold"
-    },
-    "title-mark2": {
-      "color": "#40000000",
+      "color": "#E9C062",
       "size": 24,
       "font": "AvenirNext-DemiBold"
     },
-    "title-mark3": {
-      "color": "#40000000",
+    "title2_info": {
+      "example": "## Example Heading 2"
+    },
+    "title3": {
+      "color": "#E9C062",
       "size": 20,
       "font": "AvenirNext-DemiBold"
     },
-    "bold": {
+    "title3_info": {
+      "example": "### Example Heading 3"
+    },
+    "title4": {
+      "color": "#E9C062",
+      "size": 18,
+      "font": "AvenirNext-DemiBold"
+    },
+    "title4_info": {
+      "example": "#### Example Heading 4"
+    },
+    "title-mark1": {
+      "color": "#66DAE3E8",
+      "size": 24,
+      "paragraphSpacingBefore": 16,
+      "paragraphSpacing": 3,
+      "font": "AvenirNext-DemiBold"
+    },
+    "title-mark1_info": {
+      "description": "The MARKkdown characters in front of a title (e.g. ###) can be styled with these settings. In fact If you want to add spacing, you need to add it to the *markN properties, i.e. the markdown, because they come before the title"
+    },
+    "title-mark2": {
+      "color": "#66E9C062",
+      "size": 22,
       "font": "AvenirNext-DemiBold",
-      "size": 16
+      "paragraphSpacingBefore": 16,
+      "paragraphSpacing": 3
+    },
+    "title-mark3": {
+      "color": "#66E9C062",
+      "size": 18,
+      "font": "AvenirNext-DemiBold",
+      "paragraphSpacingBefore": 12,
+      "paragraphSpacing": 3
+    },
+    "title-mark4": {
+      "color": "#66E9C062",
+      "size": 16,
+      "font": "AvenirNext-DemiBold",
+      "paragraphSpacingBefore": 12,
+      "paragraphSpacing": 3
+    },
+    "title-in-frontmatter": {
+      "regex": "^[tT]itle:\\s+(.*)",
+      "matchPosition": 1,
+      "color": "#B74746",
+      "_color": "#CC6666",
+      "size": 24,
+      "font": "AvenirNext-Bold"
+    },
+    "bold": {
+      "color": "#B74746",
+      "_color": "#CC6666",
+      "font": "AvenirNext-Bold"
+    },
+    "bold_info": {
+      "description": "The default styles for bold text. Note: font info is controlled through the app preferences and overrides some settings here in the theme (unless you set editor.shouldOverwriteFont to false). You can set the colors of the bold left and right markers below for when they show. All of this applies to 'italic' and 'boldItalic' as well.",
+      "example": "\tExample: **Some bold text here**"
     },
     "bold-left-mark": {
-      "color": "#40000000"
+      "color": "#66CC6666"
     },
     "bold-right-mark": {
-      "color": "#40000000"
+      "color": "#66CC6666"
     },
     "italic": {
-      "font": "AvenirNext-Italic",
-      "size": 16
+      "color": "#9B4241",
+      "_color": "#CC6666",
+      "font": "AvenirNext-Italic"
     },
     "italic-left-mark": {
-      "color": "#40000000"
+      "color": "#6696CBFE"
     },
     "italic-right-mark": {
-      "color": "#40000000"
+      "color": "#6696CBFE"
     },
     "boldItalic": {
-      "font": "AvenirNext-BoldItalic",
-      "size": 16
+      "color": "#B74746",
+      "_color": "#CC6666",
+      "font": "AvenirNext-BoldItalic"
     },
     "boldItalic-left-mark": {
-      "color": "#40000000"
+      "color": "#66CC6666"
     },
     "boldItalic-right-mark": {
-      "color": "#40000000"
-    },
-    "code": {
-      "font": "Menlo-Regular",
-      "backgroundColor": "#F3F5F7",
-      "size": 15
-    },
-    "code-left-backtick": {
-      "color": "#009155"
-    },
-    "code-right-backtick": {
-      "color": "#009155"
-    },
-    "checked": {
-      "regex": "(^\\h*[\\*\\-]{1} |^\\h*[0-9]+[\\.\\)] )(\\[x\\] )(.*)",
-      "color": "#ddd00",
-      "matchPosition": 0,
-      "headIndent": 33
+      "color": "#66CC6666"
     },
     "todo": {
       "font": "noteplanstate",
-      "color": "#DD4C4F",
+      "color": "#B74746",
+      "color_info": {
+        "description": "Color of the circle in front of a todo, bullet item or numbered item.",
+        "type": "color",
+        "example": "\t- [ ] This is a todo item (look at the circle color)\n\t- here's a bullet"
+      },
       "headIndent": 33,
-      "size": 16
+      "headIndent_info": {
+        "description": "Defines the indentation of the first line vs the other lines inside a paragraph. Example:",
+        "example": "\t- [ ] There is a difference between the lines if the line is a task for example. In case of a task, there is a task icon in the first line and it shouldn’t indent along with the text, that’s what headIndent is achieving."
+      },
+      "size": 16,
+      "lineSpacing": 0.90,
+      "paragraphSpacing": 4
+    },
+    "todo_info": {
+      "description": "Tasks and bullets are both styled by the 'todo' key. There is no separation because the preferences determine what a task is and what a bullet is. For example, * task is by default a task, but if you turn it off in the preferences, it becomes a bullet and - task can be a task or the standard markdown: - [ ] task"
+    },
+    "checked": {
+      "regex": "(^\\h*[\\*\\-]{1} |^\\h*[0-9]+[\\.\\)] )(\\[x\\]).*",
+      "color": "#D0098308",
+      "_color": "#9DC777",
+      "matchPosition": 2,
+      "headIndent": 33,
+      "lineSpacing": 0.90,
+      "paragraphSpacing": 4,
+      "strikethroughStyle": 1
+    },
+    "checked_info": {
+      "description": "The style for a checked/completed task. strikeThrough style can be 0=off or various values. See the Theme Documentation for more info on these values.",
+      "example": "\t- [x] This is a checked task"
     },
     "checked-todo-characters": {
       "font": "noteplanstate",
       "headIndent": 33,
-      "color": "#DD97B863",
       "size": 16
+    },
+    "checked-todo-characters_info": {
+      "description": "Font and size of checked tasks (including the icon)."
+    },
+    "checked-canceled": {
+      "regex": "(^\\h*[\\*\\-]{1} |^\\h*[0-9]+[\\.\\)] )(\\[\\-\\] ).*",
+      "matchPosition": 0,
+      "color": "#A0E04F57",
+      "_color": "#AD6777",
+      "headIndent": 33,
+      "strikethroughStyle": 1,
+      "lineSpacing": 0.90,
+      "paragraphSpacing": 4
+    },
+    "checked-scheduled": {
+      "regex": "(^\\h*[\\*\\-]{1} |^\\h*[0-9]+[\\.\\)] )(\\[\\>\\] ).*",
+      "matchPosition": 0,
+      "color": "#A07B7C86",
+      "_color": "#AAAA99",
+      "headIndent": 33,
+      "lineSpacing": 0.90,
+      "paragraphSpacing": 4
     },
     "special-char": {
       "font": "Menlo-Regular"
     },
+    "special-char_info": {
+      "description": "The font for special characters like the bullet, task icon, etc. before styling. These settings should not be changed."
+    },
     "tabbed": {
-      "headIndent": 43
+      "headIndent": 43,
+      "paragraphSpacing": 8,
+      "paragraphSpacingBefore": 0,
+      "lineSpacing": 0.80
+    },
+    "tabbed_info": {
+      "description": "The indentation of a tabbed line. This is used for example for the task icon and the bullet icon."
     },
     "quote-mark": {
-      "color": "#e7eaec",
+      "color": "#9DC777",
       "font": "noteplanstate",
-      "headIndent": 50,
-      "size": 25,
-      "paragraphSpacing": 0,
-      "paragraphSpacingBefore": 0,
-      "lineSpacing": -3
+      "headIndent": 33,
+      "size": 16
+    },
+    "quote-mark_info": {
+      "description": "Quotes are created with the > character at the beginning of the line. A vertical bar on the left shows that this is a quote. The bar is styled by the 'quote-mark' key."
     },
     "quote-content": {
-      "color": "#333333",
+      "color": "#c5c5c0",
       "type": "italic",
-      "headIndent": 33
+      "headIndent": 33,
+      "lineSpacing": 0.90,
+      "paragraphSpacing": 4,
+      "paragraphSpacingBefore": 0
+    },
+    "quote-content_info": {
+      "description": "The content of a quote is styled by the 'quote-content' key. The color is set to a light gray by default. You can also set the type to 'italic' or 'bold' or 'boldItalic' if you want. The headIndent field will dictate how far over it gets indented. If the text wraps around to the second line, the headIndent field will dictate how far over it gets indented."
     },
     "link": {},
     "schedule-to-date-link": {},
-    "done-date": {},
+    "done-date": {
+      "color": "#656560"
+    },
     "schedule-from-date-link": {},
+    "note-title-link": {},
     "hashtag": {
-      "type": "",
-      "COMMENT": "Disabled link by setting hashtag to empty string"
+      "_color": "#E7C1C2",
+      "color": "#96CBFE",
+      "type": ""
+    },
+    "hashtag_info": {
+      "description": "Hashtags by default become links and are styled by the 'tintColor' key (what you set here won't matter). However if you set type to an empty string, it will not become a link and will be styled by this key."
     },
     "attag": {
-      "type": "",
-      "COMMENT": "Disabled link by setting hashtag to empty string"
+      "_color": "#E7C1C2",
+      "color": "#96CBFE",
+      "type": ""
     },
-    "phonenumber": {},
-    "highlighted": {
-      "regex": "(==)([^\\s].+)(==)",
-      "backgroundColor": "#55D2D21B",
+    "attag_info": {
+      "description": "@tags (aka 'mentions') by default become links and are styled by the 'tintColor' key (what you set here won't matter). However if you set type to an empty string, it will not become a link and will be styled by this key."
+    },
+    "phonenumber": {
+      "color": "#769EB3"
+    },
+    "NoteLinks-main": {
+      "regex": "(\\[\\[)(.*?)(\\]\\])",
+      "matchPosition": 2,
+      "color": "#C5487A",
+      "backgroundColor": "#22C5487A"
+    },
+    "NoteLinks-left-brackets": {
+      "regex": "(\\[\\[)(.*?)(\\]\\])",
+      "matchPosition": 1,
+      "color": " #C5487A",
+      "isMarkdownCharacter": true,
+      "isHiddenWithoutCursor": true,
+      "isRevealOnCursorRange": true
+    },
+    "NoteLinks-left-brackets_info": {
+      "description": "Use this (left) and the (right) setting to auto-hide the brackets around internal `[[note links]]`. For example:",
+      "example": "\t[[This is a NoteLink]]"
+    },
+    "NoteLinks-right-brackets": {
+      "regex": "(\\[\\[)(.*?)(\\]\\])",
+      "matchPosition": 3,
+      "color": " #C5487A",
+      "isMarkdownCharacter": true,
+      "isHiddenWithoutCursor": true,
+      "isRevealOnCursorRange": true
+    },
+    "URL-links-left-bracket": {
+      "regex": "(\\[)(.*?)(\\])(\\(.*\\))",
+      "matchPosition": 1,
+      "color": " #C5487A",
+      "isMarkdownCharacter": true,
+      "isHiddenWithoutCursor": true,
+      "isRevealOnCursorRange": true
+    },
+    "URL-links-left-bracket_info": {
+      "description": "Use this (left) and the (right) setting to auto-hide the brackets around URL-style `[URL links](url)`. For example:",
+      "example": "\t[You should see no square brackets around this link](noteplan://)"
+    },
+    "URL-links-right-bracket": {
+      "regex": "(\\[)(.*?)(\\])(\\(.*\\))",
+      "matchPosition": 3,
+      "color": " #C5487A",
+      "isMarkdownCharacter": true,
+      "isHiddenWithoutCursor": true,
+      "isRevealOnCursorRange": true
+    },
+    "NoteLinks-main-done": {
+      "regex": "(x\\[\\[)(.*?)(\\]\\])",
+      "matchPosition": 1,
+      "isMarkdownCharacter": true,
+      "isRevealOnCursorRange": true,
+      "font": "noteplanstate",
+      "color": "#97B853"
+    },
+    "NoteLinks-main-cancelled": {
+      "regex": "(-\\[\\[)(.*?)(\\]\\])",
+      "matchPosition": 1,
+      "isMarkdownCharacter": true,
+      "isRevealOnCursorRange": true,
+      "font": "noteplanstate",
+      "color": "#C5487A"
+    },
+    "attribute": {
+      "regex": "^([^:]{3,})(::)",
+      "_color": "#8B82C9",
+      "color": "#96CBFE",
+      "matchPosition": 1,
+      "lineSpacing": 0.90,
+      "paragraphSpacing": 4
+    },
+    "attribute-right-colons": {
+      "regex": "^([^:]{3,})(::)",
+      "_color": "#998B82C9",
+      "color": "#8B82C9",
+      "matchPosition": 2,
+      "isMarkdownCharacter": true,
+      "lineSpacing": 0.90,
+      "paragraphSpacing": 4
+    },
+    "highlighted-equals": {
+      "regex": "(==)([^\\s].+?)(==)",
+      "backgroundColor": "#66D2D21B",
       "order": 35,
       "matchPosition": 2,
       "isRevealOnCursorRange": true
     },
-    "highlighted-left-colon": {
-      "regex": "(==)([^\\s].+)(==)",
+    "highlighted-equals_info": {
+      "description": "Use this setting to highlight text with `==double equals==` (e.g. search results). Activate the two left/right sides below also.",
+      "example": "\t==This text is highlighted using double equals=="
+    },
+    "highlighted-left-equals": {
+      "regex": "(==)([^\\s].+?)(==)",
       "color": "#AA45A2E5",
       "backgroundColor": "#7745A2E5",
       "isMarkdownCharacter": true,
@@ -173,8 +452,8 @@
       "isRevealOnCursorRange": true,
       "matchPosition": 1
     },
-    "highlighted-right-colon": {
-      "regex": "(==)([^\\s].+)(==)",
+    "highlighted-right-equals": {
+      "regex": "(==)([^\\s].+?)(==)",
       "color": "#AA45A2E5",
       "backgroundColor": "#7745A2E5",
       "isMarkdownCharacter": true,
@@ -182,15 +461,46 @@
       "isRevealOnCursorRange": true,
       "matchPosition": 3
     },
-    "strikethrough": {
-      "regex": "(~~)([^~]{1,})(~~)",
+    "highlighted-colons": {
+      "regex": "(::)([^:]{1,})(::)",
       "matchPosition": 2,
-      "strikethroughStyle": 1,
-      "color": "#888888",
+      "isRevealOnCursorRange": true,
+      "backgroundColor": "#7745A2E5"
+    },
+    "highlighted-colons_info": {
+      "description": "Use this setting to highlight text with `::double colons::` (e.g. search results). Activate the two left/right sides below also.",
+      "example": "\t::This text is highlighted using double colons::"
+    },
+    "highlighted-left-colon": {
+      "regex": "(::)([^:]{1,})(::)",
+      "matchPosition": 1,
+      "isMarkdownCharacter": true,
+      "isHiddenWithoutCursor": true,
+      "isRevealOnCursorRange": true,
+      "color": "#AA45A2E5",
+      "backgroundColor": "#7745A2E5"
+    },
+    "highlighted-right-colon": {
+      "regex": "(::)([^:]{1,})(::)",
+      "matchPosition": 3,
+      "isMarkdownCharacter": true,
+      "isHiddenWithoutCursor": true,
+      "isRevealOnCursorRange": true,
+      "color": "#AA45A2E5",
+      "backgroundColor": "#7745A2E5"
+    },
+    "strikethrough": {
+      "regex": "(~~)([^~]+)(~~)",
+      "matchPosition": 2,
+      "strikethroughStyle": 2,
       "isRevealOnCursorRange": true
     },
+    "strikethrough_info": {
+      "description": "Use this setting to strikethrough text with `~~double tildes~~` Activate the two left/right sides below also.",
+      "example": "\t~~This text is strikethrough using double tildes~~"
+    },
     "strikethrough-left-tilde": {
-      "regex": "(~~)([^~]{1,})(~~)",
+      "regex": "(~~)([^~]+)(~~)",
       "matchPosition": 1,
       "isMarkdownCharacter": true,
       "isHiddenWithoutCursor": true,
@@ -198,160 +508,291 @@
       "isRevealOnCursorRange": true
     },
     "strikethrough-right-tilde": {
-      "regex": "(~~)([^~]{1,})(~~)",
+      "regex": "(~~)([^~]+)(~~)",
       "matchPosition": 3,
       "isMarkdownCharacter": true,
       "color": "#d9d9d9",
       "isHiddenWithoutCursor": true,
       "isRevealOnCursorRange": true
     },
-    "checked-override": {
-      "regex": "(^\\h*[\\*\\-]{1} |^\\h*[0-9]+[\\.\\)] )(\\[x\\] )(.*)",
-      "matchPosition": 0,
-      "backgroundColor": "#FFE5E5",
-      "color": "#CDC6C5",
-      "headIndent": 33,
-      "strikethroughStyle": 1
+    "deadline": {
+      "regex": "\\h+!(\\d{4}-\\d{2}-\\d{2})\\h*",
+      "matchPosition": 1,
+      "color": "#AA45A2E5"
     },
-
-    "checked-canceled": {
-      "regex": "(^\\h*[\\*\\-]{1} |^\\h*[0-9]+[\\.\\)] )(\\[\\-\\] )(.*)",
-      "matchPosition": 0,
-
-      "color": "#CDC6C5",
-      "headIndent": 33,
-      "strikethroughStyle": 1
+    "deadline_info": {
+      "description": "Use this setting to highlight dates with `!YYYY-MM-DD`",
+      "example": "\t!2021-01-01"
     },
-
-    "checked-scheduled": {
-      "regex": "(^\\h*[\\*\\-]{1} |^\\h*[0-9]+[\\.\\)] )(\\[\\>\\] )(.*)",
-      "matchPosition": 0,
-
-      "color": "#cccccc",
+    "flagged-1": {
+      "regex": "(^|\\v)\\h*(\\*|-)\\h*(\\[ \\]\\h+|\\h+)(\\!{1}\\h+.*)($|\\v)",
+      "matchPosition": 4,
+      "backgroundColor": "#A0718A"
+    },
+    "flagged-1_info": {
+      "description": "Use this setting to color/highlight flagged/priority 1 tasks with `* [ ] ! task`. The same applies to various levels below for !! and !!! etc. These 3 levels/styles require the ! to be at the front of the text separated by a space. If you want to use the ! anywhere in the text, use the `priority-any-number-of-!-flagged-anywhere` setting below instead of these three.",
+      "example": "\t* [ ] ! task with one flag"
+    },
+    "flagged-2": {
+      "regex": "(^|\\v)\\h*(\\*|-)\\h*(\\[ \\]\\h+|\\h+)(\\!{2}\\h+.*)($|\\v)",
+      "matchPosition": 4,
+      "backgroundColor": "#A0516A"
+    },
+    "flagged-3": {
+      "regex": "(^|\\v)\\h*(\\*|-)\\h*(\\[ \\]\\h+|\\h+)(\\!{3}\\h+.*)($|\\v)",
+      "matchPosition": 4,
+      "backgroundColor": "#A0314A"
+    },
+    "priority-any-number-of-!-flagged-anywhere": {
+      "regex": "(^|\\v)\\h*(\\*|-)\\h*(\\[ \\]\\h+|\\h+)(.*!{1,}.*)($|\\v)",
+      "matchPosition": 4,
+      "backgroundColor": "#A0314A",
       "headIndent": 33
     },
-    "Templates_tags_old": {
-      "regex": "(?>\\{\\{)[^)]{1,}((?>\\(\\)\\}\\})|(?>\\)\\}\\}))",
-      "matchPosition": 0,
-      "color": "#8FBCBB",
-      "font": "Menlo-Regular",
-      "isHiddenWithoutCursor": false,
-      "isRevealOnCursorRange": true
+    "priority-any-number-of-!-flagged-anywhere_info": {
+      "description": "Use this setting to color/highlight flagged/priority tasks with any number of ! (not limited to 3) and anywhere in the task (not required to be at the beginning). Use this setting instead of the `flagged-1`, `flagged-2` and `flagged-3` settings above.",
+      "example": "\t* [ ] task with five !!!!! flags"
     },
-    "Templates_tags-opener": {
-      "regex": "(<%[\\-=_~]?\\s+)(.*?)(\\s+[\\-]?%>)",
+    "starred": {
+      "regex": "(^|\\v)(.*⭐️.*)($|\\v)",
+      "matchPosition": 2,
+      "backgroundColor": "#A0314A"
+    },
+    "starred_info": {
+      "description": "Use this setting to color/highlight starred tasks with `⭐️` in the task.",
+      "example": "\t* [ ] task with one star"
+    },
+    "code": {
+      "font": "Menlo-Regular",
+      "color": "#96CBFE",
+      "size": 14
+    },
+    "inline-code_info": {
+      "description": "Use these code.* settings to highlight and style inline code in backticks. You can color the left and right backticks below also.",
+      "example": "\tsome `code` in here"
+    },
+    "code-left-backtick": {
+      "color": "#8096CB"
+    },
+    "code-right-backtick": {
+      "color": "#8096CB"
+    },
+    "code-fence": {
+      "theme": "dark",
+      "body": {
+        "font": "Menlo-Regular",
+        "paragraphSpacingBefore": 0,
+        "paragraphSpacing": 0,
+        "size": 14,
+        "backgroundColor": "#253422"
+      },
+      "corner-radius": 7,
+      "fence-open": {
+        "color": "#afafaf"
+      },
+      "fence-close": {
+        "color": "#afafaf"
+      },
+      "language-specifier": {
+        "font": "Menlo-Italic",
+        "color": "#afafaf",
+        "size": 14,
+        "paragraphSpacing": 0
+      }
+    },
+    "code_fence_info": {
+      "description": "Use these settings to change the way code fence content appears",
+      "example": "```\nCode fenced\ncontents here\n```"
+    },
+    "#waiting": {
+      "regex": "^* (.*#waiting.*)$",
       "matchPosition": 1,
-      "color": "#883B3AB2",
-      "font": "Menlo-Regular"
+      "textColor": "#DAE3E888",
+      "font": "AvenirNext-Italic"
+    },
+    "#waiting_info": {
+      "description": "Use this setting to color/highlight tasks with `#waiting` in the task.",
+      "example": "\t* [ ] task with #waiting"
     },
     "Templates_tags": {
       "regex": "(<%[\\-=_~]?\\s+)(.*?)(\\s+[\\-]?%>)",
       "matchPosition": 2,
-      "color": "#cccccc",
+      "color": "#96CBFE",
       "font": "Menlo-Regular"
     },
-    "Templates_tags-closer": {
+    "Templates_tags_info": {
+      "description": "Use this setting to highlight templates tags (e.g. <% or %>`. Generally used to make template content monospaced and more easily readable. Each of the following template* tags can be used to highlight specific template tags.",
+      "example": "\t<%- someVariableHere  %>"
+    },
+    "Templates_tags-opening-tag": {
+      "regex": "(<%[\\-=_~]?\\s+)(.*?)(\\s+[\\-]?%>)",
+      "matchPosition": 1,
+      "color": "#6584A2",
+      "font": "Menlo-Regular"
+    },
+    "Templates_tags-closing-tag": {
       "regex": "(<%[\\-=_~]?\\s+)(.*?)(\\s+[\\-]?%>)",
       "matchPosition": 3,
-      "color": "#883B3AB2",
+      "color": "#6584A2",
       "font": "Menlo-Regular"
     },
     "Templates_tags-commented-out": {
       "regex": "(<%#\\s+.*?\\s+[\\-]?%>)",
       "matchPosition": 1,
-      "color": "#3B3AB288",
+      "color": "#6584A2",
       "font": "AvenirNext-Italic"
     },
-    "priority-any-number-of-!-flagged": {
-      "regex": "(^[\\h\\v]*[\\*|-] (\\[ \\] )?)(.*!{1,}.*[\\h\\v])",
-      "matchPosition": 3,
-      "backgroundColor": "#FFE5E5",
-      "headIndent": 33
-    },
-    "Timeblock-HideTag-withID": {
-      "color": "#8FBCBB",
-      "regex": "\\s#🕑-\\d*",
-      "matchPosition": 0,
-      "type": "nolink",
-      "isHiddenWithoutCursor": true,
-      "isRevealOnCursorRange": true
-    },
-    "Timeblock-HideTag": {
-      "color": "#8FBCBB",
-      "regex": "\\s#🕑",
-      "matchPosition": 0,
-      "type": "nolink",
+    "eventID": {
+      "regex": "(event:[A-F0-9-]{36,37})",
+      "matchPosition": 1,
+      "color": "#444444",
       "isHiddenWithoutCursor": true,
       "isRevealOnCursorRange": true
     },
     "timeblocks": {
-      "regex": "(?:^\\s*(?:\\*(?!\\s+\\[[\\-\\>]\\])\\s+|\\-(?!\\h+\\[[\\-\\>]\\]\\s+)|[\\d+]\\.|\\#{1,5}\\s+))(?:\\[\\s\\]\\s+)?.*?\\s(((at|from)\\s+([0-2]?\\d|noon|midnight)(:[0-5]\\d)?(\\s?(AM|am|PM|pm)?)(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d)(:[0-5]\\d)?(\\s*(AM|am|PM|pm)?))?|([0-2]?\\d|noon|midnight)(:[0-5]\\d)\\s*(AM|am|PM|pm)?(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d|noon|midnight)(:[0-5]\\d)?(\\s*(AM|am|PM|pm)?)?)?))(?=\\s|$)",
+      "regex": "(?:^\\s*(?:\\*(?!\\s+\\[[\\-\\>]\\])\\s+|\\-(?!\\h+\\[[\\-\\>]\\]\\s+)|[\\d+]\\.|\\#{1,5}\\s+))(?:\\[\\s\\]\\s+)?.*?\\s((at|from)\\s+([0-2]?\\d|NOON|noon|MIDNIGHT|midnight)(:[0-5]\\d)?(\\s*(AM|am|PM|pm)?)(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d)(:[0-5]\\d)?(\\s*(AM|am|PM|pm)?))?|(([0-2]?\\d|NOON|noon|MIDNIGHT|midnight)(:[0-5]\\d)?\\s*(AM|am|PM|pm)?(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d|NOON|noon|MIDNIGHT|midnight)(:[0-5]\\d)?(\\s*(AM|am|PM|pm))))|(([0-2]?\\d|NOON|noon|MIDNIGHT|midnight):[0-5]\\d\\s*(AM|am|PM|pm)?)(\\s*(\\-|\\–|\\~|\\〜|to)\\s*([0-2]?\\d|NOON|noon|MIDNIGHT|midnight):[0-5]\\d)?)(?=\\s|$)",
       "matchPosition": 1,
-      "color": "#8FBCBB"
+      "color": "#CC4999"
+    },
+    "timeblocks_info": {
+      "description": "Color tiimeblocks differently from separate them from normal text",
+      "example": "\t* [ ] 12:00-12:30 task with timeblock"
+    },
+    "hidden-comment-percents": {
+      "dbwnote": "replacing this with the more extensive one from qualitativeeasing",
+      "regex": "(%%)([^%]+)(%%)",
+      "matchPosition": 2,
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": true,
+      "color": "#888888"
+    },
+    "hidden-comment-percents_info": {
+      "description": "Hide comments in a line (e.g. related to a task) between two % signs on either side",
+      "example": "\tWhen this is in your theme you shouldn't see inside %% ***these words*** %% (until you click in the middle of the % signs to expose the text"
+    },
+    "sotto-voce-comment": {
+      "color": "#A9A9A9",
+      "isRevealOnCursorRange": true,
+      "strikethroughColor": "#CBCCC6",
+      "matchPosition": 2,
+      "regex": "(\\(\\()(.*?)(\\)\\))",
+      "strikethroughStyle": 0
+    },
+    "sotto-voce-comment_info": {
+      "description": "De-emphasize comments in a line between double parentheses (e.g. gray them out) but leave them visible, unlike the double-percents which hides them.",
+      "example": "\tExample: This is a ((visible comment)) whereas a double percent one should be %% hidden %%"
+    },
+    "comment-left-mark-outer": {
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": true,
+      "isMarkdownCharacter": true,
+      "matchPosition": 1, 
+      "regex": "(\\()(\\()(.*?)(\\))(\\))",
+      "color": "#C0C0C0"
+    },
+    "comment-right-mark-outer": {
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": true,
+      "isMarkdownCharacter": true,
+      "matchPosition": 5,
+      "regex": "(\\()(\\()(.*?)(\\))(\\))",
+      "color": "#C0C0C0"
+    },
+    "comment-left-mark": {
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": false,
+      "isMarkdownCharacter": true,
+      "matchPosition": 2,
+      "regex": "(\\()(\\()(.*?)(\\))(\\))",
+      "color": "#C0C0C0"
+    },
+    "comment-right-mark": {
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": false,
+      "isMarkdownCharacter": true,
+      "matchPosition": 4,
+      "regex": "(\\()(\\()(.*?)(\\))(\\))",
+      "color": "#C0C0C0"
+    },
+    "highlight-added-text": {
+      "color": "#33cc33",
+      "isRevealOnCursorRange": true,
+      "matchPosition": 3,
+      "regex": "((?<!\\\\)\\{?)(\\+{2})(.*?)(\\+{2})(\\}?)",
+      "strikethroughStyle": 0
+    },
+    "highlight-add-text_info": {
+      "description": "CriticMarkup for added text. If you want to add this, add all the added-XXX items below to get the full effect.",
+      "example": "\tSome text with {++ added text ++} in the middle"
+    },
+    "added-left-mark": {
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": true,
+      "isMarkdownCharacter": true,
+      "matchPosition": 2,
+      "regex": "((?<!\\\\)\\{?)(\\+{2})(.*?)(\\+{2})(\\}?)",
+      "color": "#C0C0C0"
+    },
+    "added-right-mark": {
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": true,
+      "isMarkdownCharacter": true,
+      "matchPosition": 4,
+      "regex": "((?<!\\\\)\\{?)(\\+{2})(.*?)(\\+{2})(\\}?)",
+      "color": "#C0C0C0"
+    },
+    "added-left-mark-outer": {
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": true,
+      "isMarkdownCharacter": true,
+      "matchPosition": 1,
+      "regex": "((?<!\\\\)\\{?)(\\+{2})(.*?)(\\+{2})(\\}?)",
+      "color": "#C0C0C0"
+    },
+    "added-right-mark-outer": {
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": true,
+      "isMarkdownCharacter": true,
+      "matchPosition": 5,
+      "regex": "((?<!\\\\)\\{?)(\\+{2})(.*?)(\\+{2})(\\}?)",
+      "color": "#C0C0C0"
     },
     "arrow-link": {
-      "regex": ">(([^<]+(?=<))|[\\S]+)",
       "matchPosition": 1,
-      "urlPosition": 1,
       "isRevealOnCursorRange": true,
+      "prefix": "noteplan:\/\/x-callback-url\/openNote?noteTitle=",
       "type": "noteLink",
-      "prefix": "noteplan://x-callback-url/openNote?noteTitle="
+      "urlPosition": 1,
+      "regex": ">(([^<]+(?=<))|[\\S]+)"
     },
-    "arrow-left-delimiter": {
-      "regex": "(>)([^<]+)(<)",
-      "matchPosition": 1,
-      "isMarkdownCharacter": true,
-      "isHiddenWithoutCursor": true,
-      "isRevealOnCursorRange": true
+    "arrow-link_info": {
+      "description": "An alternative note link syntax that doesn't create copious backlinks. Surrounding a note name with > and < will create a link to that note. Source: @gracius. If you want to hide the two arrows on either side, use the two following rules.",
+      "example": "\t>>This would be a link to a note called foo >foo< (e.g. `>foo<`)"
     },
     "arrow-right-delimiter": {
-      "regex": "(>)([^<]+)(<)",
-      "matchPosition": 3,
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": true,
       "isMarkdownCharacter": true,
-      "isHiddenWithoutCursor": true,
-      "isRevealOnCursorRange": true
-    },
-    "note-title-link": {
-      "regex": "(?<!`)(\\[{2})(.*?\\]*)(\\]{2})(?!`)",
-      "color": "#5E81AC",
-      "font": "AvenirNext-DemiBold",
-      "underlineStyle": 1
-    },
-    "note-title-link-left": {
-      "regex": "(?<!`)(\\[{2})(.*?\\]*)(\\]{2})(?!`)",
-      "matchPosition": 1,
-      "color": "#ECEFF4",
-      "isHiddenWithoutCursor": true,
-      "isRevealOnCursorRange": true
-    },
-    "note-title-link-right": {
-      "regex": "(?<!`)(\\[{2})(.*?\\]*)(\\]{2})(?!`)",
       "matchPosition": 3,
-      "color": "#ECEFF4",
+      "regex": "(>)([^<]+)(<)"
+    },
+    "arrow-left-delimiter": {
+      "isRevealOnCursorRange": true,
       "isHiddenWithoutCursor": true,
-      "isRevealOnCursorRange": true
+      "isMarkdownCharacter": true,
+      "matchPosition": 1,
+      "regex": "(>)([^<]+)(<)"
     },
-    "comment": {
-        "SOURCE": "https://discord.com/channels/763107030223290449/963950027946999828/1003529048032555059",
-        "regex": "(%%)([^:]{1,})(%%)",
-        "matchPosition": 2,
-        "isRevealOnCursorRange": true,
-        "isHiddenWithoutCursor": true,
-        "color": "#888888"
+    "AutoTimeblock-HideTag-withID": {
+      "color": "#8FBCBB",
+      "isRevealOnCursorRange": true,
+      "isHiddenWithoutCursor": true,
+      "matchPosition": 0,
+      "regex": "\\s#🕑-\\d*",
+      "type": "nolink"
     },
-    "comment-left-colon": {
-        "regex": "(%%)([^:]{1,})(%%)",
-        "matchPosition": 1,
-        "isMarkdownCharacter": true,
-        "color": "#88818475"
-    },
-    "comment-right-colon": {
-        "regex": "(%%)([^:]{1,})(%%)",
-        "matchPosition": 3,
-        "isMarkdownCharacter": true,
-        "isHiddenWithoutCursor": true,
-        "isRevealOnCursorRange": true,
-        "color": "#88818475"
+    "AutoTimeblock-HideTag-withID_info": {
+      "description": "The /atb command creates timeblocks with a unique ID/hashtag so they can be removed and recreated. This rule hides the ID/hashtag from view."
     }
   }
 }
