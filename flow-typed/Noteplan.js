@@ -538,17 +538,22 @@ declare class DataStore {
    * You can use `paragraph[0].note` to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph[0])` if you make changes to the content, type, etc (like checking it off as type = "done").
    * Note: Available from v3.5.2
    * @param {TParagraph}
-   * @return {[TParagraph]}
+   * @return {Array<TParagraph>}
    */
   static referencedBlocks(paragraph: TParagraph): TParagraph;
 
   /**
-   * Loads all available plugins asynchronously from the GitHub repository and returns a list.
+   * Loads all available plugins asynchronously from the GitHub repository and returns a list. 
    * You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
-   * Note: Available from v3.5.2
-   * @param {boolean}
+   * Set `showHidden` to true if it should also load hidden plugins. Hidden plugins have a flag `isHidden`.
+   * Set the third parameter `skipMatchingLocalPlugins` to true if you want to see only the available plugins from GitHub and not merge the data with the locally available plugins. Then the version will always be that of the plugin that is available online.
+   * Note: Available from NotePlan v3.5.2; 'skipMatchingLocalPlugins' added v3.7.2 build 926
+   * @param {boolean} showLoading?
+   * @param {boolean} showHidden?
+   * @param {boolean} skipMatchingLocalPlugins?
+   * @return {Promise<any>} pluginList
    */
-  static listPlugins(showLoading: boolean): Promise<void>;
+  static listPlugins(showLoading, showHidden, skipMatchingLocalPlugins);
   /**
    * Installs a given plugin (load a list of plugins using `.listPlugins` first). If this is part of a user interfaction, pass "true" for `showLoading` to show a loading indicator.
    * Note: Available from v3.5.2
