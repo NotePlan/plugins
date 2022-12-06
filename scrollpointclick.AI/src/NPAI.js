@@ -120,40 +120,6 @@ export async function getPromptAndNumberOfResults(promptIn: string | null = null
 }
 
 /**
- * Create a request object for text completion request
- * https://beta.openai.com/docs/api-reference/completions/create
- * @param {string} prompt - A text description of the prompt for the AI to interpret.
- * @param {string} model - The desired model to use for the text completion.
- * @param {number} max_tokens - The maximum number of tokens to generate in the completion
- * @param {string} suffix - The suffix that comes after the completion.
- * @param {number} temperature - What sampling temperature to use. Higher values means the model will take more risks. Try 0.9 for more creative applications, and 0 (argmax sampling) for ones with a well-defined answer.
- * @param {number} top_p - An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.
- * @param {number} n - How many completions to generate for each prompt.
- * @param {string} user - A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse.
- */
-export function createCompletionRequestBody(
-  prompt: string,
-  model: string,
-  max_tokens: number = 500,
-  suffix: string | null = null,
-  temperature: number = 1,
-  top_p: number = 1,
-  n: number = 1,
-  user: string | null = null,
-): CompletionsRequest {
-  logDebug(
-    pluginJson,
-    `createCompletionRequestBody running ${String(prompt)} ${String(model)} ${String(max_tokens)} ${String(suffix)} ${String(temperature)} ${String(top_p)} ${String(n)} ${String(
-      user,
-    )}`,
-  )
-  const obj = { model, prompt, max_tokens }
-
-  if (user) obj.user = user
-  return obj
-}
-
-/**
  * Generates and outputs the AI generation stats at the cursor
  * https://beta.openai.com/docs/api-reference/completions/create
  * @param {number} time - The time to completion.
@@ -178,6 +144,9 @@ export async function testConnection(model: string | null = null) {
     let chosenModel = model
     // get models/engines (to choose pricing/capability)
     if (!model) {
+      chosenModel = await chooseModel()
+    }
+    if (model == "Choose Model") {
       chosenModel = await chooseModel()
     }
     if (chosenModel) {
@@ -237,9 +206,11 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
   try {
     logDebug(pluginJson, `createResearchRequest running with prompt:${String(promptIn)} ${String(nIn)} ${userIn}`)
     const start = new Date()
-    const { prompt, n } = await getPromptAndNumberOfResults(promptIn, nIn)
-    // const model = await chooseModel()
-    const request = await makeRequest(completionsComponent, 'POST', createCompletionRequestBody(formatResearch(prompt, n), model, max_tokens))
+    const { providedPrompt, n } = await getPromptAndNumberOfResults(promptIn, nIn)
+    const prompt = formatResearch(providedPrompt, n)
+    logDebug(pluginJson, `Look at this output - ${prompt}`)
+    const reqBody: CompletionsRequest = { prompt, model: model, max_tokens: max_tokens }
+    const request = await makeRequest(completionsComponent, 'POST', reqBody)
     const time = timer(start)
     clo(request, `testConnection completionResult result`)
     if (request) {
@@ -266,7 +237,16 @@ export async function summarizeNote(promptIn: string | null = null, userIn: stri
     logDebug(pluginJson, `summarizeNote running with prompt:${String(promptIn)} ${userIn}`)
     const start = new Date()
     const text = Editor.content ?? ''
-    const request = await makeRequest(completionsComponent, 'POST', createCompletionRequestBody(formatSummaryRequest(text), model, max_tokens))
+    const prompt = formatSummaryRequest(text)
+
+    let chosenModel = model
+    if (model == "Choose Model") {
+      logDebug(pluginJson, `summarizeNote: Choosing Model...`)
+      chosenModel = await chooseModel()
+      logDebug(pluginJson, `summarizeNote: ${chosenModel} selected`)
+    }
+    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+    const request = await makeRequest(completionsComponent, 'POST', reqBody)
     const elapsedTimeStr = timer(start)
     clo(request, `testConnection completionResult result`)
     if (request) {
@@ -276,6 +256,37 @@ export async function summarizeNote(promptIn: string | null = null, userIn: stri
       Editor.insertTextAtCursor(`${response}\n\n`)
       if (showStats) {
         insertStatsAtCursor(elapsedTimeStr, model, total_tokens)
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Entry point for generating summary requests from selection
+ * Plugin entrypoint for command: "/summarizeselection
+ * @param {*} incoming
+ */
+export async function summarizeSelection(promptIn: string | null = null, userIn: string = '') {
+  try {
+    const start = new Date()
+    const text = Editor.selectedText
+    const prompt = formatSummaryRequest(text)
+    const reqBody: CompletionsRequest = { prompt, model: model, max_tokens: max_tokens }
+    const request = await makeRequest(completionsComponent, 'POST', reqBody)
+    const time = timer(start)
+    clo(request, `testConnection completionResult result`)
+    if (request) {
+      const response = request.choices[0].text
+      const total_tokens = request.usage.total_tokens
+      const { showStats } = DataStore.settings
+      const endOfSelection = Editor.renderedSelection.end
+      Editor.insertTextAtCharacterIndex(`---\n## Summary\n${response}\n\n`, endOfSelection)
+
+      if (showStats) {
+        const stats = formatTextStats(time, model, total_tokens)
+        Editor.insertTextAtCursor(stats)
       }
     }
   } catch (error) {

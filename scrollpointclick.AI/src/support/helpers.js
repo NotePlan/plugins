@@ -39,6 +39,7 @@ export function calculateCost(model: string, total_tokens: number): number {
  * @param {number} n - The number of key concepts to return.
  */
 export function formatResearch(subject: string, n: number = 3): string {
+  logDebug(pluginJson, `formatResearch running now.`)
   const promptOut = `Please provide a summary of the ${subject} in the following format:
 
 Separate each result with three dashes

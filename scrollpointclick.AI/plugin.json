@@ -3,7 +3,7 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "scrollpointclick.AI",
-  "plugin.name": "💡 OpenAI Support",
+  "plugin.name": "💡 AAI",
   "plugin.version": "0.1.0",
   "plugin.lastUpdateInfo": "Initial release",
   "plugin.description": "GPT integration for research, summarization, etc.",
@@ -63,12 +63,14 @@
       "title": "Default Text Model",
       "key": "model",
       "type": "string",
-      "description": "Select the desired text AI model.\n\n - text-davinci-003: Most capable GPT-3 model. Can do any task the other models can do, often with higher quality, longer output and better instruction-following.\n\n- text-curie-001: Very capable, but faster and lower cost than Davinci.\n\n- text-babbage-001: Capable of straightforward tasks, very fast, and lower cost.\n\n- text-ada-001: Capable of very simple tasks, usually the fastest model in the GPT-3 series, and lowest cost.",
+      "description": "Select the desired text AI model.\n\n - text-davinci-003: Most capable GPT-3 model. Can do any task the other models can do, often with higher quality, longer output and better instruction-following.\n\n- text-curie-001: Very capable, but faster and lower cost than Davinci.\n\n- text-babbage-001: Capable of straightforward tasks, very fast, and lower cost.\n\n- text-ada-001: Capable of very simple tasks, usually the fastest model in the GPT-3 series, and lowest cost.\n\n- ALL: Use with caution. Will generate using all of the primary models. Good for testing.",
       "choices": [
+        "Choose Model",
         "text-davinci-003",
         "text-curie-001",
         "text-babbage-001",
         "text-ada-001",
+        "ALL",
         "ALWAYS ASK"
       ]
     },
