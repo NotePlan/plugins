@@ -4,9 +4,15 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/scrollpointcli
 
 ## What's Changed?
 
+[0.1.2] - 2022-12-05 (@scrollpointclick)
 
+#### **Added**
 
-### [0.1.0] - 2022-12-05 (@scrollpointclick)
+- Beginning ideation of /help and introduction.
+  - Needs to be redone
+- Initial construction of createResearchListRequest() endpoint
+
+### [0.1.1] - 2022-12-05 (@scrollpointclick)
 
 #### **Added**
 

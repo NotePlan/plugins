@@ -59,6 +59,28 @@ The fourth heading should be "Further Reading" followed by a Goodreads.com link 
  * https://beta.openai.com/docs/api-reference/completions/create
  * @param {string} text - The text for the AI to summarize.
  */
+ export function formatResearchListRequest(subject: string): string {
+  const promptOut = `
+  Generate a summary of the provided text and a list of the key terms associated with the subject in the following JSON format.
+  {
+    "subject": Subject,
+    "summary": Summary of the subject,
+    "wikiLink": Wikipedia link to the subject,
+    "keyTerms": [
+      
+    ]
+  }
+  Subject: ${subject}
+  Response:
+`
+  return promptOut
+}
+
+/**
+ * Format the prompt for the text summary request
+ * https://beta.openai.com/docs/api-reference/completions/create
+ * @param {string} text - The text for the AI to summarize.
+ */
 export function formatSummaryRequest(text: string): string {
   const promptOut = `Generate a summary of the provided text.
   Input: ${text}

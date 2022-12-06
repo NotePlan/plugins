@@ -7,9 +7,10 @@
  */
 
 import pluginJson from '../plugin.json'
-import { calculateCost, formatResearch, formatSummaryRequest, modelOptions } from './support/helpers'
+import { calculateCost, formatResearch, formatSummaryRequest, formatResearchListRequest, modelOptions } from './support/helpers'
 import { chooseOption, showMessage } from '@helpers/userInput'
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
+import { intro, learningOptions, openAILearningWizard, modelsInformation } from './support/introwizard'
 
 /*
  * TYPES
@@ -96,22 +97,6 @@ export async function makeRequest(component: string, requestType: string = 'GET'
         logError(pluginJson, `makeRequest failed and response was: ${JSP(error)}`)
         showMessage(`Fetch failed: ${JSP(error)}`)
       })
-  }
-  return null
-}
-
-/**
- * Get the model list from OpenAI and ask the user to choose one
- * @returns {string|null} the model ID chosen
- */
-export async function chooseModel2(): Promise<string | null> {
-  const models = (await makeRequest(modelsComponent))?.data
-  if (models) {
-    const modelOptions = models.map((model) => ({ label: model.id, value: model.id }))
-    const filteredModels = modelOptions.filter(m=>availableModels.includes(m.id))
-    return await chooseOption('Choose a model', filteredModels)
-  } else {
-    logError(pluginJson, 'No models found')
   }
   return null
 }
@@ -265,6 +250,60 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
 }
 
 /**
+ * Entry point for generating research requests
+ * Plugin entrypoint for command: "/research
+ * @param {*} incoming
+ */
+ export async function createResearchListRequest(promptIn: string | null = null, nIn: number = 3, userIn: string = '') {
+  try {
+    logDebug(pluginJson, `createResearchListRequest running with prompt:${String(promptIn)} ${String(nIn)} ${userIn}`)
+    const start = new Date()
+    let { prompt, n } = await getPromptAndNumberOfResults(promptIn, nIn)
+    logError(pluginJson, `Look at this output - ${prompt}`)
+    prompt = formatResearchListRequest(prompt)
+    
+
+    let chosenModel = defaultModel
+    if (defaultModel == "Choose Model") {
+      logDebug(pluginJson, `createResearchListRequest: Choosing Model...`)
+      chosenModel = "text-davinci-003"
+      logDebug(pluginJson, `createResearchListRequest: ${chosenModel} selected`)
+    }
+    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+    // clo(`response: `, reqBody)
+    const request = await makeRequest(completionsComponent, 'POST', reqBody)
+    const time = timer(start)
+    clo(request, `testConnection completionResult result`)
+    if (request) {
+      
+      const response = request.choices[0].text
+      const jsonData = JSON.parse(response)
+
+      clo(jsonData, `jsonParse() completionResult result`)
+      let summary = { label: `Append ${jsonData.subject} Summary`, id: jsonData.summary }
+      const wikiLink = { label: "Learn more...", id: jsonData.wikiLink }
+      let keyTerms = jsonData.keyTerms.map((term) => ({ label: term, id: term }))
+      keyTerms.unshift(summary, wikiLink)
+
+      const selection = await chooseOption(jsonData.subject, keyTerms)
+      clo(selection, `chooseOption selection completionResult result`)
+      if ( selection == jsonData.summary ) {
+        Editor.insertTextAtCursor(`---\n## Summary\n${selection}\n\n`)
+      }
+
+      // Editor.insertTextAtCursor(`${response}\n\n`)
+      // const tokens = request.usage.total_tokens
+      // const { showStats } = DataStore.settings
+      // if (showStats) {
+      //   Editor.insertTextAtCursor(`### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${tokens}`)
+      // }
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
  * Entry point for generating summary requests
  * Plugin entrypoint for command: "/summarize
  * @param {*} incoming
@@ -337,4 +376,45 @@ export async function summarizeSelection(promptIn: string | null = null, userIn:
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+}
+
+export async function introWizard() {
+  if ( await CommandBar.prompt(intro.title, intro.prompt, intro.buttons) == 0) {
+    console.log("Fill this in shortly.")
+    }
+}
+
+export async function helpWizard() {
+  const options = learningOptions.map((option) => ({ label: option, value: option }))
+
+  const topic = await chooseOption("Select a topic to learn more...", options)
+  console.log(topic)
+  const wizard = openAILearningWizard[topic]
+  console.log(wizard)
+  console.log(wizard.title)
+  learnMore(wizard)
+
+  
+}
+
+export async function learnMore(learningTopic: Object) {
+  const wizard = learningTopic
+  
+  if ( wizard == openAILearningWizard.Models ) {
+    // const selection = await CommandBar.prompt(wizard.title, wizard.prompt, wizard.buttons)
+    console.log(wizard.title)
+    const options = wizard.options.map((option) => ({ label: option, value: option}))
+    const selection = await chooseOption(learningTopic.prompt2, options)
+
+    const selectedModel = modelsInformation[selection]
+    console.log(`Selected Model: ${selectedModel}`)
+    const infolog = await chooseOption("Info", formatModelInformation(selectedModel))
+    console.log(infolog)
+  }
+}
+
+export function formatModelInformation(info: Object) {
+  const modelInfo = `${info}\nGood At: ${info.goodAt} | Cost: ${info.cost}.`
+  console.log(modelInfo)
+  return modelInfo
 }

@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "scrollpointclick.AI",
   "plugin.name": "💡 AAI",
-  "plugin.version": "0.1.0",
+  "plugin.version": "0.1.1",
   "plugin.lastUpdateInfo": "Initial release",
   "plugin.description": "GPT integration for research, summarization, etc.",
   "plugin.author": "Aaron @scrollpointclick with a little encouragement from @dwertheimer",
@@ -15,12 +15,30 @@
   "plugin.commands": [
     {
       "name": "Test Connection",
-      "description": "GPT @ OpenAI",
+      "description": "GPT-3 @ OpenAI",
       "jsFunction": "testConnection",
       "alias": [
       ],
       "arguments": []
-    }, 
+    },
+    {
+      "name": "AI Intro Wizard",
+      "description": "Introduction Wizard for GPT-3 @ OpenAI",
+      "jsFunction": "introWizard",
+      "alias": [
+        "introWizard"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Help OpenAI",
+      "description": "Help for GPT-3 @ OpenAI",
+      "jsFunction": "helpWizard",
+      "alias": [
+        "helpWizard"
+      ],
+      "arguments": []
+    },    
     {
       "name": "Create AI Images",
       "description": "DALL-E @ OpenAI",
@@ -42,6 +60,15 @@
       "description": "Research with GPT-3 @ OpenAI",
       "jsFunction": "createResearchRequest",
       "alias": [
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Create Research List Request",
+      "description": "Research with GPT-3 @ OpenAI and provide a list of details",
+      "jsFunction": "createResearchListRequest",
+      "alias": [
+        "listRequest"
       ],
       "arguments": []
     }
