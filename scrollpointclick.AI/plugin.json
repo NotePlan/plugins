@@ -10,8 +10,8 @@
   "plugin.author": "Aaron @scrollpointclick with a little encouragement from @dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.AI/README.md",
-  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.AI/CHANGELOG.md",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/scrollpointclick.AI/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/scrollpointclick.AI/CHANGELOG.md",
   "plugin.commands": [
     {
       "name": "Test Connection",

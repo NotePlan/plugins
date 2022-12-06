@@ -1,6 +1,6 @@
 // @flow
 
-const pluginJson = `dwertheimer.AI/helpers`
+const pluginJson = `scrollpointclick.AI/helpers`
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
 
 const modelCost = {
