@@ -7,7 +7,7 @@
  */
 
 import pluginJson from '../plugin.json'
-import { calculateCost, formatResearch, formatSummaryRequest } from './support/helpers'
+import { calculateCost, formatResearch, formatSummaryRequest, modelOptions } from './support/helpers'
 import { chooseOption, showMessage } from '@helpers/userInput'
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
 
@@ -16,7 +16,7 @@ import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
  */
 
 type DallERequestOptions = { prompt?: string, n?: number, size?: string, response_format?: string, user?: string }
-type CompletionsRequest = { model?: string, prompt?: string, max_tokens?: number, user?: string, suffix?: string, temperature?: string, top_p?: string, n?: number }
+type CompletionsRequest = { model?: string, prompt?: string,max_tokens?: number, user?: string, suffix?: string, temperature?: string, top_p?: string, n?: number }
 
 /*
  * CONSTANTS
@@ -26,8 +26,14 @@ const baseURL = 'https://api.openai.com/v1'
 const modelsComponent = 'models'
 const imagesGenerationComponent = 'images/generations'
 const completionsComponent = 'completions'
-const { apiKey, model, showStats, max_tokens } = DataStore.settings //FIXME: change model to something else
+const { apiKey, defaultModel, showStats, max_tokens } = DataStore.settings //FIXME: change model to something else
 
+const availableModels = [
+  'text-davinci-003',
+  'text-curie-001',
+  'text-babbage-001',
+  'text-ada-001'
+]
 /*
  * FUNCTIONS
  */
@@ -98,11 +104,34 @@ export async function makeRequest(component: string, requestType: string = 'GET'
  * Get the model list from OpenAI and ask the user to choose one
  * @returns {string|null} the model ID chosen
  */
-export async function chooseModel(): Promise<string | null> {
+export async function chooseModel2(): Promise<string | null> {
   const models = (await makeRequest(modelsComponent))?.data
   if (models) {
     const modelOptions = models.map((model) => ({ label: model.id, value: model.id }))
-    return await chooseOption('Choose a model', modelOptions)
+    const filteredModels = modelOptions.filter(m=>availableModels.includes(m.id))
+    return await chooseOption('Choose a model', filteredModels)
+  } else {
+    logError(pluginJson, 'No models found')
+  }
+  return null
+}
+
+/**
+ * Get the model list from OpenAI and ask the user to choose one
+ * @returns {string|null} the model ID chosen
+ */
+ export async function chooseModel(_tokens?: number = max_tokens): Promise<string | null> {
+  logDebug(pluginJson, `chooseModel tokens:${_tokens}`)
+  const models = (await makeRequest(modelsComponent))?.data
+  const filteredModels = models.filter(m=>modelOptions.hasOwnProperty(m.id))
+  if (filteredModels) {
+    const modelsReturned = filteredModels.map((model) => {
+      const cost = calculateCost(model.id, _tokens)
+      const costStr = isNaN(cost) ? '' : ` ($${String(parseFloat(cost.toFixed(6)))} max)`
+      return { label: `${model.id}${costStr}`, value: model.id }
+    })
+    
+    return await chooseOption('Choose a model', modelsReturned)
   } else {
     logError(pluginJson, 'No models found')
   }
@@ -206,10 +235,18 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
   try {
     logDebug(pluginJson, `createResearchRequest running with prompt:${String(promptIn)} ${String(nIn)} ${userIn}`)
     const start = new Date()
-    const { providedPrompt, n } = await getPromptAndNumberOfResults(promptIn, nIn)
-    const prompt = formatResearch(providedPrompt, n)
-    logDebug(pluginJson, `Look at this output - ${prompt}`)
-    const reqBody: CompletionsRequest = { prompt, model: model, max_tokens: max_tokens }
+    let { prompt, n } = await getPromptAndNumberOfResults(promptIn, nIn)
+    logError(pluginJson, `Look at this output - ${prompt}`)
+    prompt = formatResearch(prompt, n)
+    
+
+    let chosenModel = defaultModel
+    if (defaultModel == "Choose Model") {
+      logDebug(pluginJson, `summarizeNote: Choosing Model...`)
+      chosenModel = await chooseModel()
+      logDebug(pluginJson, `summarizeNote: ${chosenModel} selected`)
+    }
+    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
     const request = await makeRequest(completionsComponent, 'POST', reqBody)
     const time = timer(start)
     clo(request, `testConnection completionResult result`)
@@ -239,8 +276,8 @@ export async function summarizeNote(promptIn: string | null = null, userIn: stri
     const text = Editor.content ?? ''
     const prompt = formatSummaryRequest(text)
 
-    let chosenModel = model
-    if (model == "Choose Model") {
+    let chosenModel = defaultModel
+    if (defaultModel == "Choose Model") {
       logDebug(pluginJson, `summarizeNote: Choosing Model...`)
       chosenModel = await chooseModel()
       logDebug(pluginJson, `summarizeNote: ${chosenModel} selected`)
@@ -255,7 +292,7 @@ export async function summarizeNote(promptIn: string | null = null, userIn: stri
       Editor.insertTextAtCursor(`---\n## Summary\n`)
       Editor.insertTextAtCursor(`${response}\n\n`)
       if (showStats) {
-        insertStatsAtCursor(elapsedTimeStr, model, total_tokens)
+        insertStatsAtCursor(elapsedTimeStr, chosenModel, total_tokens)
       }
     }
   } catch (error) {
@@ -273,7 +310,15 @@ export async function summarizeSelection(promptIn: string | null = null, userIn:
     const start = new Date()
     const text = Editor.selectedText
     const prompt = formatSummaryRequest(text)
-    const reqBody: CompletionsRequest = { prompt, model: model, max_tokens: max_tokens }
+
+    let chosenModel = defaultModel
+    if (defaultModel == "Choose Model") {
+      logDebug(pluginJson, `summarizeNote: Choosing Model...`)
+      chosenModel = await chooseModel()
+      logDebug(pluginJson, `summarizeNote: ${chosenModel} selected`)
+    }
+
+    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
     const request = await makeRequest(completionsComponent, 'POST', reqBody)
     const time = timer(start)
     clo(request, `testConnection completionResult result`)
@@ -285,7 +330,7 @@ export async function summarizeSelection(promptIn: string | null = null, userIn:
       Editor.insertTextAtCharacterIndex(`---\n## Summary\n${response}\n\n`, endOfSelection)
 
       if (showStats) {
-        const stats = formatTextStats(time, model, total_tokens)
+        const stats = formatTextStats(time, chosenModel, total_tokens)
         Editor.insertTextAtCursor(stats)
       }
     }

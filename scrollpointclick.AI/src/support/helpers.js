@@ -3,7 +3,7 @@
 const pluginJson = `scrollpointclick.AI/helpers`
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
 
-const modelCost = {
+export const modelOptions = {
   'text-davinci-003': 0.02,
   'text-curie-001': 0.002,
   'text-babbage-001': 0.0005,
@@ -18,16 +18,16 @@ const modelCost = {
  */
 export function calculateCost(model: string, total_tokens: number): number {
   logDebug(pluginJson, `calculateCost(): attempting to calculate cost.`)
-  const request_cost = (modelCost[model] / 1000) * total_tokens
+  const request_cost = (modelOptions[model] / 1000) * total_tokens
   logDebug(
     pluginJson,
     `calculateCost():
     Model: ${model}
     Total Tokens: ${total_tokens}
-    Model Cost/1k: ${modelCost[model]}
+    Model Cost/1k: ${modelOptions[model]}
     Total Cost: ${request_cost}\n`,
   )
-  clo(modelCost, 'model cost object')
+  clo(modelOptions, 'model cost object')
 
   return request_cost
 }
@@ -44,7 +44,7 @@ export function formatResearch(subject: string, n: number = 3): string {
 
 Separate each result with three dashes
 List the top ${n} key concepts associated with the subject and write a summary of the concept as it pertains to the subject in the following Markdown format.
-Each concept should include a Wikipedia link
+Each concept should include a Wikipedia link and should be in the format: [Concept](Wikipedia Link)
 The further reading links should be from Goodreads.com.
 The first heading should be "# ${subject}"
 The second heading should be "## Key Concepts"
