@@ -2,7 +2,7 @@
 
 ## Latest Updates
 
-See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/dwertheimer.AI/CHANGELOG.md) for latest updates/changes to this plugin.
+See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/scrollpointclick.AI/CHANGELOG.md) for latest updates/changes to this plugin.
 
 ## About This Plugin 
 

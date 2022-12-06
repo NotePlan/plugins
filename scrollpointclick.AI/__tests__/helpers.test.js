@@ -3,7 +3,7 @@
 
 import * as helpers from '../src/support/helpers'
 
-describe('dwertheimer.AI' /* pluginID */, () => {
+describe('scrollpointclick.AI' /* pluginID */, () => {
   describe('helpers' /* file */, () => {
     describe('calculateCost' /* function */, () => {
       test('should calculate cost correctly', async () => {
