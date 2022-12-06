@@ -59,9 +59,9 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
     const includeHeadings: boolean = await getTagParamsFromString(paramString, 'includeHeadings', true)
     const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
     const calendarSetStr: string = String(await getTagParamsFromString(paramString, 'calendarSet', config.calendarSet))
-    const calendarSet: Array<string> = (calendarSetStr !== '') ? calendarSetStr.split(',') : [] // also deal with empty case
+    const calendarSet: Array<string> = calendarSetStr !== '' ? calendarSetStr.split(',') : [] // also deal with empty case
     const calendarNameMappingsStr: string = String(await getTagParamsFromString(paramString, 'calendarNameMappings', config.calendarNameMappings))
-    const calendarNameMappings: Array<string> = (calendarNameMappingsStr !== '') ? calendarNameMappingsStr.split(',') : []
+    const calendarNameMappings: Array<string> = calendarNameMappingsStr !== '' ? calendarNameMappingsStr.split(',') : []
     // If the format contains 'CAL' then we care about calendar names in output
     const withCalendarName = format.includes('CAL')
 
@@ -147,8 +147,7 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
     let output: string = await listDaysEvents(paramString || '')
     output += output.length === 0 ? '\nnone\n' : '\n'
     Editor.insertTextAtCursor(output)
-  }
-  catch (error) {
+  } catch (error) {
     logError('insertDaysEvents', error.message)
   }
 }
@@ -186,9 +185,9 @@ export async function listMatchingDaysEvents(
     const includeHeadings = await getTagParamsFromString(paramString, 'includeHeadings', true)
     const daysToCover: number = await getTagParamsFromString(paramString, 'daysToCover', 1)
     const calendarSetStr: string = String(await getTagParamsFromString(paramString, 'calendarSet', config.calendarSet))
-    const calendarSet: Array<string> = (calendarSetStr !== '') ? calendarSetStr.split(',') : [] // also deal with empty case
+    const calendarSet: Array<string> = calendarSetStr !== '' ? calendarSetStr.split(',') : [] // also deal with empty case
     const calendarNameMappingsStr: string = String(await getTagParamsFromString(paramString, 'calendarNameMappings', config.calendarNameMappings))
-    const calendarNameMappings: Array<string> = (calendarNameMappingsStr !== '') ? calendarNameMappingsStr.split(',') : []
+    const calendarNameMappings: Array<string> = calendarNameMappingsStr !== '' ? calendarNameMappingsStr.split(',') : []
 
     const outputArray: Array<string> = []
 
@@ -257,9 +256,9 @@ export async function listMatchingDaysEvents(
     const output = outputArray.join('\n') // If this array is empty -> empty string
     logDebug('listMatchingDaysEvents', output)
     return output
-  }
-  catch (error) {
+  } catch (error) {
     logError('insertMatchingDaysEvents', error.message)
+    return ''
   }
 }
 
@@ -280,8 +279,7 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
     }
     const output = await listMatchingDaysEvents(paramString || '')
     Editor.insertTextAtCursor(output)
-  }
-  catch (error) {
+  } catch (error) {
     logError('insertMatchingDaysEvents', error.message)
   }
 }
@@ -298,7 +296,7 @@ export async function insertMatchingDaysEvents(paramString: ?string): Promise<vo
 export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<string, string> {
   try {
     // logDebug('getReplacements', 'starting getReplacements')
-    const outputObject = new Map < string, string> ()
+    const outputObject = new Map<string, string>()
 
     // Deal with special case of ATTENDEES / ATTENDEENAMES where we need to dedupe what NP reports.
     let attendeesToUse = ''
@@ -321,13 +319,14 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
     outputObject.set('START', !item.isAllDay ? toLocaleTime(item.date, config.locale, config.timeOptions) : '')
     outputObject.set('END', item.endDate != null && !item.isAllDay ? toLocaleTime(item.endDate, config.locale, config.timeOptions) : '') // must be processed after 'ATTENDEE*'
     outputObject.set('URL', item.url)
+    outputObject.set('ID', item.id || '')
+    outputObject.set('MEETINGNOTE', item.id ? `[Meeting Note](noteplan://x-callback-url/runPlugin?pluginID=np.MeetingNotes&command=newMeetingNoteFromEventID&arg0=${item.id})` : '')
 
     // outputObject.forEach((v, k, map) => { logDebug('getReplacements', `- ${k} : ${v}`) })
     return outputObject
-  }
-  catch (error) {
+  } catch (error) {
     logError('getReplacements', error.message)
-    return (outputObject) // for completeness
+    return new Map() // for completeness
   }
 }
 
@@ -350,7 +349,7 @@ export function smartStringReplace(format: string, replacements: Map<string, str
 
     // For each possible placeholder, process it if it present in format AND the value for this event is not empty
     // (For safety ATTENDEES needs to come before END in the list, as 'END' is part of 'ATTENDEES'!)
-    const placeholders = ['CAL', 'TITLE', 'EVENTLINK', 'LOCATION', 'ATTENDEENAMES', 'ATTENDEES', 'DATE', 'START', 'END', 'NOTES', 'URL']
+    const placeholders = ['CAL', 'TITLE', 'EVENTLINK', 'LOCATION', 'ATTENDEENAMES', 'ATTENDEES', 'DATE', 'START', 'END', 'NOTES', 'URL', 'MEETINGNOTE', 'ID']
     for (const p of placeholders) {
       const thisRE = new RegExp(`\\*\\|([^|*]*?${p}.*?)\\|\\*`)
       const REResult = output.match(thisRE) // temp RE result
@@ -372,9 +371,9 @@ export function smartStringReplace(format: string, replacements: Map<string, str
       }
     }
     return output
-  }
-  catch (error) {
+  } catch (error) {
     logError('smartStringReplace', error.message)
+    return ''
   }
 }
 

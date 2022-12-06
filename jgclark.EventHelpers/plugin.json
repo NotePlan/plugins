@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
-  "plugin.version": "0.19.4",
-  "plugin.lastUpdateInfo": "0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.\n0.19.2: New setting \"Include time blocks from completed tasks?\" for the \"/time blocks to calendar\" command.",
+  "plugin.version": "0.20.0",
+  "plugin.lastUpdateInfo": "0.20.0: can now insert a MEETINGNOTE link next to each item.\n0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.\n0.19.2: New setting \"Include time blocks from completed tasks?\" for the \"/time blocks to calendar\" command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -80,7 +80,7 @@
     {
       "key": "formatEventsDisplay",
       "title": "Events List display format",
-      "description": "The format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
+      "description": "The format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
       "type": "string",
       "default": "### (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*",
       "required": true
@@ -88,7 +88,7 @@
     {
       "key": "formatAllDayEventsDisplay",
       "title": "Events List display format for all-day events",
-      "description": "The format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'NOTES', 'ATTENDEES', 'NOTES', 'URL'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
+      "description": "The format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
       "type": "string",
       "default": "### (*|CAL|*) *|TITLE|**|\nEVENTLINK|**|\nNOTES|*",
       "required": true
