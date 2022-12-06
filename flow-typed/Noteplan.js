@@ -1,6 +1,22 @@
 // @flow
 
-import { string } from "mathjs";
+type FetchOptions = {
+  /* all optional */
+  headers?: { [string]: string } /* key/value pairs of headers for the request */,
+  method?: string /* GET, POST, PUT, DELETE, etc. */,
+  body?: string /* body for a POST or PUT request. is a string so needs to be JSON.stringified */,
+  timeout?: number /* timeout in ms */,
+}
+
+/**
+ * Request a URL from a server and return the result as a string or null if no response
+ * If you want to get detailed errors (e.g. no internet connection, etc.), use old-school promises instead, e.g.:
+ * fetch('https://example.com').then((result) => { console.log(result) }).catch((error) => { console.log(error) })
+ * If your response is a JSON response string, you should run JSON.parse(result) on the result.
+ * @param {string} url
+ * @param {FetchOptions} options (optional) options to pass to the fetch() call: method, headers, body, timeout (in ms)
+ */
+declare function fetch(url: string, options?: FetchOptions): Promise<string> /* do not run with await. see documentation */
 
 /*
  * # How Flow Definitions work:
@@ -106,8 +122,24 @@ declare interface TEditor extends CoreNoteFields {
    * @param {string} content - (optional) Content to fill the note (replaces contents if the note already existed) (from v3.7.2)
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
    */
-openNoteByFilename(filename: string, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean, createIfNeeded ?: false, content ?: string): Promise < TNote | void>;
-openNoteByFilename(filename: string, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean, createIfNeeded: true, content ?: string): Promise < TNote >;
+  openNoteByFilename(
+    filename: string,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+    createIfNeeded?: false,
+    content?: string,
+  ): Promise<TNote | void>;
+  openNoteByFilename(
+    filename: string,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+    createIfNeeded: true,
+    content?: string,
+  ): Promise<TNote>;
   /**
    * Opens a note by searching for the give title (first line of the note)
    * Note: 'splitView' parameter available for macOS from v3.4
@@ -207,19 +239,19 @@ openNoteByFilename(filename: string, newWindow ?: boolean, highlightStart ?: num
    */
   pasteClipboard(): void;
   /**
-   * Scrolls to and highlights the given paragraph. 
+   * Scrolls to and highlights the given paragraph.
    * If the paragraph is folded, it will be unfolded.
    * @param {TParagraph} paragraph to highlight
    */
   highlight(paragraph: TParagraph): void;
   /**
-   * Scrolls to and highlights the given character range. 
+   * Scrolls to and highlights the given character range.
    * If the range exists in a folded heading, it will be unfolded.
    * @param {Range} range
    */
   highlightByRange(range: Range): void;
   /**
-   * Scrolls to and highlights the given range defined by the character index and the character length it should cover. 
+   * Scrolls to and highlights the given range defined by the character index and the character length it should cover.
    * If the paragraph is folded, it will be unfolded.
    * Note: Available from v3.0.23
    * @param {number} index
@@ -283,30 +315,30 @@ openNoteByFilename(filename: string, newWindow ?: boolean, highlightStart ?: num
    * (Originally available from v3.1, returning a read-only array of strings)
    * @return {$ReadOnlyArray<Object>}
    */
-+availableThemes: $ReadOnlyArray < Object >;
-/**
- * Get the current theme name and mode as an object with these keys:
- *  - "name" in the JSON theme
- *  - "filename" of the JSON theme file
- *  - "mode" ("dark" or "light")
- *  - "values" -- all the JSON in the theme
- * Note: Available from NotePlan v3.6.2 (build >847)
- * @return {Object}
- */
-+currentTheme: Object;
+  +availableThemes: $ReadOnlyArray<Object>;
+  /**
+   * Get the current theme name and mode as an object with these keys:
+   *  - "name" in the JSON theme
+   *  - "filename" of the JSON theme file
+   *  - "mode" ("dark" or "light")
+   *  - "values" -- all the JSON in the theme
+   * Note: Available from NotePlan v3.6.2 (build >847)
+   * @return {Object}
+   */
+  +currentTheme: Object;
   /**
    * Change the current theme.
    * Get all available theme names using `.availableThemes`. Custom themes are also supported.
    * Note: Available from NotePlan v3.1
    * @param {string} name of theme to change to.
    */
-setTheme(name: string): void;
+  setTheme(name: string): void;
   /**
    * Save theme as the default for the specified mode.
    * @param {string} theme_name (already-installed; not filename)
    * @param {string} mode "dark" | "light" | "auto"
    */
-saveDefaultTheme(name: string, mode: string): void;
+  saveDefaultTheme(name: string, mode: string): void;
   /**
    * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
    * It returns true if adding was successful and false if not. An error will be also printed into the console.
@@ -317,12 +349,12 @@ saveDefaultTheme(name: string, mode: string): void;
    * @return {boolean}
    */
   addTheme(json: string, filename: string): boolean;
-/**
-* Get the current system mode, either "dark" or "light.
-* Note: Available from NotePlan v3.6.2+
-* @return {string}
-*/
-+currentSystemMode: string;
+  /**
+   * Get the current system mode, either "dark" or "light.
+   * Note: Available from NotePlan v3.6.2+
+   * @return {string}
+   */
+  +currentSystemMode: string;
 }
 
 /**
@@ -339,7 +371,7 @@ declare class DataStore {
    */
   static +defaultFileExtension: string;
   /**
-   * Get all folders as array of strings. 
+   * Get all folders as array of strings.
    * Note: Includes the root "/" and folders that begin with "@" such as "@Archive" and "@Templates". It excludes the trash folder though.
    */
   static +folders: $ReadOnlyArray<string>;
@@ -438,7 +470,7 @@ declare class DataStore {
    */
   static loadJSON(filename?: string): Object;
   /**
-   * Save data to a file. 
+   * Save data to a file.
    * Can use this with base64 encoding to save arbitary binary data, or with string-based data (using loadAsString flag).
    * The file will be saved under "[NotePlan Folder]/Plugins/data/[plugin-id]/[filename]".
    * If the file already exists, it will be over-written.
@@ -471,13 +503,13 @@ declare class DataStore {
    */
   static calendarNoteByDate(date: Date, timeframe?: string): ?TNote;
   /**
-  * Returns the calendar note for the given date string (can be undefined, if the calendar note was not created yet). See the date formats below for various types of calendar notes:
-  * Daily: "YYYYMMDD", example: "20210410"
-  * Weekly: "YYYY-Wwn", example: "2022-W24"
-  * Quarter: "YYYY-Qq", example: "2022-Q4"
-  * Monthly: "YYYY-MM", example: "2022-10"
-  * Yearly: "YYYY", example: "2022"
-  * Note: Some available from v3.7.2
+   * Returns the calendar note for the given date string (can be undefined, if the calendar note was not created yet). See the date formats below for various types of calendar notes:
+   * Daily: "YYYYMMDD", example: "20210410"
+   * Weekly: "YYYY-Wwn", example: "2022-W24"
+   * Quarter: "YYYY-Qq", example: "2022-Q4"
+   * Monthly: "YYYY-MM", example: "2022-10"
+   * Yearly: "YYYY", example: "2022"
+   * Note: Some available from v3.7.2
    * @param {string}
    * @return {NoteObject}
    */
@@ -1051,27 +1083,27 @@ declare class Calendar {
    * @param {Array<string>?}
    * @return {Promise}
    */
-  static remindersByLists(lists: $ReadOnlyArray < string >): Promise < Array < TCalendarItem >>;
+  static remindersByLists(lists: $ReadOnlyArray<string>): Promise<Array<TCalendarItem>>;
   /**
    * Returns the week number of the given date adjusted by the start of the week configured by the user in the preferences.
-   * @param {Date} 
+   * @param {Date}
    * @returns {number} week number (integer)
    * Note: Available from v3.7.0
-  */
+   */
   static weekNumber(date: Date): number;
   /**
    * Returns the first day of the given date's week adjusted by the start of the week configured by the user in the preferences (means the returned date will always be the configured first day of the week).
-  * @param {Date} date
-  * @returns {Date} date of start of week
+   * @param {Date} date
+   * @returns {Date} date of start of week
    * Note: Available from v3.7.0
-  */
+   */
   static startOfWeek(date: Date): Date;
   /**
    * Returns the last day of the given date's week adjusted by the start of the week configured by the user in the preferences (means the returned endOfWeek date will always be the day before the first day of the week specified in Preferences).
-  * @param {Date} date
-  * @returns {Date} date of last day of week
+   * @param {Date} date
+   * @returns {Date} date of last day of week
    * Note: Available from v3.7.0
-  */
+   */
   static endOfWeek(date: Date): Date;
 }
 
@@ -1266,15 +1298,15 @@ declare interface TRange {
    * Character length of the range (end - start). (Get only.)
    */
   +length: number;
-/**
- * Create an instance of a Range object with the start and end positions. 
- * The length variable is calculated automatically and doesn't have to be set.
- * Example: Range.create(0, 10) 
-* @param {number} start
-* @param {number} end
-* @returns {Range}
-*/
-create(start: number, end: number): Range;
+  /**
+   * Create an instance of a Range object with the start and end positions.
+   * The length variable is calculated automatically and doesn't have to be set.
+   * Example: Range.create(0, 10)
+   * @param {number} start
+   * @param {number} end
+   * @returns {Range}
+   */
+  create(start: number, end: number): Range;
 }
 
 type CalenderItemType = 'event' | 'reminder'
@@ -1298,50 +1330,50 @@ declare interface TCalendarItem {
   /**
    * The title of the event or reminder.
    */
-title: string;
+  title: string;
   /**
    * The date (with time) of the event or reminder.
    */
-date: Date;
+  date: Date;
   /**
    * The endDate (with time) of the event (reminders have no endDate).
    * So, this can be optional.
    */
-endDate: ? Date;
+  endDate: ?Date;
   /**
-   * The type of the calendar item, either "event" or "reminder". 
+   * The type of the calendar item, either "event" or "reminder".
    * Cannot be set.
    */
   +type: string;
   /**
    * If the calendar item is all-day, means it has no specific time.
    */
-isAllDay: boolean;
+  isAllDay: boolean;
   /**
    * If the calendar item is completed. This applies only to reminders.
    * Note: Available from v3.0.15
    */
-isCompleted: boolean;
+  isCompleted: boolean;
   /**
    * All the dates the event or reminder occurs (if it's a multi-day event for example)
    * Note: Available from v3.0.15
    */
-+occurrences: $ReadOnlyArray < Date >;
+  +occurrences: $ReadOnlyArray<Date>;
   /**
    * The calendar or reminders list where this event or reminder is (or should be) saved. If you set nothing, the event or reminder will be added to the default and this field will be set after adding.
    * Note: Available from v3.0.15.
    */
-calendar: string;
+  calendar: string;
   /**
    * Text saved in the "Notes" field of the event or reminder.
    * Note: Available from v3.0.26
    */
-notes: string;
+  notes: string;
   /**
    * URL saved with the event or reminder.
    * Note: Available from v3.0.26
    */
-url: string;
+  url: string;
   /**
    * If supported, shows the availability for the event. The default is 0 = busy.
    * notSupported = -1
@@ -1351,7 +1383,7 @@ url: string;
    * unavailable = 3
    * Note: Available from v3.3
    */
-availability: number;
+  availability: number;
   /**
    * List of attendee names or emails.
    * Some example result strings show the variety possible:
@@ -1361,37 +1393,37 @@ availability: number;
    * But I think it is closer to being a JS Map [string, string].
    * Note: Available from v3.5.0
    */
-attendees: Array < string >;
+  attendees: Array<string>;
   /**
    * List of attendee names (or email addresses if name isn't available).
    * Note: Available from v3.5.2
    */
-+attendeeNames: $ReadOnlyArray < string >;
+  +attendeeNames: $ReadOnlyArray<string>;
   /**
    * Markdown link for the given event. If you add this link to a note, NotePlan will link the event with the note and show the note in the dropdown when you click on the note icon of the event in the sidebar.
    * Note: Available from v3.5, only events; reminders are not supported yet
    */
-calendarItemLink: string;
-/**
- * Location in the event
- * Note: Available from v3.5.2? for events
- */
-location: string;
-/**
- * Is this from a writeable calendar?
- * Note: get only
- */
-+isCalendarWritable: boolean;
-/**
- * Is the event part of a recurring series?
- * Note: get only
- */
-+isRecurring: boolean;
+  calendarItemLink: string;
+  /**
+   * Location in the event
+   * Note: Available from v3.5.2? for events
+   */
+  location: string;
+  /**
+   * Is this from a writeable calendar?
+   * Note: get only
+   */
+  +isCalendarWritable: boolean;
+  /**
+   * Is the event part of a recurring series?
+   * Note: get only
+   */
+  +isRecurring: boolean;
   /**
    * Create a CalendarItem. The .endDate is optional, but recommended for events.
    * Reminders don't use this field.
    *
-   * The type can be "event" or "reminder". 
+   * The type can be "event" or "reminder".
    * And isAllDay can be used if you don't want to define a specific time, like holidays.
    * Use the calendar variable, if you want to add the event or reminder to another
    * calendar or reminders list other than the default. This is optional: if you set
@@ -1409,7 +1441,7 @@ location: string;
     isCompleted?: boolean,
     notes?: string,
     url?: string,
-    availability ?: number
+    availability?: number,
   ): TCalendarItem;
 }
 
@@ -1496,8 +1528,8 @@ declare interface CoreNoteFields {
    * Note: Available from v3.6.1
    * @param {String} newFilename requested
    * @returns {String} actualFilename
-  */
-rename(newFilename: string): string;
+   */
+  rename(newFilename: string): string;
   /**
    * Get or set the raw text of the note (without hiding or rendering any Markdown).
    * If you set the content, NotePlan will write it immediately to file.
@@ -1510,14 +1542,14 @@ rename(newFilename: string): string;
    * updated.
    * TODO: Should this really be $ReadOnlyArray?
    */
-paragraphs: $ReadOnlyArray < TParagraph >;
-/**
-* Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
-* You can use this in combination with note triggers and diffs to figure out what has changed inside the note.
-* The first entry in the array is the current version and the second contains the content of the previous version, etc.
-* Note: Available from v3.7.2
-*/
-+versions: $ReadOnlyArray < string, Date >;
+  paragraphs: $ReadOnlyArray<TParagraph>;
+  /**
+   * Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
+   * You can use this in combination with note triggers and diffs to figure out what has changed inside the note.
+   * The first entry in the array is the current version and the second contains the content of the previous version, etc.
+   * Note: Available from v3.7.2
+   */
+  +versions: $ReadOnlyArray<string, Date>;
   /**
    * Inserts the given text at the given character position (index)
    * Note: this is not quite the same as Editor.insertTextAtCharacterIndex()
@@ -1582,22 +1614,22 @@ paragraphs: $ReadOnlyArray < TParagraph >;
   /**
    * Appends a todo at the end of the note
    */
-appendTodo(content: string): void;
+  appendTodo(content: string): void;
 
   /**
    * Prepends a todo at the beginning of the note (after the title heading)
    */
-prependTodo(content: string): void;
+  prependTodo(content: string): void;
 
   /**
    * Appends a paragraph at the end of the note
    */
-appendParagraph(content: string, type: ParagraphType): void;
+  appendParagraph(content: string, type: ParagraphType): void;
 
   /**
    * Prepends a paragraph at the beginning of the note (after the title heading)
    */
-prependParagraph(content: string, type: ParagraphType): void;
+  prependParagraph(content: string, type: ParagraphType): void;
 
   /**
    * Inserts a todo below the given title of a heading (at the beginning or end of existing text)
@@ -1606,7 +1638,7 @@ prependParagraph(content: string, type: ParagraphType): void;
    * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
    * @param {boolean} shouldCreate - If the heading should be created if non-existing
    */
-addTodoBelowHeadingTitle(content: string, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
+  addTodoBelowHeadingTitle(content: string, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
 
   /**
    * Inserts a paragraph below the given title of a heading (at the beginning or end of existing text)
@@ -1616,14 +1648,14 @@ addTodoBelowHeadingTitle(content: string, headingTitle: string, shouldAppend: bo
    * @param {boolean} shouldAppend - If the todo should be appended at the bottom of existing text
    * @param {boolean} shouldCreate - If the heading should be created if non-existing
    */
-addParagraphBelowHeadingTitle(content: string, paragraphType: ParagraphType, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
+  addParagraphBelowHeadingTitle(content: string, paragraphType: ParagraphType, headingTitle: string, shouldAppend: boolean, shouldCreate: boolean): void;
 
   /**
    * Appends a todo below the given heading index (at the end of existing text)
    * @param {string} content - Text of the todo
    * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object)
    */
-appendTodoBelowHeadingLineIndex(content: string, headingLineIndex: number): void;
+  appendTodoBelowHeadingLineIndex(content: string, headingLineIndex: number): void;
 
   /**
    * Appends a paragraph below the given heading index (at the end of existing text)
@@ -1631,21 +1663,21 @@ appendTodoBelowHeadingLineIndex(content: string, headingLineIndex: number): void
    * @param {paragraphType} paragraphType
    * @param {number} headingLineIndex - Line index of the heading (get the line index from a paragraph object)
    */
-appendParagraphBelowHeadingLineIndex(content: string, paragraphType: ParagraphType, headingLineIndex: number): void;
+  appendParagraphBelowHeadingLineIndex(content: string, paragraphType: ParagraphType, headingLineIndex: number): void;
 
   /**
    * Inserts a todo after a given paragraph
    * @param {string} content - Text of the paragraph
    * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
    */
-insertTodoAfterParagraph(content: string, otherParagraph: TParagraph): void;
+  insertTodoAfterParagraph(content: string, otherParagraph: TParagraph): void;
 
   /**
    * Inserts a todo before a given paragraph
    * @param {string} content - Text of the paragraph
    * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
    */
-insertTodoBeforeParagraph(content: string, otherParagraph: TParagraph): void;
+  insertTodoBeforeParagraph(content: string, otherParagraph: TParagraph): void;
 
   /**
    * Inserts a paragraph after a given paragraph
@@ -1653,7 +1685,7 @@ insertTodoBeforeParagraph(content: string, otherParagraph: TParagraph): void;
    * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
    * @param {paragraphType} paragraphType
    */
-insertParagraphAfterParagraph(content: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
+  insertParagraphAfterParagraph(content: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
 
   /**
    * Inserts a paragraph before a given paragraph
@@ -1661,7 +1693,7 @@ insertParagraphAfterParagraph(content: string, otherParagraph: TParagraph, parag
    * @param {TParagraph} otherParagraph - Another paragraph, get it from `.paragraphs`
    * @param {paragraphType} paragraphType
    */
-insertParagraphBeforeParagraph(content: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
+  insertParagraphBeforeParagraph(content: string, otherParagraph: TParagraph, paragraphType: ParagraphType): void;
 
   /**
    * Removes a paragraph at a given line index
@@ -1790,13 +1822,13 @@ declare class NotePlan {
    */
   static openURL(url: string): void;
   /**
-  * Returns the ranges that have changed between the two versions.
-  * Note: Available from v3.7.2
-  * @param {string} version1
-  * @param {string} version2
-  * @returns {Array<RangeObject>}
-  */
-  static stringDiff(version1: string, version2: string): Array < RangeObject >;
+   * Returns the ranges that have changed between the two versions.
+   * Note: Available from v3.7.2
+   * @param {string} version1
+   * @param {string} version2
+   * @returns {Array<RangeObject>}
+   */
+  static stringDiff(version1: string, version2: string): Array<RangeObject>;
 }
 
 declare class HTMLView {
@@ -1811,13 +1843,13 @@ declare class HTMLView {
    */
   static showSheet(HTML: string, width?: number, height?: number): void;
   /**
-  * Open a non-modal window above the main window with the given html code and window title.
-  * Note: Available from v3.7.0 (build >862)
-  * @param {string} HTML to show
-  * @param {string} title for window
-  * @param {number?} width (optional integer)
-  * @param {number?} height (optional integer)
-  */
+   * Open a non-modal window above the main window with the given html code and window title.
+   * Note: Available from v3.7.0 (build >862)
+   * @param {string} HTML to show
+   * @param {string} title for window
+   * @param {number?} width (optional integer)
+   * @param {number?} height (optional integer)
+   */
   static showWindow(html: string, title: string, width?: number, height?: number): void;
 }
 
