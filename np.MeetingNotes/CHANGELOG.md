@@ -4,7 +4,15 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [1.1.0] - 2022-12-06 (@dwertheimer)
+
+- Added newMeetingNoteFromEventID() to be called via xcallback
+- Made newMeetingNote not hidden anymore (allow people to select event/note)
+- Changed the order of selection (meeting first then template)
+- Fixed a lot of Flow defs
+
 ## [0.1.2] - 2022-08-16 (@dwertheiemr)
+
 - Commented out DataStore.invokePluginCommandByName
 - Other minor changes
 

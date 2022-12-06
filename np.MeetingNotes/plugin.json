@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.MeetingNotes",
   "plugin.name": "✍️ Meeting Notes",
-  "plugin.version": "1.0.1",
+  "plugin.version": "1.1.0",
   "plugin.description": "Create Meeting Notes from events using templates.",
   "plugin.author": "NotePlan",
   "plugin.dependencies": [],
@@ -15,6 +15,12 @@
       "name": "newMeetingNote",
       "description": "Create a meeting note by choosing an event and a template.",
       "jsFunction": "newMeetingNote",
+      "hidden": false
+    },
+    {
+      "name": "newMeetingNoteFromEventID",
+      "description": "Create a meeting note for a passed EventID.",
+      "jsFunction": "newMeetingNoteFromID",
       "hidden": true
     },
     {

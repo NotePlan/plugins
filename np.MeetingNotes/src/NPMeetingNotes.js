@@ -4,7 +4,7 @@ import moment from 'moment-business-days'
 import fm from 'front-matter'
 
 import pluginJson from '../plugin.json'
-import { log, logDebug, logError } from '@helpers/dev'
+import { log, logDebug, logError, clo, JSP } from '@helpers/dev'
 import NPTemplating from 'NPTemplating'
 
 /**
@@ -55,7 +55,24 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
 }
 
 /**
- * FIXME(Eduard): please document me!
+ * Get a calendar event from ID and pass it to newMeetingNote
+ * @param {string} eventID
+ * @param {string} template
+ */
+export async function newMeetingNoteFromID(eventID: string, template?: string): Promise<void> {
+  logDebug(pluginJson, `newMeetingNoteFromID id:${eventID} template:${String(template)}`)
+  const selectedEvent = await Calendar.eventByID(eventID)
+  if (selectedEvent) {
+    clo(selectedEvent, 'newMeetingNoteFromID: selectedEvent')
+    await newMeetingNote(selectedEvent, template)
+  }
+}
+
+/**
+ * Create a meeting note for a calendar event
+ * This function is called when the user right-clicks a calendar event and selects "New Meeting Note" (NP passes the CalendarItem to the function)
+ * Can also be called via newMeetingNoteFromID() when it receives an x-callback-url (with or without arguments)
+ * If arguments are not provided, the user will be prompted to select an event and a template
  * @param {*} _selectedEvent
  * @param {*} _templateFilename
  */
@@ -125,7 +142,7 @@ function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string):
     // Only add the link to events without attendees
     logDebug(pluginJson, 'writing event link into event notes.')
 
-    if (newTitle && selectedEvent.attendees.length === 0 && selectedEvent.isCalendarWritable) {
+    if (newTitle && selectedEvent?.attendees && selectedEvent.attendees.length === 0 && selectedEvent.isCalendarWritable) {
       // FIXME(Eduard): no such field on Calendar or CalendarItem
       let noteLink = `noteplan://x-callback-url/openNote?noteTitle=${encodeURIComponent(newTitle)}`
       const eventNotes = selectedEvent.notes
@@ -368,14 +385,15 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem) {
  * @returns
  */
 function generateTemplateData(selectedEvent: TCalendarItem) {
+  logDebug(pluginJson, `generateTemplateData running for event titled: "${selectedEvent.title}"`)
   return {
     data: {
       eventTitle: selectedEvent.title,
       eventNotes: selectedEvent.notes,
       eventLink: selectedEvent.url,
       calendarItemLink: selectedEvent.calendarItemLink,
-      eventAttendees: selectedEvent.attendees.join(', '),
-      eventAttendeeNames: selectedEvent.attendeeNames.join(', '),
+      eventAttendees: selectedEvent && selectedEvent?.attendees?.length ? selectedEvent.attendees.join(', ') : '',
+      eventAttendeeNames: selectedEvent && selectedEvent?.attendees?.length ? selectedEvent.attendeeNames.join(', ') : '',
       eventLocation: selectedEvent.location, // not yet documented!
       eventCalendar: selectedEvent.calendar,
     },
