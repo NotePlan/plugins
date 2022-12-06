@@ -60,18 +60,22 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
  * @param {*} _templateFilename
  */
 export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
-  logDebug(pluginJson, 'chooseTemplateIfNeeded')
-  const templateFilename: ?string = await chooseTemplateIfNeeded(_templateFilename, true)
-
   logDebug(pluginJson, 'chooseEventIfNeeded')
   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
 
-  try {
-    logDebug(pluginJson, 'generateTemplateData')
-    const templateData = generateTemplateData(selectedEvent)
+  logDebug(pluginJson, 'chooseTemplateIfNeeded')
+  const templateFilename: ?string = await chooseTemplateIfNeeded(_templateFilename, true)
 
-    logDebug(pluginJson, 'get template content')
-    const templateContent = DataStore.projectNoteByFilename(templateFilename).content
+  try {
+    let templateData, templateContent
+    if (selectedEvent) {
+      logDebug(pluginJson, 'generateTemplateData')
+      templateData = generateTemplateData(selectedEvent)
+    }
+    if (templateFilename) {
+      logDebug(pluginJson, 'get template content')
+      templateContent = DataStore.projectNoteByFilename(templateFilename)?.content || ''
+    }
 
     logDebug(pluginJson, 'preRender template')
     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
@@ -181,7 +185,9 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
       // TODO: We don't know if its a title or a filename, so try first looking for a filename, then title
       logDebug(pluginJson, 'find the note by title')
       const availableNotes = DataStore.projectNoteByTitle(noteName)
-      note = availableNotes[0]
+      if (availableNotes && availableNotes.length > 0) {
+        note = availableNotes[0]
+      }
 
       if (folder) {
         // Look for the note in the defined folder
