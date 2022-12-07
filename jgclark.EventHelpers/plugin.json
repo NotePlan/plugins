@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
   "plugin.version": "0.20.0",
-  "plugin.lastUpdateInfo": "0.20.0: can now insert a MEETINGNOTE link next to each item.\n0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.\n0.19.2: New setting \"Include time blocks from completed tasks?\" for the \"/time blocks to calendar\" command.",
+  "plugin.lastUpdateInfo": "0.20.0: can now insert a MEETINGNOTE link next to each item. Please read important note in the README file on how to enable it.\n0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.\n0.19.2: New setting \"Include time blocks from completed tasks?\" for the \"/time blocks to calendar\" command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
