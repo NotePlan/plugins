@@ -18,7 +18,7 @@ Settings:
 - **Calendars to include**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **Calendar name mappings**: optional - add mappings for your calendar names to appear as in the output - e.g. from "Jonathan (iCloud)" to "Me" (and from "Us (iCloud)" to "Us") with `Jonathan (iCloud);Me, Us (iCloud);Us`. Note: separate mapping from main name by `;` a character, and separate mapping pairs with the `,` character.
 - **Matching Events heading**: in `/insert matching events` command (or `listMatchingEvents()` template call), the heading to put before the list of matching events
-- **Events match list**: for `/add matching events` is an array of pairs of strings. The first string is what is matched for in an event's title. If it does match, the second string is used as the format for how to insert the event details at the cursor.  This uses the `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*`, `*|ATTENDEES|*`, `*|EVENTLINK|*`, `*|MEETINGNOTE|*` and `*|URL|*` format items below ...  NB: At this point the 'location' field is unfortunately _not_ available through the API.
+- **Events match list**: for `/add matching events` is an array of pairs of strings. The first string is what is matched for in an event's title. If it does match, the second string is used as the format for how to insert the event details at the cursor.  This uses the `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*`, `*|ATTENDEES|*`, `*|EVENTLINK|*`, `*|LOCATION|*`, `*|MEETINGNOTE|*` and `*|URL|*` format items below ...  
 For example:
   ```jsonc
   {
@@ -41,7 +41,7 @@ If you use Templating, this command can be called when a Template is inserted (i
 
 You can place  `<%- listMatchingEvents() %>` in Templates in a similar way, and similar customisations are possible. However, as each match can have a different format of output, the matches and format strings are entered in a JSON-formatted array, which is specified in the Plugin's settings.
 
-**Formats**: The `*|CAL|*`, `*|TITLE|*`, `*|LOCATION|*`, `*|START|*`, `*|END|*`,  `*|DATE|*`,  `*|NOTES|*`, `*|URL|*`,  `*|ATTENDEES|*`, `*|ATTENDEENAMES|*`, `*|MEETINGNOTE|*`,  and `*|EVENTLINK|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)
+**Formats**: The `*|CAL|*`, `*|TITLE|*`, `*|LOCATION|*`, `*|START|*`, `*|END|*`,  `*|DATE|*`,  `*|NOTES|*`, `*|URL|*`,  `*|ATTENDEES|*`, `*|ATTENDEENAMES|*`, `*|LOCATION|*`, `*|MEETINGNOTE|*`,  and `*|EVENTLINK|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)
 
 Most of these are self-explanatory for events in most types of calendars, other than:
 - `*|ATTENDEES|*` gives the full details of event attendees provided by the operating system, and can be a mix of names, email addresses, and other details;
@@ -49,6 +49,12 @@ Most of these are self-explanatory for events in most types of calendars, other 
 - `*|DATE|*` is formatted using the locale settings from your operating system, unless you override that with the 'Shared Settings > Locale' setting;
 - `*|EVENTLINK|*` is specific to NotePlan: it will make a nicely-formatted link to the actual calendar event, and clicking on it will show a pop with all the event's details.
 - `*|MEETINGNOTE|*` will insert a link that when clicked, will help you create a meeting note for this particular event
+
+{% note %}
+
+**Note:** MEETINGNOTE links requires the newest version of the meeting notes code, which is inside NotePlan but automatically updated when you create a meeting note from the calendar sidebar. If MEETINGNOTE links are generating but not clicking, simply create any Meeting Note from the calendar, which will auto-update the meeting notes functionality. After that, your links will work.
+
+{% endnote %}
 
 v0.15.0 added more flexibility in the formatting of event lists. So now instead of including (for example) `*|ATTENDEENAMES|*` you can now include other text (including line breaks indicated by `\n`) within the placeholder. For example in `*|\nwith ATTENDEENAMES|*` if the ATTENDEENAMES is not empty, then it will output the list after a newline and the text 'with '.
 
