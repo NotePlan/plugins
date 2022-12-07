@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [1.1.1] - 2022-12-06 (@jgclark)
+- Make newMeetingNoteFromEventID() better at handling bad template defintions
+- improved JSDoc where I could
+
 ## [1.1.0] - 2022-12-06 (@dwertheimer)
 
 - Added newMeetingNoteFromEventID() to be called via xcallback

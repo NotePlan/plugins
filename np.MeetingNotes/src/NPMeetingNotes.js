@@ -9,9 +9,8 @@ import NPTemplating from 'NPTemplating'
 
 /**
  * FIXME(Eduard): please document me!
- * @param {*} origFileName
- * @param {*} dailyNoteDate
- * @returns
+ * @param {string} origFileName
+ * @param {Date} dailyNoteDate
  */
 export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Date): Promise<void> {
   logDebug(pluginJson, 'chooseTemplateIfNeeded')
@@ -73,8 +72,8 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
  * This function is called when the user right-clicks a calendar event and selects "New Meeting Note" (NP passes the CalendarItem to the function)
  * Can also be called via newMeetingNoteFromID() when it receives an x-callback-url (with or without arguments)
  * If arguments are not provided, the user will be prompted to select an event and a template
- * @param {*} _selectedEvent
- * @param {*} _templateFilename
+ * @param {TCalendarItem} _selectedEvent
+ * @param {string?} _templateFilename
  */
 export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
   logDebug(pluginJson, 'chooseEventIfNeeded')
@@ -134,8 +133,8 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
 
 /**
  * FIXME(Eduard): please document me!
- * @param {*} selectedEvent
- * @param {*} newTitle
+ * @param {TCalendarItem} selectedEvent
+ * @param {string} newTitle
  */
 function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string): void {
   try {
@@ -164,11 +163,11 @@ function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string):
 
 /**
  * FIXME(Eduard): please document me!
- * @param {*} append
- * @param {*} prepend
- * @param {*} folder
- * @param {*} content
- * @returns
+ * @param {string} append
+ * @param {string} prepend
+ * @param {string?} folder
+ * @param {string} content
+ * @returns {Promise<string?>} title (or null)
  */
 async function appendPrependNewNote(append: string, prepend: string, folder: string = '', content: string): Promise<?string> {
   try {
@@ -258,9 +257,9 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
 
 /**
  * FIXME(Eduard): please document me!  Also I suggest you put a verb on the front of this function so its clearer what it is doing.
- * @param {*} content
- * @param {*} _folder
- * @returns
+ * @param {string} content
+ * @param {string} _folder
+ * @returns {Promise<string?>} title (or null)
  */
 async function newNoteWithFolder(content: string, _folder: string): Promise<?string> {
   let folder = _folder
@@ -310,41 +309,64 @@ async function newNoteWithFolder(content: string, _folder: string): Promise<?str
 
 /**
  * FIXME(Eduard): please document me!
- * @param {*} templateFilename
- * @param {*} onlyMeetingNotes
- * @returns
+ * @param {string?} templateFilename to use (optional)
+ * @param {boolean} onlyMeetingNotes?
+ * @returns {Promise<string>} filename
  */
 async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNotes: boolean = false): Promise<?string> {
   try {
     if (!templateFilename) {
-      logDebug(pluginJson, 'no template was defined, find all available templates and show them')
+      logDebug(pluginJson, `no template was defined, find all available templates and show them`)
       let templates = DataStore.projectNotes.filter((n) => n.filename.startsWith(NotePlan.environment.templateFolder))
 
-      logDebug(pluginJson, 'include/exlcude meeting notes')
-      if (onlyMeetingNotes) {
-        templates = templates.filter((n) => fm(n.content)?.attributes.type === 'meeting-note')
+      if (!templates || templates.length === 0) {
+        throw new Error(`Couldn't find any templates`)
       } else {
-        templates = templates.filter((n) => fm(n.content)?.attributes.type !== 'meeting-note')
+        logDebug(pluginJson, `${templates.length} templates found`)
       }
 
-      logDebug(pluginJson, 'show template options')
+      try {
+        if (onlyMeetingNotes) {
+          logDebug(pluginJson, 'including only meeting notes')
+          for (let n of templates) {
+            console.log(n.filename)
+          }
+          templates = templates.filter((n) => fm(n.content)?.attributes?.type === 'meeting-note')
+        } else {
+          logDebug(pluginJson, 'excluding meeting notes')
+          templates = templates.filter((n) => fm(n.content)?.attributes?.type !== 'meeting-note')
+        }
+      }
+      catch (error) {
+        if (error.name === 'YAMLException') {
+          logError(pluginJson, `Error found in frontmatter of a template. Details follow:\n${JSP(error)}`)
+        } else {
+          throw error // some other error, so throw to main (outer) catch handler
+        }
+      }
+
+      if (!templates || templates.length === 0) {
+        throw new Error(`Couldn't find any meeting-note templates`)
+      } else {
+        logDebug(pluginJson, `of those, ${templates.length} are meeting-note templates`)
+      }
+
+      logDebug(pluginJson, `asking user to select from ${templates.length} meeting-note templates ...`)
       const selectedTemplate = await CommandBar.showOptions(
         templates.map((n) => n.title ?? 'Untitled Note'),
         'Select a template',
       )
       return templates[selectedTemplate.index].filename
     }
-
     return templateFilename
   } catch (error) {
-    logDebug(pluginJson, `error in chooseTemplateIfNeeded: ${error}`)
+    logError(pluginJson, `error in chooseTemplateIfNeeded: ${JSP(error)}`)
   }
 }
 
 /**
  * FIXME(Eduard): please document me!
- * @param {*} selectedEvent
- * @returns
+ * @param {TCalendarItem} selectedEvent
  */
 async function chooseEventIfNeeded(selectedEvent?: TCalendarItem) {
   try {
@@ -381,8 +403,7 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem) {
 
 /**
  * FIXME(Eduard): please document me!
- * @param {*} selectedEvent
- * @returns
+ * @param {TCalendarItem} selectedEvent
  */
 function generateTemplateData(selectedEvent: TCalendarItem) {
   logDebug(pluginJson, `generateTemplateData running for event titled: "${selectedEvent.title}"`)
