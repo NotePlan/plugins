@@ -49,6 +49,8 @@ export function getTimeBlockingDefaults(): AutoTimeBlockingConfig {
   }
 }
 
+const nonEmptyString: RegExp = /^(?!\s*$).+/
+
 export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): AutoTimeBlockingConfig {
   const configTypeCheck = {
     todoChar: /^(?!(?:.*\*){2})[\*|\-|#{1,}]+$/,
@@ -57,11 +59,11 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     foldTimeBlockHeading: 'boolean',
     workDayStart: /^\d{2}:\d{2}$/,
     workDayEnd: /^\d{2}:\d{2}$/,
-    durationMarker: 'string',
+    durationMarker: nonEmptyString,
     intervalMins: 'number',
     removeDuration: 'boolean',
     createSyncedCopies: 'boolean',
-    syncedCopiesTitle: 'string',
+    syncedCopiesTitle: nonEmptyString,
     foldSyncedCopiesHeading: 'boolean',
     defaultDuration: 'number',
     mode: 'string',
@@ -71,9 +73,9 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     passBackResults: { type: 'boolean', optional: true },
     createCalendarEntries: 'boolean',
     deletePreviousCalendarEntries: 'boolean',
-    eventEnteredOnCalTag: 'string',
-    includeLinks: 'string',
-    linkText: 'string',
+    eventEnteredOnCalTag: nonEmptyString,
+    includeLinks: nonEmptyString,
+    linkText: nonEmptyString,
     includeTasksWithText: { type: 'array', optional: true },
     excludeTasksWithText: { type: 'array', optional: true },
     calendarToWriteTo: 'string',

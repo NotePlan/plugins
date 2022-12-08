@@ -185,11 +185,11 @@ export async function deleteCalendarEventsWithTag(tag: string, dateStr: string):
     for (let i = 0; i < eventsArray.length; i++) {
       const event = eventsArray[i]
       if (event?.title?.includes(tag)) {
-        logDebug(pluginJson, `deleteCalendarEventsWithTag: deleting event ${event.title}`)
-        clo(event, `deleteCalendarEventsWithTag; event=`)
+        // logDebug(pluginJson, `deleteCalendarEventsWithTag: deleting event ${event.title}`)
+        // clo(event, `deleteCalendarEventsWithTag; event=`)
         await Calendar.remove(event)
         CommandBar.showLoading(true, `Deleting Calendar Events\n(${i + 1}/${eventsArray.length})`, (i + 1) / eventsArray.length)
-        logDebug(pluginJson, `deleteCalendarEventsWithTag: deleting event ${event.title} -- deleted`)
+        logDebug(pluginJson, `deleteCalendarEventsWithTag: deleted event: ${event.title}`)
       }
     }
     await CommandBar.onMainThread()
@@ -296,57 +296,87 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
   // logDebug(pluginJson,`Starting createTimeBlocksForTodaysTasks. Time is ${new Date().toLocaleTimeString()}`)
   const { timeBlockTag, intervalMins, insertIntoEditor, createCalendarEntries, passBackResults, deletePreviousCalendarEntries, eventEnteredOnCalTag } = config
   const hypenatedDate = getTodaysDateHyphenated()
-  logDebug(pluginJson, `createTimeBlocksForTodaysTasks hypenatedDate=${hypenatedDate}`)
+  logDebug(pluginJson, `createTimeBlocksForTodaysTasks hypenatedDate=${hypenatedDate} Editor.paras=${Editor.paragraphs.length}`)
   const date = getTodaysDateUnhyphenated()
   logDebug(pluginJson, `createTimeBlocksForTodaysTasks date=${date}`)
   const note = Editor // placeholder. we may pass a note in future revs
   const dateStr = Editor.filename ? getDateStringFromCalendarFilename(Editor.filename) : null
-  logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr ?? 'null'}`)
+  logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr ?? 'null'}  Editor.paras=${Editor.paragraphs.length}`)
   if (dateStr && dateStr === date) {
-    logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr} is today - starting`)
+    logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr} is today - starting  Editor.paras=${Editor.paragraphs.length}`)
     const todosParagraphs = await getTodaysFilteredTodos(config)
-    logDebug(pluginJson, `Back from getTodaysFilteredTodos, ${todosParagraphs.length} potential items`)
+    logDebug(pluginJson, `Back from getTodaysFilteredTodos, ${todosParagraphs.length} potential items  Editor.paras=${Editor.paragraphs.length}`)
     // the following calls addBlockID and that must be called before any content changes are made that will not be saved
     const todosWithLinksMaybe = appendLinkIfNecessary(todosParagraphs, config)
-    logDebug(pluginJson, `After appendLinkIfNecessary, ${todosWithLinksMaybe?.length ?? 0} potential items (may include headings or completed)`)
+    logDebug(
+      pluginJson,
+      `After appendLinkIfNecessary, ${todosWithLinksMaybe?.length ?? 0} potential items (may include headings or completed)  Editor.paras=${Editor.paragraphs.length}`,
+    )
     const cleanTodayTodoParas = [...removeDateTagsFromArray(todosWithLinksMaybe)]
-    logDebug(pluginJson, `After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items`)
+    logDebug(pluginJson, `After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items  Editor.paras=${Editor.paragraphs.length}`)
     const tasksByType = todosWithLinksMaybe.length ? getTasksByType(todosWithLinksMaybe, true) : null // puts in object by type of task and enriches with sort info (like priority)
-    logDebug(pluginJson, `After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items`)
+    logDebug(pluginJson, `After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items  Editor.paras=${Editor.paragraphs.length}`)
     if (deletePreviousCalendarEntries) {
       await deleteCalendarEventsWithTag(timeBlockTag, dateStr)
     }
-    logDebug(pluginJson, `After deleteCalendarEventsWithTag, ${tasksByType?.open.length ?? 0} open items (still)`)
+    logDebug(pluginJson, `After deleteCalendarEventsWithTag, ${tasksByType?.open.length ?? 0} open items (still)  Editor.paras=${Editor.paragraphs.length}`)
     if (tasksByType && tasksByType['open'].length) {
-      logDebug(pluginJson, `tasksByType['open'][0]: ${tasksByType['open'][0].content}`)
+      logDebug(pluginJson, `tasksByType['open'][0]: ${tasksByType['open'][0].content}  Editor.paras=${Editor.paragraphs.length}`)
       const sortedTodos = tasksByType['open'].length ? sortListBy(tasksByType['open'], '-priority') : []
-      logDebug(pluginJson, `After sortListBy, ${sortedTodos.length} open items`)
+      logDebug(pluginJson, `After sortListBy, ${sortedTodos.length} open items  Editor.paras=${Editor.paragraphs.length}`)
       // $FlowIgnore
-      await deleteParagraphsContainingString(note, timeBlockTag) // Delete our timeblocks before scanning note for user-entered timeblocks
+      if (timeBlockTag?.length) {
+        await deleteParagraphsContainingString(note, timeBlockTag) // Delete our timeblocks before scanning note for user-entered timeblocks
+        logDebug(pluginJson, `After deleteParagraphsContainingString("${timeBlockTag}"), Editor.paras=${Editor.paragraphs.length}`)
+      } else {
+        logError(pluginJson, `timeBlockTag was empty. That's not good. I told the user.`)
+        await showMessage(
+          `Your Event Automations settings have a blank field for timeBlockTag. I will continue, but the results probably won't be what you want. Please check your settings.`,
+        )
+      }
       // $FlowIgnore
-      await deleteParagraphsContainingString(note, eventEnteredOnCalTag) // Delete @jgclark timeblocks->calendar breadcrumbs also
+      if (eventEnteredOnCalTag?.length) {
+        await deleteParagraphsContainingString(note, eventEnteredOnCalTag) // Delete @jgclark timeblocks->calendar breadcrumbs also
+        logDebug(pluginJson, `After deleteParagraphsContainingString("${eventEnteredOnCalTag}"), Editor.paras=${Editor.paragraphs.length}`)
+      } else {
+        logError(pluginJson, `eventEnteredOnCalTag was empty. That's not good. I told the user.`)
+        await showMessage(
+          `Your Event Automations settings have a blank field for timeBlockTag. I will continue, but the results probably won't be what you want. Please check your settings.`,
+        )
+      }
       const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, intervalMins, config)
       logDebug(
         pluginJson,
-        `After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots; last = ${JSON.stringify(calendarMapWithEvents[calendarMapWithEvents.length - 1])}`,
+        `After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots; last = ${JSON.stringify(
+          calendarMapWithEvents[calendarMapWithEvents.length - 1],
+        )} Editor.paras=${Editor.paragraphs.length}`,
       )
-      logDebug(pluginJson, `sortedTodos[0]: ${sortedTodos[0].content}`)
+      // logDebug(pluginJson, `sortedTodos[0]: ${sortedTodos[0].content}  Editor.paras=${Editor.paragraphs.length}`)
       // logDebug(pluginJson, `sortedParas[0]: ${sortedParas[0].content}`)
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
       const { timeBlockTextList, blockList } = eventsToTimeblock
       clo(timeBlockTextList, `timeBlockTextList`)
       logDebug(
         pluginJson,
-        `After getTimeBlockTimesForEvents, blocks:\n\tblockList.length=${String(blockList?.length)} \n\ttimeBlockTextList.length=${String(timeBlockTextList?.length)}`,
+        `After getTimeBlockTimesForEvents, blocks:\n\tblockList.length=${String(blockList?.length)} \n\ttimeBlockTextList.length=${String(
+          timeBlockTextList?.length,
+        )}  Editor.paras=${Editor.paragraphs.length}`,
       )
-      logDebug(pluginJson, `After getTimeBlockTimesForEvents, insertIntoEditor=${String(insertIntoEditor)} createCalendarEntries=${String(createCalendarEntries)}`)
+      logDebug(
+        pluginJson,
+        `After getTimeBlockTimesForEvents, insertIntoEditor=${String(insertIntoEditor)} createCalendarEntries=${String(createCalendarEntries)}  Editor.paras=${
+          Editor.paragraphs.length
+        }`,
+      )
       if (insertIntoEditor || createCalendarEntries) {
         logDebug(
           pluginJson,
-          `After getTimeBlockTimesForEvents, config.createSyncedCopies=${String(config.createSyncedCopies)} todosWithLinksMaybe.length=${String(todosWithLinksMaybe.length)}`,
+          `After getTimeBlockTimesForEvents, config.createSyncedCopies=${String(config.createSyncedCopies)} todosWithLinksMaybe.length=${String(
+            todosWithLinksMaybe.length,
+          )}  Editor.paras=${Editor.paragraphs.length}`,
         )
 
-        logDebug(pluginJson, `About to insert ${String(timeBlockTextList?.length)} timeblock items into note`)
+        logDebug(pluginJson, `About to insert ${String(timeBlockTextList?.length)} timeblock items into note  Editor.paras=${Editor.paragraphs.length}`)
         if (!String(config.timeBlockHeading)?.length) {
           await showMessage(`You need to set a synced copies title in the plugin settings`)
           return
@@ -356,39 +386,44 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
         }
 
         logDebug(pluginJson, `\n\nAUTOTIMEBLOCKING SUMMARY:\n\n`)
-        logDebug(pluginJson, `After cleaning, ${tasksByType?.open?.length ?? 0} open items`)
+        logDebug(pluginJson, `After cleaning, ${tasksByType?.open?.length ?? 0} open items,  Editor.paras=${Editor.paragraphs.length}`)
 
-        logDebug(pluginJson, `createTimeBlocksForTodaysTasks inserted ${String(timeBlockTextList?.length)} items`)
+        logDebug(pluginJson, `createTimeBlocksForTodaysTasks inserted ${String(timeBlockTextList?.length)} items  Editor.paras=${Editor.paragraphs.length}`)
         if (createCalendarEntries) {
-          logDebug(pluginJson, `About to create calendar entries`)
+          logDebug(pluginJson, `About to create calendar entries  Editor.paras=${Editor.paragraphs.length}`)
           await selectCalendar(false) // checks the config calendar is writeable and if not, asks to set it
           const eventConfig = getEventsConfig(DataStore.settings) // pulling config again because selectCalendar may have changed it
-          logDebug(pluginJson, `createTimeBlocksForTodaysTasks eventConfig=${JSON.stringify(eventConfig)}`)
+          logDebug(pluginJson, `createTimeBlocksForTodaysTasks eventConfig=${JSON.stringify(eventConfig)}  Editor.paras=${Editor.paragraphs.length}`)
           // $FlowIgnore - we only use a subset of the events config that is in @jgclark's Flow Type
           await writeTimeBlocksToCalendar(eventConfig, Editor, true) //using @jgclark's method for now
           if (!insertIntoEditor) {
             // If user didn't want the timeblocks inserted into the editor, then we delete them now that they're in calendar
             // $Flow Ignore
+            logDebug(pluginJson, `createTimeBlocksForTodaysTasks before deleteParagraphsContainingString Editor.paras=${Editor.paragraphs.length}`)
             await deleteParagraphsContainingString(note, timeBlockTag)
+            logDebug(pluginJson, `createTimeBlocksForTodaysTasks after deleteParagraphsContainingString Editor.paras=${Editor.paragraphs.length}`)
           }
         }
       }
       if (config.createSyncedCopies && todosWithLinksMaybe?.length) {
-        logDebug(pluginJson, `createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks`)
+        logDebug(
+          pluginJson,
+          `createSyncedCopies is true, so we will create synced copies of the todosParagraphs: ${todosParagraphs.length} timeblocks  Editor.paras=${Editor.paragraphs.length}`,
+        )
         const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos).filter((p) => p.filename !== Editor.filename)
         const sortedParasExcludingCurrentNote = sortedParas.filter((p) => p.filename !== Editor.filename)
         await writeSyncedCopies(sortedParasExcludingCurrentNote, config)
       }
       return passBackResults ? timeBlockTextList : []
     } else {
-      logDebug(pluginJson, 'No todos/references marked for >today')
+      logDebug(pluginJson, 'No todos/references marked for >today  Editor.paras=${Editor.paragraphs.length}')
       if (!passBackResults) {
         await showMessage(`No todos/references marked for >today`)
       }
     }
   } else {
     if (!passBackResults) {
-      // logDebug(pluginJson,`You need to be in Today's Calendar Note to use this function`)
+      // logDebug(pluginJson,`You need to be in Today's Calendar Note to use this function  Editor.paras=${Editor.paragraphs.length}`)
       await showMessage(`You need to be in Today's Calendar Note to use this function`)
     }
   }

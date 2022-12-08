@@ -5,8 +5,8 @@
   "plugin.name": "🗓 Event Automations",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for >today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.13.1",
-  "plugin.lastUpdateInfo": "1.13.1 - Fixed bug for when the todo character is used for timeblocks. Thx @mattis for reporting!",
+  "plugin.version": "1.13.3",
+  "plugin.lastUpdateInfo": "1.13.3 - Fix bug when prefs fields are empty\n1.13.1 - Fixed bug for when the todo character is used for timeblocks. Thx @mattis for reporting!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -189,8 +189,8 @@
     {
       "key": "timeBlockTag",
       "type": "string",
-      "title": "Unique AutoTimeBlock #tag",
-      "description": "The tag that will be used to identify lines created the AutoTimeBlock plugin. This tag can be #(anything), but should be not ever used by you in other places.",
+      "title": "Unique AutoTimeBlock #tag (cannot be empty)",
+      "description": "The tag that will be used to identify lines created the AutoTimeBlock plugin. This tag can be #(anything), but should be not ever used by you in other places, because the plugin deletes lines with this tag before updating them.",
       "default": "#🕑",
       "required": true
     },
@@ -353,8 +353,8 @@
       "key": "eventEnteredOnCalTag",
       "type": "string",
       "validation": "",
-      "title": "Processed tag name",
-      "description": "Tag attached to events which were written into the calendar. Because we use a different plugin to write to the calendar, this setting needs to match EventHelpers>events/Processed tag name",
+      "title": "Processed tag name (cannot be empty)",
+      "description": "Tag attached to events which were written into the calendar. ",
       "default": "#event_created",
       "required": false
     },
