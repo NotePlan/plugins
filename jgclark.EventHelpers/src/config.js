@@ -57,7 +57,8 @@ export async function getEventsSettings(): Promise<any> {
         defaultEventDuration: 60,
         removeDoneDates: true,
         uncompleteTasks: true,
-        includeCompletedTasks: true
+        includeCompletedTasks: true,
+        meetingTemplateTitle: ""
       }
       v2Config = defaultConfig
     }

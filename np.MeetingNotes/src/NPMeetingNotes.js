@@ -31,12 +31,12 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
     return
   }
 
-  logDebug(pluginJson, 'preRender template')
+  logDebug(pluginJson, 'preRender() template')
   const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent)
 
   // const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent])
 
-  logDebug(pluginJson, 'render template')
+  logDebug(pluginJson, 'render() template')
   const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
 
   // const result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
@@ -74,13 +74,13 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
  * Can also be called via newMeetingNoteFromID() when it receives an x-callback-url (with or without arguments)
  * If arguments are not provided, the user will be prompted to select an event and a template
  * @param {TCalendarItem} _selectedEvent
- * @param {string?} _templateFilename
+ * @param {string?} _templateTitle
  */
-export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
+export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateTitle?: string): Promise<void> {
   logDebug(pluginJson, 'newMeetingNote')
   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
 
-  const templateFilename: ?string = await chooseTemplateIfNeeded(_templateFilename, true)
+  const templateFilename: ?string = await chooseTemplateIfNeededFromTemplateTitle(_templateTitle, true)
 
   try {
     let templateData, templateContent
@@ -89,14 +89,15 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
       templateData = generateTemplateData(selectedEvent)
     }
     if (templateFilename) {
-      logDebug(pluginJson, 'get template content')
       templateContent = DataStore.projectNoteByFilename(templateFilename)?.content || ''
+      // logDebug(pluginJson, `template content: <${templateContent}>`)
     }
 
     logDebug(pluginJson, 'preRender template')
     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
-
+    // JGC: TODO: why is this commented out? This looks the 'right' way to do it ...
     // const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent, templateData])
+    // logDebug(pluginJson, `-> <${frontmatterBody}>`)
 
     const attrs = frontmatterAttributes
     const folder = attrs?.folder || ''
@@ -106,8 +107,9 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
 
     logDebug(pluginJson, 'render template')
     let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
-
+    // JGC: TODO: why is this commented out? This looks the 'right' way to do it ...
     // let result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
+    logDebug(pluginJson, `-> <${result}>`)
 
     if (newNoteTitle.length > 0) {
       result = `# ${newNoteTitle}\n${result}`
@@ -118,7 +120,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
       logDebug(pluginJson, 'append/prepend template')
       newTitle = (await appendPrependNewNote(append, prepend, folder, result)) ?? '<error>'
     } else {
-      logError(pluginJson, 'create a new note with the rendered template')
+      logDebug(pluginJson, 'create a new note with the rendered template')
       newTitle = (await newNoteWithFolder(result, folder)) ?? '<error>' // FIXME(Eduard): only 2 params allowed
     }
 
@@ -308,10 +310,31 @@ async function newNoteWithFolder(content: string, _folder?: string): Promise<?st
 }
 
 const errorReporter = async (error: any, note: TNote) => {
-  const msg = `Error found in frontmatter of a template. I will try to continue, but you should try to fix the error in the following template:\nfilename:"${note.filename}",\n note titled:"${note.title}".\nThe problem is:\n"${error.message}"`
+  const msg = `Error found in frontmatter of a template. I will try to continue, but you should try to fix the error in the following template:\nfilename:"${note.filename}",\n note titled:"${note.title ?? ''}".\nThe problem is:\n"${error.message}"`
   if (error.stack) delete error.stack
   logError(pluginJson, `${msg}\n${JSP(error)}`)
   await showMessage(msg)
+}
+
+/**
+ * Get the template name to be used
+ * Check to see if an template has already been selected, and if so, pass it back
+ * If not, ask the user to select a template from a lsit of tempates
+ * @param {string?} templateTitle to use
+ * @param {boolean} onlyMeetingNotes? (optional) - if true, only show meeting notes, otherwise show all templates except type:ignore templates
+ * @returns {Promise<string>} filename of the template
+ */
+async function chooseTemplateIfNeededFromTemplateTitle(templateTitle?: string, onlyMeetingNotes: boolean = false): Promise<?string> {
+  // Get the filename and then pass to the main function
+  logDebug(pluginJson, `chooseTemplateIfNeededFromTemplateTitle starting`)
+  if (templateTitle) {
+    const matchingTemplates = DataStore.projectNotes.filter((n) => n.title === templateTitle)
+    logDebug(pluginJson, `- got ${matchingTemplates.length} template matches from '${templateTitle}'`)
+    if (matchingTemplates) {
+      return await chooseTemplateIfNeeded(matchingTemplates[0].filename, onlyMeetingNotes)
+    }
+  }
+  return await chooseTemplateIfNeeded()
 }
 
 /**
@@ -364,6 +387,8 @@ async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNote
         'Select a template',
       )
       return templates[selectedTemplate.index].filename
+    } else {
+      logDebug(pluginJson, `will use Template file '${templateFilename}' ...`)
     }
     return templateFilename
   } catch (error) {

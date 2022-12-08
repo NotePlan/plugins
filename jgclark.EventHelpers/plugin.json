@@ -124,6 +124,13 @@
       "required": false
     },
     {
+      "key": "meetingTemplateTitle",
+      "title": "Meeting Note Template title",
+      "description": "If set, this will be the . If not set, you'll be asked which Template (of type 'meeting-note') you'd like to use when run.",
+      "type": "string",
+      "required": false
+    },
+    {
       "type": "separator"
     },
     {

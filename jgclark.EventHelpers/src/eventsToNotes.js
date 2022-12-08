@@ -320,7 +320,7 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
     outputObject.set('END', item.endDate != null && !item.isAllDay ? toLocaleTime(item.endDate, config.locale, config.timeOptions) : '') // must be processed after 'ATTENDEE*'
     outputObject.set('URL', item.url)
     outputObject.set('ID', item.id || '')
-    outputObject.set('MEETINGNOTE', item.id ? `[Meeting Note](noteplan://x-callback-url/runPlugin?pluginID=np.MeetingNotes&command=newMeetingNoteFromEventID&arg0=${item.id})` : '')
+    outputObject.set('MEETINGNOTE', item.id ? `[Meeting Note](noteplan://x-callback-url/runPlugin?pluginID=np.MeetingNotes&command=newMeetingNoteFromEventID&arg0=${item.id}&arg1=${config.meetingTemplateTitle ? encodeURIComponent(config.meetingTemplateTitle) : ''})` : '')
 
     // outputObject.forEach((v, k, map) => { logDebug('getReplacements', `- ${k} : ${v}`) })
     return outputObject

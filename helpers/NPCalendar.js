@@ -54,7 +54,8 @@ export type EventsConfig = {
   addEventID: boolean,
   processedTagName?: string /* if not set, uses RE_EVENT_ID */,
   removeDoneDates: boolean,
-  uncompleteTasks: boolean
+  uncompleteTasks: boolean,
+  meetingTemplateTitle: string
 }
 
 // ----------------------------------------------------------------------

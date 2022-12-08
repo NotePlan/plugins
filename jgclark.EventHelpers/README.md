@@ -17,6 +17,7 @@ Settings:
 - **Sort order of events list**: by 'time' (= increasing start time of events) or by 'calendar' first, which then secondarily sorts by start time.
 - **Calendars to include**: optional ["array","of calendar","names"] to filter by when showing list of events. If empty or missing, no filtering will be done.
 - **Calendar name mappings**: optional - add mappings for your calendar names to appear as in the output - e.g. from "Jonathan (iCloud)" to "Me" (and from "Us (iCloud)" to "Us") with `Jonathan (iCloud);Me, Us (iCloud);Us`. Note: separate mapping from main name by `;` a character, and separate mapping pairs with the `,` character.
+- **Meeting Note Template title**: use to set which template to pick if you have several; if it isn't set then a list of meeting note templates will be offered.
 - **Matching Events heading**: in `/insert matching events` command (or `listMatchingEvents()` template call), the heading to put before the list of matching events
 - **Events match list**: for `/add matching events` is an array of pairs of strings. The first string is what is matched for in an event's title. If it does match, the second string is used as the format for how to insert the event details at the cursor.  This uses the `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*`, `*|ATTENDEES|*`, `*|EVENTLINK|*`, `*|LOCATION|*`, `*|MEETINGNOTE|*` and `*|URL|*` format items below ...  
 For example:
@@ -48,11 +49,11 @@ Most of these are self-explanatory for events in most types of calendars, other 
 - `*|ATTENDEENAMES|*` just gives the name of event attendees, or if that's missing, just the email address;
 - `*|DATE|*` is formatted using the locale settings from your operating system, unless you override that with the 'Shared Settings > Locale' setting;
 - `*|EVENTLINK|*` is specific to NotePlan: it will make a nicely-formatted link to the actual calendar event, and clicking on it will show a pop with all the event's details.
-- `*|MEETINGNOTE|*` will insert a link that when clicked, will help you create a meeting note for this particular event
+- `*|MEETINGNOTE|*` will insert a link that when clicked, will help you create a meeting note for this particular event. For this there's a setting 'Meeting Note Template title' which you can use to set which template to pick if you have several; if it isn't set then a list will be presented.
 
 {% note %}
 
-**Note:** MEETINGNOTE links requires the newest version of the meeting notes code, which is inside NotePlan but automatically updated when you create a meeting note from the calendar sidebar. If MEETINGNOTE links are generating but not clicking, simply create any Meeting Note from the calendar, which will auto-update the meeting notes functionality. After that, your links will work.
+**Note:** MEETINGNOTE links requires at least v1.1.2 of the separate "Meeting Notes" plugin.
 
 {% endnote %}
 
