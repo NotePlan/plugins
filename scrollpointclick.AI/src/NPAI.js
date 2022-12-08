@@ -7,8 +7,8 @@
  */
 
 import pluginJson from '../plugin.json'
-import { calculateCost, formatResearch, formatSummaryRequest, formatResearchListRequest, modelOptions } from './support/helpers'
-import { chooseOption, showMessage } from '@helpers/userInput'
+import { calculateCost, formatResearch, formatSummaryRequest, formatResearchListRequest, formatQuickSearchRequest, modelOptions } from './support/helpers'
+import { chooseOption, showMessage, showMessageYesNo } from '@helpers/userInput'
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
 import { intro, learningOptions, openAILearningWizard, modelsInformation } from './support/introwizard'
 
@@ -27,7 +27,7 @@ const baseURL = 'https://api.openai.com/v1'
 const modelsComponent = 'models'
 const imagesGenerationComponent = 'images/generations'
 const completionsComponent = 'completions'
-const { apiKey, defaultModel, showStats, max_tokens } = DataStore.settings //FIXME: change model to something else
+const { apiKey, defaultModel, showStats, max_tokens, researchDirectory } = DataStore.settings //FIXME: change model to something else
 
 const availableModels = [
   'text-davinci-003',
@@ -115,12 +115,30 @@ export async function makeRequest(component: string, requestType: string = 'GET'
       const costStr = isNaN(cost) ? '' : ` ($${String(parseFloat(cost.toFixed(6)))} max)`
       return { label: `${model.id}${costStr}`, value: model.id }
     })
-    
     return await chooseOption('Choose a model', modelsReturned)
   } else {
     logError(pluginJson, 'No models found')
   }
   return null
+}
+
+/**
+ * Allow user to decide how to proceed with info gathered from Quick Search
+ * @returns {string|null} the model ID chosen
+ */
+ export async function chooseQuickSearchOption(query: string, summary: string): Promise<string | null> {
+  logDebug(pluginJson, `chooseQuickSearchOption starting selection`)
+  const quickSearchOptions = [
+    {"label": "Append this summary to the current note.", "value": "append"},
+    {"label": "Generate note with deeper research.", "value": "research"}
+  ]
+  const mappedOptions = quickSearchOptions.map((option) => ({ label: option.label, value: option.value}))
+  clo(mappedOptions, "Mapped options")
+
+  const selection = await chooseOption('How would you like to proceed?', mappedOptions)
+  logDebug(pluginJson, `chooseQuickSearchOption ${selection} selected.`)
+  return selection
+  
 }
 
 /**
@@ -237,12 +255,20 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
     clo(request, `testConnection completionResult result`)
     if (request) {
       const response = request.choices[0].text
-      Editor.insertTextAtCursor(`${response}\n\n`)
-      const tokens = request.usage.total_tokens
+      // Editor.insertTextAtCursor(`${response}\n\n`)
+      const content = `${response}\n\n`
+      let tokens = request.usage.total_tokens
       const { showStats } = DataStore.settings
       if (showStats) {
-        Editor.insertTextAtCursor(`### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${tokens}`)
+        // Editor.insertTextAtCursor(`### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${tokens}`)
+        const stats = `### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${tokens}`
+        content += stats
       }
+      DataStore.newNoteWithContent(content, researchDirectory)
+      const noteName = `${promptIn}`
+      logDebug(pluginJson, "noteName is set to ${noteName}")
+      Editor.openNoteByTitleCaseInsensitive(noteName)
+
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -278,17 +304,23 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
       
       const response = request.choices[0].text
       const jsonData = JSON.parse(response)
-
       clo(jsonData, `jsonParse() completionResult result`)
-      let summary = { label: `Append ${jsonData.subject} Summary`, id: jsonData.summary }
-      const wikiLink = { label: "Learn more...", id: jsonData.wikiLink }
-      let keyTerms = jsonData.keyTerms.map((term) => ({ label: term, id: term }))
-      keyTerms.unshift(summary, wikiLink)
 
-      const selection = await chooseOption(jsonData.subject, keyTerms)
-      clo(selection, `chooseOption selection completionResult result`)
+      let summary = { label: `Append ${jsonData.subject} Summary`, value: jsonData.summary }
+      clo(summary, `jsonParse() summary result`)
+
+      const wikiLink = { label: "Learn more...", value: jsonData.wikiLink }
+      let keyTerms = jsonData.keyTerms.map((term) => ({ label: term, value: term }))
+      keyTerms.unshift(summary, wikiLink)
+      clo(keyTerms, `jsonParse() keyTerms result`)
+
+      let selection = await chooseOption(jsonData.subject, keyTerms)
+      clo(selection, `jsonParse() selection result`)
+
       if ( selection == jsonData.summary ) {
         Editor.insertTextAtCursor(`---\n## Summary\n${selection}\n\n`)
+      } else {
+        logError(pluginJson, "createResearchListRequest: No data found with selection.value.")
       }
 
       // Editor.insertTextAtCursor(`${response}\n\n`)
@@ -297,6 +329,46 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
       // if (showStats) {
       //   Editor.insertTextAtCursor(`### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${tokens}`)
       // }
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+export async function createQuickSearch(promptIn: string | null = null, userIn: string = '') {
+  try {
+    logDebug(pluginJson, `createQuickSearch running with prompt:${String(promptIn)} ${userIn}`)
+    const start = new Date()
+    const text = await CommandBar.showInput("Quick Search", "Use GPT-3 to get a summary of your query.")
+    const prompt = formatQuickSearchRequest(text)
+
+    let chosenModel = defaultModel
+    if (defaultModel == "Choose Model") {
+      chosenModel = await "text-davinci-003"
+      logDebug(pluginJson, `createQuickSearch: Defaulting to ${chosenModel}.`)
+    }
+    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+    const request = await makeRequest(completionsComponent, 'POST', reqBody)
+    const elapsedTimeStr = timer(start)
+    clo(request, `testConnection completionResult result`)
+    if (request) {
+      const response = request.choices[0].text
+      const total_tokens = request.usage.total_tokens
+
+      if ( await showMessageYesNo(response, ['More Options', 'Done'], 'Summary', false) ) {
+        const selection = await chooseQuickSearchOption(response)
+        logDebug(pluginJson, `createQuickSearch: selected to ${selection}.`)
+
+        if ( selection == "append" ) {
+          Editor.insertTextAtCursor(`---\n## ${text}\n`)
+          Editor.insertTextAtCursor(`${response}\n\n`)
+          if (showStats) {
+            insertStatsAtCursor(elapsedTimeStr, chosenModel, total_tokens)
+          }
+        } else {
+          createResearchRequest(text)
+        }
+      }    
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

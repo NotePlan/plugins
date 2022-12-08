@@ -15,7 +15,7 @@
 // So you need to add a line below for each function that you want NP to have access to.
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
 
-export { testConnection, createAIImages, createResearchRequest, createResearchListRequest, summarizeNote, introWizard, helpWizard } from './NPAI' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
+export { testConnection, createAIImages, createResearchRequest, createResearchListRequest, createQuickSearch, summarizeNote, introWizard, helpWizard } from './NPAI' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
 
 // Do not change this line. This is here so your plugin will get recompiled every time you change your plugin.json file
 import pluginJson from '../plugin.json'

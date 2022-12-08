@@ -42,14 +42,13 @@ export function formatResearch(subject: string, n: number = 3): string {
   logDebug(pluginJson, `formatResearch running now.`)
   const promptOut = `Please provide a summary of the ${subject} in the following format:
 
-Separate each result with three dashes
 List the top ${n} key concepts associated with the subject and write a summary of the concept as it pertains to the subject in the following Markdown format.
-Each concept should include a Wikipedia link and should be in the format: [Concept](Wikipedia Link)
+Each concept should include a Wikipedia link.
 The further reading links should be from Goodreads.com.
 The first heading should be "# ${subject}"
 The second heading should be "## Key Concepts"
-For each Key Concept, the heading should be "### [the key concept](the Wikipedia link)" followed by a brief summary.
-The fourth heading should be "Further Reading" followed by a Goodreads.com link for a recommended book on the topic.
+For each Key Concept, the heading should be "### [key concept in brakcets](Wikipedia link)" followed by a brief summary.
+The fourth heading should be "#### Further Reading" followed by a Goodreads.com link for a recommended book on the topic.
 `
   return promptOut
 }
@@ -75,6 +74,25 @@ The fourth heading should be "Further Reading" followed by a Goodreads.com link 
 `
   return promptOut
 }
+
+/**
+ * Format the prompt for the quick search
+ * https://beta.openai.com/docs/api-reference/completions/create
+ * @param {string} text - The text for the AI to summarize.
+ */
+ export function formatQuickSearchRequest(text: string): string {
+  const promptOut = `Briefly summarize the subject and provide a "Read More" link with the Wikipedia link to learn more.
+  Format: 
+  Summary \n
+  [Learn More](link to related Wikipedia article)
+
+  Subject:  ${text}
+  
+`
+  return promptOut
+}
+
+
 
 /**
  * Format the prompt for the text summary request

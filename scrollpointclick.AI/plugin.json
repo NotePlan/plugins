@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "scrollpointclick.AI",
   "plugin.name": "💡 AAI",
-  "plugin.version": "0.1.1",
+  "plugin.version": "0.1.3",
   "plugin.lastUpdateInfo": "Initial release",
   "plugin.description": "GPT integration for research, summarization, etc.",
   "plugin.author": "Aaron @scrollpointclick with a little encouragement from @dwertheimer",
@@ -71,6 +71,17 @@
         "listRequest"
       ],
       "arguments": []
+    },
+    {
+      "name": "Create Quick Search",
+      "description": "Use GPT-3 to perform a quick search.",
+      "jsFunction": "createQuickSearch",
+      "alias": [
+        "fs",
+        "fsearch",
+        "searchai"
+      ],
+      "arguments": []
     }
   ],
   "plugin.settings": [
@@ -100,6 +111,13 @@
         "ALL",
         "ALWAYS ASK"
       ]
+    },
+    {
+      "title": "Research Directory",
+      "key": "researchDirectory",
+      "type": "string",
+      "description": "Select the desired directory to store generated research in.",
+      "default": "/"
     },
     {
       "title": "Show Stats",

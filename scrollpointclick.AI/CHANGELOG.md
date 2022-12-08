@@ -4,6 +4,33 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/scrollpointcli
 
 ## What's Changed?
 
+[0.1.3] - 2022-12-05 (@scrollpointclick)
+
+#### **Added**
+
+- Added createQuickSearch()
+  - Alias: /fs (fast search), or /searchai
+  - Quickly gathers a summary and displays it as a prompt.
+  - Provides further option to append it to the current note or to do deeper research and create a new note from the results.
+- Added preference for defining a default "Research" directory for notes to be saved in.
+
+#### **Changed**
+
+- createResearchRequest() now outputs to a new note in the user-defined "Research" directory. If no directory is set, it will output to the base level directory.
+
+#### **Fixed**
+
+- Adjusted some formatting issues that were occuring with the formatResearchRequest prompt.
+
+#### **Todo**
+
+- If no default research directory is set, may prompt user to choose a directory.
+- May create a prompt advising user to use the *text-davinci-003* model for certain types of searches due to its ability to format the responses properly.
+- Write README.md
+- Make the introduction wizard do something.
+
+
+
 [0.1.2] - 2022-12-05 (@scrollpointclick)
 
 #### **Added**
