@@ -214,12 +214,12 @@ function ensureVersionIsNew(existingRelease, versionedTagName) {
       Messenger.note(
         `==> ${COMMAND}: Found existing release with tag name: ${colors.cyan(versionedTagName)}, which matches the version number in your ${colors.cyan('plugin.json')}`,
       )
-      Messenger.log(
+      Messenger.error(
         `    New releases must contain a unique name/tag. Update ${colors.magenta('plugin.version')} in ${colors.cyan('plugin.json, CHANGELOG.md or README.md')} and try again.`,
       )
       console.log('')
       const testMessage = TEST ? '(Test Mode)' : ''
-      Messenger.warn(`${COMMAND} Complete ${testMessage}`, 'DONE')
+      Messenger.error(`${COMMAND} Failed ${testMessage} (duplicate version)`, 'ERROR')
       process.exit(0)
     }
   }
