@@ -1,23 +1,5 @@
 // @flow
 
-type FetchOptions = {
-  /* all optional */
-  headers?: { [string]: string } /* key/value pairs of headers for the request */,
-  method?: string /* GET, POST, PUT, DELETE, etc. */,
-  body?: string /* body for a POST or PUT request. is a string so needs to be JSON.stringified */,
-  timeout?: number /* timeout in ms */,
-}
-
-/**
- * Request a URL from a server and return the result as a string or null if no response
- * If you want to get detailed errors (e.g. no internet connection, etc.), use old-school promises instead, e.g.:
- * fetch('https://example.com').then((result) => { console.log(result) }).catch((error) => { console.log(error) })
- * If your response is a JSON response string, you should run JSON.parse(result) on the result.
- * @param {string} url
- * @param {FetchOptions} options (optional) options to pass to the fetch() call: method, headers, body, timeout (in ms)
- */
-declare function fetch(url: string, options?: FetchOptions): Promise<string> /* do not run with await. see documentation */
-
 /*
  * # How Flow Definitions work:
  *
@@ -585,7 +567,7 @@ declare class DataStore {
    * @param {boolean} skipMatchingLocalPlugins?
    * @return {Promise<any>} pluginList
    */
-  static listPlugins(showLoading, showHidden, skipMatchingLocalPlugins);
+  static listPlugins(showLoading, showHidden, skipMatchingLocalPlugins): Promise < Array < PluginObject >>;
   /**
    * Installs a given plugin (load a list of plugins using `.listPlugins` first). If this is part of a user interfaction, pass "true" for `showLoading` to show a loading indicator.
    * Note: Available from v3.5.2
@@ -1857,6 +1839,24 @@ declare class HTMLView {
    */
   static showWindow(html: string, title: string, width?: number, height?: number): void;
 }
+
+type FetchOptions = {
+  /* all optional */
+  headers?: { [string]: string } /* key/value pairs of headers for the request */,
+  method?: string /* GET, POST, PUT, DELETE, etc. */,
+  body?: string /* body for a POST or PUT request. is a string so needs to be JSON.stringified */,
+  timeout?: number /* timeout in ms */,
+}
+
+/**
+ * Request a URL from a server and return the result as a string or null if no response
+ * If you want to get detailed errors (e.g. no internet connection, etc.), use old-school promises instead, e.g.:
+ * fetch('https://example.com').then((result) => { console.log(result) }).catch((error) => { console.log(error) })
+ * If your response is a JSON response string, you should run JSON.parse(result) on the result.
+ * @param {string} url
+ * @param {FetchOptions} options (optional) options to pass to the fetch() call: method, headers, body, timeout (in ms)
+ */
+declare function fetch(url: string, options?: FetchOptions): Promise<string> /* do not run with await. see documentation */
 
 // Every function made available must be assigned to `globalThis`
 // This type ensures that only functions are made available as plugins
