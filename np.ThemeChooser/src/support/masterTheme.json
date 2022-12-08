@@ -793,6 +793,16 @@
     },
     "AutoTimeblock-HideTag-withID_info": {
       "description": "The /atb command creates timeblocks with a unique ID/hashtag so they can be removed and recreated. This rule hides the ID/hashtag from view."
+    },
+    "line-contains-specific-text": {
+      "color" : "#FF0000",
+      "backgroundColor":"#55D2D21B",
+      "regex": ".*SOMESPECIFICTEXT.*",
+      "matchPosition" : 0
+    },
+    "line-contains-specific-text_info": {
+      "description": "This rule colors lines/text that contain a specific text of your choosing. You can set the background color and the text color, or click the x to remove one of them. You can change the text to be highlighted by changing the SOMESPECIFICTEXT in the regex.",
+      "example": "\tThis line will highlight because SOMESPECIFICTEXT is in the line."
     }
   }
 }

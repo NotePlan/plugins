@@ -5,6 +5,7 @@
 import pluginJson from '../plugin.json'
 import { logDebug, log, logError, clo, JSP } from '../../helpers/dev'
 import { isBuiltInTheme } from './support/themeHelpers'
+import { getThemeObj } from './NPThemeShared'
 import { showMessage, showMessageYesNo, chooseOption } from '@helpers/userInput'
 import { sortListBy } from '@helpers/sorting'
 
@@ -51,7 +52,7 @@ export async function chooseTheme(
         logDebug(pluginJson, `chooseTheme ${themeName} is already in use. no need to change. returning.`)
         return
       }
-      const theme = await getThemeObjByName(themeName.trim())
+      const theme = await getThemeObj(themeName.trim())
       if (theme && theme.filename) {
         logDebug(pluginJson, `chooseTheme, setting theme to filename: ${theme.filename}`)
         Editor.setTheme(theme.filename)
@@ -64,7 +65,7 @@ export async function chooseTheme(
     } else {
       const themeName = await getThemeChoice()
       logDebug(pluginJson, `chooseTheme: "${themeName}" chosen`)
-      const selected = await getThemeObjByName(themeName)
+      const selected = await getThemeObj(themeName)
       if (selected && selected.filename) {
         logDebug(pluginJson, `chooseTheme: About to Editor.setTheme(${selected.filename}) Editor.setTheme(${selected.name})`)
         Editor.setTheme(selected.filename)
@@ -109,6 +110,16 @@ export async function getThemeChoice(lightOrDark: string = '', message: string =
  * PLUGIN ENTRYPOINTS BELOW THIS LINE
  */
 
+/**
+ * Set default light or dark theme
+ * Plugin entrypoint for "/Set Default Light/Dark Theme (for this device)"
+ * @param {'Light' | 'Dark' | null = null} typeToSet
+ * @param {string | null = null} setThemeName
+ * @param {string | null = null} pluginIDToCall - call this plugin after setting (e.g. to refresh)
+ * @param {string | null = null} pluginCommandToCall  - call this command
+ * @param {Array<string> = []} args - with these args
+ * @returns
+ */
 export async function setDefaultLightDarkTheme(
   typeToSet: 'Light' | 'Dark' | null = null,
   setThemeName: string | null = null,
@@ -129,15 +140,16 @@ export async function setDefaultLightDarkTheme(
           `Set device default Light/Dark theme`,
         )
     const themeName = setThemeName?.length ? setThemeName : await getThemeChoice(which)
-    const themeObj = await getThemeObjByName(themeName)
+    const themeObj = await getThemeObj(themeName)
+    const themeFilename = themeObj?.filename ?? ''
     const themeChoice = themeObj?.name || ''
-    if (themeChoice.length && which) {
+    if (themeFilename.length && which) {
       if (which === 'Light') {
         // DataStore.setPreference('themeChooserLight', themeChoice)
-        Editor.saveDefaultTheme(themeChoice, which.toLowerCase())
+        Editor.saveDefaultTheme(themeFilename, which.toLowerCase())
       } else {
         // DataStore.setPreference('themeChooserDark', themeChoice)
-        Editor.saveDefaultTheme(themeChoice, which.toLowerCase())
+        Editor.saveDefaultTheme(themeFilename, which.toLowerCase())
       }
       if (pluginIDToCall && pluginCommandToCall) {
         logDebug(pluginJson, `chooseTheme, After Editor.setTheme. Executing command: ${pluginCommandToCall} in plugin: ${pluginIDToCall}`)
@@ -145,7 +157,7 @@ export async function setDefaultLightDarkTheme(
       } else {
         await showMessage(`Default ${which} theme set to: ${themeChoice}. You may need to restart NotePlan to see it in action.`)
       }
-      logDebug(pluginJson, `setDefaultLightDarkTheme set${which} to ${themeChoice}`)
+      logDebug(pluginJson, `setDefaultLightDarkTheme set${which} to ${themeFilename} ("${themeChoice}")`)
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -168,7 +180,7 @@ export async function copyCurrentTheme(
 ): Promise<void> {
   try {
     logDebug(pluginJson, `copyCurrentTheme running copy:${String(themeNameToCopy)}`)
-    const themeObj = themeNameToCopy ? getThemeObjByName(themeNameToCopy) : Editor.currentTheme
+    const themeObj = themeNameToCopy ? getThemeObj(themeNameToCopy) : Editor.currentTheme
     const theme = themeObj?.values || {}
     const themeName = await CommandBar.textPrompt('Copy Theme', 'Enter a name for the new copied theme', `${theme.name} Copy`)
     if (themeName && themeName.length) {
@@ -232,7 +244,7 @@ export async function toggleTheme() {
         }
       }
       if (switchTo !== '') {
-        const theme = await getThemeObjByName(String(switchTo))
+        const theme = await getThemeObj(String(switchTo))
         if (theme) {
           logDebug(pluginJson, `toggleTheme: Setting theme to: ${String(switchTo)}`)
           Editor.setTheme(theme.filename)

@@ -24,7 +24,7 @@ describe('helpers/dev', () => {
   /*
    * deepDiff()
    */
-  describe('deepDiff()' /* function */, () => {
+  describe.skip('deepDiff()' /* function */, () => {
     test('should show no difference with empties', () => {
       const result = d.deepDiff({}, {})
       expect(result).toEqual({})

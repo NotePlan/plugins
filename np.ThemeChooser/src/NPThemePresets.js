@@ -1,7 +1,8 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { getThemeChoice, getThemeObjByName } from './NPThemeChooser'
+import { getThemeChoice } from './NPThemeChooser'
+import { getThemeObj } from './NPThemeShared'
 import { showMessage } from '@helpers/userInput'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { type PresetCommand, savePluginCommand, choosePreset, presetChosen } from '@helpers/NPPresets'
@@ -37,7 +38,7 @@ export async function themePresetChosen(commandDetails: PresetCommand | null = n
     } else {
       // EXECUTE THE COMMAND CLICKED
       if (commandDetails.data) {
-        const theme = await getThemeObjByName(commandDetails.data)
+        const theme = await getThemeObj(commandDetails.data)
         if (theme) {
           logDebug(pluginJson, `themePresetChosen: Setting theme to: ${theme.name}`)
           Editor.setTheme(theme.filename)
@@ -65,6 +66,7 @@ export async function themePresetChosen(commandDetails: PresetCommand | null = n
  */
 export async function changePreset(incoming: string) {
   try {
+    logDebug(pluginJson, `changePreset  running incoming:${incoming}`)
     const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
     const chosen = await choosePreset(livePluginJson, 'Choose a preset to set/reset')
     if (chosen) {
