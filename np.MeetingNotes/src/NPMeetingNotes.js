@@ -1,10 +1,11 @@
 // @flow
 
 import moment from 'moment-business-days'
-import fm from 'front-matter'
 
 import pluginJson from '../plugin.json'
 import { log, logDebug, logError, clo, JSP } from '@helpers/dev'
+import { showMessage } from '@helpers/userInput'
+import { getAttributes } from '@templatingModules/FrontmatterModule'
 import NPTemplating from 'NPTemplating'
 
 /**
@@ -13,7 +14,7 @@ import NPTemplating from 'NPTemplating'
  * @param {Date} dailyNoteDate
  */
 export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Date): Promise<void> {
-  logDebug(pluginJson, 'chooseTemplateIfNeeded')
+  logDebug(pluginJson, 'insertNoteTemplate')
   const templateFilename: ?string = await chooseTemplateIfNeeded(origFileName, false)
   if (!templateFilename) {
     return
@@ -76,10 +77,9 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
  * @param {string?} _templateFilename
  */
 export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
-  logDebug(pluginJson, 'chooseEventIfNeeded')
+  logDebug(pluginJson, 'newMeetingNote')
   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
 
-  logDebug(pluginJson, 'chooseTemplateIfNeeded')
   const templateFilename: ?string = await chooseTemplateIfNeeded(_templateFilename, true)
 
   try {
@@ -256,15 +256,15 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
 }
 
 /**
- * FIXME(Eduard): please document me!  Also I suggest you put a verb on the front of this function so its clearer what it is doing.
+ * Create a new note in a folder (if specified, or if not specified, the user will choose)
  * @param {string} content
  * @param {string} _folder
  * @returns {Promise<string?>} title (or null)
  */
-async function newNoteWithFolder(content: string, _folder: string): Promise<?string> {
+async function newNoteWithFolder(content: string, _folder?: string): Promise<?string> {
   let folder = _folder
   try {
-    if (folder === '<select>') {
+    if (!folder || folder === '<select>') {
       logDebug(pluginJson, 'get all folders and show them for selection')
       const folders = DataStore.folders
       const selection = await CommandBar.showOptions(folders, 'Select a folder')
@@ -307,51 +307,58 @@ async function newNoteWithFolder(content: string, _folder: string): Promise<?str
   }
 }
 
+const errorReporter = async (error: any, note: TNote) => {
+  const msg = `Error found in frontmatter of a template. I will try to continue, but you should try to fix the error in the following template:\nfilename:"${note.filename}",\n note titled:"${note.title}".\nThe problem is:\n"${error.message}"`
+  if (error.stack) delete error.stack
+  logError(pluginJson, `${msg}\n${JSP(error)}`)
+  await showMessage(msg)
+}
+
 /**
- * FIXME(Eduard): please document me!
+ * Get the template name to be used
+ * Check to see if an template has already been selected, and if so, pass it back
+ * If not, ask the user to select a template from a lsit of tempates
  * @param {string?} templateFilename to use (optional)
- * @param {boolean} onlyMeetingNotes?
- * @returns {Promise<string>} filename
+ * @param {boolean} onlyMeetingNotes? (optional) - if true, only show meeting notes, otherwise show all templates except type:ignore templates
+ * @returns {Promise<string>} filename of the template
  */
 async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNotes: boolean = false): Promise<?string> {
   try {
     if (!templateFilename) {
       logDebug(pluginJson, `no template was defined, find all available templates and show them`)
-      let templates = DataStore.projectNotes.filter((n) => n.filename.startsWith(NotePlan.environment.templateFolder))
+      const allTemplates = DataStore.projectNotes.filter((n) => n.filename.startsWith(NotePlan.environment.templateFolder))
 
-      if (!templates || templates.length === 0) {
+      if (!allTemplates || allTemplates.length === 0) {
+        await showMessage(`Couldn't find any templates in the template folder (${NotePlan.environment.templateFolder})})`)
         throw new Error(`Couldn't find any templates`)
       } else {
-        logDebug(pluginJson, `${templates.length} templates found`)
+        logDebug(pluginJson, `${allTemplates.length} templates found`)
       }
 
-      try {
-        if (onlyMeetingNotes) {
-          logDebug(pluginJson, 'including only meeting notes')
-          for (let n of templates) {
-            console.log(n.filename)
+      const templates = []
+      for (const template of allTemplates) {
+        try {
+          const attributes = getAttributes(template.content)
+          if (attributes) {
+            // logDebug(pluginJson, `chooseTemplateIfNeeded ${template.filename}: type:${attributes.type} (${typeof attributes.type})`)
+            if ((onlyMeetingNotes && attributes.type && attributes.type.includes('meeting-note')) || (!onlyMeetingNotes && (!attributes.type || attributes.type !== 'ignore'))) {
+              templates.push(template)
+            }
           }
-          templates = templates.filter((n) => fm(n.content)?.attributes?.type === 'meeting-note')
-        } else {
-          logDebug(pluginJson, 'excluding meeting notes')
-          templates = templates.filter((n) => fm(n.content)?.attributes?.type !== 'meeting-note')
-        }
-      }
-      catch (error) {
-        if (error.name === 'YAMLException') {
-          logError(pluginJson, `Error found in frontmatter of a template. Details follow:\n${JSP(error)}`)
-        } else {
-          throw error // some other error, so throw to main (outer) catch handler
+        } catch (error) {
+          await errorReporter(error, template)
+          continue
         }
       }
 
       if (!templates || templates.length === 0) {
+        await showMessage(`Couldn't find any templates in the template folder (${NotePlan.environment.templateFolder})})`)
         throw new Error(`Couldn't find any meeting-note templates`)
       } else {
-        logDebug(pluginJson, `of those, ${templates.length} are meeting-note templates`)
+        logDebug(pluginJson, `of those, ${templates.length} are ${onlyMeetingNotes ? 'meeting-note' : 'non-ignore'} templates`)
       }
 
-      logDebug(pluginJson, `asking user to select from ${templates.length} meeting-note templates ...`)
+      logDebug(pluginJson, `asking user to select from ${templates.length} ${onlyMeetingNotes ? 'meeting-note' : ''} templates ...`)
       const selectedTemplate = await CommandBar.showOptions(
         templates.map((n) => n.title ?? 'Untitled Note'),
         'Select a template',
@@ -365,13 +372,17 @@ async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNote
 }
 
 /**
- * FIXME(Eduard): please document me!
- * @param {TCalendarItem} selectedEvent
+ * Check to see if an Event has already been selected, and if so, pass it back
+ * If not, ask the user to select an event:
+ * a) if they are on a calendar note, then select from the events on that day
+ * b) if they are not on a calendar note, select from all the events on today's calendar
+ * @param {TCalendarItem} selectedEvent - the event that has already been selected (optional)
+ * @returns {Promise<TCalendarItem>} the selected event
  */
-async function chooseEventIfNeeded(selectedEvent?: TCalendarItem) {
+async function chooseEventIfNeeded(selectedEvent?: TCalendarItem): Promise<?TCalendarItem | null> {
   try {
     if (!selectedEvent) {
-      let events = undefined
+      let events = null
 
       logDebug(pluginJson, 'load available events for the given timeframe')
       if (Editor.type === 'Calendar') {
@@ -381,7 +392,7 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem) {
         events = await Calendar.eventsToday()
       }
 
-      if (events.length === 0) {
+      if (events?.length === 0) {
         logDebug(pluginJson, 'no events found')
         CommandBar.prompt('No events on the selected day, try another.', '')
         return
@@ -398,6 +409,7 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem) {
     return selectedEvent
   } catch (error) {
     logError(pluginJson, `error in chooseEventIfNeeded: ${error}`)
+    return null
   }
 }
 

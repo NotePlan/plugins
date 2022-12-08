@@ -4,7 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [1.1.2] - 2022-12-06 (@jgclark)
+
+- Further refined error reporting on bad templates to help people fix them
+- improved jsdoc a little more
+- use np.Templating::getAttributes instead of calling fm() directly
+
 ## [1.1.1] - 2022-12-06 (@jgclark)
+
 - Make newMeetingNoteFromEventID() better at handling bad template defintions
 - improved JSDoc where I could
 
