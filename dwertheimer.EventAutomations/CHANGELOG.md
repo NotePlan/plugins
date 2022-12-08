@@ -4,7 +4,7 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
-[1.13.3] - 2022-12-08 @dwertheimer
+[1.13.4] - 2022-12-08 @dwertheimer
 
 - Fix nasty bug when prefs fields were empty (was deleting all lines in a note). Thx @akra5ia
 
