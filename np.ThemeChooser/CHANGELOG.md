@@ -1,8 +1,9 @@
 # np.ThemeChooser Changelog
 
-## [1.5.x] 2022-11-29 @dwertheimer
+## [1.5.6] 2022-11-29 @dwertheimer
 
 - Add /Customize Themes
+- Fix bug with how themes are saved as default (use filename, not theme name)
 
 ## [1.4.0] 2022-09-15 @dwertheimer
 
