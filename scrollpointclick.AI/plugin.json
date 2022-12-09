@@ -19,7 +19,7 @@
       "jsFunction": "testConnection",
       "alias": [
       ],
-      "arguments": []
+      "arguments": ["test"]
     },
     {
       "name": "AI Intro Wizard",
