@@ -1,6 +1,6 @@
 // @flow
 
-import { get } from 'lodash-es'
+import { get } from 'lodash'
 import pluginJson from '../../plugin.json'
 import { createPrettyRunPluginLink, escapeRegex } from '@helpers/general'
 import { log, logError, logDebug, timer, clo, JSP, getFilteredProps } from '@helpers/dev'

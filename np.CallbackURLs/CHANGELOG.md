@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.2.1] - 2022-12-08 (@dwertheimer)
+
+- @jgclark changed self-running templates to use semicolons to separate variables. Updated the URL maker to match
+
 ## [1.2.0] - 2022-12-04 (@dwertheimer)
 
 - Added links to lines 

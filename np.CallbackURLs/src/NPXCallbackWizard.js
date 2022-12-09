@@ -281,7 +281,7 @@ export async function getXcallbackForTemplate(): Promise<string | false> {
     if (templateTitle) {
       const openIt = await showMessageYesNo(`Open the resulting document in the Editor when link is clicked?`, ['yes', 'no'], 'Open in Editor')
       args = [templateTitle, String(openIt === 'yes')]
-      const message = `Enter any variables and values you want to pass to the template in key=value pairs:\n\n myTemplateVar=value,otherVar=value2\n\n (where "myTemplateVar" and "otherVar" are the name of variables you use in your template. Multiple variables are separated by commas)`
+      const message = `Enter any variables and values you want to pass to the template in key=value pairs:\n\n myTemplateVar=value;otherVar=value2\n\n (where "myTemplateVar" and "otherVar" are the name of variables you use in your template. Multiple variables are separated by semicolons)`
       const result = await getInputTrimmed(message, 'OK', `Template Variables to Pass to "${templateTitle}"`)
       if (typeof result === 'string') {
         args = args.concat(String(result))

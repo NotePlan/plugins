@@ -107,7 +107,9 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
   try {
     logDebug(
       pluginJson,
-      `templateFileByTitleEx Starting Self-Running Template Execution: "${selectedTemplate}" openInEditor:${String(openInEditor)} args:${args?.toString() || ''}`,
+      `templateFileByTitleEx Starting Self-Running Template Execution: selectedTemplate:"${selectedTemplate}" openInEditor:${String(openInEditor)} args:"${
+        args?.toString() || ''
+      }"`,
     )
     if (selectedTemplate.length !== 0) {
       const argObj = overrideSettingsWithStringArgs({}, args || '')

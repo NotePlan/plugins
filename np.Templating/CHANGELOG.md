@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-alpha.11] - 2022-12-08 (dwertheimer)
+
+- Added a little extra logging to self-running templates
+
 ## [2.0.0-alpha.10] - 2022-09-19 (dwertheimer)
 
 - Tweaks to NPEditor to allow for replaceNoteContents to replace all content in a note
