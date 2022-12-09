@@ -3,6 +3,12 @@
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/scrollpointclick.AI/README.md) for details on available commands and use case.
 
 ## What's Changed?
+[0.1.4b] - 2022-12-05 (@scrollpointclick)
+
+#### **Quick Fix**
+  - Changed how the researchNote function handles note generation to fix a problem with calling it outside of the Quick Search.
+
+---
 
 [0.1.4] - 2022-12-05 (@scrollpointclick)
 

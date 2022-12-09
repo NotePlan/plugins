@@ -259,18 +259,21 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
     clo(request, `testConnection completionResult result`)
     if (request) {
       const response = request.choices[0].text
-      // Editor.insertTextAtCursor(`${response}\n\n`)
       const content = `${response}\n\n`
       let tokens = request.usage.total_tokens
       const { showStats } = DataStore.settings
       if (showStats) {
-        // Editor.insertTextAtCursor(`### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${tokens}`)
         const stats = `### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${tokens}`
         content += stats
       }
       DataStore.newNoteWithContent(content, researchDirectory)
-      const noteName = `${promptIn}`
-      logDebug(pluginJson, "noteName is set to ${noteName}")
+      if ( promptIn ) {
+        const noteName = promptIn
+      } else {
+        const noteName = `${prompt}`
+      }
+      
+      logDebug(pluginJson, `noteName is set to ${noteName}`)
       Editor.openNoteByTitleCaseInsensitive(noteName)
 
     }
@@ -323,6 +326,8 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
 
       if ( selection == jsonData.summary ) {
         Editor.insertTextAtCursor(`---\n## Summary\n${selection}\n\n`)
+      } else if ( selection == jsonData.wikiLink) {
+        NotePlan.openURL(selection)
       } else {
         logError(pluginJson, "createResearchListRequest: No data found with selection.value.")
       }
