@@ -4,6 +4,32 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/scrollpointcli
 
 ## What's Changed?
 
+[0.1.4] - 2022-12-05 (@scrollpointclick)
+
+#### **Added**
+
+- Completed modelsInformation in introwizard.js
+- Added externalReading in introwizard.js
+  - Provides titles and links for more information.
+
+* Added prompts for each model in learnMore
+* learnMore for models now includes external links for additional information.
+* Added generateREADMECommands() to the helpers.js file
+  * Not currently working.
+* Flow descriptions for most, if not all, of the unlabeled functions.
+
+#### **Changed**
+
+* learnMore now goes back to the beginning after reading about a model.
+
+#### **Fixed**
+
+* Formatting issues in numerous prompts. Primarily in the intro and help wizards.
+
+---
+
+
+
 [0.1.3] - 2022-12-05 (@scrollpointclick)
 
 #### **Added**

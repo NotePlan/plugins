@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "scrollpointclick.AI",
   "plugin.name": "💡 AAI",
-  "plugin.version": "0.1.3",
+  "plugin.version": "0.1.4",
   "plugin.lastUpdateInfo": "Initial release",
   "plugin.description": "GPT integration for research, summarization, etc.",
   "plugin.author": "Aaron @scrollpointclick with a little encouragement from @dwertheimer",
@@ -41,7 +41,7 @@
     },    
     {
       "name": "Create AI Images",
-      "description": "DALL-E @ OpenAI",
+      "description": "Generate images with DALL-E @ OpenAI",
       "jsFunction": "createAIImages",
       "alias": [
       ],
@@ -60,6 +60,7 @@
       "description": "Research with GPT-3 @ OpenAI",
       "jsFunction": "createResearchRequest",
       "alias": [
+        "research"
       ],
       "arguments": []
     },
@@ -82,6 +83,15 @@
         "searchai"
       ],
       "arguments": []
+    },
+    {
+      "name": "Update README - DEV ONLY",
+      "description": "Updates README - DEV ONLY",
+      "jsFunction": "updateREADME",
+      "alias": [
+
+      ],
+      "arguments": []
     }
   ],
   "plugin.settings": [
@@ -95,7 +105,8 @@
       "key": "apiKey",
       "type": "string",
       "description": "Enter the API key for your OpenAI account",
-      "default": ""
+      "default": "",
+      "required": true
     },
     {
       "title": "Default Text Model",

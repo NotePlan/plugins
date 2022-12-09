@@ -7,10 +7,10 @@
  */
 
 import pluginJson from '../plugin.json'
-import { calculateCost, formatResearch, formatSummaryRequest, formatResearchListRequest, formatQuickSearchRequest, modelOptions } from './support/helpers'
+import { calculateCost, formatResearch, formatSummaryRequest, formatResearchListRequest, formatQuickSearchRequest, modelOptions, generateREADMECommands } from './support/helpers'
 import { chooseOption, showMessage, showMessageYesNo } from '@helpers/userInput'
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
-import { intro, learningOptions, openAILearningWizard, modelsInformation } from './support/introwizard'
+import { intro, learningOptions, openAILearningWizard, modelsInformation, externalReading } from './support/introwizard'
 
 /*
  * TYPES
@@ -151,6 +151,8 @@ export async function getPromptAndNumberOfResults(promptIn: string | null = null
   return { prompt, n: parseInt(n) }
 }
 
+
+
 /**
  * Generates and outputs the AI generation stats at the cursor
  * https://beta.openai.com/docs/api-reference/completions/create
@@ -163,6 +165,8 @@ export function insertStatsAtCursor(time: string, model: string, total_tokens: n
     `### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${total_tokens}\n**Cost:** $${calculateCost(model, total_tokens)}`,
   )
 }
+
+
 
 /**
  * test connection to GPT API by getting models list and making a request for an image
@@ -335,6 +339,11 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
   }
 }
 
+/**
+ * Entry point for generating a quick search.
+ * Plugin entrypoint for command: "/fs
+ * @param {string} promptIn - An incoming prompt to use as the quick search query.
+ */
 export async function createQuickSearch(promptIn: string | null = null, userIn: string = '') {
   try {
     logDebug(pluginJson, `createQuickSearch running with prompt:${String(promptIn)} ${userIn}`)
@@ -378,7 +387,7 @@ export async function createQuickSearch(promptIn: string | null = null, userIn: 
 /**
  * Entry point for generating summary requests
  * Plugin entrypoint for command: "/summarize
- * @param {*} incoming
+ * @param {string} promptIn - An incoming prompt to use as the quick search query.
  */
 export async function summarizeNote(promptIn: string | null = null, userIn: string = '') {
   try {
@@ -414,7 +423,7 @@ export async function summarizeNote(promptIn: string | null = null, userIn: stri
 /**
  * Entry point for generating summary requests from selection
  * Plugin entrypoint for command: "/summarizeselection
- * @param {*} incoming
+ * @param {string} promptIn - An incoming prompt to use as the quick search query.
  */
 export async function summarizeSelection(promptIn: string | null = null, userIn: string = '') {
   try {
@@ -450,12 +459,22 @@ export async function summarizeSelection(promptIn: string | null = null, userIn:
   }
 }
 
+/**
+ * Entry point for introducing the user to the plugin
+ * Plugin entrypoint for command: "/aiintro"
+ * Currently under construction.
+ */
 export async function introWizard() {
   if ( await CommandBar.prompt(intro.title, intro.prompt, intro.buttons) == 0) {
     console.log("Fill this in shortly.")
     }
 }
 
+/**
+ * Entry point for providing help topics for the user
+ * Plugin entrypoint for command: "/helpOpenAI"
+ * Currently under construction.
+ */
 export async function helpWizard() {
   const options = learningOptions.map((option) => ({ label: option, value: option }))
 
@@ -464,29 +483,57 @@ export async function helpWizard() {
   const wizard = openAILearningWizard[topic]
   console.log(wizard)
   console.log(wizard.title)
-  learnMore(wizard)
+  await learnMore(wizard)
 
-  
 }
 
-export async function learnMore(learningTopic: Object) {
+/**
+ * Allows the user to learn more about the selected option from the Help Wizard.
+ * @params (Object) learningTopic - General object that directs the behavior of the function.
+ * Currently under construction.
+ */
+ export async function learnMore(learningTopic: Object) {
   const wizard = learningTopic
   
   if ( wizard == openAILearningWizard.Models ) {
-    // const selection = await CommandBar.prompt(wizard.title, wizard.prompt, wizard.buttons)
-    console.log(wizard.title)
-    const options = wizard.options.map((option) => ({ label: option, value: option}))
+    let options = wizard.options.map((option) => ({ label: option, value: option}))
+    let externalReadingLinks = []
+    externalReading.models.forEach(model => {
+      externalReadingLinks.unshift(model.link)
+      options.unshift({ label: model.title, value: model.link })
+    })
+
     const selection = await chooseOption(learningTopic.prompt2, options)
 
+    if ( externalReadingLinks.includes(selection) ) {
+      NotePlan.openURL(selection)
+    }
+
     const selectedModel = modelsInformation[selection]
-    console.log(`Selected Model: ${selectedModel}`)
-    const infolog = await chooseOption("Info", formatModelInformation(selectedModel))
-    console.log(infolog)
+    const infolog = formatModelInformation(selectedModel)
+    const nextSelection = await showMessage(infolog, "Okay", selectedModel.title)
+    console.log(nextSelection)
+    clo(nextSelection, "Information")
+    await learnMore(wizard)
   }
 }
 
-export function formatModelInformation(info: Object) {
-  const modelInfo = `${info}\nGood At: ${info.goodAt} | Cost: ${info.cost}.`
+/**
+ * Formats the incoming model object to display its information in a more readable format.
+ * https://beta.openai.com/docs/api-reference/completions/create
+ * @param {Object} info - The info needed to provide the function with something to parse and format.
+ */
+ export function formatModelInformation(info: Object) {
+  const modelInfo = `Good At: ${info.goodAt}\n\nCost: ${info.cost}.`
   console.log(modelInfo)
   return modelInfo
+}
+
+/*
+ * DEV FUNCTIONS
+ */
+
+export function updateREADME() {
+  generateREADMECommands()
+
 }

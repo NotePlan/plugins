@@ -1,6 +1,8 @@
+import { modelOptions } from './helpers.js'
+
 export const intro = {
     "title": "Hey there!",
-    "prompt": "Welcome to the OpenAI GPT-3 plugin for NotePlan.\n\nThis is an unofficial plugin that uses a sometimes unpredictable technology, so expect behaviors to change.\n\nUse the \helpAI command to learn more!",
+    "prompt": "Welcome to the OpenAI GPT-3 plugin for NotePlan.\n\nThis is an unofficial plugin that uses a sometimes unpredictable technology, so expect behaviors to change.\n\nUse the /helpAI command to learn more!",
     "buttons": ["Continue", "Cancel"]
 }
 
@@ -31,12 +33,38 @@ export const openAILearningWizard = {
     }
 }
 
+export const externalReading = {
+    "models": [
+        {
+            "title": "Finding the right model",
+            "link": "https://beta.openai.com/docs/models/finding-the-right-model"
+        },
+        {
+            "title": "Models Overview",
+            "link": "https://beta.openai.com/docs/models/overview"
+        }
+    ]
+}
+
 export const modelsInformation = {
     "Davinci": {
+        "title": "text-davinci-003",
         "goodAt": "Complex intent, cause and effect, summarization for audience",
-        "cost": "$0.02/1K tokens"
+        "cost": `$${modelOptions["text-davinci-003"]}/1K tokens`
     },
-    "Curie": "",
-    "Babbage": "",
-    "Ada": ""
+    "Curie": {
+        "title": "text-curie-001",
+        "goodAt": "Language translation, complex classification, text sentiment, summarization",
+        "cost": `$${modelOptions["text-curie-001"]}/1K tokens`
+    },
+    "Babbage": {
+        "title": "text-babbage-001",
+        "goodAt": "Moderate classification, semantic search classification",
+        "cost": `$${modelOptions["text-babbage-001"]}/1K tokens`
+    },
+    "Ada": {
+        "title": "text-ada-001",
+        "goodAt": "Parsing text, simple classification, address correction, keywords",
+        "cost": `$${modelOptions["text-ada-001"]}/1K tokens`
+    }
 }

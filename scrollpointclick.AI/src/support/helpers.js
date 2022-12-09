@@ -2,6 +2,7 @@
 
 const pluginJson = `scrollpointclick.AI/helpers`
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
+import { createPrettyRunPluginLink } from '@helpers/general'
 
 export const modelOptions = {
   'text-davinci-003': 0.02,
@@ -9,6 +10,8 @@ export const modelOptions = {
   'text-babbage-001': 0.0005,
   'text-ada-001': 0.0004,
 }
+
+const commandsPath = "/support/.readme_text/commands.md"
 
 /**
  * Calculates the cost of the request.
@@ -30,6 +33,33 @@ export function calculateCost(model: string, total_tokens: number): number {
   clo(modelOptions, 'model cost object')
 
   return request_cost
+}
+
+/**
+ * Generates the Commands section of the README.md
+ */
+ export function generateREADMECommands() {
+  logDebug(pluginJson, `generateREADMECommands(): starting generation.`)
+  let output = ''
+  const commands = pluginJson["plugin.commands"]
+  logDebug(pluginJson, `generateREADMECommands(): found commands.`)
+  clo(commands, "COMMANDS")
+  if (Array.isArray(commands)) {
+    logDebug(pluginJson, `generateREADMECommands(): found array.`)
+    output.push(`### Commands`)
+    commands.forEach((command) => {
+      const linkText = `try it`
+      const rpu = createPrettyRunPluginLink(linkText, pluginJson["plugin.id"], command.name)
+      const aliases = commmand.aliases && command.aliases.length ?
+      `\r\t*Aliases:${command.aliases.toString()}*` : ''
+      output.push(`- /${command.name} ${rpu}${aliases}\r\t*${command.description}*`)
+    })
+    logDebug(pluginJson, `generateREADMECommands(): finished generation.`)
+  }
+  if ( output != '' ) {
+    logDebug(pluginJson, `generateREADMECommands(): writing to file.`)
+    fs.writeFile(commandsPath, output)
+  }
 }
 
 /**
