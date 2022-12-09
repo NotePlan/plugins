@@ -17,7 +17,7 @@ import { intro, learningOptions, openAILearningWizard, modelsInformation, extern
  */
 
 type DallERequestOptions = { prompt?: string, n?: number, size?: string, response_format?: string, user?: string }
-type CompletionsRequest = { model?: string, prompt?: string,max_tokens?: number, user?: string, suffix?: string, temperature?: string, top_p?: string, n?: number }
+type CompletionsRequest = { model: string, prompt?: string, max_tokens?: number, user?: string, suffix?: string, temperature?: string, top_p?: string, n?: number }
 
 /*
  * CONSTANTS
@@ -27,14 +27,9 @@ const baseURL = 'https://api.openai.com/v1'
 const modelsComponent = 'models'
 const imagesGenerationComponent = 'images/generations'
 const completionsComponent = 'completions'
-const { apiKey, defaultModel, showStats, max_tokens, researchDirectory } = DataStore.settings //FIXME: change model to something else
+const { apiKey, defaultModel, showStats, max_tokens, researchDirectory } = DataStore.settings
 
-const availableModels = [
-  'text-davinci-003',
-  'text-curie-001',
-  'text-babbage-001',
-  'text-ada-001'
-]
+const availableModels = ['text-davinci-003', 'text-curie-001', 'text-babbage-001', 'text-ada-001']
 /*
  * FUNCTIONS
  */
@@ -105,10 +100,10 @@ export async function makeRequest(component: string, requestType: string = 'GET'
  * Get the model list from OpenAI and ask the user to choose one
  * @returns {string|null} the model ID chosen
  */
- export async function chooseModel(_tokens?: number = max_tokens): Promise<string | null> {
+export async function chooseModel(_tokens?: number = max_tokens): Promise<string | null> {
   logDebug(pluginJson, `chooseModel tokens:${_tokens}`)
   const models = (await makeRequest(modelsComponent))?.data
-  const filteredModels = models.filter(m=>modelOptions.hasOwnProperty(m.id))
+  const filteredModels = models.filter((m) => modelOptions.hasOwnProperty(m.id))
   if (filteredModels) {
     const modelsReturned = filteredModels.map((model) => {
       const cost = calculateCost(model.id, _tokens)
@@ -126,19 +121,18 @@ export async function makeRequest(component: string, requestType: string = 'GET'
  * Allow user to decide how to proceed with info gathered from Quick Search
  * @returns {string|null} the model ID chosen
  */
- export async function chooseQuickSearchOption(query: string, summary: string): Promise<string | null> {
+export async function chooseQuickSearchOption(query: string, summary: string): Promise<string | null> {
   logDebug(pluginJson, `chooseQuickSearchOption starting selection`)
   const quickSearchOptions = [
-    {"label": "Append this summary to the current note.", "value": "append"},
-    {"label": "Generate note with deeper research.", "value": "research"}
+    { label: 'Append this summary to the current note.', value: 'append' },
+    { label: 'Generate note with deeper research.', value: 'research' },
   ]
-  const mappedOptions = quickSearchOptions.map((option) => ({ label: option.label, value: option.value}))
-  clo(mappedOptions, "Mapped options")
+  const mappedOptions = quickSearchOptions.map((option) => ({ label: option.label, value: option.value }))
+  clo(mappedOptions, 'Mapped options')
 
   const selection = await chooseOption('How would you like to proceed?', mappedOptions)
   logDebug(pluginJson, `chooseQuickSearchOption ${selection} selected.`)
   return selection
-  
 }
 
 /**
@@ -150,8 +144,6 @@ export async function getPromptAndNumberOfResults(promptIn: string | null = null
   const n = nIn ?? (await CommandBar.showInput('Enter the number of results to generate', 'Ask for %@ results'))
   return { prompt, n: parseInt(n) }
 }
-
-
 
 /**
  * Generates and outputs the AI generation stats at the cursor
@@ -165,8 +157,6 @@ export function insertStatsAtCursor(time: string, model: string, total_tokens: n
     `### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${total_tokens}\n**Cost:** $${calculateCost(model, total_tokens)}`,
   )
 }
-
-
 
 /**
  * test connection to GPT API by getting models list and making a request for an image
@@ -182,7 +172,7 @@ export async function testConnection(model: string | null = null) {
     if (!model) {
       chosenModel = await chooseModel()
     }
-    if (model == "Choose Model") {
+    if (model == 'Choose Model') {
       chosenModel = await chooseModel()
     }
     if (chosenModel) {
@@ -242,40 +232,44 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
   try {
     logDebug(pluginJson, `createResearchRequest running with prompt:${String(promptIn)} ${String(nIn)} ${userIn}`)
     const start = new Date()
-    let { prompt, n } = await getPromptAndNumberOfResults(promptIn, nIn)
+
+    const results = await getPromptAndNumberOfResults(promptIn, nIn) // adding a little extra code to keep Flow happy with type checking
+    let { prompt } = results
+    const { n } = results
     logError(pluginJson, `Look at this output - ${prompt}`)
     prompt = formatResearch(prompt, n)
-    
 
     let chosenModel = defaultModel
-    if (defaultModel == "Choose Model") {
+    if (defaultModel === 'Choose Model') {
       logDebug(pluginJson, `summarizeNote: Choosing Model...`)
-      chosenModel = await chooseModel()
+      chosenModel = (await chooseModel()) || ''
       logDebug(pluginJson, `summarizeNote: ${chosenModel} selected`)
     }
-    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
-    const request = await makeRequest(completionsComponent, 'POST', reqBody)
-    const time = timer(start)
-    clo(request, `testConnection completionResult result`)
-    if (request) {
-      const response = request.choices[0].text
-      const content = `${response}\n\n`
-      let tokens = request.usage.total_tokens
-      const { showStats } = DataStore.settings
-      if (showStats) {
-        const stats = `### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${tokens}`
-        content += stats
+    if (prompt.length && chosenModel.length) {
+      const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+      const request = await makeRequest(completionsComponent, 'POST', reqBody)
+      const time = timer(start)
+      clo(request, `testConnection completionResult result`)
+      if (request) {
+        const response = request.choices[0].text
+        let content = `${response}\n\n`
+        const tokens = request.usage.total_tokens
+        const { showStats } = DataStore.settings
+        if (showStats) {
+          const stats = `### **Stats**\n**Time to complete:** ${time}\n**Model:** ${chosenModel}\n**Total Tokens:** ${tokens}`
+          content += stats
+        }
+        const filename = DataStore.newNoteWithContent(content, researchDirectory) //newNoteWithContent returns the filename created
+        // you probably don't need any of this
+        // if ( promptIn ) {
+        //   const noteName = promptIn
+        // } else {
+        //   const noteName = `${prompt}`
+        // }
+        // logDebug(pluginJson, `noteName is set to ${noteName}`)
+        // Editor.openNoteByTitleCaseInsensitive(noteName)
+        await Editor.openNoteByFilename(filename)
       }
-      DataStore.newNoteWithContent(content, researchDirectory)
-      if ( promptIn ) {
-        const noteName = promptIn
-      } else {
-        const noteName = `${prompt}`
-      }
-      
-      logDebug(pluginJson, `noteName is set to ${noteName}`)
-      Editor.openNoteByTitleCaseInsensitive(noteName)
-
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -287,49 +281,47 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
  * Plugin entrypoint for command: "/research
  * @param {*} incoming
  */
- export async function createResearchListRequest(promptIn: string | null = null, nIn: number = 3, userIn: string = '') {
+export async function createResearchListRequest(promptIn: string | null = null, nIn: number = 3, userIn: string = '') {
   try {
     logDebug(pluginJson, `createResearchListRequest running with prompt:${String(promptIn)} ${String(nIn)} ${userIn}`)
-    const start = new Date()
-    let { prompt, n } = await getPromptAndNumberOfResults(promptIn, nIn)
+    const result = await getPromptAndNumberOfResults(promptIn, nIn)
+    let { prompt } = result
     logError(pluginJson, `Look at this output - ${prompt}`)
     prompt = formatResearchListRequest(prompt)
-    
 
     let chosenModel = defaultModel
-    if (defaultModel == "Choose Model") {
+    if (defaultModel === 'Choose Model') {
       logDebug(pluginJson, `createResearchListRequest: Choosing Model...`)
-      chosenModel = "text-davinci-003"
+      chosenModel = 'text-davinci-003'
       logDebug(pluginJson, `createResearchListRequest: ${chosenModel} selected`)
     }
-    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens, n: result.n }
     // clo(`response: `, reqBody)
     const request = await makeRequest(completionsComponent, 'POST', reqBody)
-    const time = timer(start)
+    // const time = timer(start)
     clo(request, `testConnection completionResult result`)
     if (request) {
-      
       const response = request.choices[0].text
       const jsonData = JSON.parse(response)
       clo(jsonData, `jsonParse() completionResult result`)
 
-      let summary = { label: `Append ${jsonData.subject} Summary`, value: jsonData.summary }
+      const summary = { label: `Append ${jsonData.subject} Summary`, value: jsonData.summary }
       clo(summary, `jsonParse() summary result`)
 
-      const wikiLink = { label: "Learn more...", value: jsonData.wikiLink }
-      let keyTerms = jsonData.keyTerms.map((term) => ({ label: term, value: term }))
+      const wikiLink = { label: 'Learn more...', value: jsonData.wikiLink }
+      const keyTerms = jsonData.keyTerms.map((term) => ({ label: term, value: term }))
       keyTerms.unshift(summary, wikiLink)
       clo(keyTerms, `jsonParse() keyTerms result`)
 
-      let selection = await chooseOption(jsonData.subject, keyTerms)
+      const selection = await chooseOption(jsonData.subject, keyTerms)
       clo(selection, `jsonParse() selection result`)
 
-      if ( selection == jsonData.summary ) {
+      if (selection === jsonData.summary) {
         Editor.insertTextAtCursor(`---\n## Summary\n${selection}\n\n`)
-      } else if ( selection == jsonData.wikiLink) {
+      } else if (selection === jsonData.wikiLink) {
         NotePlan.openURL(selection)
       } else {
-        logError(pluginJson, "createResearchListRequest: No data found with selection.value.")
+        logError(pluginJson, 'createResearchListRequest: No data found with selection.value.')
       }
 
       // Editor.insertTextAtCursor(`${response}\n\n`)
@@ -353,12 +345,12 @@ export async function createQuickSearch(promptIn: string | null = null, userIn: 
   try {
     logDebug(pluginJson, `createQuickSearch running with prompt:${String(promptIn)} ${userIn}`)
     const start = new Date()
-    const text = await CommandBar.showInput("Quick Search", "Use GPT-3 to get a summary of your query.")
+    const text = await CommandBar.showInput('Quick Search', 'Use GPT-3 to get a summary of your query.')
     const prompt = formatQuickSearchRequest(text)
 
     let chosenModel = defaultModel
-    if (defaultModel == "Choose Model") {
-      chosenModel = await "text-davinci-003"
+    if (defaultModel === 'Choose Model') {
+      chosenModel = await 'text-davinci-003'
       logDebug(pluginJson, `createQuickSearch: Defaulting to ${chosenModel}.`)
     }
     const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
@@ -369,20 +361,20 @@ export async function createQuickSearch(promptIn: string | null = null, userIn: 
       const response = request.choices[0].text
       const total_tokens = request.usage.total_tokens
 
-      if ( await showMessageYesNo(response, ['More Options', 'Done'], 'Summary', false) ) {
-        const selection = await chooseQuickSearchOption(response)
-        logDebug(pluginJson, `createQuickSearch: selected to ${selection}.`)
+      if (await showMessageYesNo(response, ['More Options', 'Done'], 'Summary', false)) {
+        const selection = await chooseQuickSearchOption(response) //FIXME: This needs another argument
+        logDebug(pluginJson, `createQuickSearch: selected to ${String(selection)}.`)
 
-        if ( selection == "append" ) {
+        if (selection === 'append') {
           Editor.insertTextAtCursor(`---\n## ${text}\n`)
           Editor.insertTextAtCursor(`${response}\n\n`)
           if (showStats) {
             insertStatsAtCursor(elapsedTimeStr, chosenModel, total_tokens)
           }
         } else {
-          createResearchRequest(text)
+          await createResearchRequest(text) //FIXME: this needs another argument
         }
-      }    
+      }
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -402,22 +394,24 @@ export async function summarizeNote(promptIn: string | null = null, userIn: stri
     const prompt = formatSummaryRequest(text)
 
     let chosenModel = defaultModel
-    if (defaultModel == "Choose Model") {
+    if (defaultModel === 'Choose Model') {
       logDebug(pluginJson, `summarizeNote: Choosing Model...`)
       chosenModel = await chooseModel()
-      logDebug(pluginJson, `summarizeNote: ${chosenModel} selected`)
+      logDebug(pluginJson, `summarizeNote: ${String(chosenModel)} selected`)
     }
-    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
-    const request = await makeRequest(completionsComponent, 'POST', reqBody)
-    const elapsedTimeStr = timer(start)
-    clo(request, `testConnection completionResult result`)
-    if (request) {
-      const response = request.choices[0].text
-      const total_tokens = request.usage.total_tokens
-      Editor.insertTextAtCursor(`---\n## Summary\n`)
-      Editor.insertTextAtCursor(`${response}\n\n`)
-      if (showStats) {
-        insertStatsAtCursor(elapsedTimeStr, chosenModel, total_tokens)
+    if (chosenModel) {
+      const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+      const request = await makeRequest(completionsComponent, 'POST', reqBody)
+      const elapsedTimeStr = timer(start)
+      clo(request, `testConnection completionResult result`)
+      if (request) {
+        const response = request.choices[0].text
+        const total_tokens = request.usage.total_tokens
+        Editor.insertTextAtCursor(`---\n## Summary\n`)
+        Editor.insertTextAtCursor(`${response}\n\n`)
+        if (showStats) {
+          insertStatsAtCursor(elapsedTimeStr, chosenModel, total_tokens)
+        }
       }
     }
   } catch (error) {
@@ -437,26 +431,27 @@ export async function summarizeSelection(promptIn: string | null = null, userIn:
     const prompt = formatSummaryRequest(text)
 
     let chosenModel = defaultModel
-    if (defaultModel == "Choose Model") {
+    if (defaultModel == 'Choose Model') {
       logDebug(pluginJson, `summarizeNote: Choosing Model...`)
       chosenModel = await chooseModel()
-      logDebug(pluginJson, `summarizeNote: ${chosenModel} selected`)
+      logDebug(pluginJson, `summarizeNote: ${String(chosenModel)} selected`)
     }
+    if (chooseModel?.length) {
+      const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+      const request = await makeRequest(completionsComponent, 'POST', reqBody)
+      const time = timer(start)
+      clo(request, `testConnection completionResult result`)
+      if (request) {
+        const response = request.choices[0].text
+        const total_tokens = request.usage.total_tokens
+        const { showStats } = DataStore.settings
+        const endOfSelection = Editor.renderedSelection.end
+        Editor.insertTextAtCharacterIndex(`---\n## Summary\n${response}\n\n`, endOfSelection)
 
-    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
-    const request = await makeRequest(completionsComponent, 'POST', reqBody)
-    const time = timer(start)
-    clo(request, `testConnection completionResult result`)
-    if (request) {
-      const response = request.choices[0].text
-      const total_tokens = request.usage.total_tokens
-      const { showStats } = DataStore.settings
-      const endOfSelection = Editor.renderedSelection.end
-      Editor.insertTextAtCharacterIndex(`---\n## Summary\n${response}\n\n`, endOfSelection)
-
-      if (showStats) {
-        const stats = formatTextStats(time, chosenModel, total_tokens)
-        Editor.insertTextAtCursor(stats)
+        if (showStats) {
+          const stats = formatTextStats(time, chosenModel, total_tokens)
+          Editor.insertTextAtCursor(stats)
+        }
       }
     }
   } catch (error) {
@@ -470,9 +465,9 @@ export async function summarizeSelection(promptIn: string | null = null, userIn:
  * Currently under construction.
  */
 export async function introWizard() {
-  if ( await CommandBar.prompt(intro.title, intro.prompt, intro.buttons) == 0) {
-    console.log("Fill this in shortly.")
-    }
+  if ((await CommandBar.prompt(intro.title, intro.prompt, intro.buttons)) == 0) {
+    console.log('Fill this in shortly.')
+  }
 }
 
 /**
@@ -483,13 +478,12 @@ export async function introWizard() {
 export async function helpWizard() {
   const options = learningOptions.map((option) => ({ label: option, value: option }))
 
-  const topic = await chooseOption("Select a topic to learn more...", options)
+  const topic = await chooseOption('Select a topic to learn more...', options)
   console.log(topic)
   const wizard = openAILearningWizard[topic]
   console.log(wizard)
   console.log(wizard.title)
   await learnMore(wizard)
-
 }
 
 /**
@@ -497,28 +491,28 @@ export async function helpWizard() {
  * @params (Object) learningTopic - General object that directs the behavior of the function.
  * Currently under construction.
  */
- export async function learnMore(learningTopic: Object) {
+export async function learnMore(learningTopic: Object) {
   const wizard = learningTopic
-  
-  if ( wizard == openAILearningWizard.Models ) {
-    let options = wizard.options.map((option) => ({ label: option, value: option}))
+
+  if (wizard == openAILearningWizard.Models) {
+    let options = wizard.options.map((option) => ({ label: option, value: option }))
     let externalReadingLinks = []
-    externalReading.models.forEach(model => {
+    externalReading.models.forEach((model) => {
       externalReadingLinks.unshift(model.link)
       options.unshift({ label: model.title, value: model.link })
     })
 
     const selection = await chooseOption(learningTopic.prompt2, options)
 
-    if ( externalReadingLinks.includes(selection) ) {
+    if (externalReadingLinks.includes(selection)) {
       NotePlan.openURL(selection)
     }
 
     const selectedModel = modelsInformation[selection]
     const infolog = formatModelInformation(selectedModel)
-    const nextSelection = await showMessage(infolog, "Okay", selectedModel.title)
+    const nextSelection = await showMessage(infolog, 'Okay', selectedModel.title)
     console.log(nextSelection)
-    clo(nextSelection, "Information")
+    clo(nextSelection, 'Information')
     await learnMore(wizard)
   }
 }
@@ -528,7 +522,7 @@ export async function helpWizard() {
  * https://beta.openai.com/docs/api-reference/completions/create
  * @param {Object} info - The info needed to provide the function with something to parse and format.
  */
- export function formatModelInformation(info: Object) {
+export function formatModelInformation(info: Object) {
   const modelInfo = `Good At: ${info.goodAt}\n\nCost: ${info.cost}.`
   console.log(modelInfo)
   return modelInfo
@@ -540,5 +534,4 @@ export async function helpWizard() {
 
 export function updateREADME() {
   generateREADMECommands()
-
 }
