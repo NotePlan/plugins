@@ -22,6 +22,7 @@ import pluginJson from '../plugin.json'
 import { chooseHeading } from '@helpers/userInput'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { showMessage } from '../../helpers/userInput'
+import { hyphenatedDate } from '../../helpers/dateTime'
 
 /**
  * Write out the contents to either Today's Calendar note or the Note which was opened
@@ -152,10 +153,12 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
         clo(options, `templateFileByTitleEx options`)
         if (isTodayNote) {
           if (shouldOpenInEditor) {
-            logDebug(pluginJson, `templateFileByTitleEx About to openNoteByDate`)
-            await Editor.openNoteByDate(new Date())
-            logDebug(pluginJson, `templateFileByTitleEx Editor.note.filename is:${String(Editor.note?.filename || '')}`)
-            if (Editor?.note) {
+            if (Editor?.note?.title !== hyphenatedDate(new Date())) {
+              logDebug(pluginJson, `templateFileByTitleEx About to openNoteByDate; Editor was opened to: ${Editor?.note?.title || ''}, and we want ${hyphenatedDate(new Date())}`)
+              await Editor.openNoteByDate(new Date())
+              logDebug(pluginJson, `templateFileByTitleEx Editor.note.filename is:${String(Editor.note?.filename || '')}`)
+            }
+            if (Editor.note) {
               await writeNoteContents(Editor.note, renderedTemplate, writeUnderHeading, location, options)
             }
           } else {
