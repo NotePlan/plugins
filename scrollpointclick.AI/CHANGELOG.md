@@ -3,6 +3,28 @@
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/scrollpointclick.AI/README.md) for details on available commands and use case.
 
 ## What's Changed?
+
+[0.1.5] - 2022-12-05 (@scrollpointclick)
+
+#### **Added**
+- bulletsToPrompt()
+  - Scans note for bullet points, creates a **Summaries** section at the bottom of the page, and then generates a summary for each. Appends the Wikipedia entry to the end.
+  - Web links are currently being formatted with problems. Will explore soon.
+- Three formatting functions for the bulletsToPrompt() added to the *helpers.js* file.
+- exploreList() added to facilitate createResearchListRequest() functionality.
+  - Currently not functioning as desired.
+
+#### **Changed**
+- createResearchListRequest() has been modified
+  - Currently not functioning as desired
+
+#### **TODO/Bugs**
+- Explore ways to generate *reliably* useable links beyond Wikipedia and fix the current issue with the Wikipedia links.
+- Explore the possibility of handling nested bullet points.
+- Find a better way to handle the createResearchListRequest data so that it can have a useful "memory" of the previous calls in that session.
+- Occassionally, Wikipedia links use parenthesis at the end which causes formatting issues with the Markdown. 
+
+
 [0.1.4b] - 2022-12-05 (@scrollpointclick)
 
 #### **Quick Fix**

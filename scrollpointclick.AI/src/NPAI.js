@@ -7,7 +7,12 @@
  */
 
 import pluginJson from '../plugin.json'
-import { calculateCost, formatResearch, formatSummaryRequest, formatResearchListRequest, formatQuickSearchRequest, modelOptions, generateREADMECommands } from './support/helpers'
+import { 
+  calculateCost, formatResearch, formatSummaryRequest, 
+  formatResearchListRequest, formatQuickSearchRequest, 
+  modelOptions, generateREADMECommands, formatBullet,
+  formatBulletLink, formatBulletSummary, formatBulletKeyTerms 
+} from './support/helpers' // FIXME: Is there something better than this growth?
 import { chooseOption, showMessage, showMessageYesNo } from '@helpers/userInput'
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
 import { intro, learningOptions, openAILearningWizard, modelsInformation, externalReading } from './support/introwizard'
@@ -18,6 +23,7 @@ import { intro, learningOptions, openAILearningWizard, modelsInformation, extern
 
 type DallERequestOptions = { prompt?: string, n?: number, size?: string, response_format?: string, user?: string }
 type CompletionsRequest = { model: string, prompt?: string, max_tokens?: number, user?: string, suffix?: string, temperature?: string, top_p?: string, n?: number }
+type ResearchListResult = { initialQuery: string, currentQuery: string, selection?: string, options?: [string] }
 
 /*
  * CONSTANTS
@@ -30,6 +36,7 @@ const completionsComponent = 'completions'
 const { apiKey, defaultModel, showStats, max_tokens, researchDirectory } = DataStore.settings
 
 const availableModels = ['text-davinci-003', 'text-curie-001', 'text-babbage-001', 'text-ada-001']
+
 /*
  * FUNCTIONS
  */
@@ -221,6 +228,42 @@ export async function createAIImages(promptIn: string | null = '', nIn: number =
   }
 }
 
+/**
+ * Use the note as a prompt for GPT-3.
+ * Plugin entrypoint for command: "/Note to OpenAI Prompt"
+ * Options:
+ * @param {string} prompt - A text description of the prompt for the AI to interpret.
+ * @param {string} user - A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse.
+ */
+ export async function noteToPrompt(promptIn: string | null = '', userIn: string | null = null) {
+  try {
+    logDebug(pluginJson, `noteToPrompt running with prompt:${String(promptIn)} ${String(userIn)}`)
+
+    const start = new Date()
+    const prompt = Editor.content
+    
+    let chosenModel = defaultModel
+    if (defaultModel === 'Choose Model') {
+      logDebug(pluginJson, `noteToPrompt: Choosing Model...`)
+      chosenModel = (await chooseModel()) || ''
+      logDebug(pluginJson, `noteToPrompt: ${chosenModel} selected`)
+    }
+    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+    if (userIn) reqBody.user = userIn
+    const request = (await makeRequest(completionsComponent, 'POST', reqBody))
+    const elapsed = timer(start)
+    clo(request, `testConnection noteToPrompt result`)
+    if (request) {
+      const response = request.choices[0].text
+      // Editor.appendParagraph("```", "text")
+      Editor.appendParagraph(response.trim(), "text")
+      // Editor.appendParagraph("```", "text")
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
 // TODO: Create generic getCompletions request
 
 /**
@@ -276,63 +319,81 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
   }
 }
 
+export async function exploreList(selection: string, subject: string, options: [string]) {
+  const currentPage = {'selection': selection, 'options': options}
+  logError(pluginJson, `${currentPage}`)
+  history.push(currentPage)
+
+  logDebug(pluginJson, `exploreList started with ${selection} and ${options}`)
+  logError(pluginJson, `${clo(history, 'exploreList history')}`)
+  const prompt = `${selection} as it pertains to ${subject}`
+  await createResearchListRequest(selection)
+}
+
 /**
- * Entry point for generating research requests
- * Plugin entrypoint for command: "/research
+ * Entry point for generating research list requests
+ * Plugin entrypoint for command: "/lista
  * @param {*} incoming
  */
-export async function createResearchListRequest(promptIn: string | null = null, nIn: number = 3, userIn: string = '') {
+export async function createResearchListRequest(promptIn: string | null, nIn: number = 10, userIn: string = '', isLast: bool = false) {
   try {
-    logDebug(pluginJson, `createResearchListRequest running with prompt:${String(promptIn)} ${String(nIn)} ${userIn}`)
-    const result = await getPromptAndNumberOfResults(promptIn, nIn)
-    let { prompt } = result
-    logError(pluginJson, `Look at this output - ${prompt}`)
-    prompt = formatResearchListRequest(prompt)
+    const initialQuery = await getPromptAndNumberOfResults(promptIn, nIn)
+    let history = {'pages': []}
+    while (!isLast) {
+      let currentPage: ResearchListResult = {initialQuery}
 
-    let chosenModel = defaultModel
-    if (defaultModel === 'Choose Model') {
-      logDebug(pluginJson, `createResearchListRequest: Choosing Model...`)
-      chosenModel = 'text-davinci-003'
-      logDebug(pluginJson, `createResearchListRequest: ${chosenModel} selected`)
-    }
-    const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens, n: result.n }
-    // clo(`response: `, reqBody)
-    const request = await makeRequest(completionsComponent, 'POST', reqBody)
-    // const time = timer(start)
-    clo(request, `testConnection completionResult result`)
-    if (request) {
-      const response = request.choices[0].text
-      const jsonData = JSON.parse(response)
-      clo(jsonData, `jsonParse() completionResult result`)
-
-      const summary = { label: `Append ${jsonData.subject} Summary`, value: jsonData.summary }
-      clo(summary, `jsonParse() summary result`)
-
-      const wikiLink = { label: 'Learn more...', value: jsonData.wikiLink }
-      const keyTerms = jsonData.keyTerms.map((term) => ({ label: term, value: term }))
-      keyTerms.unshift(summary, wikiLink)
-      clo(keyTerms, `jsonParse() keyTerms result`)
-
-      const selection = await chooseOption(jsonData.subject, keyTerms)
-      clo(selection, `jsonParse() selection result`)
-
-      if (selection === jsonData.summary) {
-        Editor.insertTextAtCursor(`---\n## Summary\n${selection}\n\n`)
-      } else if (selection === jsonData.wikiLink) {
-        NotePlan.openURL(selection)
+      let { prompt } = initialQuery
+      let currentQuery = prompt
+      if (promptIn) {
+        let currentQuery = promptIn
+        prompt = `${currentQuery} as it pertains to ${initialQuery}`
       } else {
-        logError(pluginJson, 'createResearchListRequest: No data found with selection.value.')
+        
       }
 
-      // Editor.insertTextAtCursor(`${response}\n\n`)
-      // const tokens = request.usage.total_tokens
-      // const { showStats } = DataStore.settings
-      // if (showStats) {
-      //   Editor.insertTextAtCursor(`### **Stats**\n**Time to complete:** ${time}\n**Model:** ${model}\n**Total Tokens:** ${tokens}`)
-      // }
+      prompt = formatResearchListRequest(prompt)
+
+      let chosenModel = defaultModel
+      if (defaultModel === 'Choose Model') {
+        logDebug(pluginJson, `createResearchListRequest: Choosing Model...`)
+        chosenModel = 'text-davinci-003'
+        logDebug(pluginJson, `createResearchListRequest: ${chosenModel} selected`)
+      }
+      // logDebug(pluginJson, `createResearchListRequest: ${currentQuery} is the current query.`)
+      const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens, n: initialQuery.n }
+      // clo(`response: `, reqBody)
+      const request = await makeRequest(completionsComponent, 'POST', reqBody)
+      // const time = timer(start)
+      clo(request, `testConnection completionResult result`)
+      if (request) {
+        const response = request.choices[0].text
+        const jsonData = JSON.parse(response)
+        clo(jsonData, `jsonParse() completionResult result`)
+  
+        const summary = { label: `Append ${jsonData.subject} Summary`, value: jsonData.summary }
+        clo(summary, `jsonParse() summary result`)
+  
+        const wikiLink = { label: 'Learn more...', value: jsonData.wikiLink }
+        const keyTerms = jsonData.keyTerms.map((term) => ({ label: term, value: term }))
+        keyTerms.unshift(summary, wikiLink)
+        clo(keyTerms, `jsonParse() keyTerms result`)
+  
+        const selection = await chooseOption(jsonData.subject, keyTerms)
+        clo(selection, `jsonParse() selection result`)
+
+        // if (selection != jsonData.summary) {
+        //   const currentPage = {
+        //     'selection': selection,
+        //     'inReferenceTo': currentQuery,
+        //     'relatedTerms': keyTerms
+        //   }
+        //   history['pages'].push(currentPage)
+        //   clo(history, 'History')
+        // }
+      }
     }
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError(pluginJson, `The error is ${error}`)
   }
 }
 
@@ -516,6 +577,75 @@ export async function learnMore(learningTopic: Object) {
     await learnMore(wizard)
   }
 }
+
+/**
+ * Searches for bullet points in the note, creates a Summaries section at the bottom
+ * and provides a summary for each bullet point.
+ * @params (Object) learningTopic - General object that directs the behavior of the function.
+ * Currently under construction.
+ */
+export async function bulletsAI(userIn: string = '') {
+  try {
+    const content = Editor.content
+    logDebug(pluginJson, `bulletsAI gathered this content: ${content}`)
+    let bullets = content.split('\n')
+    logDebug(pluginJson, `bulletsAI split into: ${bullets}, type: ${typeof(bullets)}`)
+    const start = new Date()
+
+    Editor.appendParagraph(`## Summaries\n---\n`)
+
+    for (var bullet in bullets) {
+      if (bullets[bullet] != '- ' && bullets[bullet][0] == '-' && bullets[bullet].slice(0, 2) != '--') {
+        logDebug(pluginJson, `Bullet: ${bullets[bullet]}`)
+        let prompt = await formatBullet(bullets[bullet])
+        const linkPrompt = await formatBulletLink(bullets[bullet])
+        const listPrompt = await formatBulletKeyTerms(bullets[bullet])
+
+        logDebug(pluginJson, `bulletsAI got the formatted prompt:\n\n${prompt}`)
+        
+        let chosenModel = defaultModel
+
+        if (defaultModel == 'Choose Model') {
+          logDebug(pluginJson, `summarizeNote: Choosing Model...`)
+          chosenModel = 'text-davinci-003'
+          logDebug(pluginJson, `summarizeNote: ${String(chosenModel)} selected`)
+        }
+
+        
+        const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+        prompt = linkPrompt
+        const reqLinkBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+        prompt = listPrompt
+        const reqListBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+        const request = await makeRequest(completionsComponent, 'POST', reqBody)
+        const linkRequest = await makeRequest(completionsComponent, 'POST', reqLinkBody)
+        const listRequest = await makeRequest(completionsComponent, 'POST', reqListBody)
+        const time = timer(start)
+        clo(request, `testConnection completionResult result`)
+
+        if (request) {
+          const response = request.choices[0].text
+          const link = linkRequest.choices[0].text
+          const keyTermsList = listRequest.choices[0].text
+          const total_tokens = request.usage.total_tokens
+          const { showStats } = DataStore.settings
+          const summary = await formatBulletSummary(bullets[bullet], response, link, keyTermsList)
+
+          Editor.appendParagraph(`${summary}`)
+
+        if (showStats) {
+          const stats = formatTextStats(time, chosenModel, total_tokens)
+          Editor.insertTextAtCursor(stats)
+        }
+      }
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, `Error occurred: ${error}`)
+  }
+}
+
+
 
 /**
  * Formats the incoming model object to display its information in a more readable format.

@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "scrollpointclick.AI",
   "plugin.name": "💡 AAI",
-  "plugin.version": "0.1.4b",
+  "plugin.version": "0.1.5",
   "plugin.lastUpdateInfo": "Initial release",
   "plugin.description": "GPT integration for research, summarization, etc.",
   "plugin.author": "Aaron @scrollpointclick with a little encouragement from @dwertheimer",
@@ -52,6 +52,24 @@
       "description": "Uses GPT-3 @ OpenAI to write a summary.",
       "jsFunction": "summarizeNote",
       "alias": [
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Note to OpenAI Prompt",
+      "description": "Use your note as a prompt for GPT-3.",
+      "jsFunction": "noteToPrompt",
+      "alias": [
+        "ntp"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Bullets AI",
+      "description": "Use your bullet points as a prompt for GPT-3.",
+      "jsFunction": "bulletsAI",
+      "alias": [
+        "bai"
       ],
       "arguments": []
     },

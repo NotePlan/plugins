@@ -2,7 +2,7 @@
 
 const pluginJson = `scrollpointclick.AI/helpers`
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
-import { createPrettyRunPluginLink } from '@helpers/general'
+import { createPrettyRunPluginLink, createPrettyOpenNoteLink } from '@helpers/general'
 
 export const modelOptions = {
   'text-davinci-003': 0.02,
@@ -122,6 +122,72 @@ The fourth heading should be "#### Further Reading" followed by a Goodreads.com 
   return promptOut
 }
 
+/**
+ * Formats the bullet summary response
+ * @params (Object) learningTopic - General object that directs the behavior of the function.
+ * Currently under construction.
+ */
+export async function formatBulletSummary(subject: string, summary: string, link: string, keyTerms: string, caller?: string) {
+  // test('should create a link with a heading', () => {
+  //       expect(g.createPrettyOpenNoteLink('baz', 'foo', true, 'bar')).toEqual('[baz](noteplan://x-callback-url/openNote?filename=foo&heading=bar)')
+  //     })
+  logDebug(pluginJson, `\n\nformatBulletSummary\nSubject: ${subject}\nResponse: ${summary}\nLink: ${link})}`)
+  let title = subject.replace('-', '')
+  title = title.trim()
+  // fTitle = createPrettyOpenNoteLink(title)
+  const formattedLink = `[Learn More](${link}})\n`
+  const splitKeyTermsParts = keyTerms.split(',')
+  let formattedList = ``
+  for (var part in splitKeyTermsParts) {
+    if (splitKeyTermsParts[part] != '') {
+      logDebug(pluginJson, `\n\n\nBULLET POINT: ${splitKeyTermsParts[part]}`)
+      const formattedPart = `- ${splitKeyTermsParts[part].trim()}`
+      formattedList += `${formattedPart}\n`
+    }
+  }
+
+
+  let output = `### ${title}\n\t${summary.trim()}\n${formattedLink}##### Go Further?\n${formattedList}- \n---`
+  return output 
+}
+
+/**
+ * Sets the prompt format for the summary part of the bullet prompt
+ * @params (Object) learningTopic - General object that directs the behavior of the function.
+ * Currently under construction.
+ */
+export async function formatBullet(promptIn: string) {
+  let prompt = `Write a 1-2 paragraph summary of ${promptIn}.
+  Summary:
+  `
+  return prompt
+}
+
+/**
+ * Sets the prompt format for the link part of the bullet prompt
+ * @params (Object) learningTopic - General object that directs the behavior of the function.
+ * Currently under construction.
+ */
+export async function formatBulletLink(promptIn: string) {
+  let prompt = `
+  Provide the Wikipedia link for ${promptIn}. No extra text.
+  Link: 
+  `
+  return prompt
+}
+
+/**
+ * Sets the prompt format for the summary part of the bullet prompt
+ * @params (Object) learningTopic - General object that directs the behavior of the function.
+ * Currently under construction.
+ */
+export async function formatBulletKeyTerms(promptIn: string) {
+  let prompt = `Write a comma-separated array of the three most important key terms associated with ${promptIn}. No numbers.
+  Example: Maple Syrup, hockey, Cold Weather
+  List:
+  `
+  return prompt
+}
 
 
 /**
