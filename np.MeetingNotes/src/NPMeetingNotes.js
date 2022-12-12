@@ -80,7 +80,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
   logDebug(pluginJson, 'newMeetingNote')
   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
 
-  const templateFilename: ?string = await chooseTemplateIfNeeded(_templateFilename, true)//await chooseTemplateIfNeededFromTemplateTitle(_templateTitle, true)
+  const templateFilename: ?string = await chooseTemplateIfNeededFromTemplateTitle(_templateFilename, true)//await chooseTemplateIfNeeded(_templateFilename, true)
 
   try {
     let templateData, templateContent
@@ -330,8 +330,10 @@ async function chooseTemplateIfNeededFromTemplateTitle(templateTitle?: string, o
   if (templateTitle) {
     const matchingTemplates = DataStore.projectNotes.filter((n) => n.title === templateTitle)
     logDebug(pluginJson, `- got ${matchingTemplates.length} template matches from '${templateTitle}'`)
-    if (matchingTemplates) {
+    if (matchingTemplates && matchingTemplates.length > 0) {
       return await chooseTemplateIfNeeded(matchingTemplates[0].filename, onlyMeetingNotes)
+    } else {
+      return await chooseTemplateIfNeeded(templateTitle, onlyMeetingNotes)
     }
   }
   return await chooseTemplateIfNeeded()
