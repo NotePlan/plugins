@@ -397,7 +397,7 @@ export function getSelectedParaIndex(): number {
 }
 
 /**
- * Get paragraph numbers of the start and end of the current selection in the Editor.
+ * Get paragraph numbers of the start and end of a given note's range
  * @author @jgclark
  *
  * @param {TRange} selection - the current selection rnage object
@@ -412,7 +412,6 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
   if (endParaRange.start === endParaRange.end) {
     endParaRange = Editor.paragraphRangeAtCharacterIndex(selection.end - 1)
   }
-  //
   clo(startParaRange, `selectedLinesIndex: startParaRange`)
   clo(endParaRange, `selectedLinesIndex: endParaRange`)
 
