@@ -2,16 +2,23 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions
 import moment from 'moment'
-import { RE_PLUS_DATE_G, hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, isWeeklyNote } from './dateTime'
+import { RE_PLUS_DATE_G, hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, RE_MONTHLY_NOTE_FILENAME, RE_QUARTERLY_NOTE_FILENAME, RE_YEARLY_NOTE_FILENAME, isWeeklyNote } from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { getFolderFromFilename } from './folders'
 import { displayTitle, type headingLevelType } from './general'
-import { findEndOfActivePartOfNote } from './paragraph'
+import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from './paragraph'
 import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
 import { findOverdueWeeksInString } from './NPnote'
 
-export const noteType = (filename: string): NoteType => (filename.match(RE_DAILY_NOTE_FILENAME) || filename.match(RE_WEEKLY_NOTE_FILENAME) ? 'Calendar' : 'Notes')
+export function noteType(filename: string): NoteType {
+  return (filename.match(RE_DAILY_NOTE_FILENAME) ||
+    filename.match(RE_WEEKLY_NOTE_FILENAME) ||
+    filename.match(RE_MONTHLY_NOTE_FILENAME) ||
+    filename.match(RE_QUARTERLY_NOTE_FILENAME) ||
+    filename.match(RE_YEARLY_NOTE_FILENAME)
+    ? 'Calendar' : 'Notes')
+}
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
   const note = DataStore.noteByFilename(filename, noteType(filename))
@@ -108,6 +115,7 @@ export function getNoteByFilename(filename: string): ?TNote {
 /**
  * Get or create the relevant regular note in the given folder (not calendar notes)
  * Now extended to cope with titles with # characters: these are stripped out first, as they are stripped out by NP when reporting a note.title
+ * If it makes a new note, it will add the title first.
  * @author @jgclark
  *
  * @param {string} noteTitle - title of note to look for
@@ -162,12 +170,13 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string, parti
 /**
  * Get a note's display title from its filename.
  * Handles both Notes and Calendar, matching the latter by regex matches. (Not foolproof though.)
+ * @author @jgclark
  * @param {string} filename
  * @returns {string} title of note
  */
 export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = false): string {
-  const noteTyp = noteType(filename)
-  const note = DataStore.noteByFilename(filename, noteTyp)
+  const thisNoteType: NoteType = noteType(filename)
+  const note = DataStore.noteByFilename(filename, thisNoteType)
   if (note) {
     return makeLink ? `[[${displayTitle(note) ?? ''}]]` : displayTitle(note)
   } else {
@@ -426,7 +435,7 @@ export const clearNote = (note: TNote) => {
  * @param {string} headingOfSectionToReplace
  * @param {string} newSectionHeading
  * @param {number} newSectionHeadingLevel
- * @param {string} newSectionContent
+ * @param {string} newSectionContent Note: without Heading text!
  */
 export function replaceSection(
   note: TNote,
@@ -436,13 +445,12 @@ export function replaceSection(
   newSectionContent: string,
 ): void {
   try {
-    logDebug('note / replaceSection', `in note '${displayTitle(note)}' will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${newSectionHeadingLevel}`)
+    logDebug('note / replaceSection', `Starting for note '${displayTitle(note)}'. Will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${newSectionHeadingLevel}`)
     // First remove existing heading (the start of the heading text will probably be right, but the end will probably need to be changed)
     const insertionLineIndex = removeSection(note, headingOfSectionToReplace)
     // logDebug('note / replaceSection', `- insertionLineIndex = ${insertionLineIndex}`)
 
     // Set place to insert either after the found section heading, or at end of note
-    // write in reverse order to avoid having to calculate insertion point again
     logDebug('note / replaceSection', `- before insertHeading() call there are ${note.paragraphs.length} paras`)
     note.insertHeading(newSectionHeading, insertionLineIndex, newSectionHeadingLevel)
     logDebug('note / replaceSection', `- after insertHeading() call there are ${note.paragraphs.length} paras`)
@@ -471,29 +479,35 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
     const paras = note.paragraphs ?? []
     logDebug('note / removeSection', `Trying to remove '${headingOfSectionToRemove}' from note '${displayTitle(note)}' with ${paras.length} paras`)
 
+    const startOfActive = findStartOfActivePartOfNote(note)
     const endOfActive = findEndOfActivePartOfNote(note)
     let matchedHeadingIndex: number // undefined
     let sectionHeadingLevel = 2
-    // Find the title/headingOfSectionToRemove whose start matches 'heading', and as in the active part of the note
-    for (const p of paras) {
+    // Find the title/headingOfSectionToRemove whose start matches 'heading', and is in the active part of the note
+    // But start after title or frontmatter.
+    for (let i = startOfActive; i <= endOfActive; i++) {
+      const p = paras[i]
       if (p.type === 'title' && p.content.startsWith(headingOfSectionToRemove) && p.lineIndex <= endOfActive) {
         matchedHeadingIndex = p.lineIndex
         sectionHeadingLevel = p.headingLevel
         break
       }
     }
-    logDebug('note / removeSection', `  - headingIndex ${String(matchedHeadingIndex)} level ${String(sectionHeadingLevel)} endOfActive ${String(endOfActive)}`)
 
-    if (matchedHeadingIndex !== undefined && matchedHeadingIndex < endOfActive) {
-      note.removeParagraph(paras[matchedHeadingIndex])
+    if (matchedHeadingIndex !== undefined && matchedHeadingIndex <= endOfActive) {
+      logDebug('note / removeSection', `  - headingIndex ${String(matchedHeadingIndex)} level ${String(sectionHeadingLevel)} endOfActive ${String(endOfActive)}`)
       // Work out the set of paragraphs to remove
       const parasToRemove = []
+      // Start by removing the heading line itself
+      parasToRemove.push(paras[matchedHeadingIndex])
+      logDebug('note / removeSection', `  - removing para ${matchedHeadingIndex}: '${paras[matchedHeadingIndex].content}'`)
       for (let i = matchedHeadingIndex + 1; i <= endOfActive; i++) {
         // stop removing when we reach heading of same or higher level (or end of active part of note)
         if (paras[i].type === 'title' && paras[i].headingLevel <= sectionHeadingLevel) {
           break
         }
         parasToRemove.push(paras[i])
+        logDebug('note / removeSection', `  - removing para ${i}: '${paras[i].content}'`)
       }
 
       // Delete the saved set of paragraphs
