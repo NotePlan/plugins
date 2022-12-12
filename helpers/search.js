@@ -162,8 +162,8 @@ export function simplifyRawContent(input: string): string {
  * @param {string} input this result content
  * @param {Array<string>} terms to find/highlight (without search operator prefixes)
  * @param {boolean} simplifyLine trim off leading markdown markers?
- * @param {string} resultPrefix string to use if line is simplified
  * @param {boolean} addHighlight add highlighting to the matched terms?
+ * @param {string} resultPrefix string to use if line is simplified
  * @param {number} maxChars to return around first matching term. If zero, or missing, then use the full line
  * @returns {string}
  * @tests in jest file

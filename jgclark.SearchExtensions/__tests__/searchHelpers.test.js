@@ -387,6 +387,10 @@ describe('searchHelpers.js tests', () => {
       const result = normaliseSearchTerms('xxx')
       expect(result).toEqual(['xxx'])
     })
+    test('domain twitter.com', () => {
+      const result = normaliseSearchTerms('twitter.com')
+      expect(result).toEqual(['twitter.com'])
+    })
     test('xxx yyy', () => {
       const result = normaliseSearchTerms('xxx yyy')
       expect(result).toEqual(['xxx', 'yyy'])
@@ -485,23 +489,22 @@ describe('searchHelpers.js tests', () => {
       const result = validateAndTypeSearchTerms('-term1 -term2 -term3')
       expect(result).toEqual([])
     })
-    test('single term string', () => {
+    test("single term string 'term1'", () => {
       const result = validateAndTypeSearchTerms('term1')
       expect(result).toEqual([{ term: 'term1', type: 'may', termRep: 'term1' }])
     })
-    test('single term array', () => {
-      const result = validateAndTypeSearchTerms('term1')
-      expect(result).toEqual([{ term: 'term1', type: 'may', termRep: 'term1' }])
+    test("single term string 'twitter.com'", () => {
+      const result = validateAndTypeSearchTerms('twitter.com')
+      expect(result).toEqual([{ term: 'twitter.com', type: 'may', termRep: 'twitter.com' }])
     })
-    test('two term string', () => {
-      const result = validateAndTypeSearchTerms('term1 "term two"')
+    test("single quoted term string 'test string'", () => {
+      const result = validateAndTypeSearchTerms("'test string'")
       expect(result).toEqual([
-        { term: 'term1', type: 'may', termRep: 'term1' },
-        { term: 'term', type: 'must', termRep: '+term' },
-        { term: 'two', type: 'must', termRep: '+two' },
+        { term: 'test', type: 'must', termRep: '+test' },
+        { term: 'string', type: 'must', termRep: '+string' },
       ])
     })
-    test('two term array', () => {
+    test('two term string', () => {
       const result = validateAndTypeSearchTerms('term1 "term two"')
       expect(result).toEqual([
         { term: 'term1', type: 'may', termRep: 'term1' },

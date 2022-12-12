@@ -2,6 +2,26 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [1.1.0-beta3] - 2022-12-???  [tell JPR1972, DW, as, kennonb]
+### Changed
+### Fixed
+// FIXME: suffixes causing sync line problems.
+// FIXME: spinner working again
+
+## [1.1.0-beta2] - 2022-12-12 (unreleased)
+### Changed
+- search prompt box now shows more of the syntax options you can use: "Enter search term(s) separated by spaces. (You can use + term, -term and !term as well.)"
+### Fixed
+- error when refreshing results for /searchOverCalendar
+
+## [1.1.0-beta1] - 2022-11-24
+### Added
+- Adds a new 'Result set size limit' setting that limits very large search results, to prevent overwhelming the app, particularly on mobile devices.
+### Changed
+- The **/searchOpenTasks** command can now take search terms that are purely negative (e.g. "-@personX") (for @JPR1972)
+- Search terms like 'twitter.com' (that contain a `.` character) are now treated as one term not two.
+<!-- - can now keep some text in the search results notes -->
+
 ## [1.0.0] - 2022-11-17
 ### Changed
 - **This is a major re-write, so read carefully!**

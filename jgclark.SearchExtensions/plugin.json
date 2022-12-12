@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "1.0.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
+  "plugin.version": "1.1.0-beta2",
+  "plugin.lastUpdateInfo": "1.1.0: Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case.\n1.0.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -53,12 +53,13 @@
       "jsFunction": "searchOpenTasks",
       "arguments": [
         "search term(s) (separated by commas)",
-        "terms to filter by paragraph type (separated by commas)"
+        "paragraph type filter terms (optional; separated by commas)"
       ]
     },
     {
       "name": "searchInPeriod",
       "alias": [
+        "sip",
         "save",
         "calendar",
         "search",
@@ -71,12 +72,13 @@
         "search term(s) (separated by commas)",
         "start date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to 3 months ago",
         "end date to search over (YYYYMMDD or YYYY-MM-DD). If not given, then defaults to today",
-        "terms to filter by paragraph type (separated by commas)"
+        "paragraph type filter terms (optional; separated by commas)"
       ]
     },
     {
       "name": "searchOverCalendar",
       "alias": [
+        "soc",
         "save",
         "period",
         "search",
@@ -87,20 +89,21 @@
       "jsFunction": "searchOverCalendar",
       "arguments": [
         "search term(s) (separated by commas)",
-        "terms to filter by paragraph type (separated by commas)"
+        "paragraph type filter terms (optional; separated by commas)"
       ]
     },
     {
       "name": "searchOverNotes",
       "alias": [
+        "son",
         "save",
         "search"
       ],
       "description": "Save results from a search over all project notes",
       "jsFunction": "searchOverNotes",
       "arguments": [
-        "terms to filter by paragraph type (separated by commas)",
-        "search term(s) (separated by commas)"
+        "search term(s) (separated by commas)",
+        "paragraph type filter terms (optional; separated by commas)"
       ]
     },
     {
@@ -167,9 +170,9 @@
     {
       "key": "headingLevel",
       "title": "Heading level",
-      "description": "Heading level (1-5) to use when writing output to notes",
+      "description": "Heading level (1-5) to use when writing section headings in output",
       "type": "number",
-      "default": 3,
+      "default": 2,
       "required": true
     },
     {
@@ -252,6 +255,14 @@
         "scheduled"
       ],
       "default": "link",
+      "required": true
+    },
+    {
+      "key": "resultLimit",
+      "title": "Result set size limit",
+      "description": "Result set size limit: if the search produces more than this, it will only return the first ones up to this limit.",
+      "type": "number",
+      "default": 500,
       "required": true
     },
     {
