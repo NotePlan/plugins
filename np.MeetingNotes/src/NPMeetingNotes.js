@@ -76,11 +76,11 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
  * @param {TCalendarItem} _selectedEvent
  * @param {string?} _templateTitle
  */
-export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateTitle?: string): Promise<void> {
+export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
   logDebug(pluginJson, 'newMeetingNote')
   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
 
-  const templateFilename: ?string = await chooseTemplateIfNeededFromTemplateTitle(_templateTitle, true)
+  const templateFilename: ?string = await chooseTemplateIfNeeded(_templateFilename, true)//await chooseTemplateIfNeededFromTemplateTitle(_templateTitle, true)
 
   try {
     let templateData, templateContent
