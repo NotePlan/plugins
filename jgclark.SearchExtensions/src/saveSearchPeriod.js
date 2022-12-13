@@ -72,7 +72,7 @@ export async function searchPeriod(
     let toDate: Date
     let toDateStr = ''
     let periodString = ''
-    let periodPartStr = ''
+    let periodAndPartStr = ''
     let periodType = ''
     if (searchTermsArg !== undefined) {
       // Try using supplied arguments
@@ -97,9 +97,10 @@ export async function searchPeriod(
             : 'error'
       }
       periodString = `${fromDateStr} - ${toDateStr}`
+      periodAndPartStr = periodString
     } else {
       // Otherwise ask user
-      [fromDate, toDate, periodType, periodString, periodPartStr] = await getPeriodStartEndDates(`What period shall I search over?`)
+      [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates(`What period shall I search over?`)
       if (fromDate == null || toDate == null) {
         logError(pluginJson, 'dates could not be parsed for requested time period')
         return
@@ -142,33 +143,19 @@ export async function searchPeriod(
       return
     }
 
-    // Get array of all calendar notes that are within this time period
-    // const periodCalendarNotes = DataStore.calendarNotes.filter((p) => withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(p.filename), fromDateStr, toDateStr))
-    // if (periodCalendarNotes.length === 0) {
-    //   logWarn(pluginJson, 'no matching Calendar notes found')
-    //   await showMessage(`No matching Calendar notes found; stopping.`)
-    //   return
-    // } else {
-    //   logDebug(pluginJson, '${periodCalendarNotes.length} matching Calendar notes found')
-    // }
-
     // Get the paraTypes to include
-    const paraTypesToInclude: Array<string> = (paraTypeFilterArg && paraTypeFilterArg !== 'null') ? paraTypeFilterArg.split(',') : [] // TODO: ideally Array<ParagraphType> instead
+    const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg && paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
     clo(paraTypesToInclude, `arg3 -> para types: `)
 
     //---------------------------------------------------------
     // Search using search() API available from v3.6.0
-    // const startTime = new Date
-    // CommandBar.showLoading(true, `Running search for ${String(termsToMatchArr)} ...`)
-    // await CommandBar.onAsyncThread()
+    CommandBar.showLoading(true, `Running search over period ...`)
+    await CommandBar.onAsyncThread()
 
-    // $FlowFixMe
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], config.foldersToExclude, config, paraTypesToInclude) // Note: no await
+    // $FlowFixMe[incompatible-exact]
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], config.foldersToExclude, config, paraTypesToInclude) // Note: no await; resolved later
 
-    // await CommandBar.onMainThread()
-    // CommandBar.showLoading(false)
-    // const elapsedTimeAPI = timer(startTime)
-    // logDebug(pluginJson, `Search time (API): ${termsToMatchArr.length} searches in ${elapsedTimeAPI} -> ${resultCount} results`)
+    await CommandBar.onMainThread()
 
     //---------------------------------------------------------
     // While the search goes on, work out where to save this summary
@@ -193,90 +180,90 @@ export async function searchPeriod(
     }
     logDebug(pluginJson, `destination = ${destination}, started with destinationArg = ${destinationArg ?? 'undefined'}`)
 
-    // $FlowFixMe
-    resultsProm.then((resultSet) => {
-      logDebug(pluginJson, `resultsProm resolved`)
-      // clo(resultSet, 'resultsProm resolved ->')
+    //---------------------------------------------------------
+    // End of main work started above
 
-      //---------------------------------------------------------
-      // Filter out the results that aren't within the specified period
+    let resultSet = await resultsProm
+    CommandBar.showLoading(false)
 
-      logDebug(pluginJson, `Before filtering out by date: ${resultSet.resultNoteAndLineArr.length} results`)
-      // clo(resultSet.resultNoteAndLineArr, '- resultSet.resultNoteAndLineArr:')
-      const reducedRNALArray: Array<noteAndLine> = resultSet.resultNoteAndLineArr.filter((f) => withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
-      resultSet.resultNoteAndLineArr = reducedRNALArray
-      resultSet.resultCount = reducedRNALArray.length
-      resultSet.resultNoteCount = numberOfUniqueFilenames(reducedRNALArray)
-      let numResultLines = resultSet.resultNoteAndLineArr.length
-      logDebug(pluginJson, `After filtering out by date: ${resultSet.resultCount} results remain from ${resultSet.resultNoteCount} notes:`)
-      // clo(resultSet.resultNoteAndLineArr, 'resultSet.resultNoteAndLineArr')
+    //---------------------------------------------------------
+    // Filter out the results that aren't within the specified period
 
-      //---------------------------------------------------------
-      // Do output
-      // const sectionStringToRemove = `${termsToMatchStr} ${config.searchHeading}`
+    logDebug(pluginJson, `Before filtering out by date: ${resultSet.resultNoteAndLineArr.length} results`)
+    // clo(resultSet.resultNoteAndLineArr, '- resultSet.resultNoteAndLineArr:')
+    const reducedRNALArray: Array<noteAndLine> = resultSet.resultNoteAndLineArr.filter((f) => withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
+    resultSet.resultNoteAndLineArr = reducedRNALArray
+    resultSet.resultCount = reducedRNALArray.length
+    resultSet.resultNoteCount = numberOfUniqueFilenames(reducedRNALArray)
+    let numResultLines = resultSet.resultNoteAndLineArr.length
+    logDebug(pluginJson, `After filtering out by date: ${resultSet.resultCount} results remain from ${resultSet.resultNoteCount} notes:`)
+    // clo(resultSet.resultNoteAndLineArr, 'resultSet.resultNoteAndLineArr')
 
-      switch (destination) {
-        case 'current': {
-          // We won't write an overarching heading.
-          // For each search term result set, replace the search term's block (if already present) or append.
-          const currentNote = Editor.note
-          if (currentNote == null) {
-            logError(pluginJson, `No note is open`)
-          } else {
-            logDebug(pluginJson, `Will write update/append to current note (${currentNote.filename ?? ''})`)
-            const thisResultHeading = `${resultSet.searchTerm} (${resultSet.resultCount} results) for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
-            const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
-            replaceSection(currentNote, resultSet.searchTerm, thisResultHeading, config.headingLevel, resultOutputLines.join('\n'))
-          }
-          break
+    //---------------------------------------------------------
+    // Do output
+    // const sectionStringToRemove = `${termsToMatchStr} ${config.searchHeading}`
+    const searchTermsRepStr = `"${resultSet.searchTermsRepArr.join(' ')}"`
+    const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
+
+    switch (destination) {
+      case 'current': {
+        // We won't write an overarching heading.
+        // For each search term result set, replace the search term's block (if already present) or append.
+        const currentNote = Editor.note
+        if (currentNote == null) {
+          logError(pluginJson, `No note is open`)
+        } else {
+          logDebug(pluginJson, `Will write update/append to current note (${currentNote.filename ?? ''})`)
+          const thisResultHeading = `${searchTermsRepStr} (${resultSet.resultCount} results) for ${periodAndPartStr}`
+          const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
+          replaceSection(currentNote, searchTermsRepStr, thisResultHeading, config.headingLevel, resultOutputLines.join('\n'))
         }
-
-        case 'newnote': {
-          // We will write an overarching heading, as we need an identifying title for the note.
-          // As this is likely to be a note just used for this set of search terms, just delete the whole
-          // note contents and re-write each search term's block.
-          // TODO: decide whether to remove the x-callback link, as
-          //   a) it's hard to work back from start/end dates to the human-friendly period string
-          //   b) over a fixed time period it's unlikely to need updating
-
-          const titleToMatch = `${termsToMatchStr} ${config.searchHeading}`
-          const requestedTitle = `${termsToMatchStr} ${config.searchHeading} for ${periodString}${periodPartStr !== '' ? ` (at ${periodPartStr})` : ''}`
-          const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}&arg3=${paraTypeFilterArg ?? ''}&arg4=${destinationArg ?? ''}`
-
-          // can't use 'await...' in the next line, as we're now in 'then...'
-          // FIXME: wrong display of result counts in subhead
-          const noteFilenameProm = writeSearchResultsToNote(resultSet, requestedTitle, titleToMatch, config, xCallbackLink)
-
-          noteFilenameProm.then(async (filename) => {
-            logDebug(pluginJson, `- filename to open in split: ${filename}`)
-            if (Editor.note?.filename !== filename) {
-              // Open the results note in a new split window, unless we can tell
-              // we already have this note open. Only works for Editor, though.
-              // TODO: persuade Eduard to do better than this.
-              await Editor.openNoteByFilename(filename, false, 0, 0, true)
-            }
-          })
-          break
-        }
-
-        case 'log': {
-          logInfo(pluginJson, `${headingMarker} ${resultSet.searchTerm}(${resultSet.resultCount} results)`)
-          logInfo(pluginJson, resultSet.resultLines.join('\n'))
-          break
-        }
-
-        case 'cancel': {
-          logInfo(pluginJson, `User cancelled command`)
-          break
-        }
-
-        default: {
-          logError(pluginJson, `No valid save location code supplied`)
-          break
-        }
+        break
       }
-    })
 
+      case 'newnote': {
+        // We will write an overarching heading, as we need an identifying title for the note.
+        // As this is likely to be a note just used for this set of search terms, just delete the whole
+        // note contents and re-write each search term's block.
+
+        const titleToMatch = `${termsToMatchStr} ${config.searchHeading}`
+        const requestedTitle = `${termsToMatchStr} ${config.searchHeading} for ${periodAndPartStr}`
+
+        // Decided to remove the x-callback link, as
+        //   a) it's hard to work back from start/end dates to the human-friendly period string
+        //   b) over a fixed time period it's unlikely to need updating
+        // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}&arg3=${paraTypeFilterArg ?? ''}&arg4=${destinationArg ?? ''}`
+
+        // can't use 'await...' in the next line, as we're now in 'then...'
+        // FIXME: wrong display of result counts in subhead
+        const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, titleToMatch, config/**, xCallbackLink*/)
+
+        logDebug(pluginJson, `- filename to open in split: ${noteFilename}`)
+        if (Editor.note?.filename !== noteFilename) {
+          // Open the results note in a new split window, unless we can tell
+          // we already have this note open. Only works for Editor, though.
+          // TODO: persuade Eduard to do better than this.
+          await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
+        }
+        break
+      }
+
+      case 'log': {
+        logInfo(pluginJson, `${headingMarker} ${searchTermsRepStr}(${resultSet.resultCount} results)`)
+        logInfo(pluginJson, resultOutputLines.join('\n'))
+        break
+      }
+
+      case 'cancel': {
+        logInfo(pluginJson, `User cancelled command`)
+        break
+      }
+
+      default: {
+        logError(pluginJson, `No valid save location code supplied`)
+        break
+      }
+    }
   } catch (err) {
     logError(pluginJson, err.message)
   }

@@ -2,11 +2,16 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-## [1.1.0-beta3] - 2022-12-???  [tell JPR1972, DW, as, kennonb]
+## [1.1.0-beta3] - 2022-12-13 <!-- [tell JPR1972, DW, as, kennonb] -->
+### New
+- where there's an existing search results note, and the search is re-run, other text that you add before or after the results section is retained. (For @JPR1972)
 ### Changed
-### Fixed
-// FIXME: suffixes causing sync line problems.
-// FIXME: spinner working again
+- will now give a warning to the user if more than 20 open tasks in results would result in sync lines being created. (This only applies if you're using the 'NotePlan' output style.)
+- removed the restriction that stopped you using 1- or 2-character search terms, now that you can opt to limit the number of search results returned
+- is smarter about when a new split window to show the results is needed (but it's still limited by the API)
+
+<!-- ### Fixed
+// FIXME: suffixes causing sync line problems. -->
 
 ## [1.1.0-beta2] - 2022-12-12 (unreleased)
 ### Changed
@@ -20,7 +25,6 @@
 ### Changed
 - The **/searchOpenTasks** command can now take search terms that are purely negative (e.g. "-@personX") (for @JPR1972)
 - Search terms like 'twitter.com' (that contain a `.` character) are now treated as one term not two.
-<!-- - can now keep some text in the search results notes -->
 
 ## [1.0.0] - 2022-11-17
 ### Changed

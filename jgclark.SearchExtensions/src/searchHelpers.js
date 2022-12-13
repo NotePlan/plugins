@@ -14,7 +14,7 @@ import { getNoteByFilename, getNoteContextAsSuffix, getNoteTitleFromFilename, ge
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
-import { showMessage } from '@helpers/userInput'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //------------------------------------------------------------------------------
 // Data types
@@ -228,11 +228,12 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
     }
   }
 
-  // Now validate the terms, weeding out short ones, and typing the rest
+  // Now validate the terms, and typing the rest.
+  // Note: now allowing short search terms, as we have a later resultLimit
   const validatedTerms: Array<typedSearchTerm> = []
   for (const u of normalisedTerms) {
     let t = u.trim()
-    if (t.length >= 2) {
+    // if (t.length >= 2) {
       let thisType = ''
       const thisRep = t
       if (t[0] === '+') {
@@ -248,9 +249,9 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
         thisType = 'may'
       }
       validatedTerms.push({ term: t, type: thisType, termRep: thisRep })
-    } else {
-      logWarn(pluginJson, `Note: search term '${t}' was removed because it is less than 3 characters long`)
-    }
+    // } else {
+    //   logWarn(pluginJson, `Note: search term '${t}' was removed because it is less than 3 characters long`)
+    // }
   }
 
   // Now check we have a valid set of terms. (If they're not valid, return an empty array.)
@@ -373,7 +374,8 @@ function getSearchTermsRep(typedSearchTerms: Array<typedSearchTerm>): string {
 }
 
 /**
- * Work out what subset of results to return, using the must/may/not terms.
+ * This is where the search logic is applied, using the must/may/not terms.
+ * Returns the subset of results, and can optionally limit the number of results returned to the first 'resultLimit' items
  * Called by runSearchesV2
  * @param {Array<resultObjectTypeV3>}
  * @param {number} resultLimit (optional; defaults to 500)
@@ -601,7 +603,7 @@ export async function runSearchesV2(
   try {
     const termsResults: Array<resultObjectTypeV3> = []
     let resultCount = 0
-    const outerStartTime = new Date()
+    let outerStartTime = new Date()
     logDebug('runSearchesV2', `Starting with ${termsToMatchArr.length} search terms (and paraTypes '${String(paraTypesToInclude)}')`)
 
     //------------------------------------------------------------------
@@ -619,17 +621,18 @@ export async function runSearchesV2(
       logDebug('runSearchesV2', `- search (API): ${timer(innerStartTime)} for '${typedSearchTerm.termRep}' -> ${resultObject.resultCount} results`)
     }
 
-    logDebug('runSearchesV2', `= Total Search (API): ${timer(outerStartTime)} for ${termsToMatchArr.length} searches -> ${resultCount} results`)
+    logDebug('runSearchesV2', `= Search time: ${timer(outerStartTime)}s for ${termsToMatchArr.length} searches -> ${resultCount} results`)
 
     //------------------------------------------------------------------
     // Work out what subset of results to return, taking into the must/may/not terms
-    // clo(termsResults, 'before applySearchOperators, termsResults =')
+    outerStartTime = new Date()
     const consolidatedResultSet: resultOutputTypeV3 = applySearchOperators(termsResults, config.resultLimit)
+    logDebug('runSearchesV2', `= Applying search logic: ${timer(outerStartTime)}s`)
 
     // For open tasks, add line sync with blockIDs (if we're using 'NotePlan' display style)
     if (config.resultStyle === 'NotePlan') {
       // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
-      const syncdConsolidatedResultSet = makeAnySyncs(consolidatedResultSet)
+      const syncdConsolidatedResultSet = await makeAnySyncs(consolidatedResultSet)
       // clo(syncdConsolidatedResultSet, 'after makeAnySyncs, syncdConsolidatedResultSet =')
       return syncdConsolidatedResultSet
     } else {
@@ -650,16 +653,34 @@ export async function runSearchesV2(
  * @param {resultOutputTypeV3} input
  * @returns {resultOutputTypeV3}
  */
-function makeAnySyncs(results: resultOutputTypeV3): resultOutputTypeV3 {
+async function makeAnySyncs(results: resultOutputTypeV3): Promise<resultOutputTypeV3> {
   try {
     // Go through each line looking for open tasks
+    let linesToSync = []
     for (let rnal of results.resultNoteAndLineArr) {
       // Get the line details (have to get from DataStore)
       const thisLine = rnal.line
       const thisNote = getNoteByFilename(rnal.noteFilename)
       const thisPara = thisNote?.paragraphs?.[rnal.index]
       const thisType = thisPara?.type ?? ''
+
       if (thisNote && thisPara && thisType === 'open') {
+        linesToSync.push([thisLine, thisNote, thisPara, thisType])
+      }
+    }
+
+    // If >=20 results, check user really wants to do this
+    if (linesToSync.length >= 20) {
+      const res = await showMessageYesNo(`I have found ${linesToSync.length} results with open tasks, which will be sync'd to this note. Do you wish to continue?`)
+      if (res !== 'Yes') {
+        // $FlowFixMe[incompatible-return]
+        return null
+      }
+    }
+
+    if (linesToSync.length > 0) {
+      for (const lineDetails of linesToSync) {
+        let [thisLine, thisNote, thisPara, thisType] = lineDetails
         if (thisPara.blockId) {
           // Don't do anything as it has a blockID already
           const thisBlockID = thisPara.blockId
@@ -671,12 +692,12 @@ function makeAnySyncs(results: resultOutputTypeV3): resultOutputTypeV3 {
           thisNote.updateParagraph(thisPara)
           const thisBlockID = thisPara.blockId ?? '<error>'
           logDebug('makeAnySyncs', `- added blockId '${thisBlockID}' to source line`)
-          rnal.line += ` ${thisBlockID}`
-          logDebug('makeAnySyncs', `- appended blockId to result -> '${rnal.line}'`)
+          thisLine += ` ${thisBlockID}`
+          logDebug('makeAnySyncs', `- appended blockId to result -> '${thisLine}'`)
         }
-      } else {
-        logDebug('makeAnySyncs', `- not an 'open' type: ${thisType}: '${thisLine}'`)
       }
+    } else {
+      // logDebug('makeAnySyncs', `- not an 'open' type: ${thisType}: '${thisLine}'`)
     }
     return results
   }
@@ -731,15 +752,15 @@ export async function runSearchV2(
 
       for (const f of folderList) {
         const noteList = getProjectNotesInFolder(f) // does not include sub-folders
-        logDebug('', `- checking ${noteList.length} notes in folder '${f}'`)
+        // logDebug('runSearchV2', `- checking ${noteList.length} notes in folder '${f}'`)
         for (const n of noteList) {
           const theseResults = n.paragraphs?.filter((p) => p.type === 'open') ?? []
-          if (theseResults.length > 0) { logDebug('', `   ->  ${theseResults.length}`) }
+          // if (theseResults.length > 0) { logDebug('runSearchV2', `   ->  ${theseResults.length}`) }
           resultParas.push(...theseResults)
         }
       }
       CommandBar.showLoading(false)
-      logDebug('', `- found ${resultParas.length} open tasks to work from`)
+      logDebug('runSearchV2', `- found ${resultParas.length} open tasks to work from`)
     } else {
       // Shouldn't get here, so raise an error
       throw new Error("Empty search term: stopping.")
@@ -783,7 +804,6 @@ export async function runSearchV2(
       // Drop out search results found only in a URL or the path of a [!][link](path)
       resultFieldSets = filteredParas.filter((f) => !isTermInURL(searchTerm, f.content)).filter((f) => !isTermInMarkdownPath(searchTerm, f.content))
       logDebug('runSearchV2', `  - after URL filter, ${resultFieldSets.length} results`)
-      // TODO: this is failing to drop [callback] in a noteplan://x-callback-url/... in my note 2022-07-20, but I can't see why.
 
       // Look-up table for sort details
       const sortMap = new Map([
@@ -886,7 +906,6 @@ export async function writeSearchResultsToNote(
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
     outputNote = await getOrMakeNote(requestedTitle, config.folderToStore, titleToMatch)
     if (outputNote) {
-      logDebug('', outputNote.paragraphs.length)
       // If the relevant note has more than just a title line, decide whether to replace all contents, or just replace a given heading section
       if (justReplaceSection && outputNote.paragraphs.length > 1) {
         // Just replace the heading section, to allow for some text to be left between runs
@@ -897,14 +916,14 @@ export async function writeSearchResultsToNote(
         // Replace all note contents
         logDebug('writeSearchResultsToNote', `- replacing note content in ${outputNote.filename}`)
         outputNote.content = `${titleLines}\n${headingMarker} ${headingLine}\n${resultsContent}`
-        noteFilename = outputNote.filename
       }
+      noteFilename = outputNote.filename ?? '<error>'
+      logDebug('writeSearchResultsToNote', `written resultSet for '${searchTermsRepStr}' to the note ${noteFilename} (${displayTitle(outputNote)})`)
+      return noteFilename
     }
     else {
       throw new Error(`Couldn't find or make note for ${requestedTitle}. Stopping.`)
     }
-    logDebug('writeSearchResultsToNote', `written resultSet for '${searchTermsRepStr}' to the note '${displayTitle(outputNote)}'`)
-    return noteFilename
   }
   catch (err) {
     logError('writeSearchResultsToNote', err.message)

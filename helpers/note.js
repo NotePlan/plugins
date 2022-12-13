@@ -101,10 +101,10 @@ export async function noteOpener(fullPath: string, desc: string, useProjNoteByFi
  * @returns {?TNote} - the note that was opened
  */
 export function getNoteByFilename(filename: string): ?TNote {
-  logDebug('note/getNoteByFilename', `Started for '${filename}'`)
+  // logDebug('note/getNoteByFilename', `Started for '${filename}'`)
   const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
   if (newNote != null) {
-    logDebug('note/getNoteByFilename', `-> note '${displayTitle(newNote)}`)
+    // logDebug('note/getNoteByFilename', `-> note '${displayTitle(newNote)}`)
     return newNote
   } else {
     logWarn('note/getNoteByFilename', `-> couldn't find a note in either Notes or Calendar`)
@@ -500,14 +500,14 @@ export function removeSection(note: TNote, headingOfSectionToRemove: string): nu
       const parasToRemove = []
       // Start by removing the heading line itself
       parasToRemove.push(paras[matchedHeadingIndex])
-      logDebug('note / removeSection', `  - removing para ${matchedHeadingIndex}: '${paras[matchedHeadingIndex].content}'`)
+      // logDebug('note / removeSection', `  - removing para ${matchedHeadingIndex}: '${paras[matchedHeadingIndex].content}'`)
       for (let i = matchedHeadingIndex + 1; i <= endOfActive; i++) {
         // stop removing when we reach heading of same or higher level (or end of active part of note)
         if (paras[i].type === 'title' && paras[i].headingLevel <= sectionHeadingLevel) {
           break
         }
         parasToRemove.push(paras[i])
-        logDebug('note / removeSection', `  - removing para ${i}: '${paras[i].content}'`)
+        // logDebug('note / removeSection', `  - removing para ${i}: '${paras[i].content}'`)
       }
 
       // Delete the saved set of paragraphs
