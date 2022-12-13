@@ -142,8 +142,7 @@ export function unhyphenateString(dateString: string): string {
   return dateString.replace(/-/g, '')
 }
 
-// NB: This does not work to get reliable date string from note.date for daily notes
-// Instead use hyphenatedDateFromNote()
+// Note: ? This does not work to get reliable date string from note.date for daily notes
 export function toISODateString(dateObj: Date): string {
   // logDebug('dateTime / toISODateString', `${dateObj.toISOString()} // ${toLocaleDateTimeString(dateObj)}`)
   return dateObj.toISOString().slice(0, 10)
@@ -245,7 +244,7 @@ export function getTimeStringFromDate(date: Date): string {
 }
 
 /**
- * Returns a string representation of a calendar note, based on its filename
+ * Returns a string representation of a Calendar note's date, from its filename
  * @param {string} filename
  * @returns {string} YYYYMMDD / YYYY-Wnn / YYYY-mm / YYYY-Qn / YYYY date (some only from NP v3.7.2)
  * @tests in jest file
@@ -257,22 +256,45 @@ export function getDateStringFromCalendarFilename(filename: string): string {
       // logDebug('gDSFCF', `= daily`)
       return filename.slice(0, 8)
     } else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
-      logDebug('gDSFCF', `${filename} = weekly`)
+      // logDebug('gDSFCF', `${filename} = weekly`)
       return weekStartDateStr(filename.slice(0, 8))
     } else if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
-      logDebug('gDSFCF', `${filename} = monthly`)
+      // logDebug('gDSFCF', `${filename} = monthly`)
       return filename.slice(0, 7)
     } else if (filename.match(RE_QUARTERLY_NOTE_FILENAME)) {
-      logDebug('gDSFCF', `${filename} = quarterly`)
+      // logDebug('gDSFCF', `${filename} = quarterly`)
       return filename.slice(0, 7)
     } else if (filename.match(RE_YEARLY_NOTE_FILENAME)) {
-      logDebug('gDSFCF', `${filename} = yearly`)
+      // logDebug('gDSFCF', `${filename} = yearly`)
       return filename.slice(0, 4)
     } else {
       throw new Error(`Invalid calendar filename: ${filename}`)
     }
   } catch (err) {
     logError('dateTime / getDateStringFromCalendarFilename', err.message)
+    return '(invalid date)' // for completeness
+  }
+}
+
+/**
+ * Returns a YYYYMMDD string representation of a Calendar note's first date, from its filename. (e.g. '2022-Q4.md' -> '20221001')
+ * @param {string} filename
+ * @returns {string} YYYYMMDD for first date in period
+ */
+export function getDateStrForStartofPeriodFromCalendarFilename(filename: string): string {
+  try {
+    // Trying a shortcut way first: seems to work
+    // logDebug('dateTime / gDSFSOPFCF', `for ${filename} ...`)
+    const thisNote = DataStore.noteByFilename(filename, 'Calendar')
+    if (thisNote && thisNote.date) {
+      const dateOut = unhyphenatedDate(thisNote.date) ?? '(error)'
+      // logDebug('gDSFSOPFCF', `-> ${dateOut}`)
+      return dateOut
+    } else {
+      throw new Error(`Error in getting note.date from ${filename}`)
+    }
+  } catch (err) {
+    logError('dateTime / gDSFSOPFCF', err.message)
     return '(invalid date)' // for completeness
   }
 }
