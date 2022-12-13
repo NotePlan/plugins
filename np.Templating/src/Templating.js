@@ -152,13 +152,13 @@ export async function templateInsert(templateName: string = ''): Promise<void> {
   }
 }
 
-export async function templateAppend(): Promise<void> {
+export async function templateAppend(templateName: string = ''): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const content: string = Editor.content || ''
 
       // $FlowIgnore
-      const selectedTemplate = await NPTemplating.chooseTemplate()
+      const selectedTemplate = templateName.length > 0 ? templateName : await NPTemplating.chooseTemplate()
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
