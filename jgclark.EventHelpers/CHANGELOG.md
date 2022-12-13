@@ -7,7 +7,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - adds 'MEETINGNOTE' link as a format option, which adds a button to create a meeting note to events in event listings. There's also a new setting 'Meeting Note Template title' which you can use to set which template to pick if you have several; if it isn't set then a list will be presented. (Note: this requires at least v1.1.2 of the separate Meeting Notes plugin.)
 
 ## [0.19.4] - 2022-12-04
-
+### Added
 - can now send `calendars` parameter to the commands via Templates. E.g. `calendars:"list,of,calendar,names"` (for @joepindell)
 
 ## [0.19.3] - 2022-11-30
