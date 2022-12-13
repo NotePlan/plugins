@@ -12,6 +12,7 @@ export const modelOptions = {
 }
 
 const commandsPath = "/support/.readme_text/commands.md"
+const { bulletsAIKeyTerms } = DataStore.settings
 
 /**
  * Calculates the cost of the request.
@@ -123,31 +124,43 @@ The fourth heading should be "#### Further Reading" followed by a Goodreads.com 
 }
 
 /**
+ * Formats the Go Further link
+ * @params (Object) learningTopic - General object that directs the behavior of the function.
+ * Currently under construction.
+ */
+export async function formatFurtherLink(text: string) {
+  const fileName = Editor.filename
+
+  logError(pluginJson, `${Editor.filename}`)
+  const furtherLink = createPrettyOpenNoteLink(text, fileName, true, text)
+  return furtherLink
+}
+
+/**
  * Formats the bullet summary response
  * @params (Object) learningTopic - General object that directs the behavior of the function.
  * Currently under construction.
  */
-export async function formatBulletSummary(subject: string, summary: string, link: string, keyTerms: string, caller?: string) {
-  // test('should create a link with a heading', () => {
-  //       expect(g.createPrettyOpenNoteLink('baz', 'foo', true, 'bar')).toEqual('[baz](noteplan://x-callback-url/openNote?filename=foo&heading=bar)')
-  //     })
+export async function formatBulletSummary(subject: string, summary: string, link: string, keyTerms: string) {
   logDebug(pluginJson, `\n\nformatBulletSummary\nSubject: ${subject}\nResponse: ${summary}\nLink: ${link})}`)
   let title = subject.replace('-', '')
   title = title.trim()
-  // fTitle = createPrettyOpenNoteLink(title)
+  const filePath = Editor.filepath
+
   const formattedLink = `[Learn More](${link}})\n`
   const splitKeyTermsParts = keyTerms.split(',')
   let formattedList = ``
   for (var part in splitKeyTermsParts) {
     if (splitKeyTermsParts[part] != '') {
+      const prettyKeyTerm = createPrettyRunPluginLink(`${splitKeyTermsParts[part].trim()}`, 'scrollpointclick.AI', 'Bullets AI', [splitKeyTermsParts[part].trim()])
       logDebug(pluginJson, `\n\n\nBULLET POINT: ${splitKeyTermsParts[part]}`)
-      const formattedPart = `- ${splitKeyTermsParts[part].trim()}`
+      const formattedPart = `\t\t- ${prettyKeyTerm}`
       formattedList += `${formattedPart}\n`
     }
   }
 
 
-  let output = `### ${title}\n\t${summary.trim()}\n${formattedLink}##### Go Further?\n${formattedList}- \n---`
+  let output = `### ${title}\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\t\t- \n---`
   return output 
 }
 
@@ -182,7 +195,7 @@ export async function formatBulletLink(promptIn: string) {
  * Currently under construction.
  */
 export async function formatBulletKeyTerms(promptIn: string) {
-  let prompt = `Write a comma-separated array of the three most important key terms associated with ${promptIn}. No numbers.
+  let prompt = `Write a comma-separated array of the ${bulletsAIKeyTerms} most important key terms associated with ${promptIn}. No numbers.
   Example: Maple Syrup, hockey, Cold Weather
   List:
   `

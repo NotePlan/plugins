@@ -4,6 +4,28 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/scrollpointcli
 
 ## What's Changed?
 
+[0.1.6] - 2022-12-05 (@scrollpointclick)
+
+#### **Added**
+- bulletsAIKeyTerms added to the preferences to allow user to set the desired amount of Key Terms to be generated with their BulletsAI request.
+- Clicking on any single bullet point in the "Go Further?" section will perform a summary search of only that item and will create a link from that bullet point to the new summary.
+
+#### **Changed**
+- bulletsToPrompt()
+  - Changed formatting and generation behavior.
+    - Now takes existing bullet points and turns them into x-callback links to the generated summary. (Requires beta version of NotePlan)
+    - Detects and removes empty bullet points.
+
+#### **Fixed**
+- No longer necessary for user to manually remove researched bullet points to prevent the plugin from redoing the summary.
+
+#### **Bugs**
+- bulletsToPrompt() stats are not working. Must be disabled in settings to function properly.
+
+#### **Todo**
+- Make the BulletsAI use its own note. This will be to reserve the namespace to prevent issues with links. Currently, Any bullets created before the page has a title will end up with reference links that point to a filepath that does not exist.
+
+
 [0.1.5] - 2022-12-05 (@scrollpointclick)
 
 #### **Added**

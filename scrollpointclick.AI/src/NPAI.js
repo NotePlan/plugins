@@ -11,7 +11,8 @@ import {
   calculateCost, formatResearch, formatSummaryRequest, 
   formatResearchListRequest, formatQuickSearchRequest, 
   modelOptions, generateREADMECommands, formatBullet,
-  formatBulletLink, formatBulletSummary, formatBulletKeyTerms 
+  formatBulletLink, formatBulletSummary, formatBulletKeyTerms,
+  formatFurtherLink
 } from './support/helpers' // FIXME: Is there something better than this growth?
 import { chooseOption, showMessage, showMessageYesNo } from '@helpers/userInput'
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
@@ -33,7 +34,7 @@ const baseURL = 'https://api.openai.com/v1'
 const modelsComponent = 'models'
 const imagesGenerationComponent = 'images/generations'
 const completionsComponent = 'completions'
-const { apiKey, defaultModel, showStats, max_tokens, researchDirectory } = DataStore.settings
+const { apiKey, defaultModel, showStats, max_tokens, researchDirectory, bulletsAIKeyTerms } = DataStore.settings
 
 const availableModels = ['text-davinci-003', 'text-curie-001', 'text-babbage-001', 'text-ada-001']
 
@@ -578,74 +579,195 @@ export async function learnMore(learningTopic: Object) {
   }
 }
 
-/**
- * Searches for bullet points in the note, creates a Summaries section at the bottom
- * and provides a summary for each bullet point.
- * @params (Object) learningTopic - General object that directs the behavior of the function.
- * Currently under construction.
- */
-export async function bulletsAI(userIn: string = '') {
+export async function bulletsAI(selectedBulletText: string = '', userIn: string = '') {
   try {
-    const content = Editor.content
-    logDebug(pluginJson, `bulletsAI gathered this content: ${content}`)
-    let bullets = content.split('\n')
-    logDebug(pluginJson, `bulletsAI split into: ${bullets}, type: ${typeof(bullets)}`)
+
     const start = new Date()
+    const paragraphs = Editor.paragraphs
+    let currentHeading = ''
+    if (selectedBulletText == '') {
+      for (var index in paragraphs) {
+        const text = paragraphs[index].content
+        const lineType = paragraphs[index].type
 
-    Editor.appendParagraph(`## Summaries\n---\n`)
+        if (lineType == 'title') {
+          // Update the current heading.
+          currentHeading = text
+          logDebug(pluginJson, `\n\nCurrent heading now:\n${currentHeading}`)
 
-    for (var bullet in bullets) {
-      if (bullets[bullet] != '- ' && bullets[bullet][0] == '-' && bullets[bullet].slice(0, 2) != '--') {
-        logDebug(pluginJson, `Bullet: ${bullets[bullet]}`)
-        let prompt = await formatBullet(bullets[bullet])
-        const linkPrompt = await formatBulletLink(bullets[bullet])
-        const listPrompt = await formatBulletKeyTerms(bullets[bullet])
+        } else if (lineType == 'list') {
+          if (text != '') {
+              logDebug(pluginJson, `is:\n ${text}`) 
+              let prompt = await formatBullet(text)
+              const linkPrompt = await formatBulletLink(text)
+              const listPrompt = await formatBulletKeyTerms(text)
 
-        logDebug(pluginJson, `bulletsAI got the formatted prompt:\n\n${prompt}`)
-        
-        let chosenModel = defaultModel
+              logDebug(pluginJson, `bulletsAI got the formatted prompt:\n\n${prompt}`)
+            
+              let chosenModel = defaultModel
 
-        if (defaultModel == 'Choose Model') {
-          logDebug(pluginJson, `summarizeNote: Choosing Model...`)
-          chosenModel = 'text-davinci-003'
-          logDebug(pluginJson, `summarizeNote: ${String(chosenModel)} selected`)
-        }
+              if (defaultModel == 'Choose Model') {
+                logDebug(pluginJson, `summarizeNote: Choosing Model...`)
+                chosenModel = 'text-davinci-003'
+                logDebug(pluginJson, `summarizeNote: ${String(chosenModel)} selected`)
+              }
 
-        
-        const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
-        prompt = linkPrompt
-        const reqLinkBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
-        prompt = listPrompt
-        const reqListBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
-        const request = await makeRequest(completionsComponent, 'POST', reqBody)
-        const linkRequest = await makeRequest(completionsComponent, 'POST', reqLinkBody)
-        const listRequest = await makeRequest(completionsComponent, 'POST', reqListBody)
-        const time = timer(start)
-        clo(request, `testConnection completionResult result`)
+              const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+              prompt = linkPrompt
+              const reqLinkBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+              prompt = listPrompt
+              const reqListBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+              
+              const request = await makeRequest(completionsComponent, 'POST', reqBody)
+              const linkRequest = await makeRequest(completionsComponent, 'POST', reqLinkBody)
+              const listRequest = await makeRequest(completionsComponent, 'POST', reqListBody)
+              const time = timer(start)
+              clo(request, `testConnection completionResult result`)
+              let summary = ''
+              if (request) {
+                const response = request.choices[0].text
+                const link = linkRequest.choices[0].text
+                const keyTermsList = listRequest.choices[0].text
+                const total_tokens = request.usage.total_tokens
+                const { showStats } = DataStore.settings
+                summary = await formatBulletSummary(text, response, link, keyTermsList)
+                
+                if (currentHeading == 'Go Further?') {
+                  paragraphs[index].content = await formatFurtherLink(text)
+                } else {
+                  paragraphs[index].content = text
+                }
+                
+                paragraphs[index].type = 'title' 
 
-        if (request) {
-          const response = request.choices[0].text
-          const link = linkRequest.choices[0].text
-          const keyTermsList = listRequest.choices[0].text
-          const total_tokens = request.usage.total_tokens
-          const { showStats } = DataStore.settings
-          const summary = await formatBulletSummary(bullets[bullet], response, link, keyTermsList)
-
-          Editor.appendParagraph(`${summary}`)
-
-        if (showStats) {
-          const stats = formatTextStats(time, chosenModel, total_tokens)
-          Editor.insertTextAtCursor(stats)
+                Editor.appendParagraph(`${summary}`)
+              }
+          } else {
+            // If list item is empty
+            Editor.removeParagraph(paragraphs[index])
+          }
+          Editor.updateParagraphs(paragraphs)
         }
       }
-      }
+    } else {
+      const text = selectedBulletText
+      let prompt = await formatBullet(text)
+              const linkPrompt = await formatBulletLink(text)
+              const listPrompt = await formatBulletKeyTerms(text)
+
+              logDebug(pluginJson, `bulletsAI got the formatted prompt:\n\n${prompt}`)
+            
+              let chosenModel = defaultModel
+
+              if (defaultModel == 'Choose Model') {
+                logDebug(pluginJson, `summarizeNote: Choosing Model...`)
+                chosenModel = 'text-davinci-003'
+                logDebug(pluginJson, `summarizeNote: ${String(chosenModel)} selected`)
+              }
+
+              const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+              prompt = linkPrompt
+              const reqLinkBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+              prompt = listPrompt
+              const reqListBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+              
+              const request = await makeRequest(completionsComponent, 'POST', reqBody)
+              const linkRequest = await makeRequest(completionsComponent, 'POST', reqLinkBody)
+              const listRequest = await makeRequest(completionsComponent, 'POST', reqListBody)
+              const time = timer(start)
+              clo(request, `testConnection completionResult result`)
+              let summary = ''
+              if (request) {
+                const response = request.choices[0].text
+                const link = linkRequest.choices[0].text
+                const keyTermsList = listRequest.choices[0].text
+                const total_tokens = request.usage.total_tokens
+                const { showStats } = DataStore.settings
+                summary = await formatBulletSummary(text, response, link, keyTermsList)
+                for (var index in paragraphs) {
+
+                  const matchedValue = `[${text}](noteplan://x-callback-url/runPlugin?pluginID=scrollpointclick.AI&command=Bullets%20AI&arg0=${encodeURI(text)})`
+                  logWarn(pluginJson, `\n\nDETAILS-----------\nAt Paragraph ${index}:\n${paragraphs[index].content}\n\nShould Match: \n${matchedValue}`)
+                  if (paragraphs[index].content == matchedValue) {
+                    logWarn(pluginJson, `\n\n------MATCH------\n\n`)
+                    paragraphs[index].content = await formatFurtherLink(text)
+                    paragraphs[index].type = 'title'
+                    Editor.updateParagraph(paragraphs[index])
+
+                    Editor.appendParagraph(`${summary}`) 
+                  }
+                }
+                // paragraphs[index].content = await formatFurtherLink(text)
+                
+                
+                
+              }
+    }
+    if (showStats) {
+      const stats = formatTextStats(time, chosenModel, total_tokens)
+      Editor.insertTextAtCursor(stats)
     }
   } catch (error) {
-    logError(pluginJson, `Error occurred: ${error}`)
+    logError(pluginJson, `Error Message: ${error}`)
   }
 }
 
+// /**
+//  * Entry point for generating summary requests
+//  * Plugin entrypoint for command: "/summarize
+//  * @param {string} promptIn - An incoming prompt to use as the quick search query.
+//  */
+// export async function summarizeBullet(promptIn: string | null = null, userIn: string = '') {
+//   try {
+//     logDebug(pluginJson, `summarizeNote running with prompt:${String(promptIn)} ${userIn}`)
+//     const start = new Date()
+//     const text = promptIn
+//     let prompt = await formatBullet(text)
+//     const linkPrompt = await formatBulletLink(text)
+//     const listPrompt = await formatBulletKeyTerms(text)
 
+//     let chosenModel = defaultModel
+//     if (defaultModel === 'Choose Model') {
+//       logDebug(pluginJson, `summarizeNote: Choosing Model...`)
+//       chosenModel = 'text-davinci-003'
+//       logDebug(pluginJson, `summarizeNote: ${String(chosenModel)} selected`)
+//     }
+//     if (chosenModel) {
+//       const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+//       prompt = linkPrompt
+//       const reqLinkBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+//       prompt = listPrompt
+//       const reqListBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+      
+//       const request = await makeRequest(completionsComponent, 'POST', reqBody)
+//       const linkRequest = await makeRequest(completionsComponent, 'POST', reqLinkBody)
+//       const listRequest = await makeRequest(completionsComponent, 'POST', reqListBody)
+//       const time = timer(start)
+//       clo(request, `testConnection completionResult result`)
+//       let summary = ''
+//       if (request) {
+//         const response = request.choices[0].text
+//         const link = linkRequest.choices[0].text
+//         const keyTermsList = listRequest.choices[0].text
+//         const total_tokens = request.usage.total_tokens
+//         const { showStats } = DataStore.settings
+//         summary = await formatBulletSummary(text, response, link, keyTermsList)
+        
+//         if (currentHeading == 'Go Further?') {
+//           paragraphs[index].content = await formatFurtherLink(text)
+//         } else {
+//           paragraphs[index].content = text
+//         }
+        
+//         paragraphs[index].type = 'title' 
+
+//         Editor.appendParagraph(`${summary}`)
+//       }
+//     }
+//   } catch (error) {
+//     logError(pluginJson, JSP(error))
+//   }
+// }
 
 /**
  * Formats the incoming model object to display its information in a more readable format.
@@ -665,3 +787,6 @@ export function formatModelInformation(info: Object) {
 export function updateREADME() {
   generateREADMECommands()
 }
+
+
+
