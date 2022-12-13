@@ -4,6 +4,24 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/scrollpointcli
 
 ## What's Changed?
 
+[0.1.9] - 2022-12-13 (@scrollpointclick)
+
+#### **Changed**
+- When selecting one of the Go Further links, it will automatically generate a contextual prompt that will help to keep the resulting summaries related to the original subject matter. This is effectively creating a remix with the prompt "{New Query} in the context of {Previous Query}." These will stack.
+
+- The remix prompt that is displayed under the section title has been reworked and will now contain backlinks to all previously created summaries.
+
+#### **Known Issues**
+- Learn more link sometimes has formatting issues and will occasionally link to non-existent pages.
+- During generation, the new Go Further section will not automatically scan for existing backlinks. This is resolved at next generation cycle.
+- Show Stats is still not functioning in BulletsAI. Please turn it off to use this feature.
+
+#### **Todo**
+- Go Further link refinement.
+  - Would like each link to check to see if there is already a matching title or bullet so that it can regenerate that topic for a fresh one.
+  - Button to 'rebase' the remixes for when they grow to be too large too be useful. 
+    - Takes the new term and appends it only to the original source term for next regeneration.
+
 [0.1.8] - 2022-12-13 (@scrollpointclick)
 
 #### **Added**

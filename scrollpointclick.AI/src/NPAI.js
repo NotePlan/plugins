@@ -579,7 +579,7 @@ export async function learnMore(learningTopic: Object) {
   }
 }
 
-export async function bulletsAI(inputText: string = '', remixText: string = '', userIn: string = '') {
+export async function bulletsAI(inputText: string = '', remixText: string = '', initialSubject: string = '', userIn: string = '') {
   try {
 
     const start = new Date()
@@ -650,21 +650,20 @@ export async function bulletsAI(inputText: string = '', remixText: string = '', 
         }
       }
     } else {
-      const text = inputText
+      let text = inputText
       let prompt = ''
       let linkPrompt = ''
       let listPrompt = ''
+      if (initialSubject != "" && initialSubject != null) {
+        remixText = `${text} in the context of ${initialSubject}`
+      }
       if (remixText != '' && remixText != null) {
+        // logError(pluginJson, `\n\In a REMIX\n`)
         logDebug(pluginJson, `bulletsAI got the remixed text:\n\n${remixText}`)
         prompt = await formatBullet(remixText)
         linkPrompt = await formatBulletLink(text)
-        listPrompt = await formatBulletKeyTerms(text)
-      } else {
-        logDebug(pluginJson, `bulletsAI got the remixed text:\n\n${remixText}`)
-        prompt = await formatBullet(text)
-        linkPrompt = await formatBulletLink(text)
-        listPrompt = await formatBulletKeyTerms(text)
-      }
+        listPrompt = await formatBulletKeyTerms(remixText)
+      } 
 
       logDebug(pluginJson, `bulletsAI got the formatted prompt:\n\n${prompt}`)
     
@@ -701,13 +700,14 @@ export async function bulletsAI(inputText: string = '', remixText: string = '', 
         for (var index in paragraphs) {
           // logError(pluginJson, `\n\n\n\nREMIX VALUE\n\n${remixText}\n\n\n\n`)
          
-          logWarn(pluginJson, `\n\nDETAILS-----------\nAt Paragraph ${index}:\n${paragraphs[index].content}\n\nShould Match: \n${matchedValue}`)
-          if (paragraphs[index].content == matchedValue) {
-            logError(pluginJson, `\n\n------MATCH------\n\n${index}\n\n`)
+          // logWarn(pluginJson, `\n\nDETAILS-----------\nAt Paragraph ${index}:\n${paragraphs[index].content}\n\nShould Match: \n${matchedValue}`)
+          if (paragraphs[index].content.includes(`[${text}](`) || (paragraphs[index].content.includes(`${text}`) && paragraphs[index].type == 'title')) {
+            // logError(pluginJson, `\n\n------MATCH------\n\n${index}\n\n`)
             paragraphs[index].content = await formatFurtherLink(text)
             paragraphs[index].type = 'title'
             Editor.updateParagraph(paragraphs[index])
             if (!alteredLinks.includes(matchedValue)) {
+              logError(pluginJson, `\n\n------MATCH------\n\n${index}\n\n`)
               Editor.appendParagraph(`${summary}`) 
             }
             alteredLinks.push(matchedValue)

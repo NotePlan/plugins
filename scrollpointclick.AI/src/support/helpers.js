@@ -131,7 +131,7 @@ The fourth heading should be "#### Further Reading" followed by a Goodreads.com 
 export async function formatFurtherLink(text: string) {
   const fileName = Editor.filename
 
-  logError(pluginJson, `${Editor.filename}`)
+  // logError(pluginJson, `${Editor.filename}`)
   const furtherLink = createPrettyOpenNoteLink(text, fileName, true, text)
   return furtherLink
 }
@@ -150,23 +150,53 @@ export async function formatBulletSummary(subject: string, summary: string, link
   const remixPrompt = createPrettyRunPluginLink(`Remix`, 'scrollpointclick.AI', 'Remix Query', `${subject}`)
   const remixTitle = createPrettyOpenNoteLink('๏', Editor.filename, true, subject)
 
+  const remixSubtitleParts = remixText.split('in the context of')
+  let remixedSubtitle = `${title}`
+  for (var index in remixSubtitleParts) {
+    if (index > 0) {
+      const trimmedSubtitlePart = remixSubtitleParts[index].trim()
+      const remixBackLink = createPrettyOpenNoteLink(`${trimmedSubtitlePart}`, Editor.filename, true, `${trimmedSubtitlePart}`)
+      remixedSubtitle = `${remixedSubtitle} in the context of ${remixBackLink}`
+    }
+  }
+
   const formattedLink = `[Learn More](${link}})\n`
-  const splitKeyTermsParts = keyTerms.split(',')
+  let splitKeyTermsParts = keyTerms.split(',')
+
+  
   let formattedList = ``
   for (var part in splitKeyTermsParts) {
-    if (splitKeyTermsParts[part]) {
-      const prettyKeyTerm = createPrettyRunPluginLink(`${splitKeyTermsParts[part].trim()}`, 'scrollpointclick.AI', 'Bullets AI', [splitKeyTermsParts[part].trim(), ''])
-      logDebug(pluginJson, `\n\n\nBULLET POINT: ${splitKeyTermsParts[part]}`)
+    // const matchedValue = `[${splitKeyTermsParts[part]}](noteplan://x-callback-url/runPlugin?pluginID=scrollpointclick.AI&command=Bullets%20AI&arg0=${encodeURI(splitKeyTermsParts[part])}&arg1=)`
+    // const keyTerm = splitKeyTermsParts[part]
+    // if (keyTerm) {
+    //   for (var index in Editor.paragraphs) {
+    //     // logError(pluginJson, `\nReading: ${ splitKeyTermsParts[part]}`)
+    //     const paragraph = Editor.paragraphs[index]
+    //     if (paragraph.type == 'title') {
+    //       logError(pluginJson, `\n\nReading: \nTYPE: ${typeof(keyTerm)}\n${keyTerm}\nTitle: \nTYPE: ${typeof(paragraph.content)}\n${paragraph.content}\n------\n`)
+    //       if (paragraph.content == keyTerm) {
+    //         logError(pluginJson, `\nTITLE ITEM MATCHING: ${paragraph.content}\n************\n\n`)
+    //     } else if (paragraph.type == 'list') {
+    //       // logError(pluginJson, `\n\nReading: ${ splitKeyTermsParts[part]}\nList: ${paragraph.content}\n-------\n`)
+    //       logError(pluginJson, `\n\nReading: ${ matchedValue}\nList: ${paragraph.content}\n-------\n`)
+    //       if (paragraph.content.includes(matchedValue)) {
+    //         logError(pluginJson, `\n\List Item Matching: ${ paragraph.content}`)
+    //       }
+    //     }
+    //    }
+    //   }
+      const prettyKeyTerm = createPrettyRunPluginLink(`${splitKeyTermsParts[part].trim()}`, 'scrollpointclick.AI', 'Bullets AI', [splitKeyTermsParts[part].trim(), '', (remixText) ? remixText : subject])
+      // const prettyKeyTerm = createPrettyRunPluginLink(`${splitKeyTermsParts[part].trim()}`, 'scrollpointclick.AI', 'Bullets AI', [splitKeyTermsParts[part].trim(), '', subject])
+      // logError(pluginJson, `\n\n\nBULLET POINT: ${prettyKeyTerm}`)
       const formattedPart = `\t\t- ${prettyKeyTerm}`
       formattedList += `${formattedPart}\n`
-    }
   }
   let output = ''
   // logError(pluginJson, `\n\n\nREMIX TEXT:\n\n\n ${remixText}\n\n\n`)
   if (remixText) {
     // logError(pluginJson, `\n\n\nREMIX INSIDE\n\n`)
-    // output = `### ${title}\n**${remixText}**\n*${remixPrompt}*\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\n---`
-    output = `**${remixText}** ${remixTitle}\n*${remixPrompt}*\n\t${summary.trim()}\n\t##### Go Further?\n${formattedList}\n---`
+    output = `### ${title}\n**${remixedSubtitle}**\n*${remixPrompt}*\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\n---`
+    // output = `**${remixText}** ${remixTitle}\n*${remixPrompt}*\n\t${summary.trim()}\n\t##### Go Further?\n${formattedList}\n---`
   } else {
     // logError(pluginJson, `\n\n\nREMIX INSIDE\n\n`)
     output = `### ${title}\n*${remixPrompt}*\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\n---`
@@ -184,7 +214,7 @@ export async function formatBullet(promptIn: string) {
   let prompt = `Write a summary on the topic of of ${promptIn}. The response should be ${bulletsSummaryParagraphs} paragraphs in length.
   Summary:
   `
-  logError(pluginJson, `\n\n\n${prompt}\n\n\n`)
+  // logError(pluginJson, `\n\n\n${prompt}\n\n\n`)
   return prompt
 }
 
@@ -214,6 +244,19 @@ export async function formatBulletKeyTerms(promptIn: string) {
   return prompt
 }
 
+/**
+ * Sets the prompt format for the summary part of the bullet prompt
+ * @params (Object) learningTopic - General object that directs the behavior of the function.
+ * Currently under construction.
+ */
+export async function rerollSingleKeyTerm(promptIn: string, exclusions: string) {
+  let prompt = `Return a single topic that is related to the topic of ${promptIn}. No numbers.
+  Exclude the following topics from the result: ${exclusions}
+  Example: Maple Syrup, Economic Growth in Nigeria (2020)
+  List:
+  `
+  return prompt
+}
 
 /**
  * Format the prompt for the text summary request
