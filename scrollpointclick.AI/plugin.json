@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "scrollpointclick.AI",
   "plugin.name": "💡 AAI",
-  "plugin.version": "0.1.7",
+  "plugin.version": "0.1.8",
   "plugin.lastUpdateInfo": "Initial release",
   "plugin.description": "GPT integration for research, summarization, etc.",
   "plugin.author": "Aaron @scrollpointclick with a little encouragement from @dwertheimer",
@@ -156,6 +156,13 @@
       "type": "string",
       "description": "Select the desired directory to store generated research in.",
       "default": "/"
+    },
+    {
+      "title": "BulletsAI Summary Paragraphs",
+      "key": "bulletsSummaryParagraphs",
+      "type": "number",
+      "description": "Select the desired number of paragraphs to be generated with each summary.\nLess than 3 is a good starting point.",
+      "default": 2
     },
     {
       "title": "BulletsAI Key Terms",

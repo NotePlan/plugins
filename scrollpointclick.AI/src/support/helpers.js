@@ -12,7 +12,7 @@ export const modelOptions = {
 }
 
 const commandsPath = "/support/.readme_text/commands.md"
-const { bulletsAIKeyTerms } = DataStore.settings
+const { bulletsAIKeyTerms, bulletsSummaryParagraphs } = DataStore.settings
 
 /**
  * Calculates the cost of the request.
@@ -148,6 +148,7 @@ export async function formatBulletSummary(subject: string, summary: string, link
   const filePath = Editor.filepath
 
   const remixPrompt = createPrettyRunPluginLink(`Remix`, 'scrollpointclick.AI', 'Remix Query', `${subject}`)
+  const remixTitle = createPrettyOpenNoteLink('๏', Editor.filename, true, subject)
 
   const formattedLink = `[Learn More](${link}})\n`
   const splitKeyTermsParts = keyTerms.split(',')
@@ -161,13 +162,14 @@ export async function formatBulletSummary(subject: string, summary: string, link
     }
   }
   let output = ''
-  logError(pluginJson, `\n\n\nREMIX TEXT:\n\n\n ${remixText}\n\n\n`)
+  // logError(pluginJson, `\n\n\nREMIX TEXT:\n\n\n ${remixText}\n\n\n`)
   if (remixText) {
-    logError(pluginJson, `\n\n\nREMIX INSIDE\n\n`)
-    output = `### ${title}\n**${remixText}**\n*${remixPrompt}*\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\t\t- \n---`
+    // logError(pluginJson, `\n\n\nREMIX INSIDE\n\n`)
+    // output = `### ${title}\n**${remixText}**\n*${remixPrompt}*\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\n---`
+    output = `**${remixText}** ${remixTitle}\n*${remixPrompt}*\n\t${summary.trim()}\n\t##### Go Further?\n${formattedList}\n---`
   } else {
-    logError(pluginJson, `\n\n\nREMIX INSIDE\n\n`)
-    output = `### ${title}\n*${remixPrompt}*\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\t\t- \n---`
+    // logError(pluginJson, `\n\n\nREMIX INSIDE\n\n`)
+    output = `### ${title}\n*${remixPrompt}*\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\n---`
   }
   
   return output 
@@ -179,9 +181,10 @@ export async function formatBulletSummary(subject: string, summary: string, link
  * Currently under construction.
  */
 export async function formatBullet(promptIn: string) {
-  let prompt = `Write a 1-2 paragraph summary on the topic of of ${promptIn}.
+  let prompt = `Write a summary on the topic of of ${promptIn}. The response should be ${bulletsSummaryParagraphs} paragraphs in length.
   Summary:
   `
+  logError(pluginJson, `\n\n\n${prompt}\n\n\n`)
   return prompt
 }
 
@@ -204,7 +207,7 @@ export async function formatBulletLink(promptIn: string) {
  * Currently under construction.
  */
 export async function formatBulletKeyTerms(promptIn: string) {
-  let prompt = `Write a comma-separated array of the ${bulletsAIKeyTerms} most important key terms associated with ${promptIn}. No numbers.
+  let prompt = `Write a comma-separated array of the ${bulletsAIKeyTerms} most important key topics associated with ${promptIn}. No numbers.
   Example: Maple Syrup, hockey, Cold Weather
   List:
   `

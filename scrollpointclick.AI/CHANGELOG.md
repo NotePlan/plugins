@@ -3,6 +3,19 @@
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/scrollpointclick.AI/README.md) for details on available commands and use case.
 
 ## What's Changed?
+
+[0.1.8] - 2022-12-13 (@scrollpointclick)
+
+#### **Added**
+- bulletsSummaryParagraph parameter added to preferences.
+  - Allows user to define how long summaries in BulletAI should be.
+
+#### **Changed**
+- Changed the work "term" to "topic" in formatBulletKeyTerms() as the word "term" was causing the related subjects to always be single word results.
+- formatBulletSummary() no longer appends the extra empty bullet point as it has been made redundant by the Remix feature.
+
+
+
 [0.1.7] - 2022-12-13 (@scrollpointclick)
 
 #### **Added**
