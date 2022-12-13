@@ -175,7 +175,7 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
   try {
     const noteName = append || prepend
 
-    let note = undefined
+    let note: CoreNoteFields
     if (noteName === '<select>') {
       logDebug(pluginJson, 'load project notes (sorted) to display for selection')
       let notes = [...DataStore.projectNotes].sort((a, b) => (a.changedDate < b.changedDate ? 1 : -1))
@@ -197,8 +197,13 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
       )
       note = notes[selection.index]
     } else if (noteName === '<current>') {
-      logDebug(pluginJson, 'use the current note')
-      note = Editor.note
+      logDebug(pluginJson, 'use the current note (Editor)')
+      if (Editor.note) {
+        note = Editor.note
+      } else {
+        logError(pluginJson, 'want to use <current> note, but no note is open in the editor')
+        throw new Error('There is no note open in the editor, so cannot apply the Template')
+      }
     } else {
       // TODO: We don't know if its a title or a filename, so try first looking for a filename, then title
       logDebug(pluginJson, 'find the note by title')
@@ -223,7 +228,13 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
       const filename = DataStore.newNote(noteName, folder)
       if (filename) {
         logDebug(pluginJson, 'note created, now get the Note object')
-        note = DataStore.projectNoteByFilename(filename)
+        if (DataStore.projectNoteByFilename(filename)) {
+          // $FlowIgnore[incompatible-type]
+          note = DataStore.projectNoteByFilename(filename)
+        } else {
+          logError(pluginJson, `can't find project note '${filename}' so stopping`)
+          throw new Error(`can't find project note '${filename}' so stopping`)
+        }
       }
 
       if (!note) {
@@ -273,7 +284,7 @@ async function newNoteWithFolder(content: string, _folder?: string): Promise<?st
       folder = folders[selection.index]
     } else if (folder === '<current>') {
       logDebug(pluginJson, 'find the current folder of the opened note')
-      let currentFilename = ''
+      let currentFilename
 
       if (Editor.note) {
         currentFilename = Editor.note.filename.split('/')
