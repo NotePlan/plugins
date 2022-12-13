@@ -74,11 +74,11 @@
       "arguments": []
     },
     {
-      "name": "Summarize Bullet",
-      "description": "Use this bullet point as a prompt for GPT-3.",
-      "jsFunction": "summarizeBullet",
+      "name": "Remix Query",
+      "description": "Regenerate this summary request with additional details",
+      "jsFunction": "remixQuery",
       "alias": [
-        "sumb"
+        "rem"
       ],
       "arguments": []
     },
@@ -161,7 +161,7 @@
       "title": "BulletsAI Key Terms",
       "key": "bulletsAIKeyTerms",
       "type": "number",
-      "description": "Select the desired number of key terms to be generated with each summary\nLess than 5 is a good starting point.",
+      "description": "Select the desired number of key terms to be generated with each summary.\nLess than 5 is a good starting point.",
       "default": 3
     },
     {

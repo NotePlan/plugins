@@ -141,26 +141,35 @@ export async function formatFurtherLink(text: string) {
  * @params (Object) learningTopic - General object that directs the behavior of the function.
  * Currently under construction.
  */
-export async function formatBulletSummary(subject: string, summary: string, link: string, keyTerms: string) {
+export async function formatBulletSummary(subject: string, summary: string, link: string, keyTerms: string, remixText: string = '') {
   logDebug(pluginJson, `\n\nformatBulletSummary\nSubject: ${subject}\nResponse: ${summary}\nLink: ${link})}`)
   let title = subject.replace('-', '')
   title = title.trim()
   const filePath = Editor.filepath
 
+  const remixPrompt = createPrettyRunPluginLink(`Remix`, 'scrollpointclick.AI', 'Remix Query', `${subject}`)
+
   const formattedLink = `[Learn More](${link}})\n`
   const splitKeyTermsParts = keyTerms.split(',')
   let formattedList = ``
   for (var part in splitKeyTermsParts) {
-    if (splitKeyTermsParts[part] != '') {
-      const prettyKeyTerm = createPrettyRunPluginLink(`${splitKeyTermsParts[part].trim()}`, 'scrollpointclick.AI', 'Bullets AI', [splitKeyTermsParts[part].trim()])
+    if (splitKeyTermsParts[part]) {
+      const prettyKeyTerm = createPrettyRunPluginLink(`${splitKeyTermsParts[part].trim()}`, 'scrollpointclick.AI', 'Bullets AI', [splitKeyTermsParts[part].trim(), ''])
       logDebug(pluginJson, `\n\n\nBULLET POINT: ${splitKeyTermsParts[part]}`)
       const formattedPart = `\t\t- ${prettyKeyTerm}`
       formattedList += `${formattedPart}\n`
     }
   }
-
-
-  let output = `### ${title}\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\t\t- \n---`
+  let output = ''
+  logError(pluginJson, `\n\n\nREMIX TEXT:\n\n\n ${remixText}\n\n\n`)
+  if (remixText) {
+    logError(pluginJson, `\n\n\nREMIX INSIDE\n\n`)
+    output = `### ${title}\n**${remixText}**\n*${remixPrompt}*\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\t\t- \n---`
+  } else {
+    logError(pluginJson, `\n\n\nREMIX INSIDE\n\n`)
+    output = `### ${title}\n*${remixPrompt}*\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\t\t- \n---`
+  }
+  
   return output 
 }
 
@@ -170,7 +179,7 @@ export async function formatBulletSummary(subject: string, summary: string, link
  * Currently under construction.
  */
 export async function formatBullet(promptIn: string) {
-  let prompt = `Write a 1-2 paragraph summary of ${promptIn}.
+  let prompt = `Write a 1-2 paragraph summary on the topic of of ${promptIn}.
   Summary:
   `
   return prompt
