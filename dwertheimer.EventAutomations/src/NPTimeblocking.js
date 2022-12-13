@@ -412,7 +412,7 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
         )
         const sortedParas = getFullParagraphsCorrespondingToSortList(todosParagraphs, sortedTodos).filter((p) => p.filename !== Editor.filename)
         const sortedParasExcludingCurrentNote = sortedParas.filter((p) => p.filename !== Editor.filename)
-        await writeSyncedCopies(sortedParasExcludingCurrentNote, config)
+        await writeSyncedCopies(sortedParasExcludingCurrentNote, { runSilently: true, ...config })
       }
       return passBackResults ? timeBlockTextList : []
     } else {
@@ -437,7 +437,7 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
  */
 export async function writeSyncedCopies(todosParagraphs: Array<TParagraph>, config: AutoTimeBlockingConfig): Promise<void> {
   if (!todosParagraphs.length && !config.runSilently) {
-    await showMessage(`No todos/references marked for this day!`)
+    await showMessage(`No todos/references marked for this day!`, 'OK', 'Write Synced Copies')
   } else {
     logDebug(pluginJson, ``)
     const syncedList = getSyncedCopiesAsList(todosParagraphs)
