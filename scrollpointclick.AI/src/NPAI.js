@@ -718,8 +718,6 @@ export async function bulletsAI(inputText: string = '', remixText: string = '', 
             Editor.appendParagraph(`${summary}`) 
           }
         }
-
-        
       }
     }
     if (showStats) {

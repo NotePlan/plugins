@@ -3,8 +3,18 @@
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/scrollpointclick.AI/README.md) for details on available commands and use case.
 
 ## What's Changed?
+[0.1.7] - 2022-12-13 (@scrollpointclick)
 
-[0.1.6] - 2022-12-05 (@scrollpointclick)
+#### **Added**
+- Remix functionality added to bulletsAI.
+  - Allows user to type in a more specific prompt to regenerate a new summary.
+  - Remix is displayed under the initial subject so that the user can know precisely what the context was.
+
+- Fixed
+  - Now checks all bullet points to see if they match any of the newly linked ones and updates them to also hold the link. This also fixed a problem with duplicating the prompt print outs.
+
+
+[0.1.6] - 2022-12-12 (@scrollpointclick)
 
 #### **Added**
 - bulletsAIKeyTerms added to the preferences to allow user to set the desired amount of Key Terms to be generated with their BulletsAI request.
@@ -26,7 +36,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/scrollpointcli
 - Make the BulletsAI use its own note. This will be to reserve the namespace to prevent issues with links. Currently, Any bullets created before the page has a title will end up with reference links that point to a filepath that does not exist.
 
 
-[0.1.5] - 2022-12-05 (@scrollpointclick)
+[0.1.5] - 2022-12-07 (@scrollpointclick)
 
 #### **Added**
 - bulletsToPrompt()
