@@ -153,7 +153,7 @@ export const firstValue = (val: any): string | number => {
   if (retVal == null) {
     return retVal
   } else {
-    retVal = typeof retVal === 'number' || (typeof retVal !== 'object' && !isNaN(retVal)) ? Number(retVal) : retVal
+    retVal = typeof retVal === 'number' || (typeof retVal !== 'object' && !isNaN(retVal) && retVal !== '') ? Number(retVal) : retVal
     return typeof retVal === 'string' ? retVal.toLowerCase() : retVal
   }
 }

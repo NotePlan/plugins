@@ -456,7 +456,7 @@ export async function inputInteger(question: string): Promise<number> {
  */
 export function isInt(value: string): boolean {
   const x = parseFloat(value)
-  return !isNaN(value) && (x | 0) === x
+  return !isNaN(value) && value !== '' && (x | 0) === x
 }
 
 /**

@@ -257,6 +257,7 @@ describe('searchHelpers.js tests', () => {
         searchTermsRepArr: ['TERM1'],
         resultNoteAndLineArr: [],
         resultCount: 0,
+        fullResultCount: 0,
         resultNoteCount: 0,
       }
       const result = applySearchOperators(combinedResults)
@@ -275,6 +276,7 @@ describe('searchHelpers.js tests', () => {
         searchTermsRepArr: ['TERM2', '-TERM2'],
         resultNoteAndLineArr: [],
         resultCount: 0,
+        fullResultCount: 0,
         resultNoteCount: 0,
       }
       const result = applySearchOperators(combinedResults)
@@ -295,6 +297,7 @@ describe('searchHelpers.js tests', () => {
           { noteFilename: 'file2', line: '2.1 includes TERM1 and TERM2', index: 0 },
         ],
         resultCount: 3,
+        fullResultCount: 3,
         resultNoteCount: 2,
       }
       const result = applySearchOperators(combinedResults)
@@ -321,6 +324,7 @@ describe('searchHelpers.js tests', () => {
           { noteFilename: 'file7', line: '7.3 has TERM3', index: 0 },
         ],
         resultCount: 5,
+        fullResultCount: 5,
         resultNoteCount: 2,
       }
       const result = applySearchOperators(combinedResults)
@@ -355,6 +359,7 @@ describe('searchHelpers.js tests', () => {
           { noteFilename: 'file7', line: '7.3 has TERM3', index: 0 },
         ],
         resultCount: 10,
+        fullResultCount: 10,
         resultNoteCount: 4,
       }
       const result = applySearchOperators(combinedResults)
@@ -548,6 +553,7 @@ describe('searchHelpers.js tests', () => {
         resultNoteAndLineArr: [],
         resultCount: 0,
         resultNoteCount: 0,
+        fullResultCount: 0,
       }
       const config: $Shape<SearchConfig> = {
         resultStyle: 'NotePlan',

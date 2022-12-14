@@ -301,10 +301,10 @@ export class TMOccurrences {
     let output = ''
     // logDebug('TMOcc:getStats', `starting for ${ this.term } type ${ this.type } style ${ style } `)
 
-    const countStr = (!isNaN(this.count)) ? this.count.toLocaleString() : `none`
-    const totalStr = (!isNaN(this.total) && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
+    const countStr = (!isNaN(this.count) && this.count !== '') ? this.count.toLocaleString() : `none`
+    const totalStr = (!isNaN(this.total) && this.total !== '' && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
     // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
-    const itemAvgStr = (!isNaN(this.total) && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
+    const itemAvgStr = (!isNaN(this.total) && this.total !== '' && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
 
     switch (style) {
       case 'CSV': {

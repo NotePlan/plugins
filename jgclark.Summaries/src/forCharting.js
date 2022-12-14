@@ -213,7 +213,7 @@ export async function generateHeatMap(
       tooltip.padding().left(20);
       tooltip.separator(false);
       tooltip.format(function () {
-        if (this.heat != null && !isNaN(this.heat)) {
+        if (this.heat != null && this.heat !== '' && !isNaN(this.heat)) {
           return this.heat + '\\nDate: ' + this.getData("isoDate");
         } else {
           return 'No data';
@@ -315,7 +315,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     // let projectDataArray = Object.entries(dateCounterObj)
     let totalProjectDone = 0
     for (let item of dateCounterMap) {
-      if (!isNaN(item[1])) {
+      if (!isNaN(item[1]) && item[1] !== '') {
         totalProjectDone += Number(item[1])
       }
     }
@@ -381,7 +381,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     let totalCalendarDone = 0
     let interimTotal = 0
     for (let item of dateCounterMap) {
-      if (!isNaN(item[1])) {
+      if (!isNaN(item[1]) && item[1] !== '') {
         interimTotal += Number(item[1])
       }
     }
