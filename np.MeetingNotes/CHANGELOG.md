@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [1.1.6] - 2022-12-14 (@dwertheimer)
+
+- fix bug that Ed found in newMeetingNote asking you to select from all templates
+
 ## [1.1.5] - 2022-12-13 (@jgclark)
 
 - fix flow erorrs

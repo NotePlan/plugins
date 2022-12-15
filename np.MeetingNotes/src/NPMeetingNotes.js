@@ -80,7 +80,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
   logDebug(pluginJson, 'newMeetingNote')
   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
 
-  const templateFilename: ?string = await chooseTemplateIfNeededFromTemplateTitle(_templateFilename, true)//await chooseTemplateIfNeeded(_templateFilename, true)
+  const templateFilename: ?string = await chooseTemplateIfNeededFromTemplateTitle(_templateFilename, true) //await chooseTemplateIfNeeded(_templateFilename, true)
 
   try {
     let templateData, templateContent
@@ -321,7 +321,9 @@ async function newNoteWithFolder(content: string, _folder?: string): Promise<?st
 }
 
 const errorReporter = async (error: any, note: TNote) => {
-  const msg = `Error found in frontmatter of a template. I will try to continue, but you should try to fix the error in the following template:\nfilename:"${note.filename}",\n note titled:"${note.title ?? ''}".\nThe problem is:\n"${error.message}"`
+  const msg = `Error found in frontmatter of a template. I will try to continue, but you should try to fix the error in the following template:\nfilename:"${
+    note.filename
+  }",\n note titled:"${note.title ?? ''}".\nThe problem is:\n"${error.message}"`
   if (error.stack) delete error.stack
   logError(pluginJson, `${msg}\n${JSP(error)}`)
   await showMessage(msg)
@@ -347,7 +349,7 @@ async function chooseTemplateIfNeededFromTemplateTitle(templateTitle?: string, o
       return await chooseTemplateIfNeeded(templateTitle, onlyMeetingNotes)
     }
   }
-  return await chooseTemplateIfNeeded()
+  return await chooseTemplateIfNeeded('', onlyMeetingNotes)
 }
 
 /**
@@ -395,10 +397,13 @@ async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNote
       }
 
       logDebug(pluginJson, `asking user to select from ${templates.length} ${onlyMeetingNotes ? 'meeting-note' : ''} templates ...`)
-      const selectedTemplate = await CommandBar.showOptions(
-        templates.map((n) => n.title ?? 'Untitled Note'),
-        'Select a template',
-      )
+      const selectedTemplate =
+        templates.length > 1
+          ? await CommandBar.showOptions(
+              templates.map((n) => n.title ?? 'Untitled Note'),
+              'Select a template',
+            )
+          : { index: 0 }
       return templates[selectedTemplate.index].filename
     } else {
       logDebug(pluginJson, `will use Template file '${templateFilename}' ...`)
