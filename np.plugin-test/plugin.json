@@ -1,12 +1,12 @@
 {
   "COMMENT1": "Note If you are not going to use the `npm run autowatch` command to compile, then delete the macOS.minVersion line below",
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.0.21",
+  "noteplan.minAppVersion": "3.7.2",
   "plugin.id": "np.plugin-test",
-  "plugin.name": "🔌 Plugin Tester",
-  "plugin.description": "The most basic plugin ever. Designed to test if your plugins are working.",
+  "plugin.name": "🔌 Plugin Information & Tester",
+  "plugin.description": "View Plugin Commands and Test that Plugins are working.",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "1.1.3",
+  "plugin.version": "1.2.1",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.plugin-test/README.md",
@@ -21,14 +21,23 @@
       ]
     },
     {
-      "name": "writeToNewCalendarNote",
-      "description": "writeToNewCalendarNote",
-      "jsFunction": "writeToNewCalendarNote"
+      "name": "Generate Plugin Command Listing",
+      "description": "View Plugin Commands",
+      "jsFunction": "generatePluginCommandList",
+      "alias": ["plugins","list","commands"]
     },
     {
       "name": "(Test) Write Editor Paragraph Details to Console Log",
       "description": "Output all API variables",
       "jsFunction": "testOutputEditorContents"
+    },
+    {
+      "name": "Install Plugin and Re-Generate Listing",
+      "description": "Install Plugin and Re-Generate Plugin Listing Page",
+      "jsFunction": "installPlugin",
+      "hidden": true
     }
+    
+
   ]
 }

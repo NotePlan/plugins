@@ -750,7 +750,7 @@ type PluginObject = {
    * A list of available commands for this plugin. (getter)
    * @type {PluginCommandObject}
    */
-  +commands: PluginCommandObject,
+  +commands: $ReadOnlyArray<PluginCommandObject>,
 }
 
 /**
