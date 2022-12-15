@@ -1,0 +1,19 @@
+{
+    "id": "cmpl-6NWhdka2P7GiGQMayNLVTwBJFXnRK",
+    "object": "text_completion",
+    "created": 1671065273,
+    "model": "text-davinci-003",
+    "choices": [
+        {
+            "text": "\nA black hole is a region of spacetime with a gravitational pull so strong that nothing, not even light, can escape its grasp. They form when large stars die, collapsing in on themselves and releasing immense amounts of energy in the process. A black hole can be described by its mass, angular momentum, and electric charge. \n\nBlack holes are thought to be at the center of galaxies, controlling their growth and evolution. They play an important role in the universe, as the ultimate cemeteries for the remnants of the stars that die before their time. As we observe and explore more of the universe around us, black holes may offer clues to how the universe was made and how it works today. \n\nBlack holes can’t be directly observed and must be studied through their surrounding environment, such as radiation and gravitational effects. Scientists have identified a variety of phenomena related to black hole behavior, including Hawking radiation, gravitational waves, and the properties of accretion disks. Research and observations of these phenomena continue to uncover new information and deeper understanding of black holes and the universe. ",
+            "index": 0,
+            "logprobs": null,
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 26,
+        "completion_tokens": 222,
+        "total_tokens": 248
+    }
+}

@@ -11,8 +11,8 @@ export const modelOptions = {
   'text-ada-001': 0.0004,
 }
 
-const commandsPath = "/support/.readme_text/commands.md"
-const { bulletsAIKeyTerms, bulletsSummaryParagraphs } = DataStore.settings
+const commandsPath = '/support/.readme_text/commands.md'
+// const { bulletsAIKeyTerms, bulletsSummaryParagraphs } = DataStore.settings
 
 /**
  * Calculates the cost of the request.
@@ -39,25 +39,24 @@ export function calculateCost(model: string, total_tokens: number): number {
 /**
  * Generates the Commands section of the README.md
  */
- export function generateREADMECommands() {
+export function generateREADMECommands() {
   logDebug(pluginJson, `generateREADMECommands(): starting generation.`)
   let output = ''
-  const commands = pluginJson["plugin.commands"]
+  const commands = pluginJson['plugin.commands']
   logDebug(pluginJson, `generateREADMECommands(): found commands.`)
-  clo(commands, "COMMANDS")
+  clo(commands, 'COMMANDS')
   if (Array.isArray(commands)) {
     logDebug(pluginJson, `generateREADMECommands(): found array.`)
     output.push(`### Commands`)
     commands.forEach((command) => {
       const linkText = `try it`
-      const rpu = createPrettyRunPluginLink(linkText, pluginJson["plugin.id"], command.name)
-      const aliases = commmand.aliases && command.aliases.length ?
-      `\r\t*Aliases:${command.aliases.toString()}*` : ''
+      const rpu = createPrettyRunPluginLink(linkText, pluginJson['plugin.id'], command.name)
+      const aliases = commmand.aliases && command.aliases.length ? `\r\t*Aliases:${command.aliases.toString()}*` : ''
       output.push(`- /${command.name} ${rpu}${aliases}\r\t*${command.description}*`)
     })
     logDebug(pluginJson, `generateREADMECommands(): finished generation.`)
   }
-  if ( output != '' ) {
+  if (output != '') {
     logDebug(pluginJson, `generateREADMECommands(): writing to file.`)
     fs.writeFile(commandsPath, output)
   }
@@ -89,7 +88,7 @@ The fourth heading should be "#### Further Reading" followed by a Goodreads.com 
  * https://beta.openai.com/docs/api-reference/completions/create
  * @param {string} text - The text for the AI to summarize.
  */
- export function formatResearchListRequest(subject: string): string {
+export function formatResearchListRequest(subject: string): string {
   const promptOut = `
   Generate a summary of the provided text and a list of the key terms associated with the subject in the following JSON format.
   {
@@ -111,7 +110,7 @@ The fourth heading should be "#### Further Reading" followed by a Goodreads.com 
  * https://beta.openai.com/docs/api-reference/completions/create
  * @param {string} text - The text for the AI to summarize.
  */
- export function formatQuickSearchRequest(text: string): string {
+export function formatQuickSearchRequest(text: string): string {
   const promptOut = `Briefly summarize the subject and provide a "Read More" link with the Wikipedia link to learn more.
   Format: 
   Summary \n
@@ -163,7 +162,6 @@ export async function formatBulletSummary(subject: string, summary: string, link
   const formattedLink = `[Learn More](${link}})\n`
   let splitKeyTermsParts = keyTerms.split(',')
 
-  
   let formattedList = ``
   for (var part in splitKeyTermsParts) {
     // const matchedValue = `[${splitKeyTermsParts[part]}](noteplan://x-callback-url/runPlugin?pluginID=scrollpointclick.AI&command=Bullets%20AI&arg0=${encodeURI(splitKeyTermsParts[part])}&arg1=)`
@@ -185,11 +183,15 @@ export async function formatBulletSummary(subject: string, summary: string, link
     //     }
     //    }
     //   }
-      const prettyKeyTerm = createPrettyRunPluginLink(`${splitKeyTermsParts[part].trim()}`, 'scrollpointclick.AI', 'Bullets AI', [splitKeyTermsParts[part].trim(), '', (remixText) ? remixText : subject])
-      // const prettyKeyTerm = createPrettyRunPluginLink(`${splitKeyTermsParts[part].trim()}`, 'scrollpointclick.AI', 'Bullets AI', [splitKeyTermsParts[part].trim(), '', subject])
-      // logError(pluginJson, `\n\n\nBULLET POINT: ${prettyKeyTerm}`)
-      const formattedPart = `\t\t- ${prettyKeyTerm}`
-      formattedList += `${formattedPart}\n`
+    const prettyKeyTerm = createPrettyRunPluginLink(`${splitKeyTermsParts[part].trim()}`, 'scrollpointclick.AI', 'Bullets AI', [
+      splitKeyTermsParts[part].trim(),
+      '',
+      remixText ? remixText : subject,
+    ])
+    // const prettyKeyTerm = createPrettyRunPluginLink(`${splitKeyTermsParts[part].trim()}`, 'scrollpointclick.AI', 'Bullets AI', [splitKeyTermsParts[part].trim(), '', subject])
+    // logError(pluginJson, `\n\n\nBULLET POINT: ${prettyKeyTerm}`)
+    const formattedPart = `\t\t- ${prettyKeyTerm}`
+    formattedList += `${formattedPart}\n`
   }
   let output = ''
   // logError(pluginJson, `\n\n\nREMIX TEXT:\n\n\n ${remixText}\n\n\n`)
@@ -201,8 +203,8 @@ export async function formatBulletSummary(subject: string, summary: string, link
     // logError(pluginJson, `\n\n\nREMIX INSIDE\n\n`)
     output = `### ${title}\n*${remixPrompt}*\n\t${summary.trim()}\n${formattedLink}\t##### Go Further?\n${formattedList}\n---`
   }
-  
-  return output 
+
+  return output
 }
 
 /**

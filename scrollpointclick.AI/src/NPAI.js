@@ -7,12 +7,19 @@
  */
 
 import pluginJson from '../plugin.json'
-import { 
-  calculateCost, formatResearch, formatSummaryRequest, 
-  formatResearchListRequest, formatQuickSearchRequest, 
-  modelOptions, generateREADMECommands, formatBullet,
-  formatBulletLink, formatBulletSummary, formatBulletKeyTerms,
-  formatFurtherLink
+import {
+  calculateCost,
+  formatResearch,
+  formatSummaryRequest,
+  formatResearchListRequest,
+  formatQuickSearchRequest,
+  modelOptions,
+  generateREADMECommands,
+  formatBullet,
+  formatBulletLink,
+  formatBulletSummary,
+  formatBulletKeyTerms,
+  formatFurtherLink,
 } from './support/helpers' // FIXME: Is there something better than this growth?
 import { chooseOption, showMessage, showMessageYesNo, getInput } from '@helpers/userInput'
 import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
@@ -34,7 +41,7 @@ const baseURL = 'https://api.openai.com/v1'
 const modelsComponent = 'models'
 const imagesGenerationComponent = 'images/generations'
 const completionsComponent = 'completions'
-const { apiKey, defaultModel, showStats, max_tokens, researchDirectory, bulletsAIKeyTerms } = DataStore.settings
+// const { apiKey, defaultModel, showStats, max_tokens, researchDirectory, bulletsAIKeyTerms } = DataStore.settings
 
 const availableModels = ['text-davinci-003', 'text-curie-001', 'text-babbage-001', 'text-ada-001']
 
@@ -49,6 +56,7 @@ const availableModels = ['text-davinci-003', 'text-curie-001', 'text-babbage-001
  * @returns
  */
 export const getRequestObj = (method: string = 'GET', body: any = null): any => {
+  const { apiKey } = DataStore.settings
   if (apiKey.length) {
     const obj = {
       method,
@@ -77,6 +85,7 @@ export const getRequestObj = (method: string = 'GET', body: any = null): any => 
  * @returns {any|null} JSON results or null
  */
 export async function makeRequest(component: string, requestType: string = 'GET', data: any = null): any | null {
+  clo(data, `makeRequest: data:`)
   const url = `${baseURL}/${component}`
   logDebug(pluginJson, `makeRequest: about to fetch ${url}`)
   const result = await fetch(url, getRequestObj(requestType, data))
@@ -236,13 +245,13 @@ export async function createAIImages(promptIn: string | null = '', nIn: number =
  * @param {string} prompt - A text description of the prompt for the AI to interpret.
  * @param {string} user - A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse.
  */
- export async function noteToPrompt(promptIn: string | null = '', userIn: string | null = null) {
+export async function noteToPrompt(promptIn: string | null = '', userIn: string | null = null) {
   try {
     logDebug(pluginJson, `noteToPrompt running with prompt:${String(promptIn)} ${String(userIn)}`)
 
     const start = new Date()
     const prompt = Editor.content
-    
+
     let chosenModel = defaultModel
     if (defaultModel === 'Choose Model') {
       logDebug(pluginJson, `noteToPrompt: Choosing Model...`)
@@ -251,13 +260,13 @@ export async function createAIImages(promptIn: string | null = '', nIn: number =
     }
     const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
     if (userIn) reqBody.user = userIn
-    const request = (await makeRequest(completionsComponent, 'POST', reqBody))
+    const request = await makeRequest(completionsComponent, 'POST', reqBody)
     const elapsed = timer(start)
     clo(request, `testConnection noteToPrompt result`)
     if (request) {
       const response = request.choices[0].text
       // Editor.appendParagraph("```", "text")
-      Editor.appendParagraph(response.trim(), "text")
+      Editor.appendParagraph(response.trim(), 'text')
       // Editor.appendParagraph("```", "text")
     }
   } catch (error) {
@@ -321,7 +330,7 @@ export async function createResearchRequest(promptIn: string | null = null, nIn:
 }
 
 export async function exploreList(selection: string, subject: string, options: [string]) {
-  const currentPage = {'selection': selection, 'options': options}
+  const currentPage = { selection: selection, options: options }
   logError(pluginJson, `${currentPage}`)
   history.push(currentPage)
 
@@ -336,12 +345,12 @@ export async function exploreList(selection: string, subject: string, options: [
  * Plugin entrypoint for command: "/lista
  * @param {*} incoming
  */
-export async function createResearchListRequest(promptIn: string | null, nIn: number = 10, userIn: string = '', isLast: bool = false) {
+export async function createResearchListRequest(promptIn: string | null, nIn: number = 10, userIn: string = '', isLast: boolean = false) {
   try {
     const initialQuery = await getPromptAndNumberOfResults(promptIn, nIn)
-    let history = {'pages': []}
+    let history = { pages: [] }
     while (!isLast) {
-      let currentPage: ResearchListResult = {initialQuery}
+      let currentPage: ResearchListResult = { initialQuery }
 
       let { prompt } = initialQuery
       let currentQuery = prompt
@@ -349,7 +358,6 @@ export async function createResearchListRequest(promptIn: string | null, nIn: nu
         let currentQuery = promptIn
         prompt = `${currentQuery} as it pertains to ${initialQuery}`
       } else {
-        
       }
 
       prompt = formatResearchListRequest(prompt)
@@ -370,15 +378,15 @@ export async function createResearchListRequest(promptIn: string | null, nIn: nu
         const response = request.choices[0].text
         const jsonData = JSON.parse(response)
         clo(jsonData, `jsonParse() completionResult result`)
-  
+
         const summary = { label: `Append ${jsonData.subject} Summary`, value: jsonData.summary }
         clo(summary, `jsonParse() summary result`)
-  
+
         const wikiLink = { label: 'Learn more...', value: jsonData.wikiLink }
         const keyTerms = jsonData.keyTerms.map((term) => ({ label: term, value: term }))
         keyTerms.unshift(summary, wikiLink)
         clo(keyTerms, `jsonParse() keyTerms result`)
-  
+
         const selection = await chooseOption(jsonData.subject, keyTerms)
         clo(selection, `jsonParse() selection result`)
 
@@ -581,7 +589,6 @@ export async function learnMore(learningTopic: Object) {
 
 export async function bulletsAI(inputText: string = '', remixText: string = '', initialSubject: string = '', userIn: string = '') {
   try {
-
     const start = new Date()
     const paragraphs = Editor.paragraphs
     let currentHeading = ''
@@ -594,54 +601,53 @@ export async function bulletsAI(inputText: string = '', remixText: string = '', 
           // Update the current heading.
           currentHeading = text
           logDebug(pluginJson, `\n\nCurrent heading now:\n${currentHeading}`)
-
         } else if (lineType == 'list') {
           if (text != '') {
-              logDebug(pluginJson, `is:\n ${text}`) 
-              let prompt = await formatBullet(text)
-              const linkPrompt = await formatBulletLink(text)
-              const listPrompt = await formatBulletKeyTerms(text)
+            logDebug(pluginJson, `is:\n ${text}`)
+            let prompt = await formatBullet(text)
+            const linkPrompt = await formatBulletLink(text)
+            const listPrompt = await formatBulletKeyTerms(text)
 
-              logDebug(pluginJson, `bulletsAI got the formatted prompt:\n\n${prompt}`)
-            
-              let chosenModel = defaultModel
+            logDebug(pluginJson, `bulletsAI got the formatted prompt:\n\n${prompt}`)
 
-              if (defaultModel == 'Choose Model') {
-                logDebug(pluginJson, `summarizeNote: Choosing Model...`)
-                chosenModel = 'text-davinci-003'
-                logDebug(pluginJson, `summarizeNote: ${String(chosenModel)} selected`)
+            let chosenModel = defaultModel
+
+            if (defaultModel == 'Choose Model') {
+              logDebug(pluginJson, `summarizeNote: Choosing Model...`)
+              chosenModel = 'text-davinci-003'
+              logDebug(pluginJson, `summarizeNote: ${String(chosenModel)} selected`)
+            }
+
+            const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+            prompt = linkPrompt
+            const reqLinkBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+            prompt = listPrompt
+            const reqListBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
+
+            const request = await makeRequest(completionsComponent, 'POST', reqBody)
+            const linkRequest = await makeRequest(completionsComponent, 'POST', reqLinkBody)
+            const listRequest = await makeRequest(completionsComponent, 'POST', reqListBody)
+            const time = timer(start)
+            clo(request, `testConnection completionResult result`)
+            let summary = ''
+            if (request) {
+              const response = request.choices[0].text
+              const link = linkRequest.choices[0].text
+              const keyTermsList = listRequest.choices[0].text
+              const total_tokens = request.usage.total_tokens
+              const { showStats } = DataStore.settings
+              summary = await formatBulletSummary(text, response, link, keyTermsList)
+
+              if (currentHeading == 'Go Further?') {
+                paragraphs[index].content = await formatFurtherLink(text)
+              } else {
+                paragraphs[index].content = text
               }
 
-              const reqBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
-              prompt = linkPrompt
-              const reqLinkBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
-              prompt = listPrompt
-              const reqListBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
-              
-              const request = await makeRequest(completionsComponent, 'POST', reqBody)
-              const linkRequest = await makeRequest(completionsComponent, 'POST', reqLinkBody)
-              const listRequest = await makeRequest(completionsComponent, 'POST', reqListBody)
-              const time = timer(start)
-              clo(request, `testConnection completionResult result`)
-              let summary = ''
-              if (request) {
-                const response = request.choices[0].text
-                const link = linkRequest.choices[0].text
-                const keyTermsList = listRequest.choices[0].text
-                const total_tokens = request.usage.total_tokens
-                const { showStats } = DataStore.settings
-                summary = await formatBulletSummary(text, response, link, keyTermsList)
-                
-                if (currentHeading == 'Go Further?') {
-                  paragraphs[index].content = await formatFurtherLink(text)
-                } else {
-                  paragraphs[index].content = text
-                }
-                
-                paragraphs[index].type = 'title' 
+              paragraphs[index].type = 'title'
 
-                Editor.appendParagraph(`${summary}`)
-              }
+              Editor.appendParagraph(`${summary}`)
+            }
           } else {
             // If list item is empty
             Editor.removeParagraph(paragraphs[index])
@@ -654,7 +660,7 @@ export async function bulletsAI(inputText: string = '', remixText: string = '', 
       let prompt = ''
       let linkPrompt = ''
       let listPrompt = ''
-      if (initialSubject != "" && initialSubject != null) {
+      if (initialSubject != '' && initialSubject != null) {
         remixText = `${text} in the context of ${initialSubject}`
       }
       if (remixText != '' && remixText != null) {
@@ -663,10 +669,10 @@ export async function bulletsAI(inputText: string = '', remixText: string = '', 
         prompt = await formatBullet(remixText)
         linkPrompt = await formatBulletLink(text)
         listPrompt = await formatBulletKeyTerms(remixText)
-      } 
+      }
 
       logDebug(pluginJson, `bulletsAI got the formatted prompt:\n\n${prompt}`)
-    
+
       let chosenModel = defaultModel
 
       if (defaultModel == 'Choose Model') {
@@ -680,7 +686,7 @@ export async function bulletsAI(inputText: string = '', remixText: string = '', 
       const reqLinkBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
       prompt = listPrompt
       const reqListBody: CompletionsRequest = { prompt, model: chosenModel, max_tokens: max_tokens }
-      
+
       const request = await makeRequest(completionsComponent, 'POST', reqBody)
       const linkRequest = await makeRequest(completionsComponent, 'POST', reqLinkBody)
       const listRequest = await makeRequest(completionsComponent, 'POST', reqListBody)
@@ -699,7 +705,7 @@ export async function bulletsAI(inputText: string = '', remixText: string = '', 
         let alteredLinks = []
         for (var index in paragraphs) {
           // logError(pluginJson, `\n\n\n\nREMIX VALUE\n\n${remixText}\n\n\n\n`)
-         
+
           // logWarn(pluginJson, `\n\nDETAILS-----------\nAt Paragraph ${index}:\n${paragraphs[index].content}\n\nShould Match: \n${matchedValue}`)
           if (paragraphs[index].content.includes(`[${text}](`) || (paragraphs[index].content.includes(`${text}`) && paragraphs[index].type == 'title')) {
             // logError(pluginJson, `\n\n------MATCH------\n\n${index}\n\n`)
@@ -708,14 +714,14 @@ export async function bulletsAI(inputText: string = '', remixText: string = '', 
             Editor.updateParagraph(paragraphs[index])
             if (!alteredLinks.includes(matchedValue)) {
               logError(pluginJson, `\n\n------MATCH------\n\n${index}\n\n`)
-              Editor.appendParagraph(`${summary}`) 
+              Editor.appendParagraph(`${summary}`)
             }
             alteredLinks.push(matchedValue)
           }
         }
         if (remixText) {
           if (!alteredLinks.includes(matchedValue)) {
-            Editor.appendParagraph(`${summary}`) 
+            Editor.appendParagraph(`${summary}`)
           }
         }
       }
@@ -739,7 +745,6 @@ export async function remixQuery(subject: string) {
   bulletsAI(subject, additionalDetails)
 }
 
-
 /**
  * Formats the incoming model object to display its information in a more readable format.
  * https://beta.openai.com/docs/api-reference/completions/create
@@ -758,6 +763,3 @@ export function formatModelInformation(info: Object) {
 export function updateREADME() {
   generateREADMECommands()
 }
-
-
-
