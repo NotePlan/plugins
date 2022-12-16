@@ -14,6 +14,8 @@ const defaultResponse = {
  * Mock the fetch() function to return a specific response for a given URL and options.body
  * You pass in text to the match object and if the url or options.body contain that text, the response is returned
  * Note: match.url is required but match.optionsBody is optional
+ * The matches are case-insensitive and are turned into RegExps so you can include regular expressions in the match strings
+ * So you could match for "foo" (a plain string) or you could match for "foo.*bar" (a regular expression) that would be true for "foo bar" or "foo xxx bar"
  * If no match is found, the defaultResponse text is returned
  * @param {Array<FetchMockResponse>} mockResponses - Array of mock responses in the form of FetchMockResponse
  * @example
@@ -22,12 +24,12 @@ import { FetchMock, type FetchMockResponse } from '@mocks/Fetch.mock'
 const OVERRIDE_FETCH = true // set to true to override the global fetch() function with fake responses passed below
 if (OVERRIDE_FETCH) {
   const fm = new FetchMock([
-    { match: { url: 'foo', optionsBody: 'bar' }, response: JSON.stringify(response1) }
+    { match: { url: 'foo', optionsBody: "foo.*bar" }, response: JSON.stringify(response1) }
    ]) // add one object to array for each mock response
   fetch = async (url, opts) => fm.fetch(url, opts) //override the global fetch
 }
  * ...then wherever the code is using fetch, it will use the mock
- * const result = await fetch('http://foo', { body: 'has the word bar in it' }) // returns 'fake server response here' (the response text)
+ * const result = await fetch('http://foo', { body: 'has foo and also has the word bar in it' }) // returns 'fake server response here' (the response text)
  */
 export class FetchMock {
   responses: Array<FetchMockResponse> = [defaultResponse]
