@@ -5,7 +5,10 @@ export type FetchMockResponse = {
   response: string /* the response to return if the match is found */,
 }
 
-const defaultResponse = { match: { url: '', optionsBody: '' }, response: 'Default fetch response string (did not match any mocks)' }
+const defaultResponse = {
+  match: { url: '', optionsBody: '' },
+  response: 'Default fetch response string (did not match any mocks -- check the spelling in the URL and optionsBody matchers)',
+}
 
 /**
  * Mock the fetch() function to return a specific response for a given URL and options.body
@@ -14,11 +17,13 @@ const defaultResponse = { match: { url: '', optionsBody: '' }, response: 'Defaul
  * If no match is found, the defaultResponse text is returned
  * @param {Array<FetchMockResponse>} mockResponses - Array of mock responses in the form of FetchMockResponse
  * @example
-import response1 from './testJSONs/response1.json' // a JSON file with a sample server response
+import response1 from './testJSONs/response1.json' // a JSON file with a sample server response (you will probably have several of these)
 import { FetchMock, type FetchMockResponse } from '@mocks/Fetch.mock'
 const OVERRIDE_FETCH = true // set to true to override the global fetch() function with fake responses passed below
 if (OVERRIDE_FETCH) {
-  const fm = new FetchMock([{ match: { url: 'foo', optionsBody: 'bar' }, response: JSON.stringify(response1) }]) // add one object to array for each mock response
+  const fm = new FetchMock([
+    { match: { url: 'foo', optionsBody: 'bar' }, response: JSON.stringify(response1) }
+   ]) // add one object to array for each mock response
   fetch = async (url, opts) => fm.fetch(url, opts) //override the global fetch
 }
  * ...then wherever the code is using fetch, it will use the mock
@@ -33,9 +38,9 @@ export class FetchMock {
   fetch(url: string, options: FetchOptions) {
     const body = options?.body ?? null //
     const match = this.responses.find((r) => {
-      const urlTest = r.match?.url ? new RegExp(r.match.url).test(url) : false
+      const urlTest = r.match?.url ? new RegExp(r.match.url, 'ig').test(url) : false
       // body options will return true if it's a match or if it's not defined
-      const optionsBodyTest = r.match?.optionsBody && options.body ? new RegExp(r.match.optionsBody).test(options.body) : r.match?.optionsBody ? false : true
+      const optionsBodyTest = r.match?.optionsBody && options.body ? new RegExp(r.match.optionsBody, 'ig').test(options.body) : r.match?.optionsBody ? false : true
       return urlTest && optionsBodyTest
     })
     // return match ? Promise.resolve(match.response) : Promise.resolve(defaultResponse.response)

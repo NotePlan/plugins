@@ -54,6 +54,11 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = await f.fetch('http://foo', { body: 'does it include bar' })
         expect(result).toMatch(/baz/)
       })
+      test('should return match if both url and body match (case insensitive)', async () => {
+        const f = new FetchMock([{ match: { url: 'FOO', optionsBody: 'Bar' }, response: 'baz' }])
+        const result = await f.fetch('http://foo', { body: 'does it include bar' })
+        expect(result).toMatch(/baz/)
+      })
       test('should return default if url matches but not body', async () => {
         const f = new FetchMock([{ match: { url: 'foo', optionsBody: 'bar' }, response: 'baz' }])
         const result = await f.fetch('http://foo', { body: 'does it include xxx' })
