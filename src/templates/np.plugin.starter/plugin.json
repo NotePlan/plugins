@@ -23,6 +23,18 @@
       "arguments": [
         "Append this text to document"
       ]
+    },
+    {
+      "name": "onOpen",
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "jsFunction": "onOpen",
+      "hidden": true
+    },
+    {
+      "name": "onEditorWillSave",
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "jsFunction": "onEditorWillSave",
+      "hidden": true
     }
   ],
   "plugin.settings": [

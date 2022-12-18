@@ -2,7 +2,7 @@
   "name": "np.plugins",
   "packageName": "noteplan-cli",
   "info": "noteplan plugin development toolbox",
-  "version": "3.16.0",
+  "version": "3.17.0",
   "build": "031500",
   "description": "noteplan-cli",
   "repository": "https://github.com/NotePlan/plugins",

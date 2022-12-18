@@ -2,6 +2,14 @@
 
 ## About Plugins/package.json / package-lock.json
 
+## [3.17.0] - 2022-12-17 (@dwertheimer)
+
+### Additions to the plugin template for new plugins:
+
+- add hooks and stubs for: onOpen, onEditorWillSave
+- add fetch mocking import and instructions on how to use it
+- moved pre-existing hooks to the new NPTriggers-Hooks.js file
+
 ## [3.16.0] - 2022-09-13 (@dwertheimer)
 
 - added fsevents to try to reduce CPU usage of node on the autowatch per [article](https://medium.com/@manusajith/fix-for-100-cpu-usage-by-node-js-529916100aa6)
