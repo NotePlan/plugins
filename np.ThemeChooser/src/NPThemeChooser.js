@@ -244,7 +244,7 @@ export async function toggleTheme() {
         }
       }
       if (switchTo !== '') {
-        const theme = await getThemeObj(String(switchTo))
+        const theme = await getThemeObj(String(switchTo), true)
         if (theme) {
           logDebug(pluginJson, `toggleTheme: Setting theme to: ${String(switchTo)}`)
           Editor.setTheme(theme.filename)

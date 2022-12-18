@@ -17,46 +17,17 @@
 
 export { sayHello } from './NPPluginMain' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
 
-// Do not change this line. This is here so your plugin will get recompiled every time you change your plugin.json file
-import pluginJson from '../plugin.json'
+// FETCH mocking for offline testing
+// If you want to use external server calls in your plugin, it can be useful to mock the server responses
+// while you are developing the plugin. This allows you to test the plugin without having to
+// have a server running or having to have a network connection (or wait/pay for the server calls)
+// Comment the following import line out if you want to use live fetch/server endpoints (normal operation)
+// Uncomment it for using server mocks (fake/canned responses) you define in support/fetchOverrides.js
+// import './support/fetchOverrides'
 
-/*
- * NOTEPLAN HOOKS
- * The rest of these functions are called by NotePlan automatically under certain conditions
- * It is unlikely you will need to edit/add anything below this line
+/**
+ * Other imports/exports - you will normally not need to edit these
  */
-
 // eslint-disable-next-line import/order
-import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
-import { logError, JSP, clo } from '@helpers/dev'
-/**
- * NotePlan calls this function after the plugin is installed or updated.
- * The `updateSettingData` function looks through the new plugin settings in plugin.json and updates
- * the user preferences to include any new fields
- */
-export async function onUpdateOrInstall(): Promise<void> {
-  await updateSettingData(pluginJson)
-}
-
-/**
- * NotePlan calls this function every time the plugin is run (any command in this plugin)
- * You should not need to edit this function. All work should be done in the commands themselves
- */
-// eslint-disable-next-line require-await
-export async function init(): Promise<void> {
-  try {
-    clo(DataStore.settings,`${pluginJson["plugin.id"]} Plugin Settings`)
-    // Check for the latest version of this plugin, and if a minor update is available, install it and show a message
-    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-      pluginUpdated(pluginJson, r),
-    )
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
-
-/**
- * NotePlan calls this function settings are updated in the Preferences panel
- * You should not need to edit this function
- */
-export async function onSettingsUpdated(): Promise<void> {}
+export { onUpdateOrInstall, init, onSettingsUpdated } from './NPTriggers-Hooks'
+export { onOpen, onEditorWillSave } from './NPTriggers-Hooks'

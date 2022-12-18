@@ -13,17 +13,18 @@
 // REMINDER, to build this plugin as you work on it:
 // From the command line:
 // `noteplan-cli plugin:dev {{pluginId}} --test --watch --coverage`
+// IMPORTANT: It's a good idea for you to open the settings ASAP in NotePlan Preferences > Plugins and set your plugin's logging level to DEBUG
 
 /**
- * LOGGING 
+ * LOGGING
  * A user will be able to set their logging level in the plugin's settings (if you used the plugin:create command)
  * As a general rule, you should use logDebug (see below) for messages while you're developing. As developer,
  * you will set your log level in your plugin preferences to DEBUG and you will see these messages but
- * an ordinary user will not. When you want to output a message,you can use the following
+ * an ordinary user will not. When you want to output a message,you can use the following.
  * logging level commands for different levels of messages:
- * 
+ *
  * logDebug(pluginJson,"Only developers or people helping debug will see these messages")
- * log(pluginJson,"Ordinary users will see these informational messages") 
+ * log(pluginJson,"Ordinary users will see these informational messages")
  * logWarn(pluginJson,"All users will see these warning/non-fatal messages")
  * logError(pluginJson,"All users will see these fatal/error messages")
  */
@@ -39,9 +40,7 @@ export async function sayHello(incoming: ?string = ''): Promise<void> {
     if (incoming?.length) {
       // When commands are  launched from NotePlan Command Bar, they are passed with no arguments
       // if `incoming` is set, this plugin/command run must have come from a runPlugin call (e.g. clicking on a noteplan:// xcallback link or a template call)
-      Editor.insertTextAtCursor(
-        `***You clicked the link!*** The message at the end of the link is "${incoming}". Now the rest of the plugin will run just as before...\n\n`,
-      )
+      Editor.insertTextAtCursor(`***You clicked the link!*** The message at the end of the link is "${incoming}". Now the rest of the plugin will run just as before...\n\n`)
     }
 
     // a call to a support function in a separate file
@@ -63,9 +62,7 @@ export async function sayHello(incoming: ?string = ''): Promise<void> {
 
     if (!incoming?.length) {
       // Create a XCallback URL that can run this command
-      const url = createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][0].name, [
-        'This text was in the link!',
-      ])
+      const url = createRunPluginCallbackUrl(pluginJson['plugin.id'], pluginJson['plugin.commands'][0].name, ['This text was in the link!'])
       Editor.insertTextAtCursor(
         `This link could be used anywhere inside or outside of NotePlan to call this plugin:\n${url}\nGo ahead and click it! ^^^\nYou will see the results below:\n\n*****\n`,
       )

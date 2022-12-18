@@ -1,5 +1,9 @@
 # np.ThemeChooser Changelog
 
+## [1.5.7] 2022-12-15 @dwertheimer
+
+- Fix bug in dark/light toggle
+
 ## [1.5.6] 2022-11-29 @dwertheimer
 
 - Add /Customize Themes

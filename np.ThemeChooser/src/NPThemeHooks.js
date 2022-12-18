@@ -73,7 +73,7 @@ export async function onOpenRefreshPage(note: TNote): Promise<void> {
     if (Editor?.note?.changedDate) {
       const lastEdit = new Date(Editor?.note?.changedDate)
       if (now - lastEdit > 30000) {
-        const refresherPara = note.paragraphs[1]
+        // const refresherPara = note.paragraphs[1]
         // note.removeParagraph(refresherPara) // try to keep circular refresh from happening
         // do not refresh unless it's been at least 15 seconds since the last
         logDebug(pluginJson, `onOpenRefreshPage ${timer(lastEdit)} since last edit. auto-refreshing page`)

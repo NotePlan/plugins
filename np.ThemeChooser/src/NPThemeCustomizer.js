@@ -7,11 +7,10 @@ import { getThemePropertiesInfoText, isBuiltInTheme, getPropDifferences } from '
 import { askForColor } from './NPThemeHTML'
 import { getThemeObj } from './NPThemeShared'
 import { chooseTheme, getThemeChoice } from './NPThemeChooser'
-import * as masterThemeImport from './support/masterTheme.json'
+import masterTheme from './support/masterTheme.json'
 import { openNoteByFilename } from '@helpers/NPnote'
 import { chooseOption, showMessageYesNo, showMessage } from '@helpers/userInput'
 import { log, logError, logDebug, timer, clo, JSP, getFilteredProps } from '@helpers/dev'
-const masterTheme = masterThemeImport.default
 
 /**
  * Write out edited theme file
@@ -276,8 +275,8 @@ export async function createThemeSamples(idToScrollTo: string = '', autoRefreshR
 
     const changeThemeLink = createPrettyRunPluginLink(`Change`, 'np.ThemeChooser', 'Choose Theme', ['', `np.ThemeChooser`, `Customize Themes`])
     const copyThemeLink = createPrettyRunPluginLink('Copy Theme', 'np.ThemeChooser', 'Copy Currently Active Theme', [``, `np.ThemeChooser`, `Customize Themes`])
-    const defaultLight = getThemeObj(DataStore.preference('themeLight') || '', true)?.name || '' // will return the filename. use getThemeObj(defaultLight,true) to get a name
-    const defaultDark = getThemeObj(DataStore.preference('themeDark') || '', true)?.name || ''
+    const defaultLight = getThemeObj(String(DataStore.preference('themeLight')) || '', true)?.name || '' // will return the filename. use getThemeObj(defaultLight,true) to get a name
+    const defaultDark = getThemeObj(String(DataStore.preference('themeDark')) || '', true)?.name || ''
     const changeDefaultLink = createPrettyRunPluginLink('Change Default', 'np.ThemeChooser', 'Set Default Light/Dark Theme (for this device)', [
       'XXX',
       '',
