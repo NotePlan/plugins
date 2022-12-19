@@ -10,6 +10,7 @@ import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
+import { getBlockUnderHeading } from './NPParagraph'
 
 const pluginJson = 'NPnote.js'
 
@@ -202,4 +203,58 @@ export async function openNoteByFilename(filename: string, options: OpenNoteOpti
     options.createIfNeeded || false,
     options.content || null,
   )
+}
+
+/**
+ * Highlight/scroll to a paragraph (a single line) in the editor matching a string (in the Editor, open document)
+ * Most likely used to scroll a page to a specific heading (though it can be used for any single line/paragraph)
+ * Note: the line will be selected, so a user keystroke following hightlight would delete the block
+ * IF you want to just scroll to the content but not leave it selected, use the function scrollToParagraphWithContent()
+ * @param {string} content - the content of the paragraph to highlight
+ * @returns {boolean} - true if the paragraph was found and highlighted, false if not
+ */
+export function highlightParagraphWithContent(content: string): boolean {
+  const para = Editor.paragraphs.find((p) => p.content === content)
+  if (para) {
+    Editor.highlight(para)
+    return true
+  }
+  logError(`highlightParagraphWithContent could not find paragraph with content: "${content}" in the Editor`)
+  return false
+}
+
+/**
+ * Scroll to and Highlight an entire block under a heading matching a string (in the Editor, open document)
+ * Note: the block will be the cursor selection, so a user keystroke following hightlight would delete the block
+ * IF you want to just scroll to the content but not leave it selected, use the function scrollToParagraphWithContent()
+ * @param {string} content - the content of the paragraph to highlight
+ * @returns {boolean} - true if the paragraph was found and highlighted, false if not
+ */
+export function highlightBlockWithHeading(content: string): boolean {
+  const block = getBlockUnderHeading(Editor, content, true)
+  if (block?.length) {
+    const contentRange = Range.create(block[0].contentRange?.start, block[block.length - 1].contentRange?.end)
+    Editor.highlightByRange(contentRange) // highlight the entire block
+    return true
+  }
+  logError(`highlightBlockWithHeading could not find paragraph with content: "${content}" in the Editor`)
+  return false
+}
+
+/**
+ * Scroll to a paragraph (a single line) in the editor matching a string (in the Editor, open document)
+ * Most likely used to scroll a page to a specific heading (though it can be used for any single line/paragraph)
+ * Note: the line will be selected, so a user keystroke following hightlight would delete the block
+ * IF you want to just scroll to the content but not leave it selected, use the function
+ * @param {string} content - the content of the paragraph to highlight
+ * @returns {boolean} - true if the paragraph was found and highlighted, false if not
+ */
+export function scrollToParagraphWithContent(content: string): boolean {
+  const para = Editor.paragraphs.find((p) => p.content === content)
+  if (para && para.contentRange?.end) {
+    Editor.highlightByIndex(para.contentRange.end, 0)
+    return true
+  }
+  logError(`scrollToParagraphWithContent could not find paragraph with content: "${content}" in the Editor`)
+  return false
 }
