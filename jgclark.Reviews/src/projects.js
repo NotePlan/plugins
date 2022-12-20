@@ -60,7 +60,7 @@ export async function completeProject(): Promise<void> {
     await updateReviewListAfterReview(note)
 
     // Now add to the Summary note for this year (if present)
-    if (DataStore.folders.includes('Summaries')) {
+    if (DataStore.folders.includes(config.folderToStore)) {
       const lineToAdd = projectNote.detailedSummaryLine('markdown', true)
       const summaryNote = await getOrMakeNote(thisYearStr, config.folderToStore)
       if (summaryNote != null) {
