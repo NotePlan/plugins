@@ -4,7 +4,10 @@
 
 The Task Automation plugin brings NotePlan task management to the next level. Invoke the plugin from anywhere in the open note using `CMD-J` (or typing slash in the Editor) and choosing one of the commands mentioned below.
 
-Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines
+Automations for handling Tasks:
+- Overdue/Forgotten task scanning
+- Task sorting within a note\n- Copying #tags/@mentions from one task to another
+- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines
 
 ## Major Task Automation functions
 
