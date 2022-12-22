@@ -3,20 +3,50 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.RepeatExtensions",
   "plugin.name": "🔁 @repeat Extensions",
-  "plugin.description": "Commands to extend the built-in @repeat() mechanism. See info for more details.",
+  "plugin.description": "Commands to extend the built-in @repeat() mechanism with much more flexible time periods.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/",
-  "plugin.version": "0.3.1",
+  "plugin.version": "0.5.0",
+  "plugin.lastUpdateInfo": "Now allows automatic generation of new repeats, by using new per-note trigger mechanism in v3.7.2. See README for more details.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "generate repeats",
-      "alias": ["rpt"],
-      "description": "Generate new @repeat() tasks from completed ones",
+      "alias": [
+        "rpt"
+      ],
+      "description": "Generate new @repeat(...) tasks from completed ones",
       "jsFunction": "repeats"
+    },
+    {
+      "hidden": true,
+      "name": "onEditorWillSave",
+      "description": "onEdit trigger handler (RepeatExtensions)",
+      "jsFunction": "onEditorWillSave"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "WARN",
+      "required": true
     }
   ]
 }

@@ -1,5 +1,19 @@
 # What's changed in 🔁 Repeat Extensions plugin?
-For more details see the [README](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/)
+For more details see the [README](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/).
+
+## [0.5.0] - 2022-12-22
+### Added
+- new repeats using this extended syntax can now be generated automatically after you complete an existing one. This requires NotePlan v3.7.2, and adding this line to frontmatter at the start of every note you wish to automate in this way:
+``` yaml
+---
+triggers: onEditorWillSave => jgclark.RepeatExtensions.onEditorWillSave
+---
+```
+
+## [0.4.0] - 2022-11-08
+### Added
+- will now find and process repeats in Weekly notes as well as other notes
+- added logging options
 
 ## [0.3.1] - 2022-02-20
 ### Changed
