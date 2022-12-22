@@ -23,6 +23,7 @@ import { chooseHeading } from '@helpers/userInput'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 import { showMessage } from '../../helpers/userInput'
 import { hyphenatedDate } from '../../helpers/dateTime'
+import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 
 /**
  * Write out the contents to either Today's Calendar note or the Note which was opened
@@ -67,22 +68,30 @@ export async function writeNoteContents(
       if (/<choose>/i.test(writeUnderHeading) || /<select>/i.test(writeUnderHeading)) {
         writeUnderHeading = await chooseHeading(note, true)
       }
-      if ((writeUnderHeading && note?.content?.indexOf(`${writeUnderHeading}\n`) !== -1) || options.createMissingHeading) {
-        if (writeUnderHeading) {
+      if (writeUnderHeading) {
+        if (note?.content?.indexOf(`${writeUnderHeading}\n`) !== -1 || options.createMissingHeading) {
           if (location === 'replace') {
             await replaceContentUnderHeading(note, writeUnderHeading, renderedTemplate)
           } else {
             note.addParagraphBelowHeadingTitle(renderedTemplate, 'text', writeUnderHeading, location === 'append', true)
           }
+
+          if (options.shouldOpenInEditor) {
+            await Editor.openNoteByFilename(note.filename)
+            selectFirstNonTitleLineInEditor()
+          }
         } else {
-          location == 'append' ? note.appendParagraph(renderedTemplate, 'text') : note.prependParagraph(renderedTemplate, 'text')
-        }
-        if (options.shouldOpenInEditor) {
-          await Editor.openNoteByFilename(note.filename)
-          selectFirstNonTitleLineInEditor()
+          await CommandBar.prompt(`"${writeUnderHeading}" heading does not exist in note.`, '')
         }
       } else {
-        await CommandBar.prompt(`"${writeUnderHeading}" heading does not exist in note.`, '')
+        const startIndex = findStartOfActivePartOfNote(note)
+        if (location === 'append') {
+          logDebug(pluginJson, `writeNoteContents appending "${renderedTemplate}"`)
+          note.appendParagraph(renderedTemplate, 'text')
+        } else {
+          logDebug(pluginJson, `writeNoteContents prepending "${renderedTemplate}" at index ${startIndex}`)
+          note.insertParagraph(renderedTemplate, startIndex, 'text')
+        }
       }
     }
   } else {
@@ -133,20 +142,28 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
         let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
         // logDebug(pluginJson, `templateFileByTitleEx Template Render Complete renderedTemplate= "${renderedTemplate}"`)
         // clo(frontmatterAttributes, `templateFileByTitleEx frontMatterAttributes before set`)
-        const { openNoteTitle, writeNoteTitle, location, writeUnderHeading, replaceNoteContents } = frontmatterAttributes
+        // Note:getNoteTitled is going to replace openNoteTitle and writeNoteTitle
+        // Whether it's run silently or opened in Editor is sent in the URL
+
+        const { openNoteTitle, writeNoteTitle, location, writeUnderHeading, replaceNoteContents, getNoteTitled } = frontmatterAttributes
         clo(frontmatterAttributes, `templateFileByTitleEx after destructure - replaceNoteContents:${replaceNoteContents} the rest:`)
-        let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || ''
+        let noteTitle = (openNoteTitle && openNoteTitle.trim()) || (writeNoteTitle && writeNoteTitle?.trim()) || '' || (getNoteTitled && getNoteTitled.trim())
         let shouldOpenInEditor = (openNoteTitle && openNoteTitle.length > 0) || openInEditor
+
         const createMissingHeading = true
         if (/<choose>/i.test(noteTitle) || /<select>/i.test(noteTitle)) {
           logDebug(pluginJson, `templateFileByTitleEx Inside choose code`)
           const chosenNote = await chooseNote()
           noteTitle = chosenNote?.title || ''
+          if (!noteTitle?.length) {
+            await showMessage("Selected note has no title and can't be used")
+            return
+          }
           logDebug(pluginJson, `templateFileByTitleEx: noteTitle: ${noteTitle}`)
         }
-        const isTodayNote = /<today>/i.test(openNoteTitle) || /<today>/i.test(writeNoteTitle)
-        const isThisWeek = /<thisweek>/i.test(openNoteTitle) || /<thisweek>/i.test(writeNoteTitle)
-        const isNextWeek = /<nextweek>/i.test(openNoteTitle) || /<nextweek>/i.test(writeNoteTitle)
+        const isTodayNote = /<today>/i.test(noteTitle)
+        const isThisWeek = /<thisweek>/i.test(noteTitle)
+        const isNextWeek = /<nextweek>/i.test(noteTitle)
         logDebug(pluginJson, `templateFileByTitleEx isTodayNote:${String(isTodayNote)} isThisWeek:${String(isThisWeek)} isNextWeek:${String(isNextWeek)}`)
         let note
         let options = { shouldOpenInEditor: false, createMissingHeading: Boolean(createMissingHeading), replaceNoteContents: Boolean(replaceNoteContents) } // these Boolean casts seem like they shouldn't be necessary, but shorthand wasn't working for undefined values
@@ -189,7 +206,7 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
               }
             }
           } else {
-            logError(pluginJson, `templateFileByTitleEx: Could not get proper week info for ${openNoteTitle}`)
+            logError(pluginJson, `templateFileByTitleEx: Could not get proper week info for ${noteTitle}`)
           }
         } else {
           // use current note
@@ -205,7 +222,7 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
             // using current note, no further processing required
             return
           }
-          if (noteTitle.length) {
+          if (noteTitle?.length) {
             const notes = await DataStore.projectNoteByTitle(noteTitle)
             const length = notes ? notes.length : 0
             if (!notes || length == 0 || (notes && notes.length > 1)) {
@@ -225,7 +242,7 @@ export async function templateFileByTitleEx(selectedTemplate?: string = '', open
               }
             }
           } else {
-            await CommandBar.prompt(`openNoteTitle or writeNoteTitle is required`, helpInfo('Presets'))
+            await CommandBar.prompt(`Frontmatter field: "getNoteTitled" must be set in order to open the desired note.`, helpInfo('Presets'))
           }
         }
       } else {
