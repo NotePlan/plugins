@@ -181,14 +181,15 @@ export const periodTypesAndDescriptions = [
  * Normally does this by asking user, unless param 'periodType' is supplied.
  * @author @jgclark
  *
- * @param {string} question to show user
- * @param {string} periodType optional; if not provided ask user instead
+ * @param {string?} question to show user
+ * @param {boolean?} excludeToday?
+ * @param {string?} periodType if not provided ask user
  * @returns {[Date, Date, string, string, string]}
  */
 export async function getPeriodStartEndDates(
   question: string = 'Create stats for which period?',
+  excludeToday: boolean = true, /* currently only used when a date is passed through as periodTypeToUse */
   periodTypeToUse?: string,
-  excludeToday: boolean = true /* currently only used when a date is passed through as periodTypeToUse */,
 ): Promise<[Date, Date, string, string, string]> {
   let periodType: string
   // If we're passed the period, then use that, otherwise ask user
@@ -314,7 +315,7 @@ export async function getPeriodStartEndDates(
       // Work out day number (1..7) within user's week
       const dateWithinInterval = ((dayOfWeekWithSundayZero + 7 - usersStartOfWeekWithSundayZero) % 7) + 1
       logDebug(
-        'getPeriodStartEndDates()',
+        'getPeriodStartEndDates',
         `userwtd: dayOfWeekWithSundayZero: ${dayOfWeekWithSundayZero}, usersStartOfWeekWithSundayZero: ${usersStartOfWeekWithSundayZero}, dateWithinInterval: ${dateWithinInterval}`,
       )
       fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -(dateWithinInterval - 1))
@@ -339,7 +340,7 @@ export async function getPeriodStartEndDates(
       // get ISO dayOfWeek (Monday = 1 to Sunday = 7)
       const todaysISODayOfWeek = moment().isoWeekday()
       periodAndPartStr = `day ${todaysISODayOfWeek}, ${periodString}`
-      // logDebug('getPeriodStartEndDates()', `wtd: currentWeekNum: ${currentWeekNum}, theYear: ${theYear}, todaysISODayOfWeek: ${todaysISODayOfWeek}`)
+      // logDebug('getPeriodStartEndDates', `wtd: currentWeekNum: ${currentWeekNum}, theYear: ${theYear}, todaysISODayOfWeek: ${todaysISODayOfWeek}`)
       break
     }
     case 'last7d': {
