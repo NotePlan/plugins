@@ -9,13 +9,13 @@ TODO: maybe create choosers based on arguments text
 */
 
 import { log, logError, logDebug, JSP } from '../../helpers/dev'
-import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl, createRunPluginCallbackUrl } from '../../helpers/general'
+import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl } from '../../helpers/general'
 import pluginJson from '../plugin.json'
+import { getXcallbackForTemplate } from './NPTemplateRunner'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPDev'
-import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput, getInputTrimmed } from '@helpers/userInput'
+import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput } from '@helpers/userInput'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
-import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
-import NPTemplating from 'NPTemplating'
+// import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 
 // https://help.noteplan.co/article/49-x-callback-url-scheme#addnote
 
@@ -185,15 +185,18 @@ export async function noteInfo(): Promise<string> {
 }
 
 export async function getReturnCallback(incomingString: string): Promise<string> {
-  const shouldReturn = await showMessageYesNo(
-    `After running this command, do you want to return execution to a non-NotePlan app using the x-success parameter?\n(generally the answer is no)`,
-    ['yes', 'no'],
-    `Return to Other App`,
-  )
-  if (shouldReturn && shouldReturn === 'yes') {
-    const callback = await getInput(`Enter the other app xcallback to call after running the NotePlan function. e.g.\notherapp://x-callback-url`, 'OK', 'Callback URL', '')
-    if (callback && callback !== '') {
-      return `${incomingString}&x-success=${encodeURIComponent(callback)}`
+  const { showXSuccess } = DataStore.settings
+  if (showXSuccess) {
+    const shouldReturn = await showMessageYesNo(
+      `After running this command, do you want to return execution to a non-NotePlan app using the x-success parameter?\n(generally the answer is no)`,
+      ['yes', 'no'],
+      `Return to Other App`,
+    )
+    if (shouldReturn && shouldReturn === 'yes') {
+      const callback = await getInput(`Enter the other app xcallback to call after running the NotePlan function. e.g.\notherapp://x-callback-url`, 'OK', 'Callback URL', '')
+      if (callback && callback !== '') {
+        return `${incomingString}&x-success=${encodeURIComponent(callback)}`
+      }
     }
   }
   return incomingString
@@ -256,45 +259,6 @@ export async function lineLink(): Promise<string> {
 // Plugin command entry point for creating a heading link
 export async function headingLink() {
   await xCallbackWizard(`headingLink`)
-}
-
-/**
- * Create an xcallback URL to invoke a template from a link inside NotePlan or a Shortcut/browser
- * (plugin entry point for /np:gx)
- */
-export async function getXcallbackForTemplate(): Promise<string | false> {
-  try {
-    let filename, templateTitle, args
-    if (Editor?.filename?.includes('@Templates')) {
-      const useThis = await showMessageYesNo(`Use the current template?\n(${Editor?.title || ''})`, ['yes', 'no'], 'Use Open Template')
-      if (useThis === 'yes') {
-        filename = Editor.filename
-      }
-    }
-    if (!filename) {
-      const selectedTemplate = await NPTemplating.chooseTemplate()
-      if (selectedTemplate) {
-        const template = await DataStore.noteByFilename(selectedTemplate, 'Notes')
-        templateTitle = template?.title || null
-      }
-    }
-    if (templateTitle) {
-      const openIt = await showMessageYesNo(`Open the resulting document in the Editor when link is clicked?`, ['yes', 'no'], 'Open in Editor')
-      args = [templateTitle, String(openIt === 'yes')]
-      const message = `Enter any variables and values you want to pass to the template in key=value pairs:\n\n myTemplateVar=value;otherVar=value2\n\n (where "myTemplateVar" and "otherVar" are the name of variables you use in your template. Multiple variables are separated by semicolons)`
-      const result = await getInputTrimmed(message, 'OK', `Template Variables to Pass to "${templateTitle}"`)
-      if (typeof result === 'string') {
-        args = args.concat(String(result))
-      }
-      return createRunPluginCallbackUrl(`np.Templating`, `templateRunner`, args)
-    } else {
-      await showMessage(`Template could not be located`)
-      return false
-    }
-  } catch (e) {
-    log(pluginJson, `Error in getXcallbackForTemplate: ${e}`)
-  }
-  return false
 }
 
 /**
@@ -397,8 +361,9 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
 
         url = `<% await DataStore.invokePluginCommandByName("${runplugin.command}","${runplugin.pluginID}",${JSON.stringify(runplugin.args)})  %>`
       }
-      Editor.insertTextAtCursor(url)
+      // Editor.insertTextAtCursor(url)
       Clipboard.string = url
+      await showMessage(`Link copied to clipboard`)
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

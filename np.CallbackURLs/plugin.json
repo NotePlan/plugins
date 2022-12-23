@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "np.CallbackURLs",
   "plugin.name": "🔗 Link Creator",
-  "plugin.version": "1.2.1",
-  "plugin.lastUpdateInfo": "1.2.1: @jgclark changed self-running templates to use semicolons to separate variables.\n1.2.0: Added links to lines and updated the way hashtags in titles are encoded (which changed in NotePlan).",
+  "plugin.version": "1.3.0",
+  "plugin.lastUpdateInfo": "1.3.0: Include ability to create self-running templates (coming in Templating 2.0). Allows you to run full-featured templates via xcallback",
   "plugin.description": "Interactively helps you form links/x-callback-urls (and also Template Tags with runPlugin commands) to perform actions from within NotePlan or between other applications and NotePlan.",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -43,6 +43,14 @@
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
       "title": "X-Callback-URL Creator Plugin Settings"
+    },
+    {
+      "key": "showXSuccess",
+      "title": "Ask in Wizard if you want X-Success field",
+      "description": "X-Callbacks have an option of including an X-Success field. This allows NotePlan to return information back to a calling application. It's only used rarely, so by default, the wizard will not ask you if you want it. If you do want to use X-Success parameters, check this box and the wizard will ask you in the flow.",
+      "type": "bool",
+      "default": false,
+      "required": true
     }
   ]
 }

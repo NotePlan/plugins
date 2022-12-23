@@ -50,16 +50,13 @@ Sometimes you don't want to have to click a link, but rather, you want a certain
 
 ### Running a Template
 
-By selecting the option "Run Template", you can use Templating2.0+'s feature of self-running templates. These special type of templates can be invoked via URL. They must have one of these two fields:
+By selecting the option "Run Template", you can use Templating2.0+'s feature of self-running templates. These special type of templates can be invoked via URL. The "Run a Template" command in this plugin will walk you through the creation of a self-running template and the link to call it (both of which you can edit later)
 
-- `writeNoteTitle` (the title of a note to write to -- perhaps silently behind the scenes)
-- `openNoteTitle` (the title of a note to open)
-
-Other field names in your template can be supplied in the URL as well as key=value pairs. You will be asked when creating the template whether you want to open the file in the editor afterwards (or not).
+Field names can be sent in the URL to your template as key=value pairs, separated by semicolons.
 
 ## X-Success Returns
 
-- Any NotePlan X-Callback command can run and return execution to a different app after execution. The Wizard will ask at the end of command creation if this is something you want to do.
+- Any NotePlan X-Callback command can run and return execution to a different app after execution. The Wizard will ask at the end of command creation if this is something you want to do. By default this option is turned off in the wizard, however you can enable it in the plugin settings.
   
 ### Feedback is welcome
 
