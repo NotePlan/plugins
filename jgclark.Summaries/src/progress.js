@@ -97,7 +97,7 @@ export async function makeProgressUpdate(params: string = '', source: string = '
     }
 
     // Get time period of interest
-    const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('', period, config.excludeToday)
+    const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, period)
     logDebug('', `${periodType} / ${periodString} / ${periodAndPartStr}`)
     if (fromDate == null || toDate == null) {
       throw new Error(`Error: failed to calculate period start and end dates`)
