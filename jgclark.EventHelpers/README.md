@@ -38,9 +38,13 @@ For example:
 - **Time options**: Optional Time format settings. Default is `{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}`.
 
 ### Using Event Lists from a Template
-If you use Templating, this command can be called when a Template is inserted (including in the `/dayStart` command which applies your `Daily Note Template`). To do this insert `<%- events() %>` wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time.  To **customise the list display**, you can add a `'format:"..."'` parameter to the `<%- events() %>` command that sets how to present the list, and a separate parameter for items with no start/end times (`'allday_format:"..."`).
+You can use these commands from Templates, when they are applied to a note, or are used to create one:
+- **`<%- events(...) %>`** produces a list of all events for the period wherever you wish it to appear in the Template.  By default it gives a simple markdown list of event title and start time for today.
+- **`<%- matchingEvents(...) %>`** produces a list of all matching events. This is more powerful, with each configured match able to have a different format of output. The matches and format strings are entered in a JSON-formatted array, which is specified in the Plugin's settings.
 
-You can place  `<%- listMatchingEvents() %>` in Templates in a similar way, and similar customisations are possible. However, as each match can have a different format of output, the matches and format strings are entered in a JSON-formatted array, which is specified in the Plugin's settings.
+These work particularly well in **Daily Note templates**.
+
+To **customise the list display**, you can add a `'format:"..."'` parameter to the `<%- events() %>` command that sets how to present the list, and a separate parameter for items with no start/end times (`'allday_format:"..."`).
 
 **Formats**: The `*|CAL|*`, `*|TITLE|*`, `*|LOCATION|*`, `*|START|*`, `*|END|*`,  `*|DATE|*`,  `*|NOTES|*`, `*|URL|*`,  `*|ATTENDEES|*`, `*|ATTENDEENAMES|*`, `*|LOCATION|*`, `*|MEETINGNOTE|*`,  and `*|EVENTLINK|*` can be mixed with whatever markdown characters or other text you like, and they will get replaced accordingly with the fields from each matching event found. (Note the difference between the } and ) bracket types, and use of double quotes around the parameter's setting. I didn't design this syntax ...)
 
@@ -49,13 +53,7 @@ Most of these are self-explanatory for events in most types of calendars, other 
 - `*|ATTENDEENAMES|*` just gives the name of event attendees, or if that's missing, just the email address;
 - `*|DATE|*` is formatted using the locale settings from your operating system, unless you override that with the 'Shared Settings > Locale' setting;
 - `*|EVENTLINK|*` is specific to NotePlan: it will make a nicely-formatted link to the actual calendar event, and clicking on it will show a pop with all the event's details.
-- `*|MEETINGNOTE|*` will insert a link that when clicked, will help you create a meeting note for this particular event. For this there's a setting 'Meeting Note Template title' which you can use to set which template to pick if you have several; if it isn't set then a list will be presented.
-
-{% note %}
-
-**Note:** MEETINGNOTE links requires at least v1.1.2 of the separate "Meeting Notes" plugin.
-
-{% endnote %}
+- `*|MEETINGNOTE|*` will insert a link that when clicked, will help you create a meeting note for this particular event. For this there's a setting 'Meeting Note Template title' which you can use to set which template to pick if you have several; if it isn't set then a list will be presented. **Note:** MEETINGNOTE links requires at least v1.1.2 of the separate "Meeting Notes" plugin.
 
 v0.15.0 added more flexibility in the formatting of event lists. So now instead of including (for example) `*|ATTENDEENAMES|*` you can now include other text (including line breaks indicated by `\n`) within the placeholder. For example in `*|\nwith ATTENDEENAMES|*` if the ATTENDEENAMES is not empty, then it will output the list after a newline and the text 'with '.
 
