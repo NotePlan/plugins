@@ -10,6 +10,7 @@ import { logDebug, logError, logWarn } from './dev'
 
 export const RE_URI = '(\\w+:\\/\\/[\\w\\.\\/\\?\\#\\&\\d\\-\\=%*,]+)'
 export const RE_MARKDOWN_PATH = '\\[.+?\\]\\(([^\\s]*?)\\)'
+export const RE_SYNC_MARKER = '\\^[A-Za-z0-9]{6}'
 
 /**
  * Perform substring match, ignoring case
