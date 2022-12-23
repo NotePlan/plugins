@@ -27,9 +27,10 @@ As the results are saved to a note, the following sorts of uses are then possibl
 
 There are two **display styles**: 
 1. '**NotePlan**': all results are shown as the usual NotePlan style of tasks, bullets, quotes or just notes. **Note**: Where a task is an open one, then a sync'd copy of it is shown, to stop duplication of tasks in NotePlan. This makes it a good way of having a special note that you can easily refresh that lists all open tasks for @personX.
-2. '**Simplified**': all results are shown as bullets, and can be reduced in length if required using the 'Result quote length' setting. This style also supports highlighting the search terms in the results (if using an appropriate theme: see below).
+2. '**Simplified**': all results are shown as bullets, and can be reduced in length if required using the 'Result quote length' setting. 
 
 You can also set:
+- 'Highlight matching search terms?' in the results. For this you need to use an appropriate theme: see below. Note: This is disabled if the search result is a "Synced Line" using that Labs feature.
 - a 'Group results by Note?' setting, where matches found within the same note are grouped together ('true' by default).
 - Where the match is in a calendar note, 'Date style' setting lets you choose where that link is shown as a 'date' using your locale, or as a NP date 'link' ([[2022-06-30]]), `at` (`@2022-06-30`), 'date' (date formatted for your locale, or 'scheduled' (`>2022-06-30`).
 - the ordering of the results by the title, created date or changed date of the note the search term is found in.
@@ -49,7 +50,7 @@ This is shown in the demo above.
 - the searches are simple ones, matching on whole or partial words, not using fuzzy matching or regular expressions
 - the searches aren't case sensitive (i.e. `SPIRIT` will match `spirit` or `Spirit`)
 - you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
-- all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be exluded too using the 'Folders to exclude' setting.
+- all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be exluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
 - multi-word search phrases in quotes (e.g. `"Holy Spirit"`) aren't supported by the underlying API, but instead they will be treated as `+Holy +Spirit`, which means a match will only happen if they are at least on the same line.
 
 ## Settings

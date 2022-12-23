@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 26.11.2022 for v1.1.0-beta, @jgclark
+// Last updated 23.12.2022 for v1.1.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -14,6 +14,7 @@ import pluginJson from '../plugin.json'
 import {
   createFormattedResultLines,
   getSearchSettings,
+  makeAnySyncs,
   type noteAndLine,
   numberOfUniqueFilenames,
   type resultOutputTypeV3,
@@ -100,7 +101,7 @@ export async function searchPeriod(
       periodAndPartStr = periodString
     } else {
       // Otherwise ask user
-      [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates(`What period shall I search over?`)
+      [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates(`What period shall I search over?`, false)
       if (fromDate == null || toDate == null) {
         logError(pluginJson, 'dates could not be parsed for requested time period')
         return
@@ -124,37 +125,36 @@ export async function searchPeriod(
     } else {
       // or by asking user
       const defaultTermsToMatchStr = config.defaultSearchTerms.join(', ')
-      const newTerms = await getInput(`Enter search term(s) separated by spaces. (You can use + term, -term and !term as well.)`, 'OK', `Search`, defaultTermsToMatchStr)
+      const newTerms = await getInput(`Enter search term(s) separated by spaces or commas. (You can use + term, -term and !term as well.)`, 'OK', `Search`, defaultTermsToMatchStr)
       if (typeof newTerms === 'boolean') {
         // i.e. user has cancelled
         logInfo(pluginJson, `User has cancelled operation.`)
         return
       } else {
-        // termsToMatchArr = Array.from(newTerms.replace(/ OR /, ',').split(','))
         termsToMatchStr = newTerms
       }
     }
     logDebug(pluginJson, `- called indirectly? ${String(calledIndirectly)}`)
 
     // Validate the search terms: an empty return means failure. There is error logging in the function.
-    const validatedSearchTerms = await validateAndTypeSearchTerms(termsToMatchStr)
+    const validatedSearchTerms = await validateAndTypeSearchTerms(termsToMatchStr, true)
     if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
       await showMessage(`These search terms aren't valid. Please see Plugin Console for details.`)
       return
     }
 
     // Get the paraTypes to include
+    // $FlowFixMe[incompatible-type]
     const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg && paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
     clo(paraTypesToInclude, `arg3 -> para types: `)
 
     //---------------------------------------------------------
     // Search using search() API available from v3.6.0
-    CommandBar.showLoading(true, `Running search over period ...`)
+    CommandBar.showLoading(true, `Searching over period ...`)
     await CommandBar.onAsyncThread()
 
-    // $FlowFixMe[incompatible-exact]
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], config.foldersToExclude, config, paraTypesToInclude) // Note: no await; resolved later
-
+    // $FlowFixMe[incompatible-exact] Note: as no await, which gets resolved later
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], config.foldersToExclude, config, paraTypesToInclude, fromDateStr, toDateStr)
     await CommandBar.onMainThread()
 
     //---------------------------------------------------------
@@ -189,14 +189,24 @@ export async function searchPeriod(
     //---------------------------------------------------------
     // Filter out the results that aren't within the specified period
 
-    logDebug(pluginJson, `Before filtering out by date: ${resultSet.resultNoteAndLineArr.length} results`)
+    // logDebug(pluginJson, `Before filtering out by date: ${resultSet.resultNoteAndLineArr.length} results`)
     // clo(resultSet.resultNoteAndLineArr, '- resultSet.resultNoteAndLineArr:')
-    const reducedRNALArray: Array<noteAndLine> = resultSet.resultNoteAndLineArr.filter((f) => withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
-    resultSet.resultNoteAndLineArr = reducedRNALArray
-    resultSet.resultCount = reducedRNALArray.length
-    resultSet.resultNoteCount = numberOfUniqueFilenames(reducedRNALArray)
-    let numResultLines = resultSet.resultNoteAndLineArr.length
-    logDebug(pluginJson, `After filtering out by date: ${resultSet.resultCount} results remain from ${resultSet.resultNoteCount} notes:`)
+    // let reducedRNALArray: Array<noteAndLine> = resultSet.resultNoteAndLineArr.filter((f) => withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
+    // // Update total count
+    // resultSet.fullResultCount = reducedRNALArray.length
+
+    // // Now check to see if we have more than config.resultLimit: if so only use the first amount to return
+    // if (config.resultLimit > 0 && reducedRNALArray.length > config.resultLimit) {
+    //   reducedRNALArray = reducedRNALArray.slice(0, config.resultLimit)
+    //   logWarn(pluginJson, `We have more than ${config.resultLimit} results, so will discard all the ones beyond that limit.`)
+    // }
+    // // Update counts
+    // resultSet.resultNoteAndLineArr = reducedRNALArray
+    // resultSet.resultCount = reducedRNALArray.length
+    // resultSet.resultNoteCount = numberOfUniqueFilenames(reducedRNALArray)
+
+    // let numResultLines = resultSet.resultNoteAndLineArr.length
+    // logDebug(pluginJson, `After filtering out by date: ${resultSet.resultCount} results remain from ${resultSet.resultNoteCount} notes:`)
     // clo(resultSet.resultNoteAndLineArr, 'resultSet.resultNoteAndLineArr')
 
     //---------------------------------------------------------
@@ -232,14 +242,14 @@ export async function searchPeriod(
         // Decided to remove the x-callback link, as
         //   a) it's hard to work back from start/end dates to the human-friendly period string
         //   b) over a fixed time period it's unlikely to need updating
-        // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}&arg3=${paraTypeFilterArg ?? ''}&arg4=${destinationArg ?? ''}`
+        const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}&arg3=${paraTypeFilterArg ?? ''}&arg4=${destinationArg ?? ''}`
 
         // can't use 'await...' in the next line, as we're now in 'then...'
         // FIXME: wrong display of result counts in subhead
-        const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, titleToMatch, config/**, xCallbackLink*/)
+        const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, titleToMatch, config, xCallbackLink)
 
         logDebug(pluginJson, `- filename to open in split: ${noteFilename}`)
-        if (Editor.note?.filename !== noteFilename) {
+        if (Editor.note?.filename !== noteFilename && !calledIndirectly) {
           // Open the results note in a new split window, unless we can tell
           // we already have this note open. Only works for Editor, though.
           // TODO: persuade Eduard to do better than this.

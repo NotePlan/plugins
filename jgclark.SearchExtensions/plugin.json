@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.1.0-beta3",
+  "plugin.version": "1.1.0-beta4",
   "plugin.lastUpdateInfo": "1.1.0: Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case.\n1.0.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -151,7 +151,7 @@
     {
       "key": "foldersToExclude",
       "title": "Folders to exclude",
-      "description": "List of folders to exclude in these commands. May be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
+      "description": "Optional list of folders to exclude in these commands. If a folder is listed, then sub-folders are also excluded.\nTo exclude the top-level folder, use '/'.\nNote that @Trash, @Templates and @Archive are always excluded.",
       "type": "[string]",
       "default": [
         "Summaries",
@@ -168,6 +168,26 @@
       "title": "Output options"
     },
     {
+      "key": "resultStyle",
+      "title": "Display style for search result lines",
+      "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings\n- Use 'Simplified' text, more like web search engine results.\nNote: this affect some of the following settings.",
+      "type": "string",
+      "choices": [
+        "NotePlan",
+        "Simplified"
+      ],
+      "default": "NotePlan-style",
+      "required": true
+    },
+    {
+      "key": "resultLimit",
+      "title": "Result set size limit",
+      "description": "Result set size limit: if the search produces more than this, it will only return the first ones up to this limit.",
+      "type": "number",
+      "default": 500,
+      "required": true
+    },
+    {
       "key": "headingLevel",
       "title": "Heading level",
       "description": "Heading level (1-5) to use when writing section headings in output",
@@ -182,18 +202,6 @@
       "type": "string",
       "default": "(Search Results)",
       "required": false
-    },
-    {
-      "key": "resultStyle",
-      "title": "Display style for search result lines",
-      "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings\n- Use 'Simplified' text, more like web search engine results.\nNote: this affect some of the following settings.",
-      "type": "string",
-      "choices": [
-        "NotePlan",
-        "Simplified"
-      ],
-      "default": "NotePlan-style",
-      "required": true
     },
     {
       "key": "sortOrder",
@@ -255,14 +263,6 @@
         "scheduled"
       ],
       "default": "link",
-      "required": true
-    },
-    {
-      "key": "resultLimit",
-      "title": "Result set size limit",
-      "description": "Result set size limit: if the search produces more than this, it will only return the first ones up to this limit.",
-      "type": "number",
-      "default": 500,
       "required": true
     },
     {

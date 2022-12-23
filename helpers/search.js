@@ -6,6 +6,8 @@
 
 // import { trimString } from '@helpers/dataManipulation'
 import { clo, logDebug, logError } from '@helpers/dev'
+import { RE_SYNC_MARKER } from '@helpers/paragraph'
+
 // import { getNoteByFilename } from '@helpers/note'
 
 /**
@@ -183,16 +185,16 @@ export function trimAndHighlightTermInLine(
     let mainPart = input.slice(startOfMainLineContentPos)
     let output = ''
 
-    // If using Simplified style ...
+    // Simplify line display (if using Simplified style)
     if (simplifyLine) {
-      // Simplify rawContent line by trimming and removing any block IDs
+      // Trimming and remove any block IDs
       mainPart = simplifyRawContent(mainPart)
 
       // Now trim the line content if necessary
       if (maxChars > 0 && mainPart.length > maxChars) {
         // this split point ensures we put the term with a little more context before it than after it
         const LRSplit = Math.round(maxChars * 0.55)
-        // regex:
+        // regex: find occurrences of search terms and the text around them
         const re = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${terms.join('|')}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
         const matches = mainPart.match(re) ?? [] // multiple matches
         if (matches.length > 0) {
@@ -227,7 +229,9 @@ export function trimAndHighlightTermInLine(
 
     // Add highlighting if wanted (using defined Regex so can use 'g' flag)
     // (A simple .replace() command doesn't work as it won't keep capitalisation)
-    if (simplifyLine && addHighlight) {
+    // Now allow highlighting again if this isn't a sync'd line
+    const this_RE = new RegExp(RE_SYNC_MARKER)
+    if (addHighlight && terms.length > 0 && (simplifyLine || !this_RE.test(output))) {
       // regex: find any of the match terms in all the text
       const re = new RegExp(`(?:[^=](${terms.join('|')})(?=$|[^=]))`, "gi")
       const termMatches = output.matchAll(re)
