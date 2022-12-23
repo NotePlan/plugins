@@ -183,6 +183,8 @@ export function trimAndHighlightTermInLine(
     let mainPart = input.slice(startOfMainLineContentPos)
     let output = ''
 
+    // TODO: If NotePlan style, but not already sync'd or about to be, then could do highlighting etc.
+
     // If using Simplified style ...
     if (simplifyLine) {
       // Simplify rawContent line by trimming and removing any block IDs
