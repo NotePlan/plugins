@@ -10,7 +10,7 @@ import fm from 'front-matter'
 export function getAttributes(templateData: string = ''): any {
   const fmData = fm(templateData, { allowUnsafe: true })
   Object.keys(fmData?.attributes).forEach((key) => {
-    fmData.attributes[key] ? fmData.attributes[key] : (fmData.attributes[key] = '')
+    fmData.attributes[key] || typeof fmData.attributes[key] === 'boolean' ? fmData.attributes[key] : (fmData.attributes[key] = '')
   })
   return fmData && fmData?.attributes ? fmData.attributes : {}
 }
