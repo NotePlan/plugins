@@ -1,0 +1,88 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
+  "plugin.name": "📚 Readwise Unofficial",
+  "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "First release",
+  "plugin.description": "A sync plugin for readwise",
+  "plugin.author": "aaronpoweruser",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "name": "Readwise sync",
+      "description": "Sync readwise highlights",
+      "jsFunction": "readwiseSync"
+    },
+    {
+      "name": "onOpen",
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "jsFunction": "onOpen",
+      "hidden": true
+    },
+    {
+      "name": "onEditorWillSave",
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "jsFunction": "onEditorWillSave",
+      "hidden": true
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Readwise Unofficial Settings"
+    },
+    {
+      "title": "Access token",
+      "key": "accessToken",
+      "required": true,
+      "type": "string",
+      "description": "Enter your readwise access token from readwise.io/access_token",
+      "default": ""
+    },
+    {
+      "title": "Folder name",
+      "key": "baseFolder",
+      "type": "string",
+      "description": "Enter some string and see it change when the plugin is run",
+      "default": "This default setting was set in plugin preferences!"
+    },
+    {
+      "COMMENT": "TODO: This should be a bool but doesn't work",
+      "title": "Group by type",
+      "key": "groupByType",
+      "type": "string",
+      "description": "Group by content type (article, book, etc)",
+      "default": "true",
+      "required": false
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Readwise Unofficial commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}
