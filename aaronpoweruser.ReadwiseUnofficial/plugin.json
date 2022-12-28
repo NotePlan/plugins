@@ -6,7 +6,7 @@
   "plugin.name": "📚 Readwise Unofficial",
   "plugin.version": "0.1.0",
   "plugin.lastUpdateInfo": "First release",
-  "plugin.description": "A sync plugin for readwise",
+  "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -15,7 +15,7 @@
   "plugin.commands": [
     {
       "name": "Readwise sync",
-      "description": "Sync readwise highlights",
+      "description": "Sync Readwise highlights",
       "jsFunction": "readwiseSync"
     },
     {
@@ -57,7 +57,7 @@
       "title": "Group by type",
       "key": "groupByType",
       "type": "string",
-      "description": "Group by content type (article, book, etc)",
+      "description": "Group all highlights in under the readwise folder or having them separated by content type ie readwise/books, readwise/articles.ß",
       "default": "true",
       "required": false
     },
