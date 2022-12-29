@@ -45,7 +45,10 @@ async function getReadwise(): Promise<any> {
     const response = await fetch(url, options)
     DataStore.saveData(new Date().toISOString(), LAST_SYNÇ_TIME, true)
 
-    return JSON.parse(response).results
+    const Json = JSON.parse(response)
+    log(pluginJson, `Downloaded : ${Json.count} highlights`)
+    
+    return Json.results
   } catch (error) {
     logError(pluginJson, error)
   }
