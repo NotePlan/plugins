@@ -72,10 +72,8 @@ async function parseBookAndWriteToNote(source) {
     log(pluginJson, `base folder is : ${baseFolder}`)
     const outputNote = await getOrMakeNote(title, baseFolder, '')
 
-    const now = new Date()
-    const createdDate = new Date(outputNote.createdDate)
     // Find a better way to check if the note is new
-    if (now - createdDate < 1000) {
+    if (new Date() - new Date(outputNote.createdDate) < 1000) {
       outputNote.addParagraphBelowHeadingTitle(metadata, 'text', 'Metadata', true, true)
     }
 
