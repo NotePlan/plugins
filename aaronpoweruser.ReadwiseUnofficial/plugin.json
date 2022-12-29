@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
-  "plugin.version": "0.1.0",
-  "plugin.lastUpdateInfo": "First release",
+  "plugin.version": "0.1.1",
+  "plugin.lastUpdateInfo": "Minor bugfixes: Fixed linking in book highlihts, clearified descriptions",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
   "plugin.dependencies": [],
@@ -49,16 +49,25 @@
       "title": "Folder name",
       "key": "baseFolder",
       "type": "string",
-      "description": "Enter some string and see it change when the plugin is run",
-      "default": "This default setting was set in plugin preferences!"
+      "description": "The folder name to store all highlights in",
+      "default": "Readwise"
     },
     {
       "COMMENT": "TODO: This should be a bool but doesn't work",
       "title": "Group by type",
       "key": "groupByType",
       "type": "string",
-      "description": "Group all highlights in under the readwise folder or having them separated by content type ie readwise/books, readwise/articles.ß",
-      "default": "true",
+      "description": "Group all highlights in under the readwise folder or having them separated by content type ie readwise/books, readwise/articles.",
+      "default": "false",
+      "required": false
+    },
+    {
+      "COMMENT": "Enable to force resynching of all highlights",
+      "title": "Force sync all highlights",
+      "key": "forceSync",
+      "type": "hidden",
+      "description": "Debug setting to always recreate all highlights",
+      "default": "false",
       "required": false
     },
     {
