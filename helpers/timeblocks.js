@@ -35,11 +35,11 @@ export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMP
 // - The time is 2pm-3 // produces timeblock 2pm to midnight 
 
 //-----------------------------------------------------------------------------
-// NB: According to @EduardMe in Discord 3.1.2022, the time blocks now work on 
+// Note: According to @EduardMe in Discord 3.1.2022, the time blocks now work on 
 // paragraph types [.title, .open, .done, .list].
-// These can more easily be tested for by API calls than in the regex, so that's
-// what this now does.
-export const TIMEBLOCK_TASK_TYPES = ['title', 'open', 'done', 'list']
+// These can more easily be tested for by API calls than in the regex, so that's what this now does.
+// Note: added 'checklist' and 'checklistDone' types ready for NP 3.8 release
+export const TIMEBLOCK_TASK_TYPES = ['title', 'open', 'done', 'list', 'checklist', 'checklistDone']
 
 // ------------------------------------------------------------------------------------
 // Regular Expressions -- published by @EduardMe on 10.11.2021.
@@ -76,7 +76,7 @@ export const TIMEBLOCK_TASK_TYPES = ['title', 'open', 'done', 'list']
 // These are much more extensive that the brief documentation implies, or now
 // the more extensive documentation at https://help.noteplan.co/article/121-time-blocking.
 //
-// NB: my version ignores seconds in time strings, and assumes there's no @done() date-time to confuse
+// Note: my version ignores seconds in time strings, and assumes there's no @done() date-time to confuse
 // export const RE_TIMEBLOCK_START = `(^|\\s|T)(?:(?:at|from)\\s*)?(?:(?:${RE_MINUTES}|noon|midnight)(:${RE_MINUTES})?|(?:${RE_MINUTES}|noon|midnight))(A\\.M\\.|P\\.M\\.|AM?|PM?|am?|pm?)?(?=\\W|$)`
 // export const RE_TIMEBLOCK_END = `(?<!\\d{4}(-[01]\\d)?)\\s*(?:\\-|\\–|\\~|\\〜|to|\\?)\\s*(?:${RE_MINUTES})(?::${RE_MINUTES})?(A\\.M\\.|P\\.M\\.|AM?|PM?|am?|pm?)?(?=\\W|$)`
 
@@ -133,11 +133,10 @@ export const RE_TIMEBLOCK_APP = `${RE_START_APP_LINE}${RE_TIMEBLOCK}${RE_END_APP
 
 //-----------------------------------------------------------------------------
 // THEMES
-// NB: The logic required in NotePlan **themes** is slightly more complex, as it 
-// must work out whether it's the correct line type, as it has no access to the API.
-// It also appears to match case sensitively, which therefore requires the
-// main regex to include both versions after all :-(
-export const RE_ALLOWED_TIME_BLOCK_LINE_START = `(^\\s*(?:\\*(?!\\s+\\[[\\-\\>]\\])|\\-(?!\\h+\\[[\\-\\>]\\])|[\\d+]\\.|\\#{1,5}))(\\[\\s\\])?(?=\\s).*?\\s`
+// Note: The logic required in NotePlan **themes** is slightly more complex, as it must work out whether it's the correct line type, as it has no access to the API.
+// It also appears to match case sensitively, which therefore requires the main regex to include both versions after all :-(
+// Note: added checklist line starts for NP 3.8
+export const RE_ALLOWED_TIME_BLOCK_LINE_START = `(^\\s*(?:\\*(?!\\s+\\[[\\-\\>]\\])|\\-(?!\\h+\\[[\\-\\>]\\])|\\+(?!\\h+\\[[\\-\\>]\\])|[\\d+]\\.|\\#{1,5}))(\\[\\s\\])?(?=\\s).*?\\s`
 export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_TIMEBLOCK}(?=\\s|$)`
 // console.log(RE_TIMEBLOCK_FOR_THEMES)
 
