@@ -15,7 +15,7 @@ A sync engine for readwise
 - Group be content type
 - Set download folder
 ### Todo
-* Image support
+* Image support (needs Noteplan API update)
 * Callback url to refresh notes
 * Ability to get random note via templates
 * Convert metadata to front matter
