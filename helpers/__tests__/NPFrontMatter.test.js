@@ -1,4 +1,6 @@
 /* global jest, describe, test, expect, beforeAll */
+// @author @dwertheimer
+
 import { CustomConsole } from '@jest/console' // see note below
 import * as f from '../NPFrontMatter'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Note, mockWasCalledWithString /* , Paragraph */ } from '@mocks/index'
@@ -35,7 +37,6 @@ import { mockWasCalledWith } from '@mocks/mockHelpers'
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(`${FILENAME}`, () => {
-    //functions go here using jfunc command
     /*
      * hasFrontMatter()
      */
@@ -52,6 +53,21 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
+    /*
+     * noteHasFrontMatter()
+     */
+    describe('noteHasFrontMatter()' /* function */, () => {
+      test('should return true if there is frontmatter', () => {
+        const note = new Note({ content: '---\nfoo: bar\n---\n' })
+        const result = f.noteHasFrontMatter(note)
+        expect(result).toEqual(true)
+      })
+      test('should return false if there is nofrontmatter', () => {
+        const note = new Note({ content: 'foo: bar' })
+        const result = f.noteHasFrontMatter(note)
+        expect(result).toEqual(false)
+      })
+    })
     /*
      * getFrontMatterAttributes()
      */
@@ -81,39 +97,230 @@ describe(`${PLUGIN_NAME}`, () => {
      * ensureFrontmatter()
      */
     describe('ensureFrontmatter()' /* function */, () => {
-      test('should return false if note is null or undefined', async () => {
+      test('should return false if note is null or undefined', () => {
         const note = undefined
-        const result = await f.ensureFrontmatter(note)
+        const result = f.ensureFrontmatter(note)
         expect(result).toEqual(false)
       })
-      test('should return true if already has frontmatter', async () => {
+      test('should return false if note content is empty', () => {
+        const note = new Note({ paragraphs: [], content: '', title: null })
+        const result = f.ensureFrontmatter(note)
+        expect(result).toEqual(false)
+      })
+      test('should return true if already has frontmatter', () => {
         const note = { content: '---\nfoo: bar\n---\n' }
-        const result = await f.ensureFrontmatter(note)
+        const result = f.ensureFrontmatter(note)
         expect(result).toEqual(true)
       })
-      test('should return true if already has frontmatter but change title', async () => {
+      test('should return true if already has frontmatter but change title', () => {
         const note = { content: '---\ntitle: bar\n---\n' }
-        const result = await f.ensureFrontmatter(note, 'baz')
+        const result = f.ensureFrontmatter(note, 'baz')
         expect(result).toEqual(true)
         expect(note.content).toMatch(/title: baz/)
       })
-      test('should set note title if had no title', async () => {
+      test('should set note title if had no title', () => {
         const note = { content: '---\nsam: bar\n---\n' }
-        const result = await f.ensureFrontmatter(note, 'baz')
+        const result = f.ensureFrontmatter(note, 'baz')
         expect(result).toEqual(true)
         expect(note.content).toMatch(/title: baz/)
       })
-      test('should return false if no content and no title', async () => {
+      test('should set note title in frontmatter if had title in document', () => {
+        const note = new Note({ paragraphs: [{ content: 'foo', headingLevel: 1, type: 'title' }], content: '# foo' })
+        const result = f.ensureFrontmatter(note)
+        expect(result).toEqual(true)
+        expect(note.content).toMatch(/title: foo/)
+      })
+      test('should return false if no content and no title', () => {
         const note = { paragraphs: [], content: '' }
-        const result = await f.ensureFrontmatter(note)
+        const result = f.ensureFrontmatter(note)
         expect(result).toEqual(false)
       })
-      test('should return true if no content but with title', async () => {
-        const note = new Note({ paragraphs: [], content: '', prependParagraph: () => {} })
-        const spy = jest.spyOn(note, 'prependParagraph')
-        const result = await f.ensureFrontmatter(note, 'baz')
+      test('should return true if no content but with title', () => {
+        const note = new Note({ paragraphs: [], content: '' })
+        const result = f.ensureFrontmatter(note, 'baz')
         expect(result).toEqual(true)
-        expect(mockWasCalledWithString(spy, /title: baz/)).toEqual(true)
+        expect(note.content).toMatch(/title: baz/)
+      })
+    })
+
+    /*
+     * writeFrontMatter()
+     */
+    describe('writeFrontMatter()' /* function */, () => {
+      test('should return false if there is no frontmatter', () => {
+        const note = new Note({ paragraphs: [], content: '', title: null })
+        const vars = { foo: 'bar' }
+        const result = f.writeFrontMatter(note, vars)
+        expect(result).toEqual(false)
+      })
+      test('should return true if frontmatter is written', () => {
+        const note = new Note({ paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { content: '---' }], content: '---\ntitle: foo\n---\n' })
+        const vars = { foo: 'bar' }
+        const result = f.writeFrontMatter(note, vars)
+        expect(result).toEqual(true)
+      })
+    })
+    /*
+     * getFrontMatterParagraphs()
+     */
+    describe('getFrontMatterParagraphs()' /* function */, () => {
+      test('should return false if there is no frontmatter (no paras)', () => {
+        const note = new Note({ paragraphs: [], content: '' })
+        const result = f.getFrontMatterParagraphs(note)
+        expect(result).toEqual(false)
+      })
+      test('should return false if there is no frontmatter (first para not separator)', () => {
+        const note = new Note({ paragraphs: [{ content: 'foo' }], content: '' })
+        const result = f.getFrontMatterParagraphs(note)
+        expect(result).toEqual(false)
+      })
+      test('should return false if frontmatter never closes', () => {
+        const note = new Note({ paragraphs: [{ content: '---' }, { content: 'foo' }], content: '' })
+        const result = f.getFrontMatterParagraphs(note)
+        expect(result).toEqual(false)
+      })
+      test('should return a line of frontmatter', () => {
+        const note = new Note({ paragraphs: [{ content: '---' }, { content: 'foo' }, { content: '---' }], content: '' })
+        const result = f.getFrontMatterParagraphs(note)
+        expect(result).toEqual([{ content: 'foo' }])
+      })
+      test('should return a line of frontmatter with separators', () => {
+        const allParas = [{ content: '---' }, { content: 'foo' }, { content: '---' }]
+        const note = new Note({ paragraphs: allParas, content: '' })
+        const result = f.getFrontMatterParagraphs(note, true)
+        expect(result).toEqual(allParas)
+      })
+    })
+
+    /*
+     * setFrontMatterVars()
+     */
+    describe('setFrontMatterVars()' /* function */, () => {
+      test('should fail on an empty note with no title in varObj', () => {
+        const note = new Note({ content: '', paragraphs: [], title: '' })
+        const result = f.setFrontMatterVars(note, { foo: 'bar' })
+        expect(result).toEqual(false)
+      })
+
+      test('should work on an empty note with a title in varObj', () => {
+        const note = new Note({ content: '', paragraphs: [], title: '' })
+        const result = f.setFrontMatterVars(note, { title: 'bar' })
+        expect(result).toEqual(true)
+      })
+
+      test('should work on an empty note with a title and empty varObj', () => {
+        const note = new Note({ content: '# theTitle', paragraphs: [{ content: 'theTitle', headingLevel: 1, type: 'title' }], title: 'theTitle' })
+        f.setFrontMatterVars(note, {})
+        expect(note.content).toMatch(/title: theTitle/) // added frontmatter
+      })
+
+      test('should remove a frontmatter field passed as null', () => {
+        const note = new Note({
+          content: '---\ntitle: foo\nbar: baz\n---\n',
+          paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { content: '---' }],
+          title: 'foo',
+        })
+        const result = f.setFrontMatterVars(note, { bar: null })
+        expect(result).toEqual(true)
+        expect(note.content).not.toMatch(/bar/)
+      })
+      test('should set a frontmatter field that existed before', () => {
+        const note = new Note({
+          content: '---\ntitle: foo\nbar: baz\n---\n',
+          paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { content: '---' }],
+          title: 'foo',
+        })
+        const result = f.setFrontMatterVars(note, { bar: 'foo' })
+        expect(result).toEqual(true)
+        expect(note.content).toMatch(/bar: foo/)
+      })
+      test('should set a frontmatter field that did not exist before', () => {
+        const note = new Note({
+          content: '---\ntitle: foo\nbar: baz\n---\n',
+          paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { content: '---' }],
+          title: 'foo',
+        })
+        const result = f.setFrontMatterVars(note, { sam: 'boy' })
+        expect(result).toEqual(true)
+        expect(note.content).toMatch(/title: foo/)
+        expect(note.content).toMatch(/bar: baz/)
+        expect(note.content).toMatch(/sam: boy/)
+      })
+    })
+
+    /*
+     * getTriggersByCommand()
+     */
+    describe('getTriggersByCommand()' /* function */, () => {
+      test('should return empty object when no triggers', () => {
+        const result = f.getTriggersByCommand([])
+        expect(result).toEqual({})
+      })
+      test('should return single trigger', () => {
+        const single = ['onEditorWillSave => np.test.onEditorWillSaveFunc']
+        const result = f.getTriggersByCommand(single)
+        expect(result).toEqual({ onEditorWillSave: [{ pluginID: 'np.test', commandName: 'onEditorWillSaveFunc' }] })
+      })
+      test('should return two different triggers', () => {
+        const two = ['onEditorWillSave => np.test.onEditorWillSaveFunc', 'onOpen => np.test.onOpenFunc']
+        const result = f.getTriggersByCommand(two)
+        expect(result).toEqual({ onEditorWillSave: [{ pluginID: 'np.test', commandName: 'onEditorWillSaveFunc' }], onOpen: [{ pluginID: 'np.test', commandName: 'onOpenFunc' }] })
+      })
+      test('should work with plugin id with no periods', () => {
+        const single = ['onEditorWillSave => test.onEditorWillSaveFunc']
+        const result = f.getTriggersByCommand(single)
+        expect(result).toEqual({ onEditorWillSave: [{ pluginID: 'test', commandName: 'onEditorWillSaveFunc' }] })
+      })
+    })
+
+    /*
+     * addTrigger()
+     */
+    describe('addTrigger()' /* function */, () => {
+      test('should return false if cannot create frontmatter', () => {
+        const note = new Note({ content: '', paragraphs: [], title: '' })
+        const result = f.addTrigger(note, 'onOpen', 'foo', 'bar')
+        expect(result).toEqual(false)
+      })
+      test('should add a single trigger', () => {
+        const note = new Note({
+          content: '---\ntitle: foo\nbar: baz\n---\n',
+          paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { content: '---' }],
+          title: 'foo',
+        })
+        const result = f.addTrigger(note, 'onOpen', 'foo', 'bar')
+        expect(result).toEqual(true)
+        expect(note.content).toMatch(/triggers: onOpen => foo.bar/)
+      })
+    })
+
+    /*
+     * formatTriggerString()
+     */
+    describe('formatTriggerString()' /* function */, () => {
+      test('should send back empty string if there is no trigger', () => {
+        const result = f.formatTriggerString({})
+        expect(result).toEqual('')
+      })
+      test('should work for one trigger', () => {
+        const obj = { onEditorWillSave: [{ pluginID: 'np.test', commandName: 'onEditorWillSaveFunc' }] }
+        const result = f.formatTriggerString(obj)
+        expect(result).toEqual('onEditorWillSave => np.test.onEditorWillSaveFunc')
+      })
+      test('should work for two different triggers', () => {
+        const obj = { onEditorWillSave: [{ pluginID: 'np.test', commandName: 'onEditorWillSaveFunc' }], onOpen: [{ pluginID: 'np.test', commandName: 'onOpenFunc' }] }
+        const result = f.formatTriggerString(obj)
+        expect(result).toEqual('onEditorWillSave => np.test.onEditorWillSaveFunc, onOpen => np.test.onOpenFunc')
+      })
+      test('should work for two different triggers of same type', () => {
+        const obj = {
+          onEditorWillSave: [
+            { pluginID: 'np.test', commandName: 'onEditorWillSaveFunc' },
+            { pluginID: 'np.test2', commandName: 'onEditorWillSaveFunc2' },
+          ],
+        }
+        const result = f.formatTriggerString(obj)
+        expect(result).toEqual('onEditorWillSave => np.test.onEditorWillSaveFunc, onEditorWillSave => np.test2.onEditorWillSaveFunc2')
       })
     })
   })
