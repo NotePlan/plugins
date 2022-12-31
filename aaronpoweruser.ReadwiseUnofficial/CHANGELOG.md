@@ -4,16 +4,15 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
+## [0.1.1] - 2022-12-29 (aaronpoweruser)
+
+- Enabled only syncing new highlights (added a hidden setting to override)
+- Clean up plugin settings description
+- Only add metadata once (need to handle tag updates)
+- Add link to kindle for books (fixes links being null)
+
 ## [0.1.0] - 2022-12-28 (aaronpoweruser)
-
-### Added
-List what has been added. If nothing has been changed, this section can be removed.
-
-### Changed
-List what has changed. If nothing has been changed, this section can be removed.
-
-### Removed
-List what has removed. If nothing has been removed, this section can be removed.
+First release
 
 ## Changelog
 

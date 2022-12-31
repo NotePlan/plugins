@@ -1,16 +1,23 @@
 // @flow
+// Last updated 30.12.2022 for v0.6.0 by @jgclark
 
-import { percent } from '../../helpers/general'
+import { isDailyNote } from '@helpers/dateTime'
+import { percent } from '@helpers/general'
 
 //-----------------------------------------------------------------------------
 // Show note counts
 export async function showNoteCount(): Promise<void> {
-  const calNotesCount = DataStore.calendarNotes.length
-  const projNotes = DataStore.projectNotes
-  const templatesCount = projNotes.filter(
+  // do counts
+  const calNotesCount = DataStore.calendarNotes.filter((n) => isDailyNote(n)).length // just count days
+  const projNotes = DataStore.projectNotes.filter(
+    (n) => !n.filename.startsWith("@Trash") && !n.filename.startsWith("@Archive")) // ignore Trash and Archive
+  const templatesCount = DataStore.projectNotes.filter(
     (n) => n.filename.startsWith('@Templates')
   ).length
-  const projNotesLen = projNotes.length - templatesCount
+  const archivedCount = DataStore.projectNotes.filter(
+    (n) => n.filename.startsWith('@Archive')
+  ).length
+  const projNotesCount = projNotes.length - templatesCount
   const total = calNotesCount + projNotes.length
   const createdLastMonth = projNotes.filter(
     (n) => Calendar.unitsAgoFromNow(n.createdDate, 'month') < 1,
@@ -26,9 +33,9 @@ export async function showNoteCount(): Promise<void> {
   )
 
   const display = [
-    `🔢 Total: ${total}`,
-    `📅 Calendar notes: ${calNotesCount} (equivalent to ${Math.round(calNotesCount / 36.5) / 10.0} years)`,
-    `🛠 Project notes: ${projNotesLen}`,
+    `🔢 Total: ${total.toLocaleString()}`,
+    `📅 Daily Calendar notes: ${calNotesCount.toLocaleString()} (equivalent to ${Math.round(calNotesCount / 36.5) / 10.0} years)`,
+    `📝 Project notes: ${projNotesCount.toLocaleString()}`,
     `\t- created in last month: ${percent(
       createdLastMonth.length,
       projNotes.length,
@@ -45,7 +52,8 @@ export async function showNoteCount(): Promise<void> {
       updatedLastQuarter.length,
       projNotes.length,
     )}`,
-    `📋 Templates: ${templatesCount}`,
+    `+ 📋 Templates: ${templatesCount}`,
+    `+ 📔 Archived notes: ${archivedCount}`,
   ]
 
   const re = await CommandBar.showOptions(

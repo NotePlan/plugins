@@ -6,7 +6,9 @@
  * Usage: const myNote = new Note({ param changes here })
  *
  */
+import { strings } from '@codedungeon/gunner'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
+import { throwIfEmpty } from 'rxjs'
 export class Note {
   // Properties
   backlinks = [] /* sample:  [ SOMETHING ], */
@@ -93,6 +95,7 @@ export class Note {
     const paras = content.split('\n').map((c) => ({ content: c, type: type, rawContent: c, lineIndex: -1 }))
     this.paragraphs.splice(lineIndex, 0, ...paras)
     this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
+    this.content = this.paragraphs.map((p) => p.content).join('\n')
     return
   }
   async insertParagraphAfterParagraph(content, otherParagraph, paragraphType) {
@@ -130,8 +133,11 @@ export class Note {
   async paragraphRangeAtCharacterIndex() {
     throw 'Note :: paragraphRangeAtCharacterIndex Not implemented yet'
   }
-  async prependParagraph() {
-    throw 'Note :: prependParagraph Not implemented yet'
+  async prependParagraph(content: strings, type: ParagraphType) {
+    this.paragraphs = [{ content, type }, ...this.paragraphs]
+    console.log(`JEST Note: note.prependParagraph() called. but .content is approximated but not exactly correct, because it does not add markdown.`)
+    this.content = content.concat('\n', this.content)
+    // throw 'Note :: prependParagraph Not implemented yet'
   }
   async prependTodo() {
     throw 'Note :: prependTodo Not implemented yet'

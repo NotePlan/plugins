@@ -1,34 +1,36 @@
 // @flow
-import { insertContentUnderHeading } from "../../helpers/NPParagraph"
-import { showMessage } from "../../helpers/userInput";
+import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
 
+const READWISE_API_KEY_LENGTH = 50
+const LAST_SYNÇ_TIME = 'last_sync_time'
+
 // This is the main function that will be called by NotePlan
 export async function readwiseSync(): Promise<void> {
-  const settings = DataStore.settings
-  const accessToken = settings.accessToken ?? ''
+  const accessToken = DataStore.settings.accessToken ?? ''
   logDebug(pluginJson, `access token is : ${accessToken}`)
 
   if (accessToken === '') {
     showMessage(pluginJson, 'No access token found. Please add your Readwise access token in the plugin settings.')
     return
-  } else if (accessToken.length !== 50) {
+  } else if (accessToken.length !== READWISE_API_KEY_LENGTH) {
     showMessage(pluginJson, 'Invalid access token. Please check your Readwise access token in the plugin settings.')
     return
   }
 
   const response = await getReadwise()
-  response.map(parseBook)
+  response.map(parseBookAndWriteToNote)
 }
 
 // Downloads readwise data
 async function getReadwise(): Promise<any> {
   const accessToken = DataStore.settings.accessToken ?? ''
-  // TODO: Uncomment before merge
-  // const lastFetchTime = DataStore.loadData('last_sync_time', true) ?? ''
-  const lastFetchTime = ''
+  let lastFetchTime = DataStore.loadData(LAST_SYNÇ_TIME, true) ?? ''
+  if (DataStore.settings.forceSync === 'true') {
+    lastFetchTime = ''
+  }
   log(pluginJson, `last fetch time is : ${lastFetchTime}`)
 
   try {
@@ -37,27 +39,30 @@ async function getReadwise(): Promise<any> {
     const options = {
       method: 'GET',
       headers: {
-        'Authorization': `token ${ accessToken}`,
+        Authorization: `token ${accessToken}`,
       },
     }
     const response = await fetch(url, options)
-    DataStore.saveData(new Date().toISOString(), "last_sync_time", true)
- 
-    return JSON.parse(response).results
+    DataStore.saveData(new Date().toISOString(), LAST_SYNÇ_TIME, true)
+
+    const Json = JSON.parse(response)
+    log(pluginJson, `Downloaded : ${Json.count} highlights`)
+    
+    return Json.results
   } catch (error) {
     logError(pluginJson, error)
   }
 }
 
-async function parseBook(source) {
+async function parseBookAndWriteToNote(source) {
   try {
     const title = source.readable_title
     const author = source.author
     const category = source.category
     const highlights = source.highlights
-    let metadata = `author: [[${author}]]` + '\n' + `Category: [[${category}]]` + '\n'
+    let metadata = `author: [[${author}]]` + '\n' // + `Category: [[${category}]]` + '\n'
     if (source.book_tags !== null) {
-      metadata += `Document tags: ${source.book_tags.map(tag => `#${tag.name} `).join(', ')}\n`
+      metadata += `Document tags: ${source.book_tags.map((tag) => `#${tag.name} `).join(', ')}\n`
     }
     if (source.unique_url !== null) {
       metadata += `URL: ${source.unique_url}`
@@ -69,18 +74,25 @@ async function parseBook(source) {
     }
     log(pluginJson, `base folder is : ${baseFolder}`)
     const outputNote = await getOrMakeNote(title, baseFolder, '')
-    // TODO: This is adding empty newlines to the note need to fix.
-    await insertContentUnderHeading(outputNote, 'Highlights', '', 2)
-    // Probably shouldn't depend on this sorting and order by hand
-    await insertContentUnderHeading(outputNote, 'Metadata', metadata, 2)
-    highlights.map(highlight => appendToNote(highlight, outputNote))
+
+    // Find a better way to check if the note is new
+    if (new Date() - new Date(outputNote?.createdDate) < 1000) {
+      outputNote.addParagraphBelowHeadingTitle(metadata, 'text', 'Metadata', true, true)
+    }
+
+    highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.asin))
   } catch (error) {
-      logError(pluginJson, error)
+    logError(pluginJson, error)
   }
 }
 
-function appendToNote(highlight, note) {
+function appendHighlightToNote(note, highlight, asin = '') {
   const content = highlight.text
-  const formatedUrl = ` [View highlight](${highlight.url})`
+  let formatedUrl = ''
+  if (highlight.url !== null) {
+    formatedUrl = ` [View highlight](${highlight.url})`
+  } else if (asin !== '') {
+    formatedUrl = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
+  }
   note.appendParagraph(content + formatedUrl, 'list')
 }

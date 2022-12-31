@@ -2,9 +2,12 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
-## [0.20.0] - 2022-12-08 @dwertheimer, @jgclark
+## [0.20.1] - 2022-12-30 @jgclark
+- added support for time blocks in Checklists (available from NotePlan 3.8)
 
-- adds 'MEETINGNOTE' link as a format option, which adds a button to create a meeting note to events in event listings. There's also a new setting 'Meeting Note Template title' which you can use to set which template to pick if you have several; if it isn't set then a list will be presented. (Note: this requires at least v1.1.2 of the separate Meeting Notes plugin.)
+## [0.20.0] - 2022-12-08 @dwertheimer, @jgclark
+### Added
+- added 'MEETINGNOTE' link as a format option, which adds a button to create a meeting note to events in event listings. There's also a new setting 'Meeting Note Template title' which you can use to set which template to pick if you have several; if it isn't set then a list will be presented. (Note: this requires at least v1.1.2 of the separate Meeting Notes plugin.)
 
 ## [0.19.4] - 2022-12-04
 ### Added

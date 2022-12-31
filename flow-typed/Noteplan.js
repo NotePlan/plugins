@@ -629,7 +629,7 @@ declare class DataStore {
 
   /**
    * Searches all notes for a keyword (uses multiple threads to speed it up).
-   * By default it searches in project notes and in the calendar notes. Use the second parameters "types" to exclude a type. Otherwise, pass `null` or nothing.
+   * By default it searches in project notes and in the calendar notes. Use the second parameters "typesToInclude" to include specific types. Otherwise, pass `null` or nothing to include all of them.
    * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
    * Optionally pass a list of folders (`inNotes`) to limit the search to notes that ARE in those folders (applies only to project notes). If empty, it is ignored.
    * Optionally pass a list of folders (`notInFolders`) to limit the search to notes NOT in those folders (applies only to project notes). If empty, it is ignored.
@@ -637,7 +637,7 @@ declare class DataStore {
    * It will sort it by filename (so search results from the same notes stay together) and calendar notes also by filename with the newest at the top (highest dates).
    * Note: Available from v3.6.0
    * @param {string} = keyword to search for
-   * @param {Array<string> | null?} types ["notes", "calendar"] (by default all, or pass `null`)
+   * @param {Array<string> | null?} typesToInclude ["notes", "calendar"] (by default all, or pass `null`)
    * @param {Array<string> | null?} list (optional)
    * @param {Array<string> | null?} list (optional)
    * @param {boolean?} (optional) true to enable date-referenced items to be included in the search
@@ -645,7 +645,7 @@ declare class DataStore {
    */
   static search(
     keyword: string,
-    types?: Array<string>,
+    typesToInclude ?: Array < string >,
     inFolders?: Array<string>,
     notInFolders?: Array<string>,
     shouldLoadDatedTodos?: boolean,
@@ -1498,9 +1498,9 @@ declare class Clipboard {
 }
 
 /* Available paragraph types
- * Note: 'separator' added v3.4.1
+ * Note: 'separator' added v3.4.1, and the 'checklist*' types added v3.8.0
  */
-type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code' | 'separator'
+type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'checklist' | 'checklistDone' | 'checklistScheduled' | 'checklistCancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code' | 'separator'
 
 type TCoreNoteFields = CoreNoteFields
 declare interface CoreNoteFields {

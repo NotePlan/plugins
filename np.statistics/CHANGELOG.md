@@ -1,4 +1,11 @@
 # What's Changed in 🔢 Statistics plugin?
+## [0.6.0] - 2022-12-30
+### New
+- "/task stats ..." command now includes counts for Checklist items (ready for NotePlan v3.8)
+- "/note stats" command now includes counts for notes in the @Archive
+### Changed
+- Now ignores weekly/monthly/quarterly/yearly notes in the "Daily Calendar notes" count
+
 ## [0.5.2] - 2022-05-14
 ### Changed
 - Updated references to the new Templates built-in folder.
