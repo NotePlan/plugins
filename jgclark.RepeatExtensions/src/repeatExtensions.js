@@ -93,20 +93,15 @@ export async function onEditorWillSave(): Promise<void> {
 /**
  * Process any completed (or cancelled) tasks with my extended @repeat(..) tags,
  * and also remove the HH:MM portion of any @done(...) tasks.
- * @author @jgclark 
+ * When interval is of the form '+2w' it will duplicate the task for 2 weeks after the date is was completed.
+ * When interval is of the form '2w' it will duplicate the task for 2 weeks after the date the task was last due.If this can't be determined, then default to the first option.
+ * Valid intervals are [0-9][bdwmqy].
+ * To work it relies on finding @done(YYYY-MM-DD HH:MM) tags that haven't yet been shortened to @done(YYYY-MM-DD).
+ * It includes cancelled tasks as well; to remove a repeat entirely, remove the @repeat tag from the task in NotePlan.
+ * @author @jgclark
+ * @param {CoreNoteFields} noteIn?
  */
 export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
-  // When interval is of the form '+2w' it will duplicate the task for 2 weeks
-  // after the date is was completed.
-  // When interval is of the form '2w' it will duplicate the task for 2 weeks
-  // after the date the task was last due.If this can't be determined,
-  // then default to the first option.
-  // Valid intervals are [0-9][bdwmqy].
-  // To work it relies on finding @done(YYYY-MM-DD HH:MM) tags that haven't yet been
-  // shortened to @done(YYYY-MM-DD).
-  // It includes cancelled tasks as well; to remove a repeat entirely, remoce
-  // the @repeat tag from the task in NotePlan.
-
   try {
     // Get passed note details, or fall back to Editor
     let note: CoreNoteFields
@@ -149,7 +144,6 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
   // Go through each line in the active part of the file
   for (let n = 0; n < endOfActive; n++) {
     const p = paragraphs[n]
-    // line = p.content
     line = p.content
     updatedLine = ''
     completedDate = ''
