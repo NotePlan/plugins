@@ -250,7 +250,7 @@ export async function generateHeatMap(
 }
 
 /**
- * Generate stats of number of completed tasks between two dates, for a intervalType (currently only 'day' is supported).
+ * Generate stats of number of completed tasks (not done checklist items) between two dates, for a intervalType (currently only 'day' is supported).
  * @author @jgclark
  * @param {Array<string>} foldersToExclude which may be just []
  * @param {string} intervalType - array of CSV strings
@@ -294,7 +294,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     await CommandBar.onAsyncThread()
     const startTime = new Date()
 
-    // do counts from all Project Notes
+    // do completed task (not checklist) counts from all Project Notes
     const projNotes = projectNotesFromFilteredFolders(foldersToExclude, true)
     logDebug('generateTaskCompletionStats', `Summarising for ${projNotes.length} project notes`)
     for (let n of projNotes) {
@@ -302,7 +302,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
       for (let dp of doneParas) {
         let doneDate = null
         if (dp.content.match(RE_DONE_DATE_OPT_TIME)) {
-          // get completed date and time
+          // get completed date from @done(date [time])
           const reReturnArray = dp.content.match(RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE) ?? []
           doneDate = reReturnArray[1]
         }
@@ -321,7 +321,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     }
     logDebug('generateTaskCompletionStats', `-> ${totalProjectDone} done tasks from all Project notes`)
 
-    // Do counts from all Calendar Notes from that period
+    // Do completed task (not checklist) counts from all Calendar Notes from that period
     // $FlowIgnore[incompatible-call]
     const periodCalendarNotes = DataStore.calendarNotes.filter((n) => withinDateRange(toISODateString(n.date), fromDateStr, toDateStr))
     if (periodCalendarNotes.length > 0) {

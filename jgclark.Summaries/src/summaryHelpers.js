@@ -300,10 +300,12 @@ export class TMOccurrences {
   getStats(style: string): string {
     let output = ''
     // logDebug('TMOcc:getStats', `starting for ${ this.term } type ${ this.type } style ${ style } `)
-
+    // $FlowFixMe - @DW says the !== '' check is needed but flow doesn't like it
     const countStr = (!isNaN(this.count) && this.count !== '') ? this.count.toLocaleString() : `none`
+    // $FlowFixMe - as above
     const totalStr = (!isNaN(this.total) && this.total !== '' && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
     // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
+    // $FlowFixMe - as above
     const itemAvgStr = (!isNaN(this.total) && this.total !== '' && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 2 }) : ''
 
     switch (style) {
