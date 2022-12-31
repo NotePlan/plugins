@@ -176,22 +176,27 @@ export function ensureFrontmatter(note: CoreNoteFields, title?: string | null): 
       if (!title) {
         logError(pluginJson, `ensureFrontmatter:'${note.filename}' has no title line. Stopping conversion.`)
         // await showMessage(`Cannot convert '${note.filename}' note as it is empty & has no title.`)
+        newTitle = note.title || null // cover Calendar notes where title is not in the note
       } else {
-        newTitle = title
+        newTitle = title || note.title // cover Calendar notes where title is not in the note
       }
     } else {
       // Get title
-      const firstLine = note.paragraphs.length ? note.paragraphs[0] : {}
-      const titleText = firstLine.type === 'title' && firstLine.headingLevel === 1 && firstLine.content
-      if (titleText) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
-      newTitle = title || titleText
-      logDebug(pluginJson, `ensureFrontmatter newTitle=${String(newTitle)}`)
-      if (!newTitle) {
-        logError(pluginJson, `ensureFrontmatter:'${note.filename}' has no title line. Stopping conversion.`)
+      if (note.type === 'Calendar') {
+        newTitle = title || note.title // cover Calendar notes where title is not in the note
+      } else {
+        const firstLine = note.paragraphs.length ? note.paragraphs[0] : {}
+        const titleText = firstLine.type === 'title' && firstLine.headingLevel === 1 && firstLine.content
+        if (titleText) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
+        newTitle = title || titleText
+        logDebug(pluginJson, `ensureFrontmatter newTitle=${String(newTitle)}`)
+        if (!newTitle) {
+          logError(pluginJson, `ensureFrontmatter:'${note.filename}' has no title line. Stopping conversion.`)
+        }
       }
     }
     if (newTitle) {
-      const front = `---\ntitle: ${newTitle}\n---\n`
+      const front = note.type === 'Calendar' ? `---\n---\n` : `---\ntitle: ${newTitle}\n---\n`
       note.content = `${front}${note?.content || ''}`
       retVal = true
       logDebug(pluginJson, `ensureFrontmatter:Note '${displayTitle(note)}' converted to use frontmatter.`)

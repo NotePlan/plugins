@@ -124,6 +124,12 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(true)
         expect(note.content).toMatch(/title: baz/)
       })
+      test('should set empty frontmatter if Calendar note', () => {
+        const note = { content: '', type: 'Calendar', paragraphs: [], title: '2022-01-01' }
+        const result = f.ensureFrontmatter(note)
+        expect(result).toEqual(true)
+        expect(note.content).toMatch(/---\n---\n/)
+      })
       test('should set note title in frontmatter if had title in document', () => {
         const note = new Note({ paragraphs: [{ content: 'foo', headingLevel: 1, type: 'title' }], content: '# foo' })
         const result = f.ensureFrontmatter(note)
