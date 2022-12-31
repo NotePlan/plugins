@@ -6,6 +6,7 @@ import json5 from 'json5'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { clo, logDebug, logError, logWarn, JSP } from './dev'
 import { calcSmartPrependPoint, findEndOfActivePartOfNote } from './paragraph'
+import { start } from 'repl'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
@@ -55,7 +56,7 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
 export async function chooseOptionWithModifiers<T, TDefault = T>(
   message: string,
   options: $ReadOnlyArray<Option<T>>,
-): Promise<{ ...TDefault, index: number, keyModifiers: Array < string > }> {
+): Promise<{ ...TDefault, index: number, keyModifiers: Array<string> }> {
   // $FlowFixMe[prop-missing]
   const { index, keyModifiers } = await CommandBar.showOptions(
     options.map((option) => option.label),
@@ -172,13 +173,17 @@ export async function showMessageYesNoCancel(message: string, choicesArray: Arra
  *
  * @param {string} msg - text to display to user
  * @param {boolean} includeArchive - include archive or not
+ * @param {string} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder)
  * @returns {string} - returns the user's folder choice (or / for root)
  */
-export async function chooseFolder(msg: string, includeArchive: boolean = false): Promise<string> {
+export async function chooseFolder(msg: string, includeArchive: boolean = false, startFolder?: string): Promise<string> {
   let folder: string
-  const folders = DataStore.folders.slice() // excludes Trash and Archive
+  let folders = DataStore.folders.slice() // excludes Trash and Archive
   if (includeArchive) {
     folders.push('@Archive')
+  }
+  if (startFolder) {
+    folders = folders.filter((f) => f.startsWith(startFolder))
   }
   if (folders.length > 0) {
     // make a slightly fancy list with indented labels, different from plain values
