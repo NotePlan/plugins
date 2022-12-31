@@ -1,6 +1,7 @@
 # What's Changed in 🔎 Search Extensions plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
+<!--// FIXME: suffixes causing sync line problems. -->
 
 ## [1.1.0-beta4] - 2022-12-23 <!-- [tell JPR1972, DW, as, kennonb, modocache] -->
 ### Changed
@@ -8,15 +9,15 @@
 - now allows highlighting results in 'NotePlan' style, _where the line isn't a "Synced Line"._
 
 ### Fixed
-<!--// FIXME: suffixes causing sync line problems. -->
 - in /searchOpenTasks sometimes "Synced Line" markers weren't carried into the results
 - in /searchInPeriod the results limit was being applied too early, dropping possible results before the date check
 
 ## [1.1.0-beta3] - 2022-12-13 <!-- [tell JPR1972, DW, as, kennonb] -->
 ### New
 - where there's an existing search results note, and the search is re-run, other text that you add before or after the results section is retained. (For @JPR1972)
+- 
 ### Changed
-- will now give a warning to the user if more than 20 open tasks in results would result in sync lines being created. (This only applies if you're using the 'NotePlan' output style.)
+- will now give a warning to the user if more than 20 open tasks in results would result in Synced Lines being created. (This only applies if you're using the 'NotePlan' output style.)
 - removed the restriction that stopped you using 1- or 2-character search terms, now that you can opt to limit the number of search results returned
 - is smarter about when a new split window to show the results is needed (but it's still limited by the API)
 
