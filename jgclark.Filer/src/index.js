@@ -49,7 +49,7 @@ export function testUpdate(): void {
 
 export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<void> {
   try {
-    logInfo(pluginID, `onUpdateOrInstall ...`)
+    logDebug(pluginID, `onUpdateOrInstall ...`)
     let updateSettingsResult = updateSettingData(pluginJson)
     logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
 
@@ -61,8 +61,25 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
 
+    // Test to see if np.Globals has been installed
+    // TODO:
+    const allPlugins = DataStore.listPlugins()
+    const installedPlugins = DataStore.installedPlugins()
+    logDebug(pluginID, `- ${installedPlugins.length} / ${allPlugins.length}  plugins installed`)
+    const globalsInstalled = installedPlugins.filter((p) => p.id === 'np.Globals')
+    logDebug(pluginID, `- includes ${String(globalsInstalled.length)} np.Globals`)
+    if (globalsList.length === 0) {
+      // If not, ask user to install it
+      // TODO: check first
+      const globalPluginObjects = allPlugins.filter((p) => p.id === 'np.Globals')
+      const globalPluginObject = globalPluginObjects[0]
+      clo(globalPluginObject)
+      await DataStore.installPlugin(globalPluginObject, true)
+    }
+
+    logDebug(pluginID, `- finished`)
+
   } catch (error) {
     logError(pluginID, error.message)
   }
-  logInfo(pluginID, `- finished`)
 }

@@ -2,10 +2,11 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 17.8.2022, for v1.0.0-beta1
+// last updated 28.11.2022, for v1.0.0-beta
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
+import { getSetting } from '@helpers/NPConfiguration'
 import {
   hyphenatedDate,
   toLocaleDateTimeString
@@ -30,7 +31,7 @@ import {
 //-----------------------------------------------------------------------------
 // Get settings
 
-const pluginID = 'jgclark.Filer'
+const pluginID = pluginJson['plugin.id'] // was 'jgclark.Filer'
 
 type FilerConfig = {
   addDateBacklink: boolean,
@@ -42,38 +43,37 @@ type FilerConfig = {
 
 export async function getFilerSettings(): Promise<any> {
   try {
+    // First get global setting 'useTightBlockDefinition'
+    let useTightBlockDefinition = getSetting('np.Globals', 'useTightBlockDefinition')
+    logDebug('getFilerSettings', `- useTightBlockDefinition: np.Globals: ${String(useTightBlockDefinition)}`)
+
     // Get settings using ConfigV2
-    const v2Config: FilerConfig = await DataStore.loadJSON("../jgclark.Filer/settings.json")
+    const v2Config: FilerConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
-      logWarn(pluginJson, `getFilerSettings() cannot find '${pluginID}' plugin settings. Stopping.`)
+      logError(pluginJson, `getFilerSettings() cannot find '${pluginID}' plugin settings. Stopping.`)
       await showMessage(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     } else {
+      if (useTightBlockDefinition) {
+        logDebug('getFilerSettings', `- using useTightBlockDefinition setting from np.Globals`)
+        v2Config.useTightBlockDefinition = useTightBlockDefinition
+      }
       clo(v2Config, `${pluginID} settings from V2:`)
       return v2Config
     }
+
   } catch (err) {
-    logError(pluginJson, `in getFilerSettings: ${err.name}: ${err.message}`)
-    await showMessage(err.message)
+    logError(pluginJson, `GetFilerSettings(): ${err.name}: ${err.message}`)
+    await showMessage('Error: ' + err.message)
   }
 }
 
 // ----------------------------------------------------------------------------
 
 /**
- * Move text to a different note.
- * NB: Can't select dates without an existing Calendar note.
- *   Note: Waiting for better date picker from Eduard before working further on this.
- *
- * This is how we identify what we're moving (in priority order):
- * - current selection
- * - current heading + its following section
- * - current line
- * - current line (plus any paragraphs directly following). NB: the Setting
- *   'includeFromStartOfSection' decides whether these directly following paragaphs
- *   have to be indented (false) or can take all following lines at same level until next
- *   empty line as well.
+ * Move text to a different note, forcing treating this as a block.
+ * See moveParas() for definition of selection logic.
  * @author @jgclark
  */
 export async function moveParaBlock(): Promise<void> {
@@ -83,16 +83,15 @@ export async function moveParaBlock(): Promise<void> {
 /**
  * Move text to a different note.
  * NB: Can't select dates without an existing Calendar note.
- *   Note: Waiting for better date picker from Eduard before working further on this.
+ * Note: Waiting for better date picker from Eduard before working further on this.
  *
  * This is how we identify what we're moving (in priority order):
- * - current selection
- * - current heading + its following section
+ * - current selection (if any)
+ * - current heading + its following section (if 'withBlockContext' true)
  * - current line
- * - current line (plus any paragraphs directly following). NB: the Setting
- *   'includeFromStartOfSection' decides whether these directly following paragaphs
- *   have to be indented (false) or can take all following lines at same level until next
- *   empty line as well.
+ * - current line plus any paragraphs directly following, if 'withBlockContext' true).
+ * NB: the Setting 'includeFromStartOfSection' decides whether these directly following paragaphs have to be indented (false) or can take all following lines at same level until next empty line as well.
+ * @param {boolean?} withBlockContext?
  * @author @jgclark
  */
 export async function moveParas(withBlockContext: boolean = false): Promise<void> {
@@ -107,8 +106,6 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     // Get config settings
     const config = await getFilerSettings()
 
-    let parasInBlock: Array<TParagraph>
-
     // Get current selection, and its range
     if (selection == null) {
       // Really a belt-and-braces check that the editor is active
@@ -118,7 +115,9 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
 
     // Get paragraph indexes for the start and end of the selection (can be the same)
     const [firstSelLineIndex, lastSelLineIndex] = selectedLinesIndex(selection, paragraphs)
+
     // Get paragraphs for the selection or block
+    let parasInBlock: Array<TParagraph>
     if (lastSelLineIndex !== firstSelLineIndex) {
       // use only the selected paras
       logDebug(pluginJson, `moveParas: user has selected lineIndexes ${firstSelLineIndex}-${lastSelLineIndex}`)
@@ -210,11 +209,13 @@ export async function moveParasToNextWeekly(): Promise<void> {
 
 /**
  * Move text to the current Weekly note.
+ * (Not called directly by users.)
  * Uses the same selection strategy as moveParas() above
  * @author @jgclark
  * @param {Date} date of weekly note to move to
+ * @param {boolean?} withBlockContext?
  */
-export async function moveParasToCalendarWeekly(destDate: Date): Promise<void> {
+export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext: boolean = false): Promise<void> {
   try {
     const { content, paragraphs, selectedParagraphs, note } = Editor
     // Get config settings
@@ -222,7 +223,7 @@ export async function moveParasToCalendarWeekly(destDate: Date): Promise<void> {
 
     // Pre-flight checks
     if (content == null || selectedParagraphs == null || note == null) {
-      // No note open, or no selectedParagraph selection (perhaps empty note), so don't do anything.
+      // No note open, or no selectedParagraph selection (empty note?), so don't do anything.
       logWarn(pluginJson, 'No note open, so stopping.')
       return
     }
@@ -246,12 +247,26 @@ export async function moveParasToCalendarWeekly(destDate: Date): Promise<void> {
       logError(pluginJson, 'No selection found, so stopping.')
       return
     }
+
     // Get paragraph indexes for the start and end of the selection (can be the same)
+    let parasInBlock: Array<TParagraph>
     const [firstSelParaIndex, lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
     // Get paragraphs for the selection or block
-    const parasInBlock: Array<TParagraph> = (lastSelParaIndex !== firstSelParaIndex)
-      ? selectedParagraphs.slice()   // copy to avoid $ReadOnlyArray problem
-      : getParagraphBlock(note, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
+    if (withBlockContext) {
+      // user has requested working on the surrounding block
+      parasInBlock = getParagraphBlock(note, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
+      logDebug(pluginJson, `moveParas: move block of ${parasInBlock.length} paras`)
+    } else {
+      // user just wants to move the current line
+      parasInBlock = selectedParagraphs.slice(0, 1) // just first para
+      logDebug(pluginJson, `moveParas: move current para only`)
+    }
+
+    // FIXME: check options here
+    // const parasInBlock: Array<TParagraph> = (lastSelParaIndex !== firstSelParaIndex)
+    //   ? selectedParagraphs.slice()   // copy to avoid $ReadOnlyArray problem
+    //   : getParagraphBlock(note, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
+
 
     // At the time of writing, there's no API function to work on multiple selectedParagraphs,
     // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
@@ -269,6 +284,8 @@ export async function moveParasToCalendarWeekly(destDate: Date): Promise<void> {
     logError(pluginJson, error.message)
   }
 }
+
+// -----------------------------------------------------------------
 
 /**
  * Move text to today's Daily note.
@@ -290,11 +307,13 @@ export async function moveParasToTomorrow(): Promise<void> {
 
 /**
  * Move text to a specified Daily note.
+ * (Not called directly by users.)
  * Uses the same selection strategy as moveParas() above
  * @author @jgclark
  * @param {Date} date of daily note to move to
+ * @param {boolean?} withBlockContext?
  */
-export async function moveParasToCalendarDate(destDate: Date): Promise<void> {
+export async function moveParasToCalendarDate(destDate: Date, withBlockContext: boolean = false): Promise<void> {
   try {
     const { content, paragraphs, selectedParagraphs, note } = Editor
     // Get config settings
@@ -322,10 +341,23 @@ export async function moveParasToCalendarDate(destDate: Date): Promise<void> {
     }
     // Get paragraph indexes for the start and end of the selection (can be the same)
     const [firstSelParaIndex, lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
+
     // Get paragraphs for the selection or block
-    const parasInBlock: Array<TParagraph> = (lastSelParaIndex !== firstSelParaIndex)
-      ? selectedParagraphs.slice()   // copy to avoid $ReadOnlyArray problem
-      : getParagraphBlock(note, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
+    let parasInBlock: Array<TParagraph>
+    if (withBlockContext) {
+      // user has requested working on the surrounding block
+      parasInBlock = getParagraphBlock(note, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
+      logDebug(pluginJson, `moveParas: move block of ${parasInBlock.length} paras`)
+    } else {
+      // user just wants to move the current line
+      parasInBlock = selectedParagraphs.slice(0, 1) // just first para
+      logDebug(pluginJson, `moveParas: move current para only`)
+    }
+
+    // FIXME: update this
+    // const parasInBlock: Array<TParagraph> = (lastSelParaIndex !== firstSelParaIndex)
+    //   ? selectedParagraphs.slice()   // copy to avoid $ReadOnlyArray problem
+    //   : getParagraphBlock(note, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
 
     // At the time of writing, there's no API function to work on multiple selectedParagraphs,
     // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
