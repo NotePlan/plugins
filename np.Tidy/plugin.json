@@ -1,0 +1,159 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "np.Tidy",
+  "plugin.name": "🧹 Tidy",
+  "plugin.author": "jgclark",
+  "plugin.description": "Tidy up and delete various things in your NotePlan notes",
+  "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "First release",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "name": "Remove @done() markers",
+      "description": "Remove @done() markers from recently-updated notes. Can be used with parameters from Template or Callback.",
+      "jsFunction": "removeDoneMarkers",
+      "alias": [
+        "rdm"
+      ],
+      "arguments": [
+        "Parameters"
+      ]
+    },
+    {
+      "name": "Remove time parts from @done() dates",
+      "description": "Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.",
+      "jsFunction": "removeDoneTimeParts",
+      "alias": [
+        "rtp"
+      ],
+      "arguments": [
+        "Parameters"
+      ]
+    },
+    {
+      "name": "Remove section from notes",
+      "description": "Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or Callback.",
+      "jsFunction": "removeSectionFromRecentNotes",
+      "alias": [
+        "rsfn"
+      ],
+      "arguments": [
+        "Parameters"
+      ]
+    },
+    {
+      "name": "Remove content under heading in all notes",
+      "description": "Remove a given section (heading + its content block) from all notes. Can be used with parameters from Template or Callback.",
+      "jsFunction": "removeSectionFromAllNotes",
+      "alias": [
+        "rcuh"
+      ],
+      "arguments": [
+        "Parameters"
+      ]
+    },
+    {
+      "name": "Log notes changed in interval",
+      "description": "Write a list of Log notes changed in the last interval of days to the plugin log. It will default to the 'Default Recent Time Interval' setting unless passed as a parameter.",
+      "jsFunction": "logNotesChangedInInterval",
+      "alias": [
+        "lncii"
+      ],
+      "arguments": [
+        "Parameters"
+      ]
+    }
+  ],
+  "plugin.commands_disabled": [
+    {
+      "name": "onOpen",
+      "description": "Trigger, not a user command",
+      "jsFunction": "onOpen",
+      "hidden": true
+    },
+    {
+      "name": "onEditorWillSave",
+      "description": "Trigger, not a user command",
+      "jsFunction": "onEditorWillSave",
+      "hidden": true
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Tidy Settings (General)"
+    },
+    {
+      "key": "foldersToExclude",
+      "title": "Folders to exclude",
+      "description": "List of folders to exclude in these commands. May be empty.",
+      "type": "[string]",
+      "default": [
+        "@Templates",
+        "@Archive",
+        "@Trash"
+      ],
+      "required": false
+    },
+    {
+      "type": "heading",
+      "title": "Settings for '/remove ... recent' commands"
+    },
+    {
+      "title": "How many days to look back?",
+      "key": "numDays",
+      "type": "number",
+      "description": "The number of days to look back for 'recently changed' notes. If this is empty, then all notes will be checked.",
+      "default": 7,
+      "required": false
+    },
+    {
+      "title": "Type of match for section headings",
+      "key": "matchType",
+      "description": "The 'Starts with' setting allows headings that always start the same (e.g. 'Habit Progress') to be matched, even if the end of the heading changes (e.g. 'Habit Progress for Tuesday').",
+      "type": "string",
+      "choices": [
+        "Exact",
+        "Starts with",
+        "Contains"
+      ],
+      "default": "Exact",
+      "required": true
+    },
+    {
+      "title": "Just remove @done(...) markers from checklists?",
+      "key": "justRemoveFromChecklists",
+      "description": "When removing @done(...) markers, remove just from done checklist items, not done tasks as well? (This is relevant when calculating heatmaps of when tasks but not checklists are completed in Summaries plugin.)",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}
