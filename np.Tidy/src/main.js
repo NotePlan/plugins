@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 29.12.2022 for v0.1.0, @jgclark
+// Last updated 31.12.2022 for v0.1.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -98,6 +98,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
       }
       // Actually remove the markers from the paras
       for (const p of recentMatchedParas) {
+        const origRawContent = p.rawContent
         const origContent = p.content
         const matches = origContent.match(RE_DONE_DATE_OPT_TIME) ?? []
         const thisDoneMarker = matches[0] ?? ''
@@ -106,8 +107,9 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
         if (thisDoneMarker && thisNote) {
           p.content = newContent
           thisNote.updateParagraph(p)
-          logDebug('removeDoneMarkers', `- Removed ${thisDoneMarker} from '${origContent}' (in ${displayTitle(thisNote)})`)
+          logDebug('removeDoneMarkers', `- Removed ${thisDoneMarker} from '${origRawContent}' (in ${displayTitle(thisNote)})`)
           logDebug('removeDoneMarkers', `  - para is now of type ${p.type}`)
+          logDebug('removeDoneMarkers', `  - rawContent is now '${p.rawContent}'`)
         } else {
           logWarn('removeDoneMarkers', `- Couldn't remove @done() marker from '${origContent}' as couldn't find it`)
         }
