@@ -2,8 +2,8 @@
   "noteplan.minAppVersion": "3.3.2",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Reviews",
-  "plugin.name": "🔬Reviews",
-  "plugin.description": "Commands to help review Project-style notes, GTD-style.",
+  "plugin.name": "🔬 Projects + Reviews",
+  "plugin.description": "Making it easier to work with Project notes in NotePlan. Start, regularly review, pause, complete and cancel projects. Inspired by the PARA and 'Getting Things Done' methods, but more widely applicable.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
@@ -84,7 +84,7 @@
     },
     {
       "name": "test:redisplayProjectList",
-      "description": "Redisplau project lists",
+      "description": "Redisplay project lists",
       "jsFunction": "redisplayProjectList"
     },
     {
@@ -103,17 +103,22 @@
       "jsFunction": "testRedToGreenInterpolation"
     },
     {
+      "name": "test:generateCSSFromTheme",
+      "description": "test generateCSSFromTheme",
+      "jsFunction": "testGenerateCSSFromTheme"
+    },
+    {
+      "name": "test:redisplayProjectListHTML",
+      "description": "test redisplay Project List HTML",
+      "jsFunction": "redisplayProjectListHTML"
+    }
+  ],
+  "plugin.inactiveCommands": [
+    {
       "name": "test:fonts",
       "description": "test font glyphs",
       "jsFunction": "testFonts"
     },
-    {
-      "name": "test:generateCSSFromTheme",
-      "description": "test generateCSSFromTheme",
-      "jsFunction": "testGenerateCSSFromTheme"
-    }
-  ],
-  "plugin.inactiveCommands": [
     {
       "name": "test:logReviewList",
       "description": "write reviewList pref to log",
@@ -136,7 +141,7 @@
       "jsFunction": "testCSSCircle"
     },
     {
-      "name": "test:ButtonTriggerCommand",
+      "name": "test:buttonTriggerCommand",
       "description": "test Button Trigger Command",
       "jsFunction": "testButtonTriggerCommand"
     },
@@ -144,11 +149,6 @@
       "name": "test:buttonTriggerOpenNote",
       "description": "test Button Trigger OpenNote",
       "jsFunction": "testButtonTriggerOpenNote"
-    },
-    {
-      "name": "test:redisplayProjectListHTML",
-      "description": "test redisplay Project List HTML",
-      "jsFunction": "redisplayProjectListHTML"
     }
   ],
   "plugin.settings": [
