@@ -187,11 +187,12 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
     folders.push(NEW_FOLDER)
   }
   folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
-  if (!includeArchive) {
-    folders = folders.filter((f) => !f.startsWith('@Archive'))
-  }
   if (startFolder?.length && startFolder !== '/') {
     folders = folders.filter((f) => f.startsWith(startFolder))
+  } else {
+    if (!includeArchive) {
+      folders = folders.filter((f) => !f.startsWith('@Archive'))
+    }
   }
   let value, keyModifiers
   if (folders.length > 0) {
