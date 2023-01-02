@@ -183,12 +183,12 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
   const NEW_FOLDER = `➕ (Add New Folder${IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : ''})`
   let folder: string
   let folders = []
-  if (!includeNewFolderOption) {
+  if (includeNewFolderOption) {
     folders.push(NEW_FOLDER)
   }
   folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
   if (startFolder?.length && startFolder !== '/') {
-    folders = folders.filter((f) => f.startsWith(startFolder))
+    folders = folders.filter((f) => f === NEW_FOLDER || f.startsWith(startFolder))
   } else {
     if (!includeArchive) {
       folders = folders.filter((f) => !f.startsWith('@Archive'))
@@ -233,9 +233,10 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
       '',
     )
     if (newFolderName && newFolderName.length) {
-      const inWhichFolder = optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder? (/ for root)`, includeArchive, false, startFolder)
+      const inWhichFolder =
+        optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder? (${startFolder ?? '/'} for root)`, includeArchive, false, startFolder)
       if (inWhichFolder) {
-        folder = `${inWhichFolder}/${newFolderName}`
+        folder = inWhichFolder === '/' ? newFolderName : `${inWhichFolder}/${newFolderName}`
       }
     }
   }
