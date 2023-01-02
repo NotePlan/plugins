@@ -6,7 +6,6 @@ import json5 from 'json5'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { clo, logDebug, logError, logWarn, JSP } from './dev'
 import { calcSmartPrependPoint, findEndOfActivePartOfNote } from './paragraph'
-import { start } from 'repl'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
@@ -49,8 +48,8 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
  *
  * @param {string} message - text to display to user
  * @param {Array<T>} options - array of label:value options to present to the user
- * @param {TDefault} defaultValue - (optional) default value to use (default: options[0].value)
- * @return {TDefault} - the value attribute of the user-chosen item
+ * @return {{ label:string, value:string, index: number, keyModifiers: Array<string> }} - the value attribute of the user-chosen item
+ * keyModifiers is an array of 0+ strings, e.g. ["cmd", "opt", "shift", "ctrl"] that were pressed while selecting a result.
  */
 // @nmn we need some $FlowFixMe
 export async function chooseOptionWithModifiers<T, TDefault = T>(
@@ -168,28 +167,38 @@ export async function showMessageYesNoCancel(message: string, choicesArray: Arra
 }
 
 /**
- * Let user pick from a nicely-indented list of available folders (or return / for root)
- * @author @jgclark
+ * Let user pick from a nicely-indented list of available folders (or / for root, or optionally create a new folder)
+ * @author @jgclark + @dwertheimer
  *
  * @param {string} msg - text to display to user
  * @param {boolean} includeArchive - include archive or not
- * @param {string} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder)
+ * @param {boolean} includeNewFolderOption - if true, add a 'New Folder' option that will allow users to create a new folder and select it; IMPORTANT
+ * NOTE: the API does not allow for creation of the folder, so all this does is pass back a path which will be created when the user saves/moves the note
+ * If your use case does not include the creation or moving of a note to the chosen path, this option will not work for you
+ * @param {string} startFolder - folder to start the list in (e.g. to limit the folders to a specific subfolder) - default is root (/) -- set to "/" to force start at root
  * @returns {string} - returns the user's folder choice (or / for root)
  */
-export async function chooseFolder(msg: string, includeArchive: boolean = false, startFolder?: string): Promise<string> {
+export async function chooseFolder(msg: string, includeArchive?: boolean = false, includeNewFolderOption?: boolean = false, startFolder?: string): Promise<string> {
+  const IS_DESKTOP = NotePlan.environment.platform === 'macOS'
+  const NEW_FOLDER = `➕ (Add New Folder${IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : ''})`
   let folder: string
-  let folders = DataStore.folders.slice() // excludes Trash and Archive
+  let folders = []
+  if (includeNewFolderOption) {
+    folders.push(NEW_FOLDER)
+  }
+  folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
   if (includeArchive) {
     folders.push('@Archive')
   }
-  if (startFolder) {
+  if (startFolder?.length && startFolder !== '/') {
     folders = folders.filter((f) => f.startsWith(startFolder))
   }
+  let value, keyModifiers
   if (folders.length > 0) {
     // make a slightly fancy list with indented labels, different from plain values
     const folderOptionList: Array<any> = []
     for (const f of folders) {
-      if (f !== '/') {
+      if (f !== '/' && f !== NEW_FOLDER) {
         const folderParts = f.split('/')
         for (let i = 0; i < folderParts.length - 1; i++) {
           folderParts[i] = '     '
@@ -199,16 +208,37 @@ export async function chooseFolder(msg: string, includeArchive: boolean = false,
         folderOptionList.push({ label: folderLabel, value: f })
       } else {
         // deal with special case for root folder
-        folderOptionList.push({ label: '📁 /', value: '/' })
+        folderOptionList.push(f !== NEW_FOLDER ? { label: '📁 /', value: '/' } : { label: NEW_FOLDER, value: NEW_FOLDER })
       }
     }
     // const re = await CommandBar.showOptions(folders, msg)
-    folder = await chooseOption(msg, folderOptionList, '/')
+    ;({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
+    if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
+      folder = NEW_FOLDER
+    } else {
+      folder = value
+    }
+    logDebug(`helpers/userInput`, `chooseFolder folder:${folder} value:${value} keyModifiers:${keyModifiers} keyModifiers.indexOf('opt')=${keyModifiers.indexOf('opt')}`)
   } else {
     // no Folders so go to root
     folder = '/'
   }
   // logDebug('userInput / chooseFolder', `-> ${folder}`)
+  if (folder === NEW_FOLDER) {
+    const optClicked = value?.length && keyModifiers && keyModifiers.indexOf('opt') > -1
+    const newFolderName = await CommandBar.textPrompt(
+      `Create new folder${optClicked ? ` inside folder:\n"${value || ''}".` : '...\nYou will choose where to create the folder in the next step.'}`,
+      'Folder name:',
+      '',
+    )
+    if (newFolderName && newFolderName.length) {
+      const inWhichFolder = optClicked && value ? value : await chooseFolder(`Create '${newFolderName}' inside which folder? (/ for root)`, includeArchive, false, startFolder)
+      if (inWhichFolder) {
+        folder = `${inWhichFolder}/${newFolderName}`
+      }
+    }
+  }
+  logDebug(`helpers/userInput`, `chooseFolder folder chosen: "${folder}"`)
   return folder
 }
 
