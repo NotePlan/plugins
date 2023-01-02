@@ -171,7 +171,7 @@ export async function showMessageYesNoCancel(message: string, choicesArray: Arra
  * @author @jgclark + @dwertheimer
  *
  * @param {string} msg - text to display to user
- * @param {boolean} includeArchive - include archive or not
+ * @param {boolean} includeArchive - default: false; if true, include the Archive folder in the list of folders
  * @param {boolean} includeNewFolderOption - if true, add a 'New Folder' option that will allow users to create a new folder and select it; IMPORTANT
  * NOTE: the API does not allow for creation of the folder, so all this does is pass back a path which will be created when the user saves/moves the note
  * If your use case does not include the creation or moving of a note to the chosen path, this option will not work for you
@@ -183,12 +183,12 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
   const NEW_FOLDER = `➕ (Add New Folder${IS_DESKTOP ? ' - or opt-click on a parent folder to create new subfolder' : ''})`
   let folder: string
   let folders = []
-  if (includeNewFolderOption) {
+  if (!includeNewFolderOption) {
     folders.push(NEW_FOLDER)
   }
   folders = [...folders, ...DataStore.folders.slice()] // excludes Trash
-  if (includeArchive) {
-    folders.push('@Archive')
+  if (!includeArchive) {
+    folders = folders.filter((f) => !f.startsWith('@Archive'))
   }
   if (startFolder?.length && startFolder !== '/') {
     folders = folders.filter((f) => f.startsWith(startFolder))
