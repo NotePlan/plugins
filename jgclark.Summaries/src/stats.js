@@ -70,7 +70,7 @@ export async function statsPeriod(): Promise<void> {
 
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-    logDebug(pluginJson, `Created progress update in ${timer(startTime)}`)
+    logDebug('statsPeriod', `Created progress update in ${timer(startTime)}`)
 
     // --------------------------------------------------------------------------
     // Ask where to save this summary to
@@ -93,12 +93,12 @@ export async function statsPeriod(): Promise<void> {
       case 'current': {
         const currentNote = Editor.note
         if (currentNote == null) {
-          logError(pluginJson, `No note is open in the Editor, so I can't write to it.`)
+          logError('statsPeriod', `No note is open in the Editor, so I can't write to it.`)
         } else {
-          // logDebug(pluginJson, `- about to update section '${config.statsHeading}' in weekly note '${currentNote.filename}' for ${periodAndPartStr}`)
+          // logDebug('statsPeriod', `- about to update section '${config.statsHeading}' in weekly note '${currentNote.filename}' for ${periodAndPartStr}`)
           // Replace or add output section
           replaceSection(currentNote, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
-          logDebug(pluginJson, `Written results to note '${periodString}'`)
+          logDebug('statsPeriod', `Written results to note '${periodString}'`)
         }
         break
       }
@@ -107,17 +107,20 @@ export async function statsPeriod(): Promise<void> {
         // Summaries note
         const note = await getOrMakeNote(periodString, config.folderToStore)
         if (note == null) {
-          logError(pluginJson, `Cannot get new note`)
+          logError('statsPeriod', `Cannot get new note`)
           await showMessage('There was an error getting the new note ready to write')
         } else {
 
-          // logDebug(pluginJson, `- about to update section '${config.statsHeading}' in weekly note '${note.filename}' for ${periodAndPartStr}`)
+          // logDebug('statsPeriod', `- about to update section '${config.statsHeading}' in weekly note '${note.filename}' for ${periodAndPartStr}`)
           // Replace or add output section
           replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
-          logDebug(pluginJson, `Written results to note '${periodString}'`)
+          logDebug('statsPeriod', `Written results to note '${periodString}'`)
 
-          // open this note as a new split window in the Editor
-          await Editor.openNoteByFilename(note.filename, false, 0, 0, true)
+          // Open the results note in a new split window, unless we already have this note open
+          if (Editor.note?.filename !== note.filename) {
+            // Open the results note in a new split window, unless we can tell we already have this note open. Only works for active Editor, though.
+            await Editor.openNoteByFilename(note.filename, false, 0, 0, true)
+          }
         }
         break
       }
@@ -126,25 +129,23 @@ export async function statsPeriod(): Promise<void> {
         // Weekly note (from v3.6) or Monthly / Quarterly / Yearly (from v3.7.2)
         const todaysDate = new Date()
 
-        logDebug(pluginJson, `- opening ${calendarNoteType} note that starts ${fromDateStr}`)
-        // TODO: when API makes this possible, make it only open a new window if not already open
+        logDebug('statsPeriod', `- opening ${calendarNoteType} note that starts ${fromDateStr}`)
+        // TODO: when API makes this possible, make it only open a new window if not already open. Note: could work around this by writing a new func to go from fromDate+calendarNoteType -> expected filename, but I'm hoping EM will sort this soon.
         const temp = await Editor.openNoteByDate(fromDate, false, 0, 0, true, calendarNoteType)
         const { note } = Editor
         if (note == null) {
-          logError(pluginJson, `cannot get Calendar note`)
+          logError('statsPeriod', `cannot get Calendar note`)
           await showMessage('There was an error getting the Calendar ready to write')
         } else {
           // If note doesn't appear to have a title, then insert one
-          if (note.paragraphs.length === 0 || ! /^#\s/.test(note.paragraphs[0]?.content)) {
+          if (note.paragraphs.length === 0 || note.paragraphs[0].headingLevel !== 1) {
+            logDebug('statsPeriod', `- needing to add H1 title before existing p0 '${note.paragraphs[0]?.content ?? ''}'`)
             note.insertHeading(periodString, 0, 1)
           }
           // Replace or add output section
           replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
-          logDebug(pluginJson, `Written results to note '${periodString}'`)
-
-          // // open this note as a new split window in the Editor
-          // Editor.openNoteByFilename(note.filename, false, 0, 0, true)
-          // logDebug(pluginJson, `Written results to note '${displayTitle(note)}'`)
+          logDebug('statsPeriod', `Written results to note '${periodString}' (filename=${note.filename})`)
+          logDebug(pluginJson, `- Editor.note.filename=${note.filename})`)
         }
         break
       }
@@ -161,6 +162,6 @@ export async function statsPeriod(): Promise<void> {
     }
   }
   catch (error) {
-    logError('gatherOccurrences', error.message)
+    logError('statsPeriod', error.message)
   }
 }
