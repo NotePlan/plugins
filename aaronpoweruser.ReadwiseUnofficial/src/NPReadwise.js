@@ -76,8 +76,9 @@ async function parseBookAndWriteToNote(source) {
     const outputNote = await getOrMakeNote(title, baseFolder, '')
 
     // Find a better way to check if the note is new
-    if (new Date() - new Date(outputNote?.createdDate) < 1000) {
+    if (new Date() - new Date(outputNote?.createdDate) < 2000) {
       outputNote.addParagraphBelowHeadingTitle(metadata, 'text', 'Metadata', true, true)
+      outputNote.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
     }
 
     highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.asin))

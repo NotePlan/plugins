@@ -223,15 +223,20 @@ export async function getPeriodStartEndDates(
 
   switch (periodType) {
     case 'lm': {
-      fromDateMom = fromDateMom.subtract(1, 'month').subtract(6, 'days')
+      fromDateMom = fromDateMom.subtract(1, 'month').startOf('month')//.subtract(6, 'days')
       fromDate = fromDateMom.toDate()
+      logDebug('fromDate', String(fromDate))
+      logDebug('fromDateMom', fromDateMom.format('YYYY-MM-DD'))
       toDateMom = moment(toDate).startOf('month').subtract(1, 'days')
-      fromDate = toDateMom.toDate()
+      toDate = toDateMom.toDate()
+      logDebug('toDate', String(toDate))
+      logDebug('toDateMom', toDateMom.format('YYYY-MM-DD'))
 
       // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // go to start of this month
       // fromDate = Calendar.addUnitToDate(fromDate, 'month', -1) // -1 month
       // toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
-      periodString = `${monthNameAbbrev(fromDate.getMonth() + 1)} ${y}`
+      const theY = (m > 1) ? y : y - 1
+      periodString = `${monthNameAbbrev(fromDate.getMonth() + 1)} ${theY}`
       break
     }
     case 'mtd': {
@@ -395,9 +400,10 @@ export async function getPeriodStartEndDates(
     }
 
     case 'ly': {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 1, 1, 0, 0, 0), 'minute', -TZOffset)
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y - 1, 12, 31, 0, 0, 0), 'minute', -TZOffset)
-      periodString = `${y - 1}`
+      const lastY = y - 1
+      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(lastY, 1, 1, 0, 0, 0), 'minute', -TZOffset)
+      toDate = Calendar.addUnitToDate(Calendar.dateFrom(lastY, 12, 31, 0, 0, 0), 'minute', -TZOffset)
+      periodString = `${lastY}`
       break
     }
     case 'ytd': {
@@ -429,7 +435,7 @@ export async function getPeriodStartEndDates(
       periodString = `<Error: couldn't parse interval type '${periodType}'>`
     }
   }
-  if (excludeToday) {
+  if (excludeToday && ['wtd,mtd,qtd,ytd'].includes(periodType)) {
     logDebug('getPeriodStartEndDates', `- as requested, today's date will be excluded`)
     toDateMom = moment(toDate).subtract(1, 'day')
     toDate = toDateMom.toDate()

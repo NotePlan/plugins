@@ -356,7 +356,16 @@ declare class DataStore {
    * Get all folders as array of strings.
    * Note: Includes the root "/" and folders that begin with "@" such as "@Archive" and "@Templates". It excludes the trash folder though.
    */
-  static +folders: $ReadOnlyArray<string>;
+static + folders: $ReadOnlyArray < string >;
+  /** 
+   * Create folder, if it doesn't already exist.
+   * e.g. `DataStore.createFolder("test/hello world")`
+   * Returns true if created OK (or it already existed) and false otherwise.
+   * Note: Available from v3.8.0
+   * @param {string} folderPath
+   * @returns {boolean} succesful?
+  */
+  static createFolder(folderPath: string): boolean;
   /**
    * Get all calendar notes.
    * Note: from v3.4 this includes all future-referenced dates, not just those with an actual created note.
