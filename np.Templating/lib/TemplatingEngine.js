@@ -16,13 +16,11 @@ import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import pluginJson from '../plugin.json'
 import { clo, log } from '@helpers/dev'
-import { debug } from '../lib/helpers'
 
 // this is a customized version of `ejs` adding support for async actions (use await in template)
 // review `Test (Async)` template for example`
 import ejs from './support/ejs'
-import { logDebug } from "../../helpers/dev";
-import logError from "concurrently/src/flow-control/log-error";
+import { logDebug, logError } from '../../helpers/dev'
 
 const getProperyValue = (object: any, key: string): any => {
   key.split('.').forEach((token) => {
@@ -137,18 +135,18 @@ export default class TemplatingEngine {
 
     // apply custom plugin modules
     this.templateModules.forEach((moduleItem) => {
-      clo(moduleItem,`moduleItem`)
+      clo(moduleItem, `moduleItem`)
       if (this.isClass(moduleItem.module)) {
-              clo(moduleItem.module,`is class`)
+        clo(moduleItem.module, `is class`)
         const methods = Object.getOwnPropertyNames(moduleItem.module.prototype)
         log(pluginJson, `np.Templating Error: ES6 Classes are not supported [${moduleItem.moduleNamespace}]`)
       } else {
         for (const [key, method] of Object.entries(moduleItem.module)) {
-                        logDebug( `key: ${key} method:${typeof method}`)
+          logDebug(`key: ${key} method:${typeof method}`)
 
           renderData[moduleItem.moduleNamespace] = {}
           for (const [moduleKey, moduleMethod] of Object.entries(moduleItem.module)) {
-            logDebug( `moduleKey: ${moduleKey} moduleMethod:${typeof moduleMethod}`)
+            logDebug(`moduleKey: ${moduleKey} moduleMethod:${typeof moduleMethod}`)
             renderData[moduleItem.moduleNamespace][moduleKey] = moduleMethod
           }
         }
@@ -197,7 +195,7 @@ export default class TemplatingEngine {
     } catch (error) {
       logDebug(`199 np.Templating error: ${error}`)
 
-      const message = error.message.replace('\n\n', '')
+      const message = error.message.replace('\n', '')
 
       let block = ''
       if (error?.line) {
@@ -228,7 +226,7 @@ export default class TemplatingEngine {
       }
 
       format = formatType === 'date' ? 'YYYY-MM-DD' : 'HH:mm:ss A'
-            logDebug(pluginJson, `230 np.Templating format: ${format}`)
+      logDebug(pluginJson, `230 np.Templating format: ${format}`)
 
       return format
     } catch (error) {

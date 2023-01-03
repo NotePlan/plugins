@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 np.Templating",
-  "plugin.version": "2.0.0-alpha.13",
+  "plugin.version": "2.0.1-alpha.14",
   "plugin.lastUpdateInfo": "2.0.0-alpha.13: fix edge case in self-running templates.\nnp:append takes template name; Adding support for self-running templates via x-callback",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",

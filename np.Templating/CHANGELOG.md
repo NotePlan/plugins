@@ -4,10 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.1-alpha.14] - 2023-01-03 (dwertheimer)
+
+- fix logging whitespace on error message
+
 ## [2.0.0-alpha.13] - 2022-12-21 (dwertheimer)
 
 - fix edge case in self-running templates
-- Added getNoteTitled instead of writeNoteTitle|openNoteTitle 
+- Added getNoteTitled instead of writeNoteTitle|openNoteTitle
 
 ## [2.0.0-alpha.12] - 2022-12-08 (dwertheimer)
 
