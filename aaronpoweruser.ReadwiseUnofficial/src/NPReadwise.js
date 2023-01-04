@@ -87,7 +87,7 @@ async function parseBookAndWriteToNote(source) {
 
 function buildReadwiseFrontMatter(source) {
   const frontMatter = {}
-  frontMatter.author = source.author
+  frontMatter.author = `[[${source.author}]]`
   if (source.book_tags !== null) {
     frontMatter.tags = source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')
   }
