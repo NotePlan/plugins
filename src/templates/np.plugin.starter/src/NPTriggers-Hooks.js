@@ -22,7 +22,7 @@ import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
  */
 export async function onOpen(note: TNote): Promise<void> {
   try {
-    logDebug(pluginJson, `onOpen running for note:"${String(note.filename)}"`)
+    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onOpen running for note:"${String(note.filename)}"`)
     // Try to guard against infinite loops of opens/refreshing
     // You can delete this code if you are sure that your onOpen trigger will not cause an infinite loop
     // But the safest thing to do is put your code inside the if loop below to ensure it runs no more than once every 15s
@@ -47,7 +47,7 @@ export async function onOpen(note: TNote): Promise<void> {
  */
 export async function onEditorWillSave() {
   try {
-    logDebug(pluginJson, `onEditorWillSave running with note in Editor:"${String(Editor.filename)}"`)
+    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onEditorWillSave running with note in Editor:"${String(Editor.filename)}"`)
     // Put your code here or call a function that does the work
     // Note: as stated in the documentation, if you want to change any content in the Editor
     // before the file is written, you should NOT use the *note* variable here to change content
@@ -71,8 +71,12 @@ export async function onEditorWillSave() {
  * the user preferences to include any new fields
  */
 export async function onUpdateOrInstall(): Promise<void> {
-  log(pluginJson, 'NPThemeChooser::onUpdateOrInstall running')
-  await updateSettingData(pluginJson)
+  try {
+    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall running`)
+    await updateSettingData(pluginJson)
+  } catch (error) {
+    logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
+  }
 }
 
 /**
@@ -80,9 +84,13 @@ export async function onUpdateOrInstall(): Promise<void> {
  * You should not need to edit this function. All work should be done in the commands themselves
  */
 export function init(): void {
-  logDebug(pluginJson, `${pluginJson['plugin.id']} :: init running`)
-  //   clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
-  DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
+  try {
+    logDebug(pluginJson, `${pluginJson['plugin.id']} :: init running`)
+    //   clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
+  } catch (error) {
+    logError(pluginJson, `init: ${JSP(error)}`)
+  }
 }
 
 /**
@@ -90,5 +98,9 @@ export function init(): void {
  * You should not need to edit this function
  */
 export async function onSettingsUpdated(): Promise<void> {
-  logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated running`)
+  try {
+    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated running`)
+  } catch (error) {
+    logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
+  }
 }
