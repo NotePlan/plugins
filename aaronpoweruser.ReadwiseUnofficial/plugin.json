@@ -69,7 +69,7 @@
       "default": "Readwise"
     },
     {
-      "title": "Metadata fofmat",
+      "title": "Metadata format",
       "key": "useFrontMatter",
       "type": "string",
       "description": "FrontMatter will store the metadata in the front matter of the note. Heading will store the metadata in a heading in the note.",
