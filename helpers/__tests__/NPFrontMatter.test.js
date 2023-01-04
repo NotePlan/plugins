@@ -150,6 +150,27 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     /*
+     * quoteText()
+     */
+    describe('quoteText()' /* function */, () => {
+      test('should pass through text that should not be quoted', () => {
+        const result = f.quoteText('foo')
+        expect(result).toEqual('foo')
+      })
+      test('should pass through colons without spaces (e.g. url)', () => {
+        const result = f.quoteText('http://www.google.com')
+        expect(result).toEqual('http://www.google.com')
+      })
+      test('should pass through text already quoted', () => {
+        const result = f.quoteText('"foo bar"')
+        expect(result).toEqual('"foo bar"')
+      })
+      test('should quote text with colon+space', () => {
+        const result = f.quoteText('foo: bar')
+        expect(result).toEqual('"foo: bar"')
+      })
+    })
+    /*
      * writeFrontMatter()
      */
     describe('writeFrontMatter()' /* function */, () => {

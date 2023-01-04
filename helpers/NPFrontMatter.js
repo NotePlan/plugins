@@ -22,6 +22,17 @@ export type TriggerTypes = 'onEditorWillSave' | 'onOpen'
 const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
 
 /**
+ * Frontmatter cannot have colons in the content (specifically ": "), so we need to wrap that in quotes
+ * @param {string} text
+ * @returns {string} quotedText (if required)
+ */
+export function quoteText(text: string): string {
+  const needsQuoting = text.includes(': ')
+  const isWrappedInQuotes = /^".*"$/.test(text) // pass it through if already wrapped in quotes
+  return needsQuoting && !isWrappedInQuotes ? `"${text}"` : text
+}
+
+/**
  * Test whether a string contains front matter
  * @param {string} text - the text to test (typically the content of a note -- note.content)
  * @returns {boolean} true if it has front matter
@@ -93,7 +104,7 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
     Object.keys(attributes).forEach((key) => {
       const value = attributes[key]
       if (value !== null) {
-        outputArr.push(`${key}: ${value}`)
+        outputArr.push(`${key}: ${quoteText(value)}`)
       }
     })
     const output = outputArr.join('\n')
