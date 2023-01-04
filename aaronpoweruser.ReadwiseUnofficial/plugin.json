@@ -19,7 +19,7 @@
       "jsFunction": "readwiseSync"
     },
     {
-      "name": "Readwise force sync ",
+      "name": "Readwise force sync",
       "description": "Sync Readwise highlights",
       "jsFunction": "readwiseSyncForce",
       "alias": [
