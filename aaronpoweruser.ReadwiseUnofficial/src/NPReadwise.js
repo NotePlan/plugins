@@ -109,8 +109,6 @@ function createReadwiseMetadataHeading(source) {
 }
 
 async function getOrCreateReadwiseNote(title, category) {
-  //TODO: Does this need to be moved to a helper?
-  const sanitizedTile = title.replace(/:/g, '')
   const rootFolder = DataStore.settings.baseFolder ?? 'Readwise'
   let baseFolder = rootFolder
   let outputNote = null
@@ -118,7 +116,7 @@ async function getOrCreateReadwiseNote(title, category) {
     baseFolder = `${rootFolder}/${category}`
   }
   try {
-    outputNote = await getOrMakeNote(sanitizedTile, baseFolder, '')
+    outputNote = await getOrMakeNote(title, baseFolder, '')
   } catch (error) {
     logError(pluginJson, error)
   }
