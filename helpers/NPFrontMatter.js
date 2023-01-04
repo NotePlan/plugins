@@ -27,7 +27,7 @@ const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
  * @returns {string} quotedText (if required)
  */
 export function quoteText(text: string): string {
-  const needsQuoting = text.includes(': ')
+  const needsQuoting = text.includes(': ') || /:$/.test(text)
   const isWrappedInQuotes = /^".*"$/.test(text) // pass it through if already wrapped in quotes
   return needsQuoting && !isWrappedInQuotes ? `"${text}"` : text
 }
@@ -207,7 +207,7 @@ export function ensureFrontmatter(note: CoreNoteFields, title?: string | null): 
       }
     }
     if (newTitle) {
-      const front = note.type === 'Calendar' ? `---\n---\n` : `---\ntitle: ${newTitle}\n---\n`
+      const front = note.type === 'Calendar' ? `---\n---\n` : `---\ntitle: ${quoteText(newTitle)}\n---\n`
       note.content = `${front}${note?.content || ''}`
       retVal = true
       logDebug(pluginJson, `ensureFrontmatter:Note '${displayTitle(note)}' converted to use frontmatter.`)
