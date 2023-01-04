@@ -5,7 +5,7 @@
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
   "plugin.version": "0.1.2",
-  "plugin.lastUpdateInfo": "Add front matter support",
+  "plugin.lastUpdateInfo": "Add front matter support and tag prefix support",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
   "plugin.dependencies": [],
@@ -19,9 +19,12 @@
       "jsFunction": "readwiseSync"
     },
     {
-      "name": "Readwise sync force",
+      "name": "Readwise force sync ",
       "description": "Sync Readwise highlights",
       "jsFunction": "readwiseSyncForce",
+      "alias": [
+        "rwfs"
+      ],
       "hidden": true
     },
     {
@@ -52,14 +55,21 @@
       "default": ""
     },
     {
-      "title": "Folder name",
+      "title": "Note folder",
       "key": "baseFolder",
       "type": "string",
       "description": "The folder to store all highlights in",
       "default": "Readwise"
     },
     {
-      "title": "How to store the metadata in the note.",
+      "title": "Tag Prefix",
+      "key": "tagPrefix",
+      "type": "string",
+      "description": "Prefix for Readwise tags",
+      "default": "Readwise"
+    },
+    {
+      "title": "Metadata fofmat",
       "key": "useFrontMatter",
       "type": "string",
       "description": "FrontMatter will store the metadata in the front matter of the note. Heading will store the metadata in a heading in the note.",

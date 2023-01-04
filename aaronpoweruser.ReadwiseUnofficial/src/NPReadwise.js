@@ -89,7 +89,7 @@ function buildReadwiseFrontMatter(source) {
   const frontMatter = {}
   frontMatter.author = source.author
   if (source.book_tags !== null) {
-    frontMatter.tags = source.book_tags.map((tag) => `#${tag.name} `).join(', ')
+    frontMatter.tags = source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')
   }
   if (source.unique_url !== null) {
     frontMatter.url = source.unique_url
@@ -97,10 +97,15 @@ function buildReadwiseFrontMatter(source) {
   return frontMatter
 }
 
+function formatTag(tag: string): string {
+  const prefix = DataStore.settings.tagPrefix ?? ''
+  return `#${prefix}/${tag}`
+}
+
 function createReadwiseMetadataHeading(source) {
   let metadata = `Author: [[${source.author}]]` + '\n'
   if (source.book_tags !== null) {
-    metadata += `Tags: ${source.book_tags.map((tag) => `#${tag.name} `).join(', ')}\n`
+    metadata += `Tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
   }
   if (source.unique_url !== null) {
     metadata += `URL: ${source.unique_url}`

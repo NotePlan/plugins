@@ -6,8 +6,9 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser
 
 ## [0.1.3] - 2023-01-03 (aaronpoweruser)
 - Add front matter support
+- Add optional tag prefix
 - Clean up settings
-- Code cldanup
+- Code cleanup
 
 ## [0.1.2] - 2023-01-02 (aaronpoweruser)
 - Add missing highlight header
