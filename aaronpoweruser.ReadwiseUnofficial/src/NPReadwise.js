@@ -79,7 +79,7 @@ async function parseBookAndWriteToNote(source) {
     if (useFrontMatter) {
       setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
     }
-    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.asin))
+    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -123,14 +123,17 @@ async function getOrCreateReadwiseNote(title, category) {
   return outputNote
 }
 
-function appendHighlightToNote(note, highlight, asin = '') {
+function appendHighlightToNote(note, highlight, source, asin) {
   // remove "- " from the start of the highlight
   const contentWithoutDash = highlight.text.replace(/^- /, '')
   let formatedUrl = ''
-  if (highlight.url !== null) {
-    formatedUrl = ` [View highlight](${highlight.url})`
-  } else if (asin !== '') {
+
+  if (source === 'supplemental') {
+    formatedUrl =  ` [View highlight](${highlight.readwise_url})`
+  }  else if (asin !== null) {
     formatedUrl = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
+  } else if (highlight.url !== null) {
+    formatedUrl = ` [View highlight](${highlight.url})`
   }
   note.appendParagraph(contentWithoutDash + formatedUrl, 'list')
 }
