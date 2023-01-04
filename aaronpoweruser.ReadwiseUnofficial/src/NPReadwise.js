@@ -22,6 +22,9 @@ export async function readwiseSyncForce(): Promise<void> {
   response.map(parseBookAndWriteToNote)
 }
 
+/**
+ * Checks if the readwise access token is valid
+ */
 function checkAccessToken(): void {
   const accessToken = DataStore.settings.accessToken ?? ''
   logDebug(pluginJson, `access token is : ${accessToken}`)
@@ -35,7 +38,12 @@ function checkAccessToken(): void {
   }
 }
 
-// Downloads readwise data
+/**
+ * Gets the readwise data from the API
+ * @param {boolean} force - if true, will ignore the last sync time and get all data
+ * @returns {*} - the readwise data as a JSON object
+ * @see https://readwise.io/api_deets
+ */
 async function getReadwise(force: boolean): Promise<any> {
   const accessToken = DataStore.settings.accessToken ?? ''
   let lastFetchTime = DataStore.loadData(LAST_SYNÇ_TIME, true) ?? ''
@@ -66,7 +74,11 @@ async function getReadwise(force: boolean): Promise<any> {
   }
 }
 
-async function parseBookAndWriteToNote(source): Promise<void> {
+/**
+ * Parses the readwise data and writes it to a note
+ * @param {*} source - the readwise data as a JSON object
+ */
+async function parseBookAndWriteToNote(source: any): Promise<void> {
   try {
     const outputNote: ?TNote = await getOrCreateReadwiseNote(source.title, source.category)
     const useFrontMatter = DataStore.settings.useFrontMatter === 'FrontMatter'
@@ -87,7 +99,12 @@ async function parseBookAndWriteToNote(source): Promise<void> {
   }
 }
 
-function buildReadwiseFrontMatter(source): any {
+/**
+ * Parse readwise data and generate front matter
+ * @param {*} source - the readwise data as a JSON object
+ * @returns
+ */
+function buildReadwiseFrontMatter(source: any): any {
   const frontMatter = {}
   frontMatter.author = `[[${source.author}]]`
   if (source.book_tags !== null) {
@@ -99,12 +116,22 @@ function buildReadwiseFrontMatter(source): any {
   return frontMatter
 }
 
+/**
+ * Formats the note tag using the prefix from plugin settings
+ * @param {string} tag - the tag to format
+ * @returns {string} - the formatted tag
+ */
 function formatTag(tag: string): string {
   const prefix = DataStore.settings.tagPrefix ?? ''
   return `#${prefix}/${tag}`
 }
 
-function createReadwiseMetadataHeading(source): string {
+/**
+ * Creates the metadata heading for the note
+ * @param {*} source - the readwise data as a JSON object
+ * @returns {string} - the formatted heading
+ */
+function createReadwiseMetadataHeading(source: any): string {
   let metadata = `Author: [[${source.author}]]` + '\n'
   if (source.book_tags !== null) {
     metadata += `Tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
@@ -115,6 +142,12 @@ function createReadwiseMetadataHeading(source): string {
   return metadata
 }
 
+/**
+ * Gets or creates the note for the readwise data
+ * @param {string} title - the title of the note
+ * @param {string} category - the category of the note
+ * @returns {TNote} - the note
+ */
 async function getOrCreateReadwiseNote(title: string, category: string): Promise<?TNote> {
   const rootFolder = DataStore.settings.baseFolder ?? 'Readwise'
   let baseFolder = rootFolder
@@ -130,12 +163,19 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
   return outputNote
 }
 
-function appendHighlightToNote(note: TNote, highlight: any, source: string, asin: string): void {
+/**
+ * Appends the highlight with a link to the note
+ * @param {TNote} note - the note to append to
+ * @param {*} highlight - the readwise highlight as a JSON object
+ * @param {string} category - the source of the highlight
+ * @param {string} asin - the asin of the book
+ */
+function appendHighlightToNote(note: TNote, highlight: any, category: string, asin: string): void {
   // remove "- " from the start of the highlight
   const contentWithoutDash = highlight.text.replace(/^- /, '')
   let formatedUrl = ''
 
-  if (source === 'supplemental') {
+  if (category === 'supplemental') {
     formatedUrl = ` [View highlight](${highlight.readwise_url})`
   } else if (asin !== null) {
     formatedUrl = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
