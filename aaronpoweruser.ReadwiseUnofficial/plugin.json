@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
-  "plugin.version": "0.1.2",
+  "plugin.version": "0.1.3",
   "plugin.lastUpdateInfo": "Add front matter support and tag prefix support",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
