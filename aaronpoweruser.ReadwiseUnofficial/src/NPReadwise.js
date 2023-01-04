@@ -22,7 +22,7 @@ export async function readwiseSyncForce(): Promise<void> {
   response.map(parseBookAndWriteToNote)
 }
 
-function checkAccessToken() {
+function checkAccessToken(): void {
   const accessToken = DataStore.settings.accessToken ?? ''
   logDebug(pluginJson, `access token is : ${accessToken}`)
 
@@ -36,7 +36,7 @@ function checkAccessToken() {
 }
 
 // Downloads readwise data
-async function getReadwise(force): Promise<any> {
+async function getReadwise(force: boolean): Promise<any> {
   const accessToken = DataStore.settings.accessToken ?? ''
   let lastFetchTime = DataStore.loadData(LAST_SYNÇ_TIME, true) ?? ''
   if (DataStore.settings.forceSync === 'true' || force === true) {
@@ -59,33 +59,35 @@ async function getReadwise(force): Promise<any> {
 
     const Json = JSON.parse(response)
     log(pluginJson, `Downloaded : ${Json.count} highlights`)
-    
+
     return Json.results
   } catch (error) {
     logError(pluginJson, error)
   }
 }
 
-async function parseBookAndWriteToNote(source) {
+async function parseBookAndWriteToNote(source): Promise<void> {
   try {
-    const outputNote = await getOrCreateReadwiseNote(source.title, source.category)
+    const outputNote: ?TNote = await getOrCreateReadwiseNote(source.title, source.category)
     const useFrontMatter = DataStore.settings.useFrontMatter === 'FrontMatter'
-    if (new Date() - new Date(outputNote?.createdDate) < 2000) {
-      if (!useFrontMatter) {
-        outputNote.addParagraphBelowHeadingTitle(createReadwiseMetadataHeading(source), 'text', 'Metadata', true, true)
+    if (outputNote) {
+      if (new Date() - new Date(outputNote?.createdDate) < 2000) {
+        if (!useFrontMatter) {
+          outputNote?.addParagraphBelowHeadingTitle(createReadwiseMetadataHeading(source), 'text', 'Metadata', true, true)
+        }
+        outputNote?.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
       }
-      outputNote.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
+      if (useFrontMatter) {
+        setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
+      }
+      source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
     }
-    if (useFrontMatter) {
-      setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
-    }
-    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
   } catch (error) {
     logError(pluginJson, error)
   }
 }
 
-function buildReadwiseFrontMatter(source) {
+function buildReadwiseFrontMatter(source): any {
   const frontMatter = {}
   frontMatter.author = `[[${source.author}]]`
   if (source.book_tags !== null) {
@@ -102,7 +104,7 @@ function formatTag(tag: string): string {
   return `#${prefix}/${tag}`
 }
 
-function createReadwiseMetadataHeading(source) {
+function createReadwiseMetadataHeading(source): string {
   let metadata = `Author: [[${source.author}]]` + '\n'
   if (source.book_tags !== null) {
     metadata += `Tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
@@ -113,10 +115,10 @@ function createReadwiseMetadataHeading(source) {
   return metadata
 }
 
-async function getOrCreateReadwiseNote(title, category) {
+async function getOrCreateReadwiseNote(title: string, category: string): Promise<?TNote> {
   const rootFolder = DataStore.settings.baseFolder ?? 'Readwise'
   let baseFolder = rootFolder
-  let outputNote = null
+  let outputNote: ?TNote
   if (DataStore.settings.groupByType === true) {
     baseFolder = `${rootFolder}/${category}`
   }
@@ -128,14 +130,14 @@ async function getOrCreateReadwiseNote(title, category) {
   return outputNote
 }
 
-function appendHighlightToNote(note, highlight, source, asin) {
+function appendHighlightToNote(note: TNote, highlight: any, source: string, asin: string): void {
   // remove "- " from the start of the highlight
   const contentWithoutDash = highlight.text.replace(/^- /, '')
   let formatedUrl = ''
 
   if (source === 'supplemental') {
-    formatedUrl =  ` [View highlight](${highlight.readwise_url})`
-  }  else if (asin !== null) {
+    formatedUrl = ` [View highlight](${highlight.readwise_url})`
+  } else if (asin !== null) {
     formatedUrl = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
   } else if (highlight.url !== null) {
     formatedUrl = ` [View highlight](${highlight.url})`
