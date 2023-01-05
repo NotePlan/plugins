@@ -89,6 +89,14 @@
       "required": true
     },
     {
+      "title": "Add a link to highlight",
+      "key": "showLinkToHighlight",
+      "type": "bool",
+      "description": "Include a link to the source of the highlight in the note.",
+      "default": false,
+      "required": true
+    },
+    {
       "COMMENT": "Enable to force resynching of all highlights",
       "title": "Force sync all highlights",
       "key": "forceSync",

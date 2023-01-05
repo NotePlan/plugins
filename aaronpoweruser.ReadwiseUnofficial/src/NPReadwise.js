@@ -107,7 +107,7 @@ async function parseBookAndWriteToNote(source: any): Promise<void> {
 function buildReadwiseFrontMatter(source: any): any {
   const frontMatter = {}
   frontMatter.author = `[[${source.author}]]`
-  if (source.book_tags !== null) {
+  if (source.book_tags !== null && source.book_tags.length > 0) {
     frontMatter.tags = source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')
   }
   if (source.unique_url !== null) {
@@ -133,7 +133,7 @@ function formatTag(tag: string): string {
  */
 function createReadwiseMetadataHeading(source: any): string {
   let metadata = `Author: [[${source.author}]]` + '\n'
-  if (source.book_tags !== null) {
+  if (source.book_tags !== null && source.book_tags.length > 0) {
     metadata += `Tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
   }
   if (source.unique_url !== null) {
@@ -171,16 +171,18 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
  * @param {string} asin - the asin of the book
  */
 function appendHighlightToNote(note: TNote, highlight: any, category: string, asin: string): void {
-  // remove "- " from the start of the highlight
-  const contentWithoutDash = highlight.text.replace(/^- /, '')
-  let formatedUrl = ''
+  // remove "• " from the start of the highlight
+  const filteredContent = highlight.text.replace(/[•\t.+]/g, '')
+  let linkToHighlightOnWeb = ''
 
-  if (category === 'supplemental') {
-    formatedUrl = ` [View highlight](${highlight.readwise_url})`
-  } else if (asin !== null) {
-    formatedUrl = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
-  } else if (highlight.url !== null) {
-    formatedUrl = ` [View highlight](${highlight.url})`
+  if (DataStore.settings.showLinkToHighlight === true) {
+    if (category === 'supplemental') {
+      linkToHighlightOnWeb = ` [View highlight](${highlight.readwise_url})`
+    } else if (asin !== null) {
+      linkToHighlightOnWeb = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
+    } else if (highlight.url !== null) {
+      linkToHighlightOnWeb = ` [View highlight](${highlight.url})`
+    }
   }
-  note.appendParagraph(contentWithoutDash + formatedUrl, 'list')
+  note.appendParagraph(filteredContent + linkToHighlightOnWeb, 'list')
 }
