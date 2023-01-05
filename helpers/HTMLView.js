@@ -28,7 +28,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (themeNameIn !== '') {
       // get list of available themes
       logDebug('generateCSSFromTheme', String(availableThemeNames))
-      matchingThemeObjs = Editor.availableThemes.filter((f) => (f.name === themeNameIn))
+      matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeNameIn)
       if (matchingThemeObjs.length > 0) {
         themeName = themeNameIn
         logDebug('generateCSSFromTheme', `Reading theme '${themeName}'`)
@@ -41,7 +41,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // If that hasn't worked, they currentTheme
     if (themeName === '') {
       themeName = Editor.currentTheme.name ?? ''
-      themeName = (themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName)
+      themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
       logDebug('generateCSSFromTheme', `Reading your current theme '${themeName}'`)
       if (themeName !== '') {
         themeJSON = Editor.currentTheme.values
@@ -54,8 +54,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // If that hasn't worked, try dark theme
     if (themeName === '') {
       themeName = String(DataStore.preference('themeDark'))
-      themeName = (themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName)
-      matchingThemeObjs = Editor.availableThemes.filter((f) => (f.name === themeName))
+      themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
+      matchingThemeObjs = Editor.availableThemes.filter((f) => f.name === themeName)
       if (matchingThemeObjs.length > 0) {
         logDebug('generateCSSFromTheme', `Reading your dark theme '${themeName}'`)
         themeJSON = matchingThemeObjs[0].values
@@ -83,10 +83,10 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // set global variable
     baseFontSize = Number(DataStore.preference('fontSize')) ?? 14
     // tempSel.push(`color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
-    tempSel.push(`background: ${themeJSON.editor.backgroundColor ?? "#1D1E1F"}`)
+    tempSel.push(`background: ${themeJSON.editor.backgroundColor ?? '#1D1E1F'}`)
     output.push(makeCSSSelector('html', tempSel))
     // rootSel.push(`--fg-main-color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
-    rootSel.push(`--bg-main-color: ${themeJSON.editor.backgroundColor ?? "#1D1E1F"}`)
+    rootSel.push(`--bg-main-color: ${themeJSON.editor.backgroundColor ?? '#1D1E1F'}`)
 
     // Set body:
     // - main font = styles.body.font)
@@ -155,13 +155,12 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // Set core button style from macOS based on dark or light:
     // Similarly for fake-buttons (i.e. from <a href ...>)
-    if (isLightTheme) { // light theme
-      output.push(makeCSSSelector('button',
-        ['background-color: #FFFFFF',
-          'font-size: 1.0rem',
-          'font-weight: 500']))
-      output.push(makeCSSSelector('.fake-button a',
-        ['background-color: #FFFFFF',
+    if (isLightTheme) {
+      // light theme
+      output.push(makeCSSSelector('button', ['background-color: #FFFFFF', 'font-size: 1.0rem', 'font-weight: 500']))
+      output.push(
+        makeCSSSelector('.fake-button a', [
+          'background-color: #FFFFFF',
           'font-size: 1.0rem',
           'font-weight: 500',
           'text-decoration: none',
@@ -169,15 +168,15 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
           'border-radius: 4px',
           'box-shadow: 0 1px 1px #CBCBCB',
           'padding: 1px 7px 1px 7px',
-          'margin: 1px 4px']))
-    }
-    else { // dark theme
-      output.push(makeCSSSelector('button',
-        ['background-color: #5E5E5E',
-          'font-size: 1.0rem',
-          'font-weight: 500']))
-      output.push(makeCSSSelector('.fake-button a',
-        ['background-color: #5E5E5E',
+          'margin: 1px 4px',
+        ]),
+      )
+    } else {
+      // dark theme
+      output.push(makeCSSSelector('button', ['background-color: #5E5E5E', 'font-size: 1.0rem', 'font-weight: 500']))
+      output.push(
+        makeCSSSelector('.fake-button a', [
+          'background-color: #5E5E5E',
           'font-size: 1.0rem',
           'font-weight: 500',
           'text-decoration: none',
@@ -185,7 +184,9 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
           'border-radius: 4px',
           'box-shadow: 0 -1px 1px #6F6F6F',
           'padding: 1px 7px 1px 7px',
-          'margin: 1px 4px']))
+          'margin: 1px 4px',
+        ]),
+      )
     }
 
     // Set bold text if present
@@ -309,17 +310,19 @@ export function textDecorationFromNP(selector: string, value: number): string {
   } else if (selector === 'strikethroughStyle') {
     switch (value) {
       case 1: {
-        return "text-decoration: line-through"
+        return 'text-decoration: line-through'
       }
-      case 9: { // double
-        return "text-decoration: line-through double"
+      case 9: {
+        // double
+        return 'text-decoration: line-through double'
       }
-      case 513: { // dashed
-        return "text-decoration: line-through dashed"
+      case 513: {
+        // dashed
+        return 'text-decoration: line-through dashed'
       }
       default: {
         logWarn('textDecorationFromNP', `No matching CSS found for style strikethrough value '${value}'`)
-        return ""
+        return ''
       }
     }
   } else {
@@ -355,8 +358,7 @@ function RGBColourConvert(RGBIn: string): string {
       output = `#${RGBIn.slice(3, 9)}${RGBIn.slice(1, 3)}`
     }
     return output
-  }
-  catch (error) {
+  } catch (error) {
     logError('RGBColourConvert', `${error.message} for RGBIn '${RGBIn}'`)
     return '#888888' // for completeness
   }
@@ -499,6 +501,72 @@ function makeCSSSelector(selector: string, settingsArray: Array<string>): string
   return outputArray.join('\n')
 }
 
+export type HtmlWindowOptions = {
+  headerTags?: string,
+  generalCSSIn?: string,
+  specificCSS?: string,
+  makeModal?: boolean,
+  preBodyScript?: string,
+  postBodyScript?: string,
+  savedFilename?: string,
+  width?: number,
+  height?: number,
+}
+
+/**
+ * This function creates the webkit message handler for an action in HTML sending data back to the plugin. Generally passed through to showHTMLWindow as part of the pre or post body script.
+ * @param {*} commandName - the *name* of the plugin command to be called (not the jsFunction) -- THIS NAME MUST BE ONE WORD, NO SPACES - generally a good idea for name/jsFunction to be the same for callbacks
+ * @param {*} pluginID - the plugin ID
+ * Note re: commandArgs - in the HTML/JS code, pass an array of values to be passed into the plugin command callback
+ * @example
+ * You could create one of these callbacks for each HTML element that needs to send data back to the plugin. However, that requires a lot of boilerplate code (in plugin.json, index.html, and your plugin file).
+ * Alternatively, you could have one callback (onHTMLWindowAction) for multiple HTML elements, and the first argument could be the name of the action to be taken in the plugin
+ * const cb = getCallbackCodeString('onHTMLWindowAction', 'dwertheimer.myplugin')
+ * const myButton = `<button id="foo" onclick="onHTMLWindowAction(['colorWasPicked', document.getElementById('colorPicker').value])">Select this color</button>`
+ * showHTMLWindow('Test', `<p>Test</p>${myButton}`, { savedFilename: 'test.html', postBodyScript: cb })
+ * ...The HTML element in your HTML (myButton in this example) passes a static variable/string or the value of something in the HTML to the callback onClick
+ * @returns
+ */
+export function getCallbackCodeString(commandName: string, pluginID: string): string {
+  const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
+
+  return `
+    const ${commandName} = (commandArgs = []) => {
+      console.log("Sending command to NotePlan: ${commandName} with args: ", commandArgs);
+      window.webkit.messageHandlers.jsBridge.postMessage({
+        code: ${haveNotePlanExecute}.replace("%%commandArgs%%", JSON.stringify(commandArgs)),
+        onHandle: "onHandleuUpdateNoteCount",
+        id: "1"
+      });
+    };`
+}
+
+/**
+ * Convenience function for opening HTML Window with as few arguments as possible
+ * @param {string} windowTitle - (required) window title
+ * @param {string} body - (required) body HTML code
+ * @param {HtmlWindowOptions} opts - (optional) options: {headerTags, generalCSSIn, specificCSS, makeModal, preBodyScript, postBodyScript, savedFilename, width, height}
+ * Notes: if opts.generalCSSIn is not supplied, then CSS will be generated based on the user's current theme.
+ * If you want to save the HTML to a file for debugging, then you should supply opts.savedFilename (it will be saved in the plugin's data/<plugin.id> folder).
+ * Your script code in pre-body or post-body do not need to be wrapped in <script> tags.
+ * @example showHTMLWindow("Test", "<p>Test</p>", {savedFilename: "test.html"})
+ */
+export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWindowOptions) {
+  showHTML(
+    windowTitle,
+    opts.headerTags ?? '',
+    body,
+    opts.generalCSSIn ?? '',
+    opts.specificCSS ?? '',
+    opts.makeModal ?? false,
+    opts.preBodyScript ?? '',
+    opts.postBodyScript ?? '',
+    opts.savedFilename ?? '',
+    opts.width,
+    opts.height,
+  )
+}
+
 /**
  * Helper function to construct HTML to show in a new window
  * @param {string} windowTitle
@@ -528,6 +596,7 @@ export function showHTML(
   height?: number,
 ): void {
   try {
+    const scriptTag = '<script type="text/javascript">\n'
     const fullHTML = []
     fullHTML.push('<!DOCTYPE html>') // needed to let emojis work without special coding
     fullHTML.push('<html>')
@@ -542,21 +611,25 @@ export function showHTML(
     fullHTML.push(specificCSS)
     fullHTML.push('</style>')
     if (preBodyScript !== '') {
-      fullHTML.push('\n')
+      const hasScriptTag = preBodyScript.includes('<script')
+      fullHTML.push(hasScriptTag ? '\n' : scriptTag)
       fullHTML.push(preBodyScript)
-      fullHTML.push('\n')
+      fullHTML.push(hasScriptTag ? '\n' : '\n</script>\n')
     }
     fullHTML.push('</head>')
     fullHTML.push('\n<body>')
     fullHTML.push(body)
     fullHTML.push('\n</body>')
     if (postBodyScript !== '') {
-      fullHTML.push('\n')
+      const hasScriptTag = postBodyScript.includes('<script')
+      fullHTML.push(hasScriptTag ? '\n' : scriptTag)
       fullHTML.push(postBodyScript)
-      fullHTML.push('\n')
+      fullHTML.push(hasScriptTag ? '\n' : '\n</script>\n')
     }
     fullHTML.push('</html>')
     const fullHTMLStr = fullHTML.join('\n')
+
+    logDebug(pluginJson, `showHTML filenameForSavedFileVersion="${filenameForSavedFileVersion}"`)
 
     // Call the appropriate function, with or without h/w params.
     // Currently non-modal windows only available on macOS and from 3.7 (build 864)
@@ -585,7 +658,7 @@ export function showHTML(
       if (res) {
         logDebug('showHTML', `Saved resulting HTML '${windowTitle}' to ${filenameForSavedFileVersion} as well.`)
       } else {
-        logError('showHTML', `Couoldn't save resulting HTML '${windowTitle}'  to ${filenameForSavedFileVersion} as well.`)
+        logError('showHTML', `Couoldn't save resulting HTML '${windowTitle}'  to ${filenameForSavedFileVersion}.`)
       }
     }
   } catch (error) {
@@ -618,13 +691,13 @@ export function makeSVGPercentRing(percent: number, color: string, textToShow: s
  * Create an interpolated colour from red (0%) to green (100%), passing through yellow.
  * Note: not using quite pure red to pure green, to make it less harsh, and spending more time from red to yellow than yellow to green, to make it look better.
  * Tweaked from https://stackoverflow.com/a/6394340/3238281
- * @param {number} percent 
+ * @param {number} percent
  * @returns {string} #RRGGBB value
  */
 export function redToGreenInterpolation(percent: number): string {
   // Work out colour ranges from nearly pure red to nearly full green, passing through yellow
-  const red = (percent > 60 ? 1 - 2 * (percent - 60) / 100.0 : 1.0) * 223
-  const green = (percent > 40 ? 1.0 : 2 * percent / 100.0) * 187 // 223
+  const red = (percent > 60 ? 1 - (2 * (percent - 60)) / 100.0 : 1.0) * 223
+  const green = (percent > 40 ? 1.0 : (2 * percent) / 100.0) * 187 // 223
   const blue = Math.abs(50.0 - percent) // add some blue increasingly at both red and green ends
   return rgbToHex(Math.round(red), Math.round(green), Math.round(blue))
 }
@@ -632,12 +705,12 @@ export function redToGreenInterpolation(percent: number): string {
 /**
  * Create '#RRGGBB' string from RGB values each from 0-255
  * From https://stackoverflow.com/a/5624139/3238281
- * @param {number} r 
- * @param {number} g 
- * @param {number} b 
+ * @param {number} r
+ * @param {number} g
+ * @param {number} b
  * @returns {string} #RRGGBB value
  */
 export function rgbToHex(r: number, g: number, b: number): string {
   // eslint-disable-next-line prefer-template
-  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)
 }
