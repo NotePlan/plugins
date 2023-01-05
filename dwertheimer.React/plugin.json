@@ -1,0 +1,93 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "dwertheimer.React",
+  "plugin.name": "🧩 React Test",
+  "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "Describe this update",
+  "plugin.description": "React Testing",
+  "plugin.author": "dwertheimer",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.React/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.React/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "name": "React Test",
+      "description": "React version",
+      "jsFunction": "reactTest",
+      "alias": [
+      ],
+      "arguments": [
+      ]
+    },
+    {
+      "name": "callbackTest",
+      "description": "callbackTest",
+      "jsFunction": "callbackTest",
+      "alias": [
+      ],
+      "arguments": [
+      ]
+    },
+    {
+      "name": "PReact Test",
+      "description": "PReact version",
+      "jsFunction": "preactTest",
+      "alias": [
+      ],
+      "arguments": [
+      ]
+    },
+    {
+      "name": "onOpen",
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "jsFunction": "onOpen",
+      "hidden": true
+    },
+    {
+      "name": "onEditorWillSave",
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "jsFunction": "onEditorWillSave",
+      "hidden": true
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "React Test Settings"
+    },
+    {
+      "title": "A string in prefs",
+      "key": "settingsString",
+      "type": "string",
+      "description": "Enter some string and see it change when the plugin is run",
+      "default": "This default setting was set in plugin preferences!"
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing React Test commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}
