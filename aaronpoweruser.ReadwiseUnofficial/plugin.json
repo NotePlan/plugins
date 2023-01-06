@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
-  "plugin.version": "0.1.2",
-  "plugin.lastUpdateInfo": "Bugfix: Add missing highlight header",
+  "plugin.version": "0.1.3",
+  "plugin.lastUpdateInfo": "Add front matter support and tag prefix support",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
   "plugin.dependencies": [],
@@ -17,6 +17,15 @@
       "name": "Readwise sync",
       "description": "Sync Readwise highlights",
       "jsFunction": "readwiseSync"
+    },
+    {
+      "name": "Readwise force sync",
+      "description": "Sync Readwise highlights",
+      "jsFunction": "readwiseSyncForce",
+      "alias": [
+        "rwfs"
+      ],
+      "hidden": true
     },
     {
       "name": "onOpen",
@@ -46,20 +55,46 @@
       "default": ""
     },
     {
-      "title": "Folder name",
+      "title": "Note folder",
       "key": "baseFolder",
       "type": "string",
-      "description": "The folder name to store all highlights in",
+      "description": "The folder to store all highlights in",
       "default": "Readwise"
     },
     {
-      "COMMENT": "TODO: This should be a bool but doesn't work",
+      "title": "Tag Prefix",
+      "key": "tagPrefix",
+      "type": "string",
+      "description": "Prefix for Readwise tags",
+      "default": "Readwise"
+    },
+    {
+      "title": "Metadata format",
+      "key": "useFrontMatter",
+      "type": "string",
+      "description": "FrontMatter will store the metadata in the front matter of the note. Heading will store the metadata in a heading in the note.",
+      "choices": [
+        "FrontMatter",
+        "Heading"
+      ],
+      "default": "FrontMatter",
+      "required": true
+    },
+    {
       "title": "Group by type",
       "key": "groupByType",
-      "type": "string",
+      "type": "bool",
       "description": "Group all highlights in under the readwise folder or having them separated by content type ie readwise/books, readwise/articles.",
-      "default": "false",
-      "required": false
+      "default": true,
+      "required": true
+    },
+    {
+      "title": "Add a link to highlight",
+      "key": "showLinkToHighlight",
+      "type": "bool",
+      "description": "Include a link to the source of the highlight in the note.",
+      "default": false,
+      "required": true
     },
     {
       "COMMENT": "Enable to force resynching of all highlights",
