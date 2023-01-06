@@ -146,8 +146,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set core table features from theme
     const altColor = RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30'
     const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
-    output.push(makeCSSSelector('tr:nth-child(even)', [`background-color: ${altColor}`]))
-    output.push(makeCSSSelector('th', [`background-color: ${altColor}`]))
+    // output.push(makeCSSSelector('table th', [`background-color: ${altColor}`]))
+    output.push(makeCSSSelector('tbody > tr:nth-child(odd)', [`background-color: ${altColor}`])) // i.e. won't apply to rows in thead
     rootSel.push(`--bg-alt-color: ${altColor}`)
     output.push(makeCSSSelector('table tbody tr:first-child', [`border-top: 1px solid ${tintColor}`]))
     output.push(makeCSSSelector('table tbody tr:last-child', [`border-bottom: 1px solid ${RGBColourConvert(themeJSON.editor?.tintColor)}` ?? '1px solid #E9C0A2']))
@@ -156,27 +156,28 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set core button style from macOS based on dark or light:
     // Similarly for fake-buttons (i.e. from <a href ...>)
     if (isLightTheme) {
-      // light theme
-      output.push(makeCSSSelector('button', ['background-color: #FFFFFF', 'font-size: 1.0rem', 'font-weight: 500']))
-      output.push(
-        makeCSSSelector('.fake-button a', [
-          'background-color: #FFFFFF',
+      output.push(makeCSSSelector('button',
+        ['background-color: #FFFFFF',
           'font-size: 1.0rem',
+          'font-weight: 500']))
+      output.push(makeCSSSelector('.fake-button a',
+        ['background-color: #FFFFFF',
+//          'font-size: 1.0rem',
           'font-weight: 500',
           'text-decoration: none',
           'border-color: #DFE0E0',
           'border-radius: 4px',
           'box-shadow: 0 1px 1px #CBCBCB',
           'padding: 1px 7px 1px 7px',
-          'margin: 1px 4px',
-        ]),
-      )
-    } else {
-      // dark theme
-      output.push(makeCSSSelector('button', ['background-color: #5E5E5E', 'font-size: 1.0rem', 'font-weight: 500']))
-      output.push(
-        makeCSSSelector('.fake-button a', [
-          'background-color: #5E5E5E',
+          'margin: 2px 4px']))
+    }
+    else { // dark theme
+      output.push(makeCSSSelector('button',
+        ['background-color: #5E5E5E',
+          'font-size: 1.0rem',
+          'font-weight: 500']))
+      output.push(makeCSSSelector('.fake-button a',
+        ['background-color: #5E5E5E',
           'font-size: 1.0rem',
           'font-weight: 500',
           'text-decoration: none',
@@ -213,7 +214,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#098308A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.task-checked', tempSel))
+      output.push(makeCSSSelector('.checked', tempSel))
     }
 
     // Set class for cancelled tasks ('checked-canceled') if present
@@ -223,7 +224,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#E04F57A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.task-cancelled', tempSel))
+      output.push(makeCSSSelector('.cancelled', tempSel))
     }
 
     // Set class for scheduled tasks ('checked-scheduled') if present
@@ -354,7 +355,7 @@ function RGBColourConvert(RGBIn: string): string {
     // default to just passing the colour through, unless
     // we have ARGB, so need to switch things round
     let output = RGBIn
-    if (RGBIn.match(/#[0-9A-Fa-f]{8}/)) {
+    if (RGBIn != null && RGBIn.match(/#[0-9A-Fa-f]{8}/)) {
       output = `#${RGBIn.slice(3, 9)}${RGBIn.slice(1, 3)}`
     }
     return output
@@ -678,13 +679,22 @@ export function showHTML(
  * @returns {string} SVG code to insert in HTML
  */
 export function makeSVGPercentRing(percent: number, color: string, textToShow: string, ID: string): string {
-  return `
-  <svg id="pring${ID}" class="percent-ring" height="200" width="200" viewBox="0 0 100 100" onload="setPercentRing(${percent}, 'pring${ID}');">
+  return `<svg id="pring${ID}" class="percent-ring" height="200" width="200" viewBox="0 0 100 100" onload="setPercentRing(${percent}, 'pring${ID}');">
     <circle class="percent-ring-circle" stroke="${color}" stroke-width=12% fill="transparent" r=40% cx=50% cy=50% />
     <g class="circle-percent-text" color=${color}>
     <text class="circle-percent-text" x=50% y=53% dominant-baseline="middle" text-anchor="middle" fill="currentcolor" stroke="currentcolor">${textToShow}</text>
     </g>
-  </svg>\n`
+  </svg>`
+}
+
+/**
+ * Draw pause icon (adapted on https://www.svgrepo.com/svg/135248/pause)
+ * Note: not animated, and doesn't need any following call to activate.
+ * @returns {string} SVG code to insert in HTML
+ */
+export function makeSVGPauseIcon(): string {
+  return `<svg id="pause" x="0px" y="0px"
+	 viewBox="0 0 58 58" style="enable-background:new 0 0 58 58;" xml:space="preserve"><circle style="fill:#979797;" cx="29" cy="29" r="29"/><g><rect x="17" y="18" style="fill:#FFFFFF;" width="8" height="22"/></g><g><rect x="33" y="18" style="fill:#FFFFFF;" width="8" height="22"/></g></svg>`
 }
 
 /**

@@ -2,10 +2,12 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 5.10.2022 for v0.8.0-beta, @jgclark
+// Last updated 21.10.2022 for v0.9.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
+import fm from 'front-matter'
+import moment from 'moment/min/moment-with-locales'
 import {
   getReviewSettings,
   logPreference,
@@ -13,65 +15,78 @@ import {
 } from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
 import {
-  hyphenatedDateString,
+  getTodaysDateHyphenated,
   nowLocaleDateTime,
   RE_DATE,
 } from '@helpers/dateTime'
-import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import {
+  clo, JSP, logDebug, logError, logInfo, logWarn,
+  overrideSettingsWithStringArgs,
+  timer
+} from '@helpers/dev'
 import {
   getFilteredFolderList,
 } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
+import { showHTML } from '@helpers/HTMLView'
 import {
   findNotesMatchingHashtag,
   findNotesMatchingHashtags,
   getOrMakeNote,
 } from '@helpers/note'
+import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import {
   showMessage,
   showMessageYesNo,
 } from '@helpers/userInput'
+import { fieldSorter, sortListBy } from '@helpers/sorting'
+import {
+  renderProjectListsHTML,
+  renderProjectListsMarkdown,
+} from "./projectLists"
 
 //-----------------------------------------------------------------------------
 
 // Settings
 const reviewListPref = 'jgclark.Reviews.reviewList'
+const fullReviewListFilename = 'full-review-list.md'
+const fullReviewJSONFilename = 'full-review-list.json'
 
 //-------------------------------------------------------------------------------
 
 /**
- * Log the machine-readable list of notes to review
+ * Log the machine-readable list of project-type notes
  * @author @jgclark
  */
-export function logReviewList(): void{
-  logPreference(reviewListPref)
+export function logFullReviewList(): void {
+  const content = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
+  console.log(`Contents of ${fullReviewListFilename}:\n${content}`)
 }
 
 /**
- * Generate machine-readable list of project-type notes ready for review,
- * ordered by oldest next review date.
- * This is V2, which uses reviewList pref to store the list
+ * Generate machine-readable list of all project-type notes,
+ * ordered by the setting 'displayOrder', optionally also pre-ordered by 'folder'.
+ * This is V3, which uses Plugins/data/jgclark.Reviews/full-review-list.md to store the list
  * @author @jgclark
  */
-export async function makeReviewList(runInForeground: boolean = false): Promise<void> {
+export async function makeFullReviewList(runInForeground: boolean = false): Promise<void> {
   try {
     const config = await getReviewSettings()
+    logDebug('makeFullReviewList', `Starting for ${config.noteTypeTags.toString()} tags:`)
 
     // Get list of folders, excluding @specials and our foldersToIgnore setting
     const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true)
-    const summaryArray = []
-
-    logDebug('makeReviewList', `starting for ${config.noteTypeTags.toString()} tags:`)
 
     if (runInForeground) {
-      CommandBar.showLoading(true, `Generating Project Review list`)
+      CommandBar.showLoading(true, `Generating full Project Review list`)
       await CommandBar.onAsyncThread()
     }
 
-    const startTime = new Date()
     // Iterate over the folders ...
     // ... but ignoring any in the config.foldersToIgnore list
+    const startTime = new Date()
+    const projectInstances = []
     for (const folder of filteredFolderList) {
       // Either we have defined tag(s) to filter and group by, or just use ''
       const tags = (config.noteTypeTags != null && config.noteTypeTags.length > 0)
@@ -80,53 +95,144 @@ export async function makeReviewList(runInForeground: boolean = false): Promise<
 
       // Get notes that include noteTag in this folder, ignoring subfolders
       const projectNotesArrArr = findNotesMatchingHashtags(tags, folder, false)
-      const projectsReadyToReview = []
       for (const pnarr of projectNotesArrArr) {
         if (pnarr.length > 0) {
           // Get Project class representation of each note.
           // Save those which are ready for review in projectsReadyToReview array
           for (const n of pnarr) {
             const np = new Project(n)
-            if (np.isReadyForReview && !config.foldersToIgnore.includes(np.folder)) {
-              projectsReadyToReview.push(np)
-            }
+            // Further check to see whether to exclude archived projects
+            // TODO: This will need thought -- does it still make sense?
+            // if (config.displayArchivedProjects) {
+              projectInstances.push(np)
+            // }
           }
-        }
-        // For each readyToReview note get the machine-readable summary line for it
-        for (const thisProject of projectsReadyToReview) {
-          summaryArray.push(thisProject.machineSummaryLine())
-          // logDebug(pluginJson, `-> ${thisProject.machineSummaryLine()}`)
         }
       }
     }
-    logDebug(pluginJson, `- ${Number(config.noteTypeTags.length * filteredFolderList.length)} folder/tag combinations reviewed in ${timer(startTime)}s`)
     if (runInForeground) {
       await CommandBar.onMainThread()
       CommandBar.showLoading(false)
     }
 
-    // dedupe the list, in case it contains duplicates
-    const dedupedArray = []
-    summaryArray.forEach((element) => {
-      if (!dedupedArray.includes(element)) {
-        dedupedArray.push(element)
-      }
-    })
+    // Write to JSON file (an option I thought about)
+    // const outputJSON = JSON.stringify(projectInstances, null, 1)
+    // DataStore.saveData(outputJSON, fullReviewJSONFilename, true)
+    // logDebug(`makeFullReviewList`, `written to ${fullReviewJSONFilename}`)
 
-    // sort the list by first field
-    const outputArray = dedupedArray.slice().sort((first, second) =>
-      Number(first.split('\t')[0]) - Number(second.split('\t')[0]))
+    // Get machineSummaryLine for each of the projectInstances
+    let reviewLines = []
+    let lineArrayObjs = []
+    logDebug('makeFullReviewList', `- Starting loop for ${projectInstances.length} projectInstances`)
+    for (const p of projectInstances) {
+      const mSL = p.machineSummaryLine()
+      reviewLines.push(mSL)
+      const mSLFields = mSL.split('\t')
+      lineArrayObjs.push({
+        'reviewDays': mSLFields[0],
+        'dueDays': mSLFields[1],
+        'title': mSLFields[2],
+        'folder': mSLFields[3],
+        'tags': mSLFields[4],
+      })
+    }
 
-    // write summary to reviewList pref
-    DataStore.setPreference(reviewListPref, outputArray.join('\n'))
-    logReviewList()
-    // logInfo(pluginJson, `-> Now ${outputArray.length} lines in the reviewListPref`)
+    // sort the output list by the fields we want, and add frontmatter
+    const outputArray = sortAndFormFullReviewList(reviewLines, config)
 
+    // write summary to full-review-list file
+    DataStore.saveData(outputArray.join('\n'), fullReviewListFilename, true)
+    logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
+    // logFullReviewList()
   }
   catch (error) {
-    logError(pluginJson, `makeReviewList: ${error.message}`)
+    logError(pluginJson, `makeFullReviewList: ${error.message}`)
   }
 }
+
+/**
+ * Take a set of machineSummaryLines, sort them according to config, and then add frontmatter
+ * @param {Array<string>} linesIn 
+ * @param {any} config 
+ * @returns {Array<string>} outputArray
+ */
+function sortAndFormFullReviewList(linesIn: Array<string>, config: any): Array<string> {
+  try {
+    logDebug('sortAndFormFullReviewList', `Started:`)
+    const outputArray = []
+    const lineArrayObjs = []
+
+    // Method 3: use DW fieldSorter() function
+    // Requires turning each TSV line into an Object (above)
+    const sortingSpecification = []
+    if (config.displayGroupedByFolder) {
+      sortingSpecification.push('folder')
+    }
+    switch (config.displayOrder) {
+      case 'review': {
+        sortingSpecification.push('reviewDays')
+        break
+      }
+      case 'due': {
+        sortingSpecification.push('dueDays')
+        break
+      }
+      case 'title': {
+        sortingSpecification.push('title')
+        break
+      }
+    }
+
+    // turn each TSV string into an object
+    for (const line of linesIn) {
+      const fields = line.split('\t')
+      lineArrayObjs.push({
+        'reviewDays': fields[0],
+        'dueDays': fields[1],
+        'title': fields[2],
+        'folder': fields[3],
+        'tags': fields[4],
+      })
+    }
+
+    logDebug('sortAndFormFullReviewList', `- sorting by ${String(sortingSpecification)}`)
+    const sortedlineArrayObjs = sortListBy(lineArrayObjs, sortingSpecification)
+
+    // turn each lineArrayObj back to a TSV string
+    for (let lineObj of sortedlineArrayObjs) {
+      outputArray.push(lineObj.reviewDays + '\t' + lineObj.dueDays + '\t' + lineObj.title + '\t' + lineObj.folder + '\t' + lineObj.tags)
+    }
+
+    // Method 2: use lodash _.orderBy() function
+    // Requires turning each TSV line into an Object (above)
+    // Note: Crashes for some reason neither DW or I can understand.
+    // clo(lineArrayObjs, "Before orderBy")
+    // if (lineArrayObjs) {
+    //   lineArrayObjs = orderBy(lineArrayObjs, ['folder', 'reviewDays'], ['asc', 'asc'])
+    //   clo(lineArrayObjs, "After orderBy")
+    // }
+    // // turn lineArrayObjs back to a TSV string
+    // for (let lineObj of lineArrayObjs) {
+    //   outputArray.push(lineObj.reviewDays + '\t' + lineObj.dueDays + '\t' + lineObj.title + '\t' + lineObj.folder + '\t' + lineObj.tags)
+    // }
+
+    // Write some metadata to start
+    outputArray.unshift("---")
+    outputArray.unshift(`key: revDays\tdueDays\ttitle\tfolder\ttags`)
+    outputArray.unshift(`date: ${moment().format()}`)
+    outputArray.unshift("title: full-review-list")
+    outputArray.unshift("---")
+    // clo(outputArray, '- returning outputArray:')
+
+    return outputArray
+  }
+  catch (error) {
+    logError('sortAndFormFullReviewList', error.message)
+    return [] // for completeness
+  }
+}
+
+// --------------------------------------------------------------------
 
 /**
  * Start a series of project reviews.
@@ -140,7 +246,7 @@ export async function startReviews(): Promise<void> {
     const config = await getReviewSettings()
 
     // Make/update list of projects ready for review
-    await makeReviewList(true)
+    await makeFullReviewList(true)
 
     // Now offer first review
     const noteToReview = await getNextNoteToReview()
@@ -148,106 +254,141 @@ export async function startReviews(): Promise<void> {
     if (noteToReview != null) {
       if (config.confirmNextReview) {
         const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-        if (res === 'OK') {
-          logDebug(pluginJson, `Opening '${displayTitle(noteToReview)}' note to review (from startReviews)`)
-          await Editor.openNoteByFilename(noteToReview.filename)
+        if (res !== 'OK') {
+          return
         }
-      } else {
-        logDebug(pluginJson, `Opening '${displayTitle(noteToReview)}' note to review (from startReviews)`)
-        await Editor.openNoteByFilename(noteToReview.filename)
       }
+      logInfo('startReviews', `Opening '${displayTitle(noteToReview)}' note to review ...`)
+      await Editor.openNoteByFilename(noteToReview.filename)
     } else {
-      logInfo(pluginJson, '  🎉 No notes to review!')
+      logInfo('startReviews', '🎉 No notes to review!')
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
     }
   }
   catch (error) {
-    logError(pluginJson, `startReviews: ${error.message}`)
+    logError('startReviews', error.message)
   }
 }
 
 //-------------------------------------------------------------------------------
 /**
- * Complete current review, then jump to the next one to review
+ * Complete current review, then open the next one to review in the Editor.
  * @author @jgclark
 */
 export async function nextReview(): Promise<void> {
   try {
-    logDebug(pluginJson, 'nextReview: starting')
     const config = await getReviewSettings()
+    const currentNote = Editor.note
+    if (currentNote != null && currentNote.type == 'Notes') {
+      logInfo(pluginJson, `nextReview: Starting for ${displayTitle(currentNote)}`)
 
-    // First update @review(date) on current open note
-    const openNote: ?TNote = await finishReview()
+      // First update @review(date) on current open note
+      // Also updates the full-review-list
+      const openNote: ?TNote = await finishReview()
+    } else {
+      logWarn('nextReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
+    }
 
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
-
     if (noteToReview != null) {
       if (config.confirmNextReview) {
         // Check whether to open that note in editor
         const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
-        if (res === 'OK') {
-          logInfo(pluginJson, `Opening '${displayTitle(noteToReview)}' note to review`)
-          await Editor.openNoteByFilename(noteToReview.filename)
+        if (res !== 'OK') {
+          return
         }
-      } else {
-        logInfo(pluginJson, `Opening '${displayTitle(noteToReview)}' note to review`)
-        await Editor.openNoteByFilename(noteToReview.filename)
       }
+      logInfo('nextReview', `- Opening '${displayTitle(noteToReview)}' as nextReview note ...`)
+      await Editor.openNoteByFilename(noteToReview.filename)
     } else {
-      logInfo(pluginJson, `🎉 No more notes to review!`)
+      logInfo('nextReview', `- 🎉 No more notes to review!`)
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
     }
   }
   catch (error) {
-    logError(pluginJson, `nextReview: ${error.message}`)
+    logError('nextReview', error.message)
   }
 }
 
 //-------------------------------------------------------------------------------
 /**
- * Update the review list after completing a review
+ * Update the full-review-list after completing a review or completing/cancelling a whole project.
+ * Note: Called by functions nextReview, completeProject, cancelProject.
  * @author @jgclark
- * @param {TNote} note that has been reviewed
+ * @param {string} title of note that has been reviewed
+ * @param {boolean} simplyDelete the project line?
+ * @param {any} config
+ * @param {string?} updatedMachineSummaryLine to write to full-review-list (optional)
 */
-export async function updateReviewListAfterReview(note: TNote): Promise<void> {
+export async function updateReviewListAfterChange(reviewedTitle: string, simplyDelete: boolean, configIn: any, updatedMachineSummaryLine: string = ''): Promise<void> {
   try {
-    const reviewedTitle = note.title ?? ''
-    logDebug(pluginJson, `updateReviewListAfterReview: Removing '${reviewedTitle}' from review list`)
-
-    // Get pref that contains the project list
-    let reviewList = DataStore.preference(reviewListPref)
-    if (reviewList === undefined) {
-      logDebug(pluginJson, `Can't find pref ${reviewListPref}. Will run makeReviewList() ...`)
-      await makeReviewList(false)
-      return
+    if (reviewedTitle === '') {
+      throw new Error('Empty title passed.')
     }
+    logInfo('updateReviewListAfterChange', `Updating full-review-list for '${reviewedTitle}' -> ${String(simplyDelete)} / '${updatedMachineSummaryLine}'`)
 
-    // Now read contents and parse, this time as lines
-    const lines = checkString(reviewList).split('\n')
-    logDebug(pluginJson, `- (pref: has ${lines.length} items, starting ${lines[0]})`)
-    let lineNum: number // deliberately undefined
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-      if (line.match(reviewedTitle)) {
-        logDebug(pluginJson, `- Found '${reviewedTitle}' in line '${line}' at line number ${i}`)
-        lineNum = i
+    // Get contents of full-review-list
+    let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
+    if (!reviewListContents) {
+      // Try to make the full-review-list
+      await makeFullReviewList(true)
+      reviewListContents = DataStore.loadData(fullReviewListFilename, true)
+      if (!reviewListContents) {
+        // If still no luck, throw an error
+        throw new Error('full-review-list note empty or missing')
+      }
+    }
+    const fileLines = reviewListContents.split('\n')
+
+    // Use front-matter library to get past frontmatter
+    const fmObj = fm(reviewListContents)
+    let reviewLines = fmObj.body.split('\n')
+    // const firstLineAfterFrontmatter = fmObj.bodyBegin - 1
+
+    // Find right line to update
+    let thisLineNum: number = NaN
+    let thisTitle = ''
+    // for (let i = firstLineAfterFrontmatter; i < fileLines.length; i++) {
+    for (let i = 0; i < reviewLines.length; i++) {
+      // const line = fileLines[i]
+      const line = reviewLines[i]
+      // check for title match just using field 3
+      const titleField = line.split('\t')[2] ?? ''
+      if (titleField === reviewedTitle) {
+        thisLineNum = i
+        thisTitle = reviewedTitle
+        // logDebug('updateReviewListAfterChange', `- Found '${reviewedTitle}' to update from '${line}' at line number ${i}`)
         break
       }
     }
 
-    if (lineNum !== undefined) {
-      lines.splice(lineNum, 1) // delete this one line
-      DataStore.setPreference(reviewListPref, lines.join('\n'))
-      logDebug(pluginJson, `- Removed line ${lineNum} from reviewList pref as its review is completed`)
+    // update (or delete) the note's summary in the full-review-list
+    // Note: this was ?always? failing at one point
+    if (!isNaN(thisLineNum)) {
+      if (simplyDelete) {
+        // delete line 'thisLineNum'
+        reviewLines.splice(thisLineNum, 1)
+        const outputLines = sortAndFormFullReviewList(reviewLines, configIn)
+        DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true) // OK to here
+      } else {
+        // update this line in the full-review-list
+        reviewLines[thisLineNum] = updatedMachineSummaryLine
+        // re-form the file
+        const outputLines = sortAndFormFullReviewList(reviewLines, configIn)
+        DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
+      }
     } else {
-      logDebug(pluginJson, `- Couldn't find '${reviewedTitle}' to remove from review list. Will run makeReviewList ...`)
-      await makeReviewList(false)
+      logWarn('updateReviewListAfterChange', `- Can't find '${reviewedTitle}' to update in full-review-list. Will run makeFullReviewList ...`)
+      await makeFullReviewList(false)
       return
     }
+
+    // New: now we can refresh the rendered views as well, but don't open the windows unless they're already open
+    await redisplayProjectList()
   }
   catch (error) {
-    logError(pluginJson, `updateReviewListAfterReview: ${error.message}`)
+    logError('updateReviewListAfterChange', error.message)
   }
 }
 
@@ -259,28 +400,40 @@ export async function updateReviewListAfterReview(note: TNote): Promise<void> {
  */
 async function getNextNoteToReview(): Promise<?TNote> {
   try {
-    // Get pref that contains the project list
-    let reviewList = DataStore.preference(reviewListPref)
-    if (reviewList === undefined) {
-      logWarn(pluginJson, `getNextNoteToReview: Couldn't find pref ${reviewListPref}. Please run /rev:makeReviewList ...`)
-      await makeReviewList(true)
-      reviewList = DataStore.preference(reviewListPref)
-      return
+    logDebug('getNextNoteToReview', `Started`)
+
+    // Get contents of full-review-list
+    let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
+    if (!reviewListContents) {
+      // Try to make the full-review-list
+      await makeFullReviewList(true)
+      reviewListContents = DataStore.loadData(fullReviewListFilename, true)
+      if (!reviewListContents) {
+        // If still no luck, throw an error
+        throw new Error('full-review-list note empty or missing')
+      }
     }
-    const reviewListStr = checkString(reviewList)
-    // Now read off the first line
-    if (reviewListStr.length > 0) {
-      const lines = reviewListStr.split('\n')
-      const firstLine = lines[0]
-      // logDebug(pluginJson, `pref: has ${lines.length} items, starting ${firstLine}`)
-      const nextNoteTitle = firstLine.split('\t')[1] // get second field in list
-      logDebug(pluginJson, `getNextNoteToReview: -> '${nextNoteTitle}'`)
-      const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
-      return nextNotes[0] // return first matching note
-    } else {
-      logInfo(pluginJson, `getNextNoteToReview: Review list was empty.`)
-      return
+    const fileLines = reviewListContents.split('\n')
+
+    // Use front-matter library to get past frontmatter
+    const fmObj = fm(reviewListContents)
+    const reviewLines = fmObj.body.split('\n')
+
+    // Now read from the top until we find a line with a negative value in the first column (nextReviewDays)
+    for (let i = 0; i < reviewLines.length; i++) {
+      const thisLine = reviewLines[i]
+      const nextReviewDays = Number(thisLine.split('\t')[0]) ?? NaN // get first field = nextReviewDays
+      const nextNoteTitle = thisLine.split('\t')[2] // get third field = title
+      if (nextReviewDays < 0) {
+        logDebug('getNextNoteToReview', `- Next to review -> '${nextNoteTitle}'`)
+        const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
+        return nextNotes[0] // return first matching note
+      }
     }
+
+    // If we get here then there are no projects needed for review
+    logInfo('getNextNoteToReview', `- No notes left due for review 🎉`)
+    return
   }
   catch (error) {
     logError(pluginJson, `getNextNoteToReview: ${error.message}`)
@@ -290,69 +443,163 @@ async function getNextNoteToReview(): Promise<?TNote> {
 
 //-------------------------------------------------------------------------------
 /** 
- * Update the @reviewed(date) in the note in the Editor to today's date.
+ * Update the @reviewed(date) in the note in the Editor to today's date, and update the full-review-list too
  * @author @jgclark
  * @return { ?TNote } current note
  */
 export async function finishReview(): Promise<?TNote> {
   try {
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-    const RE_REVIEW_MENTION = `${reviewedMentionStr}\\(${RE_DATE}\\)`
-    const reviewedTodayString = `${reviewedMentionStr}(${hyphenatedDateString(new Date())})`
+    const RE_REVIEWED_MENTION = `${reviewedMentionStr}\\(${RE_DATE}\\)`
+    const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
 
-    let { note, paragraphs } = Editor
     // only proceed if we're in a valid Project note (with at least 2 lines)
-    if (note == null || note.type === 'Calendar' || paragraphs.length < 2) {
-      logWarn(pluginJson, `finishReview: We're not in a valid Project note (and with at least 2 lines). Note title = '${Editor.title ?? ''}'`)
+    if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
+      logWarn('finishReview', `- We're not in a valid Project note (and with at least 2 lines). Note title = '${Editor.title ?? ''}'`)
       return
     }
+    const thisNote = Editor.note
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(note, `<placeholder metadata line> ${reviewedTodayString}`)
+    // To try to work around a problem with updateParagraph() seeming not to flush before the following call, will not try creating the Project equivalent of the note straight away.
+    const thisNoteAsProject = new Project(thisNote)
+
+    const metadataLineIndex: number = getOrMakeMetadataLine(thisNote, `<placeholder metadata line> ${reviewedTodayString}`)
     // Re-read paragraphs, as they might have changed
-    paragraphs = note.paragraphs
-    let metadataPara = paragraphs[metadataLineIndex]
-    const metadataLineContent: string = metadataPara.content ?? '<error>'
-    logDebug(pluginJson, `finishReview starting with metadataLineIndex ${metadataLineIndex} ('${metadataLineContent}')`)
+    let metadataPara = thisNote.paragraphs[metadataLineIndex]
+    if (!metadataPara) {
+      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(thisNote)}`)
+    }
+    const origMetadataLineContent: string = metadataPara.content
+    logDebug(pluginJson, `finishReview: starting with for '${displayTitle(thisNote)}' with metadataLineIndex ${metadataLineIndex} ('${origMetadataLineContent}')`)
 
-    // get list of @mentions -- more generous approach than just using metadata line
-    const firstReviewedMention = Editor.note?.mentions?.find((m) =>
-      m.match(RE_REVIEW_MENTION),
+    // get first '@reviewed()' on metadata line
+    const firstReviewedMention = thisNote.mentions?.find((m) =>
+      m.match(RE_REVIEWED_MENTION),
     ) ?? null
     if (firstReviewedMention != null) {
-      // find line in currently open note containing @reviewed() mention
-      for (const para of Editor.paragraphs) {
-        if (para.content.match(RE_REVIEW_MENTION)) {
-          metadataPara = para
-          logDebug(pluginJson, `- Found existing ${reviewedMentionStr}(date) in line ${para.lineIndex}`)
-        }
-      }
+      logDebug('finishReview', `- Found existing ${reviewedMentionStr}(...) in line ${metadataLineIndex}`)
+
+      // // find line in currently open note containing @reviewed() mention
+      // for (const para of Editor.paragraphs) {
+      //   if (para.content.match(RE_REVIEWED_MENTION)) {
+      //     metadataPara = para
+      //   }
+      // }
 
       // replace with today's date
-      const older = metadataPara.content
-
+      const older = origMetadataLineContent
       const newer = older.replace(firstReviewedMention, reviewedTodayString)
       metadataPara.content = newer
-      // logDebug(pluginJson, `- updating para to '${newer}'`)
-
-      // send update to Editor
-      Editor.updateParagraph(metadataPara)
+      logDebug('finishReview', `- Updating metadata para to '${newer} and updating reviewedDate in Project()`)
+      thisNoteAsProject.reviewedDate = new Date()
+      thisNoteAsProject.calcDurations()
     } else {
-      // no existing @mention, so append to note's default metadata line
-      logDebug(pluginJson, `- No matching ${reviewedMentionStr}(date) string found. Will append to line ${metadataLineIndex}.`)
-      metadataPara.content = `${metadataPara.content} ${reviewedTodayString}`.trim()
-      // send update to Editor
-      Editor.updateParagraph(metadataPara)
-      logDebug(pluginJson, `- after update ${metadataPara.content}.`)
+      // no existing @reviewed(date), so append to note's default metadata line
+      logDebug('finishReview', `- No matching ${reviewedMentionStr}(date) string found. Will append to line ${metadataLineIndex}.`)
+      metadataPara.content = `${origMetadataLineContent} ${reviewedTodayString}`.trimRight()
     }
-    // remove this note from the review list
-    if (note != null) {
-      await updateReviewListAfterReview(note)
-      // return current note, to help next function
-      return note
+    // send update to Editor
+    thisNote.updateParagraph(metadataPara)
+    DataStore.updateCache(Editor.note, true)
+    logDebug('finishReview', `- After update ${metadataPara.content}.`)
+
+    // update this note in the review list
+    const config = await getReviewSettings()
+    const updatedMachineSummaryLine = thisNoteAsProject.machineSummaryLine()
+    await updateReviewListAfterChange(thisNote.title ?? '', false, config, updatedMachineSummaryLine)
+    return thisNote
+  }
+  catch (error) {
+    logError('finishReview', `${error.message}`)
+    return null
+  }
+}
+
+//---------------------------------------------------------------------
+// Moved following from projectLists.js to avoid circular dependency
+//---------------------------------------------------------------------
+
+/**
+ * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
+ * Now includes support for calling from x-callback, using simple "a=b;x=y" version of settings and values that will override ones in the user's settings.
+ * @param {string | null} arguments list of form "a=b;x=y"
+ */
+export async function makeProjectLists(argsIn?: string | null = null): Promise<void> {
+  try {
+    let args = argsIn?.toString() || ''
+    logDebug(pluginJson, `makeProjectLists: starting with args <${args}>`)
+    let config = await getReviewSettings()
+    if (args !== '') {
+      config = overrideSettingsWithStringArgs(config, args)
+      // clo(config, 'Review settings updated with args:')
+    } else {
+      // clo(config, 'Review settings with no args:')
+    }
+
+    // If more than a day old re-calculate the full-review-list
+    // Using frontmatter library: https://github.com/jxson/front-matter
+    const fileContent = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
+    const fmObj = fm(fileContent)
+    const listUpdatedDate = fmObj.attributes.date
+    const bodyBegin = fmObj.bodyBegin
+    const listUpdatedMoment = new moment(listUpdatedDate)
+    const timeDiff = moment().diff(listUpdatedMoment, 'hours')
+    if (timeDiff >= 24) {
+      await makeFullReviewList(true)
+    }
+
+    // Call the relevant function with the updated config
+    if (config.outputStyle.match(/rich/i) && NotePlan.environment.buildVersion >= 845) {
+      await renderProjectListsHTML(config, true)
+    }
+    if (config.outputStyle.match(/markdown/i)) {
+      await renderProjectListsMarkdown(config, true)
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Redisplay the project list, by calling the relevant renderer but asking not 
+ * to pop up a new window for this output, but refresh any that are already open.
+ * @author @jgclark
+ */
+export async function redisplayProjectList(): Promise<void> {
+  try {
+    logDebug('redisplayProjectList', `Started`)
+    const config = await getReviewSettings()
+
+    // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
+    if (config.outputStyle.match(/markdown/i)) {
+      await renderProjectListsMarkdown(config, false)
+    }
+
+    // If we want HTML display, then currently only 1 window is allowed: TODO(Eduard): !
+    // Re-load the saved HTML if it's available.
+    if (config.outputStyle.match(/rich/i) && config._logLevel === 'DEBUG') {
+      // Try loading HTML saved copy
+      const windowTitle = `Review List`
+      const filenameHTMLCopy = 'review_list.html'
+      const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
+      if (savedHTML !== '') {
+        await showHTML(windowTitle,
+          '', // no extra header tags
+          savedHTML,
+          '', // get general CSS set automatically
+          '', // CSS in HTML
+          false, // = not modal window
+          '',
+          '',
+          '',
+          812, 1200) // set width; max height
+        logDebug('redisplayProjectList', `Displayed HTML from saved file ${filenameHTMLCopy}`)
+      } else {
+        logWarn('redisplayProjectList', `Couldn't read HTML from saved file ${filenameHTMLCopy}`)
+      }
     }
   }
   catch (error) {
-    logError(pluginJson, `finishReview: ${error.message}`)
-    return null
+    logError('redisplayProjectList', error.message)
   }
 }

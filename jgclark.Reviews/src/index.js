@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 17.9.2022 for v0.8.0-betas, @jgclark
+// Last updated 1.11.2022 for v0.9.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -11,30 +11,32 @@
 import pluginJson from '../plugin.json'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logError, logInfo } from '@helpers/dev'
+import { makeFullReviewList, redisplayProjectList } from './reviews'
 
 export {
-  logReviewList,
-  makeReviewList,
+  logFullReviewList,
+  makeFullReviewList,
   startReviews,
   nextReview,
   finishReview,
+  makeProjectLists,
+  redisplayProjectList,
 } from './reviews'
 export {
-  makeProjectLists,
-  makeProjectListsHTML,
-  redisplayProjectListHTML,
-  redisplayProjectListMarkdown
+  renderProjectListsHTML,
+  renderProjectListsMarkdown,
 } from './projectLists'
 export {
   completeProject,
-  cancelProject
+  cancelProject,
+  togglePauseProject
 } from './projects'
 export {
   generateCSSFromTheme
 } from '@helpers/HTMLView'
 
 // NB: There are other possible exports, including:
-// export { testNoteplanStateFont } from '../test/noteplanstateFontTest.js'
+export { testFonts } from '../experiments/fontTests.js'
 
 export {
   testGenerateCSSFromTheme,
@@ -61,8 +63,10 @@ export async function testUpdated(): Promise<void> {
   await onUpdateOrInstall(true)
 }
 
-export function onSettingsUpdated(): void {
-  // Placeholder only to stop error in logs
+export async function onSettingsUpdated(): Promise<void> {
+  // Update the full-review-list in case there's a change in a relevant setting
+  await makeFullReviewList(false)
+  await redisplayProjectList()
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {
