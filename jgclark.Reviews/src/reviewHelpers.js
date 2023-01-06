@@ -611,7 +611,7 @@ export class Project {
     let output = ''
     const thisPercent = (isNaN(this.percentComplete)) ? '0%' : ` ${this.percentComplete}%`
     const totalTasksStr = (this.completedTasks + this.openTasks).toLocaleString()
-    const statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(this.openTasks > 1) ? 'tasks' : 'task'})`
+    const statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(this.completedTasks + this.openTasks > 1) ? 'tasks' : 'task'})`
 
     switch (style) {
       case 'Rich':
@@ -655,13 +655,13 @@ export class Project {
         }
         if (displayDates && !this.isPaused && !this.isCompleted && !this.isCancelled) {
           if (this.completedDate != null) {
-            // TODO: completed after X or cancelled X ago, depending
-            // output += `<td colspan=2 class="checked">Completed ${relativeDateFromDate(this.completedDate)}</td><td></td>`
-            output += `<td colspan=2 class="checked">Completed ${this.completedDuration ?? ''}</td><td></td>`
+            // TEST: completed after X or cancelled X ago, depending
+            const completionRef = (this.completedDuration && this.completedDuration !== '') ? `after ${this.completedDuration}` : relativeDateFromDate(this.completedDate)
+            output += `<td colspan=2 class="checked">Completed ${completionRef}</td><td></td>`
           } else if (this.cancelledDate != null) {
-            // TODO: cancelled after X or cancelled X ago, depending
-            // output += `<td colspan=2 class="cancelled">Cancelled ${relativeDateFromDate(this.cancelledDate)}</td><td></td>`
-            output += `<td colspan=2 class="cancelled">Cancelled ${this.cancelledDuration ?? ''}</td><td></td>`
+            // TEST: cancelled after X or cancelled X ago, depending
+            const cancellationRef = (this.cancelledDuration && this.cancelledDuration !== '') ? `after ${this.cancelledDuration}` : relativeDateFromDate(this.cancelledDate)
+            output += `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td><td></td>`
           }
           if (!this.isCompleted && !this.isCancelled) {
             output = (this.nextReviewDays != null)
