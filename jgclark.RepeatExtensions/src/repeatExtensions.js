@@ -8,6 +8,9 @@
 import pluginJson from "../plugin.json"
 import {
   calcOffsetDateStr,
+  getISOWeekString,
+  isDailyNote,
+  isWeeklyNote,
   RE_DATE, // find dates of form YYYY-MM-DD
   RE_DATE_INTERVAL,
   RE_DATE_TIME,
@@ -16,6 +19,10 @@ import {
   RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
   unhyphenateString,
 } from '@helpers/dateTime'
+import {
+  getNPWeekData,
+  type NotePlanWeekInfo
+} from '@helpers/NPdateTime'
 import { logDebug, logInfo, logWarn, logError } from "@helpers/dev"
 import { displayTitle, rangeToString } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
@@ -98,6 +105,7 @@ export async function onEditorWillSave(): Promise<void> {
  * Valid intervals are [0-9][bdwmqy].
  * To work it relies on finding @done(YYYY-MM-DD HH:MM) tags that haven't yet been shortened to @done(YYYY-MM-DD).
  * It includes cancelled tasks as well; to remove a repeat entirely, remove the @repeat tag from the task in NotePlan.
+ * TODO: Add 'Newer' mode of operation according to #351.
  * @author @jgclark
  * @param {CoreNoteFields} noteIn?
  */
@@ -133,7 +141,7 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
   // work out where ## Done or ## Cancelled sections start, if present
   // $FlowIgnore[incompatible-call]
   const endOfActive = findEndOfActivePartOfNote(note)
-
+  logDebug(pluginJson, `Starting for '${filename}' for ${endOfActive} active lines`)
   let repeatCount = 0
   let line = ''
   let updatedLine = ''
@@ -142,7 +150,7 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
   let reReturnArray: Array<string> = []
 
   // Go through each line in the active part of the file
-  for (let n = 0; n < endOfActive; n++) {
+  for (let n = 0; n <= endOfActive; n++) {
     const p = paragraphs[n]
     line = p.content
     updatedLine = ''
@@ -164,6 +172,7 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
       // Send the update to the Editor
       Editor.updateParagraph(p)
       logDebug('repeats', `    updated Paragraph ${p.lineIndex}`)
+      // logDebug(pluginJson, `- updated Paragraph ${p.lineIndex}`)
 
       // Test if this is one of my special extended repeats
       if (updatedLine.match(RE_EXTENDED_REPEAT)) {
@@ -209,11 +218,45 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
           logDebug('repeats', `- Adding from due date --> ${newRepeatDate}`)
         }
 
-        outputLine = updatedLine.replace(/@done\(.*\)/, '').trim()
+      outputLine = updatedLine.replace(/@done\(.*\)/, '').trim()
 
-        // Create and add the new repeat line
-        if (type === 'Notes') {
-          // ...either in same project note
+      // Create and add the new repeat line
+      if (type === 'Notes') {
+        // ...either in same project note
+        outputLine += ` >${newRepeatDailyDate}`
+        logDebug(pluginJson, `- outputLine: ${outputLine}`)
+        await Editor.insertParagraphAfterParagraph(outputLine, p, 'open')
+        logDebug(pluginJson, `- Inserted new para after line ${p.lineIndex}`)
+      }
+      else {
+        // ... or in the future Calendar note (prepend)
+        let futureNote
+        let newRepeatDate = ''
+        // $FlowFixMe
+        if (isDailyNote(note)) {
+          // Get YYYY-MM-DD style date
+          newRepeatDate = unhyphenateString(newRepeatDailyDate)
+        }
+        // $FlowFixMe
+        else if (isWeeklyNote(note)) {
+          // Get YYYY-Wnn style date
+          // older version, but doesn't align with NP user week-start setting
+          // newRepeatDate = getISOWeekString(newRepeatDailyDate)
+          // newer version, using helper that takes week-start into account
+          // $FlowFixMe
+          const weekInfo: NotePlanWeekInfo = getNPWeekData(newRepeatDailyDate)
+          newRepeatDate = weekInfo.weekString
+        }
+        logInfo(pluginJson, `- repeat -> ${newRepeatDate}`)
+
+        futureNote = await DataStore.calendarNoteByDateString(newRepeatDate)
+        if (futureNote != null) {
+          logDebug(pluginJson, futureNote.filename)
+          await futureNote.appendTodo(outputLine)
+          logDebug(pluginJson, `- Appended new repeat in calendar note '${newRepeatDate}'`)
+        } else {
+          // After a fix to future calendar note creation in r635, we shouldn't get here.
+          // But just in case, we'll insert new repeat into the open note
           outputLine += ` >${newRepeatDate}`
           logDebug('repeats', `- outputLine: ${outputLine}`)
           await Editor.insertParagraphBeforeParagraph(outputLine, p, 'open')
