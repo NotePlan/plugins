@@ -16,7 +16,7 @@ const USE_MINIFIED_REACT = true
  * @param {*} defaultValue
  * Uses invokePluginCommandByName to set the color after it's chosen
  */
-export function reactTest(): void {
+export function reactTestLocal(): void {
   try {
     /* minified versions per: https://reactjs.org/docs/add-react-to-a-website.html
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -24,15 +24,15 @@ export function reactTest(): void {
     */
     const cb = getCallbackCodeString('callbackTest', pluginJson['plugin.id'])
     const reactJSmin = `
-        <script src="https://unpkg.com/react/umd/react.production.min.js"></script>
-        <script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js"></script>
-        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        <script src="./react.production.min.js"></script>
+        <script src="./react-dom.production.min.js"></script>
+        <script src="./babel.min.js"></script>
     `
-    const reactJSDev = `
-        <script src="https://unpkg.com/react/umd/react.development.js"></script>
-        <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
-        <script src="https://unpkg.com/@babel/standalone/babel.js"></script>
-    `
+    // const reactJSDev = `
+    //     <script src="https://unpkg.com/react/umd/react.development.js"></script>
+    //     <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
+    //     <script src="https://unpkg.com/@babel/standalone/babel.js"></script>
+    // `
     const reactApp = `
         <script>var exports = {};</script>
         <!-- this line is required for babel to not die: https://bobbyhadz.com/blog/typescript-uncaught-referenceerror-exports-is-not-defined -->
@@ -88,7 +88,7 @@ export function reactTest(): void {
     // `<p>Test</p><button id="foo" onclick="callbackTest(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
     showHTMLWindow('Test', bodyHTML, {
       savedFilename: 'test.html',
-      preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSDev}`,
+      preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSmin}`,
       postBodyScript: `<script type="text/javascript">${cb}</script>\n${reactApp}`,
     })
   } catch (error) {

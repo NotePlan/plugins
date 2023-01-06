@@ -32,9 +32,9 @@
       ]
     },
     {
-      "name": "PReact Test",
-      "description": "PReact version",
-      "jsFunction": "preactTest",
+      "name": "React Local Test",
+      "description": "Local files",
+      "jsFunction": "reactTestLocal",
       "alias": [
       ],
       "arguments": [

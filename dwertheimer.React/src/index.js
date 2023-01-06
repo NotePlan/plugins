@@ -17,7 +17,8 @@
 
 export { sayHello } from './NPPluginMain' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
 export { reactTest, callbackTest } from './ReactTest'
-// export { preactTest } from './PreactTest'
+export { reactTestLocal } from './ReactTest-local'
+
 // FETCH mocking for offline testing
 // If you want to use external server calls in your plugin, it can be useful to mock the server responses
 // while you are developing the plugin. This allows you to test the plugin without having to
