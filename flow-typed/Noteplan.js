@@ -566,6 +566,16 @@ static + folders: $ReadOnlyArray < string >;
   static referencedBlocks(paragraph: TParagraph): TParagraph;
 
   /**
+   * Updates the cache, so you can access changes faster.
+   * 'shouldUpdateTags' parameter controls whether to update .hashtags and .mentions too.
+   * If so, the note has to be reloaded for the updated .mentions to be available.
+   * Note: Available from NotePlan v3.7.1
+   * @param {TNote} note to update
+   * @param {Boolean} shouldUpdateTags? 
+   */
+  static updateCache(note, shouldUpdateTags): void;
+
+  /**
    * Loads all available plugins asynchronously from the GitHub repository and returns a list. 
    * You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
    * Set `showHidden` to true if it should also load hidden plugins. Hidden plugins have a flag `isHidden`.
@@ -1814,14 +1824,6 @@ declare class NotePlan {
    * Note: available from v3.5.0
    */
   static resetCaches(): void;
-  /**
-   * Updates the cache, so you can access changes faster. And returns the updated note (from the updated cache).
-   * Note: Available from NotePlan v3.7.1
-   * @param {TNote} note
-   * @param {boolean} shouldUpdateTags
-   * @returns {TNote}
-   */
-  static updateCache(note: TNote, shouldUpdateTags: boolean): TNote;
   /**
    * Opens the given URL using the default browser (x-callback-urls can also be triggered with this).
    * Note: Available from v3.5.2
