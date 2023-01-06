@@ -3,12 +3,14 @@
 import pluginJson from '../plugin.json'
 import { showHTMLWindow, getCallbackCodeString } from '@helpers/HTMLView'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-const USE_MINIFIED_REACT = true
+const USE_MINIFIED_REACT = false
 /**
  * reactTest
  * Plugin entrypoint for "/React Test"
  * @author @dwertheimer
  */
+
+// FIXME: THIS DOES NOT WORK. THE REACT PART LOADS FINE, BUT I CAN'T GET THE DATA TABLE TO LOAD
 
 /**
  * Pops up an HTML window to allow for color picking
@@ -16,7 +18,7 @@ const USE_MINIFIED_REACT = true
  * @param {*} defaultValue
  * Uses invokePluginCommandByName to set the color after it's chosen
  */
-export function reactTestLocal(): void {
+export function reactDataTest(): void {
   try {
     /* minified versions per: https://reactjs.org/docs/add-react-to-a-website.html
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -27,7 +29,23 @@ export function reactTestLocal(): void {
         <script src="./react.production.min.js"></script>
         <script src="./react-dom.production.min.js"></script>
         <script src="./babel.min.js"></script>
+        <script type="text/babel" src="./styled-components.min.js"></script>
+        <script type="text/babel" src="./react-data-table-component.umd.js"></script>
     `
+    const reactJSOnline = `
+      <script type="text/javascript" src="https://unpkg.com/react/umd/react.development.js" crossorigin></script>
+      <script type="text/javascript" src="https://unpkg.com/react-dom/umd/react-dom.development.js" crossorigin></script>
+      <script type="text/javascript" src="https://unpkg.com/@babel/standalone/babel.js" crossorigin></script>
+      <script type="text/javascript" src="https://unpkg.com/react-is@18.2.0/umd/react-is.production.min.js" crossorigin></script>
+      <script type="text/babel">
+        // set global vars that components expect
+        const React = window.React;
+        const ReactDOM = window.ReactDOM;
+      </script>
+      <script type="text/babel" src="https://unpkg.com/styled-components@4.3.2/dist/styled-components.js" crossorigin></script>
+      <script type="text/babel" src="https://unpkg.com/react-data-table-component@1.6.0/dist/react-data-table-component.dev.js" crossorigin></script>
+    `
+
     // const reactJSDev = `
     //     <script src="https://unpkg.com/react/umd/react.development.js"></script>
     //     <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
@@ -38,9 +56,35 @@ export function reactTestLocal(): void {
         <!-- this line is required for babel to not die: https://bobbyhadz.com/blog/typescript-uncaught-referenceerror-exports-is-not-defined -->
         <!-- react must be type text/babel so babel knows to parse it -->
         <script type="text/babel" >
-            const React = window.React;
-            const ReactDOM = window.ReactDOM;
+            const styled = window.styled;
+
             const useState = React.useState;
+            const DataTable = window.DataTable;
+
+            const columns = [
+              {
+                  name: 'Title',
+                  selector: row => row.title,
+              },
+              {
+                  name: 'Year',
+                  selector: row => row.year,
+              },
+          ];
+          
+          const data = [
+              {
+                  id: 1,
+                  title: 'Beetlejuice',
+                  year: '1988',
+              },
+              {
+                  id: 2,
+                  title: 'Ghostbusters',
+                  year: '1984',
+              },
+          ]
+
             function App() {
                 const [todos, setTodos] = useState([])
                 const [newTodo, setNewTodo] = useState("") 
@@ -54,6 +98,10 @@ export function reactTestLocal(): void {
                 }
                 return (
                 <div className="App">
+                <DataTable
+                    columns={columns}
+                    data={data}
+                />
                     <h1>Todo List</h1>
                     { todos.length === 0 ? 
                     <p>There are no todos</p>
@@ -88,7 +136,7 @@ export function reactTestLocal(): void {
     // `<p>Test</p><button id="foo" onclick="callbackTest(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
     showHTMLWindow('Test', bodyHTML, {
       savedFilename: 'test.html',
-      preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSmin}`,
+      preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSOnline}`,
       postBodyScript: `<script type="text/javascript">${cb}</script>\n${reactApp}`,
     })
   } catch (error) {

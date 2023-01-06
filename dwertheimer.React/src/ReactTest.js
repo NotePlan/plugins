@@ -39,6 +39,7 @@ export function reactTest(): void {
         <!-- react must be type text/babel so babel knows to parse it -->
         <script type="text/babel" >
             const React = window.React;
+            const ReactDOM = window.ReactDOM;
             const useState = React.useState;
             function App() {
                 const [todos, setTodos] = useState([])
@@ -74,11 +75,10 @@ export function reactTest(): void {
             
             // export default App;
 
-            // const rootNode = document.getElementById('root');
-            // const root = ReactDOM.createRoot(rootNode);
-            // root.render(React.createElement(App));
-            const root = document.querySelector('#root');
-            ReactDOM.render(<App />, root);
+            // new mounting method for React18+
+            const container = document.getElementById('root');
+            const root = ReactDOM.createRoot(container); 
+            root.render(<App tab="home" />);
 
         </script>
     `
