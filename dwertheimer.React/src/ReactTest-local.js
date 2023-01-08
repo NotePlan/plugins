@@ -27,53 +27,26 @@ export function reactTestLocal(): void {
         <script src="./react.production.min.js"></script>
         <script src="./react-dom.production.min.js"></script>
         <script src="./babel.min.js"></script>
+        <script type="text/babel" src="./App.jsx"></script>
     `
     // const reactJSDev = `
     //     <script src="https://unpkg.com/react/umd/react.development.js"></script>
     //     <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
     //     <script src="https://unpkg.com/@babel/standalone/babel.js"></script>
     // `
+
+    const bodyHTML = `
+    <div id="root"></div>
+  `
+
     const reactApp = `
         <script>var exports = {};</script>
-        <!-- this line is required for babel to not die: https://bobbyhadz.com/blog/typescript-uncaught-referenceerror-exports-is-not-defined -->
+        <!-- this above line is required for babel to not die: https://bobbyhadz.com/blog/typescript-uncaught-referenceerror-exports-is-not-defined -->
         <!-- react must be type text/babel so babel knows to parse it -->
         <script type="text/babel" >
             const React = window.React;
             const ReactDOM = window.ReactDOM;
             const useState = React.useState;
-            function App() {
-                const [todos, setTodos] = useState([])
-                const [newTodo, setNewTodo] = useState("") 
-            
-                const handleChange = (event) => {
-                setNewTodo(event.target.value)
-                }
-                const SaveNewTodo = () => {
-                setTodos([...todos, newTodo])
-                setNewTodo("")
-                }
-                return (
-                <div className="App">
-                    <h1>Todo List</h1>
-                    { todos.length === 0 ? 
-                    <p>There are no todos</p>
-                    : 
-                    <div>
-                        <p>You have {todos.length} Todos</p>
-                        <ul>
-                        {todos.map((todo) => {
-                            return <li key={todo}>- {todo}</li>
-                        } )}
-                        </ul>
-                    </div>
-                    }
-                    <input type="text" value={newTodo} onChange={handleChange} placeholder="New Todo" />
-                    <button onClick={SaveNewTodo}>Add Todo</button>
-                </div>
-                );
-            }
-            
-            // export default App;
 
             // new mounting method for React18+
             const container = document.getElementById('root');
@@ -82,14 +55,11 @@ export function reactTestLocal(): void {
 
         </script>
     `
-    const bodyHTML = `
-     <div id="root"></div>
-   `
     // `<p>Test</p><button id="foo" onclick="callbackTest(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
     showHTMLWindow('Test', bodyHTML, {
       savedFilename: 'test.ReactTest-local.html',
       preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSmin}`,
-      postBodyScript: `<script type="text/javascript">${cb}</script>\n${reactApp}`,
+      postBodyScript: [cb, reactApp],
     })
   } catch (error) {
     console.log(error)
