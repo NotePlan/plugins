@@ -156,28 +156,26 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set core button style from macOS based on dark or light:
     // Similarly for fake-buttons (i.e. from <a href ...>)
     if (isLightTheme) {
-      output.push(makeCSSSelector('button',
-        ['background-color: #FFFFFF',
-          'font-size: 1.0rem',
-          'font-weight: 500']))
-      output.push(makeCSSSelector('.fake-button a',
-        ['background-color: #FFFFFF',
-//          'font-size: 1.0rem',
+      output.push(makeCSSSelector('button', ['background-color: #FFFFFF', 'font-size: 1.0rem', 'font-weight: 500']))
+      output.push(
+        makeCSSSelector('.fake-button a', [
+          'background-color: #FFFFFF',
+          //          'font-size: 1.0rem',
           'font-weight: 500',
           'text-decoration: none',
           'border-color: #DFE0E0',
           'border-radius: 4px',
           'box-shadow: 0 1px 1px #CBCBCB',
           'padding: 1px 7px 1px 7px',
-          'margin: 2px 4px']))
-    }
-    else { // dark theme
-      output.push(makeCSSSelector('button',
-        ['background-color: #5E5E5E',
-          'font-size: 1.0rem',
-          'font-weight: 500']))
-      output.push(makeCSSSelector('.fake-button a',
-        ['background-color: #5E5E5E',
+          'margin: 2px 4px',
+        ]),
+      )
+    } else {
+      // dark theme
+      output.push(makeCSSSelector('button', ['background-color: #5E5E5E', 'font-size: 1.0rem', 'font-weight: 500']))
+      output.push(
+        makeCSSSelector('.fake-button a', [
+          'background-color: #5E5E5E',
           'font-size: 1.0rem',
           'font-weight: 500',
           'text-decoration: none',
@@ -507,8 +505,8 @@ export type HtmlWindowOptions = {
   generalCSSIn?: string,
   specificCSS?: string,
   makeModal?: boolean,
-  preBodyScript?: string,
-  postBodyScript?: string,
+  preBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
+  postBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
   savedFilename?: string,
   width?: number,
   height?: number,
@@ -631,7 +629,7 @@ export function generateScriptTags(scripts: string | ScriptObj | Array<string | 
       const { code, type } = script || {}
       hasScriptTag = code.includes('<script')
       if (hasScriptTag && type !== 'text/javascript') {
-        logError(pluginJson, `generateScriptTags script had <script tag and type:"${type}" and value:"${code}" - this is not supported (send only the code)`)
+        logError(pluginJson, `generateScriptTags script had <script tag and type:"${type || ''}" and value:"${code}" - this is not supported (send only the code)`)
       }
       scriptText += hasScriptTag ? '' : `<script type="${type ?? 'text/javascript'}">\n`
       scriptText += code
