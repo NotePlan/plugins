@@ -38,6 +38,21 @@ export function reactTest(): void {
         <!-- this line is required for babel to not die: https://bobbyhadz.com/blog/typescript-uncaught-referenceerror-exports-is-not-defined -->
         <!-- react must be type text/babel so babel knows to parse it -->
         <script type="text/babel" >
+            window.onerror = (msg, url, line, column, error) => {
+                const message = {
+                message: msg,
+                url: url,
+                line: line,
+                column: column,
+                error: JSON.stringify(error)
+                }
+            
+                if (window.webkit) {
+                window.webkit.messageHandlers.error.postMessage(message);
+                } else {
+                console.log("Error:", message);
+                }
+            };
             const React = window.React;
             const ReactDOM = window.ReactDOM;
             const useState = React.useState;
@@ -87,7 +102,7 @@ export function reactTest(): void {
    `
     // `<p>Test</p><button id="foo" onclick="callbackTest(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
     showHTMLWindow('Test', bodyHTML, {
-      savedFilename: 'test.html',
+      savedFilename: 'test.ReactTest.html',
       preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSDev}`,
       postBodyScript: `<script type="text/javascript">${cb}</script>\n${reactApp}`,
     })

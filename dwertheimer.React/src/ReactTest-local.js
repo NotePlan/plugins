@@ -87,7 +87,7 @@ export function reactTestLocal(): void {
    `
     // `<p>Test</p><button id="foo" onclick="callbackTest(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
     showHTMLWindow('Test', bodyHTML, {
-      savedFilename: 'test.html',
+      savedFilename: 'test.ReactTest-local.html',
       preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSmin}`,
       postBodyScript: `<script type="text/javascript">${cb}</script>\n${reactApp}`,
     })

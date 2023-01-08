@@ -43,7 +43,7 @@ export function reactDataTest(): void {
         const ReactDOM = window.ReactDOM;
       </script>
       <script type="text/babel" src="https://unpkg.com/styled-components@4.3.2/dist/styled-components.js" crossorigin></script>
-      <script type="text/babel" src="https://unpkg.com/react-data-table-component@1.6.0/dist/react-data-table-component.dev.js" crossorigin></script>
+      <script type="text/babel" src="https://unpkg.com/react-data-table-component@1.6.0/dist/react-data-table-component.umd.js" crossorigin></script>
     `
 
     // const reactJSDev = `
@@ -135,7 +135,7 @@ export function reactDataTest(): void {
    `
     // `<p>Test</p><button id="foo" onclick="callbackTest(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
     showHTMLWindow('Test', bodyHTML, {
-      savedFilename: 'test.html',
+      savedFilename: 'test.ReactTest-DataTable.html',
       preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSOnline}`,
       postBodyScript: `<script type="text/javascript">${cb}</script>\n${reactApp}`,
     })
