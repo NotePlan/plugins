@@ -530,29 +530,61 @@ export type HtmlWindowOptions = {
  */
 export function getCallbackCodeString(commandName: string, pluginID: string): string {
   const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
-
+  //TODO: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
   return `
+    // This is a callback bridge from HTML to the plugin
     const ${commandName} = (commandArgs = []) => {
       console.log("Sending command to NotePlan: ${commandName} with args: ", commandArgs);
-      window.webkit.messageHandlers.jsBridge.postMessage({
-        code: ${haveNotePlanExecute}.replace("%%commandArgs%%", JSON.stringify(commandArgs)),
-        onHandle: "onHandleuUpdateNoteCount",
-        id: "1"
-      });
-    };`
+      if (window.webkit) {
+        window.webkit.messageHandlers.jsBridge.postMessage({
+          code: ${haveNotePlanExecute}.replace("%%commandArgs%%", JSON.stringify(commandArgs)),
+          onHandle: "onHandleuUpdateNoteCount",
+          id: "1"
+        });
+      } else {
+        console.log("${commandName} called with args:", commandArgs);
+      }
+    };
+`
 }
 
 /**
+ * This function creates the webkit console.log/error handler for HTML messages to get back to NP console.log
+ * @returns {string} - the javascript (without a tag)
+ */
+export const getErrorBridgeCodeString = (): string => `
+  // This is a bridge to get errors from the HTML window back to the NP console.log
+  window.onerror = (msg, url, line, column, error) => {
+      const message = {
+        message: msg,
+        url: url,
+        line: line,
+        column: column,
+        error: JSON.stringify(error)
+      }
+  
+      if (window.webkit) {
+        window.webkit.messageHandlers.error.postMessage(message);
+      } else {
+        console.log("Error:", message);
+      }
+    };
+  `
+
+/**
  * Convenience function for opening HTML Window with as few arguments as possible
+ * Automatically adds the error bridge to bring console log errors back to NP
+ * You should add your own callback bridge to get data back from the HTML window to your plugin (see getCallbackCodeString() above)
  * @param {string} windowTitle - (required) window title
  * @param {string} body - (required) body HTML code
  * @param {HtmlWindowOptions} opts - (optional) options: {headerTags, generalCSSIn, specificCSS, makeModal, preBodyScript, postBodyScript, savedFilename, width, height}
  * Notes: if opts.generalCSSIn is not supplied, then CSS will be generated based on the user's current theme.
  * If you want to save the HTML to a file for debugging, then you should supply opts.savedFilename (it will be saved in the plugin's data/<plugin.id> folder).
- * Your script code in pre-body or post-body do not need to be wrapped in <script> tags.
+ * Your script code in pre-body or post-body do not need to be wrapped in <script> tags, and can be either a string or an array of strings or an array of objects with code and type properties (see ScriptObj above)
  * @example showHTMLWindow("Test", "<p>Test</p>", {savedFilename: "test.html"})
  */
 export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWindowOptions) {
+  const preBody = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
   showHTML(
     windowTitle,
     opts.headerTags ?? '',
@@ -560,12 +592,54 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
     opts.generalCSSIn ?? '',
     opts.specificCSS ?? '',
     opts.makeModal ?? false,
-    opts.preBodyScript ?? '',
+    [getErrorBridgeCodeString(), ...preBody],
     opts.postBodyScript ?? '',
     opts.savedFilename ?? '',
     opts.width,
     opts.height,
   )
+}
+
+type ScriptObj = {
+  // script code with or without <script> tags
+  code: string,
+  // script type (e.g. "text/babel" for React/JSX, or blank for "text/javascript")
+  type?: string,
+}
+
+/**
+ * Generate scripts string from array of strings or objects with code and type
+ * Strings are assumed to be javascript
+ * Use ScriptObj type to specify type (typically "text/babel" for React/JSX)
+ * @author @dwertheimer
+ * @param {string|ScriptObj | Array<string|ScriptObj>} scripts
+ * @returns {string} the fully formed string with all the scripts
+ * @tests exist
+ */
+export function generateScriptTags(scripts: string | ScriptObj | Array<string | ScriptObj>): string {
+  if (!scripts || (!scripts?.length && typeof scripts !== 'object')) return ''
+  const scriptsArr = Array.isArray(scripts) ? scripts : [scripts]
+  const output = []
+  scriptsArr.forEach((script) => {
+    let hasScriptTag
+    let scriptText = ''
+    if (typeof script === 'string') {
+      hasScriptTag = script.includes('<script')
+      scriptText = hasScriptTag ? '' : '<script type="text/javascript">\n'
+      scriptText += script
+    } else {
+      const { code, type } = script || {}
+      hasScriptTag = code.includes('<script')
+      if (hasScriptTag && type !== 'text/javascript') {
+        logError(pluginJson, `generateScriptTags script had <script tag and type:"${type}" and value:"${code}" - this is not supported (send only the code)`)
+      }
+      scriptText += hasScriptTag ? '' : `<script type="${type ?? 'text/javascript'}">\n`
+      scriptText += code
+    }
+    scriptText += hasScriptTag ? '\n' : '\n</script>\n'
+    output.push(scriptText)
+  })
+  return output.join('\n')
 }
 
 /**
@@ -576,8 +650,8 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
  * @param {string} generalCSSIn
  * @param {string} specificCSS
  * @param {boolean} makeModal?
- * @param {string?} preBodyScript
- * @param {string?} postBodyScript
+ * @param {string|ScriptObj | Array<string|ScriptObj>?} preBodyScript
+ * @param {string|ScriptObj | Array<string|ScriptObj>?} postBodyScript
  * @param {string?} filenameForSavedFileVersion
  * @param {number?} width
  * @param {number?} height
@@ -590,20 +664,23 @@ export function showHTML(
   generalCSSIn: string,
   specificCSS: string,
   makeModal: boolean = false,
-  preBodyScript: string = '',
-  postBodyScript: string = '',
+  preBodyScript: string | ScriptObj | Array<string | ScriptObj> = '',
+  postBodyScript: string | ScriptObj | Array<string | ScriptObj> = '',
   filenameForSavedFileVersion: string = '',
   width?: number,
   height?: number,
 ): void {
   try {
-    const scriptTag = '<script type="text/javascript">\n'
     const fullHTML = []
     fullHTML.push('<!DOCTYPE html>') // needed to let emojis work without special coding
     fullHTML.push('<html>')
     fullHTML.push('<head>')
     fullHTML.push(`<title>${windowTitle}</title>`)
     fullHTML.push(`<meta charset="utf-8">`)
+    const preScript = generateScriptTags(preBodyScript)
+    if (preScript !== '') {
+      fullHTML.push(preScript) // dbw moved to top because we need the logging bridge to be loaded before any content which could have errors
+    }
     fullHTML.push(headerTags)
     fullHTML.push('<style type="text/css">')
     // If CSS is empty, then generate it from the current theme
@@ -611,21 +688,13 @@ export function showHTML(
     fullHTML.push(generalCSS)
     fullHTML.push(specificCSS)
     fullHTML.push('</style>')
-    if (preBodyScript !== '') {
-      const hasScriptTag = preBodyScript.includes('<script')
-      fullHTML.push(hasScriptTag ? '\n' : scriptTag)
-      fullHTML.push(preBodyScript)
-      fullHTML.push(hasScriptTag ? '\n' : '\n</script>\n')
-    }
     fullHTML.push('</head>')
     fullHTML.push('\n<body>')
     fullHTML.push(body)
     fullHTML.push('\n</body>')
-    if (postBodyScript !== '') {
-      const hasScriptTag = postBodyScript.includes('<script')
-      fullHTML.push(hasScriptTag ? '\n' : scriptTag)
-      fullHTML.push(postBodyScript)
-      fullHTML.push(hasScriptTag ? '\n' : '\n</script>\n')
+    const postScript = generateScriptTags(postBodyScript)
+    if (postScript !== '') {
+      fullHTML.push(postScript)
     }
     fullHTML.push('</html>')
     const fullHTMLStr = fullHTML.join('\n')
