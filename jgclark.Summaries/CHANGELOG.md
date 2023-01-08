@@ -42,6 +42,9 @@
 - Improved display of results of average and totals in the various stats updates
 ### Fixed
 - Fixed an issue with display order in sparklines
+## [0.14.1] - 2022-10-15
+## Changed
+- the date in the title is now formatted according to your locale
 
 ## [0.14.0] - 2022-10-04
 ### Added

@@ -1,6 +1,7 @@
 // @flow
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
+import { setFrontMatterVars } from '../../helpers/NPFrontMatter'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
 
@@ -9,6 +10,22 @@ const LAST_SYNÇ_TIME = 'last_sync_time'
 
 // This is the main function that will be called by NotePlan
 export async function readwiseSync(): Promise<void> {
+  checkAccessToken()
+  const response = await getReadwise(false)
+  response.map(parseBookAndWriteToNote)
+}
+
+// This is the main function that will be called by NotePlan
+export async function readwiseSyncForce(): Promise<void> {
+  checkAccessToken()
+  const response = await getReadwise(true)
+  response.map(parseBookAndWriteToNote)
+}
+
+/**
+ * Checks if the readwise access token is valid
+ */
+function checkAccessToken(): void {
   const accessToken = DataStore.settings.accessToken ?? ''
   logDebug(pluginJson, `access token is : ${accessToken}`)
 
@@ -19,19 +36,22 @@ export async function readwiseSync(): Promise<void> {
     showMessage(pluginJson, 'Invalid access token. Please check your Readwise access token in the plugin settings.')
     return
   }
-
-  const response = await getReadwise()
-  response.map(parseBookAndWriteToNote)
 }
 
-// Downloads readwise data
-async function getReadwise(): Promise<any> {
+/**
+ * Gets the readwise data from the API
+ * @param {boolean} force - if true, will ignore the last sync time and get all data
+ * @returns {*} - the readwise data as a JSON object
+ * @see https://readwise.io/api_deets
+ */
+async function getReadwise(force: boolean): Promise<any> {
   const accessToken = DataStore.settings.accessToken ?? ''
   let lastFetchTime = DataStore.loadData(LAST_SYNÇ_TIME, true) ?? ''
-  if (DataStore.settings.forceSync === 'true') {
+  if (DataStore.settings.forceSync === 'true' || force === true) {
     lastFetchTime = ''
   }
   log(pluginJson, `last fetch time is : ${lastFetchTime}`)
+  logDebug(pluginJson, `base folder is : ${DataStore.settings.baseFolder}`)
 
   try {
     const url = `https://readwise.io/api/v2/export/?updatedAfter=${lastFetchTime}`
@@ -47,53 +67,122 @@ async function getReadwise(): Promise<any> {
 
     const Json = JSON.parse(response)
     log(pluginJson, `Downloaded : ${Json.count} highlights`)
-    
+
     return Json.results
   } catch (error) {
     logError(pluginJson, error)
   }
 }
 
-async function parseBookAndWriteToNote(source) {
+/**
+ * Parses the readwise data and writes it to a note
+ * @param {*} source - the readwise data as a JSON object
+ */
+async function parseBookAndWriteToNote(source: any): Promise<void> {
   try {
-    const title = source.readable_title
-    const author = source.author
-    const category = source.category
-    const highlights = source.highlights
-    let metadata = `author: [[${author}]]` + '\n' // + `Category: [[${category}]]` + '\n'
-    if (source.book_tags !== null) {
-      metadata += `Document tags: ${source.book_tags.map((tag) => `#${tag.name} `).join(', ')}\n`
+    const outputNote: ?TNote = await getOrCreateReadwiseNote(source.title, source.category)
+    const useFrontMatter = DataStore.settings.useFrontMatter === 'FrontMatter'
+    if (outputNote) {
+      if (new Date() - new Date(outputNote?.createdDate) < 2000) {
+        if (!useFrontMatter) {
+          outputNote?.addParagraphBelowHeadingTitle(createReadwiseMetadataHeading(source), 'text', 'Metadata', true, true)
+        }
+        outputNote?.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
+      }
+      if (useFrontMatter) {
+        setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
+      }
+      source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
     }
-    if (source.unique_url !== null) {
-      metadata += `URL: ${source.unique_url}`
-    }
-    const rootFolder = DataStore.settings.baseFolder ?? 'Readwise'
-    let baseFolder = rootFolder
-    if (DataStore.settings.groupByType === 'true') {
-      baseFolder = `${rootFolder}/${category}`
-    }
-    log(pluginJson, `base folder is : ${baseFolder}`)
-    const outputNote = await getOrMakeNote(title, baseFolder, '')
-
-    // Find a better way to check if the note is new
-    if (new Date() - new Date(outputNote?.createdDate) < 2000) {
-      outputNote.addParagraphBelowHeadingTitle(metadata, 'text', 'Metadata', true, true)
-      outputNote.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
-    }
-
-    highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.asin))
   } catch (error) {
     logError(pluginJson, error)
   }
 }
 
-function appendHighlightToNote(note, highlight, asin = '') {
-  const content = highlight.text
-  let formatedUrl = ''
-  if (highlight.url !== null) {
-    formatedUrl = ` [View highlight](${highlight.url})`
-  } else if (asin !== '') {
-    formatedUrl = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
+/**
+ * Parse readwise data and generate front matter
+ * @param {*} source - the readwise data as a JSON object
+ * @returns
+ */
+function buildReadwiseFrontMatter(source: any): any {
+  const frontMatter = {}
+  frontMatter.author = `[[${source.author}]]`
+  if (source.book_tags !== null && source.book_tags.length > 0) {
+    frontMatter.tags = source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')
   }
-  note.appendParagraph(content + formatedUrl, 'list')
+  if (source.unique_url !== null) {
+    frontMatter.url = source.unique_url
+  }
+  return frontMatter
+}
+
+/**
+ * Formats the note tag using the prefix from plugin settings
+ * @param {string} tag - the tag to format
+ * @returns {string} - the formatted tag
+ */
+function formatTag(tag: string): string {
+  const prefix = DataStore.settings.tagPrefix ?? ''
+  return `#${prefix}/${tag}`
+}
+
+/**
+ * Creates the metadata heading for the note
+ * @param {*} source - the readwise data as a JSON object
+ * @returns {string} - the formatted heading
+ */
+function createReadwiseMetadataHeading(source: any): string {
+  let metadata = `Author: [[${source.author}]]` + '\n'
+  if (source.book_tags !== null && source.book_tags.length > 0) {
+    metadata += `Tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
+  }
+  if (source.unique_url !== null) {
+    metadata += `URL: ${source.unique_url}`
+  }
+  return metadata
+}
+
+/**
+ * Gets or creates the note for the readwise data
+ * @param {string} title - the title of the note
+ * @param {string} category - the category of the note
+ * @returns {TNote} - the note
+ */
+async function getOrCreateReadwiseNote(title: string, category: string): Promise<?TNote> {
+  const rootFolder = DataStore.settings.baseFolder ?? 'Readwise'
+  let baseFolder = rootFolder
+  let outputNote: ?TNote
+  if (DataStore.settings.groupByType === true) {
+    baseFolder = `${rootFolder}/${category}`
+  }
+  try {
+    outputNote = await getOrMakeNote(title, baseFolder, '')
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+  return outputNote
+}
+
+/**
+ * Appends the highlight with a link to the note
+ * @param {TNote} note - the note to append to
+ * @param {*} highlight - the readwise highlight as a JSON object
+ * @param {string} category - the source of the highlight
+ * @param {string} asin - the asin of the book
+ */
+function appendHighlightToNote(note: TNote, highlight: any, category: string, asin: string): void {
+  // remove "• " from the start of the highlight
+  const filteredContent = highlight.text.replace(/[•\t.+]/g, '')
+  let linkToHighlightOnWeb = ''
+
+  if (DataStore.settings.showLinkToHighlight === true) {
+    if (category === 'supplemental') {
+      linkToHighlightOnWeb = ` [View highlight](${highlight.readwise_url})`
+    } else if (asin !== null) {
+      linkToHighlightOnWeb = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
+    } else if (highlight.url !== null) {
+      linkToHighlightOnWeb = ` [View highlight](${highlight.url})`
+    }
+  }
+  note.appendParagraph(filteredContent + linkToHighlightOnWeb, 'list')
 }

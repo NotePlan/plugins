@@ -392,6 +392,10 @@ export function withinDateRange(testDate: string, fromDate: string, toDate: stri
 export function relativeDateFromNumber(diffIn: number, useShortStyle: boolean = false): string {
   let output = ''
   let diff = diffIn
+  if (diffIn == null || diffIn === undefined || isNaN(diffIn)) {
+    logWarn('dateTime / relativeDateFromNumber', `diffIn param is undefined`)
+    return 'unknown date'
+  }
   let isPast = false
   // logDebug('dateTime / relativeDateFromNumber', `original diff = ${diff}`)
   if (diff < 0) {
@@ -454,15 +458,16 @@ export function getDateObjFromDateString(mention: string): ?Date {
   const res = mention.match(RE_DATE_CAPTURE) ?? []
   // Use first match, if found
   if (res[1]?.length > 0) {
+    // logDebug('dateTime / getDateObjFromDateString', `- ${res[1]}`)
     const date = new Date(
       Number(res[1].slice(0, 4)),
       Number(res[1].slice(5, 7)) - 1, // only seems to be needed for months?!
       Number(res[1].slice(8, 10)),
     )
-    // logDebug('dateTime / getDateObjFromDateString', toISOShortDateTimeString(date))
+    // logDebug('dateTime / getDateObjFromDateString', `- ${toISOShortDateTimeString(date)}`)
     return date
   } else {
-    logWarn('dateTime / getDateObjFromDateString', `getDateFromString: no valid date found in '${mention}'`)
+    logWarn('dateTime / getDateObjFromDateString', `- no valid date found in '${mention}'`)
     return
   }
 }
@@ -750,7 +755,7 @@ export function includesScheduledFutureDate(line: string): boolean {
  * @param {string} date - date string in format YYYY-MM-DD OR a Date object
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType - 'day'|'week'|'month'|'year' (default: 'week')
- * @returns {string} - week number string in format 'YYYYWww'
+ * @returns {string} - week number string in format 'YYYY-Www'
  * @author @dwertheimer
  * @test - available in jest file
  */

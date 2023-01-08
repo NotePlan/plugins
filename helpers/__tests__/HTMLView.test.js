@@ -96,4 +96,52 @@ describe(`${FILE}`, () => {
       expect(res).toEqual(['font-family: "Charter"', 'font-weight: "500"', 'font-style: "normal"'])
     })
   })
+
+  /*
+   * generateScriptTags()
+   */
+  describe('generateScriptTags()' /* function */, () => {
+    test('should return empty if scripts is undefined', () => {
+      const result = n.generateScriptTags(undefined)
+      expect(result).toEqual(``)
+    })
+    test('should return empty if scripts is null', () => {
+      const result = n.generateScriptTags(null)
+      expect(result).toEqual(``)
+    })
+    test('should return empty if scripts is empty string', () => {
+      const result = n.generateScriptTags('')
+      expect(result).toEqual(``)
+    })
+    test('should not add <script> tag if STRING already has it', () => {
+      const input = '<script>foo</script>'
+      const result = n.generateScriptTags(input)
+      expect(result).toEqual(`${input}\n`)
+    })
+    test('should add <script> tag if STRING does not have it', () => {
+      const input = 'foo'
+      const result = n.generateScriptTags(input)
+      expect(result).toEqual(`<script type="text/javascript">\n${input}\n</script>\n`)
+    })
+    test('should add <script> tag if OBJ does not have it', () => {
+      const input = { code: 'foo' }
+      const result = n.generateScriptTags(input)
+      expect(result).toEqual(`<script type="text/javascript">\nfoo\n</script>\n`)
+    })
+    test('should not add <script> tag if OBJ does have it', () => {
+      const input = { code: '<script>foo</script>' }
+      const result = n.generateScriptTags(input)
+      expect(result).toEqual('<script>foo</script>\n')
+    })
+    test('should add <script type="xxx"> tag if OBJ does have it', () => {
+      const input = { code: 'foo', type: 'bar' }
+      const result = n.generateScriptTags(input)
+      expect(result).toEqual('<script type="bar">\nfoo\n</script>\n')
+    })
+    test('should add multiple mixed types', () => {
+      const input = [{ code: 'foo', type: 'bar' }, 'foo']
+      const result = n.generateScriptTags(input)
+      expect(result).toEqual(`<script type="bar">\nfoo\n</script>\n\n<script type="text/javascript">\nfoo\n</script>\n`)
+    })
+  })
 })

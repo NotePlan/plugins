@@ -2,14 +2,14 @@
   "noteplan.minAppVersion": "3.3.2",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Reviews",
-  "plugin.name": "🔬Reviews",
-  "plugin.description": "Commands to help review Project-style notes, GTD-style.",
+  "plugin.name": "🔬 Projects + Reviews",
+  "plugin.description": "Making it easier to work with Project notes in NotePlan. Start, regularly review, pause, complete and cancel projects. Inspired by the PARA and 'Getting Things Done' methods, but more widely applicable.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.8.0",
-  "plugin.lastUpdateInfo": "Major new version. Offers Rich HTML view of '/project lists', requiring NP v3.7. Can also now be run from x-callback.",
+  "plugin.version": "0.9.0-beta6",
+  "plugin.lastUpdateInfo": "Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -53,13 +53,23 @@
       "jsFunction": "nextReview"
     },
     {
+      "name": "pause project toggle",
+      "alias": [
+        "gtd",
+        "pause",
+        "project"
+      ],
+      "description": "Toggles paused status by adding or removing '#paused' in the open project note. If paused, it won't be offered as a project to review",
+      "jsFunction": "togglePauseProject"
+    },
+    {
       "name": "complete project",
       "alias": [
         "gtd",
         "complete",
         "project"
       ],
-      "description": "add @completed(date) to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
+      "description": "adds @completed(date) to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
       "jsFunction": "completeProject"
     },
     {
@@ -69,31 +79,23 @@
         "cancel",
         "project"
       ],
-      "description": "add @cancelled(date) date to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
+      "description": "adds @cancelled(date) date to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
       "jsFunction": "cancelProject"
     },
     {
-      "name": "rev:logReviewList",
-      "description": "write reviewList pref to log",
-      "jsFunction": "logReviewList"
+      "name": "test:redisplayProjectList",
+      "description": "Redisplay project lists",
+      "jsFunction": "redisplayProjectList"
     },
     {
-      "name": "rev:makeReviewList",
-      "description": "make/update reviewList pref",
-      "jsFunction": "makeReviewList"
+      "name": "test:logFullReviewList",
+      "description": "write full-review-list file to log",
+      "jsFunction": "logFullReviewList"
     },
     {
-      "name": "test:generateCSSFromTheme",
-      "description": "test generateCSSFromTheme",
-      "jsFunction": "testGenerateCSSFromTheme"
-    }
-  ],
-  "plugin.inactiveCommands": [
-    {
-      "comment": "Note: saved for later use",
-      "name": "rev:test update Reviews plugin",
-      "description": "upgrade Reviews plugin settings",
-      "jsFunction": "testUpdated"
+      "name": "test:makeFullReviewList",
+      "description": "make/update full review list note",
+      "jsFunction": "makeFullReviewList"
     },
     {
       "name": "test:redToGreenInterpolation",
@@ -101,9 +103,37 @@
       "jsFunction": "testRedToGreenInterpolation"
     },
     {
-      "name": "test:NoteplanstateFont",
-      "description": "test 'noteplanstate' font glyphs",
-      "jsFunction": "testNoteplanStateFont"
+      "name": "test:generateCSSFromTheme",
+      "description": "test generateCSSFromTheme",
+      "jsFunction": "testGenerateCSSFromTheme"
+    },
+    {
+      "name": "test:redisplayProjectListHTML",
+      "description": "test redisplay Project List HTML",
+      "jsFunction": "redisplayProjectListHTML"
+    }
+  ],
+  "plugin.inactiveCommands": [
+    {
+      "name": "test:fonts",
+      "description": "test font glyphs",
+      "jsFunction": "testFonts"
+    },
+    {
+      "name": "test:logReviewList",
+      "description": "write reviewList pref to log",
+      "jsFunction": "logReviewList"
+    },
+    {
+      "name": "test:makeReviewList",
+      "description": "make/update reviewList pref",
+      "jsFunction": "makeReviewList"
+    },
+    {
+      "comment": "Note: saved for later use",
+      "name": "rev:test update Reviews plugin",
+      "description": "upgrade Reviews plugin settings",
+      "jsFunction": "testUpdated"
     },
     {
       "name": "test:CSS-circle",
@@ -111,7 +141,7 @@
       "jsFunction": "testCSSCircle"
     },
     {
-      "name": "test:ButtonTriggerCommand",
+      "name": "test:buttonTriggerCommand",
       "description": "test Button Trigger Command",
       "jsFunction": "testButtonTriggerCommand"
     },
@@ -119,11 +149,6 @@
       "name": "test:buttonTriggerOpenNote",
       "description": "test Button Trigger OpenNote",
       "jsFunction": "testButtonTriggerOpenNote"
-    },
-    {
-      "name": "test:redisplayProjectListHTML",
-      "description": "test redisplay Project List HTML",
-      "jsFunction": "redisplayProjectListHTML"
     }
   ],
   "plugin.settings": [
@@ -134,15 +159,15 @@
     {
       "key": "outputStyle",
       "title": "Output style to use",
-      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use NotePlan's original 'Markdown' output style.\nNote: the 'Rich' output can't result in a saved note.",
+      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use NotePlan's original 'Markdown' output style.\nNote: the 'Rich' output can't result in a saved note, so that's why there's also an option to do both.",
       "type": "string",
       "choices": [
         "Rich",
-        "Markdown"
+        "Markdown",
+        "Rich + Markdown"
       ],
       "default": "Rich",
-      "required": true,
-      "comment": "TODO: add in \"Rich + Markdown\" later, and add ', so that's why there's also an option to do both.' to description"
+      "required": true
     },
     {
       "key": "folderToStore",
@@ -206,7 +231,7 @@
     {
       "key": "displayOrder",
       "title": "Display order for projects",
-      "description": "The sort options  are by 'due' date, by 'review' date or 'title'.",
+      "description": "The sort options  are by 'due' date, by next 'review' date or 'title'.",
       "type": "string",
       "choices": [
         "due",
@@ -220,14 +245,6 @@
       "key": "displayGroupedByFolder",
       "title": "Display projects grouped by folder?",
       "description": "Whether to group the projects by their folder.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "displayArchivedProjects",
-      "title": "Display archived projects?",
-      "description": "Whether to display project notes marked as #archive.",
       "type": "bool",
       "default": true,
       "required": true
@@ -317,6 +334,16 @@
       ],
       "default": "INFO",
       "required": true
-     }
+    }
+  ],
+  "plugin.settings.unused": [
+    {
+      "key": "displayArchivedProjects",
+      "title": "Display archived projects?",
+      "description": "Whether to display project notes marked as #archive.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    }
   ]
 }

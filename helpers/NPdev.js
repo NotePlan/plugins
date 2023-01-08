@@ -32,7 +32,7 @@ export async function chooseRunPluginXCallbackURL(
         // $FlowIgnore
         commandMap.push({
           name: command.name,
-          description: command.description,
+          description: command.desc,
           command: command,
           plugin: plugin,
           label: show,

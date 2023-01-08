@@ -6,12 +6,13 @@ This plugin provides commands to help **review** Project-based notes, and it hel
 If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 50 of these.
 
 User George Crump (@george65) has created a [great video showing how the plugin works](https://storone.zoom.us/rec/play/Pgo9gL24JcZeLJfMW23GWVMGgYGMIN9NZgK5eJwhec8Xg0kyqTZG-uxJjjQh3tK2CvIAYAK5QheSTKis.0Qf5Lu0zvNIIIra3). (Note: it was created before v0.8 was released.)
+
 [![video thumbnail](georgec-video-thumbnail.png)](https://storone.zoom.us/rec/play/Pgo9gL24JcZeLJfMW23GWVMGgYGMIN9NZgK5eJwhec8Xg0kyqTZG-uxJjjQh3tK2CvIAYAK5QheSTKis.0Qf5Lu0zvNIIIra3)
 
 ## Using NotePlan for Project-like work
 Each **Project** is described by a separate note, and has a lifecycle something like this:
 
-![project lifecycle](project-flowchart-bordered.png)
+![project lifecycle](project-flowchart_bordered.jpg)
 
 Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on a line (which I suggest comes after the title).  For example:
 
@@ -54,7 +55,10 @@ Aim: Make sure car continues to run well, is legal etc.
 ...
 ```
 
-(These use my related [Repeat Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/) to give more flexibility than the built-in repeats.)
+The first hashtag on the line defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you.
+Note: If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but will show up in the lists.
+
+Note: This example uses my related [Repeat Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/) to give more flexibility than the built-in repeats.
 
 ## Reviewing Projects and/or Areas
 Use the 'Hashtags to review' setting to control which notes are included in the review lists:
@@ -65,17 +69,23 @@ Use the 'Hashtags to review' setting to control which notes are included in the 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
 ### "/project lists" command
-This creates or updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. This is stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be). For example:
+This creates or updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. 
+From v0.8 you can set the '**Output style to use**'. This is either a 'Rich' (HTML) or original 'Markdown' (normal NotePlan) output style:
 
-From v0.8 you can now set the '**Output style to use**'. This is either a new 'Rich' (HTML) or original 'Markdown' (normal NotePlan) output style.
+<!-- FIXME: update screenshot -->
+![Example of Rich style of "/project lists"](project-list-rich.jpg)
+![Example of Markdown style of "/project lists"](project-list-markdown_bordered.jpg) 
 
-![Example of Markdown style of "/project lists"](project-list-markdown_bordered.jpg) ![Example of Rich style of "/project lists"](project-list-rich.jpg)
+**Note**:  the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use. However, the **Markdown style** list _is_ stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
 
-Note:  the 'Rich' style _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use.
+**Tip**: Place this **Rich** list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.  From v0.9 it now includes the following buttons above the start of the lists:
 
-**Tip**: Place this Rich list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.
+![Example of buttons in Rich style of "/project lists"](review-list-buttons2_bordered.jpg)
+
+This heading row deliberately 'sticks' to the top of the window as you scroll the list.
 
 Other settings:
+- ??? noteTag??? ... **Note**: due to limits on the API for 'Rich' style output, all #tags to review get shown one after the other in a single window. (This limit does not apply for Markdown style output.)
 - Specify folders to ignore using the 'Folders to ignore' shared setting (as above).
 - Display project dates?  Whether to display the project's review and due dates (where set).
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.
@@ -83,7 +93,7 @@ Other settings:
 - Display grouped by folder? Whether to group the projects by their folder.
 - Display archived projects? Whether to display project notes marked as `#archive`.
 
-On the second line is a link 'Start reviewing _N_ ready for review', which is a shortcut to the '/start reviews' command (described next).
+On the second line is a link 'Start reviewing notes ready for review', which is a shortcut to the '/start reviews' command (described next).
 Each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 #### Running from x-callback call
@@ -98,8 +108,8 @@ The name of the settings are taken from the `key`s from the plugin's `plugin.jso
 ### "/start reviews" command
 This creates a hidden list of notes ready for review, and then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
 
-### "/complete review" command
-This updates the current open project's `@reviewed(date)`.
+### "/finish review" command
+This simply updates the current open project's `@reviewed(date)`.
 
 ### "/next review" command
 This updates this project's `@reviewed(date)`, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
@@ -120,16 +130,19 @@ Context: <%- prompt('context') %>
 ```
 
 ## "/complete project" command
-This adds an #archive tag, and a `@completed(date)` mention to the metadata line of the open project note, removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+This adds a `@completed(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
 
 ## "/cancel project" command
-This adds an #archive tag, and a `@cancelled(date)` mention to the metadata line of the open project note, removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+This adds a `@cancelled(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+
+## "/pause project toggle" command
+This is a toggle that adds or removes a `#paused` tag to the metadata line of the open project note. When paused it stops the note being offered with '/next review'. However, it keeps showing it in the review list, so you don't forget about it entirely.
 
 ## Configuration
 These commands require configuration, which is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel.
 
 ## Thanks
-Thanks to George Crump for his suggestions and beta testing.
+Thanks to George Crump and 'John1' for their suggestions and beta testing.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
