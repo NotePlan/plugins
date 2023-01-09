@@ -2,6 +2,11 @@
 
 ## About Plugins/package.json / package-lock.json
 
+## [3.18.0] - 2023-01-08 (@dwertheimer)
+
+- edits to rollup & releases to help with "plugin.requiredFiles" and the requiredFiles folder (files to be copied to the Plugins folder and to releases for React, etc.)
+- add fast-glob module for rollup (to watch for changes in files outside the build tree of index.js)
+
 ## [3.17.0] - 2022-12-17 (@dwertheimer)
 
 ### Additions to the plugin template for new plugins:

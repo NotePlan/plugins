@@ -4,6 +4,7 @@
 
 // $FlowFixMe
 const fs = require('fs/promises')
+const fg = require('fast-glob') //dbw adding for requiredFiles glob wildcard watch (**/)
 const { existsSync } = require('fs')
 const path = require('path')
 const notifier = require('node-notifier')
@@ -29,8 +30,12 @@ const pluginConfig = require('../plugins.config')
 const createPluginListing = require('./createPluginListing')
 
 let progress
+let requiredFilesWatchMsg = ''
+
+let watcher
 
 const { getFolderFromCommandLine, getPluginFileContents, writeMinifiedPluginFileContents, getCopyTargetPath, getPluginConfig } = require('./shared')
+const { re } = require('mathjs')
 
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
@@ -40,30 +45,63 @@ const copyBuild = async (outputFile = '', isBuildTask = false) => {
     messenger.error(`Invalid Script: ${outputFile}`)
   }
 
-  const outputFolder = path.dirname(outputFile)
+  const pluginDevFolder = path.dirname(outputFile)
   const rootFolder = await fs.readdir(rootFolderPath, { withFileTypes: true })
   const copyTargetPath = await getCopyTargetPath(rootFolder)
 
-  if (outputFolder != null) {
-    const targetFolder = path.join(copyTargetPath, outputFolder.replace(rootFolderPath, ''))
+  if (pluginDevFolder != null) {
+    const targetFolder = path.join(copyTargetPath, pluginDevFolder.replace(rootFolderPath, ''))
     await mkdirp(targetFolder)
-    await fs.copyFile(path.join(outputFolder, 'script.js'), path.join(targetFolder, 'script.js'))
-    const pluginJson = path.join(outputFolder, 'plugin.json')
+    await fs.copyFile(path.join(pluginDevFolder, 'script.js'), path.join(targetFolder, 'script.js'))
+    const pluginJson = path.join(pluginDevFolder, 'plugin.json')
 
     await writeMinifiedPluginFileContents(pluginJson, path.join(targetFolder, 'plugin.json'))
     // await fs.copyFile(pluginJson, path.join(targetFolder, 'plugin.json')) //the non-minified version
     const pluginJsonData = JSON.parse(await fs.readFile(pluginJson))
 
-    const pluginFolder = outputFolder.replace(rootFolderPath, '').substring(1)
+    const pluginFolder = pluginDevFolder.replace(rootFolderPath, '').substring(1)
 
     // default dateTime, uses .pluginsrc if exists
     // see https://www.strfti.me/ for formatting
     const dateTimeFormat = await getPluginConfig('dateTimeFormat')
     const dateTime = dateTimeFormat.length > 0 ? strftime(dateTimeFormat) : new Date().toISOString().slice(0, 16)
 
+    const dependencies = pluginJsonData['plugin.requiredFiles'] || []
+    let dependenciesCopied = 0,
+      dataFolder = null
+    if (dependencies.length > 0) {
+      // copy files also to data folder where we can save out the generated HTML files to test in browser
+      // this is only done for plugins that have dependencies and stored locally. not uploaded to github or to users plugins
+      dataFolder = path.join(targetFolder, '..', 'data', pluginJsonData['plugin.id'])
+      if (!existsSync(dataFolder)) {
+        await mkdirp(dataFolder)
+        console.log(`Created data folder: ${dataFolder}`)
+      } else {
+        dataFolder = null
+      }
+      // if requiredFiles exists, create a watcher that triggers a rebuild when any of these (e.g. JSX) files change
+      // even though they are not in the plugin build index.js
+      // if requiredFiles exists, create a symlink from the requiredFiles folder in the plugin to the data folder
+      // this allows the plugin to write an HTML file to the data folder and then we can access it in the development folder in VSCode
+      for (const dependency of dependencies) {
+        const filePath = path.join(pluginDevFolder, 'requiredFiles', dependency)
+        if (existsSync(filePath)) {
+          await fs.copyFile(filePath, path.join(targetFolder, dependency))
+          if (dataFolder) {
+            await await fs.copyFile(filePath, path.join(dataFolder, dependency))
+          }
+          dependenciesCopied++
+          // console.log(`Copying ${dependency} to ${targetFolder}`)
+        } else {
+          console.log(colors.red.bold(`Cannot copy plugin.dependency "${dependency}" (${filePath}) as it doesn't exist at this location.`))
+        }
+      }
+    }
+
     let msg = COMPACT
       ? `${dateTime} - ${pluginFolder} (v${pluginJsonData['plugin.version']})`
-      : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) + '\n   Built and copied to the "Plugins" folder.'
+      : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) +
+        `\n   Built ${dependenciesCopied > 0 ? `script.js & copied plugin.json + ${dependenciesCopied} requiredFiles` : `and`} copied to the "Plugins" folder.`
 
     if (DEBUGGING) {
       msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
@@ -121,7 +159,6 @@ if (COMPACT) {
 if (MINIFY) {
   console.log(colors.cyan.bold(`==> Rollup autowatch running. Will use minified output\n`))
 }
-let watcher
 
 /**
  * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
@@ -210,9 +247,9 @@ async function main() {
     }
     if (event.code === 'BUNDLE_END' && copyTargetPath != null) {
       const outputFile = event.output[0]
-      const outputFolder = bundledPlugins.find((pluginFolder) => outputFile.includes(pluginFolder))
+      const pluginDevFolder = bundledPlugins.find((pluginFolder) => outputFile.includes(pluginFolder))
 
-      if (outputFolder != null) {
+      if (pluginDevFolder != null) {
         await copyBuild(outputFile)
       } else {
         console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
@@ -232,7 +269,7 @@ async function main() {
 
   if (!COMPACT) {
     console.log('')
-    console.log(colors.green('==> Building and Watching for changes\n'))
+    console.log(colors.green(`==> Building and Watching for changes\n`))
   }
 }
 
@@ -333,6 +370,21 @@ async function build() {
 }
 
 function getConfig(pluginPath) {
+  let requiredFilesWatchPlugin = null
+  const requiredFilesInDevFolder = path.join(pluginPath, 'requiredFiles')
+  if (existsSync(requiredFilesInDevFolder)) {
+    console.log(colors.yellow(`==> Watching "requiredFiles" folder for changes`))
+    requiredFilesWatchPlugin = {
+      name: 'watch-external-files',
+      async buildStart() {
+        const files = await fg(path.join(requiredFilesInDevFolder, '**/*'))
+        for (let file of files) {
+          // console.log(`Watching ${file}`)
+          this.addWatchFile(file)
+        }
+      },
+    }
+  }
   return {
     external: ['fs'],
     input: path.join(pluginPath, 'src/index.js'),
@@ -342,58 +394,61 @@ function getConfig(pluginPath) {
       name: 'exports',
       footer: 'Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, exports)',
     },
-    plugins: DEBUGGING
-      ? [
-          alias({
-            entries: pluginConfig.aliasEntries,
-          }),
-          babel({
-            presets: ['@babel/flow'],
-            babelHelpers: 'bundled',
-            babelrc: false,
-            exclude: ['node_modules/**', '*.json'],
-            compact: false,
-          }),
-          commonjs(),
-          json(),
-          nodeResolve({ browser: true, jsnext: true }),
-        ]
-      : MINIFY ? [
-          alias({
-            entries: pluginConfig.aliasEntries,
-          }),
-          babel({ babelHelpers: 'bundled', compact: true }),
-          commonjs(),
-          json(),
-          nodeResolve({ browser: true, jsnext: true }),
-          terser({
-            compress: true,
-            mangle: true,
-            output: {
-              comments: false,
-              beautify: false,
-              indent_level: 2,
-            },
-          }),
-      ] :
-      [
-          alias({
-            entries: pluginConfig.aliasEntries,
-          }),
-          babel({ babelHelpers: 'bundled', compact: false }),
-          commonjs(),
-          json(),
-          nodeResolve({ browser: true, jsnext: true }),
-          terser({
-            compress: false,
-            mangle: false,
-            output: {
-              comments: false,
-              beautify: true,
-              indent_level: 2,
-            },
-          }),
-      ],
+    plugins: [requiredFilesWatchPlugin].concat(
+      DEBUGGING
+        ? [
+            alias({
+              entries: pluginConfig.aliasEntries,
+            }),
+            babel({
+              presets: ['@babel/flow'],
+              babelHelpers: 'bundled',
+              babelrc: false,
+              exclude: ['node_modules/**', '*.json'],
+              compact: false,
+            }),
+            commonjs(),
+            json(),
+            nodeResolve({ browser: true, jsnext: true }),
+          ]
+        : MINIFY
+        ? [
+            alias({
+              entries: pluginConfig.aliasEntries,
+            }),
+            babel({ babelHelpers: 'bundled', compact: true }),
+            commonjs(),
+            json(),
+            nodeResolve({ browser: true, jsnext: true }),
+            terser({
+              compress: true,
+              mangle: true,
+              output: {
+                comments: false,
+                beautify: false,
+                indent_level: 2,
+              },
+            }),
+          ]
+        : [
+            alias({
+              entries: pluginConfig.aliasEntries,
+            }),
+            babel({ babelHelpers: 'bundled', compact: false }),
+            commonjs(),
+            json(),
+            nodeResolve({ browser: true, jsnext: true }),
+            terser({
+              compress: false,
+              mangle: false,
+              output: {
+                comments: false,
+                beautify: true,
+                indent_level: 2,
+              },
+            }),
+          ],
+    ),
     context: 'this',
   }
 }
