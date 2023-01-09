@@ -315,7 +315,7 @@ export function createCallbackUrl(commandName: string, paramObjOrString: { [stri
  * @param {string} linkText - the text to display for the link
  * @param {string} titleOrFilename - the title or the filename of the note
  * @param {boolean} isFilename - set to true if you want the link to use filename instead of title (and that's what you passed in previous param) - default: false
- * @param {string} heading - the heading inside of the note to point to (due to NP constraints, only works on title, not filename) - default: point to note but not specific heading
+ * @param {string | null} heading - the heading inside of the note to point to (due to NP constraints, only works on title, not filename) - default: point to note but not specific heading
  * @returns {string} the pretty x-callback-url string: [linkText](x-callback-url)
  * @tests available
  */
@@ -329,8 +329,8 @@ export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: stri
  * @param {string} linkText - the text to display for the link
  * @param {string} pluginID - the plugin's ID
  * @param {boolean} command - the "name" field of the plugin command to run
- * @param {string | null} heading - heading inside of note (optional)
- * @returns {Array<string> | string} arguments as strings (or single argument string) to send through to plugin
+ * @param {Array<string> | string} args - heading inside of note (optional)
+ * @returns {string} arguments as strings (or single argument string) to send through to plugin
  * @tests available
  */
 export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> | string): string {
