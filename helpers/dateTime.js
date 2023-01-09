@@ -681,21 +681,21 @@ export function calcWeekOffset(startWeek: number, startYear: number, offset: num
 }
 
 /**
- * Calculate an offset date of either a NP daily or weekly date, and return _in whichever of the two ISO formats were supplied (YYYY-MM-DD or YYYY-Wnn)_.
+ * Calculate an offset date of either a NP daily or weekly date, and return as a JS Date.
  * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly strings as well.
  * Moment docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark
  *
  * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
- * @return {string} new date in the same format that was supplied
- * @test - available in jest file
+ * @returns {Date} new date
+ * @test - TODO: available in jest file
  */
-export function calcOffsetDateStr(baseDateISO: string, interval: string): string {
+export function calcOffsetDate(baseDateISO: string, interval: string): Date | null {
   try {
     if (!interval.match(RE_DATE_INTERVAL)) {
-      logError('dateTime / cODS', `Invalid date interval '${interval}'`)
-      return '(error)'
+      logError('dateTime / cOD', `Invalid date interval '${interval}'`)
+      return null
     }
     const unit = interval.charAt(interval.length - 1) // get last character
     const num = Number(interval.substr(0, interval.length - 1)) // return all but last character
@@ -722,11 +722,54 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
     } else {
       throw new Error('Invalid date string')
     }
-    const baseDateMoment = moment(baseDateISO, momentDateFormat)
-    const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num)
-    const newDateStr = newDate.format(momentDateFormat)
 
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
+    const baseDateMoment = moment(baseDateISO, momentDateFormat)
+    const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num).toDate()
+
+    // logDebug('dateTime / cOD', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> ${String(newDate)}`)
+    return newDate
+  } catch (e) {
+    logError('dateTime / cOD', `${e.message} for '${baseDateISO}' interval '${interval}'`)
+    return null
+  }
+}
+
+/**
+ * Calculate an offset date of either a NP daily or weekly date, and return _in whichever of the two ISO formats were supplied (YYYY-MM-DD or YYYY-Wnn)_.
+ * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly strings as well.
+ * Moment docs: https://momentjs.com/docs/#/get-set/
+ * @author @jgclark
+ *
+ * @param {string} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type
+ * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
+ * @returns {string} new date in the same format that was supplied
+ * @test - available in jest file
+ */
+export function calcOffsetDateStr(baseDateISO: string, interval: string): string {
+  try {
+    if (baseDateISO === '') {
+      throw new Error('Empty baseDateISO string')
+    }
+    if (interval === '') {
+      throw new Error('Empty interval string')
+    }
+
+    // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
+    const offsetDate = calcOffsetDate(baseDateISO, interval)
+    if (!offsetDate) {
+      throw new Error('Invalid return from calcOffsetDate()')
+    }
+    let momentDateFormat = ''
+    if (baseDateISO.match(RE_ISO_DATE)) {
+      momentDateFormat = 'YYYY-MM-DD'
+    } else if (baseDateISO.match(RE_NP_WEEK_SPEC)) {
+      momentDateFormat = 'YYYY-[W]WW'
+    } else {
+      throw new Error('Invalid date string')
+    }
+
+    const newDateStr = moment(offsetDate).format(momentDateFormat)
     // logDebug('dateTime / cODS', `for '${baseDateISO}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
     return newDateStr
   } catch (e) {
