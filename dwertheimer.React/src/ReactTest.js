@@ -1,9 +1,10 @@
 // @flow
 
+import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
 import { showHTMLWindow, getCallbackCodeString } from '@helpers/HTMLView'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-const USE_MINIFIED_REACT = true
+const USE_MINIFIED_REACT = false
 /**
  * reactTest
  * Plugin entrypoint for "/React Test"
@@ -11,100 +12,115 @@ const USE_MINIFIED_REACT = true
  */
 
 /**
- * Pops up an HTML window to allow for color picking
- * @param {*} key
- * @param {*} defaultValue
- * Uses invokePluginCommandByName to set the color after it's chosen
+ * Entrypoint for /React Test: Pops up an HTML window
  */
 export function reactTest(): void {
   try {
-    /* minified versions per: https://reactjs.org/docs/add-react-to-a-website.html
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    */
-    const cb = getCallbackCodeString('htmlToNPBridge', pluginJson['plugin.id'])
-    const reactJSmin = `
-        <script src="https://unpkg.com/react/umd/react.production.min.js"></script>
-        <script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js"></script>
-        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    `
+    // development versions of react (better error messaging)
     const reactJSDev = `
         <script src="https://unpkg.com/react/umd/react.development.js"></script>
         <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
         <script src="https://unpkg.com/@babel/standalone/babel.js"></script>
     `
-    const reactApp = `
-        <script>var exports = {};</script>
-        <!-- this line is required for babel to not die: https://bobbyhadz.com/blog/typescript-uncaught-referenceerror-exports-is-not-defined -->
-        <!-- react must be type text/babel so babel knows to parse it -->
-        <script type="text/babel" >
-            window.onerror = (msg, url, line, column, error) => {
-                const message = {
-                message: msg,
-                url: url,
-                line: line,
-                column: column,
-                error: JSON.stringify(error)
-                }
-            
-                if (window.webkit) {
-                window.webkit.messageHandlers.error.postMessage(message);
-                } else {
-                console.log("Error:", message);
-                }
-            };
-            const React = window.React;
-            const ReactDOM = window.ReactDOM;
-            const useState = React.useState;
-            function App() {
-                const [todos, setTodos] = useState([])
-                const [newTodo, setNewTodo] = useState("") 
-            
-                const handleChange = (event) => {
-                setNewTodo(event.target.value)
-                }
-                const SaveNewTodo = () => {
-                setTodos([...todos, newTodo])
-                setNewTodo("")
-                }
-                return (
-                <div className="App">
-                    <h1>Todo List</h1>
-                    { todos.length === 0 ? 
-                    <p>There are no todos</p>
-                    : 
-                    <div>
-                        <p>You have {todos.length} Todos</p>
-                        <ul>
-                        {todos.map((todo) => {
-                            return <li key={todo}>- {todo}</li>
-                        } )}
-                        </ul>
-                    </div>
-                    }
-                    <input type="text" value={newTodo} onChange={handleChange} placeholder="New Todo" />
-                    <button onClick={SaveNewTodo}>Add Todo</button>
-                </div>
-                );
-            }
-            
-            // export default App;
-
-            // new mounting method for React18+
-            const container = document.getElementById('root');
-            const root = ReactDOM.createRoot(container); 
-            root.render(<App tab="home" />);
-
-        </script>
+    // production versions of react (smaller file size)
+    const reactJSmin = `
+        <script src="https://unpkg.com/react/umd/react.production.min.js"></script>
+        <script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js"></script>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     `
+    const globalVars = `
+    <script type="text/babel" >
+      // set up global variables for React and ReactDOM
+      const React = window.React;
+      const ReactDOM = window.ReactDOM;
+      const useState = React.useState;
+    </script>
+`
+    // this is some initial data we will send to the HTML window
+    // react will use this to populate the page
+    const dataFromPlugin = {
+      title: `David's todo list`,
+      todos: ['code', 'eat', 'sleep', 'code', 'send something to jonathan'],
+    }
+    // don't edit this next block, it's just a way to send the data object to the HTML window
+    const strDataFromPlugin = `
+      <script type="text/babel" >
+        const dataFromPlugin = ${JSON.stringify(dataFromPlugin)};
+      </script>
+    `
+
     const bodyHTML = `
-     <div id="root"></div>
-   `
+    <div id="root"></div>
+  ` // the body starts totally empty, but we're going to use React to populate it
+
+    const appRootComponent = `
+    <script type="text/babel" >
+        // react must be type text/babel so babel knows to parse it 
+
+        function App() {
+          console.log("App is loading...")
+          const [todos, setTodos] = useState(dataFromPlugin.todos)
+          const [newTodo, setNewTodo] = useState("") 
+      
+          const handleChange = (event) => {
+            setNewTodo(event.target.value)
+          }
+          const SaveNewTodo = () => {
+            // send some info to the plugin
+            // first param is the action type and the rest are data (can be any form you want)
+            setTodos([...todos, newTodo])
+            setNewTodo("")
+            htmlToNPBridge(['todoWasAdded', newTodo])
+          }
+          return (
+          <div className="App">
+              <h1>{dataFromPlugin.title}</h1>
+              { todos.length === 0 ? 
+              <p>There are no todos</p>
+              : 
+              <div>
+                  <p>You have {todos.length} Todos</p>
+                  <ul>
+                  {todos.map((todo,i) => {
+                      return <li key={i}> {todo}</li>
+                  } )}
+                  </ul>
+              </div>
+              }
+              <input type="text" value={newTodo} onChange={handleChange} placeholder="New Todo" />
+              <button onClick={SaveNewTodo}>Add Todo</button>
+          </div>
+          );
+      }
+      
+      // export default App;
+
+      </script>
+`
+    const mountApp = `
+      <script type="text/babel" >
+          const container = document.getElementById('root');
+          const root = ReactDOM.createRoot(container); 
+          root.render(<App tab="home" />);
+      </script>
+`
+    const returnPathName = 'NPToHTMLReturnPath'
+    const htmlToNPBridge = getCallbackCodeString('htmlToNPBridge', pluginJson['plugin.id'], returnPathName)
+    // note: the function name below needs to match the last param in the htmlToNPBridge function
+    const returnedFromNoteplan = `
+      <script type="text/babel" >
+        async function ${returnPathName}(...args) {
+          console.log('Function ${returnPathName} received from NP: ', args)
+          // maybe do something with the data received from the plugin
+        }
+      </script>
+    `
+
     // `<p>Test</p><button id="foo" onclick="htmlToNPBridge(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
-    showHTMLWindow('Test', bodyHTML, {
+    showHTMLWindow('React Test', bodyHTML, {
       savedFilename: 'test.ReactTest.html',
-      preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSDev}`,
-      postBodyScript: `<script type="text/javascript">${cb}</script>\n${reactApp}`,
+      preBodyScript: [USE_MINIFIED_REACT ? reactJSmin : reactJSDev, globalVars],
+      postBodyScript: [htmlToNPBridge, returnedFromNoteplan, strDataFromPlugin, appRootComponent, mountApp],
     })
   } catch (error) {
     console.log(error)
@@ -118,8 +134,9 @@ export function reactTest(): void {
  */
 export async function htmlToNPBridge(...incoming: string) {
   try {
-    console.log('htmlToNPBridge')
-    clo(incoming, `htmlToNPBridge::incoming`)
+    clo(incoming, `htmlToNPBridge::incoming data`)
+    await showMessage(`htmlToNPBridge::incoming data: ${incoming}`)
+    return 'htmlToNPBridge::returning data'
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
