@@ -64,7 +64,7 @@ if (TEST) {
 
 /**
  *
- * @param {string} pluginFullPath
+ * @param {string} pluginDevDirFullPath
  * @returns {Promise<{name:string,tag:string} | null>
  */
 async function getExistingRelease(pluginName) {
@@ -134,14 +134,14 @@ function getPluginDataField(pluginData, field) {
 // type FileList = { changelog: string | null, files: Array<string> }
 
 /**
- * @param {string} pluginFullPath
+ * @param {string} pluginDevDirFullPath
  * @returns {Promise<{ changelog: string | null, files: Array<string> } | null >}
  */
 // eslint-disable-next-line no-unused-vars
-async function getReleaseFileList(pluginFullPath, appPluginsPath) {
+async function getReleaseFileList(pluginDevDirFullPath, appPluginsPath, dependencies) {
   let goodToGo = true
   const fileList = { changelog: null, files: [] }
-  const filesInPluginFolder = await fs.readdir(pluginFullPath, {
+  const filesInPluginFolder = await fs.readdir(pluginDevDirFullPath, {
     withFileTypes: true,
   })
   const fileLowerMatch = (str) => filesInPluginFolder.filter((f) => f.name.toLowerCase() === str)
@@ -153,7 +153,7 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
       return null
     }
   }
-  const fullPath = (name) => path.join(pluginFullPath, name)
+  const fullPath = (name) => path.join(pluginDevDirFullPath, name)
 
   let name
   if ((name = existingFileName('changelog.md'))) {
@@ -164,7 +164,7 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
       //$FlowFixMe - see note above
       fileList.changelog = fullPath(name)
     } else {
-      Messenger.note(`==> ${COMMAND}: Missing ${colors.cyan('CHANGELOG.md')} or ${colors.cyan('README.md')} in ${pluginFullPath}`)
+      Messenger.note(`==> ${COMMAND}: Missing ${colors.cyan('CHANGELOG.md')} or ${colors.cyan('README.md')} in ${pluginDevDirFullPath}`)
     }
   }
   // Grab the minified/cleaned version of the plugin.json file
@@ -177,14 +177,26 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
     fileList.files.push(fullPath(name))
   } else {
     goodToGo = false
+    console.log('no plugin.json found')
   }
   if ((name = existingFileName('script.js'))) {
     fileList.files.push(fullPath(name))
   } else {
     goodToGo = false
+    console.log('no script.js found')
   }
   if ((name = existingFileName('readme.md'))) {
     fileList.files.push(fullPath(name))
+  }
+  const dependendenciesPath = path.join(pluginDevDirFullPath, 'requiredFiles')
+  for (const dependency of dependencies) {
+    const dependencyFile = path.join(dependendenciesPath, dependency)
+    if (await fileExists(dependencyFile)) {
+      fileList.files.push(dependencyFile)
+    } else {
+      goodToGo = false
+      console.log(`no "${dependency}" file found in "${dependendenciesPath}"`)
+    }
   }
 
   // console.log(`>> Releases fileList:\n${JSON.stringify(fileList)}`)
@@ -192,7 +204,7 @@ async function getReleaseFileList(pluginFullPath, appPluginsPath) {
   if (goodToGo === false) {
     console.log(
       colors.red(
-        `>> Releases: ERROR. ABORTING: Not enough files to create a release. Minimum 2 files required are: plugin.json and script.js. Here are the files I found:\n${JSON.stringify(
+        `>> Releases: ERROR. ABORTING: Encountered errors in creating the release. Minimum 2 files required are: plugin.json and script.js. Here are the files I found:\n${JSON.stringify(
           fileList,
         )}`,
       ),
@@ -285,12 +297,12 @@ async function main() {
 
   if (limitToFolders.length === 1) {
     const pluginName = limitToFolders[0]
-    const pluginFullPath = path.join(rootFolderPath, pluginName)
+    const pluginDevDirFullPath = path.join(rootFolderPath, pluginName)
     const existingRelease = await getExistingRelease(pluginName)
-    const pluginData = await getPluginFileContents(path.join(pluginFullPath, 'plugin.json'))
+    const pluginData = await getPluginFileContents(path.join(pluginDevDirFullPath, 'plugin.json'))
     const versionNumber = getPluginDataField(pluginData, 'plugin.version')
     const copyTargetPath = await getCopyTargetPath(rootFolderDirs)
-    const fileList = await getReleaseFileList(pluginFullPath, path.join(copyTargetPath, pluginName))
+    const fileList = await getReleaseFileList(pluginDevDirFullPath, path.join(copyTargetPath, pluginName), pluginData['plugin.requiredFiles'] || [])
 
     if (fileList) {
       const versionedTagName = getReleaseTagName(pluginName, versionNumber)

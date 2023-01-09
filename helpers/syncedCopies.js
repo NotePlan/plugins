@@ -8,14 +8,15 @@ export const textWithoutSyncedCopyTag = (text: string): string => text.replace(n
  * Eliminate duplicate paragraphs (especially for synced lines)
  * Duplicate content is not allowed if:
  * - The content is the same & the blockID is the same (multiple notes referencing this one)
- * @param {Array<TParagraph>} todos: Array<TParagraph>
+ * Currently it keeps the first copy it finds ... so this is dependent on the order of paras passed to the function.
+ * @param {Array<TParagraph>} paras: Array<TParagraph>
  * @returns Array<TParagraph> unduplicated paragraphs
  */
-export function eliminateDuplicateSyncedParagraphs(todos: Array<TParagraph>): Array<TParagraph> {
-  const revisedTodos = []
-  if (todos?.length) {
-    todos.forEach((e) => {
-      const matchingIndex = revisedTodos.findIndex((t) => {
+export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>): Array<TParagraph> {
+  const revisedParas = []
+  if (paras?.length) {
+    paras.forEach((e) => {
+      const matchingIndex = revisedParas.findIndex((t) => {
         if (t.content === e.content) {
           if (t.blockId !== undefined && e.blockId !== undefined && t.blockId === e.blockId) {
             return true
@@ -29,9 +30,9 @@ export function eliminateDuplicateSyncedParagraphs(todos: Array<TParagraph>): Ar
       })
       const exists = matchingIndex > -1
       if (!exists) {
-        revisedTodos.push(e)
+        revisedParas.push(e)
       }
     })
   }
-  return revisedTodos
+  return revisedParas
 }
