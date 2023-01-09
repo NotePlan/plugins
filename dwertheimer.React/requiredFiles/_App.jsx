@@ -1,9 +1,13 @@
+// This is the root component of the React app
+// Do not change the name of this Component
+// It is the parent of all other components on the page
 function App() {
   const [todos, setTodos] = useState([])
   const [newTodo, setNewTodo] = useState('')
 
   const handleChange = (event) => {
     setNewTodo(event.target.value)
+    console.log('foo2')
   }
   const SaveNewTodo = () => {
     setTodos([...todos, newTodo])
@@ -11,7 +15,7 @@ function App() {
   }
   return (
     <div className="App">
-      <h1>Todo List</h1>
+      <h1>Todos List</h1>
       {todos.length === 0 ? (
         <p>There are no todos</p>
       ) : (

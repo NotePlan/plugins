@@ -22,7 +22,7 @@ export function reactTest(): void {
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     */
-    const cb = getCallbackCodeString('callbackTest', pluginJson['plugin.id'])
+    const cb = getCallbackCodeString('htmlToNPBridge', pluginJson['plugin.id'])
     const reactJSmin = `
         <script src="https://unpkg.com/react/umd/react.production.min.js"></script>
         <script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js"></script>
@@ -100,7 +100,7 @@ export function reactTest(): void {
     const bodyHTML = `
      <div id="root"></div>
    `
-    // `<p>Test</p><button id="foo" onclick="callbackTest(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
+    // `<p>Test</p><button id="foo" onclick="htmlToNPBridge(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
     showHTMLWindow('Test', bodyHTML, {
       savedFilename: 'test.ReactTest.html',
       preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSDev}`,
@@ -112,14 +112,14 @@ export function reactTest(): void {
 }
 
 /**
- * callbackTest
- * Plugin entrypoint for "/callbackTest (callback from html)"
+ * htmlToNPBridge
+ * Plugin entrypoint for "/htmlToNPBridge (callback from html)"
  * @author @dwertheimer
  */
-export async function callbackTest(...incoming: string) {
+export async function htmlToNPBridge(...incoming: string) {
   try {
-    console.log('callbackTest')
-    clo(incoming, `callbackTest::incoming`)
+    console.log('htmlToNPBridge')
+    clo(incoming, `htmlToNPBridge::incoming`)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

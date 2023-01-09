@@ -22,12 +22,14 @@ export function reactTestLocal(): void {
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     */
-    const cb = getCallbackCodeString('callbackTest', pluginJson['plugin.id'])
+    // put underscore in front of all requiredFiles filenames so they visually stay together in the plugin folder
+    // the files live in the 'requiredFiles' folder in the plugin dev directory but are copied to the plugin root
+    // because NotePlan does not allow for subfolders in the plugin root
     const reactJSmin = `
-        <script src="./react.production.min.js"></script>
-        <script src="./react-dom.production.min.js"></script>
-        <script src="./babel.min.js"></script>
-        <script type="text/babel" src="./App.jsx"></script>
+        <script src="./_react.production.min.js"></script>
+        <script src="./_react-dom.production.min.js"></script>
+        <script src="./_babel.min.js"></script>
+        <script type="text/babel" src="./_App.jsx"></script>
     `
     // const reactJSDev = `
     //     <script src="https://unpkg.com/react/umd/react.development.js"></script>
@@ -55,10 +57,13 @@ export function reactTestLocal(): void {
 
         </script>
     `
-    // `<p>Test</p><button id="foo" onclick="callbackTest(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
+    // set up bridge to NP
+    const cb = getCallbackCodeString('htmlToNPBridge', pluginJson['plugin.id'])
+
+    // `<p>Test</p><button id="foo" onclick="htmlToNPBridge(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
     showHTMLWindow('Test', bodyHTML, {
-      savedFilename: 'test.ReactTest-local.html',
-      preBodyScript: `${USE_MINIFIED_REACT ? reactJSmin : reactJSmin}`,
+      savedFilename: 'ReactTest-local.html',
+      preBodyScript: [`${USE_MINIFIED_REACT ? reactJSmin : reactJSmin}`],
       postBodyScript: [cb, reactApp],
     })
   } catch (error) {
@@ -67,14 +72,14 @@ export function reactTestLocal(): void {
 }
 
 /**
- * callbackTest
- * Plugin entrypoint for "/callbackTest (callback from html)"
+ * htmlToNPBridge
+ * Plugin entrypoint for "/htmlToNPBridge (callback from html)"
  * @author @dwertheimer
  */
-export async function callbackTest(...incoming: string) {
+export async function htmlToNPBridge(...incoming: string) {
   try {
-    console.log('callbackTest')
-    clo(incoming, `callbackTest::incoming`)
+    console.log('htmlToNPBridge')
+    clo(incoming, `htmlToNPBridge::incoming`)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

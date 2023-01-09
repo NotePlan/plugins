@@ -4,12 +4,13 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.React",
   "plugin.name": "🧩 React Test",
-  "plugin.version": "0.1.0",
+  "plugin.version": "0.1.1",
   "plugin.lastUpdateInfo": "Describe this update",
   "plugin.description": "React Testing",
   "plugin.author": "dwertheimer",
-  "plugin.dependencies": [],
+  "plugin.requiredFiles": ["_react.production.min.js","_react-dom.production.min.js","_babel.min.js","_App.jsx"], 
   "plugin.script": "script.js",
+  "hidden": true,
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.React/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.React/CHANGELOG.md",
   "plugin.commands": [
@@ -23,9 +24,9 @@
       ]
     },
     {
-      "name": "callbackTest",
-      "description": "callbackTest",
-      "jsFunction": "callbackTest",
+      "name": "htmlToNPBridge",
+      "description": "htmlToNPBridge",
+      "jsFunction": "htmlToNPBridge",
       "alias": [
       ],
       "arguments": [

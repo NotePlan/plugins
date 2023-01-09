@@ -16,7 +16,7 @@
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
 
 export { sayHello } from './NPPluginMain' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
-export { reactTest, callbackTest } from './ReactTest'
+export { reactTest, htmlToNPBridge } from './ReactTest'
 export { reactTestLocal } from './ReactTest-local'
 export { reactDataTest } from './ReactDatatable'
 // FETCH mocking for offline testing
