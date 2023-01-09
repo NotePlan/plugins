@@ -188,21 +188,21 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       )
     }
 
-    // Set bold text if present
-    tempSel = []
-    styleObj = themeJSON.styles.bold
-    if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#CC6666')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('b', tempSel))
-    }
     // Set italic text if present
     tempSel = []
     styleObj = themeJSON.styles.italic
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('i', tempSel))
+      output.push(makeCSSSelector('p i', tempSel)) // not just 'i' as otherwise it can mess up the fontawesome icons
+    }
+    // Set bold text if present
+    tempSel = []
+    styleObj = themeJSON.styles.bold
+    if (styleObj) {
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#CC6666')}`)
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      output.push(makeCSSSelector('p b', tempSel))
     }
     // Can't easily set bold-italic in CSS ...
 
