@@ -514,8 +514,9 @@ export type HtmlWindowOptions = {
 
 /**
  * This function creates the webkit message handler for an action in HTML sending data back to the plugin. Generally passed through to showHTMLWindow as part of the pre or post body script.
- * @param {*} commandName - the *name* of the plugin command to be called (not the jsFunction) -- THIS NAME MUST BE ONE WORD, NO SPACES - generally a good idea for name/jsFunction to be the same for callbacks
- * @param {*} pluginID - the plugin ID
+ * @param {string} commandName - the *name* of the plugin command to be called (not the jsFunction) -- THIS NAME MUST BE ONE WORD, NO SPACES - generally a good idea for name/jsFunction to be the same for callbacks
+ * @param {string} pluginID - the plugin ID
+ * @param {string} returnPathFuncName - the name of the function in HTML/JS that NotePlan will call after receiving a message on the bridge
  * Note re: commandArgs - in the HTML/JS code, pass an array of values to be passed into the plugin command callback
  * @example
  * You could create one of these callbacks for each HTML element that needs to send data back to the plugin. However, that requires a lot of boilerplate code (in plugin.json, index.html, and your plugin file).
@@ -526,8 +527,9 @@ export type HtmlWindowOptions = {
  * ...The HTML element in your HTML (myButton in this example) passes a static variable/string or the value of something in the HTML to the callback onClick
  * @returns
  */
-export function getCallbackCodeString(commandName: string, pluginID: string): string {
+export function getCallbackCodeString(commandName: string, pluginID: string, returnPathFuncName: string): string {
   const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
+  logDebug(`getCallbackCodeString: In HTML Code, use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
   //TODO: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
   return `
     // This is a callback bridge from HTML to the plugin
@@ -536,7 +538,7 @@ export function getCallbackCodeString(commandName: string, pluginID: string): st
       if (window.webkit) {
         window.webkit.messageHandlers.jsBridge.postMessage({
           code: ${haveNotePlanExecute}.replace("%%commandArgs%%", JSON.stringify(commandArgs)),
-          onHandle: "onHandleuUpdateNoteCount",
+          onHandle: "${returnPathFuncName}",
           id: "1"
         });
       } else {
@@ -726,7 +728,7 @@ export function showHTML(
       if (res) {
         logDebug('showHTML', `Saved resulting HTML '${windowTitle}' to ${filenameForSavedFileVersion} as well.`)
       } else {
-        logError('showHTML', `Couoldn't save resulting HTML '${windowTitle}'  to ${filenameForSavedFileVersion}.`)
+        logError('showHTML', `Couldn't save resulting HTML '${windowTitle}' to ${filenameForSavedFileVersion}.`)
       }
     }
   } catch (error) {
