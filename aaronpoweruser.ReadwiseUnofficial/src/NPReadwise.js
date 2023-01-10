@@ -7,19 +7,27 @@ import { getOrMakeNote } from '@helpers/note'
 
 const READWISE_API_KEY_LENGTH = 50
 const LAST_SYNÇ_TIME = 'last_sync_time'
+let downloadHiglightCount: number = 0
+let updatedSourceCount: number = 0
 
 // This is the main function that will be called by NotePlan
 export async function readwiseSync(): Promise<void> {
   checkAccessToken()
   const response = await getReadwise(false)
-  response.map(parseBookAndWriteToNote)
+  await handleReadwiseSync(response)
 }
 
 // This is the main function that will be called by NotePlan
-export async function readwiseSyncForce(): Promise<void> {
+export async function readwiseRebuild(): Promise<void> {
   checkAccessToken()
   const response = await getReadwise(true)
-  response.map(parseBookAndWriteToNote)
+  await handleReadwiseSync(response)
+}
+
+async function handleReadwiseSync(response: any): Promise<void> {
+  await response.map(parseBookAndWriteToNote)
+  log(pluginJson, `Downloaded ${downloadHiglightCount} highlights from Readwise. Updated ${updatedSourceCount} notes.`)
+  await showMessage(`Downloaded ${downloadHiglightCount} highlights from Readwise. Updated ${updatedSourceCount} notes.`)
 }
 
 /**
@@ -66,8 +74,8 @@ async function getReadwise(force: boolean): Promise<any> {
     DataStore.saveData(new Date().toISOString(), LAST_SYNÇ_TIME, true)
 
     const Json = JSON.parse(response)
-    log(pluginJson, `Downloaded : ${Json.count} highlights`)
-
+    downloadHiglightCount = Json.count
+    logDebug(pluginJson, `Downloaded : ${downloadHiglightCount} highlights`)
     return Json.results
   } catch (error) {
     logError(pluginJson, error)
@@ -93,10 +101,16 @@ async function parseBookAndWriteToNote(source: any): Promise<void> {
         setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
       }
       source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
+      removeEmptyLines(outputNote)
     }
   } catch (error) {
     logError(pluginJson, error)
   }
+}
+
+// removes all empty lines in a note
+function removeEmptyLines(note: ?Tnote): void {
+  note.content = note?.content?.replace(/^\s*\n/gm, '')
 }
 
 /**
@@ -157,6 +171,7 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
   }
   try {
     outputNote = await getOrMakeNote(title, baseFolder, '')
+    updatedSourceCount++
   } catch (error) {
     logError(pluginJson, error)
   }

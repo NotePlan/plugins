@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
-  "plugin.version": "0.1.3",
-  "plugin.lastUpdateInfo": "Add front matter support and tag prefix support",
+  "plugin.version": "0.1.4",
+  "plugin.lastUpdateInfo": "Clean up new lines in notes, add success message.",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
   "plugin.dependencies": [],
@@ -19,13 +19,13 @@
       "jsFunction": "readwiseSync"
     },
     {
-      "name": "Readwise force sync",
-      "description": "Sync Readwise highlights",
-      "jsFunction": "readwiseSyncForce",
+      "name": "Readwise rebuild",
+      "description": "Force sync Readwise highlights",
+      "jsFunction": "readwiseRebuild",
       "alias": [
         "rwfs"
       ],
-      "hidden": true
+      "hidden": false
     },
     {
       "name": "onOpen",
