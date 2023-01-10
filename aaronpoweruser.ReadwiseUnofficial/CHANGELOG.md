@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
+## [0.1.4] - 2023-01-09 (aaronpoweruser)
+- Clean up new lines in notes
+- add success message
+- Fix rebuild
+
 ## [0.1.3] - 2023-01-03 (aaronpoweruser)
 - Add front matter support
 - Add optional tag prefix
