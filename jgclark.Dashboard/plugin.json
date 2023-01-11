@@ -1,0 +1,62 @@
+{
+  "noteplan.minAppVersion": "3.7.0",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "jgclark.Dashboard",
+  "plugin.name": "Dashboard",
+  "plugin.description": "A Dashboard for NotePlan",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
+  "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "v0.1: first release",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "log dashboard",
+      "alias": [
+        "ldb"
+      ],
+      "description": "Log Dashboard information",
+      "jsFunction": "logDashboard"
+    },
+    {
+      "name": "show dashboard",
+      "alias": [
+        "db"
+      ],
+      "description": "Show Dashboard",
+      "jsFunction": "showDashboard"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Dashboard settings"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}

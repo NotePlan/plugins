@@ -145,13 +145,10 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // Set core table features from theme
     const altColor = RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30'
-    const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
-    // output.push(makeCSSSelector('table th', [`background-color: ${altColor}`]))
-    output.push(makeCSSSelector('tbody > tr:nth-child(odd)', [`background-color: ${altColor}`])) // i.e. won't apply to rows in thead
     rootSel.push(`--bg-alt-color: ${altColor}`)
-    output.push(makeCSSSelector('table tbody tr:first-child', [`border-top: 1px solid ${tintColor}`]))
-    output.push(makeCSSSelector('table tbody tr:last-child', [`border-bottom: 1px solid ${RGBColourConvert(themeJSON.editor?.tintColor)}` ?? '1px solid #E9C0A2']))
+    const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
     rootSel.push(`--tint-color: ${tintColor}`)
+    // TODO: make some of this more specific so it can be turned on in Reviews but not applied generally
 
     // Set core button style from macOS based on dark or light:
     // Similarly for fake-buttons (i.e. from <a href ...>)
@@ -206,6 +203,15 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     }
     // Can't easily set bold-italic in CSS ...
 
+    // Set class for open tasks ('todo') if present
+    tempSel = []
+    styleObj = themeJSON.styles.todo
+    if (styleObj) {
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#B74746')}`)
+      // tempSel = tempSel.concat(convertStyleObjectBlock(styleObj)) // we only want the color info
+      output.push(makeCSSSelector('.todo', tempSel))
+    }
+
     // Set class for completed tasks ('checked') if present
     tempSel = []
     styleObj = themeJSON.styles.checked
@@ -233,6 +239,24 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#7B7C86A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.task-scheduled', tempSel))
+    }
+
+    // Set class for hashtags ('hashtag') if present
+    tempSel = []
+    styleObj = themeJSON.styles.hashtag
+    if (styleObj) {
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      output.push(makeCSSSelector('.hashtag', tempSel))
+    }
+
+    // Set class for mentions ('attag') if present
+    tempSel = []
+    styleObj = themeJSON.styles.attag
+    if (styleObj) {
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      output.push(makeCSSSelector('.attag', tempSel))
     }
 
     // Now put the important info and rootSel at the start of the output
