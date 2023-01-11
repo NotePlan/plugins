@@ -3,6 +3,7 @@
 // Note-level Functions that require NP API calls
 
 import moment from 'moment'
+import { getBlockUnderHeading } from './NPParagraph'
 import { getTodaysDateHyphenated, WEEK_NOTE_LINK } from '@helpers/dateTime'
 import { getNPWeekData } from '@helpers/NPdateTime'
 import { log, logError, logDebug, timer, clo } from '@helpers/dev'
@@ -10,7 +11,6 @@ import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
-import { getBlockUnderHeading } from './NPParagraph'
 
 const pluginJson = 'NPnote.js'
 
@@ -119,26 +119,35 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
 }
 
 /**
- * Get the paragraphs in the note which are tagged for today (or this week) that may not actually be in the current note
- * @param {CoreNoteFields} note (the note or Editor)
+ * Get the paragraphs in the note which are tagged for today (or this week) that may not actually be in the current note.
+ * @author @dwertheimer extended by @jgclark
+ * @param {CoreNoteFields} calendar note to look for links to (the note or Editor)
+ * @param {CoreNoteFields} includeHeadings? (default to true for backwards compatibility)
  * @returns {Array<TParagraph>} - paragraphs which reference today in some way
  */
-export function getReferencedParagraphs(note: CoreNoteFields): Array<TParagraph> {
-  // getReferencedParagraphs: aliases: backlinks, references
-  // $FlowIgnore Flow(prop-missing) -- backlinks is not in Flow defs but is real
-  const backlinks: Array<TParagraph> = [...note.backlinks] // an array of notes which link to this note
-  logDebug(pluginJson, `${note.filename}: backlinks.length:${backlinks.length}`)
-  // clo(backlinks, `getTodaysReferences backlinks:${backlinks.length}=`)
-  const todayParas = []
+export function getReferencedParagraphs(note: Note, includeHeadings: boolean = true): Array<TParagraph> {
+  const thisDateStr = note.filename.slice(0, 7) // for daily or weekly notes only
+  const wantedParas = []
+
+  // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
+  // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
+  const backlinks: $ReadOnlyArray<TParagraph> = [...note.backlinks] // an array of notes which link to this note
+  logDebug(pluginJson, `${note.filename} has  backlinks.length:${backlinks.length}`)
+  // clo(backlinks, `backlinks (${backlinks.length}) =`)
+
   backlinks.forEach((link) => {
-    // $FlowIgnore Flow(prop-missing) -- subItems is not in Flow defs but is real
+    // $FlowIgnore[prop-missing] -- subItems is not in Flow defs but is real
     const subItems = link.subItems
     subItems.forEach((subItem) => {
       // subItem.title = link.content.replace('.md', '').replace('.txt', '') // changing the shape of the Paragraph object will cause ObjC errors // cannot do this
-      todayParas.push(subItem)
+
+      // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
+      if (includeHeadings || subItem.content.includes(thisDateStr)) {
+        wantedParas.push(subItem)
+      }
     })
   })
-  return todayParas
+  return wantedParas
 }
 
 /**
@@ -194,6 +203,7 @@ export type OpenNoteOptions = $Shape<{
  * @returns {Promise<TNote|void>} - the note that was opened
  */
 export async function openNoteByFilename(filename: string, options: OpenNoteOptions = {}): Promise<TNote | void> {
+  // $FlowFixMe[incompatible-call]
   return await Editor.openNoteByFilename(
     filename,
     options.newWindow || false,
@@ -231,9 +241,10 @@ export function highlightParagraphWithContent(content: string): boolean {
  * @returns {boolean} - true if the paragraph was found and highlighted, false if not
  */
 export function highlightBlockWithHeading(content: string): boolean {
-  const block = getBlockUnderHeading(Editor, content, true)
-  if (block?.length) {
-    const contentRange = Range.create(block[0].contentRange?.start, block[block.length - 1].contentRange?.end)
+  const blockParas = getBlockUnderHeading(Editor, content, true)
+  if (blockParas && blockParas.length > 0) {
+    // $FlowFixMe[incompatible-call] but still TODO(@dwertheimer): why is 'Range' undefined?
+    const contentRange = Range.create(blockParas[0].contentRange?.start, blockParas[blockParas.length - 1].contentRange?.end)
     Editor.highlightByRange(contentRange) // highlight the entire block
     return true
   }
