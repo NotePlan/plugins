@@ -91,18 +91,18 @@ async function parseBookAndWriteToNote(source: any): Promise<void> {
     const outputNote: ?TNote = await getOrCreateReadwiseNote(source.title, source.category)
     const useFrontMatter = DataStore.settings.useFrontMatter === 'FrontMatter'
     if (outputNote) {
-      if (new Date() - new Date(outputNote?.createdDate) < 2000) {
-        if (!useFrontMatter) {
+      if (!useFrontMatter) {
+        //TODO: Support updating metadata (tags)
+        if (!outputNote?.content?.includes('Metadata')) {
           outputNote?.addParagraphBelowHeadingTitle(createReadwiseMetadataHeading(source), 'text', 'Metadata', true, true)
         }
-        outputNote?.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
-      }
-      if (useFrontMatter) {
+      } else {
         setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
       }
-      source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
-      removeEmptyLines(outputNote)
+      outputNote?.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
     }
+    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
+    removeEmptyLines(outputNote)
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -137,7 +137,11 @@ function buildReadwiseFrontMatter(source: any): any {
  */
 function formatTag(tag: string): string {
   const prefix = DataStore.settings.tagPrefix ?? ''
-  return `#${prefix}/${tag}`
+  if (prefix === '') {
+    return `#${tag}`
+  } else {
+    return `#${prefix}/${tag}`
+  }
 }
 
 /**

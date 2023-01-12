@@ -11,10 +11,16 @@ A sync engine for readwise
 - Group be content type
 - Set download folder
 - Front matter support
+- NotePlan tags
 ### Todo
+* Index note
 * Image support (needs Noteplan API update)
-* Callback url to refresh notes
 * Ability to get random note via templates
+
+### Known issues:
+- "Don’t Set Goals… Do This Instead" causes a new note to be created
+- Using heading as metadata does not support tag updates
+- Images are not handled gracefully
 
 ## Settings
 
