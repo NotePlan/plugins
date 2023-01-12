@@ -1243,57 +1243,17 @@ declare interface Paragraph {
 
 type TNote = Note
 type NoteType = 'Calendar' | 'Notes'
+
 /**
  * Notes can be queried by DataStore. You can change the complete text of the
  * note, which will be saved to file or query, add, remove, or modify
  * particular paragraphs (a paragraph is a task for example). See more
  * paragraph editing examples under Editor. NoteObject and Editor both
  * inherit the same paragraph functions.
+ * Note: All of the items here are now in CoreNoteFields.
+ * TODO(@nmn): Can this now safely be removed?
  */
 declare interface Note extends CoreNoteFields {
-  /**
-   * Optional date if it's a calendar note
-   */
-  +date: Date | void;
-  /**
-   * Date and time when the note was last modified.
-   */
-  +changedDate: Date;
-  /**
-   * Date and time of the creation of the note.
-   */
-  +createdDate: Date;
-  /**
-   * All #hashtags contained in this note.
-   */
-  +hashtags: $ReadOnlyArray<string>;
-  /**
-   * All @mentions contained in this note.
-   */
-  +mentions: $ReadOnlyArray<string>;
-  /**
-   * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
-   * Note: Available from v3.2.0
-   */
-  +linkedItems: $ReadOnlyArray<TParagraph>;
-  /**
-   * Get paragraphs contained in this note which contain a link to a daily note.
-   * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
-   * Note: Available from v3.2.0
-   */
-  +datedTodos: $ReadOnlyArray<TParagraph>;
-  /**
-   * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
-   * NB: Backlinks are all [[note name]] and >date links.
-   * Note: Available from v3.2.0
-   */
-  +backlinks: $ReadOnlyArray<TParagraph>;
-  /**
-   * Get all types assigned to this note in the frontmatter as an array of strings.
-   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
-   * Note: Available from v3.5.0
-   */
-  +frontmatterTypes: $ReadOnlyArray<string>;
 }
 
 /**
@@ -1538,14 +1498,25 @@ declare interface CoreNoteFields {
    */
   filename: string;
   /**
-   * Renames the note. You can also define a folder path. The note will be moved to that folder and the folder will be automatically created.
-   * If the filename already exists, a number will be appended. If the filename begins with ".", it will be removed.
-   * It returns the actual filename.
-   * Note: Available from v3.6.1
-   * @param {String} newFilename requested
-   * @returns {String} actualFilename
+   * Optional date if it's a calendar note
    */
-  rename(newFilename: string): string;
++date: Date | void;
+/**
+ * Date and time when the note was last modified.
+ */
++changedDate: Date;
+/**
+ * Date and time of the creation of the note.
+ */
++createdDate: Date;
+/**
+ * All #hashtags contained in this note.
+ */
++hashtags: $ReadOnlyArray < string >;
+/**
+ * All @mentions contained in this note.
+ */
++mentions: $ReadOnlyArray < string >;
   /**
    * Get or set the raw text of the note (without hiding or rendering any Markdown).
    * If you set the content, NotePlan will write it immediately to file.
@@ -1558,7 +1529,38 @@ declare interface CoreNoteFields {
    * updated.
    * TODO: Should this really be $ReadOnlyArray?
    */
-  paragraphs: $ReadOnlyArray<TParagraph>;
+paragraphs: $ReadOnlyArray < TParagraph >;
+/**
+* Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
+* Note: Available from v3.2.0
+*/
++linkedItems: $ReadOnlyArray < TParagraph >;
+/**
+ * Get paragraphs contained in this note which contain a link to a daily note.
+ * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
+ * Note: Available from v3.2.0
+ */
++datedTodos: $ReadOnlyArray < TParagraph >;
+/**
+ * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
+ * NB: Backlinks are all [[note name]] and >date links.
+ * TODO(@nmn): Please include `subItems` here
+ * Note: Available from v3.2.0
+ */
++backlinks: $ReadOnlyArray < TParagraph >;
+/**
+ * Get all types assigned to this note in the frontmatter as an array of strings.
+ * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
+ * Note: Available from v3.5.0
+ */
++frontmatterTypes: $ReadOnlyArray < string >;
+/**
+ * Get all attributes in the frontmatter, as an object.
+ * Note: Added by @jgclark by inspection of real data
+ * TODO(@EduardMe): add this to the documentation.
+ */
++frontmatterAttributes: Object;
+
   /**
    * Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
    * You can use this in combination with note triggers and diffs to figure out what has changed inside the note.
@@ -1566,6 +1568,15 @@ declare interface CoreNoteFields {
    * Note: Available from v3.7.2
    */
   +versions: $ReadOnlyArray<string, Date>;
+  /**
+   * Renames the note. You can also define a folder path. The note will be moved to that folder and the folder will be automatically created.
+   * If the filename already exists, a number will be appended. If the filename begins with ".", it will be removed.
+   * It returns the actual filename.
+   * Note: Available from v3.6.1
+   * @param {String} newFilename requested
+   * @returns {String} actualFilename
+   */
+rename(newFilename: string): string;
   /**
    * Inserts the given text at the given character position (index)
    * Note: this is not quite the same as Editor.insertTextAtCharacterIndex()
@@ -1859,6 +1870,14 @@ declare class HTMLView {
    * @param {number?} height (optional integer)
    */
   static showWindow(html: string, title: string, width?: number, height?: number): void;
+  /**
+   * After opening an html window, make changes to the contents of the window by running JS code directly inside the opened window.
+   * Returns a promise you can wait for with the return value, if any (depends if you added one to the JS code that is supposed to be executed).
+   * Note: Available in v3.8
+   * @param { String }
+   * @return { Promise | void }
+   */
+  static runJavaScript(code: string): Promise | void;
 }
 
 type FetchOptions = {
