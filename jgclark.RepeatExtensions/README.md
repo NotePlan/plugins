@@ -17,6 +17,8 @@ is completed, and then `/rpt` run, the task then becomes:
 ```
 and the task will show up again 2 weeks after the last set date.
 
+Compared with the built-in functionality, it also allows you to easily change the text of a repeated task, which otherwise means visiting all the future notes with repeats.
+
 ## Running it Automatically
 From NotePlan v3.7.2, this plugin can **automatically generate** the new repeated task after you complete an existing one. This requires adding the following line to frontmatter at the start of _every note_ you wish to automate in this way:
 ``` yaml
