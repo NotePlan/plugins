@@ -38,10 +38,10 @@ function checkAccessToken(): void {
   logDebug(pluginJson, `access token is : ${accessToken}`)
 
   if (accessToken === '') {
-    showMessage(pluginJson, 'No access token found. Please add your Readwise access token in the plugin settings.')
+    showMessage('No access token found. Please add your Readwise access token in the plugin settings.')
     return
   } else if (accessToken.length !== READWISE_API_KEY_LENGTH) {
-    showMessage(pluginJson, 'Invalid access token. Please check your Readwise access token in the plugin settings.')
+    showMessage('Invalid access token. Please check your Readwise access token in the plugin settings.')
     return
   }
 }
@@ -88,21 +88,22 @@ async function getReadwise(force: boolean): Promise<any> {
  */
 async function parseBookAndWriteToNote(source: any): Promise<void> {
   try {
-    const outputNote: ?TNote = await getOrCreateReadwiseNote(source.title, source.category)
+    const noteTtile: string = source.readable_title ?? source.title
+    const outputNote: ?TNote = await getOrCreateReadwiseNote(noteTtile, source.category)
     const useFrontMatter = DataStore.settings.useFrontMatter === 'FrontMatter'
     if (outputNote) {
-      if (new Date() - new Date(outputNote?.createdDate) < 2000) {
-        if (!useFrontMatter) {
+      if (!useFrontMatter) {
+        //TODO: Support updating metadata (tags)
+        if (!outputNote?.content?.includes('Metadata')) {
           outputNote?.addParagraphBelowHeadingTitle(createReadwiseMetadataHeading(source), 'text', 'Metadata', true, true)
         }
-        outputNote?.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
-      }
-      if (useFrontMatter) {
+      } else {
         setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
       }
-      source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
-      removeEmptyLines(outputNote)
+      outputNote?.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
     }
+    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
+    removeEmptyLines(outputNote)
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -121,6 +122,9 @@ function removeEmptyLines(note: ?Tnote): void {
 function buildReadwiseFrontMatter(source: any): any {
   const frontMatter = {}
   frontMatter.author = `[[${source.author}]]`
+  if (source.readable_title !== source.title) {
+    frontMatter.long_title = source.title
+  }
   if (source.book_tags !== null && source.book_tags.length > 0) {
     frontMatter.tags = source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')
   }
@@ -137,7 +141,11 @@ function buildReadwiseFrontMatter(source: any): any {
  */
 function formatTag(tag: string): string {
   const prefix = DataStore.settings.tagPrefix ?? ''
-  return `#${prefix}/${tag}`
+  if (prefix === '') {
+    return `#${tag}`
+  } else {
+    return `#${prefix}/${tag}`
+  }
 }
 
 /**
@@ -167,7 +175,12 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
   let baseFolder = rootFolder
   let outputNote: ?TNote
   if (DataStore.settings.groupByType === true) {
-    baseFolder = `${rootFolder}/${category}`
+    //TODO: verify that a supplemental is always a book
+    if (DataStore.settings.ignoreSupplementals === true && category === 'supplementals') {
+      baseFolder = `${rootFolder}/books`
+    } else {
+      baseFolder = `${rootFolder}/${category}`
+    }
   }
   try {
     outputNote = await getOrMakeNote(title, baseFolder, '')
@@ -199,5 +212,5 @@ function appendHighlightToNote(note: TNote, highlight: any, category: string, as
       linkToHighlightOnWeb = ` [View highlight](${highlight.url})`
     }
   }
-  note.appendParagraph(filteredContent + linkToHighlightOnWeb, 'list')
+  note.appendParagraph(filteredContent + linkToHighlightOnWeb, 'quote')
 }

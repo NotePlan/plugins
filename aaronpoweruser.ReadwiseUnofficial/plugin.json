@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
-  "plugin.version": "0.1.4",
-  "plugin.lastUpdateInfo": "Clean up new lines in notes, add success message.",
+  "plugin.version": "0.1.6",
+  "plugin.lastUpdateInfo": "Fixed access token dialog, long titles",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
   "plugin.dependencies": [],
@@ -85,6 +85,14 @@
       "key": "groupByType",
       "type": "bool",
       "description": "Group all highlights in under the readwise folder or having them separated by content type ie readwise/books, readwise/articles.",
+      "default": true,
+      "required": true
+    },
+    {
+      "title": "Group supplemental highlights",
+      "key": "ignoreSupplementals",
+      "type": "bool",
+      "description": "**Ignored if group by type is disabled **\nGroup all highlights together or keep supplemental (readwise generated) highlights seperate.",
       "default": true,
       "required": true
     },

@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.2] - 2023-01-13 (dwertheimer)
+
+- fix bug that was keeping promptDateInterval from working
+- fix bug that was causing prompts to fail if you had a period in the prompt
+
 ## [2.0.1-alpha.14] - 2023-01-03 (dwertheimer)
 
 - fix logging whitespace on error message

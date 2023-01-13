@@ -4,6 +4,23 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
+## [0.1.6] - 2023-01-12 (aaronpoweruser)
+- Fix access token dialog
+- Use readable titles to make linking to notes easier
+- Add long title field
+- Allow Supplemental(readwise generated) notes to be grouped with main notes
+- Change highlights from list to quotes
+
+## [0.1.5] - 2023-01-12 (aaronpoweruser)
+- Fix metadata not being created
+- Fixed double metadata when not using group by type
+- Allow empty tag prefixes
+
+Known issues:
+- "Don’t Set Goals… Do This Instead" causes a new note to be created
+- Using heading as metadata does not support tag updates
+- Images are not handled gracefully
+
 ## [0.1.4] - 2023-01-09 (aaronpoweruser)
 - Clean up new lines in notes
 - add success message
