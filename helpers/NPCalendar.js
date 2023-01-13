@@ -15,7 +15,7 @@
 // ----------------------------------------------------------------------
 
 import { addMinutes, differenceInMinutes } from 'date-fns'
-import { keepTodayPortionOnly } from './calendar'
+import { keepTodayPortionOnly, RE_EVENT_ID } from './calendar'
 import {
   getDateFromUnhyphenatedDateString,
   getISODateStringFromYYYYMMDD,
@@ -57,11 +57,6 @@ export type EventsConfig = {
   uncompleteTasks: boolean,
   meetingTemplateTitle: string
 }
-
-// ----------------------------------------------------------------------
-// Additional Regular Expressions
-
-const RE_EVENT_ID = `event:[A-F0-9-]{36,37}`
 
 // ----------------------------------------------------------------------
 

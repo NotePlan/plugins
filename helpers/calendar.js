@@ -9,6 +9,13 @@ import {
   startOfDay,
 } from 'date-fns'
 
+// ----------------------------------------------------------------------------
+// Regular Expressions
+
+export const RE_EVENT_ID = `event:[A-F0-9-]{36,37}`
+
+// ----------------------------------------------------------------------------
+
 /**
  * @description This function takes a list of calendar items and returns a list of calendar items that are not all day
  * @param {*} input - array of calendar items
