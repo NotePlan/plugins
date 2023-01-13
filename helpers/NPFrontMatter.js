@@ -27,7 +27,7 @@ const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
  * @returns {string} quotedText (if required)
  */
 export function quoteText(text: string): string {
-  const needsQuoting = text.includes(': ') || /:$/.test(text)
+  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#/.test(text)
   const isWrappedInQuotes = /^".*"$/.test(text) // pass it through if already wrapped in quotes
   return needsQuoting && !isWrappedInQuotes ? `"${text}"` : text
 }
