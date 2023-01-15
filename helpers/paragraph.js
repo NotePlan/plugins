@@ -4,14 +4,13 @@
 //-----------------------------------------------------------------------------
 
 import { logDebug, logError, logWarn } from './dev'
+import {
+  RE_SIMPLE_URI_MATCH,
+  RE_MARKDOWN_LINK_PATH_CAPTURE,
+  // RE_SYNC_MARKER
+} from '@helpers/regex'
 
 //-----------------------------------------------------------------------------
-// Paragraph-level Functions
-
-export const RE_URI = '(\\w+:\\/\\/[\\w\\.\\/\\?\\#\\&\\d\\-\\=%*,]+)'
-export const RE_MARKDOWN_PATH = '\\[.+?\\]\\(([^\\s]*?)\\)'
-export const RE_SYNC_MARKER = '\\^[A-Za-z0-9]{6}'
-
 /**
  * Perform substring match, ignoring case
  * Note: COPY TO AVOID CIRCULAR DEPENDENCY
@@ -34,7 +33,7 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
  */
 export function isTermInURL(term: string, searchString: string): boolean {
   // create version of searchString that doesn't include the URL and test that first
-  const URIMatches = searchString.match(RE_URI) ?? []
+  const URIMatches = searchString.match(RE_SIMPLE_URI_MATCH) ?? []
   const thisURI = URIMatches[1] ?? ''
   if (thisURI !== '') {
     const restOfLine = searchString.replace(thisURI, '')
@@ -61,7 +60,7 @@ export function isTermInURL(term: string, searchString: string): boolean {
  */
 export function isTermInMarkdownPath(term: string, searchString: string): boolean {
   // create version of searchString that doesn't include the URL and test that first
-  const MDPathMatches = searchString.match(RE_MARKDOWN_PATH) ?? []
+  const MDPathMatches = searchString.match(RE_MARKDOWN_LINK_PATH_CAPTURE) ?? []
   const thisMDPath = MDPathMatches[1] ?? ''
   if (thisMDPath !== '') {
     const restOfLine = searchString.replace(thisMDPath, '')
