@@ -1085,7 +1085,7 @@ export default class NPTemplating {
 
   static async getPromptParameters(promptTag: string = ''): mixed {
     let tagValue = ''
-    tagValue = promptTag.replace(/\bask\b|prompt|[()]|<%-|<%=|<%|-%>|%>/gi, '').trim()
+    tagValue = promptTag.replace(/\bask\b|promptDateInterval|promptDate|prompt|[()]|<%-|<%=|<%|-%>|%>/gi, '').trim()
     // tagValue = promptTag.replace(/ask|[()]|<%=|<%|-%>|%>/gi, '').trim()
     let varName = ''
     let promptMessage = ''
@@ -1372,7 +1372,9 @@ export default class NPTemplating {
   }
 
   static isVariableTag(tag: string = ''): boolean {
-    return tag.indexOf('<% const') > 0 || tag.indexOf('<% let') > 0 || tag.indexOf('<% var') > 0 || tag.indexOf('.') > 0 || tag.indexOf('{') > 0 || tag.indexOf('}') > 0
+    // @TODO: @codedungeon the following line had a search for "." in it. This was causing prompts with a period like "e.g." to fail
+    // But looking at this code, wouldn't a prompt with a {question: "foo"} also fail because of the loose search for "{"?
+    return tag.indexOf('<% const') > 0 || tag.indexOf('<% let') > 0 || tag.indexOf('<% var') > 0 || tag.indexOf('{') > 0 || tag.indexOf('}') > 0
   }
 
   static isMethod(tag: string = '', userData: any = null): boolean {
