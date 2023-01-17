@@ -53,7 +53,7 @@ const nonEmptyString: RegExp = /^(?!\s*$).+/
 
 export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): AutoTimeBlockingConfig {
   const configTypeCheck = {
-    todoChar: /^(?!(?:.*\*){2})[\*|\-|#{1,}]+$/,
+    todoChar: /^(?!(?:.*\*){2})[\*|\-|\+|#{1,}]+$/,
     timeBlockTag: /^#.*/,
     timeBlockHeading: /^[^#+].*/,
     foldTimeBlockHeading: 'boolean',
