@@ -56,7 +56,7 @@ export const RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE = `@done\\((${RE_DATE})( ${R
 export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME})?\\)`
 
 // Intervals
-export const RE_DATE_INTERVAL = `[+\\-]?\\d+[bdwmqy]`
+export const RE_DATE_INTERVAL = `[+\\-]?\\d+[BbDdWwMmQqYy]`
 export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
 export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
 
