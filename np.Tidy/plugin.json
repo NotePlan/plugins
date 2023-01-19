@@ -6,13 +6,21 @@
   "plugin.name": "🧹 Tidy",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "0.1.0",
+  "plugin.version": "0.1.9",
   "plugin.lastUpdateInfo": "First release",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/CHANGELOG.md",
   "plugin.commands": [
+    {
+      "name": "File root-level notes",
+      "description": "For each root-level note, asks which folder you'd like it moved to. (There's a setting for ones to ignore.)",
+      "jsFunction": "fileRootNotes",
+      "alias": [
+        "frln"
+      ]
+    },
     {
       "name": "Remove @done() markers",
       "description": "Remove @done() markers from recently-updated notes. Can be used with parameters from Template or Callback.",
@@ -102,7 +110,7 @@
     },
     {
       "type": "heading",
-      "title": "Settings for '/remove ... recent' commands"
+      "title": "Settings for '/Remove ... recent' commands"
     },
     {
       "title": "How many days to look back?",
@@ -132,6 +140,21 @@
       "type": "bool",
       "default": true,
       "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Settings for /file root-level notes"
+    },
+    {
+      "title": "Notes in root folder to ignore",
+      "key": "rootNotesToIgnore",
+      "description": "Comma-separated list of notes that you need or want to leave in the root folder. These will be ignored when running the command.",
+      "type": "[string]",
+      "default": [],
+      "required": false
     },
     {
       "type": "separator"

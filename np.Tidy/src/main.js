@@ -2,22 +2,22 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 31.12.2022 for v0.1.0-beta, @jgclark
+// Last updated 19.1.2023 for v0.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
 import moment from 'moment'
 import * as helpers from './helpers'
+import pluginJson from '../plugin.json'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import {
-  clo, logDebug, logError, logInfo, logWarn,
+  clo, JSP, logDebug, logError, logInfo, logWarn,
   overrideSettingsWithEncodedTypedArgs, timer
 } from '@helpers/dev'
+import { getFilteredFolderList } from '@helpers/folders'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
-import { removeSection } from '@helpers/note'
+import { getProjectNotesInFolder, removeSection } from '@helpers/note'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
-import { chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
-// import { createRunPluginCallbackUrl } from '@helpers/general'
+import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 /**
  * Remove @done(...) markers from recently-updated notes,
@@ -32,12 +32,12 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     let config: helpers.TidyConfig = await helpers.getSettings()
     // Setup main variables
     if (params) {
-      logDebug('removeDoneMarkers', `Starting with params '${params}'`)
+      logDebug(pluginJson, `removeDoneMarkers: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
       clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-      logDebug('removeDoneMarkers', `Starting with no params`)
+      logDebug(pluginJson, `removeDoneMarkers: Starting with no params`)
     }
 
     // Get num days to process from param, or by asking user if necessary
@@ -56,12 +56,11 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     let parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
     const RE = new RegExp(RE_DONE_DATE_OPT_TIME) // @done(date) or @done(date time)
     let allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE.test(p.content)) ?? []
-    logDebug('removeDoneMarkers', `- ${String(allMatchedParas.length)} results before checklist type check`)
 
     // if justRemoveFromChecklists set, filter out non-checklists (i.e. tasks)
     if (config.justRemoveFromChecklists) {
       allMatchedParas = allMatchedParas.filter((p) => p.type === 'checklistDone')
-      logDebug('removeDoneMarkers', `- ${String(allMatchedParas.length)} results after checklist type check`)
+      logDebug('removeDoneMarkers', `- filtered out done tasks`)
     }
 
     // Get date range to use
@@ -97,6 +96,8 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
         }
       }
       // Actually remove the markers from the paras
+      // Note: doesn't work reliably going forward through paras. Tried going backwards through paras ... but same issues.
+      // TODO: Try going note by note doing updateParagraphs() instead
       for (const p of recentMatchedParas) {
         const origRawContent = p.rawContent
         const origContent = p.content
@@ -108,8 +109,6 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
           p.content = newContent
           thisNote.updateParagraph(p)
           logDebug('removeDoneMarkers', `- Removed ${thisDoneMarker} from '${origRawContent}' (in ${displayTitle(thisNote)})`)
-          logDebug('removeDoneMarkers', `  - para is now of type ${p.type}`)
-          logDebug('removeDoneMarkers', `  - rawContent is now '${p.rawContent}'`)
         } else {
           logWarn('removeDoneMarkers', `- Couldn't remove @done() marker from '${origContent}' as couldn't find it`)
         }
@@ -140,12 +139,12 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     let config: helpers.TidyConfig = await helpers.getSettings()
     // Setup main variables
     if (params) {
-      logDebug('removeDoneTimeParts', `Starting with params '${params}'`)
+      logDebug(pluginJson, `removeDoneTimeParts: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
       clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-      logDebug('removeDoneTimeParts', `Starting with no params`)
+      logDebug(pluginJson, `removeDoneTimeParts: Starting with no params`)
     }
 
     // Get num days to process from param, or by asking user if necessary
@@ -244,12 +243,12 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     let config: helpers.TidyConfig = await helpers.getSettings()
     // Setup main variables
     if (params) {
-      logDebug('removeSectionFromRecentNotes', `Starting with params '${params}'`)
+      logDebug(pluginJson, `removeSectionFromRecentNotes: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
       clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-      logDebug('removeSectionFromRecentNotes', `Starting with no params`)
+      logDebug(pluginJson, `removeSectionFromRecentNotes: Starting with no params`)
     }
 
     // Get num days to process from param, or by asking user if necessary
@@ -267,7 +266,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     // If not passed as a parameter already, ask for section heading to remove
     let sectionHeading: string = await getTagParamsFromString(params ?? '', 'sectionHeading', '')
     if (sectionHeading === '') {
-      const res: string | boolean = await getInputTrimmed("What's the heading of the sections you'd like to remove?", 'OK', "Remove Section from Notes")
+      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from some notes?", 'OK', "Remove Section from Notes")
       if (res === false) {
         return
       } else {
@@ -353,31 +352,50 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
       logDebug('removeSectionFromAllNotes', `Starting with no params`)
     }
 
-    // TODO:
-    const runSilently = true
-    // TODO:
-    const keepHeading = true
-    // TODO:
-    const heading = 'TEST XYZ Heading'
-    // TODO:
+    // Decide whether to run silently, using parameter if given
+    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
+    logDebug('removeDoneMarkers', `runSilently = ${String(runSilently)}`)
+    // We also need a string version of this for legacy reasons
+    const runSilentlyAsString: string = runSilently ? "yes" : "no"
+
+    // Decide whether to keep heading, using parameter if given
+    const keepHeading: boolean = await getTagParamsFromString(params ?? '', 'keepHeading', false)
+
+    // If not passed as a parameter already, ask for section heading to remove
+    let sectionHeading: string = await getTagParamsFromString(params ?? '', 'sectionHeading', '')
+    if (sectionHeading === '') {
+      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from all notes?", 'OK', "Remove Section from Notes")
+      if (res === false) {
+        return
+      } else {
+        sectionHeading = String(res) // to help flow
+      }
+    }
+    logDebug('removeSectionFromRecentNotes', `sectionHeading = ${sectionHeading}`)
+
+
+    // TODO: Work out how many this will remove
     const numToRemove = 1
 
     if (numToRemove > 0) {
       if (!runSilently) {
-        // TODO:
-        const res = await showMessage(`No sections with heading '${heading}' were found to remove`)
+        const res = await showMessageYesNo(`Are you sure you want to remove ${numToRemove} '${sectionHeading}' sections?`, ['Yes', 'No'], 'Remove Section from Notes')
+        if (res === 'No') {
+          logInfo('removeSectionFromRecentNotes', `User cancelled operation`)
+          return
+        }
       }
       // Run the powerful removal function by @dwertheimer
-      removeContentUnderHeadingInAllNotes(['calendar', 'notes'], heading, keepHeading, runSilently)
-      logInfo(pluginJson, `Removed '${heading}' section from all notes`) // TODO: ???
+      removeContentUnderHeadingInAllNotes(['calendar', 'notes'], sectionHeading, keepHeading, runSilentlyAsString)
+      logInfo(pluginJson, `Removed '${sectionHeading}' sections from all notes`)
     } else {
-      const res = await showMessage(`No sections with heading '${heading}' were found to remove`)
-      logInfo(pluginJson, `No sections with heading '${heading}' were found to remove`)
+      const res = await showMessage(`No sections with heading '${sectionHeading}' were found to remove`)
+      logInfo(pluginJson, `No sections with sectionHeading '${sectionHeading}' were found to remove`)
     }
     return
   }
   catch (err) {
-    logError('removeSectionFromAllNotes', err.message)
+    logError('removeSectionFromAllNotes', JSP(err))
     return // for completeness
   }
 }
@@ -391,12 +409,12 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
     // Get plugin settings (config)
     let config: helpers.TidyConfig = await helpers.getSettings()
     if (params) {
-      logDebug('logNotesChangedInInterval', `Starting with params '${params}'`)
+      logDebug(pluginJson, `logNotesChangedInInterval: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
       clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-      logDebug('logNotesChangedInInterval', `Starting with no params`)
+      logDebug(pluginJson, `logNotesChangedInInterval: Starting with no params`)
     }
 
     const numDays = config.numDays
@@ -405,7 +423,108 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
     logInfo(pluginJson, `${String(titlesList.length)} Notes have changed in last ${String(numDays)} days:\n${String(titlesList)}`)
   }
   catch (err) {
-    logError('logNotesChangedInInterval', err.message)
+    logError('logNotesChangedInInterval', JSP(err))
     return // for completeness
   }
+}
+
+/**
+ * For each root-level note, asks user which folder to move it to. (There's a setting for ones to ignore.)
+ * @author @jgclark
+ */
+export async function fileRootNotes(): Promise<void> {
+  try {
+    // Get plugin settings (config)
+    let config: helpers.TidyConfig = await helpers.getSettings()
+
+    // Probably not needed
+    // if (params) {
+    //   logDebug(pluginJson, `fileRootNotes: Starting with params '${params}'`)
+    //   config = overrideSettingsWithEncodedTypedArgs(config, params)
+    //   clo(config, `config after overriding with params '${params}'`)
+    // } else {
+    //   // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
+    logDebug(pluginJson, `fileRootNotes: Starting with no params`)
+    // }
+
+    // Get all root notes
+    const rootNotes = getProjectNotesInFolder('/')
+    logDebug('rootNotes', rootNotes.map((n) => n.title))
+
+    // Remove any listed in config.rootNotesToIgnore
+    const excludedNotes = config.rootNotesToIgnore
+    logDebug('excludedNotes', typeof excludedNotes)
+    logDebug('excludedNotes', String(excludedNotes))
+    const rootNotesToUse = rootNotes.filter((n) => !excludedNotes.includes(n.title))
+    logDebug('rootNotesToUse', rootNotesToUse.map((n) => n.title))
+
+    // Make list of all folders (other than root!)
+    const allFolders = getFilteredFolderList(['/'], true)
+
+    // Pre-pend some special items
+    allFolders.unshift('❌ Stop processing')
+    allFolders.unshift('➡️ Leave this note in root')
+    // TODO: pre-pend a special one meaning 'ignore me from now on'
+    logDebug('allFolders', String(allFolders))
+    const options = allFolders.map((f) => ({
+      label: f,
+      value: f,
+    }))
+
+    // Loop over the rest, asking where to move to
+    for (const n of rootNotesToUse) {
+      if (n && n.title && n.title !== undefined) {
+        const chosenFolder = await chooseOption(`Move ${n.title} to which folder?`, options)
+        switch (chosenFolder) {
+          case '❌ Stop processing': {
+            logInfo('rootNotesToUse', `User cancelled operation.`)
+            return
+          }
+          case '➡️ Leave this note in root': {
+            // $FlowIgnore[incompatible-type]
+            logDebug('rootNotesToUse', `Leaving '${n.title}' note in root`)
+            break
+          }
+          default: {
+            // $FlowIgnore[incompatible-type]
+            logDebug('rootNotesToUse', `Moving '${n.title}' note to folder '${chosenFolder}' ...`)
+            // $FlowIgnore[incompatible-call]
+            const res = DataStore.moveNote(n.filename, chosenFolder)
+            logDebug('rootNotesToUse', `... filename now '${res ?? '<error>'}'`)
+          }
+        }
+      }
+    }
+  }
+  catch (err) {
+    logError('logNotesChangedInInterval', JSP(err))
+    return // for completeness
+  }
+
+}
+
+/**
+ * ???
+ */
+export async function bob(): Promise<void> {
+  try {
+    // Get plugin settings (config)
+    let config: helpers.TidyConfig = await helpers.getSettings()
+
+    // Is this needed?
+    // if (params) {
+    //   logDebug('bob', `Starting with params '${params}'`)
+    //   config = overrideSettingsWithEncodedTypedArgs(config, params)
+    //   clo(config, `config after overriding with params '${params}'`)
+    // } else {
+    //   // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
+    logDebug('bob', `Starting with no params`)
+    // }
+
+  }
+  catch (err) {
+    logError('bob', JSP(err))
+    return // for completeness
+  }
+
 }

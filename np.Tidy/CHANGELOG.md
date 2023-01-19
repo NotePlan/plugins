@@ -1,7 +1,11 @@
 # 🧹 Tidy Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on available commands and use from callbacks and templates.
 
-## [0.1.0] - 2022-12-??? (@jgclark)
+## [0.1.9] - 2023-01-19 (unreleased)
+### New
+- new **/File root-level notes** command which asks which folder you'd like each note at the root level moved to. (There's a setting to specify ones to ignore.)
+
+## [0.1.0] - 2023-01-04
 First release, implementing these commands:
 - **/Remove section from recent notes** (alias "rsfrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
 - **/Remove time parts from @done() dates** (alias "rtp"): Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.
