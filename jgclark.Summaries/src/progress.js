@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 16.11.2022 for v0.16.0, @jgclark
+// Last updated 16.11.2022 for v0.16.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -33,7 +33,7 @@ import { caseInsensitiveCompare } from '@helpers/sorting'
  */
 export async function progressUpdate(params: string = ''): Promise<string> {
   try {
-    logDebug('progressUpdate (for xcb)', `Starting with params '${params}'`)
+    logDebug(pluginJson, `progressUpdate for scb: Starting with params '${params}'`)
     return await makeProgressUpdate(params, 'xcb') ?? '<error>'
   }
   catch (err) {
@@ -58,11 +58,12 @@ export async function makeProgressUpdate(params: string = '', source: string = '
     let config = await getSummariesSettings()
     // If there are params passed, then we've been called by a template command (and so use those).
     if (params) {
-      logDebug('makeProgressUpdate', `Starting with params '${params}'`)
+      logDebug(pluginJson, `makeProgressUpdate: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
       clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
+      logDebug(pluginJson, `makeProgressUpdate: Starting with no params`)
     }
     // const progressHeading = await getTagParamsFromString(params ?? '', 'progressHeading', config.progressHeading)
     // const showSparklines = await getTagParamsFromString(params ?? '', 'showSparklines', config.showSparklines)

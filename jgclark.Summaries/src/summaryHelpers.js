@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 26.11.2022 for v0.13.0+ by @jgclark
+// Last updated 19.1.2023 for v0.17.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -429,9 +429,10 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
         const seenMentions = n.mentions.slice().reverse()
         let lastMention = ''
         for (const mention of seenMentions) {
-          // First need to add a check for a bug: '@repeat(1/7)' is returned as [@repeat(1/7), @repeat(1]. Skip the incomplete one.
-          if (mention.match(/\([^\)]+$/)) { // opening bracket not followed by closing bracket
-            logDebug('gatherOccurrences', `- Skipping ill-formed '${mention}'`)
+          // First need to add a check for a bug: `@repeat(1/7)` is returned as `@repeat(1/7), @repeat(1`. Skip the incomplete one.
+          // Also skip where there are mis-matched brackets in this single mention e.g. `@run(12 @distance(6.5)`
+          if (mention.match(/\(([^\)]+$|[^\)]+\s@.*\(.*\))/)) {
+            logWarn('gatherOccurrences', `- Skipping ill-formed mention '${mention}' on date ${n.filename}`)
             continue // skip this mention
           }
 
