@@ -6,7 +6,7 @@
   "plugin.name": "🧹 Tidy",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "0.1.9",
+  "plugin.version": "0.2.0",
   "plugin.lastUpdateInfo": "First release",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -14,18 +14,20 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/CHANGELOG.md",
   "plugin.commands": [
     {
-      "name": "File root-level notes",
+      "name": "File root-level notes (Tidy)",
       "description": "For each root-level note, asks which folder you'd like it moved to. (There's a setting for ones to ignore.)",
       "jsFunction": "fileRootNotes",
       "alias": [
+        "tidy",
         "frln"
       ]
     },
     {
-      "name": "Remove @done() markers",
+      "name": "Remove @done() markers (Tidy)",
       "description": "Remove @done() markers from recently-updated notes. Can be used with parameters from Template or Callback.",
       "jsFunction": "removeDoneMarkers",
       "alias": [
+        "tidy",
         "rdm"
       ],
       "arguments": [
@@ -33,10 +35,11 @@
       ]
     },
     {
-      "name": "Remove time parts from @done() dates",
+      "name": "Remove time parts from @done() dates (Tidy)",
       "description": "Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.",
       "jsFunction": "removeDoneTimeParts",
       "alias": [
+        "tidy",
         "rtp"
       ],
       "arguments": [
@@ -44,10 +47,11 @@
       ]
     },
     {
-      "name": "Remove section from notes",
+      "name": "Remove section from notes (Tidy)",
       "description": "Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or Callback.",
       "jsFunction": "removeSectionFromRecentNotes",
       "alias": [
+        "tidy",
         "rsfn"
       ],
       "arguments": [
@@ -55,10 +59,11 @@
       ]
     },
     {
-      "name": "Remove content under heading in all notes",
+      "name": "Remove content under heading in all notes (Tidy)",
       "description": "Remove a given section (heading + its content block) from all notes. Can be used with parameters from Template or Callback.",
       "jsFunction": "removeSectionFromAllNotes",
       "alias": [
+        "tidy",
         "rcuh"
       ],
       "arguments": [
@@ -66,10 +71,11 @@
       ]
     },
     {
-      "name": "Log notes changed in interval",
+      "name": "Log notes changed in interval (Tidy)",
       "description": "Write a list of Log notes changed in the last interval of days to the plugin log. It will default to the 'Default Recent Time Interval' setting unless passed as a parameter.",
       "jsFunction": "logNotesChangedInInterval",
       "alias": [
+        "tidy",
         "lncii"
       ],
       "arguments": [
@@ -151,7 +157,7 @@
     {
       "title": "Notes in root folder to ignore",
       "key": "rootNotesToIgnore",
-      "description": "Comma-separated list of notes that you need or want to leave in the root folder. These will be ignored when running the command.",
+      "description": "Comma-separated list of note titles that you need or want to leave in the root folder. These will be ignored when running the command.\nNote: the '# ' is not part of the title, so don't include it.",
       "type": "[string]",
       "default": [],
       "required": false

@@ -1,9 +1,9 @@
 # 🧹 Tidy Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on available commands and use from callbacks and templates.
 
-## [0.1.9] - 2023-01-19 (unreleased)
+## [0.2.0] - 2023-01-???
 ### New
-- new **/File root-level notes** command which asks which folder you'd like each note at the root level moved to. (There's a setting to specify ones to ignore.)
+- new **/File root-level notes** command which asks which folder you'd like each note at the root level moved to. There's a setting to specify ones to ignore. (For @dwertheimer)
 
 ## [0.1.0] - 2023-01-04
 First release, implementing these commands:

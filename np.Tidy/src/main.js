@@ -453,7 +453,6 @@ export async function fileRootNotes(): Promise<void> {
 
     // Remove any listed in config.rootNotesToIgnore
     const excludedNotes = config.rootNotesToIgnore
-    logDebug('excludedNotes', typeof excludedNotes)
     logDebug('excludedNotes', String(excludedNotes))
     const rootNotesToUse = rootNotes.filter((n) => !excludedNotes.includes(n.title))
     logDebug('rootNotesToUse', rootNotesToUse.map((n) => n.title))
@@ -462,8 +461,9 @@ export async function fileRootNotes(): Promise<void> {
     const allFolders = getFilteredFolderList(['/'], true)
 
     // Pre-pend some special items
-    allFolders.unshift('❌ Stop processing')
-    allFolders.unshift('➡️ Leave this note in root')
+    allFolders.unshift(`🗑️ Delete this note`)
+    allFolders.unshift(`❌ Stop processing`)
+    allFolders.unshift(`➡️ Leave this note in root`)
     // TODO: pre-pend a special one meaning 'ignore me from now on'
     logDebug('allFolders', String(allFolders))
     const options = allFolders.map((f) => ({
@@ -471,29 +471,65 @@ export async function fileRootNotes(): Promise<void> {
       value: f,
     }))
 
+    // Save currently open note in Editor
+    const openEditorNote = Editor?.note
+
     // Loop over the rest, asking where to move to
+    let numMoved = 0
     for (const n of rootNotesToUse) {
       if (n && n.title && n.title !== undefined) {
-        const chosenFolder = await chooseOption(`Move ${n.title} to which folder?`, options)
+        const thisTitle = n.title // to pacify flow
+        const thisFilename = n.filename // to pacify flow
+        // open the note we're going to move in the Editor to help user assess what to do
+        const res = await Editor.openNoteByFilename(thisFilename)
+
+        const chosenFolder = await chooseOption(`Move '${thisTitle}' to which folder?`, options)
         switch (chosenFolder) {
           case '❌ Stop processing': {
             logInfo('rootNotesToUse', `User cancelled operation.`)
             return
           }
           case '➡️ Leave this note in root': {
-            // $FlowIgnore[incompatible-type]
-            logDebug('rootNotesToUse', `Leaving '${n.title}' note in root`)
+            logDebug('rootNotesToUse', `Leaving '${thisTitle}' note in root`)
+            break
+          }
+          case '🗑️ Delete this note': {
+            logInfo('rootNotesToUse', `User has asked for '${thisTitle}' to be deleted ...`)
+            const res = DataStore.moveNote(n.filename, "@Trash")
+            if (res && res !== '') {
+              logDebug('rootNotesToUse', '... done')
+              numMoved++
+            }
+            else {
+              logError('rootNotesToUse', `Couldn't delete it for some reason`)
+            }
             break
           }
           default: {
-            // $FlowIgnore[incompatible-type]
-            logDebug('rootNotesToUse', `Moving '${n.title}' note to folder '${chosenFolder}' ...`)
-            // $FlowIgnore[incompatible-call]
+            logDebug('rootNotesToUse', `Moving '${thisTitle}' note to folder '${chosenFolder}' ...`)
             const res = DataStore.moveNote(n.filename, chosenFolder)
-            logDebug('rootNotesToUse', `... filename now '${res ?? '<error>'}'`)
+            if (res && res !== '') {
+              logDebug('rootNotesToUse', `... filename now '${res}'`)
+              numMoved++
+            }
+            else {
+              logError('rootNotesToUse', `... Failed to move it for some reason`)
+            }
           }
         }
       }
+      else {
+        logError('rootNotesToUse', `Failed to get note for some reason`)
+      }
+    }
+
+    // Show a completion message
+    logDebug('rootNotesToUse', `${String(numMoved)} notes moved from the root folder`)
+    const res = await showMessage(`${String(numMoved)} notes moved from the root folder`, 'OK', "File root-level notes", false)
+
+    // Restore original note (if it was open)
+    if (openEditorNote) {
+      Editor.openNoteByFilename(openEditorNote.filename)
     }
   }
   catch (err) {
@@ -521,6 +557,7 @@ export async function bob(): Promise<void> {
     logDebug('bob', `Starting with no params`)
     // }
 
+    // do something with removeBlockID(para)
   }
   catch (err) {
     logError('bob', JSP(err))
