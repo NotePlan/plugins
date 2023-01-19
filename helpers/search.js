@@ -6,7 +6,7 @@
 
 // import { trimString } from '@helpers/dataManipulation'
 import { clo, logDebug, logError } from '@helpers/dev'
-import { RE_SYNC_MARKER } from '@helpers/paragraph'
+import { RE_SYNC_MARKER } from '@helpers/regex'
 
 // import { getNoteByFilename } from '@helpers/note'
 
