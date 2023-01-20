@@ -6,7 +6,7 @@
   "plugin.name": "🧹 Tidy",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "0.2.0",
+  "plugin.version": "0.3.0-beta1",
   "plugin.lastUpdateInfo": "First release",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -20,6 +20,15 @@
       "alias": [
         "tidy",
         "frln"
+      ]
+    },
+    {
+      "name": "Remove orphaned blockIDs (Tidy)",
+      "description": "Remove orphaned blockIDs in all notes.",
+      "jsFunction": "removeOrphanedBlockIDs",
+      "alias": [
+        "tidy",
+        "rob"
       ]
     },
     {

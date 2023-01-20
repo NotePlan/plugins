@@ -15,7 +15,11 @@ import {
 } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
-import { getProjectNotesInFolder, removeSection } from '@helpers/note'
+import {
+  allNotesSortedByChanged,
+  getProjectNotesInFolder,
+  removeSection
+} from '@helpers/note'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -344,12 +348,12 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     let config: helpers.TidyConfig = await helpers.getSettings()
     // Setup main variables
     if (params) {
-      logDebug('removeSectionFromAllNotes', `Starting with params '${params}'`)
+      logDebug(pluginJson, `removeSectionFromAllNotes: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
       clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-      logDebug('removeSectionFromAllNotes', `Starting with no params`)
+      logDebug(pluginJson, `removeSectionFromAllNotes: Starting with no params`)
     }
 
     // Decide whether to run silently, using parameter if given
@@ -540,27 +544,87 @@ export async function fileRootNotes(): Promise<void> {
 }
 
 /**
- * ???
+ * Remove orphaned blockIDs in all notes.
  */
-export async function bob(): Promise<void> {
+export async function removeOrphanedBlockIDs(): Promise<void> {
   try {
+    // TODO: remove this, I think:
     // Get plugin settings (config)
     let config: helpers.TidyConfig = await helpers.getSettings()
 
     // Is this needed?
     // if (params) {
-    //   logDebug('bob', `Starting with params '${params}'`)
+    //   logDebug('removeOrphanedBlockIDs', `removeOrphanedBlockIDs starting with params '${params}'`)
     //   config = overrideSettingsWithEncodedTypedArgs(config, params)
     //   clo(config, `config after overriding with params '${params}'`)
     // } else {
     //   // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-    logDebug('bob', `Starting with no params`)
+    logDebug(pluginJson, `removeOrphanedBlockIDs starting with no params`)
     // }
 
-    // do something with removeBlockID(para)
+    // Find blockIDs in all notes, and save the details of it in a data structure that tracks the first found copy only, and the number of copies.
+    let parasWithBlockID = DataStore.referencedBlocks()
+    logDebug('removeOrphanedBlockIDs', `Current total: ${String(parasWithBlockID.length)} blockIDs`)
+
+    const singletonBlockIDParas: Array<TParagraph> = []
+    let numToRemove = 0
+    let res = ''
+
+    // Work out which paras have the singleton blockIDs
+    for (const thisPara of parasWithBlockID) {
+      // logDebug('removeOrphanedBlockIDs', `- For '${thisPara.content}':`)
+      const otherBlockIDsForThisPara = DataStore.referencedBlocks(thisPara)
+      // logDebug('removeOrphanedBlockIDs', `  - Found same blockID in '${String(otherBlockIDsForThisPara.length)}' paras:`)
+      // logDebug('removeOrphanedBlockIDs', otherBlockIDsForThisPara.map((m) => m.content))
+      if (otherBlockIDsForThisPara.length === 0) {
+        // logDebug('', `  - This is a singleton, so will remove blockID from '${thisPara.content}'`)
+        numToRemove++
+        singletonBlockIDParas.push(thisPara)
+      }
+    }
+    logDebug('removeOrphanedBlockIDs', `Found ${String(numToRemove)} orphaned blockIDs`)
+    if (numToRemove === 0) {
+      res = await showMessage(`There were no orphaned blockIDs in syncd lines.`, "OK, great!", "Remove Orphaned blockIDs")
+      return
+    }
+
+    res = await showMessageYesNo(`Found ${String(numToRemove)} orphaned blockIDs out of ${String(parasWithBlockID.length)} sync'd lines.\nPlease open your Plugin Console log, so that I can list them for you now.`, ['Done', 'Cancel'], "Remove Orphaned blockIDs", false)
+    if (res === "Cancel") { return }
+
+    // Log the singleton blockIDs
+    logDebug('removeOrphanedBlockIDs', `\nFound these '${String(numToRemove)} orphaned blockIDs:`)
+    for (const thisPara of singletonBlockIDParas) {
+      const otherBlockIDsForThisPara = DataStore.referencedBlocks(thisPara)
+      console.log(`'${thisPara.content}' in '${displayTitle(thisPara.note)}'`)
+    }
+
+    res = await showMessageYesNo(`Shall I proceed to remove these  orphaned blockIDs?`, ['Yes please', 'No'], "Remove Orphaned blockIDs", false)
+    if (res === "No") { return }
+
+    // If we get this far, then remove all blockID with only 1 instance
+    let numRemoved = 0
+    logDebug('removeOrphanedBlockIDs', `Will delete all singleton blockIDs`)
+    for (const thisPara of singletonBlockIDParas) {
+      const thisNote = thisPara.note
+      // if (thisNote.filename.includes('NotePlan')) {
+      thisNote.removeBlockID(thisPara)
+      logDebug('removeOrphanedBlockIDs', `- Removed singleton blockID from '${thisPara.content}'`)
+      thisNote.updateParagraph(thisPara)
+      numRemoved++
+      // }
+    }
+
+    // As a double-check re-count total number of blockIDs
+    parasWithBlockID = DataStore.referencedBlocks()
+    logDebug('removeOrphanedBlockIDs', `- New total: ${String(DataStore.referencedBlocks().length)} blockIDs`)
+
+    // Show a completion message
+    logDebug('removeOrphanedBlockIDs', `${String(numRemoved)} orphaned blockIDs removed from syncd lines`)
+    res = await showMessage(`${String(numRemoved)} orphaned blockIDs removed from syncd lines`, 'OK', "Remove Orphaned blockIDs", false)
+
   }
   catch (err) {
-    logError('bob', JSP(err))
+    logError('removeOrphanedBlockIDs', JSP(err))
     return // for completeness
   }
 
