@@ -224,10 +224,10 @@ export async function getHeadingLink(): Promise<string> {
     const url = createOpenOrDeleteNoteCallbackUrl(selectedPara.note.title, 'title', heading) || ''
     Clipboard.string = url
     const linkText = await getInputTrimmed(
-      `Link to this note and heading "${heading}" copied to clipboard (click Enter or Return). If you would like to create a pretty link for pasting inside of NotePlan\ne.g. [text](url), enter the text to display and a pretty link will be copied to the clipboard instead.`,
-      'OK',
+      `Link to this note and heading "${heading}" copied to clipboard (click Cancel). If you would like to create a pretty link for pasting inside of NotePlan\ne.g. [text](url), enter the text to display + OK/Enter and a pretty link will be copied to the clipboard instead.`,
+      'Copy Pretty Link',
       'Link to Heading',
-      '',
+      heading,
     )
     if (linkText && linkText !== '') {
       Clipboard.string = `[${String(linkText) || ''}](${url})`

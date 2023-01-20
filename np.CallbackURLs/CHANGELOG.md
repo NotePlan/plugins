@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.4.1] - 2022-01-19 (@dwertheimer)
+
+- Make default pretty link the title
+
 ## [1.4.0] - 2022-01-19 (@dwertheimer)
 
 - Add dialog box on URL creation for creating pretty links (thx @stacey)
