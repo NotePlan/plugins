@@ -49,6 +49,41 @@ export function blockTimeFor(timeMap: IntervalMap, blockdata: BlockData, config:
   return { newMap, itemText }
 }
 
+/**
+ * Clean text using an array of regexes or strings to replace
+ */
+export function cleanText(text: string, replacements: Array<RegExp | string>) {
+  let cleanString = text
+  replacements.forEach((r) => {
+    cleanString = cleanString.replace(r, ' ')
+  })
+  cleanString = cleanString.replace(/ {2,}/g, ' ').trim()
+  return cleanString
+}
+
+/**
+ * Remove all ATB-CREATED formatting from a timeblock line and returj just the content (so we can do comparisons)
+ * e.g. "00:01-12:22 foo bar baz" -> "foo bar baz"
+ * @param {string} line
+ * @param {TimeBlockDefaults} config
+ * @returns {string} clean string
+ */
+export function cleanTimeBlockLine(line: string, config: { [key: string]: any }): string {
+  const { timeBlockTag, durationMarker } = config
+  // use .*? for non-greedy (match minimum chars) and make sure to use global flag for all matches
+  const cleanerRegexes = [
+    new RegExp(`^\\d{2}:\\d{2}-\\d{2}:\\d{2} `, 'g'),
+    new RegExp(` ${timeBlockTag}`, 'g'),
+    new RegExp(`\\[\\[.*?\\]\\]`, 'g'),
+    new RegExp(`\\[.*?\\]\\(.*?\\)`, 'g'),
+  ]
+  let clean = cleanText(line, cleanerRegexes)
+  clean = removeDurationParameter(clean, durationMarker)
+  clean = removeDateTagsAndToday(clean, true)
+  return clean
+  // cleanString = removeDateTagsAndToday(cleanString)
+}
+
 export function attachTimeblockTag(content: string, timeblockTag: string): string {
   const regEx = new RegExp(` ${timeblockTag}`, 'g') //replace the existing tag if it's there
   return `${content.replace(regEx, '')} ${timeblockTag}`

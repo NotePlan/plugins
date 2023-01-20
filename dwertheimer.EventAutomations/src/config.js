@@ -5,7 +5,8 @@ import { logDebug } from '@helpers/dev'
 
 export function getTimeBlockingDefaults(): AutoTimeBlockingConfig {
   return {
-    todoChar: '*' /* character at the front of a timeblock line - can be *,-,or a heading, e.g. #### */,
+    todoChar: '+' /* character at the front of a timeblock line - can be *,-,or a heading, e.g. #### */,
+    checkedItemChecksOriginal: false /* if true, checked items will check the original item, not the timeblock */,
     timeBlockTag: `#🕑` /* placed at the end of the timeblock to show it was created by this plugin */,
     timeBlockHeading:
       '[Time Blocks](noteplan://runPlugin?pluginID=dwertheimer.EventAutomations&command=atb%20-%20Create%20AutoTimeBlocks%20for%20%3Etoday%27s%20Tasks)' /* if this heading exists in the note, timeblocks will be placed under it */,
@@ -26,7 +27,7 @@ export function getTimeBlockingDefaults(): AutoTimeBlockingConfig {
                to keep a calendar entry around, just remove the timeBlockTag */,
     includeTasksWithText: [] /* limit to tasks with ANY of these tags/text */,
     excludeTasksWithText: [] /* exclude tasks with ANY of these tags/text */,
-    includeLinks: 'OFF',
+    includeLinks: 'Pretty Links',
     linkText: '📄',
     syncedCopiesTitle: "Today's Synced Tasks",
     createSyncedCopies: true,
@@ -67,6 +68,7 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     foldSyncedCopiesHeading: 'boolean',
     defaultDuration: 'number',
     mode: 'string',
+    checkedItemChecksOriginal: 'boolean',
     allowEventSplits: 'boolean',
     insertIntoEditor: 'boolean',
     runSilently: { type: 'boolean', optional: true },
@@ -88,6 +90,11 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
   try {
     // $FlowIgnore
     const validatedConfig = validateConfigProperties(config, configTypeCheck)
+    if (validatedConfig.checkedItemChecksOriginal && (validatedConfig.todoChar !== '+' || validatedConfig.includeLinks !== 'Pretty Links')) {
+      throw new Error(
+        `To use the checklist check to check the original, your timeblock character must be + and the 'Include links to task location in time blocks' setting must be set to 'Pretty Links'`,
+      )
+    }
     // $FlowIgnore
     return validatedConfig
   } catch (error) {
@@ -100,6 +107,7 @@ export const arrayToCSV = (inStr: Array<string> | string): string => (Array.isAr
 
 export type AutoTimeBlockingConfig = {
   todoChar: string,
+  checkedItemChecksOriginal: boolean,
   timeBlockTag: string,
   timeBlockHeading: string,
   foldTimeBlockHeading: boolean,

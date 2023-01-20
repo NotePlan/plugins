@@ -22,6 +22,7 @@ import {
   removeDateTagsFromArray,
   appendLinkIfNecessary,
   getFullParagraphsCorrespondingToSortList,
+  cleanTimeBlockLine,
 } from './timeblocking-helpers'
 import { getTimeBlockingDefaults, validateAutoTimeBlockingConfig } from './config'
 import { getPresetOptions, setConfigForPreset } from './presets'
@@ -37,7 +38,8 @@ import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { checkNumber, checkWithDefault } from '@helpers/checkType'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { getTodaysReferences, findOpenTodosInNote } from '@helpers/NPnote'
-import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes, selectedLinesIndex } from '@helpers/NPParagraph'
+import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes, selectedLinesIndex, getBlockUnderHeading } from '@helpers/NPParagraph'
+import { addTrigger } from '../../helpers/NPFrontMatter'
 
 /**
  * Get the config for this plugin, from DataStore.settings or the defaults if settings are not valid
@@ -289,12 +291,21 @@ export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TP
   logDebug(pluginJson, `After includeTasksWithText, ${todosParagraphs.length} potential items`)
   todosParagraphs = Array.isArray(excludeTasksWithText) && excludeTasksWithText?.length > 0 ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText) : todosParagraphs
   logDebug(pluginJson, `After excludeTasksWithText, ${todosParagraphs.length} potential items`)
-  return todosParagraphs
+  return todosParagraphs.filter((t) => t.content)
 }
 
-export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingConfig = getConfig()): Promise<?Array<string>> {
+const shouldRunCheckedItemChecksOriginal = (config: AutoTimeBlockingConfig): boolean => config.checkedItemChecksOriginal && ['+'].indexOf(config.todoChar) > -1
+/**
+ * createTimeBlocksForTodaysTasks - main function (called by multiple entry points)
+ * @param {AutoTimeBlockingConfig} config
+ * @param {Array<TParagraph>} completedItems - items that were checked (we must be in the EditorWillSave hook)
+ * @returns
+ */
+export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingConfig = getConfig(), completedItems: Array<TParagraph> = []): Promise<?Array<string>> {
   // logDebug(pluginJson,`Starting createTimeBlocksForTodaysTasks. Time is ${new Date().toLocaleTimeString()}`)
-  const { timeBlockTag, intervalMins, insertIntoEditor, createCalendarEntries, passBackResults, deletePreviousCalendarEntries, eventEnteredOnCalTag } = config
+  const { timeBlockTag, intervalMins, insertIntoEditor, createCalendarEntries, passBackResults, deletePreviousCalendarEntries, eventEnteredOnCalTag, checkedItemChecksOriginal } =
+    config
+  if (shouldRunCheckedItemChecksOriginal(config)) addTrigger(Editor, 'onEditorWillSave', pluginJson['plugin.id'], 'onEditorWillSave')
   const hypenatedDate = getTodaysDateHyphenated()
   logDebug(pluginJson, `createTimeBlocksForTodaysTasks hypenatedDate=${hypenatedDate} Editor.paras=${Editor.paragraphs.length}`)
   const date = getTodaysDateUnhyphenated()
@@ -304,7 +315,9 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
   logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr ?? 'null'}  Editor.paras=${Editor.paragraphs.length}`)
   if (dateStr && dateStr === date) {
     logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr} is today - starting  Editor.paras=${Editor.paragraphs.length}`)
-    const todosParagraphs = await getTodaysFilteredTodos(config)
+    const todosParagraphs = await getTodaysFilteredTodos(config).filter(
+      (t) => t.filename !== Editor.filename || (t.filename === Editor.filename && !completedItems.find((c) => c.lineIndex === t.lineIndex)),
+    )
     logDebug(pluginJson, `Back from getTodaysFilteredTodos, ${todosParagraphs.length} potential items  Editor.paras=${Editor.paragraphs.length}`)
     // the following calls addBlockID and that must be called before any content changes are made that will not be saved
     const todosWithLinksMaybe = appendLinkIfNecessary(todosParagraphs, config)
@@ -316,6 +329,7 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
     logDebug(pluginJson, `After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items  Editor.paras=${Editor.paragraphs.length}`)
     const tasksByType = todosWithLinksMaybe.length ? getTasksByType(todosWithLinksMaybe, true) : null // puts in object by type of task and enriches with sort info (like priority)
     logDebug(pluginJson, `After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items  Editor.paras=${Editor.paragraphs.length}`)
+    clo(tasksByType?.open, 'createTimeBlocksForTodaysTasks: tasksByType.open')
     if (deletePreviousCalendarEntries) {
       await deleteCalendarEventsWithTag(timeBlockTag, dateStr)
     }
@@ -583,9 +597,9 @@ export async function insertTodosAsTimeblocksWithPresets(/* note: TNote */): Pro
       // logDebug(pluginJson,`Utilizing preset: ${JSON.stringify(config.presets[presetIndex])}`)
       config = setConfigForPreset(config, overrides)
       try {
-        validateAutoTimeBlockingConfig(config) //  check to make sure the overrides were valid
+        await validateAutoTimeBlockingConfig(config) //  check to make sure the overrides were valid
       } catch (error) {
-        showMessage(error)
+        await showMessage(error)
         // logDebug(pluginJson,`insertTodosAsTimeblocksWithPresets: invalid config: ${error}`)
       }
       await createTimeBlocksForTodaysTasks(config)
@@ -650,6 +664,60 @@ export async function markDoneAndRecreateTimeblocks(incoming: string | null = nu
         await insertTodosAsTimeblocks()
       } else {
         logDebug(pluginJson, `markDoneAndRecreateTimeblocks: no selection`)
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * onEditorWillSave - look for timeblocks that were marked done and remove them
+ * Plugin entrypoint for command: "/onEditorWillSave" (trigger)
+ * @author @dwertheimer
+ * @param {*} incoming
+ */
+export async function onEditorWillSave(incoming: string | null = null) {
+  try {
+    const completedTypes = ['done', 'scheduled', 'cancelled', 'checklistDone', 'checklistScheduled', 'checklistCancelled']
+    logDebug(pluginJson, `onEditorWillSave running with incoming:${String(incoming)}`)
+    const config = await getConfig()
+    const { checkedItemChecksOriginal, todoChar, timeBlockHeading } = config
+    // check for today note? -- if (!editorIsOpenToToday())
+    if (shouldRunCheckedItemChecksOriginal(config)) {
+      // get character block
+      const updatedParasInTodayNote = []
+      const timeBlocks = getBlockUnderHeading(Editor, timeBlockHeading, false)
+      if (timeBlocks?.length) {
+        const checkedItems = timeBlocks.filter((f) => completedTypes.indexOf(f.type) > -1)
+        if (checkedItems?.length) {
+          // clo(checkedItems, `onEditorWillSave found:${checkedItems?.length} checked items`)
+          const todayTodos = getTodaysFilteredTodos(config)
+          // clo(todayTodos, `onEditorWillSave ${todayTodos?.length} todayTodos`)
+          checkedItems.forEach((item, i) => {
+            const referenceID = item.content.match(/noteplan:\/\/.*(\%5E.*)\)/)?.[1].replace('%5E', '^') || null
+            logDebug(pluginJson, `onEditorWillSave: item[${i}] content="${item.content}" blockID="${referenceID}"`)
+            const todo = todayTodos.find((f) => (referenceID ? f.blockId === referenceID : cleanTimeBlockLine(item.content, config) === cleanTimeBlockLine(f.content, config)))
+            if (todo) {
+              clo(todo, `onEditorWillSave: found todo for item[${i}] blockID="${referenceID}" content=${todo.content} in file ${todo.filename || ''} | now updating`)
+              const isEditor = Editor.filename === todo.filename
+              const note = isEditor ? Editor : todo.note
+              todo.type = 'done'
+              note?.updateParagraph(todo)
+              logDebug(pluginJson, `onEditorWillSave: found todo for item[${i}] blockID="${referenceID}" content=${todo.content} in file ${todo.filename || ''} | now updating`)
+              if (!isEditor) {
+                DataStore.updateCache(note)
+              } else {
+                logDebug(pluginJson, `onEditorWillSave: checked off item: "${item.content}" but manual refresh of TimeBlocks will be required`)
+                updatedParasInTodayNote.push(Editor.paragraphs[todo.lineIndex])
+              }
+            } else {
+              logDebug(pluginJson, `onEditorWillSave: no todo found for item[${i}] blockID="${referenceID}" cleanContent="${cleanTimeBlockLine(item.content, config)}"`)
+            }
+          })
+          // re-run /atb - but is it safe within a hook?
+          await createTimeBlocksForTodaysTasks(config, updatedParasInTodayNote)
+        }
       }
     }
   } catch (error) {
