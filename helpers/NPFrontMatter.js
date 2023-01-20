@@ -280,7 +280,7 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
     const attributes = getFrontMatterAttributes(note)
     const triggersArray = attributes ? attributes.triggers?.split(',') || [] : []
     const triggersObj = getTriggersByCommand(triggersArray)
-    clo(`addTrigger triggersObj${triggersObj}`)
+    // clo(triggersObj, `addTrigger triggersObj`)
     if (triggersObj[trigger]) {
       const commandExists = triggersObj[trigger].find((t) => t.pluginID === pluginID && t.commandName === commandName)
       if (commandExists) {

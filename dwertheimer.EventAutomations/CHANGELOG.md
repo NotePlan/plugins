@@ -4,9 +4,13 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+[1.15.0] 2023-01-18 @dwertheimer
+
+- Added new preference: when using checklist (+) for your timeblocks, checking the timeblock will find and check the original item
+
 [1.14.0] 2023-01-17 @dwertheimer
 
-- Checlist support for todo char
+- Checklist support for todo char
 
 [1.13.5] 2022-12-13 @dwertheimer
 

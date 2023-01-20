@@ -14,6 +14,7 @@ export {
   removePreviousDaysParagraphNamed,
   removePreviousTimeBlocks,
   markDoneAndRecreateTimeblocks,
+  onEditorWillSave,
 } from './NPTimeblocking'
 
 export { createEvents } from './NPEventBlocks'
@@ -40,6 +41,7 @@ export function onSettingsUpdated() {}
 
 export function init(): void {
   // this runs every time the plugin starts up (any command in this plugin is run)
-  clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
+  // clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
+  console.log(`\n\n\n`)
   DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], true, false, false).then((r) => pluginUpdated(pluginJson, r))
 }
