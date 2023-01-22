@@ -23,6 +23,7 @@ Compared with the built-in functionality, it also allows you to easily change th
 From NotePlan v3.7.2, this plugin can **automatically generate** the new repeated task after you complete an existing one. This requires adding the following line to frontmatter at the start of _every note_ you wish to automate in this way:
 ``` yaml
 ---
+title: <<the note's title on this line, instead of a markdown H1 title>>
 triggers: onEditorWillSave => jgclark.RepeatExtensions.onEditorWillSave
 ---
 ```
@@ -36,12 +37,12 @@ On the _currently open note_, open the command bar and type the **/generate repe
 
 ## Specifiying the Intervals
 The time intervals have two parts: number and then a character. The **character** is one of:
-- `b`: business days (ignore weekends, but doesn't ignore public holidays, as they're different for each country.)
-- `d`: days
-- `w`: weeks
-- `m`: months
-- `q`: quarters
-- `y`: years.
+- `b` or `B`: business days (ignore weekends, but doesn't ignore public holidays, as they're different for each country.)
+- `d` or `D`: days
+- `w` or `W`: weeks
+- `m` or `M`: months
+- `q` or `Q`: quarters
+- `y` or `Y`: years
 
 When the **number** starts with a **+** (e.g. `+1m`) it will duplicate the task for 1 month after the date the _task was completed_.
 When the number doesn't start with a + (e.g. `1m`) it will duplicate the task for 1 month after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. If this can't be determined, then it defaults to the first option.

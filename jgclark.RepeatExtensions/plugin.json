@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/",
-  "plugin.version": "0.5.0",
-  "plugin.lastUpdateInfo": "v0.5.0: Now allows automatic generation of new repeats, by using new per-note trigger mechanism in v3.7.2.",
+  "plugin.version": "0.5.1",
+  "plugin.lastUpdateInfo": "v0.5.1: Can now use capital letters in date intervals.\nv0.5.0: Now allows automatic generation of new repeats, by using new per-note trigger mechanism in v3.7.2.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -16,9 +16,7 @@
     {
       "name": "generate repeats",
       "alias": [
-        
         "rpt"
-      
       ],
       "description": "Generate new @repeat(...) tasks from completed ones",
       "jsFunction": "repeats"

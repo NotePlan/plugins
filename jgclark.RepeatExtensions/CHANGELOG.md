@@ -1,6 +1,10 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings.
 
+## [0.5.1] - 2023-01-17
+### Changed
+- the @repeat(...) intervals can now use uppercase B,D,W,M,Q,Y characters. (for advanced Templating work by @DocJulien and @dwertheimer)
+
 ## [0.5.0] - 2022-12-22
 ### Added
 - new repeats using this extended syntax can now be generated automatically after you complete an existing one. This requires NotePlan v3.7.2, and adding this line to frontmatter at the start of every note you wish to automate in this way:
@@ -17,7 +21,7 @@ triggers: onEditorWillSave => jgclark.RepeatExtensions.onEditorWillSave
 
 ## [0.3.1] - 2022-02-20
 ### Changed
-- can now be called by the command `/generate repeats`, and `/rpt` is now an alias for this
+- can now be called by the command `/generate repeats`, (alias `/rpt`)
 - code refactoring
 
 ## [0.3.0] - 2021-10-24
