@@ -3,7 +3,11 @@
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 <!--// FIXME: suffixes causing sync line problems. -->
 
-## [1.1.0-beta4] - 2022-12-23 <!-- [tell JPR1972, DW, as, kennonb, modocache] -->
+## [1.1.0-beta6] - 2023-01-18 <!-- [tell JPR1972, DW, as, kennonb, modocache] -->
+- fix to typo stopping refresh on /search results (thanks for tip by @DWREK)
+- include new checklist open and scheduled types in /searchOpen results (thanks for tip by @KevinOBrien)
+
+## [1.1.0-beta5] - 2022-12-23 <!-- [tell JPR1972, DW, as, kennonb, modocache] -->
 ### Changed
 - the `!` character is now allowed as a search term, or in a search term, to allow for searching for `!`, `!!`, `!!!` as priority indicators.
 - now allows highlighting results in 'NotePlan' style, _where the line isn't a "Synced Line"._

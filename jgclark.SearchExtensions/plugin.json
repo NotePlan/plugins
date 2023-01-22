@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.1.0-beta4",
+  "plugin.version": "1.1.0-beta6",
   "plugin.lastUpdateInfo": "1.1.0: Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case.\n1.0.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",

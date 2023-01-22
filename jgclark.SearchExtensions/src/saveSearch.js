@@ -43,7 +43,7 @@ export async function searchOverAll(searchTermsArg?: string, paraTypeFilterArg?:
   await saveSearch(
     searchTermsArg,
     'both',
-    'saveSearch',
+    'search',
     paraTypeFilterArg,
     'Searching all'
   )
@@ -57,7 +57,7 @@ export async function searchOpenTasks(searchTermsArg?: string): Promise<void> {
     searchTermsArg,
     'both',
     'searchOpenTasks',
-    'open',
+    'open,scheduled,checklist,checklistScheduled', // i.e. all the current 'open'-like types from v3.8
     'Searching open tasks')
 }
 
