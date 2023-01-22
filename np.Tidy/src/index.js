@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 19.1.2023 for v0.3.0, @jgclark
+// Last updated 20.1.2023 for v0.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -18,6 +18,7 @@ export {
   removeSectionFromAllNotes,
   removeSectionFromRecentNotes,
   removeDoneTimeParts,
+  tidyUpAll
 } from './main'
 
 /**

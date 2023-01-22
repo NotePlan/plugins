@@ -3,10 +3,10 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "np.Tidy",
-  "plugin.name": "🧹 Tidy",
+  "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "0.3.0-beta1",
+  "plugin.version": "0.3.0",
   "plugin.lastUpdateInfo": "First release",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -14,25 +14,38 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/CHANGELOG.md",
   "plugin.commands": [
     {
-      "name": "File root-level notes (Tidy)",
+      "name": "Tidy Up",
+      "description": "Run as many of the other commands in this plugin as you have configured.",
+      "jsFunction": "tidyUpAll",
+      "alias": [
+        "tidy",
+        "tua"
+      ]
+    },
+    {
+      "name": "File root-level notes",
       "description": "For each root-level note, asks which folder you'd like it moved to. (There's a setting for ones to ignore.)",
       "jsFunction": "fileRootNotes",
       "alias": [
         "tidy",
+        "file",
         "frln"
       ]
     },
     {
-      "name": "Remove orphaned blockIDs (Tidy)",
-      "description": "Remove orphaned blockIDs in all notes.",
+      "name": "Remove orphaned blockIDs",
+      "description": "Remove blockIDs from lines that had been sync'd, but are 'orphans' as the other copies of the blockID have since been deleted.",
       "jsFunction": "removeOrphanedBlockIDs",
       "alias": [
         "tidy",
         "rob"
+      ],
+      "arguments": [
+        "Parameters"
       ]
     },
     {
-      "name": "Remove @done() markers (Tidy)",
+      "name": "Remove @done() markers",
       "description": "Remove @done() markers from recently-updated notes. Can be used with parameters from Template or Callback.",
       "jsFunction": "removeDoneMarkers",
       "alias": [
@@ -44,7 +57,7 @@
       ]
     },
     {
-      "name": "Remove time parts from @done() dates (Tidy)",
+      "name": "Remove time parts from @done() dates",
       "description": "Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.",
       "jsFunction": "removeDoneTimeParts",
       "alias": [
@@ -56,8 +69,8 @@
       ]
     },
     {
-      "name": "Remove section from notes (Tidy)",
-      "description": "Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or Callback.",
+      "name": "Remove section from recent notes",
+      "description": "Remove a given section (both the heading and its content) from recently-changed notes.\nCan be used with parameters from Template or x-callback.",
       "jsFunction": "removeSectionFromRecentNotes",
       "alias": [
         "tidy",
@@ -68,8 +81,8 @@
       ]
     },
     {
-      "name": "Remove content under heading in all notes (Tidy)",
-      "description": "Remove a given section (heading + its content block) from all notes. Can be used with parameters from Template or Callback.",
+      "name": "Remove section from all notes",
+      "description": "Remove a given section (both the heading and its content) from all notes.\nCan be used with parameters from Template or x-callback.",
       "jsFunction": "removeSectionFromAllNotes",
       "alias": [
         "tidy",
@@ -109,12 +122,20 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Tidy Settings (General)"
+      "title": "'/Remove ...' command settings"
+    },
+    {
+      "title": "How many days count as recent?",
+      "key": "numDays",
+      "type": "number",
+      "description": "The number of days to look back for 'recently changed' notes. If this is 0 or empty, then all notes will be checked.",
+      "default": 7,
+      "required": false
     },
     {
       "key": "foldersToExclude",
       "title": "Folders to exclude",
-      "description": "List of folders to exclude in these commands. May be empty.",
+      "description": "List of folders to exclude in the '/Remove ...' commands. May be empty.",
       "type": "[string]",
       "default": [
         "@Templates",
@@ -124,16 +145,16 @@
       "required": false
     },
     {
-      "type": "heading",
-      "title": "Settings for '/Remove ... recent' commands"
+      "title": "Just remove @done(...) markers from checklists?",
+      "key": "justRemoveFromChecklists",
+      "description": "When removing @done(...) markers, remove just from done checklist items, not done tasks as well? (This is relevant when calculating heatmaps of when tasks but not checklists are completed in Summaries plugin.)",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
-      "title": "How many days to look back?",
-      "key": "numDays",
-      "type": "number",
-      "description": "The number of days to look back for 'recently changed' notes. If this is empty, then all notes will be checked.",
-      "default": 7,
-      "required": false
+      "type": "heading",
+      "title": "'/Remove section...' command settings"
     },
     {
       "title": "Type of match for section headings",
@@ -149,27 +170,55 @@
       "required": true
     },
     {
-      "title": "Just remove @done(...) markers from checklists?",
-      "key": "justRemoveFromChecklists",
-      "description": "When removing @done(...) markers, remove just from done checklist items, not done tasks as well? (This is relevant when calculating heatmaps of when tasks but not checklists are completed in Summaries plugin.)",
-      "type": "bool",
-      "default": true,
-      "required": true
+      "type": "heading",
+      "title": "'/File root-level notes' command settings"
+    },
+    {
+      "title": "Which notes to ignore?",
+      "key": "rootNotesToIgnore",
+      "description": "Comma-separated list of note titles that you need or want to leave in the root folder. These will be ignored when running the command.\nNote: the '# ' is not part of the title, so don't include it.",
+      "type": "[string]",
+      "default": [],
+      "required": false
     },
     {
       "type": "separator"
     },
     {
       "type": "heading",
-      "title": "Settings for /file root-level notes"
+      "title": "'/Tidy Up' command: which commands to run?"
     },
     {
-      "title": "Notes in root folder to ignore",
-      "key": "rootNotesToIgnore",
-      "description": "Comma-separated list of note titles that you need or want to leave in the root folder. These will be ignored when running the command.\nNote: the '# ' is not part of the title, so don't include it.",
-      "type": "[string]",
-      "default": [],
-      "required": false
+      "title": "Run commands silently?",
+      "key": "runSilently",
+      "description": "When running commands silently, they will run entirely in the background and not pop up dialogs to check or report success. Only turn this on when you're comfortable that the commands are doing what you expect.\nNote: If you run in this mode, then this information will be written to the Plugin Console at level 'INFO' instead.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Run '/Remove orphaned blockIDs' command?",
+      "key": "runRemoveOrphansCommand",
+      "ddescription": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Run '/Remove @done() markers' command?",
+      "key": "runRemoveDoneMarkersCommand",
+      "ddescription": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Run '/Remove time parts from @done() dates' command?",
+      "key": "runRemoveDoneTimePartsCommand",
+      "ddescription": "",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
       "type": "separator"
@@ -191,6 +240,16 @@
       ],
       "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
       "default": "INFO",
+      "required": true
+    }
+  ],
+  "plugin.settings_disabled": [
+    {
+      "title": "Run '/Remove section from recent notes' command?",
+      "key": "runRemoveSectionFromNotesCommand",
+      "ddescription": "Note: the '/Remove section from all notes' command is deliberately not available, given how dangerous it could be.",
+      "type": "bool",
+      "default": false,
       "required": true
     }
   ]
