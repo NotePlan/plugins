@@ -734,6 +734,143 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(res[0].content).toEqual('ugh [%](noteplan://x-callback-url/openNote?noteTitle=foo%5E123456)')
       })
     })
+    /*
+     * cleanText()
+     */
+    describe('cleanText()' /* function */, () => {
+      test('should do nothing if no text to replace', () => {
+        const before = ''
+        const after = before
+        const replacements = []
+        const result = tb.cleanText(before, replacements)
+        expect(result).toEqual(after)
+      })
+      test('should do nothing if matchers to replace', () => {
+        const before = 'foo bar baz'
+        const after = before
+        const replacements = []
+        const result = tb.cleanText(before, replacements)
+        expect(result).toEqual(after)
+      })
+      test('should do a basic string replace', () => {
+        const before = 'foo bar baz'
+        const after = 'foo baz'
+        const replacements = ['bar']
+        const result = tb.cleanText(before, replacements)
+        expect(result).toEqual(after)
+      })
+      test('should do a basic regex replace', () => {
+        const before = 'foo bar baz'
+        const after = 'foo baz'
+        const replacements = [/bar/]
+        const result = tb.cleanText(before, replacements)
+        expect(result).toEqual(after)
+      })
+      test('should clean up double spaces', () => {
+        const before = 'foo  bar  baz'
+        const after = 'foo baz'
+        const replacements = [/bar/]
+        const result = tb.cleanText(before, replacements)
+        expect(result).toEqual(after)
+      })
+      test('should remove timeblock at start', () => {
+        const before = '00:01-12:22 foo bar baz'
+        const after = 'foo bar baz'
+        const replacements = [new RegExp(`^\\d{2}:\\d{2}-\\d{2}:\\d{2} `)]
+        const result = tb.cleanText(before, replacements)
+        expect(result).toEqual(after)
+      })
+    })
+
+    /*
+     * cleanTimeBlockLine()
+     */
+    describe('cleanTimeBlockLine()' /* function */, () => {
+      test('should remove time', () => {
+        const before = '00:01-12:22 foo bar baz'
+        const after = 'foo bar baz'
+        const config = { timeBlockTag: '#🕑' }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('should remove ATB tag', () => {
+        const before = 'foo bar baz #🕑'
+        const after = 'foo bar baz'
+        const config = { timeBlockTag: '#🕑' }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('should remove duration 5m', () => {
+        const before = "foo bar baz '5m"
+        const after = 'foo bar baz'
+        const config = { timeBlockTag: '🕑', durationMarker: "'" }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('should remove wiki link', () => {
+        const before = 'foo bar baz [[foo]]'
+        const after = 'foo bar baz'
+        const config = { timeBlockTag: '🕑', durationMarker: "'" }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('should remove any url', () => {
+        const before = 'foo [bar](noteplan://baz)'
+        const after = 'foo'
+        const config = { timeBlockTag: '🕑', durationMarker: "'" }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('what if there are two urls on a line', () => {
+        const before = 'foo [bar](noteplan://baz) zoo [bar](noteplan://baz)'
+        const after = 'foo zoo'
+        const config = { timeBlockTag: '🕑', durationMarker: "'" }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('should remove today tag', () => {
+        const before = 'foo >today'
+        const after = 'foo'
+        const config = { timeBlockTag: '🕑', durationMarker: "'" }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('should remove date tag', () => {
+        const before = 'foo >2022-01-01'
+        const after = 'foo'
+        const config = { timeBlockTag: '🕑', durationMarker: "'" }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('should remove week tag', () => {
+        const before = 'foo >2022-W01'
+        const after = 'foo'
+        const config = { timeBlockTag: '🕑', durationMarker: "'" }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('should remove month tag', () => {
+        const before = 'foo >2022-01'
+        const after = 'foo'
+        const config = { timeBlockTag: '🕑', durationMarker: "'" }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('should remove quarter tag', () => {
+        const before = 'foo >2022-Q1'
+        const after = 'foo'
+        const config = { timeBlockTag: '🕑', durationMarker: "'" }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+      test('should remove year tag', () => {
+        const before = 'foo >2022'
+        const after = 'foo'
+        const config = { timeBlockTag: '🕑', durationMarker: "'" }
+        const result = tb.cleanTimeBlockLine(before, config)
+        expect(result).toEqual(after)
+      })
+    })
 
     // describe('isAutoTimeBlockLine', () => {
     //   test('should return null if there are no ATB lines', () => {

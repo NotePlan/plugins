@@ -1,6 +1,10 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.17.3] - 2023-01-19
+### Fixed
+- fix edge case of malformed @mentions in /insertProgressUpdate calls
+
 ## [0.17.2] - 2023-01-03
 ### Fixed
 - end-of-year bug in dates for /periodStats for "last month" option.

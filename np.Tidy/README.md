@@ -4,8 +4,7 @@ This plugin provides commands to help tidy up your notes:
 
 - **/Remove section from recent notes** (alias "rsfrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
 - **/Remove time parts from @done() dates** (alias "rtp"): Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.
-
-??? - **/Remove @done() markers** (alias "rdm"): Remove @done() markers from recently-updated notes. 
+- **/Remove @done() markers** (alias "rdm"): Remove @done() markers from recently-updated notes, optionally just from completed checklist items.
 
 ??? - **/Remove content under heading in all notes** (alias "rcuh"). (original function by @dwertheimer)
 

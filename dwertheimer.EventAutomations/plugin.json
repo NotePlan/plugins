@@ -5,8 +5,8 @@
   "plugin.name": "🗓 Event Automations",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for >today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.14.0",
-  "plugin.lastUpdateInfo": "1.14.0: Checklist support",
+  "plugin.version": "1.15.0",
+  "plugin.lastUpdateInfo": "1.15.0: Checklists for AutoTimeBlocks, and checking a checklist timeblock will check the undelying task.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -121,6 +121,14 @@
         "Heading under which events are written",
         "Ask for confirmation on choices? yes or no for best guess"
       ]
+    },
+    {
+      "name": "onEditorWillSave",
+      "description": "onEditorWillSave",
+      "jsFunction": "onEditorWillSave",
+      "alias": [
+      ],
+      "arguments": []
     }
   ],
   "plugin.settings": [
@@ -183,8 +191,16 @@
         "####"
       ],
       "title": "Time block leading character",
-      "description": "For NotePlan to recognize a line as a Time Block, the leading character must be one of: a '*', a '-', a '+' (for a checklist box) or one or more '#'s. AutoTimeBlocking will use this to create your timeblocks. You can choose between the 3, but if you are going to create real calendar events from your Time Blocks, you must use the '*'",
-      "default": "-",
+      "description": "For NotePlan to recognize a line as a Time Block, the leading character must be one of: a '*', a '-', a '+' (for a checklist box) or one or more '#'s. AutoTimeBlocking will use this to create your timeblocks.",
+      "default": "+",
+      "required": true
+    },
+    {
+      "key": "checkedItemChecksOriginal",
+      "title": "Checking a checklist item marks the original item done",
+      "description": "Checking off a checklist AutoTimeBlocked line item will find and check the original task. To make this work, the onEditorWillSave trigger/frontmatter will be automatically added by the plugin.\nIMPORTANT NOTE: Only applies if:\n(1) you use the “+” for your Time Block Leading Character and\n s(2) the 'Include links to task location in time blocks' is set to 'Pretty Links'",
+      "type": "bool",
+      "default": false,
       "required": true
     },
     {
@@ -308,7 +324,7 @@
         "[[internal#links]]",
         "Pretty Links"
       ],
-      "default": "OFF",
+      "default": "Pretty Links",
       "description": "Appends a link to the original location of a particular task. Can create a standard internal NotePlan link, e.g. [[internal#links]], or if you want to reduce clutter, a Pretty Link which will display only a single character (see below)."
     },
     {

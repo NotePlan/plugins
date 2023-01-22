@@ -13,7 +13,7 @@ import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCall
 import pluginJson from '../plugin.json'
 import { getXcallbackForTemplate } from './NPTemplateRunner'
 import { chooseRunPluginXCallbackURL } from '@helpers/NPDev'
-import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput } from '@helpers/userInput'
+import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput, getInputTrimmed } from '@helpers/userInput'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
 // import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 
@@ -223,7 +223,16 @@ export async function getHeadingLink(): Promise<string> {
     // $FlowIgnore
     const url = createOpenOrDeleteNoteCallbackUrl(selectedPara.note.title, 'title', heading) || ''
     Clipboard.string = url
-    await showMessage(`Link to this note and heading "${heading}" copied to clipboard`)
+    const linkText = await getInputTrimmed(
+      `Link to this note and heading "${heading}" copied to clipboard (click Cancel). If you would like to create a pretty link for pasting inside of NotePlan\ne.g. [text](url), enter the text to display + OK/Enter and a pretty link will be copied to the clipboard instead.`,
+      'Copy Pretty Link',
+      'Link to Heading',
+      heading,
+    )
+    if (linkText && linkText !== '') {
+      Clipboard.string = `[${String(linkText) || ''}](${url})`
+    }
+    // await showMessage(`Link to this note and heading "${heading}" copied to clipboard`)
     return url
   } else {
     await showMessage(`Paragraph info could not be ascertained`)
@@ -249,6 +258,15 @@ export async function lineLink(): Promise<string> {
     }
     logDebug(pluginJson, `lineLink url=${url}`)
     Clipboard.string = url
+    const linkText = await getInputTrimmed(
+      `Link to this note and line copied to clipboard (click Enter or Return). If you would like to create a pretty link for pasting inside of NotePlan\ne.g. [text](url), enter the text to display and a pretty link will be copied to the clipboard instead.`,
+      'OK',
+      'Link to Heading',
+      '',
+    )
+    if (linkText && linkText !== '') {
+      Clipboard.string = `[${String(linkText) || ''}](${url})`
+    }
     return url
   } else {
     await showMessage(`Paragraph info could not be ascertained`)

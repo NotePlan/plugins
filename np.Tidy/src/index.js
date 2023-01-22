@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 29.12.2022 for v0.1.0, @jgclark
+// Last updated 19.1.2023 for v0.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -11,8 +11,10 @@ import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logError, logInfo } from '@helpers/dev'
 
 export {
+  fileRootNotes,
   logNotesChangedInInterval,
   removeDoneMarkers,
+  removeOrphanedBlockIDs,
   removeSectionFromAllNotes,
   removeSectionFromRecentNotes,
   removeDoneTimeParts,

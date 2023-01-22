@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 31.12.2022 for v0.1.0, @jgclark
+// Last updated 19.1.2023 for v0.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -20,6 +20,7 @@ export type TidyConfig = {
   justRemoveFromChecklists: boolean,
   matchType: string,
   numDays: number,
+  rootNotesToIgnore: Array<string>,
   _logLevel: string,
 }
 

@@ -326,19 +326,22 @@ export function removeDateTags(content: string): string {
 }
 
 /**
- * Remove all >date -related things from a line (and optionally >week ones also)
+ * Remove all >date -related things from a line (and optionally >week, >month, >quarter etc. ones also)
  * @author @dwertheimer
- * @param {*} tag
- * @param {*} weeklyAlso
+ * @param {string} tag - the incoming text
+ * @param {boolean} removeAllSpecialNoteLinks - if true remove >week, >month, >quarter, >year references too
  * @returns
  */
-export function removeDateTagsAndToday(tag: string, weeklyAlso: boolean = false): string {
+export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: boolean = false): string {
   let newString = tag,
     lastPass = tag
   do {
     lastPass = newString
     newString = removeDateTags(tag)
-      .replace(weeklyAlso ? new RegExp(WEEK_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllSpecialNoteLinks ? new RegExp(WEEK_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllSpecialNoteLinks ? new RegExp(MONTH_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllSpecialNoteLinks ? new RegExp(QUARTER_NOTE_LINK, 'g') : '', '')
+      .replace(removeAllSpecialNoteLinks ? new RegExp(YEAR_NOTE_LINK, 'g') : '', '')
       .replace(/>today/, '')
       .replace(/\s{2,}/g, ' ')
       .trimEnd()
