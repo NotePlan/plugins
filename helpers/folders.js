@@ -2,10 +2,10 @@
 //-------------------------------------------------------------------------------
 // Folder-level Functions
 
-import { logDebug, logError, logInfo, logWarn } from './dev'
+import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
 
 /**
- * Return list of folders, excluding those on the given list (and any of their sub-folders).
+ * Return list of folders, excluding those on the given list, and any of their sub-folders (other than root which would then exclude everything).
  * Optionally exclude all special @... folders as well.
  * @author @jgclark
  *
@@ -51,7 +51,7 @@ export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialF
     return reducedList
   }
   catch (error) {
-    logError('folders/getFilteredFolderList', error.message)
+    logError('folders/getFilteredFolderList', JSP(error))
     return ['(error)']
   }
 }
