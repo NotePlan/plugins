@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 19.1.2023 for v0.2.0, @jgclark
+// Last updated 22.1.2023 for v0.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment'
@@ -22,6 +22,47 @@ import {
 } from '@helpers/note'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+
+
+//-----------------------------------------------------------------------------
+
+export async function tidyUpAll(): Promise<void> {
+  try {
+    logDebug(pluginJson, `tidyUpAll: Starting`)
+    // Get plugin settings (config)
+    const config: helpers.TidyConfig = await helpers.getSettings()
+
+    if (config.runRemoveOrphansCommand) {
+      logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
+      await removeOrphanedBlockIDs(config.runSilently)
+    }
+
+    // Following functions take params; so send runSilently as a param
+    const param = (config.runSilently) ? '{"runSilently": true}' : ''
+    if (config.runRemoveDoneMarkersCommand) {
+      logDebug('tidyUpAll', `Starting removeDoneMarkers...`)
+      await removeDoneMarkers(param)
+    }
+    if (config.runRemoveDoneTimePartsCommand) {
+      logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
+      await removeDoneTimeParts(param)
+    }
+
+    // Note: Removing this one as it can't be run silently
+    // if (config.runFileRootNotesCommand) {
+    //   logDebug('tidyUpAll', `Starting fileRootNotes...`)
+    //   await fileRootNotes()
+    // }
+    // Note: Removing this one as it can't be run silently
+    // if (config.runRemoveSectionFromNotesCommand) {
+    //   logDebug('tidyUpAll', `Starting removeSectionFromRecentNotes...`)
+    //   await removeSectionFromRecentNotes()
+    // }
+  }
+  catch (error) {
+    logError('tidyUpAll', JSP(error))
+  }
+}
 
 /**
  * Remove @done(...) markers from recently-updated notes,
@@ -125,8 +166,8 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     }
     return
   }
-  catch (err) {
-    logError('removeDoneMarkers', err.message)
+  catch (error) {
+    logError('removeDoneMarkers', JSP(error))
     return // for completeness
   }
 }
@@ -197,7 +238,6 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
       if (!runSilently) {
         // const titlesList = notesToProcess.map((m) => displayTitle(m))
         // logDebug('removeDoneTimeParts', titlesList)
-        // TODO: In time could show titlesList in HTML pop-up
 
         const res = await showMessageYesNo(`Do you want to remove ${String(numToRemove)} @done(... time) parts?`, ['Yes', 'No'], 'Remove Time Parts')
         if (res === 'No') {
@@ -230,7 +270,7 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     return
   }
   catch (err) {
-    logError('removeDoneTimeParts', err.message)
+    logError('removeDoneTimeParts', JSP(err))
     return // for completeness
   }
 }
@@ -338,7 +378,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
 
 /**
  * WARNING: Dangerous! Remove a given section from all Notes.
- * ??? Can be passed parameters to override default settings
+ * Can be passed parameters to override default settings.
  * @author @jgclark wrapping function by @dwertheimer
  * @param {?string} params optional JSON string
  */
@@ -377,25 +417,29 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     }
     logDebug('removeSectionFromRecentNotes', `sectionHeading = ${sectionHeading}`)
 
+    // TODO: Ideally work out how many this will remove
+    // const numToRemove = 1
+    // if (numToRemove > 0) {
+    //   if (!runSilently) {
+    //     const res = await showMessageYesNo(`Are you sure you want to remove ${numToRemove} '${sectionHeading}' sections?`, ['Yes', 'No'], 'Remove Section from Notes')
+    //     if (res === 'No') {
+    //       logInfo('removeSectionFromRecentNotes', `User cancelled operation`)
+    //       return
+    //     }
+    //   }
 
-    // TODO: Work out how many this will remove
-    const numToRemove = 1
+    // Run the powerful removal function by @dwertheimer
+    removeContentUnderHeadingInAllNotes(['calendar', 'notes'], sectionHeading, keepHeading, runSilentlyAsString)
+    logInfo(pluginJson, `Removed '${sectionHeading}' sections from all notes`)
 
-    if (numToRemove > 0) {
-      if (!runSilently) {
-        const res = await showMessageYesNo(`Are you sure you want to remove ${numToRemove} '${sectionHeading}' sections?`, ['Yes', 'No'], 'Remove Section from Notes')
-        if (res === 'No') {
-          logInfo('removeSectionFromRecentNotes', `User cancelled operation`)
-          return
-        }
-      }
-      // Run the powerful removal function by @dwertheimer
-      removeContentUnderHeadingInAllNotes(['calendar', 'notes'], sectionHeading, keepHeading, runSilentlyAsString)
-      logInfo(pluginJson, `Removed '${sectionHeading}' sections from all notes`)
-    } else {
-      const res = await showMessage(`No sections with heading '${sectionHeading}' were found to remove`)
-      logInfo(pluginJson, `No sections with sectionHeading '${sectionHeading}' were found to remove`)
-    }
+    // } else {
+    // if (!runSilently) {
+    //   const res = await showMessage(`No sections with heading '${sectionHeading}' were found to remove`)
+    //   logInfo(pluginJson, `No sections with sectionHeading '${sectionHeading}' were found to remove`)
+    // } else {
+    //   logDebug(pluginJson, `No sections with sectionHeading '${sectionHeading}' were found to remove`)
+    // }
+    // }
     return
   }
   catch (err) {
@@ -546,26 +590,27 @@ export async function fileRootNotes(): Promise<void> {
 /**
  * Remove orphaned blockIDs in all notes.
  */
-export async function removeOrphanedBlockIDs(): Promise<void> {
+export async function removeOrphanedBlockIDs(runSilently: boolean = false): Promise<void> {
   try {
-    // TODO: remove this, I think:
     // Get plugin settings (config)
-    let config: helpers.TidyConfig = await helpers.getSettings()
-
-    // Is this needed?
-    // if (params) {
-    //   logDebug('removeOrphanedBlockIDs', `removeOrphanedBlockIDs starting with params '${params}'`)
-    //   config = overrideSettingsWithEncodedTypedArgs(config, params)
-    //   clo(config, `config after overriding with params '${params}'`)
-    // } else {
-    //   // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-    logDebug(pluginJson, `removeOrphanedBlockIDs starting with no params`)
-    // }
+    const config: helpers.TidyConfig = await helpers.getSettings()
 
     // Find blockIDs in all notes, and save the details of it in a data structure that tracks the first found copy only, and the number of copies.
     let parasWithBlockID = DataStore.referencedBlocks()
     logDebug('removeOrphanedBlockIDs', `Current total: ${String(parasWithBlockID.length)} blockIDs`)
+    logDebug('runSilently?', String(runSilently))
 
+    // Use numDays to limit to recent notes, if > 0
+    if (config.numDays > 0) {
+      // $FlowFixMe[incompatible-call]
+      const allMatchedNotes = parasWithBlockID.map((p) => p.note)
+      // logDebug('allMatchedNotes', String(allMatchedNotes.length))
+      const recentMatchedNotes = helpers.getNotesChangedInIntervalFromList(allMatchedNotes, config.numDays)
+      const recentMatchedNoteFilenames = recentMatchedNotes.map((n) => n.filename)
+      // logDebug('recentMatchedNotes', String(recentMatchedNotes.length))
+      parasWithBlockID = parasWithBlockID.filter((p) => recentMatchedNoteFilenames.includes(p.note?.filename))
+      logDebug('removeOrphanedBlockIDs', `Current total: ${String(parasWithBlockID.length)} blockIDs in notes from last ${config.numDays} days`)
+    }
     const singletonBlockIDParas: Array<TParagraph> = []
     let numToRemove = 0
     let res = ''
@@ -582,33 +627,41 @@ export async function removeOrphanedBlockIDs(): Promise<void> {
         singletonBlockIDParas.push(thisPara)
       }
     }
-    logDebug('removeOrphanedBlockIDs', `Found ${String(numToRemove)} orphaned blockIDs`)
     if (numToRemove === 0) {
-      res = await showMessage(`There were no orphaned blockIDs in syncd lines.`, "OK, great!", "Remove Orphaned blockIDs")
+      if (!runSilently) {
+        res = await showMessage(`No orphaned blockIDs were found in syncd lines.`, "OK, great!", "Remove Orphaned blockIDs")
+      } else {
+        logInfo('removeOrphanedBlockIDs', `No orphaned blockIDs were found in syncd lines`)
+      }
       return
     }
+    logDebug('removeOrphanedBlockIDs', `Found ${String(numToRemove)} orphaned blockIDs`)
 
-    res = await showMessageYesNo(`Found ${String(numToRemove)} orphaned blockIDs out of ${String(parasWithBlockID.length)} sync'd lines.\nPlease open your Plugin Console log, so that I can list them for you now.`, ['Done', 'Cancel'], "Remove Orphaned blockIDs", false)
-    if (res === "Cancel") { return }
+    // Decided this check is not needed, as it has been testeed enough
+    // res = await showMessageYesNo(`Found ${String(numToRemove)} orphaned blockIDs out of ${String(parasWithBlockID.length)} sync'd lines.\nPlease open your Plugin Console log, so that I can list them for you now.`, ["I'm Ready", "Cancel"], "Remove Orphaned blockIDs", false)
+    // if (res === "Cancel") { return }
 
-    // Log the singleton blockIDs
-    logDebug('removeOrphanedBlockIDs', `\nFound these '${String(numToRemove)} orphaned blockIDs:`)
-    for (const thisPara of singletonBlockIDParas) {
-      const otherBlockIDsForThisPara = DataStore.referencedBlocks(thisPara)
-      console.log(`'${thisPara.content}' in '${displayTitle(thisPara.note)}'`)
+    // // Log the singleton blockIDs
+    // logDebug('removeOrphanedBlockIDs', `\nFound these '${String(numToRemove)} orphaned blockIDs:`)
+    // for (const thisPara of singletonBlockIDParas) {
+    //   const otherBlockIDsForThisPara = DataStore.referencedBlocks(thisPara)
+    //   console.log(`'${thisPara.content}' in '${displayTitle(thisPara.note)}'`)
+    // }
+
+    if (!runSilently) {
+      res = await showMessageYesNo(`Shall I proceed to remove these  orphaned blockIDs?`, ['Yes please', 'No'], "Remove Orphaned blockIDs", false)
+      if (res === "No") { return }
     }
-
-    res = await showMessageYesNo(`Shall I proceed to remove these  orphaned blockIDs?`, ['Yes please', 'No'], "Remove Orphaned blockIDs", false)
-    if (res === "No") { return }
 
     // If we get this far, then remove all blockID with only 1 instance
     let numRemoved = 0
     logDebug('removeOrphanedBlockIDs', `Will delete all singleton blockIDs`)
     for (const thisPara of singletonBlockIDParas) {
       const thisNote = thisPara.note
-      // if (thisNote.filename.includes('NotePlan')) {
+      // $FlowFixMe[incompatible-use]
       thisNote.removeBlockID(thisPara)
       logDebug('removeOrphanedBlockIDs', `- Removed singleton blockID from '${thisPara.content}'`)
+      // $FlowFixMe[incompatible-use]
       thisNote.updateParagraph(thisPara)
       numRemoved++
       // }
@@ -616,16 +669,18 @@ export async function removeOrphanedBlockIDs(): Promise<void> {
 
     // As a double-check re-count total number of blockIDs
     parasWithBlockID = DataStore.referencedBlocks()
-    logDebug('removeOrphanedBlockIDs', `- New total: ${String(DataStore.referencedBlocks().length)} blockIDs`)
+    logDebug('removeOrphanedBlockIDs', `${String(numRemoved)} orphaned blockIDs removed from syncd lines`)
+    logDebug('removeOrphanedBlockIDs', `(New total: ${String(DataStore.referencedBlocks().length)} blockIDs)`)
 
     // Show a completion message
-    logDebug('removeOrphanedBlockIDs', `${String(numRemoved)} orphaned blockIDs removed from syncd lines`)
-    res = await showMessage(`${String(numRemoved)} orphaned blockIDs removed from syncd lines`, 'OK', "Remove Orphaned blockIDs", false)
-
+    if (!runSilently) {
+      res = await showMessage(`${String(numRemoved)} orphaned blockIDs removed from syncd lines`, 'OK', "Remove Orphaned blockIDs", false)
+    } else {
+      logInfo('removeOrphanedBlockIDs', `${String(numRemoved)} orphaned blockIDs removed from syncd lines`)
+    }
   }
   catch (err) {
     logError('removeOrphanedBlockIDs', JSP(err))
     return // for completeness
   }
-
 }

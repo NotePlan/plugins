@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 19.1.2023 for v0.2.0, @jgclark
+// Last updated 20.1.2023 for v0.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -21,6 +21,12 @@ export type TidyConfig = {
   matchType: string,
   numDays: number,
   rootNotesToIgnore: Array<string>,
+  runFileRootNotesCommand: boolean,
+  runRemoveOrphansCommand: boolean,
+  runRemoveDoneMarkersCommand: boolean,
+  runRemoveDoneTimePartsCommand: boolean,
+  runRemoveSectionFromNotesCommand: boolean,
+  runSilently: boolean,
   _logLevel: string,
 }
 
@@ -33,7 +39,7 @@ export async function getSettings(): Promise<any> {
   try {
     // Get settings
     const config: TidyConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    clo(config, `${pluginID} settings:`)
+    // clo(config, `${pluginID} settings:`)
 
     if (config == null || Object.keys(config).length === 0) {
       throw new Error(`Cannot find settings for '${pluginID}' plugin`)

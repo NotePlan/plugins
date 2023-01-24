@@ -130,16 +130,15 @@ const globals = {
   },
 
   pickDate: async (dateParams: any = '', config: { [string]: ?mixed }): Promise<string> => {
-    return `**The 'pickDate' helper has been deprecated, you should modify template to use 'promptDate(...) method'`
+    return `**The 'pickDate' helper has been deprecated, you should modify template to use 'promptDate(...) method.**'`
   },
 
   pickDateInterval: async (dateParams: any): Promise<string> => {
-    return `**'pickDateInterval' has been deprecated, you should modify template to use 'promptDateInterval(...) method'`
+    return `**'pickDateInterval' has been deprecated, you should modify template to use 'promptDateInterval(...) method.**'`
   },
 
   events: async (dateParams?: any): Promise<string> => {
     return invokePluginCommandByName('jgclark.EventHelpers', 'listDaysEvents', [JSON.stringify(dateParams)])
-    // return await listDaysEvents(JSON.stringify(dateParams))
   },
 
   listTodaysEvents: async (params?: any = ''): Promise<string> => {
