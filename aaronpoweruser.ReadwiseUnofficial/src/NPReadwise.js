@@ -74,6 +74,7 @@ async function getReadwise(force: boolean): Promise<any> {
     DataStore.saveData(new Date().toISOString(), LAST_SYNÇ_TIME, true)
 
     const Json = JSON.parse(response)
+    // DataStore.saveData(JSON.stringify(Json), 'test_data.json', true)
     downloadHiglightCount = Json.count
     logDebug(pluginJson, `Downloaded : ${downloadHiglightCount} highlights`)
     return Json.results
@@ -88,24 +89,34 @@ async function getReadwise(force: boolean): Promise<any> {
  */
 async function parseBookAndWriteToNote(source: any): Promise<void> {
   try {
-    const noteTtile: string = source.readable_title ?? source.title
+    const noteTtile: string = buildReadwiseNoteTitle(source)
     const outputNote: ?TNote = await getOrCreateReadwiseNote(noteTtile, source.category)
     const useFrontMatter = DataStore.settings.useFrontMatter === 'FrontMatter'
     if (outputNote) {
       if (!useFrontMatter) {
         //TODO: Support updating metadata (tags)
         if (!outputNote?.content?.includes('Metadata')) {
-          outputNote?.addParagraphBelowHeadingTitle(createReadwiseMetadataHeading(source), 'text', 'Metadata', true, true)
+          outputNote?.addParagraphBelowHeadingTitle(buildReadwiseMetadataHeading(source), 'text', 'Metadata', true, true)
         }
       } else {
         setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
       }
       outputNote?.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
     }
-    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
+    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin, source.note))
     removeEmptyLines(outputNote)
   } catch (error) {
     logError(pluginJson, error)
+  }
+}
+
+function buildReadwiseNoteTitle(source: any): string {
+  if (source.readable_title !== '') {
+    return source.readable_title
+  } else if (source.title !== '') {
+    return source.title
+  } else {
+    return source.author
   }
 }
 
@@ -122,7 +133,7 @@ function removeEmptyLines(note: ?Tnote): void {
 function buildReadwiseFrontMatter(source: any): any {
   const frontMatter = {}
   frontMatter.author = `[[${source.author}]]`
-  if (source.readable_title !== source.title) {
+  if (source.readable_title.toLowerCase().trim() !== source.title.toLowerCase().trim()) {
     frontMatter.long_title = source.title
   }
   if (source.book_tags !== null && source.book_tags.length > 0) {
@@ -153,7 +164,7 @@ function formatTag(tag: string): string {
  * @param {*} source - the readwise data as a JSON object
  * @returns {string} - the formatted heading
  */
-function createReadwiseMetadataHeading(source: any): string {
+function buildReadwiseMetadataHeading(source: any): string {
   let metadata = `Author: [[${source.author}]]` + '\n'
   if (source.book_tags !== null && source.book_tags.length > 0) {
     metadata += `Tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
@@ -175,7 +186,7 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
   let baseFolder = rootFolder
   let outputNote: ?TNote
   if (DataStore.settings.groupByType === true) {
-    //TODO: verify that a supplemental is always a book
+    // Note: supplmentals are not guaranteed to have user generated highlights
     if (DataStore.settings.ignoreSupplementals === true && category === 'supplementals') {
       baseFolder = `${rootFolder}/books`
     } else {
@@ -193,24 +204,23 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
 
 /**
  * Appends the highlight with a link to the note
- * @param {TNote} note - the note to append to
+ * @param {TNote} outputNote - the note to append to
  * @param {*} highlight - the readwise highlight as a JSON object
  * @param {string} category - the source of the highlight
  * @param {string} asin - the asin of the book
  */
-function appendHighlightToNote(note: TNote, highlight: any, category: string, asin: string): void {
-  // remove "• " from the start of the highlight
-  const filteredContent = highlight.text.replace(/[•\t.+]/g, '')
+function appendHighlightToNote(outputNote: TNote, highlight: any, category: string, asin: string): void {
+  const filteredContent = highlight.text.replace(/\n/g, '\n > ')
   let linkToHighlightOnWeb = ''
 
   if (DataStore.settings.showLinkToHighlight === true) {
     if (category === 'supplemental') {
       linkToHighlightOnWeb = ` [View highlight](${highlight.readwise_url})`
-    } else if (asin !== null) {
+    } else if (asin !== null && highlight.location !== null) {
       linkToHighlightOnWeb = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
     } else if (highlight.url !== null) {
       linkToHighlightOnWeb = ` [View highlight](${highlight.url})`
     }
   }
-  note.appendParagraph(filteredContent + linkToHighlightOnWeb, 'quote')
+  outputNote.appendParagraph(filteredContent + linkToHighlightOnWeb, 'quote')
 }
