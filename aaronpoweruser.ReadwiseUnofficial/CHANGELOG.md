@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
+
+## [0.1.7] Readwise  2023-01-25 (aaronpoweruser)
+* Settings description clean up
+* Fix null highlight links
+* Fix unneeded long titles
 ## [0.1.6] - 2023-01-12 (aaronpoweruser)
 - Fix access token dialog
 - Use readable titles to make linking to notes easier

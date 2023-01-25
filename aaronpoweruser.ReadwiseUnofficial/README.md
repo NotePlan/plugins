@@ -18,9 +18,20 @@ A sync engine for readwise
 * Ability to get random note via templates
 
 ### Known issues:
-- "Don’t Set Goals… Do This Instead" causes a new note to be created
 - Using heading as metadata does not support tag updates
 - Images are not handled gracefully
+
+
+## Comands
+
+### //Readwise sync
+
+Downloads new highlights since last sync
+
+### //Readwise rebuild
+
+** Only needs to be used if highlights are deleted) **
+Downloads all highlights (if they already exisit they will be duplicated)
 
 ## Settings
 
@@ -46,6 +57,11 @@ FrontMatter will store the metadata in the front matter of the note. Heading wil
 ### Group by type
 
 Group all highlights in under the readwise folder or having them separated by content type ie readwise/books, readwise/articles.
+
+### Group supplemental highlights separately
+
+** Ignored if group by type is disabled **
+Group all highlights together or keep supplemental (readwise generated) highlights seperate.
 
 ## Latest Updates
 
