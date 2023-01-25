@@ -534,13 +534,14 @@ export type HtmlWindowOptions = {
   savedFilename?: string,
   width?: number,
   height?: number,
+  includeCSSAsJS?: boolean,
 }
 
 /**
  * This function creates the webkit message handler for an action in HTML sending data back to the plugin. Generally passed through to showHTMLWindow as part of the pre or post body script.
  * @param {string} commandName - the *name* of the plugin command to be called (not the jsFunction) -- THIS NAME MUST BE ONE WORD, NO SPACES - generally a good idea for name/jsFunction to be the same for callbacks
  * @param {string} pluginID - the plugin ID
- * @param {string} returnPathFuncName - the name of the function in HTML/JS that NotePlan will call after receiving a message on the bridge
+ * @param {string} returnPathFuncName - the name of the function in HTML/JS that NotePlan will call after receiving a message on the bridge (if one is passed/needed)
  * Note re: commandArgs - in the HTML/JS code, pass an array of values to be passed into the plugin command callback
  * @example
  * You could create one of these callbacks for each HTML element that needs to send data back to the plugin. However, that requires a lot of boilerplate code (in plugin.json, index.html, and your plugin file).
@@ -551,18 +552,19 @@ export type HtmlWindowOptions = {
  * ...The HTML element in your HTML (myButton in this example) passes a static variable/string or the value of something in the HTML to the callback onClick
  * @returns
  */
-export function getCallbackCodeString(commandName: string, pluginID: string, returnPathFuncName: string): string {
+export function getCallbackCodeString(jsFunctionName: string, commandName: string = '%%commandName%%', pluginID: string = '%%pluginID%%', returnPathFuncName: string = ''): string {
   const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
   logDebug(`getCallbackCodeString: In HTML Code, use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
   //TODO: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
+  // "${returnPathFuncName}" was the onHandle, but since that function doesn't really do anything, I'm not sending it
   return `
     // This is a callback bridge from HTML to the plugin
-    const ${commandName} = (commandArgs = []) => {
-      console.log("Sending command to NotePlan: ${commandName} with args: ", commandArgs);
+    const ${jsFunctionName} = (commandName = "${commandName}", pluginID = "${pluginID}", commandArgs = []) => {
+      console.log(\`jsFunctionName: Sending command "\$\{commandName\}" to NotePlan: "\$\{pluginID\}" with args: \$\{JSON.stringify(commandArgs)\}\`);
       if (window.webkit) {
         window.webkit.messageHandlers.jsBridge.postMessage({
-          code: ${haveNotePlanExecute}.replace("%%commandArgs%%", JSON.stringify(commandArgs)),
-          onHandle: "${returnPathFuncName}",
+          code: ${haveNotePlanExecute}.replace("%%commandName%%",commandName).replace("%%pluginID%%",pluginID).replace("%%commandArgs%%", JSON.stringify(commandArgs)),
+          onHandle: "${returnPathFuncName}" ,
           id: "1"
         });
       } else {
@@ -593,7 +595,77 @@ export const getErrorBridgeCodeString = (): string => `
         console.log("Error:", message);
       }
     };
-  `
+
+/**
+ * Remove selectors and props we know we will never use in CSS-to-JS
+ * @param {*} themeObj
+ * @returns
+ */
+export function pruneTheme(themeObj: any): any {
+  // remove selectors we know we will never use
+  const selectorsToPrune = ['__orderedStyles', 'author']
+  // any object that contains these keys will have these props erased
+  const propsToPrune = ['regex', 'matchPosition', 'isMarkdownCharacter', 'isRevealOnCursorRange', 'isHiddenWithoutCursor', 'headIndent']
+  Object.keys(themeObj).forEach((key) => {
+    if (selectorsToPrune.includes(key)) {
+      delete themeObj[key]
+    } else {
+      if (typeof themeObj[key] === 'object') {
+        if (Array.isArray(themeObj[key]) && themeObj[key].length > 0) {
+          themeObj[key] = themeObj[key].map(pruneTheme)
+        } else {
+          Object.keys(themeObj[key]).forEach((prop) => {
+            if (propsToPrune.includes(prop)) {
+              delete themeObj[key][prop]
+            } else {
+              themeObj[key][prop] = pruneTheme(themeObj[key][prop])
+            }
+            if (!themeObj[key][prop]) delete themeObj[key][prop]
+          })
+        }
+      } else {
+        if (propsToPrune.includes(key) || !themeObj[key] || themeObj[key] === '') {
+          delete themeObj[key]
+        }
+      }
+    }
+    if (typeof themeObj[key] === 'object' && Object.keys(themeObj[key]).length === 0) delete themeObj[key]
+  })
+  if (typeof themeObj === 'object' && Object.keys(themeObj).length === 0) return null
+  return themeObj
+}
+
+/**
+ * Get the basic colors for CSS-in-JS
+ * All code lifted from @jgclark CSS conversion above - thank you!
+ * @param {any} themeJSON - theme file (e.g. theme.values) from Editor
+ */
+const getBasicColors = (themeJSON) => ({
+  backgroundColor: themeJSON.editor?.backgroundColor ?? '#1D1E1F',
+  textColor: RGBColourConvert(themeJSON.editor?.textColor),
+  h1: RGBColourConvert(themeJSON.styles?.title1?.color ?? '#CC6666'),
+  h2: RGBColourConvert(themeJSON.styles?.title2?.color ?? '#E9C062'),
+  h3: RGBColourConvert(themeJSON.styles?.title3?.color ?? '#E9C062'),
+  h4: RGBColourConvert(themeJSON.styles?.title4?.color ?? '#E9C062'),
+  tintColor: RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2',
+  altColor: RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30',
+})
+
+/**
+ * Get the current theme as a JSON string that can be passed to Javascsript in the HTML window for CSS-in-JS styling
+ * Mainly, we are doing this to get the Editor object with the core styles, but we can also get the custom styles (optionally)
+ * @param {boolean} cleanIt - clean properties we know we won't use to save space (default: true, set to false for no pruning/cleaning)
+ * @param {boolean} includeSpecificStyles - include the "styles" object with all the specific custom styles (default: false)
+ * @returns {any} - object to be stringified or null if there are no styles to send
+ */
+export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boolean = false): any {
+  const theme = Editor.currentTheme
+
+  if (!includeSpecificStyles && theme?.values?.styles) delete theme.values.styles
+  if (cleanIt) theme.values = pruneTheme(theme.values)
+  theme.values.base = getBasicColors(theme.values)
+  return theme
+}
 
 /**
  * Convenience function for opening HTML Window with as few arguments as possible
@@ -602,6 +674,7 @@ export const getErrorBridgeCodeString = (): string => `
  * @param {string} windowTitle - (required) window title
  * @param {string} body - (required) body HTML code
  * @param {HtmlWindowOptions} opts - (optional) options: {headerTags, generalCSSIn, specificCSS, makeModal, preBodyScript, postBodyScript, savedFilename, width, height}
+ * Note: opts. includeCSSAsJS - (optional) if true, then the theme will be included as a JS object in the HTML window, and you can use it for CSS-in-JS styling
  * Notes: if opts.generalCSSIn is not supplied, then CSS will be generated based on the user's current theme.
  * If you want to save the HTML to a file for debugging, then you should supply opts.savedFilename (it will be saved in the plugin's data/<plugin.id> folder).
  * Your script code in pre-body or post-body do not need to be wrapped in <script> tags, and can be either a string or an array of strings or an array of objects with code and type properties (see ScriptObj above)
@@ -609,6 +682,14 @@ export const getErrorBridgeCodeString = (): string => `
  */
 export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWindowOptions) {
   const preBody = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
+  if (opts.includeCSSAsJS) {
+    const theme = getThemeJS(true, false)
+    if (theme.values) {
+      preBody.push(`/* Basic Theme as JS for CSS-in-JS use in scripts \n  Created from theme: "${theme.name}" */\n  const NP_THEME=${JSON.stringify(theme.values, null, 4)}\n`)
+      logDebug(pluginJson, `showHTMLWindow Saving NP_THEME in JavaScript`)
+    }
+  }
+  const initializeGlobalSharedData = `let globalSharedData = {};`
   showHTML(
     windowTitle,
     opts.headerTags ?? '',
@@ -648,9 +729,11 @@ export function generateScriptTags(scripts: string | ScriptObj | Array<string | 
     let hasScriptTag
     let scriptText = ''
     if (typeof script === 'string') {
-      hasScriptTag = script.includes('<script')
-      scriptText = hasScriptTag ? '' : '<script type="text/javascript">\n'
-      scriptText += script
+      if (script !== '') {
+        hasScriptTag = script.includes('<script')
+        scriptText = hasScriptTag ? '' : '<script type="text/javascript">\n'
+        scriptText += script
+      }
     } else {
       const { code, type } = script || {}
       hasScriptTag = code.includes('<script')
@@ -660,7 +743,7 @@ export function generateScriptTags(scripts: string | ScriptObj | Array<string | 
       scriptText += hasScriptTag ? '' : `<script type="${type ?? 'text/javascript'}">\n`
       scriptText += code
     }
-    scriptText += hasScriptTag ? '\n' : '\n</script>\n'
+    if (script !== '') scriptText += hasScriptTag ? '\n' : '\n</script>\n'
     output.push(scriptText)
   })
   return output.join('\n')

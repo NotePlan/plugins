@@ -9,6 +9,8 @@
  * @return {string} formatted date time
  */
 
+import { stat } from 'fs'
+
 const dt = (): string => {
   const d = new Date()
 
@@ -422,47 +424,39 @@ export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJ
 }
 
 /**
- * Deep diff between two object-likes (Object compare/differ)
- * @author @chtseac @Aschen https://gist.github.com/Yimiprod/7ee176597fef230d1451?permalink_comment_id=3415430#gistcomment-3415430
- * @param  {Object} fromObject the original object
- * @param  {Object} toObject   the updated object
- * @return {Object}            a new object which represents the diff
+ * NotePlan objects do not JSON.stringify() well, because most/all of the properties are on the prototype chain
+ * after they come across the bridge from JS. If we want to send object data somewhere (e.g. to HTML/React window)
+ * we need to convert them to a static object first.
+ * @param {any} obj - the NotePlan object to convert
+ * @param {Array<string>} fields - list of fields to copy from the object to the static object
+ * @returns
  */
-// COMMENTING OUT BECAUSE THE IMPORTS OF LODASH-ES ARE FAILING
-// export function deepDiff(fromObject: any, toObject: any): any {
-//   const changes = {}
+export function createStaticObject(obj: any, fields: Array<string>): any {
+  if (!obj) throw 'createStaticObject: input obj is null; cannot convert it'
+  if (!fields?.length) throw 'createStaticObject: no fieldlist provided; cannot create static object'
+  if (typeof obj !== 'object') throw 'createStaticObject: input obj is not an object; cannot convert it'
+  const staticObj = {}
+  for (const field of fields) {
+    staticObj[field] = obj[field] || null
+  }
+  return staticObj
+}
 
-//   const buildPath = (path, key) => (isUndefined(path) ? key : `${String(path)}.${key}`)
-
-//   const walk = (fromObject, toObject, path) => {
-//     for (const key of keys(fromObject)) {
-//       const currentPath = buildPath(path, key)
-//       if (!has(toObject, key)) {
-//         changes[currentPath] = { from: get(fromObject, key) }
-//       }
-//     }
-
-//     for (const [key, to] of entries(toObject)) {
-//       const currentPath = buildPath(path, key)
-//       if (!has(fromObject, key)) {
-//         changes[currentPath] = { to }
-//       } else {
-//         const from = get(fromObject, key)
-//         if (!isEqual(from, to)) {
-//           if (isObjectLike(to) && isObjectLike(from)) {
-//             walk(from, to, currentPath)
-//           } else {
-//             changes[currentPath] = { from, to }
-//           }
-//         }
-//       }
-//     }
-//   }
-
-//   walk(fromObject, toObject)
-
-//   return changes
-// }
-
-// mom I'm on lodash
-// mixin({ deepDiff })
+/**
+ * Convert an array of NotePlan (obscured) objects to static objects
+ * This is object-type agnostic (works for Notes, Paragraphs, etc.) just supply the fields you want to copy
+ * See createStaticObject for more details
+ * @param {Array<any>} arrayOfObjects
+ * @param {Array<string>} fields you want copied to the new object
+ * @returns
+ */
+export function createStaticArray(arrayOfObjects: Array<any>, fields: Array<string>): Array<any> {
+  if (!arrayOfObjects) throw 'createStaticArray: input array is null; cannot convert it'
+  if (!fields?.length) throw 'createStaticArray: no fieldlist provided; cannot create static object'
+  if (!Array.isArray(arrayOfObjects)) throw 'createStaticArray: input array is not an array; cannot convert it'
+  const staticArray = []
+  for (const item of arrayOfObjects) {
+    staticArray.push(createStaticObject(item, fields))
+  }
+  return staticArray
+}
