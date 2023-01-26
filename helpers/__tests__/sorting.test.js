@@ -62,6 +62,22 @@ describe('sorting.js', () => {
       const result = s.sortListBy(list, '-text')
       expect(result).toEqual([a, b])
     })
+    test('should sort by object property n levels down', () => {
+      const a = { text: 'B', level1: { level2: '3' } }
+      const b = { text: 'C', level1: { level2: '5' } }
+      const c = { text: 'A', level1: { level2: '1' } }
+      const list = [a, b, c]q
+      const result = s.sortListBy(list, 'level1.level2')
+      expect(result).toEqual([c, a, b])
+    })
+    test('should sort by object property n levels down in reverse', () => {
+      const a = { text: 'B', level1: { level2: '3' } }
+      const b = { text: 'C', level1: { level2: '5' } }
+      const c = { text: 'A', level1: { level2: '1' } }
+      const list = [a, b, c]
+      const result = s.sortListBy(list, '-level1.level2')
+      expect(result).toEqual([b, a, c])
+    })
     test('should sort by numeric field DESC', () => {
       const a = { num: 2 }
       const b = { num: 1 }
