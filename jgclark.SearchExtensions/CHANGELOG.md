@@ -3,6 +3,10 @@
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 <!--// FIXME: suffixes causing sync line problems. -->
 
+## [1.1.0-beta7] - 2023-01-25 <!-- [tell JPR1972, DW, as, kennonb, modocache, stacey, jaredos] -->
+- where there are multiple copies of a line because they have been sync'd together, only one will now be shown. This will be the one in the most recently-edited note. (for @Stacey with help by @dwertheimer)
+- fix to scheduled items not getting synced in /searchOpenTasks results (thanks for tip by @JaredOS)
+
 ## [1.1.0-beta6] - 2023-01-18 <!-- [tell JPR1972, DW, as, kennonb, modocache] -->
 - fix to typo stopping refresh on /search results (thanks for tip by @DWREK)
 - include new checklist open and scheduled types in /searchOpen results (thanks for tip by @KevinOBrien)

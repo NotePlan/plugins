@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 23.12.2022 for v1.1.0-beta, @jgclark
+// Last updated 25.1.2023 for v1.1.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,6 +11,7 @@ import {
   createFormattedResultLines,
   getSearchSettings,
   makeAnySyncs,
+  OPEN_PARA_TYPES,
   resultCounts,
   type resultOutputTypeV3,
   runSearchesV2,
@@ -57,7 +58,7 @@ export async function searchOpenTasks(searchTermsArg?: string): Promise<void> {
     searchTermsArg,
     'both',
     'searchOpenTasks',
-    'open,scheduled,checklist,checklistScheduled', // i.e. all the current 'open'-like types from v3.8
+    OPEN_PARA_TYPES.join(','), // i.e. all the current 'open'-like types from v3.8
     'Searching open tasks')
 }
 

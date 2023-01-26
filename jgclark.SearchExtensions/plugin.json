@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.1.0-beta6",
+  "plugin.version": "1.1.0-beta7",
   "plugin.lastUpdateInfo": "1.1.0: Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case.\n1.0.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -170,7 +170,7 @@
     {
       "key": "resultStyle",
       "title": "Display style for search result lines",
-      "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings\n- Use 'Simplified' text, more like web search engine results.\nNote: this affect some of the following settings.",
+      "description": "Choose the style to use:\n- Normal 'NotePlan' styling, showing tasks, bullets and quotes, tweaked slightly for matching headings. You need to use this if you want to use the power of sync'd lines with the /searchOpenTasks command.\n- Use 'Simplified' text, more like web search engine results.\nNote: this affects some of the following settings.",
       "type": "string",
       "choices": [
         "NotePlan",
@@ -254,7 +254,7 @@
     {
       "key": "dateStyle",
       "title": "Date style",
-      "description": "Where the match is in a calendar note, choose where that link is shown as a 'date' using your locale, or as a NP date 'link' ([[2022-06-30]]), `at` (`@2022-06-30`), 'date' (date formatted for your locale, or 'scheduled' (`>2022-06-30`).",
+      "description": "Where the match is in a calendar note, choose where that link is shown as\n- a 'date' using your locale\n- an NP date 'link' ([[2022-06-30]])\n- an 'at' date (@2022-06-30), or\n- a 'scheduled' date (>2022-06-30).",
       "type": "string",
       "choices": [
         "at",

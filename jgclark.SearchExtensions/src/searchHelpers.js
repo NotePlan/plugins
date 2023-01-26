@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 23.12.2022 for v1.1.0-beta, @jgclark
+// Last updated 25.1.2023 for v1.1.0-beta, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,6 +13,7 @@ import {
   toISOShortDateTimeString,
   withinDateRange,
 } from '@helpers/dateTime'
+import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { clo, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
 import { displayTitle, type headingLevelType, titleAsLink } from '@helpers/general'
@@ -21,6 +22,7 @@ import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
+
 
 //------------------------------------------------------------------------------
 // Data types
@@ -64,6 +66,11 @@ export type reducedFieldSet = {
   rawContent: string,
   lineIndex: number,
 }
+
+//-------------------------------------------------------------------------------
+
+export const OPEN_PARA_TYPES = ['open', 'scheduled', 'checklist', 'checklistScheduled']
+export const SYNCABLE_PARA_TYPES = ['open', 'scheduled', 'checklist', 'checklistScheduled']
 
 //------------------------------------------------------------------------------
 // Settings
@@ -671,7 +678,7 @@ export async function runSearchesV2(
 }
 
 /**
- * Go through results, and if there are open task linea, then sync lines by adding a blockID (having checked there isn't one already).
+ * Go through results, and if there are open task lines, then sync lines by adding a blockID (having checked there isn't one already).
  * @author @jgclark
  * @param {resultOutputTypeV3} input
  * @returns {resultOutputTypeV3}
@@ -689,8 +696,8 @@ export async function makeAnySyncs(input: resultOutputTypeV3): Promise<resultOut
       const thisPara = thisNote?.paragraphs?.[rnal.index]
       const thisType = thisPara?.type ?? ''
 
-      // If this line is an open task without existing blockID, then add to array to process
-      if (thisNote && thisType === 'open' && thisPara && !thisPara?.blockId) {
+      // If this line is an open-type task without existing blockID, then add to array to process
+      if (thisNote && SYNCABLE_PARA_TYPES.includes(thisType) && thisPara && !thisPara?.blockId) {
         linesToSync.push([thisIndex, thisLine, thisNote, thisPara, thisType])
         logDebug('makeAnySyncs', `- lineToSync from rnal index ${thisIndex}`)
       }
@@ -791,6 +798,12 @@ export async function runSearchV2(
     }
 
     const noteAndLineArr: Array<noteAndLine> = []
+
+    // TODO: If we want to dedupe identical synced lines
+    logDebug('runSearchV2', `- Before dedupe, ${resultParas.length} results for '${searchTerm}'`)
+    resultParas = eliminateDuplicateSyncedParagraphs(resultParas, 'most-recent')
+    logDebug('runSearchV2', `- After dedupe, ${resultParas.length} results for '${searchTerm}'`)
+
 
     if (resultParas.length > 0) {
       logDebug('runSearchV2', `- Found ${resultParas.length} results for '${searchTerm}'`)
