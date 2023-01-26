@@ -66,7 +66,7 @@ describe('sorting.js', () => {
       const a = { text: 'B', level1: { level2: '3' } }
       const b = { text: 'C', level1: { level2: '5' } }
       const c = { text: 'A', level1: { level2: '1' } }
-      const list = [a, b, c]q
+      const list = [a, b, c]
       const result = s.sortListBy(list, 'level1.level2')
       expect(result).toEqual([c, a, b])
     })
