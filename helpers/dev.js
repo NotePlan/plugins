@@ -9,8 +9,6 @@
  * @return {string} formatted date time
  */
 
-import { stat } from 'fs'
-
 const dt = (): string => {
   const d = new Date()
 

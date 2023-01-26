@@ -594,7 +594,7 @@ export const getErrorBridgeCodeString = (): string => `
       } else {
         console.log("Error:", message);
       }
-    };
+    };  `
 
 /**
  * Remove selectors and props we know we will never use in CSS-to-JS

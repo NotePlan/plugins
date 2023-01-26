@@ -21,28 +21,6 @@ const pluginJson = 'helpers/dev.test'
 
 // Jest suite
 describe('helpers/dev', () => {
-  /*
-   * deepDiff()
-   */
-  describe.skip('deepDiff()' /* function */, () => {
-    test('should show no difference with empties', () => {
-      const result = d.deepDiff({}, {})
-      expect(result).toEqual({})
-    })
-    test('should show no difference with simple value', () => {
-      const result = d.deepDiff({ a: 1 }, { a: 1 })
-      expect(result).toEqual({})
-    })
-    test('should show differences when one has something the other doesnt', () => {
-      const result = d.deepDiff({ a: 1 }, { a: 1, b: 1 })
-      expect(result).toEqual({ b: { to: 1 } })
-    })
-    test('should show a deep different value', () => {
-      const result = d.deepDiff({ a: 1 }, { a: { b: { c: 2 } } })
-      expect(result).toEqual({ a: { from: 1, to: { b: { c: 2 } } } })
-    })
-  })
-
   describe('getAllPropertyNames', () => {
     test('getAllPropertyNames', () => {
       expect(d.getAllPropertyNames({ foo: '', bar: 1 }).indexOf('foo')).toBeGreaterThan(-1)

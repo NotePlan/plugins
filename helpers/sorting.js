@@ -1,5 +1,5 @@
 // @flow
-import { get } from 'lodash'
+import { get } from 'lodash-es'
 
 export interface SortableParagraphSubset {
   content: string;
