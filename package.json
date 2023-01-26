@@ -120,6 +120,7 @@
     "babelify": "^10.0.0",
     "bcrypt": "5.0.1",
     "bqpjs": "^0.1.1",
+    "browserify": "^17.0.0",
     "bump-regex": "4.1.0",
     "chroma-js": "^2.4.2",
     "clipboardy": "3.0.0",

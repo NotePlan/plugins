@@ -83,10 +83,10 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // set global variable
     baseFontSize = Number(DataStore.preference('fontSize')) ?? 14
     // tempSel.push(`color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
-    tempSel.push(`background: ${themeJSON.editor.backgroundColor ?? '#1D1E1F'}`)
+    tempSel.push(`background: ${themeJSON?.editor?.backgroundColor ?? '#1D1E1F'}`)
     output.push(makeCSSSelector('html', tempSel))
     // rootSel.push(`--fg-main-color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
-    rootSel.push(`--bg-main-color: ${themeJSON.editor.backgroundColor ?? '#1D1E1F'}`)
+    rootSel.push(`--bg-main-color: ${themeJSON?.editor?.backgroundColor ?? '#1D1E1F'}`)
 
     // Set body:
     // - main font = styles.body.font)
@@ -96,11 +96,11 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.body
     if (styleObj) {
-      const thisColor = RGBColourConvert(themeJSON.editor.textColor ?? '#CC6666')
+      const thisColor = RGBColourConvert(themeJSON?.editor?.textColor ?? '#CC6666')
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('body', tempSel))
-      rootSel.push(`--fg-main-color: ${RGBColourConvert(themeJSON.editor.textColor)}` ?? '#CC6666')
+      rootSel.push(`--fg-main-color: ${RGBColourConvert(themeJSON?.editor?.textColor)}` ?? '#CC6666')
     }
 
     // Set H1 (styles.title1)
@@ -640,16 +640,19 @@ export function pruneTheme(themeObj: any): any {
  * All code lifted from @jgclark CSS conversion above - thank you!
  * @param {any} themeJSON - theme file (e.g. theme.values) from Editor
  */
-const getBasicColors = (themeJSON) => ({
-  backgroundColor: themeJSON.editor?.backgroundColor ?? '#1D1E1F',
-  textColor: RGBColourConvert(themeJSON.editor?.textColor),
-  h1: RGBColourConvert(themeJSON.styles?.title1?.color ?? '#CC6666'),
-  h2: RGBColourConvert(themeJSON.styles?.title2?.color ?? '#E9C062'),
-  h3: RGBColourConvert(themeJSON.styles?.title3?.color ?? '#E9C062'),
-  h4: RGBColourConvert(themeJSON.styles?.title4?.color ?? '#E9C062'),
-  tintColor: RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2',
-  altColor: RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30',
-})
+const getBasicColors = (themeJSON) => {
+  if (!themeJSON) return {}
+  return {
+    backgroundColor: themeJSON.editor?.backgroundColor ?? '#1D1E1F',
+    textColor: RGBColourConvert(themeJSON.editor?.textColor),
+    h1: RGBColourConvert(themeJSON.styles?.title1?.color ?? '#CC6666'),
+    h2: RGBColourConvert(themeJSON.styles?.title2?.color ?? '#E9C062'),
+    h3: RGBColourConvert(themeJSON.styles?.title3?.color ?? '#E9C062'),
+    h4: RGBColourConvert(themeJSON.styles?.title4?.color ?? '#E9C062'),
+    tintColor: RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2',
+    altColor: RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30',
+  }
+}
 
 /**
  * Get the current theme as a JSON string that can be passed to Javascsript in the HTML window for CSS-in-JS styling
@@ -660,9 +663,13 @@ const getBasicColors = (themeJSON) => ({
  */
 export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boolean = false): any {
   const theme = Editor.currentTheme
-
+  logDebug(pluginJson, `getThemeJS currentTheme="${theme?.name}"`)
   if (!includeSpecificStyles && theme?.values?.styles) delete theme.values.styles
   if (cleanIt) theme.values = pruneTheme(theme.values)
+  if (!theme.values) {
+    clo(Editor.currentTheme, `getThemeJS Editor.currentTheme="${theme?.name || ''}"`)
+    throw 'No theme values found in theme, cannot continue'
+  }
   theme.values.base = getBasicColors(theme.values)
   return theme
 }
@@ -697,7 +704,7 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
     opts.generalCSSIn ?? '',
     opts.specificCSS ?? '',
     opts.makeModal ?? false,
-    [getErrorBridgeCodeString(), ...preBody],
+    [getErrorBridgeCodeString(), initializeGlobalSharedData, ...preBody],
     opts.postBodyScript ?? '',
     opts.savedFilename ?? '',
     opts.width,

@@ -1,6 +1,6 @@
 /* globals describe, expect, it, test */
 import * as f from '../src/favorites'
-const _ = require('lodash')
+// const  _ = require('lodash')
 
 const config = { favoriteIcon: '⭐️' }
 

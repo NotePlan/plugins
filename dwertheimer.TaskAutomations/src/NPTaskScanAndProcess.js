@@ -79,12 +79,13 @@ export async function processModifierKey(para: TParagraph, keyModifiers: Array<s
  * @param {boolean} isSingleLine
  * @returns {$ReadOnlyArray<{ label: string, value: string }>} the options for feeding to a command bar
  */
-function getSharedOptions(origPara: TParagraph | { note: TNote }, isSingleLine: boolean): Array<{ label: string, value: string }> {
+export function getSharedOptions(origPara?: TParagraph | { note: TNote } | null, isSingleLine?: boolean = true): Array<{ label: string, value: string }> {
+  const isGeneric = !origPara || !origPara.note
   const dateOpts = [...getDateOptions(), ...getWeekOptions()]
   // clo(dateOpts, `getSharedOptions dateOpts`)
-  const note = origPara.note
-  const taskText = isSingleLine ? `this task` : `the above tasks`
-  const contentText = isSingleLine ? `"${origPara?.content || ''}"` : `tasks in "${note?.title || ''}"`
+  const note = isGeneric ? null : origPara?.note
+  const taskText = isSingleLine ? `this task` : `these tasks`
+  const contentText = isGeneric ? '' : isSingleLine ? `"${origPara?.content || ''}"` : `tasks in "${note?.title || ''}"`
   const skip = isSingleLine ? [] : [{ label: `➡️ Skip - Do not change ${contentText} (and continue)`, value: '__skip__' }]
   const todayLine = dateOpts.splice(0, 1)
   todayLine[0].label = `⬇︎ Change date to ${todayLine[0].label}`
@@ -93,8 +94,8 @@ function getSharedOptions(origPara: TParagraph | { note: TNote }, isSingleLine: 
     ...todayLine,
     { label: `> Change ${taskText} to >today (repeating until complete)`, value: '__yes__' },
     { label: `🚫 Mark ${taskText} cancelled`, value: '__canceled__' },
-    { label: `⌫ Remove the >date from ${taskText}`, value: '__remove__' },
-    { label: `⦿ Convert task to a bullet/list item`, value: '__list__' },
+    { label: `⌫ Remove the >date from the ${taskText}`, value: '__remove__' },
+    { label: `⦿ Convert ${taskText} to a bullet/list item`, value: '__list__' },
     { label: '❌ Cancel Review', value: '__xcl__' },
     { label: '------ Set Due Date To: -------', value: '-----' },
     ...dateOpts,
