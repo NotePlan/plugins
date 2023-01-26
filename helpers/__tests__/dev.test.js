@@ -21,28 +21,6 @@ const pluginJson = 'helpers/dev.test'
 
 // Jest suite
 describe('helpers/dev', () => {
-  /*
-   * deepDiff()
-   */
-  describe.skip('deepDiff()' /* function */, () => {
-    test('should show no difference with empties', () => {
-      const result = d.deepDiff({}, {})
-      expect(result).toEqual({})
-    })
-    test('should show no difference with simple value', () => {
-      const result = d.deepDiff({ a: 1 }, { a: 1 })
-      expect(result).toEqual({})
-    })
-    test('should show differences when one has something the other doesnt', () => {
-      const result = d.deepDiff({ a: 1 }, { a: 1, b: 1 })
-      expect(result).toEqual({ b: { to: 1 } })
-    })
-    test('should show a deep different value', () => {
-      const result = d.deepDiff({ a: 1 }, { a: { b: { c: 2 } } })
-      expect(result).toEqual({ a: { from: 1, to: { b: { c: 2 } } } })
-    })
-  })
-
   describe('getAllPropertyNames', () => {
     test('getAllPropertyNames', () => {
       expect(d.getAllPropertyNames({ foo: '', bar: 1 }).indexOf('foo')).toBeGreaterThan(-1)
@@ -229,6 +207,28 @@ describe('helpers/dev', () => {
       const URLEncodedArgs = '%7B%22stringArr%22%3A%5B%22this%20is%20a%22%2C%22different%22%2C%22array%2C%20of%22%2C%22strings%22%5D%7D'
       const res = d.overrideSettingsWithEncodedTypedArgs(testConfig, URLEncodedArgs)
       expect(res).toEqual(expectedConfig)
+    })
+  })
+  /*
+   * createStaticObject()
+   */
+  describe('createStaticObject()' /* function */, () => {
+    test('should create an object with the proper fields', () => {
+      const origObj = { a: 1, b: 2, c: 3 }
+      const result = d.createStaticObject(origObj, ['a', 'b'])
+      const expected = { a: 1, b: 2 }
+      expect(result).toEqual(expected)
+    })
+  })
+  /*
+   * createStaticArray()
+   */
+  describe('createStaticArray()' /* function */, () => {
+    test('should create an array of objects with the proper fields', () => {
+      const origObj = [{ a: 1, b: 2, c: 3 }]
+      const result = d.createStaticArray(origObj, ['a', 'b'])
+      const expected = [{ a: 1, b: 2 }]
+      expect(result).toEqual(expected)
     })
   })
 })

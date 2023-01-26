@@ -144,4 +144,123 @@ describe(`${FILE}`, () => {
       expect(result).toEqual(`<script type="bar">\nfoo\n</script>\n\n<script type="text/javascript">\nfoo\n</script>\n`)
     })
   })
+
+  /*
+   * pruneTheme()
+   */
+  describe('pruneTheme()' /* function */, () => {
+    test('should do nothing if nothing to trim (empty)', () => {
+      const orig = {}
+      const expected = null
+      const result = n.pruneTheme(orig)
+      expect(result).toEqual(expected)
+    })
+    test('should do nothing if nothing to trim 2', () => {
+      const orig = { foo: 'bar' }
+      const expected = {}
+      const result = n.pruneTheme(orig)
+      expect(result).toEqual(orig)
+    })
+    test('should trim a top level item', () => {
+      const orig = { __orderedStyles: ['title-mark1', 'title-mark2'] }
+      const expected = null
+      const result = n.pruneTheme(orig)
+      expect(result).toEqual(expected)
+    })
+    test('should trim a top level item but leave others', () => {
+      const orig = { __orderedStyles: ['title-mark1', 'title-mark2'], name: 'foo' }
+      const expected = { name: 'foo' }
+      const result = n.pruneTheme(orig)
+      expect(result).toEqual(expected)
+    })
+    test('should remove properties inside of a style', () => {
+      const orig = {
+        styles: {
+          'NoteLinks-main-cancelled': {
+            font: 'noteplanstate',
+            isRevealOnCursorRange: true,
+            isMarkdownCharacter: true,
+            matchPosition: 1,
+            regex: '\\h(-\\[\\[)(.*?)(\\]\\])',
+            color: '#C5487A',
+          },
+        },
+      }
+      const expected = {
+        styles: {
+          'NoteLinks-main-cancelled': {
+            font: 'noteplanstate',
+            color: '#C5487A',
+          },
+        },
+      }
+      const result = n.pruneTheme(orig)
+      expect(result).toEqual(expected)
+    })
+    test('should remove property that has empty value', () => {
+      const orig = {
+        styles: {
+          'NoteLinks-main-cancelled': {
+            foo: '',
+            font: 'noteplanstate',
+            isRevealOnCursorRange: true,
+            isMarkdownCharacter: true,
+            matchPosition: 1,
+            regex: '\\h(-\\[\\[)(.*?)(\\]\\])',
+            color: '#C5487A',
+          },
+        },
+      }
+      const expected = {
+        styles: {
+          'NoteLinks-main-cancelled': {
+            font: 'noteplanstate',
+            color: '#C5487A',
+          },
+        },
+      }
+      const result = n.pruneTheme(orig)
+      expect(result).toEqual(expected)
+    })
+    test('should remove properties inside of a style', () => {
+      const orig = {
+        __orderedStyles: ['title-mark1', 'title-mark2'],
+        styles: {
+          'NoteLinks-main-cancelled': {
+            font: 'noteplanstate',
+            isRevealOnCursorRange: true,
+            isMarkdownCharacter: true,
+            matchPosition: 1,
+            regex: '\\h(-\\[\\[)(.*?)(\\]\\])',
+            color: '#C5487A',
+          },
+        },
+      }
+      const expected = {
+        styles: {
+          'NoteLinks-main-cancelled': {
+            font: 'noteplanstate',
+            color: '#C5487A',
+          },
+        },
+      }
+      const result = n.pruneTheme(orig)
+      expect(result).toEqual(expected)
+    })
+    test('should remove empty objects after removing all props', () => {
+      const orig = {
+        styles: {
+          'NoteLinks-main-cancelled': {
+            isRevealOnCursorRange: true,
+            isMarkdownCharacter: true,
+            matchPosition: 1,
+            regex: '\\h(-\\[\\[)(.*?)(\\]\\])',
+          },
+        },
+      }
+      const expected = null
+      const result = n.pruneTheme(orig)
+      expect(result).toEqual(expected)
+    })
+  })
 })

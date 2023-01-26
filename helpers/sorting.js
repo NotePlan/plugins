@@ -1,4 +1,5 @@
 // @flow
+import { get } from 'lodash-es'
 
 export interface SortableParagraphSubset {
   content: string;
@@ -128,8 +129,8 @@ export const fieldSorter =
         } else {
           field = isNaN(field) ? field : Number(field)
         }
-        const aValue = firstValue(a[field])
-        const bValue = firstValue(b[field])
+        const aValue = firstValue(get(a, field))
+        const bValue = firstValue(get(b, field))
         if (aValue === bValue) return 0
         if (aValue == null) return isDesc ? -dir : dir //null or undefined always come last
         if (bValue == null) return isDesc ? dir : -dir
