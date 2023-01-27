@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 22.1.2023 for v0.3.0, @jgclark
+// Last updated 27.1.2023 for v0.3.0+code tidy!, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment'
@@ -48,12 +48,12 @@ export async function tidyUpAll(): Promise<void> {
       await removeDoneTimeParts(param)
     }
 
-    // Note: Removing this one as it can't be run silently
+    // Note: Disabling this one as it can't be run silently
     // if (config.runFileRootNotesCommand) {
     //   logDebug('tidyUpAll', `Starting fileRootNotes...`)
     //   await fileRootNotes()
     // }
-    // Note: Removing this one as it can't be run silently
+    // Note: Disabling this one as it can't be run silently
     // if (config.runRemoveSectionFromNotesCommand) {
     //   logDebug('tidyUpAll', `Starting removeSectionFromRecentNotes...`)
     //   await removeSectionFromRecentNotes()
@@ -132,8 +132,6 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
       if (!runSilently) {
         // const titlesList = notesToProcess.map((m) => displayTitle(m))
         // logDebug('removeDoneMarkers', titlesList)
-        // TODO: In time could show titlesList in HTML pop-up
-
         const res = await showMessageYesNo(`Do you want to remove ${String(numToRemove)} @done(...) markers?`, ['Yes', 'No'], 'Remove @done() markers')
         if (res === 'No') {
           logInfo('removeDoneMarkers', `User cancelled operation`)
@@ -142,7 +140,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
       }
       // Actually remove the markers from the paras
       // Note: doesn't work reliably going forward through paras. Tried going backwards through paras ... but same issues.
-      // TODO: Try going note by note doing updateParagraphs() instead
+      // Instead go note by note doing updateParagraphs().
       for (const p of recentMatchedParas) {
         const origRawContent = p.rawContent
         const origContent = p.content
@@ -417,7 +415,7 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     }
     logDebug('removeSectionFromRecentNotes', `sectionHeading = ${sectionHeading}`)
 
-    // TODO: Ideally work out how many this will remove
+    // TODO: Ideally work out how many this will remove, and then use this code:
     // const numToRemove = 1
     // if (numToRemove > 0) {
     //   if (!runSilently) {
@@ -629,7 +627,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
     }
     if (numToRemove === 0) {
       if (!runSilently) {
-        res = await showMessage(`No orphaned blockIDs were found in syncd lines.`, "OK, great!", "Remove Orphaned blockIDs")
+        await showMessage(`No orphaned blockIDs were found in syncd lines.`, "OK, great!", "Remove Orphaned blockIDs")
       } else {
         logInfo('removeOrphanedBlockIDs', `No orphaned blockIDs were found in syncd lines`)
       }
@@ -674,7 +672,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
 
     // Show a completion message
     if (!runSilently) {
-      res = await showMessage(`${String(numRemoved)} orphaned blockIDs removed from syncd lines`, 'OK', "Remove Orphaned blockIDs", false)
+      await showMessage(`${String(numRemoved)} orphaned blockIDs removed from syncd lines`, 'OK', "Remove Orphaned blockIDs", false)
     } else {
       logInfo('removeOrphanedBlockIDs', `${String(numRemoved)} orphaned blockIDs removed from syncd lines`)
     }
