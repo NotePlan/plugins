@@ -97,8 +97,7 @@ The `/process date offsets` command looks for a valid **base date** in the previ
 
 In more detail:
 - The **base date** is by default of the form `YYYY-MM-DD`, not preceded by characters `0-9(<`, all of which could confuse.
-- Valid **date offsets** are specified as `[^][+/-][0-9][bdwmqy]`. This allows for `b`usiness days,  `d`ays, `w`eeks, `m`onths, `q`uarters or `y`ears. (Business days skip weekends. If the existing date happens to be on a weekend, it's treated as being the next working day. Public holidays aren't accounted for.)  
-- `{+3d}` means three days _after_ the 'base' date
+- Valid **date offsets** are specified as `[^][+/-][0-9][bdwmqyBDWMQY]`. This allows for `b`usiness days,  `d`ays, `w`eeks, `m`onths, `q`uarters or `y`ears. (Business days skip weekends. If the existing date happens to be on a weekend, it's treated as being the next working day. Public holidays aren't accounted for.)  You can use upper- or lower-case letters.- `{+3d}` means three days _after_ the 'base' date
 - `{-3d}` means three days _before_ the 'base' date
 - You can use `{0d}` to mean no offset -- i.e. on the day itself.
 - An offset that starts with `{^...}` calculates before or after the _last calculated date_ (not the base date).  An example of this is:
