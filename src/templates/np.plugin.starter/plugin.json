@@ -8,6 +8,7 @@
   "plugin.lastUpdateInfo": "Describe this update",
   "plugin.description": "{{pluginDescription}}",
   "plugin.author": "{{pluginAuthor}}",
+  "plugin.requiredFiles": [],
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md",

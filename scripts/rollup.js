@@ -84,16 +84,20 @@ const copyBuild = async (outputFile = '', isBuildTask = false) => {
       // if requiredFiles exists, create a symlink from the requiredFiles folder in the plugin to the data folder
       // this allows the plugin to write an HTML file to the data folder and then we can access it in the development folder in VSCode
       for (const dependency of dependencies) {
-        const filePath = path.join(pluginDevFolder, 'requiredFiles', dependency)
-        if (existsSync(filePath)) {
-          await fs.copyFile(filePath, path.join(targetFolder, dependency))
-          if (dataFolder) {
-            await await fs.copyFile(filePath, path.join(dataFolder, dependency))
-          }
-          dependenciesCopied++
-          // console.log(`Copying ${dependency} to ${targetFolder}`)
+        if (dependency.includes('/')) {
+          console.log(colors.red.bold(`Invalid requiredFile. "${dependency}" cannot contain a slash. All requiredFiles must be at the root level of the requiredFiles folder.`))
         } else {
-          console.log(colors.red.bold(`Cannot copy plugin.dependency "${dependency}" (${filePath}) as it doesn't exist at this location.`))
+          const filePath = path.join(pluginDevFolder, 'requiredFiles', dependency)
+          if (existsSync(filePath)) {
+            await fs.copyFile(filePath, path.join(targetFolder, dependency))
+            if (dataFolder) {
+              await await fs.copyFile(filePath, path.join(dataFolder, dependency))
+            }
+            dependenciesCopied++
+            // console.log(`Copying ${dependency} to ${targetFolder}`)
+          } else {
+            console.log(colors.red.bold(`Cannot copy plugin.dependency "${dependency}" (${filePath}) as it doesn't exist at this location.`))
+          }
         }
       }
     }
@@ -380,6 +384,7 @@ function getConfig(pluginPath) {
         const files = await fg(path.join(requiredFilesInDevFolder, '**/*'))
         for (let file of files) {
           // console.log(`Watching ${file}`)
+          // $FlowFixMe - this works but Flow doesn't like "this" inside a function
           this.addWatchFile(file)
         }
       },
