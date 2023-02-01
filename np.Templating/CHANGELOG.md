@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-beta.02] - 2023-02-01 (dwertheimer)
+
+- Fixed minor timezone issue in .add (now using same method as subtract was using)
+
 ## [2.0.0-beta.01] - 2023-01-15 (mikeerickson)
 
 - Lowered version to beta, this should not be a release version which was changed by @dwertheimer on 2022-01-13

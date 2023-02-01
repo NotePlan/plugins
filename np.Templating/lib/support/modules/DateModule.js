@@ -332,7 +332,7 @@ export default class DateModule {
       }
     }
 
-    let result = moment(new Date(pivotDate)).add(value, shorthand)
+    let result = moment(new Date(dt)).add(value, shorthand)
 
     return this.format(format, result)
   }
