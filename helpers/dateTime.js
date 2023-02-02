@@ -605,6 +605,12 @@ export function getWeek(inDate: Date): number {
   // return 1 + Math.ceil((n1stThursday - date) / 604800000)
 }
 
+export function getNPWeekStr(inDate: Date): string {
+  // Using 'moment' library, with Monday first day of week
+  const dateMoment = moment(inDate)
+  return dateMoment.format('YYYY-[W]ww')
+}
+
 /**
  * Return start and end dates for a given week number.
  * Uses ISO 8601 definition of week.
