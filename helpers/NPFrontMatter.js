@@ -168,16 +168,16 @@ export function ensureFrontmatter(note: CoreNoteFields, title?: string | null): 
   let retVal = false
   if (note == null) {
     // no note - return false
-    logError(pluginJson, `ensureFrontmatter:No note found. Stopping conversion.`)
+    logError(pluginJson, `ensureFrontmatter: No note found. Stopping conversion.`)
     // await showMessage(`No note found to convert to frontmatter.`)
   } else if (hasFrontMatter(note?.content || '')) {
     //already has frontmatter
     const attr = getAttributes(note.content)
     if (!attr.title && title) {
-      logDebug(pluginJson, `ensureFrontmatter:Note '${displayTitle(note)}' already has frontmatter but no title. Adding title.`)
+      logDebug(pluginJson, `ensureFrontmatter: Note '${displayTitle(note)}' already has frontmatter but no title. Adding title.`)
       if (note.content) note.content = note.content.replace('---', `---\ntitle: ${title}\n`)
     } else if (title && attr.title !== title) {
-      logDebug(pluginJson, `ensureFrontmatter:Note '${displayTitle(note)}' already has frontmatter but title is wrong. Updating title.`)
+      logDebug(pluginJson, `ensureFrontmatter: Note '${displayTitle(note)}' already has frontmatter but title is wrong. Updating title.`)
       if (note.content) note.content = note.content.replace(`title: ${attr.title}`, `title: ${title}`)
     }
     retVal = true
@@ -185,7 +185,7 @@ export function ensureFrontmatter(note: CoreNoteFields, title?: string | null): 
     let newTitle
     if (note.paragraphs.length < 1) {
       if (!title) {
-        logError(pluginJson, `ensureFrontmatter:'${note.filename}' has no title line. Stopping conversion.`)
+        logError(pluginJson, `ensureFrontmatter: '${note.filename}' has no title line. Stopping conversion.`)
         // await showMessage(`Cannot convert '${note.filename}' note as it is empty & has no title.`)
         newTitle = note.title || null // cover Calendar notes where title is not in the note
       } else {
@@ -195,14 +195,15 @@ export function ensureFrontmatter(note: CoreNoteFields, title?: string | null): 
       // Get title
       if (note.type === 'Calendar') {
         newTitle = title || note.title // cover Calendar notes where title is not in the note
+        // logDebug(pluginJson, `ensureFrontmatter: newTitle='${newTitle ?? ''}'`)
       } else {
         const firstLine = note.paragraphs.length ? note.paragraphs[0] : {}
         const titleText = firstLine.type === 'title' && firstLine.headingLevel === 1 && firstLine.content
         if (titleText) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
         newTitle = title || titleText
-        logDebug(pluginJson, `ensureFrontmatter newTitle=${String(newTitle)}`)
+        logDebug(pluginJson, `ensureFrontmatter: newTitle=${String(newTitle)}`)
         if (!newTitle) {
-          logError(pluginJson, `ensureFrontmatter:'${note.filename}' has no title line. Stopping conversion.`)
+          logError(pluginJson, `ensureFrontmatter: '${note.filename}' has no title line. Stopping conversion.`)
         }
       }
     }
@@ -210,7 +211,7 @@ export function ensureFrontmatter(note: CoreNoteFields, title?: string | null): 
       const front = note.type === 'Calendar' ? `---\n---\n` : `---\ntitle: ${quoteText(newTitle)}\n---\n`
       note.content = `${front}${note?.content || ''}`
       retVal = true
-      logDebug(pluginJson, `ensureFrontmatter:Note '${displayTitle(note)}' converted to use frontmatter.`)
+      logDebug(pluginJson, `ensureFrontmatter: Note '${displayTitle(note)}' converted to use frontmatter.`)
     }
   }
   logDebug(pluginJson, `ensureFrontmatter returning: ${String(retVal)}`)
