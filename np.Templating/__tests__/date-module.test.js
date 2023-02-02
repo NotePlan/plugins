@@ -147,55 +147,65 @@ describe(`${PLUGIN_NAME}`, () => {
     describe(`${block('.add method')}`, () => {
       it(`should render ${method('.add')} using default shorthand (n days)`, async () => {
         // this is how it will look inside date functions using `.createDateTime`
-        const pivotDate = '2022-05-21T00:00:01'
+        const pivotDate = '2022-05-21'
 
         const result = new DateModule().add(pivotDate, 7)
 
-        const assertValue = moment(new Date(pivotDate)).add(7, 'days').format('YYYY-MM-DD')
+        const assertValue = moment(new Date(`${pivotDate}T00:00:01`))
+          .add(7, 'days')
+          .format('YYYY-MM-DD')
 
         expect(result).toEqual(assertValue)
       })
 
       it(`should render ${method('.add')} using shorthand weeks`, async () => {
         // this is how it will look inside date functions using `.createDateTime`
-        const pivotDate = '2022-05-21T00:00:01'
+        const pivotDate = '2022-05-21'
 
         const result = new DateModule().add(pivotDate, 7, 'weeks')
 
-        const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
+        const assertValue = moment(new Date(`${pivotDate}T00:00:01`))
+          .add(7, 'weeks')
+          .format('YYYY-MM-DD')
 
         expect(result).toEqual(assertValue)
       })
 
       it(`should render ${method('.add')} using shorthand weeks`, async () => {
         // this is how it will look inside date functions using `.createDateTime`
-        const pivotDate = '2022-05-21T00:00:01'
+        const pivotDate = '2022-05-21'
 
         const result = new DateModule().add(pivotDate, '7w')
 
-        const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
+        const assertValue = moment(new Date(`${pivotDate}T00:00:01`))
+          .add(7, 'weeks')
+          .format('YYYY-MM-DD')
 
         expect(result).toEqual(assertValue)
       })
 
       it(`should not render ${method('.add')} using shorthand weeks`, async () => {
         // this is how it will look inside date functions using `.createDateTime`
-        const pivotDate = '2022-05-21T00:00:01'
+        const pivotDate = '2022-05-21'
 
         const result = new DateModule().add(pivotDate, '7years')
 
-        const assertValue = moment(new Date(pivotDate)).add(7, 'weeks').format('YYYY-MM-DD')
+        const assertValue = moment(new Date(`${pivotDate}T00:00:01`))
+          .add(7, 'weeks')
+          .format('YYYY-MM-DD')
 
         expect(result).not.toEqual(assertValue)
       })
 
       it(`should render ${method('.add')} using Intl format`, async () => {
         // this is how it will look inside date functions using `.createDateTime`
-        const pivotDate = '2022-05-21T00:00:01'
+        const pivotDate = '2022-05-21'
 
         const result = new DateModule({ dateFormat: 'short' }).add(pivotDate, 7)
 
-        const assertValue = moment(new Date(pivotDate)).add(7, 'days').format('M/D/YY')
+        const assertValue = moment(new Date(`${pivotDate}T00:00:01`))
+          .add(7, 'days')
+          .format('M/D/YY')
 
         expect(result).toEqual(assertValue)
       })
