@@ -32,14 +32,7 @@ module.exports = {
         : null
 
       !toolbox.arguments.hasOwnProperty('name')
-        ? questions.push(
-            toolbox.prompts.buildQuestion(
-              'input',
-              'pluginName',
-              'Name as it will appear in NotePlan Preferences Plugins List?',
-              { input: `My Plugin Name` },
-            ),
-          )
+        ? questions.push(toolbox.prompts.buildQuestion('input', 'pluginName', 'Name as it will appear in NotePlan Preferences Plugins List?', { input: `My Plugin Name` }))
         : null
 
       !toolbox.arguments.hasOwnProperty('description')
@@ -108,8 +101,7 @@ module.exports = {
       result = await this.merge(path.join(dest, 'changelog.md'), pluginInfo)
       result = await this.merge(path.join(dest, 'src', 'NPPluginMain.js'), pluginInfo)
 
-      result = await this.merge(path.join(dest, '__tests__', 'helpers.test.js'), pluginInfo)
-      result = await this.merge(path.join(dest, '__tests__', 'NPPluginMain.test.js'), pluginInfo)
+      result = await this.merge(path.join(dest, '__tests__', 'NPPluginMain.NOTACTIVE.js'), pluginInfo)
 
       await filesystem.delete(path.join(dest, 'script.js'))
     } catch (error) {
