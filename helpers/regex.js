@@ -97,12 +97,12 @@ export const RE_EVENT_LINK: RegExp = /!\[.*\]\(\d{4}-[01]\d-[0123]\d\s[0-2]\d:[0
 // - RE_TIMEBLOCK_FOR_THEMES
 
 // URLs and Links
-export const RE_MARKDOWN_LINKS_CAPTURE_G: RegExp = /\[([^\]]+)\]\((.+)\)/g
+export const RE_MARKDOWN_LINKS_CAPTURE_G: RegExp = /\[([^\]]+)\]\(([^\)]+)\)/g
 export const RE_MARKDOWN_LINK_PATH_CAPTURE: RegExp = /\[.+?\]\(([^\s]*?)\)/
 export const RE_SIMPLE_URI_MATCH: RegExp = /(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*,]+)/
 
 // Synced lines
-export const RE_SYNC_MARKER: RegExp = /\^[A-Za-z0-9]{6}/
+export const RE_SYNC_MARKER: RegExp = /\^[A-Za-z0-9]{6}(?![A-Za-z0-9])/
 
 // Misc
 export const PUNCT_CLASS_STR = `[\[\]!"#\$%&'\(\)\*\+,\-\.\/:;<=>\?@\\\^_\`\{\|\}~]` // using info from https://stackoverflow.com/questions/39967107/regular-expression-using-punct-function-in-java
