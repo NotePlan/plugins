@@ -3,7 +3,7 @@
 
 import { hyphenatedDateString, removeDateTags } from '../../helpers/dateTime'
 import { chooseOption } from '../../helpers/userInput'
-import { isOverdue } from '../../dwertheimer.TaskAutomations/src/taskHelpers'
+import { isOverdue } from '@helpers/paragraph'
 
 export type ReturnStatus = {
   status: string,

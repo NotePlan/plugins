@@ -27,6 +27,7 @@ export {
 } from './NPOverdue'
 export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
 export { followUpSaveHere, followUpInFuture } from './NPFollowUp'
+export { processOverdueReact, onParagraphChange } from './NPOverdueReact.js'
 
 // updateSettingsData will execute whenever your plugin is installed or updated
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'

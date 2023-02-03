@@ -16,10 +16,9 @@ import {
  * Note: COPY TO AVOID CIRCULAR DEPENDENCY
  */
 function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string): boolean {
-  const re = new RegExp(`${searchTerm}`, "i") // = case insensitive match
+  const re = new RegExp(`${searchTerm}`, 'i') // = case insensitive match
   return re.test(textToSearch)
 }
-
 
 /**
  * Check to see if search term is present within a URL or file path, using case insensitive searching.

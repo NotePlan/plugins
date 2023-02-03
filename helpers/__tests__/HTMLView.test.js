@@ -264,3 +264,26 @@ describe(`${FILE}`, () => {
     })
   })
 })
+
+/*
+ * replaceMarkdownLinkWithHTMLLink()
+ */
+describe('replaceMarkdownLinkWithHTMLLink()' /* function */, () => {
+  test('should not do anything if no url', () => {
+    const orig = 'foo bar'
+    const result = n.replaceMarkdownLinkWithHTMLLink(orig)
+    expect(result).toEqual(orig)
+  })
+  test('should replace a url', () => {
+    const orig = 'foo [link](http://) bar'
+    const result = n.replaceMarkdownLinkWithHTMLLink(orig)
+    const expected = 'foo <a href="http://">link</a> bar'
+    expect(result).toEqual(expected)
+  })
+  test('should replace > 1 url', () => {
+    const orig = 'foo [link](http://) bar [link2](http://) baz [link3](noteplan://)'
+    const result = n.replaceMarkdownLinkWithHTMLLink(orig)
+    const expected = 'foo <a href="http://">link</a> bar <a href="http://">link2</a> baz <a href="noteplan://">link3</a>'
+    expect(result).toEqual(expected)
+  })
+})

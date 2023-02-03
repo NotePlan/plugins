@@ -65,30 +65,6 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    /*
-     * findOverdueWeeksInString()
-     */
-    describe('findOverdueWeeksInString()' /* function */, () => {
-      test('should find no date in line with no date', () => {
-        const result = NPNote.findOverdueWeeksInString('no date here')
-        expect(result.length).toEqual(0)
-      })
-      test('should find no date in line not overdue yet', () => {
-        const result = NPNote.findOverdueWeeksInString('>2922-W22')
-        expect(result.length).toEqual(0)
-      })
-      test('should find date in line with overdue', () => {
-        const result = NPNote.findOverdueWeeksInString('>1999-W22')
-        expect(result.length).toEqual(1)
-        expect(result).toEqual(['>1999-W22'])
-      })
-      test('should find 2 overdue dates', () => {
-        const result = NPNote.findOverdueWeeksInString('>1999-W22 >2000-W22')
-        expect(result.length).toEqual(2)
-        expect(result[1]).toEqual('>2000-W22')
-      })
-    })
-
     describe('findOpenTodosInNote', () => {
       const note = {
         paragraphs: [

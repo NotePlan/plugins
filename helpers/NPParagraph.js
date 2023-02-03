@@ -1,10 +1,24 @@
 // @flow
 
+import moment from 'moment'
 import { trimString } from './dataManipulation'
-import { hyphenatedDate } from './dateTime'
-import { toLocaleDateTimeString } from './NPdateTime'
+import {
+  hyphenatedDate,
+  hyphenatedDateString,
+  WEEK_NOTE_LINK,
+  SCHEDULED_WEEK_NOTE_LINK,
+  RE_SCHEDULED_ISO_DATE,
+  SCHEDULED_QUARTERLY_NOTE_LINK,
+  SCHEDULED_MONTH_NOTE_LINK,
+  SCHEDULED_YEARLY_NOTE_LINK,
+  getTodaysDateHyphenated,
+  isScheduled,
+  isWeeklyNote,
+} from './dateTime'
+import { getNPWeekData, toLocaleDateTimeString } from './NPdateTime'
 import { clo, JSP, logDebug, logError, logWarn, timer } from './dev'
 import { calcSmartPrependPoint, findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
+import { getNoteType, findOverdueDatesInString } from '@helpers/note'
 
 const pluginJson = 'NPParagraph'
 
@@ -162,31 +176,31 @@ export function getParagraphBlock(
     // include line unless we hit a new heading, an empty line, or a less-indented line.
     for (let i = selectedParaIndex; i >= startActiveLineIndex; i--) {
       const p = allParas[i]
-      logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / ${p.type} / ${trimString(p.content, 50)}`)
+      // logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / ${p.type} / ${trimString(p.content, 50)}`)
       if (p.type === 'separator') {
-        logDebug(`NPParagraph / getParagraphBlock`, `   - ${i}: Found separator line`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `   - ${i}: Found separator line`)
         startLine = i + 1
         break
       } else if (p.content === '') {
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found blank line`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found blank line`)
         startLine = i + 1
         break
       } else if (p.type === 'title' && p.headingLevel === 1) {
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found title`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found title`)
         startLine = i + 1
         break
       } else if (p.type === 'title' && p.headingLevel > 1) {
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found other heading`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found other heading`)
         startLine = i
         break
       }
       // If it's the last iteration and we get here, then we had a continuous block, so make that
       if (i === startActiveLineIndex) {
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found start of active part of note`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found start of active part of note`)
         startLine = i
       }
     }
-    logDebug(`NPParagraph / getParagraphBlock`, `For includeFromStartOfSection worked back and will now start at line ${startLine}`)
+    // logDebug(`NPParagraph / getParagraphBlock`, `For includeFromStartOfSection worked back and will now start at line ${startLine}`)
   }
   selectedPara = allParas[startLine]
 
@@ -194,50 +208,50 @@ export function getParagraphBlock(
   if (selectedPara.type === 'title') {
     // includes all heading levels
     const thisHeadingLevel = selectedPara.headingLevel
-    logDebug(`NPParagraph / getParagraphBlock`, `- Block starts line ${startLine} at heading '${selectedPara.content}' level ${thisHeadingLevel}`)
+    // logDebug(`NPParagraph / getParagraphBlock`, `- Block starts line ${startLine} at heading '${selectedPara.content}' level ${thisHeadingLevel}`)
     parasInBlock.push(selectedPara) // make this the first line to move
     // Work out how far this section extends. (NB: headingRange doesn't help us here.)
-    logDebug(`NPParagraph / getParagraphBlock`, `- Scanning forward through rest of note ...`)
+    // logDebug(`NPParagraph / getParagraphBlock`, `- Scanning forward through rest of note ...`)
     for (let i = startLine + 1; i <= lastLineIndex; i++) {
       const p = allParas[i]
       if (p.type === 'title' && p.headingLevel <= thisHeadingLevel) {
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found new heading of same or higher level: "${p.content}" -> stopping`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found new heading of same or higher level: "${p.content}" -> stopping`)
         break
       } else if (useTightBlockDefinition && p.type === 'separator') {
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found HR: "${p.content}" -> stopping`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found HR: "${p.content}" -> stopping`)
         break
       } else if (useTightBlockDefinition && p.content === '') {
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found blank line -> stopping`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found blank line -> stopping`)
         break
       }
-      logDebug(`NPParagraph / getParagraphBlock`, `  - Adding to results: line[${i}]: ${p.type}: "${trimString(p.content, 50)}"`)
+      // logDebug(`NPParagraph / getParagraphBlock`, `  - Adding to results: line[${i}]: ${p.type}: "${trimString(p.content, 50)}"`)
       parasInBlock.push(p)
     }
-    logDebug(`NPParagraph / getParagraphBlock`, `- Found ${parasInBlock.length} heading section lines`)
+    // logDebug(`NPParagraph / getParagraphBlock`, `- Found ${parasInBlock.length} heading section lines`)
   } else {
     // This isn't a heading
     const startingIndentLevel = selectedPara.indents
-    logDebug(`NPParagraph / getParagraphBlock`, `Found single line with indent level ${startingIndentLevel}. Now scanning forward through rest of note ...`)
+    // logDebug(`NPParagraph / getParagraphBlock`, `Found single line with indent level ${startingIndentLevel}. Now scanning forward through rest of note ...`)
     parasInBlock.push(selectedPara)
 
     // See if there are following indented lines to move as well
     for (let i = startLine + 1; i <= lastLineIndex; i++) {
       const p = allParas[i]
-      logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${trimString(p.content, 50)}`)
+      // logDebug(`NPParagraph / getParagraphBlock`, `  ${i} / indent ${p.indents} / ${trimString(p.content, 50)}`)
       if (useTightBlockDefinition && p.type === 'separator') {
         // stop if horizontal line
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found HR -> stopping`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found HR -> stopping`)
         break
       } else if (useTightBlockDefinition && p.content === '') {
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found blank line -> stopping`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found blank line -> stopping`)
         break
       } else if (p.type === 'title') {
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found heading -> stopping`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found heading -> stopping`)
         break
       } else if (p.indents < startingIndentLevel && !includeFromStartOfSection) {
         // if we aren't using the Tight Block Definition, then
         // stop as this selectedPara is less indented than the starting line
-        logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found same or lower indent -> stopping`)
+        // logDebug(`NPParagraph / getParagraphBlock`, `  - ${i}: Found same or lower indent -> stopping`)
         break
       }
       parasInBlock.push(p) // add onto end of array
@@ -245,9 +259,9 @@ export function getParagraphBlock(
   }
 
   logDebug(`NPParagraph / getParagraphBlock`, `  - Found ${parasInBlock.length} paras in block starting with: "${parasInBlock[0].content}"`)
-  for (const pib of parasInBlock) {
-    logDebug(`NPParagraph / getParagraphBlock`, `  ${pib.content}`)
-  }
+  // for (const pib of parasInBlock) {
+  //   // logDebug(`NPParagraph / getParagraphBlock`, `  ${pib.content}`)
+  // }
   return parasInBlock
 }
 
@@ -564,6 +578,52 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
 }
 
 /**
+ * Get all paragraphs in a note which are open tasks and overdue (were scheduled and all the dates have passed)
+ * Return the paragraphs with new content with the date replaced with {replaceOverdueDatesWith} or empty
+ * Does not actually update the note/paragraph, but returns each one clean if you want to run note.updateParagraphs() on it
+ * @param {TNote} note
+ * @param {string} replaceOverdueDatesWith - normally '', but if you don't specify or send null, no replacement of dates will occur
+ */
+export function getOverdueParagraphs(note: TNote, replaceOverdueDatesWith: ?string): Array<TParagraph> {
+  const datedOpenTodos = note?.datedTodos?.filter((t) => t.type === 'open') || [] // only open tasks
+  clo(note?.datedTodos, `note/getOverdueParagraphs note?.datedTodos before filter: ${note?.datedTodos?.length || ''} tasks`)
+  return replaceOverdueDatesWith == null ? datedOpenTodos : removeOverdueDatesFromParagraphs(datedOpenTodos, replaceOverdueDatesWith)
+}
+
+/**
+ * Remove overdue dates from paragraphs and replace with {replaceOverdueDatesWith -- often with empty string ''}
+ * @param {Array<TParagraph>} paragraphs
+ * @param {string} replaceOverdueDatesWith
+ * @returns {Array<TParagraph>} updated paragraphs (content updated but not saved)
+ */
+export function removeOverdueDatesFromParagraphs(paragraphs: Array<TParagraph>, replaceOverdueDatesWith: string = ''): Array<TParagraph> {
+  logDebug(pluginJson, `removeOverdueDatesFromParagraphs paragraphs=${paragraphs.length}`)
+  // clo(paragraphs, `note/getOverdueParagraphs paragraphs: `)
+  // logDebug(`removeOverdueDatesFromParagraphs ^^^^ that was the paragraphs`)
+  const updatedParas = []
+  paragraphs?.forEach((todo) => {
+    const note = todo.note
+    if (note) {
+      const fileType = note.type === 'Notes' ? 'Notes' : note.type === 'Calendar' && isWeeklyNote(note) ? 'Weekly' : 'Daily'
+      logDebug(pluginJson, `removeOverdueDatesFromParagraphs fileType=${fileType}`)
+      if (fileType === 'Notes' || fileType === 'Daily') {
+        const overdueDates = findOverdueDatesInString(todo.content).concat(findOverdueWeeksInString(todo.content))
+        logDebug(pluginJson, `removeOverdueDatesFromParagraphs overdueDates=${overdueDates.length}`)
+        overdueDates.forEach((d) => {
+          // logDebug(`note/getOverdueParagraphs`, `overdue date found: ${d} in content:"${todo.content}"`)
+          todo.content = replaceOverdueDatesWith.length
+            ? todo.content.replace(d, replaceOverdueDatesWith).trim().replace(/ {2,}/, ' ')
+            : todo.content.replace(d, '').trim().replace(/ {2,}/, ' ')
+        })
+        overdueDates.length ? updatedParas.push(todo) : null
+      }
+    }
+  })
+  // updatedParas.length ? updatedParas.map((p, i) => logDebug(`note/getOverdueParagraphs ${note.filename} [${i}]: type=${p.type} content="${p.content}"`)) : null
+  return updatedParas
+}
+
+/**
  * Try to determine the paragraph that the cursor is in (in the Editor)
  * There are some NotePlan bugs that make this not work perfectly
  * @author @dwertheimer
@@ -689,3 +749,210 @@ export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): b
   }
   return false
 }
+
+// returns a date object if it exists, and null if there is no forward date
+const hasTypedDate = (t) => (/>\d{4}-\d{2}-\d{2}/g.test(t.content) ? t.date : null)
+
+// DO NOT USE THIS FUNCTION - leaving it here for historical context, but functions below are more complete
+// Note: nmn.sweep limits how far back you look with: && hyphenatedDateString(p.date) >= afterHyphenatedDate,
+// For now, we are assuming that sweep was already done, and we're just looking at this one note
+export const isOverdue = (t: TParagraph): boolean => {
+  let theDate = null
+  if (t.type === 'scheduled') theDate = t.date
+  if (t.type === 'open') theDate = hasTypedDate(t)
+  return theDate == null ? false : hyphenatedDateString(theDate) < hyphenatedDateString(new Date())
+}
+export const getOverdueTasks = (paras: Array<TParagraph>): Array<TParagraph> => paras.filter((p) => isOverdue(p))
+
+/**
+ * Determines whether a line for a week is overdue or not. A line with multiple dates is only overdue if all dates are overdue.
+ * Finds >weekDates in a string and returns an array of the dates found if all dates are overdue (or an empty array)
+ * NOTE: this function calls getNPWeekData which requires a Calendar mock to Jest test it
+ * @author @dwertheimer
+ * @param {string} line
+ * @returns foundDates - array of dates found TODO(@dwertheimer): can you please be more explicit about type of dates found -- they're strings but what format strings?
+ * @testsExist yes
+ */
+export function findOverdueWeeksInString(line: string): Array<string> {
+  const weekData = getNPWeekData(moment().toDate())
+  const dates = line.match(new RegExp(WEEK_NOTE_LINK, 'g'))
+  if (dates && weekData) {
+    const overdue = dates.filter((d) => d.slice(1) < weekData.weekString)
+    return overdue.length === dates.length ? overdue.sort() : [] // if all dates are overdue, return them sorted
+  }
+  return []
+}
+
+/**
+ * FIXME: move these imports to the top of the file
+ * FIXME: move these functions to a separate file
+ */
+
+// const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
+
+/*
+ * @param paragraphs array
+ * @return filtered list of overdue tasks
+ */
+
+export type OverdueDetails = {
+  isOverdue: boolean,
+  isOverdueWeek?: boolean,
+  isOverdueDay?: boolean,
+  isOverdueMonth?: boolean,
+  isOverdueQuarter?: boolean,
+  isOverdueYear?: boolean,
+  overdueStrings?: Array<string>,
+}
+
+/**
+ * This is a helper function not to be called directly for finding the overdue status of a paragraph
+ * @param {TParagraph} para - incoming paragraph
+ * @param {boolean} returnDetails whether to return the details of the overdue status or just true/false
+ * @param {string} regexString string to use to match the note links
+ * @param {string} todayRelevantFilename (e.g. today's filename, weekly note filename, etc)
+ * @returns {boolean | OverdueDetails} - true/false in base case, or an object with details about the overdue status if requested in returnDetails
+ */
+export function testForOverdue(para: TParagraph, regexString: string, todayRelevantFilename: string, returnDetails: boolean = false): boolean | OverdueDetails {
+  const reMATCHLINK = new RegExp(regexString, 'g')
+  const links = para.content.match(reMATCHLINK)
+  const todayString = todayRelevantFilename.replace(`.${DataStore.defaultFileExtension}`, '')
+  let overdueLinks = []
+  if (links && links?.length > 0) {
+    overdueLinks = links.filter((link) => link.slice(1) < todayString)
+  }
+  // if there are no week note links, then it's not overdue
+  if (links == null || overdueLinks.length === 0) {
+    return false
+  }
+  // if there are week note links, then check if any of them are for this week
+  else {
+    const details: OverdueDetails = {
+      isOverdue: links.length === overdueLinks?.length,
+      overdueStrings: overdueLinks,
+    }
+    return returnDetails ? details : details.isOverdue
+  }
+}
+
+/**
+ * Test whether a paragraph has an overdue week note link
+ * @param {TParagraph} para - input paragraph
+ * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @returns
+ */
+export function hasOverdueDayTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
+  const today = getNPWeekData(moment().toDate())?.weekString
+  return today ? testForOverdue(para, RE_SCHEDULED_ISO_DATE, today, returnDetails) : false
+}
+
+/**
+ * Test whether a paragraph has an overdue week note link
+ * @param {TParagraph} para - input paragraph
+ * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @returns
+ */
+export function hasOverdueWeekTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
+  const thisWeek = getNPWeekData(moment().toDate())?.weekString
+  return thisWeek ? testForOverdue(para, SCHEDULED_WEEK_NOTE_LINK, thisWeek, returnDetails) : false
+}
+
+/**
+ * Test whether a paragraph has an overdue month note link
+ * @param {TParagraph} para - input paragraph
+ * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @returns
+ */
+export function hasOverdueMonthTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
+  const thieMonth = getTodaysDateHyphenated().slice(0, 7)
+  return thieMonth ? testForOverdue(para, SCHEDULED_MONTH_NOTE_LINK, thieMonth, returnDetails) : false
+}
+
+/**
+ * Test whether a paragraph has an overdue quarter note link
+ * @param {TParagraph} para - input paragraph
+ * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @returns
+ */
+export function hasOverdueQuarterTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
+  const thisQuarter = moment().format('YYYY-[Q]Q')
+  return thisQuarter ? testForOverdue(para, SCHEDULED_QUARTERLY_NOTE_LINK, thisQuarter, returnDetails) : false
+}
+
+/**
+ * Test whether a paragraph has an overdue year note link
+ * @param {TParagraph} para - input paragraph
+ * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @returns
+ */
+export function hasOverdueYearTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
+  const thisYear = moment().format('YYYY')
+  return thisYear ? testForOverdue(para, SCHEDULED_YEARLY_NOTE_LINK, thisYear, returnDetails) : false
+}
+
+/**
+ * Single function to test whether a paragraph has any overdue tags (Day, Week, Month, Quarter, Year)
+ * (e.g. a task marked with yesterday's daily note date (e.g. >2022-12-31 would now be "overdue")
+ * @param {TParagraph} para - the paragraph to test
+ * @param {boolean} openOnly - whether to only test for open tasks (default: false -- test for all tasks)
+ * @returns {boolean} - true if any of the tags are overdue
+ */
+export function hasOverdueTag(para: TParagraph, openOnly: boolean = false): boolean {
+  if (openOnly && para.type !== 'open') return false
+  return Boolean(hasOverdueDayTag(para) || hasOverdueWeekTag(para) || hasOverdueMonthTag(para) || hasOverdueQuarterTag(para) || hasOverdueYearTag(para))
+}
+
+const paragraphIsScheduled = (para: TParagraph): boolean => isScheduled(para.content)
+/**
+ * Test whether a calendar note has any open tasks that are "effectively overdue"
+ * e.g. a task on yesterday's daily note would now be "overdue"
+ * an open task on last week's weekly note would now be "overdue"
+ * @param {TParagraph} note
+ * @returns {boolean} - true if the task is open
+ */
+export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
+  // if the paragraph is not open, or is scheduled but not overdue, then it's not overdue
+  if (paragraph.type !== 'open' || (paragraphIsScheduled(paragraph) && !hasOverdueTag(paragraph))) return false
+  const noteType = paragraph?.note?.type ? getNoteType(paragraph.note) : null
+  const thisNoteTitle = paragraph.note?.title || null // e.g. 2021-12-31
+  if (!noteType || !thisNoteTitle) {
+    clo(paragraph, 'paragraphIsEffectivelyOverdue: Could not get note type or title for this paragraph')
+    throw new Error('Thrown Error: Could not get note type or title. Stopping execution.')
+  }
+  let isOverdue = false
+  switch (noteType) {
+    case 'Daily':
+      break
+    case 'Weekly': {
+      const weekData = getNPWeekData()
+      if (weekData && thisNoteTitle < weekData?.weekString) isOverdue = true
+      break
+    }
+    case 'Monthly': {
+      const thisMonth = getTodaysDateHyphenated().slice(0, 7)
+      if (thisNoteTitle < thisMonth) isOverdue = true
+      break
+    }
+    case 'Quarterly': {
+      const thisQuarter = moment().format('YYYY-[Q]Q')
+      if (thisNoteTitle < thisQuarter) isOverdue = true
+      break
+    }
+    case 'Yearly': {
+      const thisYear = moment().format('YYYY')
+      if (thisNoteTitle < thisYear) isOverdue = true
+      break
+    }
+    default:
+      clo(paragraph, `paragraphIsEffectivelyOverdue noteType${noteType} did not match known types`)
+      throw new Error('Thrown Error: noteType did not match known types. Stopping execution.')
+  }
+  return isOverdue
+}
+
+// const noteType = getNoteType(note)
+// const openParas = note.paragraphs.filter((para) => para.type === 'open')
+// if (openParas.length) {
+//   //FIXMe: do something here
+// }
+// }

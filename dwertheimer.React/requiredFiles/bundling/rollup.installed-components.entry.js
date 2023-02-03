@@ -9,10 +9,10 @@
 // import * as DataTable from './react-data-table-component.dev.js'
 // import DataTable from 'react-data-table-component'
 
-//  npx rollup -c dwertheimer.React/requiredFiles/rollup.installed-components.cfg.js
+//  npx rollup -c dwertheimer.React/requiredFiles/bundling/rollup.installed-components.cfg.js
 
 // export { DataTable } from './react-data-table-component.dev.js'
-import DataTable from 'react-data-table-component'
+import DataTable, { createTheme } from 'react-data-table-component'
 import styled from 'styled-components'
 import Select from 'react-select'
 import makeAnimated from 'react-select/animated'
@@ -21,9 +21,11 @@ import Creatable, { useCreatable } from 'react-select/creatable'
 import { CSSProperties } from 'react'
 import chroma from 'chroma-js'
 import debounce from 'lodash.debounce'
+import { ErrorBoundary } from 'react-error-boundary'
+
 // export { Grid } from 'react-loader-spinner'
 
-export { DataTable, styled, Select, makeAnimated, AsyncSelect, Creatable, useCreatable, CSSProperties, chroma, debounce }
+export { DataTable, styled, Select, makeAnimated, AsyncSelect, Creatable, useCreatable, CSSProperties, chroma, debounce, ErrorBoundary, createTheme as createDataTableTheme }
 // module.exports = {
 //   default: function (n) {
 //     console.log(DataTable)

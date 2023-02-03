@@ -8,7 +8,7 @@
   "plugin.lastUpdateInfo": "Describe this update",
   "plugin.description": "React Testing",
   "plugin.author": "dwertheimer",
-  "plugin.requiredFiles": ["_installed-components.bundle.jsx","_Cmp-Root.jsx","_Cmp-OverdueDataTable.jsx","_Cmp-ThemedSelect.jsx","_w3.css","_plugin.css","_reactBundle.js","_babel.js","_babel.min.js"], 
+  "plugin.requiredFiles": ["_Cmp-ErrorBoundary.jsx","_installed-components.bundle.jsx","_Cmp-StatusButton.jsx","_Cmp-ThemedSelect.jsx","_Cmp-OverdueDataTable.jsx","_Cmp-Root.jsx","_w3.css","_plugin.css","_reactBundle.js","_babel.js","_babel.min.js","noteplanstate-edited.otf","_preactBundle.js"], 
   "plugin.script": "script.js",
   "hidden": true,
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.React/README.md",
@@ -41,8 +41,8 @@
       ]
     },
     {
-      "name": "React Local Test",
-      "description": "Local files",
+      "name": "openParagraphTableView",
+      "description": "Run React with Local Files",
       "jsFunction": "openParagraphTableView",
       "alias": [
       ],

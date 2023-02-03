@@ -5,6 +5,12 @@
 
 ## What's Changed in this Plugin?
 
+## [2.11.0] (@dwertheimer)
+
+### Added
+- React Overdue task processing view v1
+- Overdue: change to checklist type
+
 ## [2.10.0] (@dwertheimer) 
 
 - Added weekly note review question after overdue (and \n'/Review/Reschedule Tasks Scheduled for this week' command

@@ -1,15 +1,12 @@
 // @flow
 
-import moment from 'moment'
 import pluginJson from '../plugin.json'
 import { showMessageYesNo, chooseFolder, showMessage, chooseOptionWithModifiers } from '../../helpers/userInput'
-import { reviewTasksInNotes, getNotesAndTasksToReview, createArrayOfNotesAndTasks } from './NPTaskScanAndProcess'
+import { reviewTasksInNotes, getNotesAndTasksToReview, createArrayOfNotesAndTasks, getNotesWithOpenTasks, getWeeklyOpenTasks } from './NPTaskScanAndProcess'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
-import { filenameDateString, isScheduled, isWeeklyNote } from '@helpers/dateTime'
-import { getTodaysReferences, getReferencedParagraphs } from '@helpers/NPnote'
-import { /* getTasksByType, */ sortListBy } from '@helpers/sorting'
-import { filterNotesAgainstExcludeFolders, getOverdueParagraphs } from '@helpers/note'
-import { getNPWeekData } from '@helpers/NPdateTime'
+import { filenameDateString } from '@helpers/dateTime'
+import { getTodaysReferences } from '@helpers/NPnote'
+import { getOverdueParagraphs } from '@helpers/NPParagraph'
 
 const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
 
@@ -55,19 +52,6 @@ export async function askToReviewTodaysTasks(byTask: boolean = false) {
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
-}
-
-/**
- * Get open tasks from the current week's note
- * @returns {Array<TParagraph>} Array of open tasks
- */
-function getWeeklyOpenTasks(): Array<TParagraph> {
-  const weeklyNote = DataStore.calendarNoteByDate(new Date(), 'week')
-  const refs = weeklyNote ? getReferencedParagraphs(weeklyNote) : []
-  const combined = [...refs, ...(weeklyNote?.paragraphs || [])]
-  clo(weeklyNote, 'weeklyNote')
-  logDebug(pluginJson, `getWeeklyOpenTasks ${weeklyNote?.filename || 0}: refs:${refs.length} paras:${weeklyNote?.paragraphs.length || 0} combined:${combined.length}`)
-  return combined.filter((p) => p.type === 'open') || []
 }
 
 /**
@@ -193,6 +177,8 @@ export async function reviewOverdueTasksByTask(incoming: string): Promise<void> 
   }
 }
 
+export async function startReactReview() {}
+
 /**
  * Find and update all overdue tasks, including >date and >date+ in Active Note in Editor
  *  DISPLAY EACH NOTE'S TASK FIRST, WITH OPTION TO EXPLORE EACH TASK
@@ -204,7 +190,7 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
     logDebug(pluginJson, `reviewOverdueTasksInNote: incoming="${incoming}" typeof=${typeof incoming}`)
     const confirmResults = incoming ? false : true
     const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate, confirm } = DataStore.settings
-    const overdues = Editor.note ? getOverdueParagraphs(Editor?.note) : []
+    const overdues = Editor.note ? getOverdueParagraphs(Editor?.note, '') : [] //do not replace the dates so we can see and more easily match them
     logDebug(pluginJson, `reviewOverdueTasksInNote: overdues.length=${overdues.length}`)
     const options = {
       openOnly: overdueOpenOnly,
@@ -332,49 +318,10 @@ export async function reviewOverdueTasksInFolder(incoming: string): Promise<void
 }
 
 /**
- *
- * @param {Array<Note>} notes -- array of notes to review
- * @param {*} sortOrder -- sort order for notes (not implemented yet)
- * @param {*} ignoreScheduledTasks - don't show scheduled tasks
- * @returns {Promise<Array<Array<TParagraph>>>} - array of tasks to review, grouped by note
- */
-export async function getOpenTasksByNote(
-  notes: Array<Note>,
-  sortOrder: string | Array<string> | null = null,
-  ignoreScheduledTasks: boolean = true,
-): Promise<Array<Array<TParagraph>>> {
-  CommandBar.showLoading(true, `Searching for open tasks...`)
-  await CommandBar.onAsyncThread()
-  let notesWithOpenTasks = []
-  for (const note of notes) {
-    CommandBar.showLoading(true, `Searching for open tasks...\n${note.title || ''}`)
-    const paras = note.paragraphs
-
-    const openTasks = []
-    for (let index = 0; index < paras.length; index++) {
-      const p = paras[index]
-      if (p.type === 'open' && p.content.trim() !== '' && (!ignoreScheduledTasks || !(ignoreScheduledTasks && isScheduled(p.content)))) {
-        logDebug(pluginJson, `getOpenTasksByNote: Including note: "${note.title || ''}" and task: "${p.content}".`)
-        openTasks.push(p)
-      }
-    }
-    if (openTasks.length) notesWithOpenTasks.push(openTasks)
-  }
-  if (sortOrder) {
-    const mapForSorting = notesWithOpenTasks.reduce((acc, n, i) => {
-      acc?.push({ filename: n[0].filename, changedDate: n[0].note?.changedDate, index: i, item: n })
-      return acc
-    }, [])
-    notesWithOpenTasks = sortListBy(mapForSorting, sortOrder).map((i) => i.item)
-  }
-  return notesWithOpenTasks
-}
-
-/**
  * For Open task search, ask the user what notes to get and return an array of notes to review
  * @param {*} incoming
  */
-export async function getNotesToReviewForOpenTasks(ignoreScheduledTasks: boolean = true): Promise<Array<Array<TParagraph>> | false> {
+export async function getNotesToReviewForOpenTasks(ignoreScheduledInForgottenReview: boolean = true): Promise<Array<Array<TParagraph>> | false> {
   try {
     const { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore } = DataStore.settings
 
@@ -395,43 +342,9 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledTasks: boolean
     const history = await chooseOptionWithModifiers('Review Calendar Note Tasks From the Last...', OPTIONS)
     if (!history || history.num === -1) return false
     const { value, keyModifiers } = history
-    const { num, unit } = value
-    const afterDate = Calendar.addUnitToDate(new Date(), unit, -num)
-    const thisWeek = getNPWeekData(moment().toDate())?.weekString
-    const afterWeek = getNPWeekData(afterDate)?.weekString
-    logDebug(pluginJson, `afterdate=${afterDate.toString()}`)
-    const afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -num))
-    logDebug(pluginJson, `afterDateFileName=${afterDateFileName}`)
-    logDebug(pluginJson, `todayFileName=${todayFileName}`)
-    // Calendar Notes
-    let recentCalNotes = DataStore.calendarNotes.filter((note) => {
-      if (isWeeklyNote(note) && thisWeek && afterWeek) {
-        return note.filename < thisWeek && note.filename >= afterWeek
-      } else {
-        return note.filename < todayFileName && note.filename >= afterDateFileName
-      }
-    })
-    logDebug(pluginJson, `Calendar Notes in date range: ${recentCalNotes.length}`)
-    // recentCalNotes = filterNotesAgainstExcludeFolders(recentCalNotes, overdueFoldersToIgnore, true)
-    logDebug(pluginJson, `Calendar Notes after exclude folder filter: ${recentCalNotes.length}`)
-    // Project Notes
-    let recentProjNotes = []
-    if (keyModifiers.indexOf('opt') > -1) {
-      recentProjNotes = DataStore.projectNotes.filter((note) => note.changedDate >= afterDate)
-      logDebug(pluginJson, `Project Notes in date range: ${recentProjNotes.length}`)
-      recentProjNotes = filterNotesAgainstExcludeFolders(recentProjNotes, overdueFoldersToIgnore, true)
-      logDebug(pluginJson, `Project Notes after exclude folder filter: ${recentProjNotes.length}`)
-    }
 
-    recentCalNotes = await getOpenTasksByNote(recentCalNotes, searchForgottenTasksOldestToNewest ? 'filename' : '-filename', ignoreScheduledTasks)
-    recentProjNotes = await getOpenTasksByNote(recentProjNotes, searchForgottenTasksOldestToNewest ? 'changedDate' : '-changedDate', ignoreScheduledTasks)
-    logDebug(pluginJson, `Calendar Notes after filtering for open tasks: ${recentCalNotes.length}`)
-    logDebug(pluginJson, `Project Notes after filtering for open tasks: ${recentProjNotes.length}`)
-
-    const notesWithOpenTasks = [...recentCalNotes, ...recentProjNotes]
-
-    await CommandBar.onMainThread()
-    CommandBar.showLoading(false)
+    const noteTypes = keyModifiers.indexOf('opt') > -1 ? 'both' : 'Calendar'
+    const notesWithOpenTasks = await getNotesWithOpenTasks(noteTypes, value, { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore, ignoreScheduledInForgottenReview })
     const totalTasks = notesWithOpenTasks.reduce((acc, n) => acc + n.length, 0)
     logDebug(pluginJson, `Calendar + Project Notes to review: ${notesWithOpenTasks.length}; total tasks: ${totalTasks}`)
     return notesWithOpenTasks
@@ -446,13 +359,13 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledTasks: boolean
  * Plugin entrypoint for command: "/Search Forgotten Tasks Oldest to Newest"
  * @param {*} incoming
  */
-export async function searchForOpenTasks(incoming: string | null = null, byTask: boolean = false, ignoreScheduledTasks: boolean = true) {
+export async function searchForOpenTasks(incoming: string | null = null, byTask: boolean = false, ignoreScheduledInForgottenReview: boolean = true) {
   try {
     const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
-    logDebug(pluginJson, `searchForOpenTasks incoming:${incoming || ''} byTask:${String(byTask)} ignoreScheduledTasks:${String(ignoreScheduledTasks)}`)
-    const notes = await getNotesToReviewForOpenTasks(ignoreScheduledTasks)
-    if (!notes) throw new Error('Canceled by user')
-    if (!notes.length) {
+    logDebug(pluginJson, `searchForOpenTasks incoming:${incoming || ''} byTask:${String(byTask)} ignoreScheduledInForgottenReview:${String(ignoreScheduledInForgottenReview)}`)
+    const notes = await getNotesToReviewForOpenTasks(ignoreScheduledInForgottenReview)
+
+    if (!notes || !notes.length) {
       await showMessage('No open tasks in that timeframe!', 'OK', 'Open Tasks', true)
       return
     }

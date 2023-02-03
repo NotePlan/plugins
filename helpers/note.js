@@ -2,22 +2,39 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions
 import moment from 'moment'
-import { RE_PLUS_DATE_G, hyphenatedDate, hyphenatedDateString, toLocaleDateString, RE_DAILY_NOTE_FILENAME, RE_WEEKLY_NOTE_FILENAME, RE_MONTHLY_NOTE_FILENAME, RE_QUARTERLY_NOTE_FILENAME, RE_YEARLY_NOTE_FILENAME, isWeeklyNote } from './dateTime'
+import {
+  RE_PLUS_DATE_G,
+  hyphenatedDate,
+  hyphenatedDateString,
+  toLocaleDateString,
+  RE_DAILY_NOTE_FILENAME,
+  RE_WEEKLY_NOTE_FILENAME,
+  RE_MONTHLY_NOTE_FILENAME,
+  RE_QUARTERLY_NOTE_FILENAME,
+  RE_YEARLY_NOTE_FILENAME,
+  isDailyNote,
+  isWeeklyNote,
+  isMonthlyNote,
+  isQuarterlyNote,
+  isYearlyNote,
+} from './dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
 import { getFolderFromFilename } from './folders'
 import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from './paragraph'
 import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
-import { findOverdueWeeksInString } from './NPnote'
+
+const pluginJson = 'helpers/note.js'
 
 export function noteType(filename: string): NoteType {
-  return (filename.match(RE_DAILY_NOTE_FILENAME) ||
+  return filename.match(RE_DAILY_NOTE_FILENAME) ||
     filename.match(RE_WEEKLY_NOTE_FILENAME) ||
     filename.match(RE_MONTHLY_NOTE_FILENAME) ||
     filename.match(RE_QUARTERLY_NOTE_FILENAME) ||
     filename.match(RE_YEARLY_NOTE_FILENAME)
-    ? 'Calendar' : 'Notes')
+    ? 'Calendar'
+    : 'Notes'
 }
 
 export function getNoteContextAsSuffix(filename: string, dateStyle: string): string {
@@ -292,7 +309,7 @@ export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<
   const notes: $ReadOnlyArray<TNote> = DataStore.projectNotes
   let filteredNotes: Array<TNote> = []
   if (forFolder === '') {
-    filteredNotes = notes.slice()  // slice() avoids $ReadOnlyArray mismatch problem
+    filteredNotes = notes.slice() // slice() avoids $ReadOnlyArray mismatch problem
   } else if (forFolder === '/') {
     // root folder ('/') has to be treated as a special case
     filteredNotes = notes.filter((note) => !note.filename.includes('/'))
@@ -445,7 +462,10 @@ export function replaceSection(
   newSectionContent: string,
 ): void {
   try {
-    logDebug('note / replaceSection', `Starting for note '${displayTitle(note)}'. Will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${newSectionHeadingLevel}`)
+    logDebug(
+      'note / replaceSection',
+      `Starting for note '${displayTitle(note)}'. Will remove '${headingOfSectionToReplace}' -> '${newSectionHeading}' level ${newSectionHeadingLevel}`,
+    )
     // First remove existing heading (the start of the heading text will probably be right, but the end will probably need to be changed)
     const insertionLineIndex = removeSection(note, headingOfSectionToReplace)
     // logDebug('note / replaceSection', `- insertionLineIndex = ${insertionLineIndex}`)
@@ -578,53 +598,6 @@ export function updateDatePlusTags(note: TNote, options: { openOnly: boolean, pl
 }
 
 /**
- * Determines whether a line is overdue or not. A line with multiple dates is only overdue if all dates are overdue.
- * Finds ISO8601 dates in a string and returns an array of the dates found if all dates are overdue (or an empty array)
- * @param {string} line
- * @returns foundDates - array of dates found
- */
-export function findOverdueDatesInString(line: string): Array<string> {
-  const todayHyphenated = hyphenatedDateString(moment().toDate())
-  const dates = line.match(RE_PLUS_DATE_G)
-  if (dates) {
-    const overdue = dates.filter((d) => d.slice(1) < todayHyphenated)
-    return overdue.length === dates.length ? overdue.sort() : [] // if all dates are overdue, return them sorted
-  }
-  return []
-}
-
-/**
- * Get all paragraphs in a note which are open tasks and overdue (were scheduled and all the dates have passed)
- * Return the paragraphs with new content with the date replaced with {replaceOverdueDatesWith} or empty
- * Does not actually update the note/paragraph, but returns each one clean if you want to run note.updateParagraphs() on it
- * @param {TNote} note
- * @param {string} replaceOverdueDatesWith
- * @param {*} options
- */
-export function getOverdueParagraphs(note: TNote, replaceOverdueDatesWith: string = ''): Array<TParagraph> {
-  const fileType = note.type === 'Notes' ? 'Notes' : note.type === 'Calendar' && isWeeklyNote(note) ? 'Weekly' : 'Daily'
-  // logDebug(`note/getOverdueParagraphs`, `fileType: ${fileType}`)
-  // clo(note?.datedTodos, `note/getOverdueParagraphs note?.datedTodos before filter: ${datedOpenTodos.length} tasks`)
-  const datedOpenTodos = note?.datedTodos?.filter((t) => t.type === 'open') || [] // only open tasks
-  // datedOpenTodos.length ? clo(datedOpenTodos, `note/getOverdueParagraphs datedOpenTodos after filter for open: ${datedOpenTodos.length} tasks`) : null
-  const updatedParas = []
-  datedOpenTodos.forEach((todo) => {
-    if (fileType === 'Notes' || fileType === 'Daily') {
-      const overdueDates = findOverdueDatesInString(todo.content).concat(findOverdueWeeksInString(todo.content))
-      overdueDates.forEach((d) => {
-        // logDebug(`note/getOverdueParagraphs`, `overdue date found: ${d} in content:"${todo.content}"`)
-        todo.content = replaceOverdueDatesWith.length
-          ? todo.content.replace(d, replaceOverdueDatesWith).trim().replace(/ {2,}/, ' ')
-          : todo.content.replace(d, '').trim().replace(/ {2,}/, ' ')
-      })
-      overdueDates.length ? updatedParas.push(todo) : null
-    }
-  })
-  updatedParas.length ? updatedParas.map((p, i) => logDebug(`note/getOverdueParagraphs ${note.filename} [${i}]: type=${p.type} content="${p.content}"`)) : null
-  return updatedParas
-}
-
-/**
  * Filter a list of notes against a list of folders to ignore and return the filtered list
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
@@ -649,4 +622,37 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
     })
   }
   return noteListFiltered
+}
+
+/**
+ * Determines whether a line is overdue or not. A line with multiple dates is only overdue if all dates are overdue.
+ * Finds ISO8601 dates in a string and returns an array of the dates found if all dates are overdue (or an empty array)
+ * @param {string} line
+ * @returns foundDates - array of dates found
+ */
+export function findOverdueDatesInString(line: string): Array<string> {
+  const todayHyphenated = hyphenatedDateString(moment().toDate())
+  const dates = line.match(RE_PLUS_DATE_G)
+  if (dates) {
+    const overdue = dates.filter((d) => d.slice(1) < todayHyphenated)
+    return overdue.length === dates.length ? overdue.sort() : [] // if all dates are overdue, return them sorted
+  }
+  return []
+}
+
+/**
+ * All day, month, quarter, yearly notes are type "Calendar" notes, so we when we need
+ * to know the type of calendar note, we can use this function
+ * @param {TNote} note - the note to look at
+ * @returns false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project'
+ */
+export function getNoteType(note: TNote): false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project' {
+  if (note.type === 'Calendar') {
+    return (
+      isDailyNote(note) &&
+      ('Daily' || (isWeeklyNote(note) && 'Weekly') || (isMonthlyNote(note) && 'Monthly') || (isQuarterlyNote(note) && 'Quarterly') || (isYearlyNote(note) && 'Yearly'))
+    )
+  } else {
+    return 'Project'
+  }
 }

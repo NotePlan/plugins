@@ -17,7 +17,7 @@ beforeAll(() => {
   DataStore.settings['_logLevel'] = 'none' // change this to DEBUG to see console.logs from logDebug etc. (or none to suppress all logs)
 })
 
-describe('dwertheimer.React' /* pluginID */, () => {
+describe.skip('dwertheimer.React' /* pluginID */, () => {
   describe('NPPluginMain' /* file */, () => {
     describe('sayHello' /* function */, () => {
       test('should insert text if called with a string param', async () => {

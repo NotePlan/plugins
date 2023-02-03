@@ -28,6 +28,7 @@ export const RE_DAILY_NOTE_FILENAME = `(^|\\/)${RE_YYYYMMDD_DATE}${RE_FILE_EXTEN
 // Week regexes
 export const RE_NP_WEEK_SPEC = '\\d{4}\\-W[0-5]\\d' // find dates of form YYYY-Wnn
 export const WEEK_NOTE_LINK = `[\<\>]${RE_NP_WEEK_SPEC}`
+export const SCHEDULED_WEEK_NOTE_LINK = `>${RE_NP_WEEK_SPEC}`
 export const RE_WEEKLY_NOTE_FILENAME = `(^|\\/)${RE_NP_WEEK_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 export const RE_BARE_WEEKLY_DATE = `[^\d(<\/-]${RE_NP_WEEK_SPEC}` // a YYYY-Www date without a digit or ( or < or / or - before it. Note: > is allowed.
 export const RE_BARE_WEEKLY_DATE_CAPTURE = `[^\d(<\/-](${RE_NP_WEEK_SPEC})` // capturing date in above
@@ -36,18 +37,23 @@ export const RE_BARE_WEEKLY_DATE_CAPTURE = `[^\d(<\/-](${RE_NP_WEEK_SPEC})` // c
 // export const RE_NP_MONTH_SPEC = '(?<![\\d-])\\d{4}-[01]\\d(?![\\d-])' // find dates of form YYYY-mm not following or followed by digit or - [doesn't work because it has a lookbehind]
 export const RE_NP_MONTH_SPEC = '\\d{4}-[01]\\d(?![\\d-])' // find dates of form YYYY-mm not followed by digit or - [fails if I add negative start or negative lookbehinds]
 export const MONTH_NOTE_LINK = `[\<\>]${RE_NP_MONTH_SPEC}`
+export const SCHEDULED_MONTH_NOTE_LINK = `>${RE_NP_MONTH_SPEC}`
 export const RE_MONTHLY_NOTE_FILENAME = `(^|\\/)${RE_NP_MONTH_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
 // Quarters
 export const RE_NP_QUARTER_SPEC = '\\d{4}\\-Q[1-4](?!\\d)' // find dates of form YYYY-Qn not followed by digit
 export const QUARTER_NOTE_LINK = `[\<\>]${RE_NP_QUARTER_SPEC}`
+export const SCHEDULED_QUARTERLY_NOTE_LINK = `>${RE_NP_QUARTER_SPEC}`
 export const RE_QUARTERLY_NOTE_FILENAME = `(^|\\/)${RE_NP_QUARTER_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
 // Years
 // export const RE_NP_YEAR_SPEC = '(?<!\\d)\\d{4}(?![\\d-])' // find years of form YYYY without leading or trailing digit or - [doesn't work because it has a lookbehind]
 export const RE_NP_YEAR_SPEC = '\\d{4}(?![\\d-])' // find years of form YYYY without trailing - or digit [fails if I add negative start or negative lookbehinds]
 export const YEAR_NOTE_LINK = `[\<\>]${RE_NP_YEAR_SPEC}`
+export const SCHEDULED_YEARLY_NOTE_LINK = `>${RE_NP_YEAR_SPEC}`
 export const RE_YEARLY_NOTE_FILENAME = `(^|\\/)${RE_NP_YEAR_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
+
+export const RE_IS_SCHEDULED = `>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC}|today)`
 
 // @done(...)
 export const RE_DONE_DATE_TIME = `@done\\(${RE_DATE_TIME}\\)` // find @done(DATE TIME)
@@ -76,6 +82,7 @@ export function getTodaysDateUnhyphenated(): string {
   return strftime(`%Y%m%d`)
 }
 
+// See getNoteType in note.js to get the type of a note
 export const isDailyNote = (note: CoreNoteFields): boolean => new RegExp(RE_DAILY_NOTE_FILENAME).test(note.filename)
 
 export const isWeeklyNote = (note: CoreNoteFields): boolean => new RegExp(RE_WEEKLY_NOTE_FILENAME).test(note.filename)
@@ -92,8 +99,8 @@ export const isYearlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_YEA
  * @param {string} content
  * @returns {boolean} true if the content contains a date in the form YYYY-MM-DD or a >today or weekly note
  */
-export const isScheduled = (content: string): boolean => RE_PLUS_DATE.test(content) || />today/.test(content) || new RegExp(RE_NP_WEEK_SPEC).test(content)
-
+// export const isScheduled = (content: string): boolean => RE_PLUS_DATE.test(content) || />today/.test(content) || new RegExp(RE_NP_WEEK_SPEC).test(content)
+export const isScheduled = (content: string): boolean => new RegExp(RE_IS_SCHEDULED).test(content)
 /**
  * Remove all >date or >today occurrences in a string and add (>today's-date by default) or the supplied string to the end
  * @param {string} inString - the string to start with

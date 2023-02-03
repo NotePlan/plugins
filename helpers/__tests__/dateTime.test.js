@@ -28,6 +28,22 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = dt.isScheduled('foo >2020-01-01')
       expect(result).toEqual(true)
     })
+    test('should be true for a week', () => {
+      const result = dt.isScheduled('foo >2020-W01')
+      expect(result).toEqual(true)
+    })
+    test('should be true for a month', () => {
+      const result = dt.isScheduled('foo >2020-01')
+      expect(result).toEqual(true)
+    })
+    test('should be true for a year', () => {
+      const result = dt.isScheduled('foo >2020')
+      expect(result).toEqual(true)
+    })
+    test('should be true for a quarter', () => {
+      const result = dt.isScheduled('foo >2020-Q1')
+      expect(result).toEqual(true)
+    })
     test('should be true for a date+', () => {
       const result = dt.isScheduled('foo >2020-01-01+')
       expect(result).toEqual(true)
@@ -456,16 +472,16 @@ describe(`${PLUGIN_NAME}`, () => {
       test('2022-01 (invalid date)', () => {
         expect(dt.calcOffsetDateStr('2022-01', '')).toEqual('(error)')
       })
-    test('2022-01-01 (blank interval)', () => {
-      expect(dt.calcOffsetDateStr('2022-01-01', '')).toEqual('(error)')
+      test('2022-01-01 (blank interval)', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01', '')).toEqual('(error)')
+      })
+      test("2022-01-01 (invalid interval) 'v'", () => {
+        expect(dt.calcOffsetDateStr('2022-01-01', 'v')).toEqual('(error)')
+      })
+      test("2022-01-01 (invalid interval) '23'", () => {
+        expect(dt.calcOffsetDateStr('2022-01-01', '23')).toEqual('(error)')
+      })
     })
-    test("2022-01-01 (invalid interval) 'v'", () => {
-      expect(dt.calcOffsetDateStr('2022-01-01', 'v')).toEqual('(error)')
-    })
-    test("2022-01-01 (invalid interval) '23'", () => {
-      expect(dt.calcOffsetDateStr('2022-01-01', '23')).toEqual('(error)')
-    })
-  })
   })
 
   describe('includesScheduledFutureDate()', () => {
