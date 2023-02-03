@@ -38,3 +38,23 @@ body { padding-left: 15px; padding-right: 15px; }
       transform: scale(1.0);
     }
   }
+
+  @font-face {
+    font-family: "noteplanstate";
+    src: url('noteplanstate-edited.otf') format('truetype');
+  }
+
+  /*
+  @font-face {
+    font-family: "FontAwesome6Pro-Regular";
+    src: url('Font Awesome 6 Pro-Regular-400.otf') format('opentype');
+  }
+  */
+
+  .noteplanstate {
+    font-family: "noteplanstate";
+  }
+
+  .fa-icon {
+    font-family: "FontAwesome6Pro-Regular";
+  }

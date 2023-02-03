@@ -560,15 +560,17 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
   return `
     // This is a callback bridge from HTML to the plugin
     const ${jsFunctionName} = (commandName = "${commandName}", pluginID = "${pluginID}", commandArgs = []) => {
-      console.log(\`jsFunctionName: Sending command "\$\{commandName\}" to NotePlan: "\$\{pluginID\}" with args: \$\{JSON.stringify(commandArgs)\}\`);
+      const code = ${haveNotePlanExecute}.replace("%%commandName%%",commandName).replace("%%pluginID%%",pluginID).replace("%%commandArgs%%", JSON.stringify(commandArgs));
+      console.log(\`${jsFunctionName}: Sending command "\$\{commandName\}" to NotePlan: "\$\{pluginID\}" with args: \$\{JSON.stringify(commandArgs)\}\`);
+      console.log(\`${jsFunctionName}: Sending code: "\$\{code\}"\`)
       if (window.webkit) {
         window.webkit.messageHandlers.jsBridge.postMessage({
-          code: ${haveNotePlanExecute}.replace("%%commandName%%",commandName).replace("%%pluginID%%",pluginID).replace("%%commandArgs%%", JSON.stringify(commandArgs)),
+          code: code,
           onHandle: "${returnPathFuncName}" ,
           id: "1"
         });
       } else {
-        console.log("${commandName} called with args:", commandArgs);
+        console.log(\`\$\{commandName\} called with args:\`, commandArgs);
       }
     };
 `
@@ -906,4 +908,13 @@ export function redToGreenInterpolation(percent: number): string {
 export function rgbToHex(r: number, g: number, b: number): string {
   // eslint-disable-next-line prefer-template
   return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)
+}
+
+/**
+ * Convert a Markdown link to HTML
+ * @param {string} str
+ * @returns {string} the new URL HTML anchor
+ */
+export function replaceMarkdownLinkWithHTMLLink(str: string): string {
+  return str.replace(/\[(.*?)\]\((.*?)\)/gm, `<a href="$2">$1</a>`)
 }

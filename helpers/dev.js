@@ -1,8 +1,6 @@
 // @flow
 // Development-related helper functions
 
-// import { get, isUndefined, entries, keys, has, isEqual, isObjectLike } from 'lodash-es'
-
 /**
  * Returns ISO formatted date time
  * @author @codedungeon
@@ -446,15 +444,16 @@ export function createStaticObject(obj: any, fields: Array<string>): any {
  * See createStaticObject for more details
  * @param {Array<any>} arrayOfObjects
  * @param {Array<string>} fields you want copied to the new object
- * @returns
+ * @param {any} defaultObj - any additional default fields you want to add to the new object
+ * @returns {any} - the array of static objects
  */
-export function createStaticArray(arrayOfObjects: Array<any>, fields: Array<string>): Array<any> {
+export function createStaticArray(arrayOfObjects: Array<any>, fields: Array<string>, defaultObj: any = {}): Array<any> {
   if (!arrayOfObjects) throw 'createStaticArray: input array is null; cannot convert it'
   if (!fields?.length) throw 'createStaticArray: no fieldlist provided; cannot create static object'
   if (!Array.isArray(arrayOfObjects)) throw 'createStaticArray: input array is not an array; cannot convert it'
   const staticArray = []
   for (const item of arrayOfObjects) {
-    staticArray.push(createStaticObject(item, fields))
+    staticArray.push({ ...createStaticObject(item, fields), ...defaultObj })
   }
   return staticArray
 }

@@ -1,6 +1,8 @@
 // @flow
 
-import { get, set, unset } from 'lodash-es'
+import get from 'lodash/get'
+import set from 'lodash/set'
+import unset from 'lodash/unset'
 import { createPrettyRunPluginLink } from '../../helpers/general'
 import pluginJson from '../plugin.json'
 import { getThemePropertiesInfoText, isBuiltInTheme, getPropDifferences } from './support/themeHelpers'

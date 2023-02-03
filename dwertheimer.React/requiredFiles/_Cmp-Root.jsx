@@ -7,16 +7,29 @@
 // let NPData = { latest: 'startup' }
 
 // globalSharedData is passed to window load time from the plugin, so you can use it for initial state
-const ROOT_DEBUG = true
+const ROOT_DEBUG = false
 
 function Root() {
+  if (!console['error']) console['error'] = console.log
   // the globalSharedData object is passed at window load time from the plugin, so you can use it for initial state
   // globalSharedData = { data: {}, lastUpdated:{ msg: "", date: date}  }
   console.log('_Root init: globalSharedData', globalSharedData)
-  const { data, lastUpdated } = globalSharedData // this is the global data
-  if (!data) throw 'Root: globalSharedData.data is undefined'
+  if (!globalSharedData) console.log('Root: globalSharedData is undefined', globalSharedData)
+  const { data = null, lastUpdated = null } = globalSharedData // this is the global data
+  if (!data) throw (`Root: globalSharedData.data is undefined`, globalSharedData)
+  if (!lastUpdated) throw (`Root: globalSharedData.lastUpdated is undefined`, globalSharedData)
+
+  if (!data.contextButtons?.length) {
+    data.contextButtons = [
+      { text: 'Mark Today', action: 'markToday' },
+      { text: 'Mark Tomorrow', action: 'markTomorrow' },
+    ]
+  }
+
   const [npData, setNPData] = useState(data) // set it from initial data
+  console.log(`Root1: lastUpdated=${JSON.stringify(lastUpdated)}`)
   const [lastUpdatedState, setLastUpdatedState] = useState(lastUpdated) // set it from initial data
+  console.log(`Root1.5: lastUpdated=${JSON.stringify(lastUpdated)}`)
   const [warning, setWarning] = useState({ warn: false, msg: '', color: 'w3-pale-red' })
 
   // delete dataFromPlugin.startupData // remove the startupData from the object so we don't get confused. state is handled by React
@@ -25,32 +38,41 @@ function Root() {
     // This is effectively a reducer we will use to process messages from the plugin
     // do not change this function name
     function onMessageFromPlugin(event) {
-      if (event.data) {
+      if (event?.data) {
+        console.log(`onMessageFromPlugin: ${JSON.stringify(event)}`)
         try {
           const { type, payload } = event.data // remember: event is on prototype and not JSON.stringify-able
-          console.log(`onMessageFromPlugin: ${JSON.stringify(event.data)}`)
-          // Spread existing state into new object to keep it immutable
-          // TODO: ideally, you would use a reducer here
-          setLastUpdatedState((prevData) => ({ ...prevData, ...payload.lastUpdated }))
-          console.log(`onMessageFromPlugin Action type: ${type}`)
-          switch (type) {
-            case 'SET_TITLE':
-              // Note this works because we are using payload.title in npData
-              document.title = payload.title
-              break
-            case 'SET_DATA':
-              console.log('before')
-              setNPData((prevData) => ({ ...prevData, ...payload.data }))
-              console.log('after')
-              break
-            case 'SHOW_BANNER':
-              const warnObj = { warn: true, msg: payload.msg, color: payload.color ?? 'w3-pale-red', border: payload.border ?? 'w3-border-red' }
-              console.log(`onMessageFromPlugin: SHOW_BANNER: sending: ${JSON.stringify(warnObj)}`)
-              setWarning(warnObj)
-              console.log(`onMessageFromPlugin: SHOW_BANNER: sent: ${JSON.stringify(warnObj)}`)
-              break
-            default:
-              break
+          if (!type) throw (`onMessageFromPlugin: event.data.type is undefined`, event.data)
+          if (!payload) throw (`onMessageFromPlugin: event.data.payload is undefined`, event.data)
+          if (type && payload) {
+            console.log(`onMessageFromPlugin: ${JSON.stringify(event.data)}`)
+            // Spread existing state into new object to keep it immutable
+            // TODO: ideally, you would use a reducer here
+            console.log(`Root2: lastUpdated=${JSON.stringify(lastUpdated)}`)
+            console.log(`root payload.lastUpdated`, payload.lastUpdated)
+            setLastUpdatedState((prevData) => ({ ...prevData, ...payload.lastUpdated }))
+            console.log(`onMessageFromPlugin Action type: ${type || ''}`)
+            switch (type) {
+              case 'SET_TITLE':
+                // Note this works because we are using payload.title in npData
+                document.title = payload.title
+                break
+              case 'SET_DATA':
+                console.log('before')
+                setNPData((prevData) => ({ ...prevData, ...payload.data }))
+                console.log('after')
+                break
+              case 'SHOW_BANNER':
+                const warnObj = { warn: true, msg: payload.msg, color: payload.color ?? 'w3-pale-red', border: payload.border ?? 'w3-border-red' }
+                console.log(`onMessageFromPlugin: SHOW_BANNER: sending: ${JSON.stringify(warnObj)}`)
+                setWarning(warnObj)
+                console.log(`onMessageFromPlugin: SHOW_BANNER: sent: ${JSON.stringify(warnObj)}`)
+                break
+              default:
+                break
+            }
+          } else {
+            console.log(`onMessageFromPlugin: called but event.data.type and/or event.data.payload is undefined`, event)
           }
         } catch (error) {
           console.log('onMessageFromPlugin: error=' + JSON.stringify(error))
@@ -82,8 +104,12 @@ function Root() {
 
   //  <h1>{npData.title}</h1>
 
+  const myErrorLogger = (error: Error, info: { componentStack: string }) => {
+    console.log(`ErrorBoundary got error: error=\n${JSON.stringify(error)},\ninfo=${JSON.stringify(info)}`)
+  }
+
   return (
-    <ErrorBoundary>
+    <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => {}} onError={myErrorLogger}>
       <div className="Root">
         <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
         <OverdueDataTable data={npData} />
@@ -108,45 +134,6 @@ function Root() {
 }
 
 export default Root
-
-/**
- * React Component to catch errors in the React tree and display a message
- */
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props)
-    this.state = { hasError: false, error: null, errorInfo: null }
-  }
-
-  static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI.
-    return { hasError: true }
-  }
-
-  componentDidCatch(error, errorInfo) {
-    // You can also log the error to an error reporting service
-    // logErrorToMyService(error, errorInfo)
-    this.setState({ error, errorInfo, hasError: true })
-  }
-
-  render() {
-    if (this.state.hasError) {
-      // You can render any custom fallback UI
-      console.log('ErrorBoundary: received error. fallback UI: error=' + JSON.stringify(this.state))
-      return (
-        <React.StrictMode>
-          <h1>Oops! Something went wrong during React render.</h1>
-          Better check the console.log
-          <div className="monospaceData">Error: {JSON.stringify(this.state.error, null, 2)}</div>
-          <hr></hr>
-          <div className="monospaceData">ErrorInfo: {JSON.stringify(this.state.errorInfo)}</div>
-        </React.StrictMode>
-      )
-    }
-
-    return this.props.children
-  }
-}
 
 /**
  * Basic button using w3.css
@@ -175,7 +162,7 @@ function MessageBanner(props) {
   // onclick="this.parentElement.style.display='none'" class="w3-button w3-display-topright"
   console.log(`MessageBanner: props=${JSON.stringify(props)}`)
   const className = `w3-panel w3-display-container ${props.border ? 'w3-leftbar' : ''} ${props.border ?? 'w3-border-red'} ${props.color ?? 'w3-pale-red'}`
-
+  window.scrollTo(0, 0)
   return (
     <React.StrictMode>
       <div className={className}>

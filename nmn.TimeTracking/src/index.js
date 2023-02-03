@@ -1,6 +1,6 @@
 // @flow
 
-import { keys } from 'lodash-es'
+import keys from 'lodash/keys'
 import { getCodeBlocks } from '../../helpers/codeBlocks'
 
 type TData = $ReadOnly<{

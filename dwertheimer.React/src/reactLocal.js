@@ -14,6 +14,7 @@ import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 
 const USE_MINIFIED_REACT = false
 const LOAD_REACT_DEVTOOLS = true // for debugging in local browser using react devtools
+const USE_PREACT_INSTEAD = false
 
 const ReactDevToolsImport = `<script src="http://localhost:8097"></script>`
 
@@ -45,6 +46,7 @@ export async function testOpenDataTable(incoming: string) {
 
       dropdownOptionsAll: getSharedOptions(),
       dropdownOptionsLine: getSharedOptions(),
+      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
     }
     clo(startData, `reactLocal.testOpenDataTable() startData`)
     await openParagraphTableView('testOpenDataTable', startData)
@@ -63,7 +65,7 @@ export function openParagraphTableView(type: string = '', data: any = null): voi
   try {
     console.log(`reactLocal.openParagraphTableView() type: "${type}"`)
     //TODO: launch something different depending on type
-
+    // 'overdueTasksReview' comes from Task Automations
     /*************************************************************************
      * COPY THIS WHOLE FILE BUT YOU SHOULD ONLY NEED TO EDIT THIS TOP SECTION
      *************************************************************************/
@@ -79,10 +81,10 @@ export function openParagraphTableView(type: string = '', data: any = null): voi
       data: data ?? {
         title: `Test of React/Data Table in NP Plugin`,
         overdueParas: [{ filename: 'foo.md', content: 'This is come content', priority: 1, type: 'open' }],
-        dropdownChoices: [
-          { label: 'foo', value: 'bar' },
-          { label: 'baz', value: 'qux' },
-        ],
+        dropdownOptionsAll: getSharedOptions(),
+        dropdownOptionsLine: getSharedOptions(),
+        /* the following commands really need to be sent by the plugin calling */
+        returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
       },
       lastUpdated: { msg: 'Initial data load', date: new Date().toLocaleString() },
     }
@@ -101,14 +103,14 @@ export function openParagraphTableView(type: string = '', data: any = null): voi
     // because NotePlan does not allow for subfolders in the plugin root
     // FIXME: THIS ROLLUP DOES NOT WORK YET. THE CONFIG SEEMS TO NEED
     const reactJSmin = `
-      <script src="./_reactBundle.min.js"></script>
+      <script src="./_${USE_PREACT_INSTEAD ? 'p' : ''}reactBundle.min.js"></script>
       <script src="./_babel.min.js"></script>
     `
     // used browserify to create these files from the react and react-dom npm packages
     // see notes inside the file ./requiredFiles/browserify.createReactBundle.js
     const reactJSDev = `
      <!-- Load React ReactDOM Babel -->
-        <script src="./_reactBundle.js"></script>
+        <script src="./_${USE_PREACT_INSTEAD ? 'p' : ''}reactBundle.js"></script>
         <script src="./_babel.min.js"></script>
         <script> console.log("after react bundle")</script>
         `
@@ -119,7 +121,7 @@ export function openParagraphTableView(type: string = '', data: any = null): voi
 
     const reactComponents = `     
         <!-- Load React Functions Used by Components -->
-        <script type="text/babel"> const { useState, useEffect, useReducer, createContext, useContext, useRef } = React; </script>
+        <script type="text/babel"> const { useState, useEffect, useReducer, createContext, useContext, useRef, useMemo } = React; </script>
         <!-- Load React Components -->
           ${componentsStr}
         <script> console.log("after components")</script>
@@ -130,7 +132,7 @@ export function openParagraphTableView(type: string = '', data: any = null): voi
     }, '\n')
 
     const themeJS = getThemeJS()
-    clo(themeJS, `themeJS`)
+    // clo(themeJS, `themeJS`)
     const bodyHTML = `
     <div id="root">
       <div id="spinner" class="container" style="background-color: ${themeJS?.values?.editor?.backgroundColor ?? '#ffffff'}">
@@ -142,16 +144,17 @@ export function openParagraphTableView(type: string = '', data: any = null): voi
     const exports = ` const exports = {}; 
     const module = {exports}; ` //babel will look for these and complain if they are not there
 
-    const globalVars = `
-  <!-- Global Variables -->
-  <script type="text/javascript" >
-    // set up global variables for React and ReactDOM
-    const React = require('react'); // require works because of browserify
-    const react = React;
-    const ReactDOM = require('react-dom');
-    console.log("end of globalVars")
-  </script>
-`
+    const globalVars = USE_PREACT_INSTEAD
+      ? ''
+      : `
+        <!-- Global Variables -->
+        <script type="text/javascript" >
+          // set up global variables for React and ReactDOM
+          const React = require('react'); // require works because of browserify
+          const react = React;
+          const ReactDOM = require('react-dom');
+          console.log("end of globalVars")
+        </script>`
 
     // don't edit this next block, it's just a way to send the plugin data object to the HTML window
     // at the time of the HTML window creation
@@ -164,9 +167,16 @@ export function openParagraphTableView(type: string = '', data: any = null): voi
     `
     const mountApp = `
       <script type="text/babel" >
+        ${
+          USE_PREACT_INSTEAD
+            ? `
+            const dom = document.getElementById('root');
+            Preact.render(<Root tab="home" />, dom); `
+            : `
           const container = document.getElementById('root');
           const root = ReactDOM.createRoot(container); 
-          root.render(<Root tab="home" />);
+          root.render(<Root tab="home" />); `
+        }
       </script>
 `
     // set up bridge to NP
@@ -189,7 +199,7 @@ export function openParagraphTableView(type: string = '', data: any = null): voi
     `
 
     // `<p>Test</p><button id="foo" onclick="onMessageFromHTMLView(['colorWasPicked', document.getElementById('foo').value])">Select this color</button>`
-    showHTMLWindow('Test', bodyHTML, {
+    showHTMLWindow('Overdue Tasks', bodyHTML, {
       includeCSSAsJS: true,
       savedFilename: 'reactLocal.html',
       headerTags: [cssTags].join('\n') /* needs to be a string */,
