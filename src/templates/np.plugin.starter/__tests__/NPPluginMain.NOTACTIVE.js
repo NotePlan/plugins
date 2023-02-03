@@ -1,11 +1,18 @@
+/*
+ * THIS FILE SHOULD BE RENAMED WITH ".test.js" AT THE END SO JEST WILL FIND AND RUN IT
+ * It is included here as an example/starting point for your own tests
+ */
+
+/* global jest, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
 // Jest testing docs: https://jestjs.io/docs/using-matchers
-/* global describe, expect, test, beforeAll */
 /* eslint-disable */
 
-import * as mainFile from '../src/NPPluginMain'
-import { copyObject } from '@helpers/dev'
+import * as f from '../src/sortTasks'
+import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
+const PLUGIN_NAME = `{{pluginID}}`
+const FILENAME = `NPPluginMain`
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -14,8 +21,25 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'none' // change this to DEBUG to see console.logs from logDebug etc. (or none to suppress all logs)
+  global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
 })
+
+/* Samples:
+expect(result).toMatch(/someString/)
+expect(result).not.toMatch(/someString/)
+expect(result).toEqual([])
+import { mockWasCalledWith } from '@mocks/mockHelpers'
+      const spy = jest.spyOn(console, 'log')
+      const result = mainFile.getConfig()
+      expect(mockWasCalledWith(spy, /config was empty/)).toBe(true)
+      spy.mockRestore()
+
+      test('should return the command object', () => {
+        const result = f.getPluginCommands({ 'plugin.commands': [{ a: 'foo' }] })
+        expect(result).toEqual([{ a: 'foo' }])
+      })
+*/
 
 describe('{{pluginId}}' /* pluginID */, () => {
   describe('NPPluginMain' /* file */, () => {
