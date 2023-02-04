@@ -259,14 +259,6 @@ describe('search.js tests', () => {
       const output = s.trimAndHighlightTermInLine("\t\tThere's Tennis and tennis.org and unTENNISlike behaviour!  ", ['tennis'], true, true, '- ', 100)
       expect(output).toEqual("- There's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!")
     })
-    test('should return no highlights (as not simplified) and no trimming', () => {
-      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], false, true, '- ', 100)
-      expect(output).toEqual("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt")
-    })
-    test('should return no highlights from 2 terms (as not simplified) and no trimming', () => {
-      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed', 'eiusmod'], false, true, '- ', 100)
-      expect(output).toEqual("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt")
-    })
     test('should return highlights from 2 different consecutive terms', () => {
       const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['tempor', 'eiusmod'], true, true, '- ', 100)
       expect(output).toEqual("- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do ==eiusmod== ==tempor== incididunt")
@@ -293,7 +285,7 @@ describe('search.js tests', () => {
     })
     test('specific case that was returning just a bullet', () => {
       const output = s.trimAndHighlightTermInLine("- Kate's #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to Holy Spirit", ['Holy', 'Spirit'], false, true, '- ', 200)
-      expect(output).toEqual("- Kate's #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to Holy Spirit")
+      expect(output).toEqual("- Kate's #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to ==Holy== ==Spirit==")
     })
     // TODO: Ran out of energy to do the detail on this ...
     test.skip('should return 1 highlight and front and end trimming', () => {
