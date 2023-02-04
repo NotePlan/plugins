@@ -1,16 +1,22 @@
 {
-  "noteplan.minAppVersion": "3.7.0",
+  "noteplan.minAppVersion": "3.8.0",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Dashboard",
-  "plugin.name": "Dashboard",
+  "plugin.name": "🎛 Dashboard",
   "plugin.description": "A Dashboard for NotePlan",
-  "plugin.icon": "",
+  "plugin.icon": "🎛",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
   "plugin.version": "0.1.0",
   "plugin.lastUpdateInfo": "v0.1: first release",
-  "plugin.dependencies": [],
+  "plugin.dependencies": [
+    "fontawesome.css",
+    "regular.min.flat4NP.css",
+    "solid.min.flat4NP.css",
+    "fa-regular-400.woff2",
+    "fa-solid-900.woff2"
+  ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
@@ -20,21 +26,45 @@
         "ldb"
       ],
       "description": "Log Dashboard information",
-      "jsFunction": "logDashboard"
+      "jsFunction": "logDashboardData"
     },
     {
-      "name": "show dashboard",
+      "name": "show dashboard (HTML)",
       "alias": [
-        "db"
+        "dbh"
       ],
-      "description": "Show Dashboard",
-      "jsFunction": "showDashboard"
+      "description": "Show Dashboard (HTML method)",
+      "jsFunction": "showDashboardHTML"
+    },
+    {
+      "name": "show dashboard (React)",
+      "alias": [
+        "dbr"
+      ],
+      "description": "Show Dashboard (React method)",
+      "jsFunction": "showDashboardReact"
     }
   ],
   "plugin.settings": [
     {
       "type": "heading",
       "title": "Dashboard settings"
+    },
+    {
+      "key": "includeTaskContext",
+      "title": "Include content for tasks?",
+      "description": "Whether to show the note link for an open task or checklist",
+      "type": "boolean",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "includeFolderName",
+      "title": "Include folder name?",
+      "description": "Whether to include the folder name when showing a note link",
+      "type": "boolean",
+      "default": true,
+      "required": true
     },
     {
       "type": "separator"
