@@ -126,14 +126,13 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
  * @returns {Array<TParagraph>} - paragraphs which reference today in some way
  */
 export function getReferencedParagraphs(note: Note, includeHeadings: boolean = true): Array<TParagraph> {
-  const thisDateStr = note.filename.slice(0, 7) // for daily or weekly notes only
+  const thisDateStr = note.title || '' // will be  2022-10-10 or 2022-10 or 2022-Q3 etc depending on the note type
   const wantedParas = []
 
   // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
   // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
   const backlinks: $ReadOnlyArray<TParagraph> = [...note.backlinks] // an array of notes which link to this note
-  logDebug(pluginJson, `${note.filename} has  backlinks.length:${backlinks.length}`)
-  // clo(backlinks, `backlinks (${backlinks.length}) =`)
+  clo(backlinks, `getReferencedParagraphs backlinks (${backlinks.length}) =`)
 
   backlinks.forEach((link) => {
     // $FlowIgnore[prop-missing] -- subItems is not in Flow defs but is real
@@ -142,12 +141,14 @@ export function getReferencedParagraphs(note: Note, includeHeadings: boolean = t
       // subItem.title = link.content.replace('.md', '').replace('.txt', '') // changing the shape of the Paragraph object will cause ObjC errors // cannot do this
 
       // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
-      // TODO(@dwertheimer): are there any helper functions that could help in the following line?
       if (includeHeadings || subItem.content.includes(`>${thisDateStr}`) || subItem.content.includes(`>today`)) {
         wantedParas.push(subItem)
+      } else {
+        logDebug(`getReferencedParagraphs`, `skipping "${subItem.content}" as it doesn't include >${thisDateStr}`)
       }
     })
   })
+  logDebug(`getReferencedParagraphs`, `"${note.title || ''}" has backlinks.length:${backlinks.length} & wantedParas.length:${wantedParas.length}`)
   return wantedParas
 }
 

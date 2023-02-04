@@ -437,8 +437,10 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
 function dedupeSyncedLines(notesWithTasks: Array<Array<TParagraph>>): Array<Array<TParagraph>> {
   logDebug(pluginJson, `dedupeSyncedLines  notesWithTasks ${notesWithTasks.length}`)
   const flatTasks = notesWithTasks.reduce((acc, n) => acc.concat(n), [])
+  // clo(flatTasks, `dedupeSyncedLines  flatTasks`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length BEFORE deduping ${flatTasks.length}`)
   const noDupes = eliminateDuplicateSyncedParagraphs(flatTasks)
+  // clo(noDupes, `dedupeSyncedLines  noDupes`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length AFTER deduping ${noDupes.length}`)
   return createArrayOfNotesAndTasks(noDupes)
 }
@@ -487,7 +489,7 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
       notesWithDates = [...DataStore.projectNotes, ...DataStore.calendarNotes].filter((n) => (n?.datedTodos ? n.datedTodos?.length > 0 : false))
     }
   } else {
-    clo(noteTaskList, `getNotesAndTasksToReview noteTaskList`)
+    // clo(noteTaskList, `getNotesAndTasksToReview noteTaskList`)
   }
   if (!noteTaskList && foldersToIgnore) {
     notesWithDates = notesWithDates.filter((note) =>

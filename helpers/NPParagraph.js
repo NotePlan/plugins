@@ -770,6 +770,7 @@ export const getOverdueParagraphs = (paras: $ReadOnlyArray<TParagraph>): Array<T
   const openTasks = paras?.filter(isOpen) || []
   const effectivelyOverdues = openTasks.filter(paragraphIsEffectivelyOverdue)
   const datedOverdues = openTasks.filter(hasOverdueTag)
+  // FIXME: david you can't merge these because one fails and one succeeds every time? maybe?
   return [...datedOverdues, ...effectivelyOverdues].filter((t) => t.content !== '')
 }
 
@@ -852,7 +853,7 @@ export function testForOverdue(para: TParagraph, regexString: string, todayRelev
  * @returns
  */
 export function hasOverdueDayTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
-  const today = getNPWeekData(moment().toDate())?.weekString
+  const today = getTodaysDateHyphenated()
   return today ? testForOverdue(para, RE_SCHEDULED_ISO_DATE, today, returnDetails) : false
 }
 
@@ -938,7 +939,8 @@ export function getOverdueTags(para: TParagraph): string[] {
 const paragraphIsScheduled = (para: TParagraph): boolean => isScheduled(para.content)
 
 /**
- * Test whether a calendar note has any open tasks that are "effectively overdue"
+ * Test whether a calendar note has any open tasks that are "effectively overdue" (a.k.a. "forgotten tasks")
+ * (i.e. the task is open, does not include a >scheduling date of any kind, and this type of note's date is in the past)
  * Immediately returns false if the note is not a calendar note
  * e.g. a task on yesterday's daily note would now be "overdue"
  * an open task on last week's weekly note would now be "overdue"
@@ -947,8 +949,9 @@ const paragraphIsScheduled = (para: TParagraph): boolean => isScheduled(para.con
  * @author @dwertheimer
  */
 export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
+  /* forgotten task */
   // if the paragraph is not open, or is scheduled but not overdue, then it's not overdue
-  if (paragraph?.note?.type === 'Notes' || paragraph.type !== 'open' || (paragraphIsScheduled(paragraph) && !hasOverdueTag(paragraph))) return false
+  if (paragraph?.note?.type === 'Notes' || paragraph.type !== 'open' || paragraphIsScheduled(paragraph)) return false
   const noteType = paragraph?.note?.type ? getNoteType(paragraph.note) : null
   const thisNoteTitle = paragraph.note?.title || null // e.g. 2021-12-31
   if (!noteType || !thisNoteTitle) {

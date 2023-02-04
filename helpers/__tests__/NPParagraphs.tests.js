@@ -690,18 +690,28 @@ describe('NPParagraphs()', () => {
       const result = p.paragraphIsEffectivelyOverdue(before)
       expect(result).toEqual(false)
     })
-    test('should return false if task is scheduled', () => {
+    test('should return false if task is scheduled in the future', () => {
       const before = { content: 'This is a note >2999-01-01', type: 'open', note: { type: 'Calendar', title: '2000-01-01', filename: '20000101.md' } }
       const result = p.paragraphIsEffectivelyOverdue(before)
       expect(result).toEqual(false)
     })
-    test('should return true if task is scheduled in the past', () => {
+    test('should return true if task is scheduled in the past (yes is overdue, but is not "effectively overdue")', () => {
       const before = { content: 'This is a note >2000-01-01', type: 'open', note: { type: 'Calendar', title: '2000-01-01', filename: '20000101.md' } }
+      const result = p.paragraphIsEffectivelyOverdue(before)
+      expect(result).toEqual(false)
+    })
+    test('should return true if task was on an old daily note', () => {
+      const before = { content: 'This is a note', type: 'open', note: { type: 'Calendar', title: '2000-01-01', filename: '20000101.md' } }
       const result = p.paragraphIsEffectivelyOverdue(before)
       expect(result).toEqual(true)
     })
-    test('should return true if task was on an old note', () => {
-      const before = { content: 'This is a note', type: 'open', note: { type: 'Calendar', title: '2000-01-01', filename: '20000101.md' } }
+    test('should return true if task was on an old weekly note', () => {
+      const before = { content: 'This is a note', type: 'open', note: { type: 'Calendar', title: '2000-W01', filename: '2000-W01.md' } }
+      const result = p.paragraphIsEffectivelyOverdue(before)
+      expect(result).toEqual(true)
+    })
+    test('should return true if task was on an old yearly note', () => {
+      const before = { content: 'This is a note', type: 'open', note: { type: 'Calendar', title: '2000', filename: '2000.md' } }
       const result = p.paragraphIsEffectivelyOverdue(before)
       expect(result).toEqual(true)
     })
