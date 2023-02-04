@@ -389,8 +389,9 @@ export function getStaticTaskList(flatParaList: Array<TParagraph>, statusType: s
  */
 export async function processOverdueReact(incoming: string) {
   try {
+    const startTime = new Date()
     let staticParasToReview = []
-    logDebug(pluginJson, `reviewOverdueTasksByTask: incoming="${incoming}" typeof=${typeof incoming}`)
+    logDebug(pluginJson, `reviewOverdueTasksByTask: incoming="${incoming}" typeof="${typeof incoming}" Starting Timer`)
     // TODO: when the react plugin is released, uncomment these lines
     // await installPlugin('dwertheimer.React')
     // logDebug(pluginJson, `reviewOverdueTasksByTask: installed/verified dwertheimer.React`)
@@ -425,8 +426,10 @@ export async function processOverdueReact(incoming: string) {
       dropdownOptionsLine: getSpecializedOptions(true),
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onParagraphChange' },
       contextButtons: getButtons(),
+      startTime,
     }
     const payload = ['overdueTasksReview', data]
+    console.log(`===== Calling React after ${timer(startTime)} =====`)
     await DataStore.invokePluginCommandByName('openParagraphTableView', 'dwertheimer.React', payload)
     logDebug(pluginJson, `processOverdueReact finished invoking window. stopping for now.`)
     // await askToReviewWeeklyTasks(true)

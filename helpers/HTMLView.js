@@ -554,7 +554,7 @@ export type HtmlWindowOptions = {
  */
 export function getCallbackCodeString(jsFunctionName: string, commandName: string = '%%commandName%%', pluginID: string = '%%pluginID%%', returnPathFuncName: string = ''): string {
   const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
-  logDebug(`getCallbackCodeString: In HTML Code, use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
+  // logDebug(`getCallbackCodeString: In HTML Code, use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
   //TODO: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
   // "${returnPathFuncName}" was the onHandle, but since that function doesn't really do anything, I'm not sending it
   return `
