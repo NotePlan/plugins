@@ -9,9 +9,11 @@ import { getAttributes } from '@templatingModules/FrontmatterModule'
 import NPTemplating from 'NPTemplating'
 
 /**
- * FIXME(Eduard): please document me!
- * @param {string} origFileName
- * @param {Date} dailyNoteDate
+ * Insert a template into a daily note or the current editor.
+ * Called from the 'insert template' button of an empty note.
+ * Called from 'insert template' context menu or "/-commands"
+ * @param {string} origFileName -> (optional) Template filename, if not set the user will be asked
+ * @param {Date} dailyNoteDate -> (optional) Date of the daily note, if not set the current editor will be used
  */
 export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Date): Promise<void> {
   logDebug(pluginJson, 'insertNoteTemplate')
@@ -121,7 +123,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
       newTitle = (await appendPrependNewNote(append, prepend, folder, result)) ?? '<error>'
     } else {
       logDebug(pluginJson, 'create a new note with the rendered template')
-      newTitle = (await newNoteWithFolder(result, folder)) ?? '<error>' // FIXME(Eduard): only 2 params allowed
+      newTitle = (await newNoteWithFolder(result, folder)) ?? '<error>'
     }
 
     logDebug(pluginJson, 'write the note-link into the event')
@@ -134,7 +136,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
 }
 
 /**
- * FIXME(Eduard): please document me!
+ * Writes a x-callback-url note link into the event after creating a meeting note, so you can access the meeting note from a calendar app by clicking on it.
  * @param {TCalendarItem} selectedEvent
  * @param {string} newTitle
  */
@@ -164,7 +166,7 @@ function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string):
 }
 
 /**
- * FIXME(Eduard): please document me!
+ * Appends or prepends a string to a note. Used for meeting note templates to append the meeting note to the current or a selected note for example.
  * @param {string} append
  * @param {string} prepend
  * @param {string?} folder
@@ -457,7 +459,7 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem): Promise<?TCal
 }
 
 /**
- * FIXME(Eduard): please document me!
+ * Creates template data as input for np.Templating to parse a template.
  * @param {TCalendarItem} selectedEvent
  */
 function generateTemplateData(selectedEvent: TCalendarItem) {
