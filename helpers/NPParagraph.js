@@ -13,12 +13,11 @@ import {
   SCHEDULED_YEARLY_NOTE_LINK,
   getTodaysDateHyphenated,
   isScheduled,
-  isWeeklyNote,
 } from './dateTime'
 import { getNPWeekData, toLocaleDateTimeString } from './NPdateTime'
 import { clo, JSP, logDebug, logError, logWarn, timer } from './dev'
 import { calcSmartPrependPoint, findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
-import { getNoteType, findOverdueDatesInString } from '@helpers/note'
+import { getNoteType } from '@helpers/note'
 
 const pluginJson = 'NPParagraph'
 
@@ -577,51 +576,49 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
   return foundParagraph
 }
 
-/**
- * Get all paragraphs in a note which are open tasks and overdue (were scheduled and all the dates have passed)
- * Return the paragraphs with new content with the date replaced with {replaceOverdueDatesWith} or empty
- * Does not actually update the note/paragraph, but returns each one clean if you want to run note.updateParagraphs() on it
- * @param {TNote} note
- * @param {string} replaceOverdueDatesWith - normally '', but if you don't specify or send null, no replacement of dates will occur
- */
-export function getOverdueParagraphs(note: TNote, replaceOverdueDatesWith: ?string): Array<TParagraph> {
-  const datedOpenTodos = note?.datedTodos?.filter((t) => t.type === 'open') || [] // only open tasks
-  clo(note?.datedTodos, `note/getOverdueParagraphs note?.datedTodos before filter: ${note?.datedTodos?.length || ''} tasks`)
-  return replaceOverdueDatesWith == null ? datedOpenTodos : removeOverdueDatesFromParagraphs(datedOpenTodos, replaceOverdueDatesWith)
-}
-
-/**
- * Remove overdue dates from paragraphs and replace with {replaceOverdueDatesWith -- often with empty string ''}
- * @param {Array<TParagraph>} paragraphs
- * @param {string} replaceOverdueDatesWith
- * @returns {Array<TParagraph>} updated paragraphs (content updated but not saved)
- */
-export function removeOverdueDatesFromParagraphs(paragraphs: Array<TParagraph>, replaceOverdueDatesWith: string = ''): Array<TParagraph> {
-  logDebug(pluginJson, `removeOverdueDatesFromParagraphs paragraphs=${paragraphs.length}`)
-  // clo(paragraphs, `note/getOverdueParagraphs paragraphs: `)
-  // logDebug(`removeOverdueDatesFromParagraphs ^^^^ that was the paragraphs`)
-  const updatedParas = []
-  paragraphs?.forEach((todo) => {
-    const note = todo.note
-    if (note) {
-      const fileType = note.type === 'Notes' ? 'Notes' : note.type === 'Calendar' && isWeeklyNote(note) ? 'Weekly' : 'Daily'
-      logDebug(pluginJson, `removeOverdueDatesFromParagraphs fileType=${fileType}`)
-      if (fileType === 'Notes' || fileType === 'Daily') {
-        const overdueDates = findOverdueDatesInString(todo.content).concat(findOverdueWeeksInString(todo.content))
-        logDebug(pluginJson, `removeOverdueDatesFromParagraphs overdueDates=${overdueDates.length}`)
-        overdueDates.forEach((d) => {
-          // logDebug(`note/getOverdueParagraphs`, `overdue date found: ${d} in content:"${todo.content}"`)
-          todo.content = replaceOverdueDatesWith.length
-            ? todo.content.replace(d, replaceOverdueDatesWith).trim().replace(/ {2,}/, ' ')
-            : todo.content.replace(d, '').trim().replace(/ {2,}/, ' ')
-        })
-        overdueDates.length ? updatedParas.push(todo) : null
-      }
-    }
-  })
-  // updatedParas.length ? updatedParas.map((p, i) => logDebug(`note/getOverdueParagraphs ${note.filename} [${i}]: type=${p.type} content="${p.content}"`)) : null
-  return updatedParas
-}
+// dwertheimer 2023-02-03: commenting out for now, as it's causing a lot of tests to fail. if you see this in a month, delete it and the tests!
+// /**
+//  * Get all paragraphs in a note which are open tasks and overdue (were scheduled and all the dates have passed)
+//  * Return the paragraphs with new content with the date replaced with {replaceOverdueDatesWith} or empty
+//  * Does not actually update the note/paragraph, but returns each one clean if you want to run note.updateParagraphs() on it
+//  * @param {TNote} note
+//  * @param {string} replaceOverdueDatesWith - normally '', but if you don't specify or send null, no replacement of dates will occur
+//  */
+// export function getOverdueParagraphs(note: TNote, replaceOverdueDatesWith: ?string): Array<TParagraph> {
+//   const datedOpenTodos = note?.datedTodos?.filter((t) => t.type === 'open') || [] // only open tasks
+//   clo(note?.datedTodos, `note/getOverdueParagraphs note?.datedTodos before filter: ${note?.datedTodos?.length || ''} tasks`)
+//   return replaceOverdueDatesWith == null ? datedOpenTodos : removeOverdueDatesFromParagraphs(datedOpenTodos, replaceOverdueDatesWith)
+// }
+// /**
+//  * Remove overdue dates from paragraphs and replace with {replaceOverdueDatesWith -- often with empty string ''}
+//  * @param {Array<TParagraph>} paragraphs
+//  * @param {string} replaceOverdueDatesWith
+//  * @returns {Array<TParagraph>} updated paragraphs (content updated but not saved)
+//  */
+// export function removeOverdueDatesFromParagraphs(paragraphs: Array<TParagraph>, replaceOverdueDatesWith: string = ''): Array<TParagraph> {
+//   logDebug(pluginJson, `removeOverdueDatesFromParagraphs paragraphs=${paragraphs.length}`)
+//   // clo(paragraphs, `note/getOverdueParagraphs paragraphs: `)
+//   // logDebug(`removeOverdueDatesFromParagraphs ^^^^ that was the paragraphs`)
+//   const updatedParas = []
+//   paragraphs?.forEach((todo) => {
+//     const note = todo.note
+//     if (note) {
+//       const fileType = getNoteType(note)
+//       logDebug(pluginJson, `removeOverdueDatesFromParagraphs fileType=${fileType || ''}`)
+//       const overdueDates = getOverdueTags(todo)
+//       logDebug(pluginJson, `removeOverdueDatesFromParagraphs overdueDates=${overdueDates.length}`)
+//       overdueDates.forEach((d) => {
+//         // logDebug(`note/getOverdueParagraphs`, `overdue date found: ${d} in content:"${todo.content}"`)
+//         todo.content = replaceOverdueDatesWith.length
+//           ? todo.content.replace(d, replaceOverdueDatesWith).trim().replace(/ {2,}/, ' ')
+//           : todo.content.replace(d, '').trim().replace(/ {2,}/, ' ')
+//       })
+//       overdueDates.length ? updatedParas.push(todo) : null
+//     }
+//   })
+//   // updatedParas.length ? updatedParas.map((p, i) => logDebug(`note/getOverdueParagraphs ${note.filename} [${i}]: type=${p.type} content="${p.content}"`)) : null
+//   return updatedParas
+// }
 
 /**
  * Try to determine the paragraph that the cursor is in (in the Editor)
@@ -762,7 +759,19 @@ export const isOverdue = (t: TParagraph): boolean => {
   if (t.type === 'open') theDate = hasTypedDate(t)
   return theDate == null ? false : hyphenatedDateString(theDate) < hyphenatedDateString(new Date())
 }
-export const getOverdueTasks = (paras: Array<TParagraph>): Array<TParagraph> => paras.filter((p) => isOverdue(p))
+// export const getOverdueTasks = (paras: Array<TParagraph>): Array<TParagraph> => paras.filter((p) => isOverdue(p))
+
+/**
+ * Take in an array of paragraphs and return the subset that are open and overdue (scheduled or on dated notes in the past)
+ * @param {Array<TParagraph>} paras - the paragraphs to check
+ * @returns {Array<TParagraph>} - the overdue paragraphs
+ */
+export const getOverdueParagraphs = (paras: $ReadOnlyArray<TParagraph>): Array<TParagraph> => {
+  const openTasks = paras?.filter(isOpen) || []
+  const effectivelyOverdues = openTasks.filter(paragraphIsEffectivelyOverdue)
+  const datedOverdues = openTasks.filter(hasOverdueTag)
+  return [...datedOverdues, ...effectivelyOverdues].filter((t) => t.content !== '')
+}
 
 /**
  * Determines whether a line for a week is overdue or not. A line with multiple dates is only overdue if all dates are overdue.
@@ -784,11 +793,11 @@ export function findOverdueWeeksInString(line: string): Array<string> {
 }
 
 /**
- * FIXME: move these imports to the top of the file
- * FIXME: move these functions to a separate file
+ * Test whether a task is open or not
+ * @param {Paragraph} t - the paragraph/task to check
+ * @returns {boolean} true if open, false if any other status/type
  */
-
-// const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
+export const isOpen = (t: TParagraph): boolean => t.type === 'open'
 
 /*
  * @param paragraphs array
@@ -812,6 +821,7 @@ export type OverdueDetails = {
  * @param {string} regexString string to use to match the note links
  * @param {string} todayRelevantFilename (e.g. today's filename, weekly note filename, etc)
  * @returns {boolean | OverdueDetails} - true/false in base case, or an object with details about the overdue status if requested in returnDetails
+ * @author @dwertheimer
  */
 export function testForOverdue(para: TParagraph, regexString: string, todayRelevantFilename: string, returnDetails: boolean = false): boolean | OverdueDetails {
   const reMATCHLINK = new RegExp(regexString, 'g')
@@ -894,34 +904,61 @@ export function hasOverdueYearTag(para: TParagraph, returnDetails: boolean = fal
  * Single function to test whether a paragraph has any overdue tags (Day, Week, Month, Quarter, Year)
  * (e.g. a task marked with yesterday's daily note date (e.g. >2022-12-31 would now be "overdue")
  * @param {TParagraph} para - the paragraph to test
- * @param {boolean} openOnly - whether to only test for open tasks (default: false -- test for all tasks)
  * @returns {boolean} - true if any of the tags are overdue
  */
-export function hasOverdueTag(para: TParagraph, openOnly: boolean = false): boolean {
-  if (openOnly && para.type !== 'open') return false
+export function hasOverdueTag(para: TParagraph): boolean {
   return Boolean(hasOverdueDayTag(para) || hasOverdueWeekTag(para) || hasOverdueMonthTag(para) || hasOverdueQuarterTag(para) || hasOverdueYearTag(para))
 }
 
+/**
+ * Get all strings from the paragraph that are overdue and return them as an array of strings
+ * (e.g. for replacing)
+ * Note: returns an empty array if there are no overdue tags
+ * If overdue tags are found, they are returned in the following order: Day, Week, Month, Quarter, Year
+ * @author @dwertheimer
+ * @param {TParagraph} para - the paragraph to test
+ * @returns {Array<string>} - array of strings that are overdue (e.g. [">2022-12-31"]) or an empty array
+ */
+export function getOverdueTags(para: TParagraph): string[] {
+  const funcs = [hasOverdueDayTag, hasOverdueWeekTag, hasOverdueMonthTag, hasOverdueQuarterTag, hasOverdueYearTag]
+  return funcs.reduce((acc, func) => {
+    // $FlowIgnore - flow doesn't know what the signature of the functions is
+    const tagList = func(para, true)?.overdueStrings || []
+    // $FlowIgnore - see above
+    return [...acc, ...tagList]
+  }, [])
+}
+
+/**
+ * Find if a paragraph is scheduled (i.e. has a >date tag - day, week, month, year, quarter, etc.)
+ * Does not test whether the date is overdue, for that use hasOverdueTag
+ * @param {TParagraph} para
+ * @returns {boolean} - true if the paragraph has any type of scheduled tag
+ */
 const paragraphIsScheduled = (para: TParagraph): boolean => isScheduled(para.content)
+
 /**
  * Test whether a calendar note has any open tasks that are "effectively overdue"
+ * Immediately returns false if the note is not a calendar note
  * e.g. a task on yesterday's daily note would now be "overdue"
  * an open task on last week's weekly note would now be "overdue"
  * @param {TParagraph} note
  * @returns {boolean} - true if the task is open
+ * @author @dwertheimer
  */
 export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
   // if the paragraph is not open, or is scheduled but not overdue, then it's not overdue
-  if (paragraph.type !== 'open' || (paragraphIsScheduled(paragraph) && !hasOverdueTag(paragraph))) return false
+  if (paragraph?.note?.type === 'Notes' || paragraph.type !== 'open' || (paragraphIsScheduled(paragraph) && !hasOverdueTag(paragraph))) return false
   const noteType = paragraph?.note?.type ? getNoteType(paragraph.note) : null
   const thisNoteTitle = paragraph.note?.title || null // e.g. 2021-12-31
   if (!noteType || !thisNoteTitle) {
     clo(paragraph, 'paragraphIsEffectivelyOverdue: Could not get note type or title for this paragraph')
-    throw new Error('Thrown Error: Could not get note type or title. Stopping execution.')
+    throw new Error(`Thrown Error: Could not get note type ${noteType || ''} or title ${thisNoteTitle || ''}. Stopping execution.`)
   }
   let isOverdue = false
   switch (noteType) {
     case 'Daily':
+      if (thisNoteTitle < getTodaysDateHyphenated()) isOverdue = true
       break
     case 'Weekly': {
       const weekData = getNPWeekData()
@@ -943,9 +980,14 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
       if (thisNoteTitle < thisYear) isOverdue = true
       break
     }
+    case 'Project': {
+      // should never get here, but just in case
+      isOverdue = false
+      break
+    }
     default:
       clo(paragraph, `paragraphIsEffectivelyOverdue noteType${noteType} did not match known types`)
-      throw new Error('Thrown Error: noteType did not match known types. Stopping execution.')
+      throw new Error(`Thrown Error: noteType ${paragraph?.note?.type || ''} did not match known types. Stopping execution.`)
   }
   return isOverdue
 }

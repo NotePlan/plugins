@@ -223,41 +223,42 @@ describe('NPParagraphs()', () => {
     })
   })
 
+  // dwertheimer 2023-02-03: commenting out for now, as it's causing a lot of tests to fail. if you see this in a month, delete it and the tests!
   /*
-   * getOverdueParagraphs()
+   * getOverdueParagraphs() - Commented out in code. Eventually delete these tests
    */
-  describe('getOverdueParagraphs()' /* function */, () => {
+  describe.skip('getOverdueParagraphs()' /* function */, () => {
     describe('>ISODate date tests' /* function */, () => {
-      test('should send back empty array when there is no date in type Calendar', () => {
+      test('should send back unchanged array when there is no date in type Calendar', () => {
         const note = { type: 'Calendar', filename: '20201212.md', datedTodos: [{ type: 'open', content: 'foo bar' }] }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result).toEqual([])
       })
       test('should send back empty array when there is no date in type Notes', () => {
         const note = { type: 'Notes', filename: 'foos.md', datedTodos: [{ type: 'open', content: 'foo bar' }] }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result).toEqual([])
       })
       test('should send back empty array when there is no date in Weekly Note', () => {
         const note = { type: 'Calendar', filename: '2020-W20.md', datedTodos: [{ type: 'open', content: 'foo bar' }] }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result).toEqual([])
       })
       test('should find a basic overdue date', () => {
         const note = { type: 'Calendar', filename: '20201212.md', datedTodos: [{ type: 'open', content: 'foo bar >1999-01-01' }] }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result.length).toEqual(1)
         expect(result[0].content).toEqual('foo bar')
       })
       test('should find a overdue date at start', () => {
         const note = { type: 'Calendar', filename: '20201212.md', datedTodos: [{ type: 'open', content: '>1999-01-01 foo bar' }] }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result.length).toEqual(1)
         expect(result[0].content).toEqual('foo bar')
       })
       test('should find a overdue date in middle', () => {
         const note = { type: 'Calendar', filename: '20201212.md', datedTodos: [{ type: 'open', content: ' foo >1999-01-01 bar ' }] }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result.length).toEqual(1)
         expect(result[0].content).toEqual('foo bar')
       })
@@ -270,7 +271,7 @@ describe('NPParagraphs()', () => {
             { type: 'open', content: ' sam >2000-01-01 jaw ' },
           ],
         }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result.length).toEqual(2)
         expect(result[1].content).toEqual('sam jaw')
       })
@@ -284,7 +285,7 @@ describe('NPParagraphs()', () => {
             { type: 'open', content: ' sam >2000-01-01 jaw ' },
           ],
         }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result.length).toEqual(2)
         expect(result[1].content).toEqual('sam jaw')
       })
@@ -300,7 +301,7 @@ describe('NPParagraphs()', () => {
             { type: 'open', content: ' sam >2000-W01 jaw ' },
           ],
         }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result.length).toEqual(2)
         expect(result[1].content).toEqual('sam jaw')
       })
@@ -313,7 +314,7 @@ describe('NPParagraphs()', () => {
             { type: 'open', content: ' sam >2000-W01 jaw ' },
           ],
         }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result.length).toEqual(1)
         expect(result[0].content).toEqual('sam jaw')
       })
@@ -326,7 +327,7 @@ describe('NPParagraphs()', () => {
             { type: 'open', content: ' sam >3000-W01 jaw ' },
           ],
         }
-        const result = n.getOverdueParagraphs(note)
+        const result = p.getOverdueParagraphs(note)
         expect(result.length).toEqual(1)
         expect(result[0].content).toEqual('foo bar')
       })
@@ -578,6 +579,47 @@ describe('NPParagraphs()', () => {
   })
 
   /*
+   * getOverdueTags()
+   */
+  describe('getOverdueTags()' /* function */, () => {
+    let dsb = global.DataStore
+    beforeAll(() => {
+      dsb = { ...global.DataStore }
+      global.DataStore.defaultFileExtension = 'md'
+    })
+    afterAll(() => {
+      global.DataStore = dsb
+    })
+    test('should return []] if no matches', () => {
+      const before = { content: 'This is a note with no tags' }
+      const result = p.getOverdueTags(before)
+      const expected = []
+      expect(result).toEqual(expected)
+    })
+    test('should return []] if has year tag but not overdue', () => {
+      const before = { content: 'This is a note with a tag not overdue >2999' }
+      const result = p.getOverdueTags(before)
+      const expected = []
+      expect(result).toEqual(expected)
+    })
+    test('should return tag if has year tag that is overdue', () => {
+      const before = { content: 'This is a note with a tag overdue >2000' }
+      const result = p.getOverdueTags(before)
+      expect(result).toEqual(['>2000'])
+    })
+    test('should return only one tag if only one is overdue', () => {
+      const before = { content: 'This is a note with a tag overdue >2000-Q1 >2999-Q1' }
+      const result = p.getOverdueTags(before)
+      expect(result).toEqual(['>2000-Q1'])
+    })
+    test('should return multiple tags', () => {
+      const before = { content: 'This is a note with a tag overdue >2000-01-01 >2000 >2000-01 >2000-Q1' }
+      const result = p.getOverdueTags(before)
+      expect(result).toEqual(['>2000-01-01', '>2000-01', '>2000-Q1', '>2000'])
+    })
+  })
+
+  /*
    * hasOverdueYearTag()
    */
   describe('hasOverdueYearTag()' /* function */, () => {
@@ -637,16 +679,6 @@ describe('NPParagraphs()', () => {
       const result = p.hasOverdueTag(before)
       expect(result).toEqual(true)
     })
-    test('should return true if task is open and second param is true', () => {
-      const before = { type: 'open', content: 'This is a note with a tag overdue >2000 >2000-01 >2000-Q1 >2000-01-01' }
-      const result = p.hasOverdueTag(before, true)
-      expect(result).toEqual(true)
-    })
-    test('should return false if task is closed and second param is true', () => {
-      const before = { type: 'done', content: 'This is a note with a tag overdue >2000 >2000-01 >2000-Q1 >2000-01-01' }
-      const result = p.hasOverdueTag(before, true)
-      expect(result).toEqual(false)
-    })
   })
 
   /*
@@ -654,22 +686,22 @@ describe('NPParagraphs()', () => {
    */
   describe('paragraphIsEffectivelyOverdue()' /* function */, () => {
     test('should return false if no open task', () => {
-      const before = { content: 'This is a note', type: 'done', note: { type: 'Calendar', title: '2000-01-01' } }
+      const before = { content: 'This is a note', type: 'done', note: { type: 'Calendar', title: '2000-01-01', filename: '20000101.md' } }
       const result = p.paragraphIsEffectivelyOverdue(before)
       expect(result).toEqual(false)
     })
     test('should return false if task is scheduled', () => {
-      const before = { content: 'This is a note >2999-01-01', type: 'open', note: { type: 'Calendar', title: '2000-01-01' } }
+      const before = { content: 'This is a note >2999-01-01', type: 'open', note: { type: 'Calendar', title: '2000-01-01', filename: '20000101.md' } }
       const result = p.paragraphIsEffectivelyOverdue(before)
       expect(result).toEqual(false)
     })
     test('should return true if task is scheduled in the past', () => {
-      const before = { content: 'This is a note >2000-01-01', type: 'open', note: { type: 'Calendar', title: '2000-01-01' } }
+      const before = { content: 'This is a note >2000-01-01', type: 'open', note: { type: 'Calendar', title: '2000-01-01', filename: '20000101.md' } }
       const result = p.paragraphIsEffectivelyOverdue(before)
       expect(result).toEqual(true)
     })
     test('should return true if task was on an old note', () => {
-      const before = { content: 'This is a note', type: 'open', note: { type: 'Calendar', title: '2000-01-01' } }
+      const before = { content: 'This is a note', type: 'open', note: { type: 'Calendar', title: '2000-01-01', filename: '20000101.md' } }
       const result = p.paragraphIsEffectivelyOverdue(before)
       expect(result).toEqual(true)
     })

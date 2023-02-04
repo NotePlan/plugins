@@ -19,7 +19,7 @@ export const textWithoutSyncedCopyTag = (text: string): string => text.replace(n
  * @param {string} keepWhich = 'first' (default) or 'most-recent'
  * @returns Array<TParagraph> unduplicated paragraphs
  */
-export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, keepWhich: string = "first"): Array<TParagraph> {
+export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, keepWhich: string = 'first'): Array<TParagraph> {
   try {
     // logDebug('eliminateDuplicateSyncedParagraphs', `starting for ${String(paras.length)} paras with ${keepWhich}`)
     const revisedParas = []
@@ -32,7 +32,7 @@ export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, kee
       // } else {
       //   sortedParas = paras
       // }
-      const sortedParas = (keepWhich === 'most-recent') ? sortListBy(paras, ['note.changedDate']) : paras
+      const sortedParas = keepWhich === 'most-recent' ? sortListBy(paras, ['-note.changedDate']) : paras
       if (keepWhich === 'most-recent') {
         sortedParas.map((p) => {
           const n = p.note
@@ -61,8 +61,7 @@ export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, kee
       })
     }
     return revisedParas
-  }
-  catch (err) {
+  } catch (err) {
     logError('eliminateDuplicateSyncedParagraphs', JSP(err))
     return [] // for completeness
   }

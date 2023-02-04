@@ -2,7 +2,7 @@
 import colors from 'chalk'
 import * as sc from '../syncedCopies'
 
-const FILE = `${colors.yellow('helpers/syncedCopies')}`
+const FILE = `helpers/syncedCopies`
 const section = colors.blue
 
 describe(`${FILE}`, () => {
@@ -73,14 +73,13 @@ describe(`${FILE}`, () => {
       })
     })
 
-    // WARNING: Currently not working because of lodash import problem that @dwertheimer is working on.
     describe('returning most recently changed date item in list', () => {
       test('should return just the sync copy from file2', () => {
         const before = [
           { content: 'foo', filename: 'file1', blockId: '^b', note: { changedDate: new Date(2022, 5, 6, 6, 6, 6) } },
           { content: 'foo', filename: 'file2', blockId: '^b', note: { changedDate: new Date(2023, 0, 1, 1, 1, 1) } },
         ]
-        expect(sc.eliminateDuplicateSyncedParagraphs(before, 'most-recent')).toEqual([before[1]])
+        expect(sc.eliminateDuplicateSyncedParagraphs([...before], 'most-recent')).toEqual([before[1]])
       })
       test('should return just the sync copy from file3', () => {
         const before = [
@@ -88,7 +87,7 @@ describe(`${FILE}`, () => {
           { content: 'foo', filename: 'file2', blockId: '^b', note: { changedDate: new Date(2022, 8, 9, 9, 9, 9) } },
           { content: 'foo', filename: 'file3', blockId: '^b', note: { changedDate: new Date(2023, 0, 1, 1, 1, 1) } },
         ]
-        expect(sc.eliminateDuplicateSyncedParagraphs(before, 'most-recent')).toEqual([before[2]])
+        expect(sc.eliminateDuplicateSyncedParagraphs([...before], 'most-recent')).toEqual([before[2]])
       })
     })
   })

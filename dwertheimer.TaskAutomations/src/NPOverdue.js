@@ -2,11 +2,11 @@
 
 import pluginJson from '../plugin.json'
 import { showMessageYesNo, chooseFolder, showMessage, chooseOptionWithModifiers } from '../../helpers/userInput'
+import { getOverdueParagraphs } from '../../helpers/NPParagraph'
 import { reviewTasksInNotes, getNotesAndTasksToReview, createArrayOfNotesAndTasks, getNotesWithOpenTasks, getWeeklyOpenTasks } from './NPTaskScanAndProcess'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { filenameDateString } from '@helpers/dateTime'
 import { getTodaysReferences } from '@helpers/NPnote'
-import { getOverdueParagraphs } from '@helpers/NPParagraph'
 
 const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
 
@@ -190,37 +190,43 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
     logDebug(pluginJson, `reviewOverdueTasksInNote: incoming="${incoming}" typeof=${typeof incoming}`)
     const confirmResults = incoming ? false : true
     const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate, confirm } = DataStore.settings
-    const overdues = Editor.note ? getOverdueParagraphs(Editor?.note, '') : [] //do not replace the dates so we can see and more easily match them
-    logDebug(pluginJson, `reviewOverdueTasksInNote: overdues.length=${overdues.length}`)
-    const options = {
-      openOnly: overdueOpenOnly,
-      foldersToIgnore: overdueFoldersToIgnore,
-      datePlusOnly: false,
-      confirm: confirmResults,
-      showUpdatedTask,
-      showNote: false,
-      replaceDate,
-      noteFolder: false,
-      noteTaskList: overdues,
-      overdueOnly: true,
-    }
-    // $FlowIgnore
-    const notesToReview = getNotesAndTasksToReview(options)
-    clo(notesToReview, 'reviewOverdueTasksInNote: notesToReview')
-    await reviewTasksInNotes(notesToReview, options)
-    // find tasks in Editor note that are not in overdues (match by lineIndex property)
-    logDebug(pluginJson, `reviewOverdueTasksInNote: after reviewTasksInNotes`)
-    const paras = Editor?.note?.paragraphs || []
-    const diffTasks = paras.filter((task) => task.type === 'open' && !overdues.find((ot) => ot.lineIndex !== undefined && ot.lineIndex === task.lineIndex))
-    // if there are more tasks in the note than the overdue ones we found, ask if we should review the rest
-    if (diffTasks && diffTasks.length) {
-      if ((await showMessageYesNo(`Review other open tasks in this note?`, ['Yes', 'No'], 'Task Review', true)) === 'Yes') {
-        await reviewTasksInNotes([diffTasks], { ...options, noteTaskList: [diffTasks] || [], overdueOnly: false })
+    // const overdues = Editor.note ? getOverdueParagraphs(Editor?.note, '') : [] //do not replace the dates so we can see and more easily match them
+    // const openTasks = Editor?.note?.paragraphs.filter(isOpen).filter((p) => p.type === 'open') || []
+    if (Editor.note) {
+      const overdues = getOverdueParagraphs(Editor.note.paragraphs)
+      logDebug(pluginJson, `reviewOverdueTasksInNote: overdues.length=${overdues.length}`)
+      const options = {
+        openOnly: overdueOpenOnly,
+        foldersToIgnore: overdueFoldersToIgnore,
+        datePlusOnly: false,
+        confirm: confirmResults,
+        showUpdatedTask,
+        showNote: false,
+        replaceDate,
+        noteFolder: false,
+        noteTaskList: overdues,
+        overdueOnly: true,
       }
-    }
-    if (confirm) await showMessage(`Note Review Complete!`, 'OK', 'Task Review', true)
-    if (Editor.filename === todayFileName && confirm) {
-      await askToReviewTodaysTasks(true)
+      // $FlowIgnore
+      const notesToReview = getNotesAndTasksToReview(options)
+      clo(notesToReview, 'reviewOverdueTasksInNote: notesToReview')
+      await reviewTasksInNotes(notesToReview, options)
+      // find tasks in Editor note that are not in overdues (match by lineIndex property)
+      logDebug(pluginJson, `reviewOverdueTasksInNote: after reviewTasksInNotes`)
+      const paras = Editor?.note?.paragraphs || []
+      const diffTasks = paras.filter((task) => task.type === 'open' && !overdues.find((ot) => ot.lineIndex !== undefined && ot.lineIndex === task.lineIndex))
+      // if there are more tasks in the note than the overdue ones we found, ask if we should review the rest
+      if (diffTasks && diffTasks.length) {
+        if ((await showMessageYesNo(`Review other open tasks in this note?`, ['Yes', 'No'], 'Task Review', true)) === 'Yes') {
+          await reviewTasksInNotes([diffTasks], { ...options, noteTaskList: [diffTasks] || [], overdueOnly: false })
+        }
+      }
+      if (confirm) await showMessage(`Note Review Complete!`, 'OK', 'Task Review', true)
+      if (Editor.filename === todayFileName && confirm) {
+        await askToReviewTodaysTasks(true)
+      }
+    } else {
+      logDebug(pluginJson, `reviewOverdueTasksInNote Editor.note is null`)
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

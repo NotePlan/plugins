@@ -6,7 +6,7 @@ import pluginJson from '../plugin.json'
 import { sortListBy } from '../../helpers/sorting'
 import { sendBannerMessage } from '../../dwertheimer.React/src/Bridge'
 import { getTodaysDateAsArrowDate } from '../../helpers/dateTime'
-import { noteHasContent, removeOverdueDatesFromParagraphs } from '../../helpers/NPParagraph'
+import { noteHasContent } from '../../helpers/NPParagraph'
 import { getWeekOptions } from '../../helpers/NPdateTime'
 import {
   getNotesAndTasksToReview,
@@ -86,10 +86,12 @@ function getParagraphFromStaticObject(staticObject: any): TParagraph | null {
   const note = DataStore.noteByFilename(filename, noteType)
   if (note) {
     logDebug(pluginJson, `getParagraphFromStaticObject found note ${note.title}`)
+    // TODO: dbw - have refactored this a little. dont think we need it do we?
     // the text we are looking for may have been cleansed, so let's add cleansed ones to the search
-    const paras = [...note.paragraphs, ...removeOverdueDatesFromParagraphs([...note?.paragraphs], '')]
+    // const paras = [...note.paragraphs, ...removeOverdueDatesFromParagraphs([...note?.paragraphs], '')]
+    const paras = note.paragraphs
     logDebug(pluginJson, `getParagraphFromStaticObject cleaned paragraphs. count= ${paras.length}`)
-    let para = findParagraph(paras, staticObject)
+    const para = findParagraph(paras, staticObject)
     if (para) {
       const cleanParas = note.paragraphs
       return cleanParas[para.lineIndex] // make sure we are returning the original, non-cleansed version

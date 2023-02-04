@@ -649,8 +649,11 @@ export function findOverdueDatesInString(line: string): Array<string> {
 export function getNoteType(note: TNote): false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project' {
   if (note.type === 'Calendar') {
     return (
-      isDailyNote(note) &&
-      ('Daily' || (isWeeklyNote(note) && 'Weekly') || (isMonthlyNote(note) && 'Monthly') || (isQuarterlyNote(note) && 'Quarterly') || (isYearlyNote(note) && 'Yearly'))
+      (isDailyNote(note) && 'Daily') ||
+      (isWeeklyNote(note) && 'Weekly') ||
+      (isMonthlyNote(note) && 'Monthly') ||
+      (isQuarterlyNote(note) && 'Quarterly') ||
+      (isYearlyNote(note) && 'Yearly')
     )
   } else {
     return 'Project'

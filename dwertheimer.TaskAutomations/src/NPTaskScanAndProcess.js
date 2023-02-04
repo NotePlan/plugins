@@ -474,6 +474,7 @@ export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Arra
  */
 export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<Array<TParagraph>> {
   const { foldersToIgnore = [], /* openOnly = true, datePlusOnly = true, replaceDate = true, */ replaceDate = false, noteTaskList = null, noteFolder = false } = options
+  if (replaceDate) throw new Error('getNotesAndTasksToReview: replaceDate is legacy and no longer supported. David u need to fix this')
   logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || 'undefined'}`)
   let notesWithDates = []
   if (!noteTaskList) {
@@ -499,7 +500,8 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
   if (!noteTaskList) {
     for (const n of notesWithDates) {
       if (n) {
-        const updates = getOverdueParagraphs(n, replaceDate ? '' : null)
+        // const updates = getOverdueParagraphs(n, replaceDate ? '' : null)
+        const updates = getOverdueParagraphs(n.paragraphs)
         if (updates.length > 0) {
           notesToUpdate.push(updates)
         }
