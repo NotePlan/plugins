@@ -3,7 +3,7 @@
 // Date functions that rely on NotePlan functions/types
 // @jgclark except where shown
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
 import { RE_YYYYMMDD_DATE, getWeek, monthNameAbbrev, todaysDateISOString, toISOShortDateTimeString, weekStartEnd, RE_DATE } from './dateTime'
@@ -188,7 +188,7 @@ export const periodTypesAndDescriptions = [
  */
 export async function getPeriodStartEndDates(
   question: string = 'Create stats for which period?',
-  excludeToday: boolean = true, /* currently only used when a date is passed through as periodTypeToUse */
+  excludeToday: boolean = true /* currently only used when a date is passed through as periodTypeToUse */,
   periodTypeToUse?: string,
 ): Promise<[Date, Date, string, string, string]> {
   let periodType: string
@@ -223,7 +223,7 @@ export async function getPeriodStartEndDates(
 
   switch (periodType) {
     case 'lm': {
-      fromDateMom = fromDateMom.subtract(1, 'month').startOf('month')//.subtract(6, 'days')
+      fromDateMom = fromDateMom.subtract(1, 'month').startOf('month') //.subtract(6, 'days')
       fromDate = fromDateMom.toDate()
       logDebug('fromDate', String(fromDate))
       logDebug('fromDateMom', fromDateMom.format('YYYY-MM-DD'))
@@ -235,7 +235,7 @@ export async function getPeriodStartEndDates(
       // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // go to start of this month
       // fromDate = Calendar.addUnitToDate(fromDate, 'month', -1) // -1 month
       // toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
-      const theY = (m > 1) ? y : y - 1
+      const theY = m > 1 ? y : y - 1
       periodString = `${monthNameAbbrev(fromDate.getMonth() + 1)} ${theY}`
       break
     }

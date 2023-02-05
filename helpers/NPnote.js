@@ -2,7 +2,7 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions that require NP API calls
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
 import { getTodaysDateHyphenated, WEEK_NOTE_LINK } from '@helpers/dateTime'
 import { getNPWeekData } from '@helpers/NPdateTime'

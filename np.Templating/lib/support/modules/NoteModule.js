@@ -8,7 +8,7 @@
 
 import FrontMatterModule from '@templatingModules/FrontmatterModule'
 import { getAllPropertyNames } from '@helpers/dev'
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import FrontmatterModule from './FrontmatterModule'
 
 export default class NoteModule {

@@ -6,7 +6,7 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { helpInfo } from '../lib/helpers'

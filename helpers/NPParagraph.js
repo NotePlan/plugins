@@ -1,6 +1,6 @@
 // @flow
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import { trimString } from './dataManipulation'
 import {
   hyphenatedDate,

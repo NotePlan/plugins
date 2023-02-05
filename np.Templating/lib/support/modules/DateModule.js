@@ -17,7 +17,7 @@ export const DAY_NUMBER_FRIDAY = 5
 export const DAY_NUMBER_SATURDAY = 6
 
 export function createDateTime(userDateString = '') {
-  return userDateString.length === 10 ? new Date(`${userDateString}T00:01:00`) : new Date()
+  return userDateString.length === 10 ? new moment(userDateString).toDate() : new moment().toDate()
 }
 
 export function format(format: string = 'YYYY-MM-DD', dateString: string = '') {
@@ -200,27 +200,27 @@ export default class DateModule {
   dayNumber(pivotDate = '') {
     this.setLocale()
 
-    let localeDate = new Date().toLocaleString()
+    let localeDate = new moment().toLocaleString()
     if (pivotDate.length > 0 && pivotDate.length === 10) {
       localeDate = this.createDateTime(pivotDate)
     }
 
-    let dayNumber = new Date(new Date(localeDate).toLocaleString()).getDay()
+    let dayNumber = new moment(localeDate).day()
     if (isNaN(dayNumber)) {
-      dayNumber = new Date().getDay()
+      dayNumber = new moment().day()
     }
     return dayNumber
   }
 
   isWeekend(pivotDate = '') {
-    let localeDate = new Date().toLocaleString()
+    let localeDate = new moment().toLocaleString()
     if (pivotDate.length > 0 && pivotDate.length === 10) {
       // coerce date format to YYYY-MM-DD (might come in as MM/DD/YYYY)
       const formattedDate = moment(pivotDate).format('YYYY-MM-DD')
       localeDate = this.createDateTime(formattedDate)
     }
 
-    const day = new Date(new Date(localeDate).toLocaleString()).getDay()
+    const day = new moment(localeDate).day()
 
     return day === 6 || day === 0
   }

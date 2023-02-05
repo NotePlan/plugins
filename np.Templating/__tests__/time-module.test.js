@@ -3,7 +3,7 @@
 import colors from 'chalk'
 import TimeModule from '../lib/support/modules/TimeModule'
 import { currentTime, time } from '../lib/support/modules/TimeModule'
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import { CurlOptionCamelCaseMap } from 'node-libcurl/dist/generated/CurlOption'
 
 const PLUGIN_NAME = `📙 ${colors.yellow('np.Templating')}`

@@ -5,24 +5,16 @@
 // Last updated 27.1.2023 for v0.3.0+code tidy!, @jgclark
 //-----------------------------------------------------------------------------
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import * as helpers from './helpers'
 import pluginJson from '../plugin.json'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
-import {
-  clo, JSP, logDebug, logError, logInfo, logWarn,
-  overrideSettingsWithEncodedTypedArgs, timer
-} from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
-import {
-  allNotesSortedByChanged,
-  getProjectNotesInFolder,
-  removeSection
-} from '@helpers/note'
+import { allNotesSortedByChanged, getProjectNotesInFolder, removeSection } from '@helpers/note'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
-
 
 //-----------------------------------------------------------------------------
 
@@ -38,7 +30,7 @@ export async function tidyUpAll(): Promise<void> {
     }
 
     // Following functions take params; so send runSilently as a param
-    const param = (config.runSilently) ? '{"runSilently": true}' : ''
+    const param = config.runSilently ? '{"runSilently": true}' : ''
     if (config.runRemoveDoneMarkersCommand) {
       logDebug('tidyUpAll', `Starting removeDoneMarkers...`)
       await removeDoneMarkers(param)
@@ -58,8 +50,7 @@ export async function tidyUpAll(): Promise<void> {
     //   logDebug('tidyUpAll', `Starting removeSectionFromRecentNotes...`)
     //   await removeSectionFromRecentNotes()
     // }
-  }
-  catch (error) {
+  } catch (error) {
     logError('tidyUpAll', JSP(error))
   }
 }
@@ -110,7 +101,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
 
     // Get date range to use
     const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-    const momentToStartLooking = todayStart.subtract(numDays, "days")
+    const momentToStartLooking = todayStart.subtract(numDays, 'days')
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
     // $FlowFixMe(incompatible-type)
@@ -163,8 +154,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
       logInfo('removeDoneMarkers', `No @done(...) markers were found to remove`)
     }
     return
-  }
-  catch (error) {
+  } catch (error) {
     logError('removeDoneMarkers', JSP(error))
     return // for completeness
   }
@@ -209,7 +199,7 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
 
     // Get date range to use
     const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-    const momentToStartLooking = todayStart.subtract(numDays, "days")
+    const momentToStartLooking = todayStart.subtract(numDays, 'days')
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
     // $FlowFixMe(incompatible-type)
@@ -266,8 +256,7 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     }
 
     return
-  }
-  catch (err) {
+  } catch (err) {
     logError('removeDoneTimeParts', JSP(err))
     return // for completeness
   }
@@ -308,7 +297,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     // If not passed as a parameter already, ask for section heading to remove
     let sectionHeading: string = await getTagParamsFromString(params ?? '', 'sectionHeading', '')
     if (sectionHeading === '') {
-      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from some notes?", 'OK', "Remove Section from Notes")
+      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from some notes?", 'OK', 'Remove Section from Notes')
       if (res === false) {
         return
       } else {
@@ -339,7 +328,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
 
     // Now keep only those changed recently (or all if numDays === 0)
     // $FlowFixMe[incompatible-type]
-    const notesToProcess: Array<TNote> = (numDays > 0) ? helpers.getNotesChangedInIntervalFromList(allMatchedNotes, numDays) : allMatchedNotes
+    const notesToProcess: Array<TNote> = numDays > 0 ? helpers.getNotesChangedInIntervalFromList(allMatchedNotes, numDays) : allMatchedNotes
     numToRemove = notesToProcess.length
 
     if (numToRemove > 0) {
@@ -367,8 +356,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
     }
 
     return
-  }
-  catch (err) {
+  } catch (err) {
     logError('removeSectionFromRecentNotes', err.message)
     return // for completeness
   }
@@ -398,7 +386,7 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
     logDebug('removeDoneMarkers', `runSilently = ${String(runSilently)}`)
     // We also need a string version of this for legacy reasons
-    const runSilentlyAsString: string = runSilently ? "yes" : "no"
+    const runSilentlyAsString: string = runSilently ? 'yes' : 'no'
 
     // Decide whether to keep heading, using parameter if given
     const keepHeading: boolean = await getTagParamsFromString(params ?? '', 'keepHeading', false)
@@ -406,7 +394,7 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     // If not passed as a parameter already, ask for section heading to remove
     let sectionHeading: string = await getTagParamsFromString(params ?? '', 'sectionHeading', '')
     if (sectionHeading === '') {
-      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from all notes?", 'OK', "Remove Section from Notes")
+      const res: string | boolean = await getInputTrimmed("What's the heading of the section you'd like to remove from all notes?", 'OK', 'Remove Section from Notes')
       if (res === false) {
         return
       } else {
@@ -439,8 +427,7 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     // }
     // }
     return
-  }
-  catch (err) {
+  } catch (err) {
     logError('removeSectionFromAllNotes', JSP(err))
     return // for completeness
   }
@@ -467,8 +454,7 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
     const notesList = helpers.getNotesChangedInInterval(numDays)
     const titlesList = notesList.map((m) => displayTitle(m))
     logInfo(pluginJson, `${String(titlesList.length)} Notes have changed in last ${String(numDays)} days:\n${String(titlesList)}`)
-  }
-  catch (err) {
+  } catch (err) {
     logError('logNotesChangedInInterval', JSP(err))
     return // for completeness
   }
@@ -495,13 +481,19 @@ export async function fileRootNotes(): Promise<void> {
 
     // Get all root notes
     const rootNotes = getProjectNotesInFolder('/')
-    logDebug('rootNotes', rootNotes.map((n) => n.title))
+    logDebug(
+      'rootNotes',
+      rootNotes.map((n) => n.title),
+    )
 
     // Remove any listed in config.rootNotesToIgnore
     const excludedNotes = config.rootNotesToIgnore
     logDebug('excludedNotes', String(excludedNotes))
     const rootNotesToUse = rootNotes.filter((n) => !excludedNotes.includes(n.title))
-    logDebug('rootNotesToUse', rootNotesToUse.map((n) => n.title))
+    logDebug(
+      'rootNotesToUse',
+      rootNotesToUse.map((n) => n.title),
+    )
 
     // Make list of all folders (other than root!)
     const allFolders = getFilteredFolderList(['/'], true)
@@ -541,12 +533,11 @@ export async function fileRootNotes(): Promise<void> {
           }
           case '🗑️ Delete this note': {
             logInfo('rootNotesToUse', `User has asked for '${thisTitle}' to be deleted ...`)
-            const res = DataStore.moveNote(n.filename, "@Trash")
+            const res = DataStore.moveNote(n.filename, '@Trash')
             if (res && res !== '') {
               logDebug('rootNotesToUse', '... done')
               numMoved++
-            }
-            else {
+            } else {
               logError('rootNotesToUse', `Couldn't delete it for some reason`)
             }
             break
@@ -557,32 +548,28 @@ export async function fileRootNotes(): Promise<void> {
             if (res && res !== '') {
               logDebug('rootNotesToUse', `... filename now '${res}'`)
               numMoved++
-            }
-            else {
+            } else {
               logError('rootNotesToUse', `... Failed to move it for some reason`)
             }
           }
         }
-      }
-      else {
+      } else {
         logError('rootNotesToUse', `Failed to get note for some reason`)
       }
     }
 
     // Show a completion message
     logDebug('rootNotesToUse', `${String(numMoved)} notes moved from the root folder`)
-    const res = await showMessage(`${String(numMoved)} notes moved from the root folder`, 'OK', "File root-level notes", false)
+    const res = await showMessage(`${String(numMoved)} notes moved from the root folder`, 'OK', 'File root-level notes', false)
 
     // Restore original note (if it was open)
     if (openEditorNote) {
       Editor.openNoteByFilename(openEditorNote.filename)
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError('logNotesChangedInInterval', JSP(err))
     return // for completeness
   }
-
 }
 
 /**
@@ -627,7 +614,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
     }
     if (numToRemove === 0) {
       if (!runSilently) {
-        await showMessage(`No orphaned blockIDs were found in syncd lines.`, "OK, great!", "Remove Orphaned blockIDs")
+        await showMessage(`No orphaned blockIDs were found in syncd lines.`, 'OK, great!', 'Remove Orphaned blockIDs')
       } else {
         logInfo('removeOrphanedBlockIDs', `No orphaned blockIDs were found in syncd lines`)
       }
@@ -647,8 +634,10 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
     // }
 
     if (!runSilently) {
-      res = await showMessageYesNo(`Shall I proceed to remove these  orphaned blockIDs?`, ['Yes please', 'No'], "Remove Orphaned blockIDs", false)
-      if (res === "No") { return }
+      res = await showMessageYesNo(`Shall I proceed to remove these  orphaned blockIDs?`, ['Yes please', 'No'], 'Remove Orphaned blockIDs', false)
+      if (res === 'No') {
+        return
+      }
     }
 
     // If we get this far, then remove all blockID with only 1 instance
@@ -672,12 +661,11 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
 
     // Show a completion message
     if (!runSilently) {
-      await showMessage(`${String(numRemoved)} orphaned blockIDs removed from syncd lines`, 'OK', "Remove Orphaned blockIDs", false)
+      await showMessage(`${String(numRemoved)} orphaned blockIDs removed from syncd lines`, 'OK', 'Remove Orphaned blockIDs', false)
     } else {
       logInfo('removeOrphanedBlockIDs', `${String(numRemoved)} orphaned blockIDs removed from syncd lines`)
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError('removeOrphanedBlockIDs', JSP(err))
     return // for completeness
   }

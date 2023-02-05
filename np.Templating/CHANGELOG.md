@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-beta.03] - 2023-02-05 (dwertheimer)
+
+- Fixed minor issue in .isWeekend where NP was getting different answers than Jest. Has to do with locales, so changed it to use moment in this function. there are more that need to be changed.
+
 ## [2.0.0-beta.02] - 2023-02-01 (dwertheimer)
 
 - Fixed minor timezone issue in .add (now using same method as subtract was using)

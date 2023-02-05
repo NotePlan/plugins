@@ -1,6 +1,6 @@
 // @flow
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { appendTaskToDailyNote } from '../../jgclark.QuickCapture/src/quickCapture'
 import { noteHasContent, moveParagraphToNote, getOverdueParagraphs } from '../../helpers/NPParagraph'

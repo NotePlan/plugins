@@ -1,7 +1,7 @@
 // @flow
 //-------------------------------------------------------------------------------
 // Note-level Functions
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import {
   RE_PLUS_DATE_G,
   hyphenatedDate,

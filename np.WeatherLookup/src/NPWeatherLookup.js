@@ -6,7 +6,7 @@ TODO: add setting for whether to add now at the top
 TODO: add setting for template replacements (use https://stackoverflow.com/questions/377961/efficient-javascript-string-replacement)
 */
 
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import * as utils from './support/weather-utils'
 import { log, logDebug, logError, clo, JSP } from '@helpers/dev'

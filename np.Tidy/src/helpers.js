@@ -7,7 +7,7 @@
 
 import pluginJson from '../plugin.json'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import moment from 'moment'
+import moment from 'moment/min/moment-with-locales'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 
 //------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ export async function getSettings(): Promise<any> {
  * Return list of all notes changed in the last 'numDays'.
  * Edge case: if numDays === 0 return all Calendar and Project notes
  * @author @jgclark
- * @param {number} numDays 
+ * @param {number} numDays
  * @returns {Array<TNote>}
  */
 export function getNotesChangedInInterval(numDays: number): Array<TNote> {
@@ -67,7 +67,7 @@ export function getNotesChangedInInterval(numDays: number): Array<TNote> {
     let matchingNotes: Array<TNote> = []
     if (numDays > 0) {
       const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-      const momentToStartLooking = todayStart.subtract(numDays, "days")
+      const momentToStartLooking = todayStart.subtract(numDays, 'days')
       const jsdateToStartLooking = momentToStartLooking.toDate()
 
       matchingNotes = allNotes.filter((f) => f.changedDate >= jsdateToStartLooking)
@@ -86,14 +86,14 @@ export function getNotesChangedInInterval(numDays: number): Array<TNote> {
 /**
  * Return array of notes changed in the last 'numDays' from provided array of 'notesToCheck'
  * @author @jgclark
- * @param {Array<TNote>} notesToCheck 
- * @param {number} numDays 
+ * @param {Array<TNote>} notesToCheck
+ * @param {number} numDays
  * @returns {Array<TNote>}
  */
 export function getNotesChangedInIntervalFromList(notesToCheck: $ReadOnlyArray<TNote>, numDays: number): Array<TNote> {
   try {
     const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-    const momentToStartLooking = todayStart.subtract(numDays, "days")
+    const momentToStartLooking = todayStart.subtract(numDays, 'days')
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
     let matchingNotes: Array<TNote> = notesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)

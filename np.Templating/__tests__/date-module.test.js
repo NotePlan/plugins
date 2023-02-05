@@ -340,12 +340,62 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     it(`should render true if ${method('.isWeekend')}`, async () => {
-      const result = new DateModule().isWeekend('2021-10-16')
+      const result = new DateModule().isWeekend('2021-10-16') // saturday
       expect(result).toEqual(true)
     })
 
     it(`should render false if not ${method('.isWeekend')}`, async () => {
-      const result = new DateModule().isWeekend('2021-10-15')
+      const result = new DateModule().isWeekend('2021-10-15') // friday
+
+      expect(result).toEqual(false)
+    })
+
+    describe('isWeekend full week test', () => {
+      it(`should render false if not ${method('.isWeekend')}`, async () => {
+        const result = new DateModule().isWeekend('2021-10-25') // friday
+
+        expect(result).toEqual(false)
+      })
+
+      it(`should render false if not ${method('.isWeekend')}`, async () => {
+        const result = new DateModule().isWeekend('2021-10-26') // friday
+
+        expect(result).toEqual(false)
+      })
+
+      it(`should render false if not ${method('.isWeekend')}`, async () => {
+        const result = new DateModule().isWeekend('2021-10-27') // friday
+
+        expect(result).toEqual(false)
+      })
+
+      it(`should render false if not ${method('.isWeekend')}`, async () => {
+        const result = new DateModule().isWeekend('2021-10-28') // friday
+
+        expect(result).toEqual(false)
+      })
+
+      it(`should render false if not ${method('.isWeekend')}`, async () => {
+        const result = new DateModule().isWeekend('2021-10-29') // friday
+
+        expect(result).toEqual(false)
+      })
+
+      it(`should render true if ${method('.isWeekend')}`, async () => {
+        const result = new DateModule().isWeekend('2021-10-30') // sunday
+
+        expect(result).toEqual(true)
+      })
+
+      it(`should render true if ${method('.isWeekend')}`, async () => {
+        const result = new DateModule().isWeekend('2021-10-31') // sunday
+
+        expect(result).toEqual(true)
+      })
+    })
+
+    it(`should render false if not ${method('.isWeekend')}`, async () => {
+      const result = new DateModule().isWeekend('2021-10-29') // friday
 
       expect(result).toEqual(false)
     })
