@@ -2,6 +2,7 @@
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
 import { setFrontMatterVars } from '../../helpers/NPFrontMatter'
+import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
 
@@ -74,7 +75,7 @@ async function getReadwise(force: boolean): Promise<any> {
     DataStore.saveData(new Date().toISOString(), LAST_SYNÇ_TIME, true)
 
     const Json = JSON.parse(response)
-    // DataStore.saveData(JSON.stringify(Json), 'test_data.json', true)
+    // DataStore.saveData(JSON.stringify(Json), 'readwise_data.json', true)
     downloadHiglightCount = Json.count
     logDebug(pluginJson, `Downloaded : ${downloadHiglightCount} highlights`)
     return Json.results
@@ -103,7 +104,7 @@ async function parseBookAndWriteToNote(source: any): Promise<void> {
       }
       outputNote?.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
     }
-    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin, source.note))
+    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
     removeEmptyLines(outputNote)
   } catch (error) {
     logError(pluginJson, error)
@@ -212,6 +213,21 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
 function appendHighlightToNote(outputNote: TNote, highlight: any, category: string, asin: string): void {
   const filteredContent = highlight.text.replace(/\n/g, '\n > ')
   let linkToHighlightOnWeb = ''
+  let userNote = ''
+
+  if (highlight.tags !== null && highlight.tags !== '') {
+    for (const tag of highlight.tags) {
+      if (tag.name !== null && tag.name !== '' && tag.name.startsWith('h') && tag.name.length === 2) {
+        const headingLevel = tag.name.substring(1)
+        outputNote.insertHeading(highlight.text, findEndOfActivePartOfNote(outputNote), headingLevel)
+        return
+      }
+    }
+  }
+
+  if (highlight.notes !== null && highlight.notes !== '') {
+    userNote = `(${highlight.note})`
+  }
 
   if (DataStore.settings.showLinkToHighlight === true) {
     if (category === 'supplemental') {
@@ -222,5 +238,5 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
       linkToHighlightOnWeb = ` [View highlight](${highlight.url})`
     }
   }
-  outputNote.appendParagraph(filteredContent + linkToHighlightOnWeb, 'quote')
+  outputNote.appendParagraph(filteredContent + userNote + linkToHighlightOnWeb, 'quote')
 }
