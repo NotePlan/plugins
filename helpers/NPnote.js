@@ -2,13 +2,17 @@
 //-------------------------------------------------------------------------------
 // Note-level Functions that require NP API calls
 
-import moment from 'moment/min/moment-with-locales'
+// import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
-import { getTodaysDateHyphenated, WEEK_NOTE_LINK } from '@helpers/dateTime'
-import { getNPWeekData } from '@helpers/NPdateTime'
-import { log, logError, logDebug, timer, clo } from '@helpers/dev'
+import {
+  getTodaysDateHyphenated,
+  // WEEK_NOTE_LINK
+} from '@helpers/dateTime'
+// import { getNPWeekData } from '@helpers/NPdateTime'
+import { JSP, log, logError, logDebug, timer, clo } from '@helpers/dev'
 import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
-import { displayTitle } from '@helpers/general'
+import { ensureFrontmatter } from '@helpers/NPFrontMatter'
+// import { displayTitle } from '@helpers/general'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 
@@ -45,40 +49,33 @@ export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>,
  * If optional default text is given, this is added to the frontmatter.
  * @author @jgclark
  * @param {TNote} note
- * @param {string} defaultText (optional) to add after title in the frontmatter
  */
-export async function convertNoteToFrontmatter(note: TNote, defaultText?: string = ''): Promise<void> {
-  if (note == null) {
-    logError('note/convertToFrontmatter', `No note found. Stopping conversion.`)
-    await showMessage(`No note found to convert.`)
-    return
+export async function convertNoteToFrontmatter(note: TNote): Promise<void> {
+  try {
+    let thisNote: TNote
+    if (note == null) {
+      if (Editor == null) {
+        logError('note/convertNoteToFrontmatter', `No Editor found, so nothing to convert.`)
+        await showMessage(`No note open to convert.`)
+        return
+      } else {
+        // $FlowFixMe[incompatible-type]
+        thisNote = Editor.note
+      }
+    } else {
+      thisNote = note
+    }
+    if (!thisNote) {
+      logDebug('note/convertNoteToFrontmatter', `No note supplied, and can't find Editor either.`)
+      await showMessage(`No note supplied, and can't find Editor either.`)
+      return
+    }
+    const res = ensureFrontmatter(thisNote)
+    logDebug('note/convertNoteToFrontmatter', `ensureFrontmatter() returned ${String(res)}.`)
   }
-  if (note.paragraphs.length < 1) {
-    logError('note/convertToFrontmatter', `'${displayTitle(note)}' is empty. Stopping conversion.`)
-    await showMessage(`Cannot convert '${displayTitle(note)}' note as it is empty.`)
-    return
+  catch (error) {
+    logError(pluginJson, JSP(error))
   }
-
-  // Get title
-  const firstLine = note.paragraphs[0]
-  if (firstLine.content === '---') {
-    logError('note/convertToFrontmatter', `'${displayTitle(note)}' appears to already use frontmatter. Stopping conversion.`)
-    await showMessage(`Cannot convert '${displayTitle(note)}' as it already appears to use frontmatter.`)
-    return
-  }
-  const title = firstLine.content ?? '(error)' // gets heading without markdown
-
-  // Working backwards through the frontmatter (to make index addressing easier)
-  // Change the current first line to be ---
-  firstLine.content = '---'
-  firstLine.type = 'separator'
-  note.updateParagraph(firstLine)
-  if (defaultText) {
-    note.insertParagraph(defaultText, 0, 'text')
-  }
-  note.insertParagraph(`title: ${title}`, 0, 'text')
-  note.insertParagraph('---', 0, 'separator')
-  logDebug('note/convertToFrontmatter', `Note '${displayTitle(note)}' converted to use frontmatter.`)
 }
 
 /**
@@ -132,7 +129,7 @@ export function getReferencedParagraphs(note: Note, includeHeadings: boolean = t
   // Use .backlinks, which is described as "Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The headings of the linked paragraphs are also listed here, although they don't have to contain a link."
   // Note: @jgclark reckons that the subItem.headingLevel data returned by this might be wrong.
   const backlinks: $ReadOnlyArray<TParagraph> = [...note.backlinks] // an array of notes which link to this note
-  clo(backlinks, `getReferencedParagraphs backlinks (${backlinks.length}) =`)
+  // clo(backlinks, `getReferencedParagraphs backlinks (${backlinks.length}) =`)
 
   backlinks.forEach((link) => {
     // $FlowIgnore[prop-missing] -- subItems is not in Flow defs but is real
@@ -142,9 +139,10 @@ export function getReferencedParagraphs(note: Note, includeHeadings: boolean = t
 
       // If we want to filter out the headings, then check the subItem content actually includes the date of the note of interest.
       if (includeHeadings || subItem.content.includes(`>${thisDateStr}`) || subItem.content.includes(`>today`)) {
+        // logDebug(`getReferencedParagraphs`, `- adding "${subItem.content}" as it includes >${thisDateStr} or >today`)
         wantedParas.push(subItem)
       } else {
-        logDebug(`getReferencedParagraphs`, `skipping "${subItem.content}" as it doesn't include >${thisDateStr}`)
+        // logDebug(`getReferencedParagraphs`, `- skipping "${subItem.content}" as it doesn't include >${thisDateStr}`)
       }
     })
   })
