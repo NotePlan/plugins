@@ -96,13 +96,13 @@ async function parseBookAndWriteToNote(source: any): Promise<void> {
     if (outputNote) {
       if (!useFrontMatter) {
         //TODO: Support updating metadata (tags)
-        if (!outputNote?.content?.includes('Metadata')) {
+        if (!outputNote?.content?.includes('## Metadata')) {
           outputNote?.addParagraphBelowHeadingTitle(buildReadwiseMetadataHeading(source), 'text', 'Metadata', true, true)
         }
       } else {
         setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
       }
-      if (!outputNote?.content?.includes('Highlights')) {
+      if (!outputNote?.content?.includes('# Highlights')) {
         outputNote.insertHeading('Highlights', findEndOfActivePartOfNote(outputNote) + 1, 1)
       }
     }
