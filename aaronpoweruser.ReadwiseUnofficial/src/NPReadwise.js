@@ -2,6 +2,7 @@
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
 import { setFrontMatterVars } from '../../helpers/NPFrontMatter'
+import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
 
@@ -74,7 +75,7 @@ async function getReadwise(force: boolean): Promise<any> {
     DataStore.saveData(new Date().toISOString(), LAST_SYNÇ_TIME, true)
 
     const Json = JSON.parse(response)
-    // DataStore.saveData(JSON.stringify(Json), 'test_data.json', true)
+    // DataStore.saveData(JSON.stringify(Json), 'readwise_data.json', true)
     downloadHiglightCount = Json.count
     logDebug(pluginJson, `Downloaded : ${downloadHiglightCount} highlights`)
     return Json.results
@@ -95,15 +96,17 @@ async function parseBookAndWriteToNote(source: any): Promise<void> {
     if (outputNote) {
       if (!useFrontMatter) {
         //TODO: Support updating metadata (tags)
-        if (!outputNote?.content?.includes('Metadata')) {
+        if (!outputNote?.content?.includes('## Metadata')) {
           outputNote?.addParagraphBelowHeadingTitle(buildReadwiseMetadataHeading(source), 'text', 'Metadata', true, true)
         }
       } else {
         setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
       }
-      outputNote?.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
+      if (!outputNote?.content?.includes('# Highlights')) {
+        outputNote.insertHeading('Highlights', findEndOfActivePartOfNote(outputNote) + 1, 1)
+      }
     }
-    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin, source.note))
+    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
     removeEmptyLines(outputNote)
   } catch (error) {
     logError(pluginJson, error)
@@ -118,11 +121,6 @@ function buildReadwiseNoteTitle(source: any): string {
   } else {
     return source.author
   }
-}
-
-// removes all empty lines in a note
-function removeEmptyLines(note: ?Tnote): void {
-  note.content = note?.content?.replace(/^\s*\n/gm, '')
 }
 
 /**
@@ -146,31 +144,20 @@ function buildReadwiseFrontMatter(source: any): any {
 }
 
 /**
- * Formats the note tag using the prefix from plugin settings
- * @param {string} tag - the tag to format
- * @returns {string} - the formatted tag
- */
-function formatTag(tag: string): string {
-  const prefix = DataStore.settings.tagPrefix ?? ''
-  if (prefix === '') {
-    return `#${tag}`
-  } else {
-    return `#${prefix}/${tag}`
-  }
-}
-
-/**
  * Creates the metadata heading for the note
  * @param {*} source - the readwise data as a JSON object
  * @returns {string} - the formatted heading
  */
 function buildReadwiseMetadataHeading(source: any): string {
-  let metadata = `Author: [[${source.author}]]` + '\n'
+  let metadata = `author: [[${source.author}]]` + '\n'
   if (source.book_tags !== null && source.book_tags.length > 0) {
-    metadata += `Tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
+    metadata += `tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
   }
   if (source.unique_url !== null) {
-    metadata += `URL: ${source.unique_url}`
+    metadata += `url: ${source.unique_url}`
+  }
+  if (source.readable_title.toLowerCase().trim() !== source.title.toLowerCase().trim()) {
+    metadata += `long_title: ${source.title}`
   }
   return metadata
 }
@@ -210,8 +197,23 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
  * @param {string} asin - the asin of the book
  */
 function appendHighlightToNote(outputNote: TNote, highlight: any, category: string, asin: string): void {
-  const filteredContent = highlight.text.replace(/\n/g, '\n > ')
+  const filteredContent = highlight.text.replace(/\n/g, ' ')
   let linkToHighlightOnWeb = ''
+  let userNote = ''
+
+  if (highlight.tags !== null && highlight.tags !== '') {
+    for (const tag of highlight.tags) {
+      if (tag.name !== null && tag.name !== '' && tag.name.startsWith('h') && tag.name.length === 2) {
+        const headingLevel = parseInt(tag.name.substring(1)) + 1
+        outputNote.insertHeading(highlight.text, findEndOfActivePartOfNote(outputNote) + 1, headingLevel)
+        return
+      }
+    }
+  }
+
+  if (highlight.note !== null && highlight.note !== '') {
+    userNote = `(${highlight.note})`
+  }
 
   if (DataStore.settings.showLinkToHighlight === true) {
     if (category === 'supplemental') {
@@ -222,5 +224,24 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
       linkToHighlightOnWeb = ` [View highlight](${highlight.url})`
     }
   }
-  outputNote.appendParagraph(filteredContent + linkToHighlightOnWeb, 'quote')
+  outputNote.appendParagraph(filteredContent + userNote + linkToHighlightOnWeb, 'quote')
+}
+
+/**
+ * Formats the note tag using the prefix from plugin settings
+ * @param {string} tag - the tag to format
+ * @returns {string} - the formatted tag
+ */
+function formatTag(tag: string): string {
+  const prefix = DataStore.settings.tagPrefix ?? ''
+  if (prefix === '') {
+    return `#${tag}`
+  } else {
+    return `#${prefix}/${tag}`
+  }
+}
+
+// removes all empty lines in a note
+function removeEmptyLines(note: ?Tnote): void {
+  note.content = note?.content?.replace(/^\s*\n/gm, '')
 }

@@ -4,7 +4,9 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
-
+## [0.1.8] Readwise  2023-02-07 (aaronpoweruser)
+* Show user notes
+* Add support for highlight headings
 ## [0.1.7] Readwise  2023-01-25 (aaronpoweruser)
 * Settings description clean up
 * Fix null highlight links
