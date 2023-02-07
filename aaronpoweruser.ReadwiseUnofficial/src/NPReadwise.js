@@ -102,7 +102,9 @@ async function parseBookAndWriteToNote(source: any): Promise<void> {
       } else {
         setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
       }
-      outputNote?.addParagraphBelowHeadingTitle('', 'text', 'Highlights', true, true)
+      if (!outputNote?.content?.includes('Highlights')) {
+        outputNote.insertHeading('Highlights', findEndOfActivePartOfNote(outputNote) + 1, 1)
+      }
     }
     source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
     removeEmptyLines(outputNote)
@@ -218,8 +220,8 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
   if (highlight.tags !== null && highlight.tags !== '') {
     for (const tag of highlight.tags) {
       if (tag.name !== null && tag.name !== '' && tag.name.startsWith('h') && tag.name.length === 2) {
-        const headingLevel = tag.name.substring(1)
-        outputNote.insertHeading(highlight.text, findEndOfActivePartOfNote(outputNote), headingLevel)
+        const headingLevel = parseInt(tag.name.substring(1)) + 1
+        outputNote.insertHeading(highlight.text, findEndOfActivePartOfNote(outputNote) + 1, headingLevel)
         return
       }
     }
