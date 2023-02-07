@@ -168,12 +168,15 @@ function formatTag(tag: string): string {
  * @returns {string} - the formatted heading
  */
 function buildReadwiseMetadataHeading(source: any): string {
-  let metadata = `Author: [[${source.author}]]` + '\n'
+  let metadata = `author: [[${source.author}]]` + '\n'
   if (source.book_tags !== null && source.book_tags.length > 0) {
-    metadata += `Tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
+    metadata += `tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
   }
   if (source.unique_url !== null) {
-    metadata += `URL: ${source.unique_url}`
+    metadata += `url: ${source.unique_url}`
+  }
+  if (source.readable_title.toLowerCase().trim() !== source.title.toLowerCase().trim()) {
+    metadata += `long_title: ${source.title}`
   }
   return metadata
 }
