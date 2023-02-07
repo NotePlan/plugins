@@ -3,6 +3,15 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
 
+## [0.16.0] - 2023-01-???
+### Added
+- **/index folders** has new option to sort output by title (alphabetical), last update date, or date the note was created (though note that I think that the underlying created date data is very unreliable).
+- **/index folders** has new option to add one of several date display settings on the end of every note that's listed
+- TODO: **/index folders** now has a Refresh button at the top of each results set
+
+### Fixed
+- **/convert to frontmatter** wasn't always working for calendar notes
+
 ## [0.15.0] - 2022-07-30
 ### Added
 - new command **/rename note filename** renames the currently open note. Note: this changes the underlying _filename_ not the visible _title_. (It only works with NotePlan v3.6.1 and later.)

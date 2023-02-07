@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md", 
-  "plugin.version": "0.15.0",
-  "plugin.lastUpdateInfo": "Added '/enable heading links' command, and let '/jump to heading' command by used from x-callback-urls",
+  "plugin.version": "0.16.0",
+  "plugin.lastUpdateInfo": "v0.15: can now customise /indexFolders with new settings, and also use from x-callbacks.\nv0.15: Added '/enable heading links' command, and let '/jump to heading' command by used from x-callback-urls",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -83,12 +83,18 @@
       "jsFunction": "moveNote"
     },
     {
-      "name": "make notes index",
+      "name": "index folders",
       "alias": [
         "index"
       ],
-      "description": "Make/Update note link Indexes for one or more folders",
-      "jsFunction": "indexFolders"
+      "description": "Make/Update indexes for all notes in a folder (and sub-folders if wanted)",
+      "jsFunction": "indexFolders",
+      "parameters": [
+        "folder",
+        "displayOrder",
+        "dateDisplayType",
+        "includeSubfolders"
+      ]
     },
     {
       "name": "open note new window",
@@ -132,6 +138,36 @@
     }
   ],
   "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "/indexFolders settings"
+    },
+    {
+      "key": "displayOrder",
+      "title": "Sort order for index items",
+      "description": "Whether index entries are sorted alphabetically by title (the default), by created date, or by last updated date",
+      "type": "string",
+      "choices": [
+        "alphabetical",
+        "createdDate",
+        "updatedDate"
+      ],
+      "default": "alphabetical",
+      "required": true
+    },
+    {
+      "key": "dateDisplayType",
+      "title": "What type of date suffix to add?",
+      "description": "What type of date/time period to add to the end of note links in the index",
+      "type": "string",
+      "choices": [
+        "none",
+        "time since last update",
+        "updated date"
+      ],
+      "default": "none",
+      "required": true
+    },
     {
       "type": "heading",
       "title": "/convert to frontmatter setting"

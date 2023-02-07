@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 30.7.2022 for v0.15.0, @jgclark
+// Last updated 5.1.2023 for v0.16.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -15,19 +15,23 @@ import { chooseFolder, chooseHeading, getInput, showMessage } from '@helpers/use
 //-----------------------------------------------------------------
 // Settings
 
-type noteHelpersConfigType = {
+const pluginID = 'jgclark.NoteHelpers'
+
+export type noteHelpersConfigType = {
+  dateDisplayType: string,
   defaultText: string,
+  displayOrder: string,
 }
 
 /**
  * Get config settings using Config V2 system.
  * @author @jgclark
  */
-async function getSettings(): Promise<any> {
+export async function getSettings(): Promise<any> {
   // logDebug(pluginJson, `Start of getSettings()`)
   try {
     // Get settings using ConfigV2
-    const v2Config: noteHelpersConfigType = await DataStore.loadJSON('../jgclark.NoteHelpers/settings.json')
+    const v2Config: noteHelpersConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
     if (v2Config == null || Object.keys(v2Config).length === 0) {
       await showMessage(
