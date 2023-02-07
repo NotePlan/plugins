@@ -213,7 +213,7 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
  * @param {string} asin - the asin of the book
  */
 function appendHighlightToNote(outputNote: TNote, highlight: any, category: string, asin: string): void {
-  const filteredContent = highlight.text.replace(/\n/g, '\n > ')
+  const filteredContent = highlight.text.replace(/\n/g, ' ')
   let linkToHighlightOnWeb = ''
   let userNote = ''
 
@@ -227,7 +227,7 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
     }
   }
 
-  if (highlight.notes !== null && highlight.notes !== '') {
+  if (highlight.note !== null && highlight.note !== '') {
     userNote = `(${highlight.note})`
   }
 
