@@ -123,11 +123,6 @@ function buildReadwiseNoteTitle(source: any): string {
   }
 }
 
-// removes all empty lines in a note
-function removeEmptyLines(note: ?Tnote): void {
-  note.content = note?.content?.replace(/^\s*\n/gm, '')
-}
-
 /**
  * Parse readwise data and generate front matter
  * @param {*} source - the readwise data as a JSON object
@@ -146,20 +141,6 @@ function buildReadwiseFrontMatter(source: any): any {
     frontMatter.url = source.unique_url
   }
   return frontMatter
-}
-
-/**
- * Formats the note tag using the prefix from plugin settings
- * @param {string} tag - the tag to format
- * @returns {string} - the formatted tag
- */
-function formatTag(tag: string): string {
-  const prefix = DataStore.settings.tagPrefix ?? ''
-  if (prefix === '') {
-    return `#${tag}`
-  } else {
-    return `#${prefix}/${tag}`
-  }
 }
 
 /**
@@ -244,4 +225,23 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
     }
   }
   outputNote.appendParagraph(filteredContent + userNote + linkToHighlightOnWeb, 'quote')
+}
+
+/**
+ * Formats the note tag using the prefix from plugin settings
+ * @param {string} tag - the tag to format
+ * @returns {string} - the formatted tag
+ */
+function formatTag(tag: string): string {
+  const prefix = DataStore.settings.tagPrefix ?? ''
+  if (prefix === '') {
+    return `#${tag}`
+  } else {
+    return `#${prefix}/${tag}`
+  }
+}
+
+// removes all empty lines in a note
+function removeEmptyLines(note: ?Tnote): void {
+  note.content = note?.content?.replace(/^\s*\n/gm, '')
 }
