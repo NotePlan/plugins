@@ -297,7 +297,7 @@ describe('sorting.js', () => {
         {
           type: 'checklist',
           indents: 0,
-          content: 'test content',
+          content: 'test content >2022-01',
           rawContent: '+ test content',
         },
       ]
