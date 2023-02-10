@@ -117,8 +117,17 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
   }
   // $FlowIgnore[incompatible-type]
   logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith}, repl=${repl}`)
-  while (isScheduled(str)) {
-    str = str.replace(RE_PLUS_DATE, '').replace('>today', '').replace(new RegExp(WEEK_NOTE_LINK), '').replace(/ {2,}/g, ' ').trim()
+  while (str && isScheduled(str)) {
+    str = str
+      .replace(RE_PLUS_DATE, '')
+      .replace('>today', '')
+      .replace(new RegExp(RE_SCHEDULED_ISO_DATE), '')
+      .replace(new RegExp(SCHEDULED_WEEK_NOTE_LINK), '')
+      .replace(new RegExp(SCHEDULED_MONTH_NOTE_LINK), '')
+      .replace(new RegExp(SCHEDULED_QUARTERLY_NOTE_LINK), '')
+      .replace(new RegExp(SCHEDULED_YEARLY_NOTE_LINK), '')
+      .replace(/ {2,}/g, ' ')
+      .trim()
   }
   // $FlowIgnore[incompatible-type]
   logDebug(`replaceArrowDatesInString: AFTER str=${str}, replaceWith=${replaceWith}, repl=${repl}`)
