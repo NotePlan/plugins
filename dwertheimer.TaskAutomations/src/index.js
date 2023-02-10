@@ -10,7 +10,18 @@ import { clo } from '@helpers/dev'
  * Command Exports
  */
 
-export { sortTasks, sortTasksByPerson, sortTasksByTag, sortTasksByDue, tasksToTop, openTasksToTop, sortTasksViaTemplate, sortTasksTagMention, sortTasksDefault } from './sortTasks'
+export {
+  sortTasks,
+  sortTasksByPerson,
+  sortTasksByTag,
+  sortTasksByDue,
+  tasksToTop,
+  openTasksToTop,
+  sortTasksViaTemplate,
+  sortTasksTagMention,
+  sortTasksDefault,
+  sortTasksUnderHeading,
+} from './sortTasks'
 export { default as markTasks } from './markTasks'
 export { taskSync } from './taskSync'
 export { copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
@@ -27,7 +38,7 @@ export {
 } from './NPOverdue'
 export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
 export { followUpSaveHere, followUpInFuture } from './NPFollowUp'
-export { processOverdueReact, onParagraphChange } from './NPOverdueReact.js'
+export { processOverdueReact, onUserModifiedParagraphs } from './NPOverdueReact.js'
 
 // updateSettingsData will execute whenever your plugin is installed or updated
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'

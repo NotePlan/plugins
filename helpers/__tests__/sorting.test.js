@@ -1,5 +1,6 @@
 /* globals describe, expect, test */
 import { _ } from 'lodash'
+import { Paragraph } from '../../__mocks__/Paragraph.mock'
 import * as s from '../sorting'
 
 // Jest suite
@@ -236,30 +237,98 @@ describe('sorting.js', () => {
       expect(result).toEqual(sortedList)
     })
   })
-})
 
-/**
- * getTasksByType()
- */
-describe('getTasksByType()', () => {
-  test('Should group tasks by type', () => {
-    const paragraphs = [
-      {
-        type: 'open',
-        indents: 0,
-        content: 'test content',
-        rawContent: '* test content',
-      },
-      {
-        type: 'scheduled',
-        indents: 0,
-        content: 'test content',
-        rawContent: '* test content',
-      },
-    ]
-    const taskList = s.getTasksByType(paragraphs)
-    expect(taskList['open'].length).toEqual(1)
-    expect(taskList['scheduled'].length).toEqual(1)
-    expect(taskList['open'][0].content).toEqual(paragraphs[0].content)
+  /**
+   * getTasksByType()
+   */
+  describe('getTasksByType()', () => {
+    test('Should group tasks by type', () => {
+      const paragraphs = [
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+        {
+          type: 'scheduled',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+      ]
+      const taskList = s.getTasksByType(paragraphs)
+      expect(taskList['open'].length).toEqual(1)
+      expect(taskList['scheduled'].length).toEqual(1)
+      expect(taskList['open'][0].content).toEqual(paragraphs[0].content)
+    })
+    test('Should include checklists by type', () => {
+      const paragraphs = [
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content >2022-01-01',
+          rawContent: '* test content',
+        },
+        {
+          type: 'checklistDone',
+          indents: 0,
+          content: 'test content',
+          rawContent: '+ [x] test content',
+        },
+        {
+          type: 'checklist',
+          indents: 0,
+          content: 'test content',
+          rawContent: '+ [>] test content',
+        },
+        {
+          type: 'checklistCancelled',
+          indents: 0,
+          content: 'test content',
+          rawContent: '+ [-] test content',
+        },
+        {
+          type: 'checklist',
+          indents: 0,
+          content: 'test content',
+          rawContent: '+ test content',
+        },
+      ]
+      const taskList = s.getTasksByType(paragraphs)
+      expect(taskList['open'].length).toEqual(1)
+      expect(taskList['scheduled'].length).toEqual(1)
+      expect(taskList['checklist'].length).toEqual(1)
+      expect(taskList['checklistDone'].length).toEqual(1)
+      expect(taskList['checklistScheduled'].length).toEqual(1)
+      expect(taskList['checklistCancelled'].length).toEqual(1)
+      expect(taskList['done']).toEqual([])
+    })
+  })
+  /*
+   * calculateParagraphType()
+   */
+  describe('calculateParagraphType()' /* function */, () => {
+    test('should return a standard type', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content' })
+      const result = s.calculateParagraphType(paragraph)
+      expect(result).toEqual('open')
+    })
+    test('should return a checklistScheduled type', () => {
+      const paragraph = new Paragraph({ type: 'checklist', content: 'test content >2022' })
+      const result = s.calculateParagraphType(paragraph)
+      expect(result).toEqual('checklistScheduled')
+    })
+    test('should return a scheduled type', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content >2022-10' })
+      const result = s.calculateParagraphType(paragraph)
+      expect(result).toEqual('scheduled')
+    })
   })
 })

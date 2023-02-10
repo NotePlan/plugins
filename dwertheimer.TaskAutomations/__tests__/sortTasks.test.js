@@ -279,6 +279,38 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.getTasksByHeading({ paragraphs: [p1, p2] })
         expect(result).toEqual({ __: [p1, p2] })
       })
+      test('should stop at ## Done', () => {
+        DataStore.settings.stopAtDoneHeading = true
+        const p1 = { type: 'text', content: `* [x] ! Pick up tailoring from @town @done(2022-10-07)`, heading: '', lineIndex: 0 }
+        const p2 = { type: 'open', content: `* [ ] ! Fix low space problem on MM4 @done(2022-10-07)`, heading: '', lineIndex: 1 }
+        const p3 = { type: 'title', content: `Done`, heading: '', headingLevel: 2, lineIndex: 2 }
+        const p4 = { type: 'open', content: `* [ ] ! Fix low space problem on MM4 @done(2022-10-07)`, heading: 'Done', lineIndex: 3 }
+        const result = f.getTasksByHeading({ paragraphs: [p1, p2, p3, p4] })
+        expect(result).toEqual({ __: [p1, p2] })
+      })
+      test('should stop at ## Cancelled', () => {
+        DataStore.settings.stopAtDoneHeading = true
+        const p1 = { type: 'text', content: `* [x] ! Pick up tailoring from @town @done(2022-10-07)`, heading: '', lineIndex: 0 }
+        const p2 = { type: 'open', content: `* [ ] ! Fix low space problem on MM4 @done(2022-10-07)`, heading: '', lineIndex: 1 }
+        const p3 = { type: 'title', content: `Cancelled`, heading: '', headingLevel: 2, lineIndex: 2 }
+        const p4 = { type: 'open', content: `* [ ] ! Fix low space problem on MM4 @done(2022-10-07)`, heading: 'Done', lineIndex: 3 }
+        const result = f.getTasksByHeading({ paragraphs: [p1, p2, p3, p4] })
+        expect(result).toEqual({ __: [p1, p2] })
+      })
+    })
+
+    /*
+     * addChecklistTypes()
+     */
+    describe('addChecklistTypes()' /* function */, () => {
+      test('should add one type', () => {
+        const result = f.addChecklistTypes(['foo', 'open'])
+        expect(result).toEqual(['foo', 'open', 'checklist'])
+      })
+      test('should add two types', () => {
+        const result = f.addChecklistTypes(['foo', 'open', 'nothing', 'done'])
+        expect(result).toEqual(['foo', 'open', 'checklist', 'nothing', 'done', 'checklistDone'])
+      })
     })
 
     /*
@@ -335,6 +367,41 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result[4].content).toEqual('- [-] 3-cancelled')
         expect(result[3].content).toEqual('- [x] 2-done')
         expect(result[2].content).toEqual('- [>] 4-scheduled')
+        expect(result[1].content).toEqual('- [ ] 1-open')
+        global.Editor = editorBackup
+      })
+      test('should write to Editor one of each task+checklist type in default order', async () => {
+        // const taskTypes = (DataStore.settings.outputOrder ?? 'open, scheduled, done, cancelled').split(',').map((t) => t.trim())
+        const editorBackup = Editor
+        const titlePara = new Paragraph({ type: 'title', content: 'NoteTitle', lineIndex: 0 })
+        const firstLine = new Paragraph({ type: 'empty', content: '', lineIndex: 1 })
+        const note = new Note({ paragraphs: [titlePara, firstLine] })
+        const tasks = [
+          new Paragraph({ type: 'open', content: '1-open' }),
+          new Paragraph({ type: 'checklist', content: '2-checklist' }),
+          new Paragraph({ type: 'done', content: '3-done' }),
+          new Paragraph({ type: 'checklistDone', content: '4-checklistDone' }),
+          new Paragraph({ type: 'cancelled', content: '5-cancelled' }),
+          new Paragraph({ type: 'checklistCancelled', content: '6-checklistCancelled' }),
+          new Paragraph({ type: 'scheduled', content: '7-scheduled' }),
+          new Paragraph({ type: 'checklistScheduled', content: '8-checklistScheduled' }),
+        ]
+        const tByType = getTasksByType(tasks)
+        await f.writeOutTasks(note, tByType)
+        const result = note.paragraphs
+        expect(result.length).toEqual(10)
+        // export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
+        // output order is the reverse of that order
+        // Note that types will be unreliable because rawContent is being pasted
+        // so we're just checking the content
+        // console.log(`sortTasks result`, result)
+        expect(result[8].content).toEqual('+ [-] 6-checklistCancelled')
+        expect(result[7].content).toEqual('- [-] 5-cancelled')
+        expect(result[6].content).toEqual('+ [x] 4-checklistDone')
+        expect(result[5].content).toEqual('- [x] 3-done')
+        expect(result[4].content).toEqual('+ [>] 8-checklistScheduled')
+        expect(result[3].content).toEqual('- [>] 7-scheduled')
+        expect(result[2].content).toEqual('+ [ ] 2-checklist')
         expect(result[1].content).toEqual('- [ ] 1-open')
         global.Editor = editorBackup
       })

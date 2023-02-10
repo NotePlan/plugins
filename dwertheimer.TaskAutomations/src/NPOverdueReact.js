@@ -4,7 +4,7 @@ import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekendOfInterval } from 'date-fns'
 import pluginJson from '../plugin.json'
 import { sortListBy } from '../../helpers/sorting'
-import { sendBannerMessage } from '../../dwertheimer.React/src/Bridge'
+import { sendBannerMessage } from '@helpers/HTMLView'
 import { getTodaysDateAsArrowDate } from '../../helpers/dateTime'
 import { noteHasContent } from '../../helpers/NPParagraph'
 import { getWeekOptions } from '../../helpers/NPdateTime'
@@ -31,13 +31,17 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
   fields.forEach((field) => {
     const rawWasEdited = fields.indexOf('rawContent') > 1 && fieldsObject.originalRawContent && fieldsObject.rawContent !== fieldsObject.originalRawContent
     if (field === 'rawContent' && rawWasEdited) {
+      // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
       if (paragraph[field] !== fieldsObject['originalRawContent']) {
-        logDebug(pluginJson, `paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
+        // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
+        // logDebug(pluginJson, `${field} paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
         match = false
       }
     } else {
+      // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
       if (paragraph[field] !== fieldsObject[field]) {
-        logDebug(pluginJson, `paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
+        // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
+        // logDebug(pluginJson, `${field} -- paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
         match = false
       }
     }
@@ -52,10 +56,10 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
  * @returns
  */
 export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragraphDataToFind: any): TParagraph | null {
-  clo(parasToLookIn, `findParagraph', parasToLookIn.length=${parasToLookIn.length}`)
+  // clo(parasToLookIn, `findParagraph', parasToLookIn.length=${parasToLookIn.length}`)
   const fieldsToMatch = ['filename', 'rawContent'] // rawContent is always going to be the content before it was changed
   const potentials = parasToLookIn.filter((p) => paragraphMatches(p, paragraphDataToFind, fieldsToMatch))
-  logDebug(pluginJson, `findParagraph potential matches=${potentials.length}`)
+  clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the ${potentials.length > 1 ? 'first' : ''}one:`)
   if (potentials?.length === 1) {
     return potentials[0]
   } else if (potentials.length > 1) {
@@ -70,6 +74,13 @@ export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragra
       )}. Could not determine which one to use.`,
     )
     return null
+  } else {
+    // no matches
+    const p = paragraphDataToFind
+    logDebug(pluginJson, `findParagraph: found no paragraphs in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind)}`)
+    logDebug(`\n**** Looking for "${p[fieldsToMatch[0]]}" "${p[fieldsToMatch[1]]}" in the following list`)
+    //$FlowIgnore
+    parasToLookIn.forEach((p) => logDebug(pluginJson, `\t findParagraph: ${p[fieldsToMatch[0]]} ${p[fieldsToMatch[1]]}`))
   }
   logDebug(pluginJson, `findParagraph could not find paragraph in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind)}`)
   return null
@@ -85,7 +96,7 @@ function getParagraphFromStaticObject(staticObject: any): TParagraph | null {
   const { filename, noteType } = staticObject
   const note = DataStore.noteByFilename(filename, noteType)
   if (note) {
-    logDebug(pluginJson, `getParagraphFromStaticObject found note ${note.title}`)
+    logDebug(pluginJson, `getParagraphFromStaticObject found note ${note.title || ''}`)
     // TODO: dbw - have refactored this a little. dont think we need it do we?
     // the text we are looking for may have been cleansed, so let's add cleansed ones to the search
     // const paras = [...note.paragraphs, ...removeOverdueDatesFromParagraphs([...note?.paragraphs], '')]
@@ -103,7 +114,7 @@ function getParagraphFromStaticObject(staticObject: any): TParagraph | null {
 }
 
 /**
- * Finzlize the actions taken by the user (save/update the results)
+ * Finalize the actions taken by the user (save/update the results)
  * @param {*} resultObj - the result of the user's action { action:string, changed:TParagraph }
  * @returns {TParagraph | null} - the updated paragraph with new data (has not been saved to API yet)
  */
@@ -214,7 +225,11 @@ export function finalizeChanges(result: any): TParagraph | null {
   }
   */
 
-export function paragraphUpdateReceived(data) {
+/**
+ * Update a specific paragraph(s)
+ * Called by the function receiving the callback/updates from the HTML window
+ */
+export function paragraphUpdateReceived(data: { rows: Array<any>, field: string }): void {
   const { rows, field } = data
   const updatesByNote = {}
   if (rows?.length && field) {
@@ -222,6 +237,7 @@ export function paragraphUpdateReceived(data) {
       clo(row, `paragraphUpdateReceived getting row of ${rows.length} (${row.content})`)
       const para = getParagraphFromStaticObject(row)
       if (para) {
+        // $FlowFixMe
         para[field] = row[field]
         const val = { action: 'set', changed: para }
         clo(val, `paragraphUpdateReceived setting ${field} to ${row[field]}`)
@@ -240,27 +256,27 @@ export function paragraphUpdateReceived(data) {
   }
 }
 
-export async function dropdownChangeReceived(data) {
+export async function dropdownChangeReceived(data: { rows: Array<any>, choice: string }): Promise<void> {
   const { rows, choice } = data
   if (rows?.length && choice) {
     const sortedRows = sortListBy(rows, ['filename', '-lineIndex'])
     const overdueParas = getOverdueTasks() //FIXME: to generalize this, we can't just pull overdue tasks
     const updatesByNote = {}
     for (const row of sortedRows) {
-      clo(row, `onParagraphChange getting row of ${sortedRows.length} (${row.content})`)
+      clo(row, `dropdownChangeReceived getting row of ${sortedRows.length} (${row.content})`)
       // const note = DataStore.noteByFilename(row.filename, row.noteType || 'Notes')
       if (overdueParas) {
-        logDebug(pluginJson, `onParagraphChange found overdueParas: ${overdueParas.length} `)
+        logDebug(pluginJson, `dropdownChangeReceived found overdueParas: ${overdueParas.length} `)
         const paragraph = findParagraph(overdueParas, row)
         if (!paragraph) {
-          logDebug(pluginJson, `onParagraphChange Could not find row: ${JSON.stringify(row)}`)
+          logDebug(pluginJson, `dropdownChangeReceived Could not find row: ${JSON.stringify(row)}`)
           await sendBannerMessage(
             `NotePlan plugin TaskAutomations could not find the paragraph you were editing. This may be a bug. Please report it to the developer.\n\Item "${row.content}" not found.`,
           )
         } else {
-          clo(paragraph, `onParagraphChange found paragraph "${row.content}" in overdueParas`)
+          clo(paragraph, `dropdownChangeReceived found paragraph "${row.content}" in overdueParas`)
           const result = await prepareUserAction(paragraph, paragraph, choice)
-          clo(paragraph, `onParagraphChange prepareUserAction: ${JSON.stringify(result)}`)
+          clo(paragraph, `dropdownChangeReceived prepareUserAction: ${JSON.stringify(result)}`)
           const para = finalizeChanges(result)
           if (para && para.filename) {
             // writing one at a time will not work in the same note, so we need to save them and write them all at once
@@ -269,7 +285,7 @@ export async function dropdownChangeReceived(data) {
           }
         }
       } else {
-        logDebug(pluginJson, `onParagraphChange Could not find note "${row.filename}"`)
+        logDebug(pluginJson, `dropdownChangeReceived Could not find note "${row.filename}"`)
         await sendBannerMessage(
           `NotePlan plugin TaskAutomations could not find the paragraph you were editing. This may be a bug. Please report it to the developer.\n\nNote "${row.filename}" not found.`,
         )
@@ -284,14 +300,15 @@ export async function dropdownChangeReceived(data) {
 }
 
 /**
- * onParagraphChange
- * Plugin entrypoint for "/onParagraphChange - item was changed in HTML"
+ * onUserModifiedParagraphs
+ * Plugin entrypoint for "/onUserModifiedParagraphs - item was changed in HTML"
+ * This is a callback
  * @author @dwertheimer
  */
-export async function onParagraphChange(actionType: string, data: any) {
+export async function onUserModifiedParagraphs(actionType: string, data: any) {
   try {
-    logDebug(pluginJson, `onParagraphChange: actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
-    clo(data, `onParagraphChange data=`)
+    logDebug(pluginJson, `NP Plugin return path (onUserModifiedParagraphs) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
+    clo(data, `onUserModifiedParagraphs data=`)
     switch (actionType) {
       case 'actionDropdown':
         await dropdownChangeReceived(data) // data = { rows, choice }
@@ -385,6 +402,7 @@ export function getStaticTaskList(flatParaList: Array<TParagraph>, statusType: s
 /**
  * Process overdue items using React HTML View
  * Plugin entrypoint for "/Process Overdue Items in Separate Window"
+ * Intended for users to invoke from Command Bar
  * @author @dwertheimer
  */
 export async function processOverdueReact(incoming: string) {
@@ -421,17 +439,24 @@ export async function processOverdueReact(incoming: string) {
 
     const data = {
       title: `Overdue Tasks`,
+      debug: false,
+      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onUserModifiedParagraphs' },
+      componentPath: './_jsx-Components-Bundle.min.js', //TODO: move this to this plugin's folder
+      /* ... +any other data you want to be available to your react components */
       overdueParas: staticParasToReview,
       dropdownOptionsAll: getSpecializedOptions(false),
       dropdownOptionsLine: getSpecializedOptions(true),
-      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onParagraphChange' },
       contextButtons: getButtons(),
       startTime,
     }
-    const payload = ['overdueTasksReview', data]
+    const windowOptions = {
+      savedFilename: 'reactLocal.html',
+    }
+
+    const payload = [data, windowOptions]
     console.log(`===== Calling React after ${timer(startTime)} =====`)
-    await DataStore.invokePluginCommandByName('openParagraphTableView', 'dwertheimer.React', payload)
-    logDebug(pluginJson, `processOverdueReact finished invoking window. stopping for now.`)
+    logDebug(pluginJson, `processOverdueReact invoking window. processOverdueReact stopping here.`)
+    await DataStore.invokePluginCommandByName('openReactWindow', 'dwertheimer.React', payload)
     // await askToReviewWeeklyTasks(true)
     // await askToReviewTodaysTasks(true)
     // await askToReviewForgottenTasks(true)

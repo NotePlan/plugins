@@ -1,5 +1,6 @@
 // @flow
 import get from 'lodash/get'
+import { isScheduled } from './dateTime'
 
 export interface SortableParagraphSubset {
   content: string;
@@ -16,6 +17,7 @@ export interface SortableParagraphSubset {
   indents: number;
   children: Array<SortableParagraphSubset>;
   paragraph: ?TParagraph;
+  calculatedType: ?string;
 }
 
 export type GroupedTasks = {
@@ -23,6 +25,10 @@ export type GroupedTasks = {
   scheduled: Array<SortableParagraphSubset>,
   cancelled: Array<SortableParagraphSubset>,
   done: Array<SortableParagraphSubset>,
+  checklist: Array<SortableParagraphSubset>,
+  checklistDone: Array<SortableParagraphSubset>,
+  checklistCancelled: Array<SortableParagraphSubset>,
+  checklistScheduled: Array<SortableParagraphSubset>,
   title: Array<SortableParagraphSubset>,
   quote: Array<SortableParagraphSubset>,
   list: Array<SortableParagraphSubset>,
@@ -37,13 +43,17 @@ export type ParagraphsGroupedByType = {
   scheduled?: ?Array<TParagraph>,
   cancelled?: ?Array<TParagraph>,
   done?: ?Array<TParagraph>,
+  checklist: ?Array<TParagraph>,
+  checklistDone: ?Array<TParagraph>,
+  checklistCancelled: ?Array<TParagraph>,
+  checklistScheduled: ?Array<TParagraph>,
 }
 
 export const HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
 export const MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
 const EXCLAMATIONS: RegExp = /\B(!+\B)/g
 const PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
-export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
+export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled', 'checklist', 'checklistDone', 'checklistCancelled', 'checklistScheduled']
 export const isTask = (para: TParagraph): boolean => TASK_TYPES.indexOf(para.type) >= 0
 
 /**
@@ -187,6 +197,20 @@ function getNumericPriority(item: SortableParagraphSubset): number {
 }
 
 /**
+ * Scheduled tasks/checklists are not discernible from the 'type' property of the paragraph
+ * (they both just appear to be open tasks). So we need to check the content to see if it's
+ * a scheduled task/checklist.)
+ * @param {TParagraph} para
+ * @returns - the type of the paragraph (the normal types + 'scheduled' and 'checklistScheduled')
+ */
+export function calculateParagraphType(para: TParagraph) {
+  let type = para.type
+  if (type === 'open' && isScheduled(para.content)) type = 'scheduled'
+  if (type === 'checklist' && isScheduled(para.content)) type = 'checklistScheduled'
+  return type
+}
+
+/**
  * Sort paragraphs into groups of like types (open, scheduled, done, cancelled, etc.) for task sorting
  * @param {Array<Paragraph>} paragraphs - array of paragraph objects input
  * @param {boolean} ignoreIndents - whether to pay attention to child/indented paragraphs
@@ -225,14 +249,15 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
           children: [],
           due: para.date ?? new Date('2099-12-31'),
           paragraph: para,
+          calculatedType: calculateParagraphType(para),
         }
         // console.log(`new: ${index}: indents:${para.indents} ${para.rawContent}`)
         task.priority = getNumericPriority(task)
         if (!ignoreIndents && lastParent.indents < para.indents) {
           lastParent.children.push(task)
         } else {
-          const len = tasks[para.type].push(task)
-          lastParent = tasks[para.type][len - 1]
+          const len = tasks[task.calculatedType || 0].push(task)
+          lastParent = tasks[task.calculatedType || 0][len - 1]
         }
       } catch (error) {
         console.log(error, para.content, index)
