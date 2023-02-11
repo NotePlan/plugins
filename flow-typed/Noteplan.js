@@ -356,15 +356,15 @@ declare class DataStore {
    * Get all folders as array of strings.
    * Note: Includes the root "/" and folders that begin with "@" such as "@Archive" and "@Templates". It excludes the trash folder though.
    */
-static + folders: $ReadOnlyArray < string >;
-  /** 
+  static +folders: $ReadOnlyArray<string>;
+  /**
    * Create folder, if it doesn't already exist.
    * e.g. `DataStore.createFolder("test/hello world")`
    * Returns true if created OK (or it already existed) and false otherwise.
    * Note: Available from v3.8.0
    * @param {string} folderPath
    * @returns {boolean} succesful?
-  */
+   */
   static createFolder(folderPath: string): boolean;
   /**
    * Get all calendar notes.
@@ -564,8 +564,8 @@ static + folders: $ReadOnlyArray < string >;
    * @param {TParagraph}
    * @return {Array<TParagraph>}
    */
-  static referencedBlocks(): Array < TParagraph >;
-  static referencedBlocks(paragraph: TParagraph): Array < TParagraph >;
+  static referencedBlocks(): Array<TParagraph>;
+  static referencedBlocks(paragraph: TParagraph): Array<TParagraph>;
 
   /**
    * Updates the cache, so you can access changes faster.
@@ -573,12 +573,12 @@ static + folders: $ReadOnlyArray < string >;
    * If so, the note has to be reloaded for the updated .mentions to be available.
    * Note: Available from NotePlan v3.7.1
    * @param {TNote} note to update
-   * @param {Boolean} shouldUpdateTags? 
+   * @param {Boolean} shouldUpdateTags?
    */
   static updateCache(note, shouldUpdateTags): void;
 
   /**
-   * Loads all available plugins asynchronously from the GitHub repository and returns a list. 
+   * Loads all available plugins asynchronously from the GitHub repository and returns a list.
    * You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
    * Set `showHidden` to true if it should also load hidden plugins. Hidden plugins have a flag `isHidden`.
    * Set the third parameter `skipMatchingLocalPlugins` to true if you want to see only the available plugins from GitHub and not merge the data with the locally available plugins. Then the version will always be that of the plugin that is available online.
@@ -588,7 +588,7 @@ static + folders: $ReadOnlyArray < string >;
    * @param {boolean} skipMatchingLocalPlugins?
    * @return {Promise<any>} pluginList
    */
-  static listPlugins(showLoading, showHidden, skipMatchingLocalPlugins): Promise < Array < PluginObject >>;
+  static listPlugins(showLoading, showHidden, skipMatchingLocalPlugins): Promise<Array<PluginObject>>;
   /**
    * Installs a given plugin (load a list of plugins using `.listPlugins` first). If this is part of a user interfaction, pass "true" for `showLoading` to show a loading indicator.
    * Note: Available from v3.5.2
@@ -606,6 +606,7 @@ static + folders: $ReadOnlyArray < string >;
    * Invoke a given command from a plugin (load a list of plugins using `.listPlugins` first, then get the command from the `.commands` list).
    * If the command supports it, you can also pass an array of arguments which can contain any type (object, date, string, integer,...)
    * It returns the particular return value of that command which can be a Promise so you can use it with `await`.
+   * You can await for a return value, but even if you plan to ignore the value, the receiving function should return a value (even a blank {}) or you will get an error in the log
    * Note: Available from v3.5.2
    * @param {PluginCommandObject}
    * @param {$ReadOnlyArray<mixed>}
@@ -616,13 +617,14 @@ static + folders: $ReadOnlyArray < string >;
    * Invoke a given command from a plugin using the name and plugin ID, so you don't need to load it from the list.
    * If the command doesn't exist locally null will be returned with a log message.
    * If the command supports it, you can also pass an array of arguments which can contain any type (object, date, string, integer,...)
+   * You can await for a return value, but even if you plan to ignore the value, the receiving function should return a value (even a blank {}) or you will get an error in the log
    * Note: Available from v3.5.2
-   * @param {string}
+   * @param {string} - commandName - the NAME field from the command in plugin.json (not the jsFunction!)
    * @param {string}
    * @param {$ReadOnlyArray<mixed>}
    * @return {any} Return value of the command, like a Promise
    */
-  static invokePluginCommandByName(command: string, pluginID: string, arguments?: $ReadOnlyArray<mixed>): Promise<any>;
+  static invokePluginCommandByName(commandName: string, pluginID: string, arguments?: $ReadOnlyArray<mixed>): Promise<any>;
   /**
    * Checks if the given pluginID is installed or not.
    * Note: Available from v3.6.0
@@ -666,7 +668,7 @@ static + folders: $ReadOnlyArray < string >;
    */
   static search(
     keyword: string,
-    typesToInclude ?: Array < string >,
+    typesToInclude?: Array<string>,
     inFolders?: Array<string>,
     notInFolders?: Array<string>,
     shouldLoadDatedTodos?: boolean,
@@ -1255,8 +1257,7 @@ type NoteType = 'Calendar' | 'Notes'
  * Note: All of the items here are now in CoreNoteFields.
  * TODO(@nmn): Can this now safely be removed?
  */
-declare interface Note extends CoreNoteFields {
-}
+declare interface Note extends CoreNoteFields {}
 
 /**
  * Ranges are used when you deal with selections or need to know where a
@@ -1481,7 +1482,22 @@ declare class Clipboard {
 /* Available paragraph types
  * Note: 'separator' added v3.4.1, and the 'checklist*' types added v3.8.0
  */
-type ParagraphType = 'open' | 'done' | 'scheduled' | 'cancelled' | 'checklist' | 'checklistDone' | 'checklistScheduled' | 'checklistCancelled' | 'title' | 'quote' | 'list' | 'empty' | 'text' | 'code' | 'separator'
+type ParagraphType =
+  | 'open'
+  | 'done'
+  | 'scheduled'
+  | 'cancelled'
+  | 'checklist'
+  | 'checklistDone'
+  | 'checklistScheduled'
+  | 'checklistCancelled'
+  | 'title'
+  | 'quote'
+  | 'list'
+  | 'empty'
+  | 'text'
+  | 'code'
+  | 'separator'
 
 type TCoreNoteFields = CoreNoteFields
 declare interface CoreNoteFields {
@@ -1502,23 +1518,23 @@ declare interface CoreNoteFields {
   /**
    * Optional date if it's a calendar note
    */
-+date: Date | void;
-/**
- * Date and time when the note was last modified.
- */
-+changedDate: Date;
-/**
- * Date and time of the creation of the note.
- */
-+createdDate: Date;
-/**
- * All #hashtags contained in this note.
- */
-+hashtags: $ReadOnlyArray < string >;
-/**
- * All @mentions contained in this note.
- */
-+mentions: $ReadOnlyArray < string >;
+  +date: Date | void;
+  /**
+   * Date and time when the note was last modified.
+   */
+  +changedDate: Date;
+  /**
+   * Date and time of the creation of the note.
+   */
+  +createdDate: Date;
+  /**
+   * All #hashtags contained in this note.
+   */
+  +hashtags: $ReadOnlyArray<string>;
+  /**
+   * All @mentions contained in this note.
+   */
+  +mentions: $ReadOnlyArray<string>;
   /**
    * Get or set the raw text of the note (without hiding or rendering any Markdown).
    * If you set the content, NotePlan will write it immediately to file.
@@ -1531,37 +1547,37 @@ declare interface CoreNoteFields {
    * updated.
    * TODO: Should this really be $ReadOnlyArray?
    */
-paragraphs: $ReadOnlyArray < TParagraph >;
-/**
-* Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
-* Note: Available from v3.2.0
-*/
-+linkedItems: $ReadOnlyArray < TParagraph >;
-/**
- * Get paragraphs contained in this note which contain a link to a daily note.
- * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
- * Note: Available from v3.2.0
- */
-+datedTodos: $ReadOnlyArray < TParagraph >;
-/**
- * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
- * NB: Backlinks are all [[note name]] and >date links.
- * TODO(@nmn): Please include `subItems` here
- * Note: Available from v3.2.0
- */
-+backlinks: $ReadOnlyArray < TParagraph >;
-/**
- * Get all types assigned to this note in the frontmatter as an array of strings.
- * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
- * Note: Available from v3.5.0
- */
-+frontmatterTypes: $ReadOnlyArray < string >;
-/**
- * Get all attributes in the frontmatter, as an object.
- * Note: Added by @jgclark by inspection of real data
- * TODO(@EduardMe): add this to the documentation.
- */
-+frontmatterAttributes: Object;
+  paragraphs: $ReadOnlyArray<TParagraph>;
+  /**
+   * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
+   * Note: Available from v3.2.0
+   */
+  +linkedItems: $ReadOnlyArray<TParagraph>;
+  /**
+   * Get paragraphs contained in this note which contain a link to a daily note.
+   * Specifically this includes paragraphs with >YYYY-MM-DD, @YYYY-MM-DD, <YYYY-MM-DD, >today, @done(YYYY-MM-DD HH:mm), but only in non-calendar notes (because currently NotePlan doesn't create references between daily notes).
+   * Note: Available from v3.2.0
+   */
+  +datedTodos: $ReadOnlyArray<TParagraph>;
+  /**
+   * Get all backlinks pointing to the current note as Paragraph objects. In this array, the toplevel items are all notes linking to the current note and the 'subItems' attributes (of the paragraph objects) contain the paragraphs with a link to the current note. The heading of the linked paragraphs are also listed here, although they don't have to contain a link.
+   * NB: Backlinks are all [[note name]] and >date links.
+   * TODO(@nmn): Please include `subItems` here
+   * Note: Available from v3.2.0
+   */
+  +backlinks: $ReadOnlyArray<TParagraph>;
+  /**
+   * Get all types assigned to this note in the frontmatter as an array of strings.
+   * You can set types of a note by adding frontmatter e.g. `type: meeting-note, empty-note` (comma separated).
+   * Note: Available from v3.5.0
+   */
+  +frontmatterTypes: $ReadOnlyArray<string>;
+  /**
+   * Get all attributes in the frontmatter, as an object.
+   * Note: Added by @jgclark by inspection of real data
+   * TODO(@EduardMe): add this to the documentation.
+   */
+  +frontmatterAttributes: Object;
 
   /**
    * Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
@@ -1578,7 +1594,7 @@ paragraphs: $ReadOnlyArray < TParagraph >;
    * @param {String} newFilename requested
    * @returns {String} actualFilename
    */
-rename(newFilename: string): string;
+  rename(newFilename: string): string;
   /**
    * Inserts the given text at the given character position (index)
    * Note: this is not quite the same as Editor.insertTextAtCharacterIndex()

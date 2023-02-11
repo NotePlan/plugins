@@ -562,7 +562,7 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
     const ${jsFunctionName} = (commandName = "${commandName}", pluginID = "${pluginID}", commandArgs = []) => {
       const code = ${haveNotePlanExecute}.replace("%%commandName%%",commandName).replace("%%pluginID%%",pluginID).replace("%%commandArgs%%", JSON.stringify(commandArgs));
       // console.log(\`${jsFunctionName}: Sending command "\$\{commandName\}" to NotePlan: "\$\{pluginID\}" with args: \$\{JSON.stringify(commandArgs)\}\`);
-      console.log(\`${jsFunctionName}: Sending code: "\$\{code\}"\`)
+      console.log(\`window.${jsFunctionName}: Sending code: "\$\{code\}"\`)
       if (window.webkit) {
         window.webkit.messageHandlers.jsBridge.postMessage({
           code: code,
@@ -570,7 +570,7 @@ export function getCallbackCodeString(jsFunctionName: string, commandName: strin
           id: "1"
         });
       } else {
-        console.log(\`\$\{commandName\} called with args:\`, commandArgs);
+        console.log(\`window.${jsFunctionName}: \$\{commandName\} called with args:\`, commandArgs);
       }
     };
 `
@@ -924,6 +924,7 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  * SET_TITLE - update the title of the HTML window (send {title: 'new title'} in the payload)
  * SHOW_BANNER - display a message in the top of the page (use the helper sendBannerMessage('message'))
  * SET_DATA - tell the HTML window to update its state with the data passed
+ * RETURN_VALUE - the async return value of a call that came in fron the React Window to the Plugin
  */
 
 /**
