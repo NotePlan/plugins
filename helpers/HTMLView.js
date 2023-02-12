@@ -939,8 +939,8 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  */
 export async function sendToHTMLWindow(actionType: string, data: any = {}): any {
   try {
-    logDebug(`Bridge::sendToHTMLWindow`, `sending "${actionType}" data=${JSON.stringify(data)}`)
     const dataWithUpdated = { ...data, ...{ lastUpdated: { msg: actionType, date: new Date().toLocaleString() } } }
+    logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
     const result = await HTMLView.runJavaScript(`window.postMessage(
         { 
           type: '${actionType}', 
