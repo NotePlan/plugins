@@ -2,6 +2,7 @@
 import { _ } from 'lodash'
 import { Paragraph } from '../../__mocks__/Paragraph.mock'
 import * as s from '../sorting'
+import { clo } from '@helpers/dev'
 
 // Jest suite
 describe('sorting.js', () => {
@@ -234,6 +235,39 @@ describe('sorting.js', () => {
         { title: 'Title CCC', lineIndex: 100 },
       ]
       const result = s.sortListBy(unsortedList, ['title', 'lineIndex'])
+      expect(result).toEqual(sortedList)
+    })
+
+    // @jgclark's test to support jgclark.Reviews/reviews.js
+    test('should sort object array by folder ASC then numeric reviewDays ASC. With empty numbers as empty strings', () => {
+      const sortSpec = ['folder', 'reviewDays']
+      const unsortedList = [
+        { "reviewDays": "NaN", "folder": "CCC Areas" },
+        { "reviewDays": "NaN", "folder": "CCC Areas" },
+        { "reviewDays": "NaN", "folder": "TEST" },
+        { "reviewDays": "1", "folder": "CCC Areas" },
+        { "reviewDays": "13", "folder": "CCC Areas" },
+        { "reviewDays": "135", "folder": "CCC Areas" },
+        { "reviewDays": "-560", "folder": "TEST" },
+        { "reviewDays": "-30", "folder": "TEST" },
+        { "reviewDays": "0", "folder": "CCC Areas" },
+        { "reviewDays": "-24", "folder": "TEST" },
+        { "reviewDays": "NaN", "folder": "TEST" },
+      ]
+      const sortedList = [
+        { "reviewDays": "0", "folder": "CCC Areas" },
+        { "reviewDays": "1", "folder": "CCC Areas" },
+        { "reviewDays": "13", "folder": "CCC Areas" },
+        { "reviewDays": "135", "folder": "CCC Areas" },
+        { "reviewDays": "NaN", "folder": "CCC Areas" },
+        { "reviewDays": "NaN", "folder": "CCC Areas" },
+        { "reviewDays": "-560", "folder": "TEST" },
+        { "reviewDays": "-30", "folder": "TEST" },
+        { "reviewDays": "-24", "folder": "TEST" },
+        { "reviewDays": "NaN", "folder": "TEST" },
+        { "reviewDays": "NaN", "folder": "TEST" },
+      ]
+      const result = s.sortListBy(unsortedList, sortSpec)
       expect(result).toEqual(sortedList)
     })
   })

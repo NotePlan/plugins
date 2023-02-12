@@ -1,6 +1,7 @@
 // @flow
 import get from 'lodash/get'
 import { isScheduled } from './dateTime'
+import { clo, logDebug } from './dev'
 
 export interface SortableParagraphSubset {
   content: string;
@@ -135,26 +136,28 @@ export const fieldSorter =
         if (isDesc) {
           dir = -1
           field = field.substring(1)
-          field = isNaN(field) ? field : Number(field)
-        } else {
-          field = isNaN(field) ? field : Number(field)
         }
-        const aValue = firstValue(get(a, field))
-        const bValue = firstValue(get(b, field))
+        // field = isNaN(field) ? field : Number(field)
+        const aFirstValue = firstValue(get(a, field))
+        const bFirstValue = firstValue(get(b, field))
+        const aValue = (aFirstValue == null) ? null :
+          isNaN(aFirstValue) ? aFirstValue : Number(aFirstValue)
+        const bValue = (bFirstValue == null) ? null :
+          isNaN(bFirstValue) ? bFirstValue : Number(bFirstValue)
+        // if (field === "date") logDebug('', `${field}: ${String(aValue)} (${typeof aValue}) / ${String(bValue)} (${typeof bValue})`)
         if (aValue === bValue) return 0
-        if (aValue == null) return isDesc ? -dir : dir //null or undefined always come last
-        if (bValue == null) return isDesc ? dir : -dir
+        if (aValue == null || aValue === "NaN") return isDesc ? -dir : dir //null or undefined always come last
+        if (bValue == null || bValue === "NaN") return isDesc ? dir : -dir
         // $FlowIgnore - flow complains about comparison of non-identical types, but I am trapping for that
         return typeof aValue === typeof bValue ? (aValue > bValue ? dir : -dir) : 0
       })
       .reduce((p, n) => (p ? p : n), 0)
 
 /**
- * Sometimes you you want to sort on the value of a field that is an array
- * So in that case, grab the first item in that array to sort
- * Helper function for fieldSorter fields. If the value is an array,
- * return the first value
- * if it's not an array, just return the value, and if it's a string, lowercase value.
+ * Helper function for fieldSorter fields.
+ * Sometimes you want to sort on the value of a field that is an array.
+ * If the value is an array, return the first value from it. 
+ * If it's not an array, just return the value, and if it's a string, lowercase value.
  * @author @dwertheimer
  * @param {any} val
  * @returns
@@ -165,7 +168,7 @@ export const firstValue = (val: any): string | number => {
     return retVal
   } else {
     retVal = typeof retVal === 'number' || (typeof retVal !== 'object' && !isNaN(retVal) && retVal !== '') ? Number(retVal) : retVal
-    return typeof retVal === 'string' ? retVal.toLowerCase() : retVal
+    return (typeof retVal === 'string' && retVal !== "NaN") ? retVal.toLowerCase() : retVal
   }
 }
 
