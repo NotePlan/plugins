@@ -10,9 +10,13 @@ import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from '@helpers
 
 const TOP_LEVEL_HEADINGS = {
   open: 'Open Tasks',
+  checklist: 'Checklist Items',
   scheduled: 'Scheduled Tasks',
+  checklistScheduled: 'Scheduled Checklist Items',
   done: 'Completed Tasks',
+  checklistDone: 'Completed Checklist Items',
   cancelled: 'Cancelled Tasks',
+  checklistCancelled: 'Completed Cancelled Items',
 }
 
 const ROOT = '__'
@@ -235,6 +239,7 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
     .map((t) => {
       let str = t.raw
       if (t.children && t.children.length) {
+        //TODO: sort 2nd level also indented tasks
         str += `\n${t.children.map((c) => c.raw).join('\n')}`
       }
       return str
@@ -279,7 +284,8 @@ function insertTodos(note: CoreNoteFields, todos, heading = '', separator = '', 
  *  @return the object sorted list of the tasks from the note (keys are task types)
  */
 export function sortParagraphsByType(paragraphs: $ReadOnlyArray<TParagraph>, sortOrder: Array<string> = SORT_ORDERS[DEFAULT_SORT_INDEX].sortFields): ParagraphsGroupedByType {
-  const sortedList: ParagraphsGroupedByType = { open: [], done: [], cancelled: [], scheduled: [] }
+  // $FlowFixMe
+  const sortedList: ParagraphsGroupedByType = TASK_TYPES.reduce((acc, ty) => (acc[ty] = []), {})
   if (paragraphs?.length) {
     logDebug(`\t${paragraphs.length} total lines in section/note`)
     if (paragraphs.length) {
@@ -398,6 +404,27 @@ function deleteExistingTasks(note: CoreNoteFields, tasks: ParagraphsGroupedByTyp
 }
 
 /**
+ * Simple function to add checklist types into the sort order array following the task type it corresponds to
+ * @param {Array<string>} sortArray - the array of sort keys
+ * @returns {Array<string>} the array in the same order with checklist types added
+ */
+export const addChecklistTypes = (sortArray: Array<string>): Array<string> => {
+  const maps = { open: 'checklist', scheduled: 'checklistScheduled', done: 'checklistDone', cancelled: 'checklistCancelled' }
+  // splice checklist types into the sortArray following the task type it corresponds to
+  const origTypes = Object.keys(maps)
+  origTypes.forEach((origType) => {
+    const checklistType = maps[origType]
+    if (checklistType) {
+      const index = sortArray.indexOf(origType)
+      if (index > -1) {
+        sortArray.splice(index + 1, 0, checklistType)
+      }
+    }
+  })
+  return sortArray
+}
+
+/**
  * Write the tasks list back into the top of the document
  * @param {TNote} note
  * @param {ParagraphsGroupedByType} tasks
@@ -414,7 +441,9 @@ export async function writeOutTasks(
   title: string = '',
 ): Promise<void> {
   const { outputOrder, tasksToTop } = DataStore.settings
-  const taskTypes = (outputOrder ?? 'open, scheduled, done, cancelled').split(',').map((t) => t.trim())
+  let taskTypes = (outputOrder ?? 'open, scheduled, done, cancelled').split(',').map((t) => t.trim())
+  taskTypes = addChecklistTypes(taskTypes)
+  logDebug(pluginJson, `writeOutTasks taskTypes: ${taskTypes.toString()}`)
   const headings = TOP_LEVEL_HEADINGS
   // need to write in reverse order if we are going to keep adding a top insertionIndex
   const writeSequence = tasksToTop ? taskTypes.slice().reverse() : taskTypes
@@ -509,12 +538,23 @@ export function removeEmptyHeadings(note: CoreNoteFields) {
 }
 
 /**
+ * If {stopAtDoneHeading} setting is set, then find just the paragraphs up to the first done/cancelled heading
+ * @param {*} note - input note
+ * @returns {$ReadOnlyArray<TParagraph>} - array of paragraphs
+ */
+export function getActiveParagraphs(note: CoreNoteFields): $ReadOnlyArray<TParagraph> {
+  const { stopAtDoneHeading } = DataStore.settings
+  return (stopAtDoneHeading ? note.paragraphs.filter((p) => p.lineIndex <= findEndOfActivePartOfNote(note)) : note?.paragraphs) || []
+}
+
+/**
  * Build an object list of tasks from the note filtered by task
  * @param {TNote} note
  */
 export function getTasksByHeading(note: TNote): { [key: string]: $ReadOnlyArray<TParagraph> } {
-  const paragraphs = note?.paragraphs || []
   try {
+    if (!note) return { __: [] }
+    const paragraphs = getActiveParagraphs(note)
     const tasksObj = paragraphs.reduce(
       (acc: any, para) => {
         logDebug(`getTasksByHeading`, `para.type=${para.type} para.heading="${para.heading}" para.content="${para.content}"`)
@@ -586,7 +626,8 @@ export async function sortTasks(
     return // doing this to make Flow happy
   }
   logDebug(pluginJson, `sortTasks about to get sortGroups object`)
-  const sortGroups = byHeading && Editor?.note?.title ? getTasksByHeading(Editor.note) : { [Editor?.note?.title || '']: Editor?.note?.paragraphs }
+  const activeParagraphs = Editor.note ? getActiveParagraphs(Editor.note) : []
+  const sortGroups = byHeading && Editor?.note?.title ? getTasksByHeading(Editor.note) : { [Editor?.note?.title || '']: activeParagraphs }
   // clo(sortGroups, `sortTasks -- sortGroups obj=`)
   logDebug(pluginJson, `sortTasks have sortGroups object. key count=${Object.keys(sortGroups).length}. About to start the display loop`)
 
@@ -632,9 +673,10 @@ export async function sortTasksUnderHeading() {
           const sortOrder = await getUserSort()
           if (sortOrder) {
             const sortedTasks = sortParagraphsByType(block, sortOrder)
+            clo(sortedTasks, `sortTasksUnderHeading sortedTasks`)
             // const printHeadings = (await wantHeadings()) || false
             // const printSubHeadings = (await wantSubHeadings()) || false
-            const sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
+            // const sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
             if (Editor.note) deleteExistingTasks(Editor.note, sortedTasks) // need to do this before adding new lines to preserve line numbers
             // if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, printHeadings, printSubHeadings ? sortField1 : '', heading)
             if (Editor.note) await writeOutTasks(Editor.note, sortedTasks, false, false, '', heading)
@@ -643,6 +685,9 @@ export async function sortTasksUnderHeading() {
           await showMessage(`No tasks found under heading "${heading}"`)
         }
       }
+    } else {
+      logError(pluginJson, `sortTasksUnderHeading: There is no Editor.note. Bailing`)
+      await showMessage('No note is open')
     }
   } catch (error) {
     logError(pluginJson, JSON.stringify(error))

@@ -1,6 +1,8 @@
 /* globals describe, expect, test */
 import { _ } from 'lodash'
+import { Paragraph } from '../../__mocks__/Paragraph.mock'
 import * as s from '../sorting'
+import { clo } from '@helpers/dev'
 
 // Jest suite
 describe('sorting.js', () => {
@@ -235,31 +237,132 @@ describe('sorting.js', () => {
       const result = s.sortListBy(unsortedList, ['title', 'lineIndex'])
       expect(result).toEqual(sortedList)
     })
-  })
-})
 
-/**
- * getTasksByType()
- */
-describe('getTasksByType()', () => {
-  test('Should group tasks by type', () => {
-    const paragraphs = [
-      {
-        type: 'open',
-        indents: 0,
-        content: 'test content',
-        rawContent: '* test content',
-      },
-      {
-        type: 'scheduled',
-        indents: 0,
-        content: 'test content',
-        rawContent: '* test content',
-      },
-    ]
-    const taskList = s.getTasksByType(paragraphs)
-    expect(taskList['open'].length).toEqual(1)
-    expect(taskList['scheduled'].length).toEqual(1)
-    expect(taskList['open'][0].content).toEqual(paragraphs[0].content)
+    // @jgclark's test to support jgclark.Reviews/reviews.js
+    test('should sort object array by folder ASC then numeric reviewDays ASC. With empty numbers as empty strings', () => {
+      const sortSpec = ['folder', 'reviewDays']
+      const unsortedList = [
+        { "reviewDays": "NaN", "folder": "CCC Areas" },
+        { "reviewDays": "NaN", "folder": "CCC Areas" },
+        { "reviewDays": "NaN", "folder": "TEST" },
+        { "reviewDays": "1", "folder": "CCC Areas" },
+        { "reviewDays": "13", "folder": "CCC Areas" },
+        { "reviewDays": "135", "folder": "CCC Areas" },
+        { "reviewDays": "-560", "folder": "TEST" },
+        { "reviewDays": "-30", "folder": "TEST" },
+        { "reviewDays": "0", "folder": "CCC Areas" },
+        { "reviewDays": "-24", "folder": "TEST" },
+        { "reviewDays": "NaN", "folder": "TEST" },
+      ]
+      const sortedList = [
+        { "reviewDays": "0", "folder": "CCC Areas" },
+        { "reviewDays": "1", "folder": "CCC Areas" },
+        { "reviewDays": "13", "folder": "CCC Areas" },
+        { "reviewDays": "135", "folder": "CCC Areas" },
+        { "reviewDays": "NaN", "folder": "CCC Areas" },
+        { "reviewDays": "NaN", "folder": "CCC Areas" },
+        { "reviewDays": "-560", "folder": "TEST" },
+        { "reviewDays": "-30", "folder": "TEST" },
+        { "reviewDays": "-24", "folder": "TEST" },
+        { "reviewDays": "NaN", "folder": "TEST" },
+        { "reviewDays": "NaN", "folder": "TEST" },
+      ]
+      const result = s.sortListBy(unsortedList, sortSpec)
+      expect(result).toEqual(sortedList)
+    })
+  })
+
+  /**
+   * getTasksByType()
+   */
+  describe('getTasksByType()', () => {
+    test('Should group tasks by type', () => {
+      const paragraphs = [
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+        {
+          type: 'scheduled',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+      ]
+      const taskList = s.getTasksByType(paragraphs)
+      expect(taskList['open'].length).toEqual(1)
+      expect(taskList['scheduled'].length).toEqual(1)
+      expect(taskList['open'][0].content).toEqual(paragraphs[0].content)
+    })
+    test('Should include checklists by type', () => {
+      const paragraphs = [
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content >2022-01-01',
+          rawContent: '* test content',
+        },
+        {
+          type: 'checklistDone',
+          indents: 0,
+          content: 'test content',
+          rawContent: '+ [x] test content',
+        },
+        {
+          type: 'checklist',
+          indents: 0,
+          content: 'test content',
+          rawContent: '+ [>] test content',
+        },
+        {
+          type: 'checklistCancelled',
+          indents: 0,
+          content: 'test content',
+          rawContent: '+ [-] test content',
+        },
+        {
+          type: 'checklist',
+          indents: 0,
+          content: 'test content >2022-01',
+          rawContent: '+ test content',
+        },
+      ]
+      const taskList = s.getTasksByType(paragraphs)
+      expect(taskList['open'].length).toEqual(1)
+      expect(taskList['scheduled'].length).toEqual(1)
+      expect(taskList['checklist'].length).toEqual(1)
+      expect(taskList['checklistDone'].length).toEqual(1)
+      expect(taskList['checklistScheduled'].length).toEqual(1)
+      expect(taskList['checklistCancelled'].length).toEqual(1)
+      expect(taskList['done']).toEqual([])
+    })
+  })
+  /*
+   * calculateParagraphType()
+   */
+  describe('calculateParagraphType()' /* function */, () => {
+    test('should return a standard type', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content' })
+      const result = s.calculateParagraphType(paragraph)
+      expect(result).toEqual('open')
+    })
+    test('should return a checklistScheduled type', () => {
+      const paragraph = new Paragraph({ type: 'checklist', content: 'test content >2022' })
+      const result = s.calculateParagraphType(paragraph)
+      expect(result).toEqual('checklistScheduled')
+    })
+    test('should return a scheduled type', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content >2022-10' })
+      const result = s.calculateParagraphType(paragraph)
+      expect(result).toEqual('scheduled')
+    })
   })
 })

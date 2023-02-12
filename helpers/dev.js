@@ -425,9 +425,10 @@ export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJ
  * we need to convert them to a static object first.
  * @param {any} obj - the NotePlan object to convert
  * @param {Array<string>} fields - list of fields to copy from the object to the static object
+ * @param {any} additionalFieldObj - any additional fields you want to add to the new object (as an object) e.g. {myField: 'myValue'}
  * @returns
  */
-export function createStaticObject(obj: any, fields: Array<string>): any {
+export function createStaticObject(obj: any, fields: Array<string>, additionalFieldObj: any = {}): any {
   if (!obj) throw 'createStaticObject: input obj is null; cannot convert it'
   if (!fields?.length) throw 'createStaticObject: no fieldlist provided; cannot create static object'
   if (typeof obj !== 'object') throw 'createStaticObject: input obj is not an object; cannot convert it'
@@ -435,7 +436,7 @@ export function createStaticObject(obj: any, fields: Array<string>): any {
   for (const field of fields) {
     staticObj[field] = obj[field] || null
   }
-  return staticObj
+  return { ...staticObj, ...additionalFieldObj }
 }
 
 /**

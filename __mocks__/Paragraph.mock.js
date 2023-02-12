@@ -76,6 +76,18 @@ export class Paragraph {
         case 'scheduled':
           this.rawContent = `- [>] ${this.content}`
           break
+        case 'checklist':
+          this.rawContent = `+ [ ] ${this.content}`
+          break
+        case 'checklistCancelled':
+          this.rawContent = `+ [-] ${this.content}`
+          break
+        case 'checklistDone':
+          this.rawContent = `+ [x] ${this.content}`
+          break
+        case 'checklistScheduled':
+          this.rawContent = `+ [>] ${this.content}`
+          break
       }
     }
   }

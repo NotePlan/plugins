@@ -1,5 +1,7 @@
 // @flow
 import get from 'lodash/get'
+import { isScheduled } from './dateTime'
+import { clo, logDebug } from './dev'
 
 export interface SortableParagraphSubset {
   content: string;
@@ -16,6 +18,7 @@ export interface SortableParagraphSubset {
   indents: number;
   children: Array<SortableParagraphSubset>;
   paragraph: ?TParagraph;
+  calculatedType: ?string;
 }
 
 export type GroupedTasks = {
@@ -23,6 +26,10 @@ export type GroupedTasks = {
   scheduled: Array<SortableParagraphSubset>,
   cancelled: Array<SortableParagraphSubset>,
   done: Array<SortableParagraphSubset>,
+  checklist: Array<SortableParagraphSubset>,
+  checklistDone: Array<SortableParagraphSubset>,
+  checklistCancelled: Array<SortableParagraphSubset>,
+  checklistScheduled: Array<SortableParagraphSubset>,
   title: Array<SortableParagraphSubset>,
   quote: Array<SortableParagraphSubset>,
   list: Array<SortableParagraphSubset>,
@@ -37,13 +44,17 @@ export type ParagraphsGroupedByType = {
   scheduled?: ?Array<TParagraph>,
   cancelled?: ?Array<TParagraph>,
   done?: ?Array<TParagraph>,
+  checklist: ?Array<TParagraph>,
+  checklistDone: ?Array<TParagraph>,
+  checklistCancelled: ?Array<TParagraph>,
+  checklistScheduled: ?Array<TParagraph>,
 }
 
 export const HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
 export const MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
 const EXCLAMATIONS: RegExp = /\B(!+\B)/g
 const PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
-export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled']
+export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled', 'checklist', 'checklistDone', 'checklistCancelled', 'checklistScheduled']
 export const isTask = (para: TParagraph): boolean => TASK_TYPES.indexOf(para.type) >= 0
 
 /**
@@ -125,26 +136,28 @@ export const fieldSorter =
         if (isDesc) {
           dir = -1
           field = field.substring(1)
-          field = isNaN(field) ? field : Number(field)
-        } else {
-          field = isNaN(field) ? field : Number(field)
         }
-        const aValue = firstValue(get(a, field))
-        const bValue = firstValue(get(b, field))
+        // field = isNaN(field) ? field : Number(field)
+        const aFirstValue = firstValue(get(a, field))
+        const bFirstValue = firstValue(get(b, field))
+        const aValue = (aFirstValue == null) ? null :
+          isNaN(aFirstValue) ? aFirstValue : Number(aFirstValue)
+        const bValue = (bFirstValue == null) ? null :
+          isNaN(bFirstValue) ? bFirstValue : Number(bFirstValue)
+        // if (field === "date") logDebug('', `${field}: ${String(aValue)} (${typeof aValue}) / ${String(bValue)} (${typeof bValue})`)
         if (aValue === bValue) return 0
-        if (aValue == null) return isDesc ? -dir : dir //null or undefined always come last
-        if (bValue == null) return isDesc ? dir : -dir
+        if (aValue == null || aValue === "NaN") return isDesc ? -dir : dir //null or undefined always come last
+        if (bValue == null || bValue === "NaN") return isDesc ? dir : -dir
         // $FlowIgnore - flow complains about comparison of non-identical types, but I am trapping for that
         return typeof aValue === typeof bValue ? (aValue > bValue ? dir : -dir) : 0
       })
       .reduce((p, n) => (p ? p : n), 0)
 
 /**
- * Sometimes you you want to sort on the value of a field that is an array
- * So in that case, grab the first item in that array to sort
- * Helper function for fieldSorter fields. If the value is an array,
- * return the first value
- * if it's not an array, just return the value, and if it's a string, lowercase value.
+ * Helper function for fieldSorter fields.
+ * Sometimes you want to sort on the value of a field that is an array.
+ * If the value is an array, return the first value from it. 
+ * If it's not an array, just return the value, and if it's a string, lowercase value.
  * @author @dwertheimer
  * @param {any} val
  * @returns
@@ -155,7 +168,7 @@ export const firstValue = (val: any): string | number => {
     return retVal
   } else {
     retVal = typeof retVal === 'number' || (typeof retVal !== 'object' && !isNaN(retVal) && retVal !== '') ? Number(retVal) : retVal
-    return typeof retVal === 'string' ? retVal.toLowerCase() : retVal
+    return (typeof retVal === 'string' && retVal !== "NaN") ? retVal.toLowerCase() : retVal
   }
 }
 
@@ -184,6 +197,20 @@ function getNumericPriority(item: SortableParagraphSubset): number {
     prio = -1
   }
   return prio
+}
+
+/**
+ * Scheduled tasks/checklists are not discernible from the 'type' property of the paragraph
+ * (they both just appear to be open tasks). So we need to check the content to see if it's
+ * a scheduled task/checklist.)
+ * @param {TParagraph} para
+ * @returns - the type of the paragraph (the normal types + 'scheduled' and 'checklistScheduled')
+ */
+export function calculateParagraphType(para: TParagraph) {
+  let type = para.type
+  if (type === 'open' && isScheduled(para.content)) type = 'scheduled'
+  if (type === 'checklist' && isScheduled(para.content)) type = 'checklistScheduled'
+  return type
 }
 
 /**
@@ -225,14 +252,15 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
           children: [],
           due: para.date ?? new Date('2099-12-31'),
           paragraph: para,
+          calculatedType: calculateParagraphType(para),
         }
         // console.log(`new: ${index}: indents:${para.indents} ${para.rawContent}`)
         task.priority = getNumericPriority(task)
         if (!ignoreIndents && lastParent.indents < para.indents) {
           lastParent.children.push(task)
         } else {
-          const len = tasks[para.type].push(task)
-          lastParent = tasks[para.type][len - 1]
+          const len = tasks[task.calculatedType || 0].push(task)
+          lastParent = tasks[task.calculatedType || 0][len - 1]
         }
       } catch (error) {
         console.log(error, para.content, index)
