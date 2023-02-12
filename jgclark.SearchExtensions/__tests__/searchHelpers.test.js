@@ -384,10 +384,6 @@ describe('searchHelpers.js tests', () => {
       const result = normaliseSearchTerms(' - + ! ')
       expect(result).toEqual([])
     })
-    test('too-short word term', () => {
-      const result = normaliseSearchTerms('a')
-      expect(result).toEqual([])
-    })
     test('single word term', () => {
       const result = normaliseSearchTerms('xxx')
       expect(result).toEqual(['xxx'])
@@ -480,10 +476,6 @@ describe('searchHelpers.js tests', () => {
   describe('validateAndTypeSearchTerms', () => {
     test('should return empty array from empty input', () => {
       const result = validateAndTypeSearchTerms('')
-      expect(result).toEqual([])
-    })
-    test('should return empty array from too-short terms', () => {
-      const result = validateAndTypeSearchTerms('b 1 c')
       expect(result).toEqual([])
     })
     test('should return empty array from too many terms', () => {

@@ -634,7 +634,7 @@ export async function runSearchesV2(
     const termsResults: Array<resultObjectTypeV3> = []
     let resultCount = 0
     let outerStartTime = new Date()
-    logDebug('runSearchesV2', `Starting with ${termsToMatchArr.length} search terms (and paraTypes '${String(paraTypesToInclude)}')`)
+    logDebug('runSearchesV2', `Starting with ${termsToMatchArr.length} search term(s) (and paraTypes '${String(paraTypesToInclude)}')`)
 
     //------------------------------------------------------------------
     // Get results for each search term independently and save
@@ -651,7 +651,8 @@ export async function runSearchesV2(
       logDebug('runSearchesV2', `  -> ${resultObject.resultCount} results for '${typedSearchTerm.termRep}' in ${timer(innerStartTime)}`)
     }
 
-    logDebug('runSearchesV2', `- Searched in ${timer(outerStartTime)}s for ${termsToMatchArr.length} searches -> ${resultCount} results`)
+    logDebug('runSearchesV2', `- ${termsToMatchArr.length} searches completed in ${timer(outerStartTime)}s -> ${resultCount} results`)
+
 
     //------------------------------------------------------------------
     // Work out what subset of results to return, taking into the must/may/not terms
@@ -659,21 +660,20 @@ export async function runSearchesV2(
     const consolidatedResultSet: resultOutputTypeV3 = applySearchOperators(termsResults, config.resultLimit, fromDateStr, toDateStr)
     logDebug('runSearchesV2', `- Applied search logic in ${timer(outerStartTime)}s`)
 
-    // For open tasks, add line sync with blockIDs (if we're using 'NotePlan' display style)
-    if (config.resultStyle === 'NotePlan') {
-      // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
-      const syncdConsolidatedResultSet = await makeAnySyncs(consolidatedResultSet)
-      // clo(syncdConsolidatedResultSet, 'after makeAnySyncs, syncdConsolidatedResultSet =')
-      return syncdConsolidatedResultSet
-    } else {
-      // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
+    // // For open tasks, add line sync with blockIDs (if we're using 'NotePlan' display style)
+    // if (config.resultStyle === 'NotePlan') {
+    //   // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
+    //   const syncdConsolidatedResultSet = await makeAnySyncs(consolidatedResultSet)
+    //   // clo(syncdConsolidatedResultSet, 'after makeAnySyncs, syncdConsolidatedResultSet =')
+    //   return syncdConsolidatedResultSet
+    // } else {
+    clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
       return consolidatedResultSet
-    }
+    // }
   }
   catch (err) {
     logError('runSearchesV2', err.message)
-    // $FlowFixMe[incompatible-return]
-    return null // for completeness
+    return [] // for completeness
   }
 }
 
@@ -797,13 +797,15 @@ export async function runSearchV2(
       throw new Error("Empty search term: stopping.")
     }
 
+    // FIXME(@EduardMe): the @Jared problem manifests in the search call
+    // clo(resultParas, 'after search API , resultParas =')
+
     const noteAndLineArr: Array<noteAndLine> = []
 
     // TODO: If we want to dedupe identical synced lines
     logDebug('runSearchV2', `- Before dedupe, ${resultParas.length} results for '${searchTerm}'`)
     resultParas = eliminateDuplicateSyncedParagraphs(resultParas, 'most-recent')
     logDebug('runSearchV2', `- After dedupe, ${resultParas.length} results for '${searchTerm}'`)
-
 
     if (resultParas.length > 0) {
       logDebug('runSearchV2', `- Found ${resultParas.length} results for '${searchTerm}'`)
