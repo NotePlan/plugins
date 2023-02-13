@@ -1,10 +1,13 @@
 # What's changed in 🕓 Event Helpers?
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
-## [0.20.2] - 2023-01-??? @jgclark
-- the date offset intervals (e.g. `{3d}` can now use upper-case letters B,D,W,M,Q,Y as well as the existing lower-case letters.
+## [0.20.2] - 2023-02-13 @jgclark
+### Added
+- the date offset intervals (e.g. `{3d}` can now use upper-case letters B,D,W,M,Q,Y as well as the existing lower-case letters
+- more helpful text in a dialog box
 
 ## [0.20.1] - 2022-12-30 @jgclark
+### Added
 - added support for time blocks in Checklists (available from NotePlan 3.8)
 
 ## [0.20.0] - 2022-12-08 @dwertheimer, @jgclark

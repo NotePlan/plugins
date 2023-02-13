@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 30.11.2022 for v0.19.2, by @jgclark
+// Last updated 13.2.2023 for v0.20.2, by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -142,9 +142,13 @@ export async function processDateOffsets(): Promise<void> {
     await showMessage(`For safety I won't run on notes in the @Templates folder.`, 'OK', 'Process Date Offsets')
     return
   }
+  if (note.filename.startsWith('@Archive')) {
+    await showMessage(`For safety I won't run on notes in the @Archive folder.`, 'OK', 'Process Date Offsets')
+    return
+  }
   const noteTitle = displayTitle(note)
   logDebug(pluginJson, `processDateOffsets() for note '${noteTitle}'`)
-  const config = await getEventsSettings() // eslint-disable-line
+  const config = await getEventsSettings()
 
   try {
     let currentTargetDate = ''
@@ -218,7 +222,7 @@ export async function processDateOffsets(): Promise<void> {
               logWarn(pluginJson, `Line ${paragraphs[n].lineIndex}: offset date '${dateOffsetString}' is an orphan, as no currentTargetDate or lastCalcDate is set`)
 
               // now ask for the date to use instead
-              currentTargetDate = await datePicker("{ question: 'Please enter a base date to use to offset against' }", {})
+              currentTargetDate = await datePicker(`{ question: 'Please enter a base date to use to offset against for "${line}"' }`, {})
               if (currentTargetDate === '') {
                 logError(pluginJson, `- Still no valid CTD, so stopping.`)
                 return
