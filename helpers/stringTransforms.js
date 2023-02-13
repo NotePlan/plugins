@@ -268,7 +268,6 @@ export function stripAllMarkersFromString(original: string, stripTags: false, st
   let output = original
   output = stripBlockIDsFromString(output)
   output = stripDateRefsFromString(output)
-  output = stripWikiLinksFromString(output)
   if (stripTags) output = stripAllTagssFromString(output)
   if (stripLinks) output = stripLinksFromString(output)
   return output
