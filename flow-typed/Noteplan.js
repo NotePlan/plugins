@@ -480,11 +480,19 @@ declare class DataStore {
    * You can access the files of other plugins as well, if the filename is known using relative paths "../[other plugin-id]/[filename]" or simply go into the "data"'s root directory "../[filename]" to access a global file.
    * Returns undefined if the file couldn't be loaded and prints an error message.
    * Note: Available from v3.2.0; loadAsString option only from v3.6.2.
-   * @param {string}
+   * @param {string} filename
    * @param {boolean} loadAsString?
    * @return {string?}
    */
   static loadData(filename: string, loadAsString: boolean): ?string;
+  /**
+   * Check to see if a file in the available folders exists.
+   * It starts in the plugin's own data folder, but can be used to check for files in other folders.
+   * Note: Available from v3.8.1
+   * @param {string} filename
+   * @returns {boolean}
+   */
+  static fileExists(filename: string): boolean;
   /**
    * Returns the calendar note for the given date and timeframe (optional, the default is "day", see below for more options).
    * Note: 'timeframe' available from v3.6.0
@@ -697,6 +705,13 @@ declare class DataStore {
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
   static searchCalendarNotes(keyword: string, shouldLoadDatedTodos?: boolean): Promise<$ReadOnlyArray<TParagraph>>;
+  /**
+   * Returns list of all overdue tasks (i.e. tasks that are open and in the past). Use with await, it runs in the background. If there are a lot of tasks consider showing a loading bar.
+   * Note: Available from v3.8.1
+   * @param {string} = keyword to search for
+   * @return {$ReadOnlyArray<TParagraph>} Promise to array of results
+   */
+  static listOverdueTasks(keyword: string): Promise < $ReadOnlyArray < TParagraph >>;
 }
 
 /**
@@ -1795,15 +1810,6 @@ declare interface CoreNoteFields {
    * @param {TParagraph}
    */
   removeBlockID(paragraph: TParagraph): void;
-  /**
-   * Returns an array of paragraphs having the same blockID like the given one.
-   * You can use 'paragraph [0].note to access the note behind it and make updates via `paragraph[0].note.updateParagraph(paragraph [0])` if you make changes to the content, type, etc (like checking it off as type = "done").
-   * If you pass no paragraph as argument this will return all synced lines that are available.
-   * Note: Available from v3.5.2
-   * @param {TParagraph?} paragraph
-   * @return {Array<TParagraph>}
-   */
-  referencedBlocks(paragraph?: TParagraph): Array<TParagraph>;
   /**
    * Print the note, optionally with backlinks and events sections
    * Note: available from v3.4 on macOS
