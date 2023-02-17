@@ -1,8 +1,38 @@
-/* globals describe, expect, test */
+/* global jest, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
 import { _ } from 'lodash'
-import { Paragraph } from '../../__mocks__/Paragraph.mock'
 import * as s from '../sorting'
-import { clo } from '@helpers/dev'
+import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Paragraph /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
+
+const PLUGIN_NAME = `helpers`
+const FILENAME = `NPNote`
+
+beforeAll(() => {
+  global.Calendar = Calendar
+  global.Clipboard = Clipboard
+  global.CommandBar = CommandBar
+  global.DataStore = DataStore
+  global.Editor = Editor
+  global.NotePlan = NotePlan
+  global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
+})
+
+/* Samples:
+expect(result).toMatch(/someString/)
+expect(result).not.toMatch(/someString/)
+expect(result).toEqual([])
+import { mockWasCalledWith } from '@mocks/mockHelpers'
+      const spy = jest.spyOn(console, 'log')
+      const result = mainFile.getConfig()
+      expect(mockWasCalledWith(spy, /config was empty/)).toBe(true)
+      spy.mockRestore()
+
+      test('should return the command object', () => {
+        const result = f.getPluginCommands({ 'plugin.commands': [{ a: 'foo' }] })
+        expect(result).toEqual([{ a: 'foo' }])
+      })
+*/
 
 // Jest suite
 describe('sorting.js', () => {
@@ -242,30 +272,30 @@ describe('sorting.js', () => {
     test('should sort object array by folder ASC then numeric reviewDays ASC. With empty numbers as empty strings', () => {
       const sortSpec = ['folder', 'reviewDays']
       const unsortedList = [
-        { "reviewDays": "NaN", "folder": "CCC Areas" },
-        { "reviewDays": "NaN", "folder": "CCC Areas" },
-        { "reviewDays": "NaN", "folder": "TEST" },
-        { "reviewDays": "1", "folder": "CCC Areas" },
-        { "reviewDays": "13", "folder": "CCC Areas" },
-        { "reviewDays": "135", "folder": "CCC Areas" },
-        { "reviewDays": "-560", "folder": "TEST" },
-        { "reviewDays": "-30", "folder": "TEST" },
-        { "reviewDays": "0", "folder": "CCC Areas" },
-        { "reviewDays": "-24", "folder": "TEST" },
-        { "reviewDays": "NaN", "folder": "TEST" },
+        { reviewDays: 'NaN', folder: 'CCC Areas' },
+        { reviewDays: 'NaN', folder: 'CCC Areas' },
+        { reviewDays: 'NaN', folder: 'TEST' },
+        { reviewDays: '1', folder: 'CCC Areas' },
+        { reviewDays: '13', folder: 'CCC Areas' },
+        { reviewDays: '135', folder: 'CCC Areas' },
+        { reviewDays: '-560', folder: 'TEST' },
+        { reviewDays: '-30', folder: 'TEST' },
+        { reviewDays: '0', folder: 'CCC Areas' },
+        { reviewDays: '-24', folder: 'TEST' },
+        { reviewDays: 'NaN', folder: 'TEST' },
       ]
       const sortedList = [
-        { "reviewDays": "0", "folder": "CCC Areas" },
-        { "reviewDays": "1", "folder": "CCC Areas" },
-        { "reviewDays": "13", "folder": "CCC Areas" },
-        { "reviewDays": "135", "folder": "CCC Areas" },
-        { "reviewDays": "NaN", "folder": "CCC Areas" },
-        { "reviewDays": "NaN", "folder": "CCC Areas" },
-        { "reviewDays": "-560", "folder": "TEST" },
-        { "reviewDays": "-30", "folder": "TEST" },
-        { "reviewDays": "-24", "folder": "TEST" },
-        { "reviewDays": "NaN", "folder": "TEST" },
-        { "reviewDays": "NaN", "folder": "TEST" },
+        { reviewDays: '0', folder: 'CCC Areas' },
+        { reviewDays: '1', folder: 'CCC Areas' },
+        { reviewDays: '13', folder: 'CCC Areas' },
+        { reviewDays: '135', folder: 'CCC Areas' },
+        { reviewDays: 'NaN', folder: 'CCC Areas' },
+        { reviewDays: 'NaN', folder: 'CCC Areas' },
+        { reviewDays: '-560', folder: 'TEST' },
+        { reviewDays: '-30', folder: 'TEST' },
+        { reviewDays: '-24', folder: 'TEST' },
+        { reviewDays: 'NaN', folder: 'TEST' },
+        { reviewDays: 'NaN', folder: 'TEST' },
       ]
       const result = s.sortListBy(unsortedList, sortSpec)
       expect(result).toEqual(sortedList)
@@ -294,6 +324,12 @@ describe('sorting.js', () => {
       const taskList = s.getTasksByType(paragraphs)
       expect(taskList['open'].length).toEqual(1)
       expect(taskList['scheduled'].length).toEqual(1)
+      expect(taskList['done'].length).toEqual(0)
+      expect(taskList['cancelled'].length).toEqual(0)
+      expect(taskList['checklist'].length).toEqual(0)
+      expect(taskList['checklistDone'].length).toEqual(0)
+      expect(taskList['checklistScheduled'].length).toEqual(0)
+      expect(taskList['checklistCancelled'].length).toEqual(0)
       expect(taskList['open'][0].content).toEqual(paragraphs[0].content)
     })
     test('Should include checklists by type', () => {
@@ -363,6 +399,58 @@ describe('sorting.js', () => {
       const paragraph = new Paragraph({ type: 'open', content: 'test content >2022-10' })
       const result = s.calculateParagraphType(paragraph)
       expect(result).toEqual('scheduled')
+    })
+  })
+  /*
+   * getSortableTask()
+   */
+  describe('getSortableTask()' /* function */, () => {
+    test('should create basic task object', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content', filename: 'testFile.md', lineIndex: 15 })
+      const result = s.getSortableTask(paragraph)
+      const expected = {
+        calculatedType: 'open',
+        children: [],
+        content: 'test content',
+        /* "due": 2023-02-14T00:18:49.298Z, */
+        exclamations: [],
+        filename: 'testFile.md',
+        hashtags: [],
+        heading: '',
+        indents: 0,
+        index: 0,
+        mentions: [],
+      }
+      expect(result).toHaveProperty('index', 15)
+      expect(result).toHaveProperty('content', 'test content')
+      expect(result).toHaveProperty('filename', 'testFile.md')
+    })
+    test('should have hashtags', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content #foo', filename: 'testFile.md' })
+      const result = s.getSortableTask(paragraph)
+      expect(result).toHaveProperty('hashtags', ['foo'])
+    })
+    test('should have mentions', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content @foo', filename: 'testFile.md' })
+      const result = s.getSortableTask(paragraph)
+      expect(result).toHaveProperty('mentions', ['foo'])
+    })
+    test('should have exclamation mark priority', () => {
+      const paragraph = new Paragraph({ type: 'open', content: 'test content !!!', filename: 'testFile.md' })
+      const result = s.getSortableTask(paragraph)
+      expect(result).toHaveProperty('priority', 3)
+      expect(result).toHaveProperty('exclamations', ['!!!'])
+    })
+    test('should have parens priority', () => {
+      const paragraph = new Paragraph({ type: 'open', content: '(B) test content', filename: 'testFile.md' })
+      const result = s.getSortableTask(paragraph)
+      expect(result).toHaveProperty('priority', 2)
+      expect(result).toHaveProperty('parensPriority', ['B'])
+    })
+    test('should have calculatedType', () => {
+      const paragraph = new Paragraph({ type: 'checklist', content: 'test content >2020-01-01', filename: 'testFile.md' })
+      const result = s.getSortableTask(paragraph)
+      expect(result).toHaveProperty('calculatedType', 'checklistScheduled')
     })
   })
 })

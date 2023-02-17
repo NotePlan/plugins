@@ -646,13 +646,14 @@ const getBasicColors = (themeJSON) => {
   if (!themeJSON) return {}
   return {
     backgroundColor: themeJSON.editor?.backgroundColor ?? '#1D1E1F',
-    textColor: RGBColourConvert(themeJSON.editor?.textColor),
+    textColor: RGBColourConvert(themeJSON.editor?.textColor) ?? '#FFFFFF',
     h1: RGBColourConvert(themeJSON.styles?.title1?.color ?? '#CC6666'),
     h2: RGBColourConvert(themeJSON.styles?.title2?.color ?? '#E9C062'),
     h3: RGBColourConvert(themeJSON.styles?.title3?.color ?? '#E9C062'),
     h4: RGBColourConvert(themeJSON.styles?.title4?.color ?? '#E9C062'),
     tintColor: RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2',
     altColor: RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30',
+    baseFontSize: Number(DataStore.preference('fontSize')) ?? 14,
   }
 }
 
@@ -664,7 +665,7 @@ const getBasicColors = (themeJSON) => {
  * @returns {any} - object to be stringified or null if there are no styles to send
  */
 export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boolean = false): any {
-  const theme = Editor.currentTheme
+  const theme = { ...Editor.currentTheme }
   logDebug(pluginJson, `getThemeJS currentTheme="${theme?.name}"`)
   if (!includeSpecificStyles && theme?.values?.styles) delete theme.values.styles
   if (cleanIt) theme.values = pruneTheme(theme.values)
@@ -672,7 +673,7 @@ export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boole
     clo(Editor.currentTheme, `getThemeJS Editor.currentTheme="${theme?.name || ''}"`)
     throw 'No theme values found in theme, cannot continue'
   }
-  theme.values.base = getBasicColors(theme.values)
+  theme.values.base = getBasicColors(Editor.currentTheme)
   return theme
 }
 
@@ -692,7 +693,7 @@ export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boole
 export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWindowOptions) {
   const preBody = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
   if (opts.includeCSSAsJS) {
-    const theme = getThemeJS(true, false)
+    const theme = getThemeJS(true, true)
     if (theme.values) {
       preBody.push(`/* Basic Theme as JS for CSS-in-JS use in scripts \n  Created from theme: "${theme.name}" */\n  const NP_THEME=${JSON.stringify(theme.values, null, 4)}\n`)
       logDebug(pluginJson, `showHTMLWindow Saving NP_THEME in JavaScript`)
@@ -937,10 +938,11 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  * @return {any} - the result of the runJavaScript call (should be unimportant in this case -- undefined is ok)
  * @author @dwertheimer
  */
-export async function sendToHTMLWindow(actionType: string, data: any = {}): any {
+export async function sendToHTMLWindow(actionType: string, data: any = {}, updateInfo: string = ''): any {
   try {
-    const dataWithUpdated = { ...data, ...{ lastUpdated: { msg: actionType, date: new Date().toLocaleString() } } }
-    logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
+    const dataWithUpdated = { ...data, ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } } }
+    // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
+    logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}"`)
     const result = await HTMLView.runJavaScript(`window.postMessage(
         { 
           type: '${actionType}', 
