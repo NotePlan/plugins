@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 15.1.2023 for v0.1.0 by @jgclark
+// Last updated 15.2.2023 for v0.1.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -16,8 +16,10 @@ import {
   RE_SCHEDULED_DATES_G,
   RE_SYNC_MARKER
 } from '@helpers/regex'
+import { getNumericPriority } from '@helpers/sorting'
 import {
-  changeMarkdownLinkToHTMLLink,
+  changeBareLinksToHTMLLink,
+  changeMarkdownLinksToHTMLLink,
   stripBackwardsDateRefsFromString,
   stripThisWeeksDateRefsFromString,
   stripTodaysDateRefsFromString
@@ -69,11 +71,14 @@ export async function getSettings(): Promise<any> {
  * - turns NP sync ids -> blue asterisk icon
  * - turns #hashtags and @mentions the colour that the theme displays them
  * - turns >date markers the colour that the theme displays them
+ * Further, if noteTitle is supplied, then either 'append' it as a active NP note title, or make it the active NP note link for 'all' the string.
  * @author @jgclark
- * @param {string} original 
+ * @param {string} original
+ * @param {string?} noteTitle
+ * @param {string?} noteLinkStyle: "append" or "all"
  * @returns {string} altered string
  */
-export function makeParaContentToLookLikeNPDisplayInHTML(original: string): string {
+export function makeParaContentToLookLikeNPDisplayInHTML(original: string, noteTitle: string = "", noteLinkStyle: string = "all"): string {
   try {
     let output = original
 
@@ -92,9 +97,11 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string): stri
       }
     }
 
-    // Simplify markdown links
-    // of the form [title](URI)
-    output = changeMarkdownLinkToHTMLLink(output)
+    // Display markdown links of the form [title](URI) as HTML links
+    output = changeMarkdownLinksToHTMLLink(output)
+
+    // Display bare URLs as HTML links
+    output = changeBareLinksToHTMLLink(output)
 
     // Display hashtags with .hashtag style
     // Note: need to make only one capture group, and use 'g'lobal flag
@@ -103,10 +110,9 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string): stri
     captures = output.match(/(?:\s|^|\"|\(|\)|\')(#[A-Za-z]\w*)/g) // my too-simple version [needs to allow starting digit, just not all digits]
     // captures = output.match(HASHTAG_STR_FOR_JS) // TODO: from EM
     if (captures) {
-      clo(captures, 'results from hashtag matches:')
+      // clo(captures, 'results from hashtag matches:')
       for (const capture of captures) {
         const match = capture.slice(1)
-        // logDebug('hashtag match', match)
         output = output.replace(match, `<span class="hashtag">${match}</span>`)
       }
     }
@@ -118,10 +124,9 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string): stri
     captures = output.match(/(?:\s|^|\"|\(|\)\')(@[A-Za-z][\w\d\.\-\(\)]*)/g) // my too-simple version
     // captures = output.match(NP_RE_attag_G) // TODO: from EM
     if (captures) {
-      clo(captures, 'results from mention matches:')
+      // clo(captures, 'results from mention matches:')
       for (const capture of captures) {
         const match = capture.slice(1)
-        // logDebug('mention match', match)
         output = output.replace(match, `<span class="attag">${match}</span>`)
       }
     }
@@ -130,7 +135,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string): stri
     // NB: needs to go after #hashtag change above, as it includes a # marker for colors.
     captures = output.match(RE_SYNC_MARKER)
     if (captures) {
-      clo(captures, 'results from RE_SYNC_MARKER match:')
+      // clo(captures, 'results from RE_SYNC_MARKER match:')
       for (const capture of captures) {
         output = output.replace(capture, '<i class="fa-solid fa-asterisk" style="color: #71b3c0;"></i>')
       }
@@ -160,24 +165,78 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string): stri
     // Note: needs to go after >date section above
     captures = output.match(/\[\[(.*?)\]\]/)
     if (captures) {
-      clo(captures, 'results from [[notelinks]] match:')
+      // clo(captures, 'results from [[notelinks]] match:')
       for (const capture of captures) {
         const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(capture)
         output = output.replace('[[' + capture + ']]', noteTitleWithOpenAction)
       }
     }
 
+    // Now include an active link to the note, if 'noteTitle' is given
+    if (noteTitle) {
+      // logDebug('makeParaContet...', `- before: ${output}`)
+      switch (noteLinkStyle) {
+        case 'append': {
+          output += ' ' + makeNoteTitleWithOpenAction(noteTitle)
+          break
+        }
+        case 'all': {
+          // FIXME: altering order: needs to be <span> then <a> ...
+          output = addNoteOpenLinkToString(output, noteTitle)
+          break
+        }
+      }
+      // logDebug('makeParaContet...', `- after:  ${output}`)
+    }
+
+    // If there's a ! !! or !!! add priorityN styling
+    // (Simpler regex possible as the count comes later)
+    // Note: the wrapping for 'all' needs to go last.
+    if (output.match(/\B\!+\B/)) {
+      const numExclamations = output.match(/\B\!+\B/)[0].length
+      switch (numExclamations) {
+        case 1: {
+          output = '<span class="priority1">' + output + '</span>'
+          break
+        }
+        case 2: {
+          output = '<span class="priority2">' + output + '</span>'
+          break
+        }
+        case 3: {
+          output = '<span class="priority3">' + output + '</span>'
+          break
+        }
+      }
+    }
+
     return output
   }
   catch (error) {
-    logError(pluginJson, `${error.name} ${error.message}`)
+    logError('makeParaContentToLookLikeNPDisplayInHTML', `${error.name} ${error.message}`)
     return ''
   }
 }
 
+/**
+ * Return an NP x-callback string to open a Note (via ite 'noteTitle') but displaying a different 'displayStr'
+ * @param {string} displayStr
+ * @param {string} noteTitle
+ * @returns {string} transformed output
+ */
+export function addNoteOpenLinkToString(displayStr: string, noteTitle: string): string {
+  try {
+    const titleEncoded = encodeURIComponent(noteTitle)
+    return `<a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${displayStr}</a>`
+  }
+  catch (error) {
+    logError('addNoteOpenLinkToString', `${error.message} for input '${input}'`)
+    return '(error)'
+  }
+}
 
 /**
- * Include note titles as buttons with x-callback open action
+ * Include note titles as an HTML link -> x-callback open action
  * @param {string} title 
  * @returns {string} output
  */

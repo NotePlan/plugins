@@ -8,9 +8,9 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.1.0",
-  "plugin.lastUpdateInfo": "v0.1: first release",
-  "plugin.dependencies": [
+  "plugin.version": "0.1.34",
+  "plugin.lastUpdateInfo": "v0.1.x: first release (read-only view)",
+  "plugin.requiredSharedFiles": [
     "fontawesome.css",
     "regular.min.flat4NP.css",
     "solid.min.flat4NP.css",
@@ -52,9 +52,9 @@
     },
     {
       "key": "includeTaskContext",
-      "title": "Include content for tasks?",
+      "title": "Include context for tasks?",
       "description": "Whether to show the note link for an open task or checklist",
-      "type": "boolean",
+      "type": "bool",
       "default": true,
       "required": true
     },
@@ -62,7 +62,7 @@
       "key": "includeFolderName",
       "title": "Include folder name?",
       "description": "Whether to include the folder name when showing a note link",
-      "type": "boolean",
+      "type": "bool",
       "default": true,
       "required": true
     },

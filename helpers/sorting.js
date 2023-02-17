@@ -1,7 +1,7 @@
 // @flow
 import get from 'lodash/get'
 import { isScheduled } from './dateTime'
-import { clo, logDebug } from './dev'
+import { clo, logDebug, logError } from './dev'
 
 export interface SortableParagraphSubset {
   content: string;
@@ -44,16 +44,16 @@ export type ParagraphsGroupedByType = {
   scheduled?: ?Array<TParagraph>,
   cancelled?: ?Array<TParagraph>,
   done?: ?Array<TParagraph>,
-  checklist: ?Array<TParagraph>,
-  checklistDone: ?Array<TParagraph>,
-  checklistCancelled: ?Array<TParagraph>,
-  checklistScheduled: ?Array<TParagraph>,
+  checklist?: ?Array<TParagraph>,
+  checklistDone?: ?Array<TParagraph>,
+  checklistCancelled?: ?Array<TParagraph>,
+  checklistScheduled?: ?Array<TParagraph>,
 }
 
-export const HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
-export const MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
-const EXCLAMATIONS: RegExp = /\B(!+\B)/g
-const PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
+const RE_HASHTAGS: RegExp = /\B#([a-zA-Z0-9\/]+\b)/g
+const RE_MENTIONS: RegExp = /\B@([a-zA-Z0-9\/]+\b)/g
+const RE_EXCLAMATIONS: RegExp = /\B(!+\B)/g
+const RE_PARENS_PRIORITY: RegExp = /^\s*\(([a-zA-z])\)\B/g // must be at start of content
 export const TASK_TYPES: Array<string> = ['open', 'scheduled', 'done', 'cancelled', 'checklist', 'checklistDone', 'checklistCancelled', 'checklistScheduled']
 export const isTask = (para: TParagraph): boolean => TASK_TYPES.indexOf(para.type) >= 0
 
@@ -62,6 +62,7 @@ export const isTask = (para: TParagraph): boolean => TASK_TYPES.indexOf(para.typ
  * More details at https://stackoverflow.com/a/49004987/3238281
  * @param {string} a
  * @param {string} b
+ * @returns {number}
  */
 export function caseInsensitiveCompare(a: string, b: string): number {
   return a.localeCompare(b, 'en', { sensitivity: 'base' })
@@ -83,37 +84,6 @@ export function sortListBy<T>(list: Array<T>, objectPropertySortOrder: Array<str
   list.sort(fieldSorter(sortBy))
   return list
 }
-
-/** Code from @jgclark which is probably redundant given sortListBy() above */
-// export const sortByChangedDate = (): Function => {
-//   return (b, a) => {
-//     if (a.note.changedDate !== b.note.changedDate) {
-//       if (a.note.changedDate > b.note.changedDate) {
-//         return -1
-//       }
-//       if (b.note.changedDate > a.note.changedDate) {
-//         return 1
-//       }
-//     }
-//     return 0
-//   }
-// }
-
-// export const sortByTitle = (): Function => {
-//   return (b, a) => {
-//     const aTitle = displayTitle(a)
-//     const bTitle = displayTitle(b)
-//     if (aTitle !== bTitle) {
-//       if (aTitle > bTitle) {
-//         return -1
-//       }
-//       if (bTitle > aTitle) {
-//         return 1
-//       }
-//     }
-//     return 0
-//   }
-// }
 
 /**
  * Multi-level object property sorting callback function (for use in sort())
@@ -158,7 +128,7 @@ export const fieldSorter =
  * If it's not an array, just return the value, and if it's a string, lowercase value.
  * @author @dwertheimer
  * @param {any} val
- * @returns
+ * @returns {string | number}
  */
 export const firstValue = (val: any): string | number => {
   let retVal = Array.isArray(val) ? val[0] : val
@@ -192,7 +162,7 @@ export function getElementsFromTask(content: string, reSearch: RegExp): Array<st
 /*
  * Get numeric priority level based on !!! or (B)
  */
-function getNumericPriority(item: SortableParagraphSubset): number {
+export function getNumericPriority(item: SortableParagraphSubset): number {
   let prio = -1
   if (item.exclamations[0]) {
     prio = item.exclamations[0].length
@@ -206,11 +176,10 @@ function getNumericPriority(item: SortableParagraphSubset): number {
 
 /**
  * Scheduled tasks/checklists are not discernible from the 'type' property of the paragraph
- * (they both just appear to be open tasks). So we need to check the content to see if it's
- * a scheduled task/checklist.)
+ * (they both just appear to be open tasks). So we need to check the content to see if it's a scheduled task/checklist.)
+ * @author @dwertheimer
  * @param {TParagraph} para
  * @returns - the type of the paragraph (the normal types + 'scheduled' and 'checklistScheduled')
- * @author @dwertheimer
  */
 export function calculateParagraphType(para: TParagraph): string {
   let type = para.type
@@ -227,10 +196,10 @@ export function calculateParagraphType(para: TParagraph): string {
  */
 export function getSortableTask(para: TParagraph): SortableParagraphSubset {
   const content = para.content
-  const hashtags = getElementsFromTask(content, HASHTAGS)
-  const mentions = getElementsFromTask(content, MENTIONS)
-  const exclamations = getElementsFromTask(content, EXCLAMATIONS)
-  const parensPriority = getElementsFromTask(content, PARENS_PRIORITY)
+  const hashtags = getElementsFromTask(content, RE_HASHTAGS)
+  const mentions = getElementsFromTask(content, RE_MENTIONS)
+  const exclamations = getElementsFromTask(content, RE_EXCLAMATIONS)
+  const parensPriority = getElementsFromTask(content, RE_PARENS_PRIORITY)
   const task: SortableParagraphSubset = {
     content: para.content,
     index: para.lineIndex,
@@ -253,40 +222,41 @@ export function getSortableTask(para: TParagraph): SortableParagraphSubset {
 }
 
 /**
- * Sort paragraphs into groups of like types (open, scheduled, done, cancelled, etc.) for task sorting
+ * Sort paragraphs into groups of like types (open, scheduled, done, cancelled, etc.) for task sorting.
+ * Note: throws errors if non-task paragraphs are given to it.
+ * @author @dwertheimer
  * @param {Array<Paragraph>} paragraphs - array of paragraph objects input
  * @param {boolean} ignoreIndents - whether to pay attention to child/indented paragraphs
  * @returns {GroupedTasks} - object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[], etc.}
- * @author @dwertheimer
  */
 export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreIndents: boolean = false): GroupedTasks {
   const tasks = TASK_TYPES.reduce((acc, t) => ({ ...acc, ...{ [t]: [] } }), {})
   let lastParent = { indents: 999, children: [] }
   // clo(paragraphs, 'getTasksByType')
   for (let index = 0; index < paragraphs.length; index++) {
-    // console.log(`getTasksByType paragraphs.length:${paragraphs.length}`)
     const para = paragraphs[index]
-    // clo(para, 'getTasksByType')
+    // logDebug('getTasksByType', `${para.lineIndex}: ${para.type}`)
     if (isTask || (!ignoreIndents && para.indents > lastParent.indents)) {
-      const content = para.content
+      // const content = para.content // Not used
       // console.log(`found: ${index}: ${para.type}: ${para.content}`)
       try {
         const task = getSortableTask(para)
-        if (!ignoreIndents && lastParent.indents < para.indents) {
+        if (!ignoreIndents && para.indents > lastParent.indents) {
           lastParent.children.push(task)
         } else {
           const len = tasks[task.calculatedType || 0].push(task)
           lastParent = tasks[task.calculatedType || 0][len - 1]
         }
       } catch (error) {
-        console.log(error, para.content, index)
+        logError('getTasksByType', `${error.message}: ${para.content}, ${index}`)
       }
     } else {
       // console.log(`\t\tSkip: ${para.content}`) //not a task
     }
   }
 
-  // console.log(`\tgetTasksByType Open Tasks:${tasks.open.length} returning from getTasksByType`)
+  // logDebug('getTasksByType', `\tgetTasksByType Open Tasks:${String(tasks.open.length)} returning from getTasksByType`)
+  // logDebug('getTasksByType', `\tgetTasksByType Open Checklists:${String(tasks.checklist.length)} returning from getTasksByType`)
   // $FlowFixMe - Flow doesn't like that I am ensuring that all the keys are in the object using reduce above
   return tasks
 }

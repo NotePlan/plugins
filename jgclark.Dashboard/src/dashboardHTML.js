@@ -12,6 +12,7 @@ import {
   type SectionItem
 } from './dataGeneration'
 import {
+  addNoteOpenLinkToString,
   getSettings,
   makeNoteTitleWithOpenAction,
   makeParaContentToLookLikeNPDisplayInHTML
@@ -30,6 +31,8 @@ import {
   returnNoteLink,
 } from '@helpers/general'
 import { showHTML } from '@helpers/HTMLView'
+import { getNoteType } from '@helpers/note'
+import { isThisMinute } from 'date-fns'
 
 //-----------------------------------------------------------------
 // HTML resources
@@ -55,14 +58,14 @@ export const dashboardCSS: string = [
   // turn on top and bottom border (from theme CSS)
   'table tr { border-top: solid 1px var(--tint-color); border-bottom: solid 1px var(--tint-color); }', // line between rows, not columns
   '.no-borders { border-top: none 0px; border-bottom: none 0px; }', // turn off all borders
-  'a, a:visited, a:active { color: inherit }', // note links: turn off text color
   '.sectionName { font-size: 1.0rem; font-weight: 700; }', // make noteTitles bold
   `.sectionItem { font-size: 0.9rem; font-weight: 500;
    padding: 2px 4px; border-bottom: 0px; }`, // reduce vertical spacing and line below
   // `td:first-child .sectionItem { padding-top: 8px 4px; }`, // not working
   '.scheduledDate { color: var(--tint-color); }', // for >dates
   '.noteTitle { color: var(--tint-color); }', // add "font-weight: 700;" to make noteTitles bold
-  '.noteTitle a { text-decoration: none; }', // turn off underlining
+  'a, a:visited, a:active { color: inherit; text-decoration: none; }', // all links turn off text color and underlining by default
+  '.externalLink a { text-decoration: underline; }', // turn on underlining
   `.event-link {
 		font-weight: 500;
 		border-color: var(--bg-alt-color);
@@ -70,7 +73,13 @@ export const dashboardCSS: string = [
     border-width: 1px;
     border-style: solid;
 		padding: 0px 3px;
-	}`
+	}`,
+  // Some headings specified from measuring the colour of NP sidebar elements
+  '.sidebarDaily { font-size: 1.0rem; color: #d0703c; }',
+  '.sidebarWeekly { font-size: 1.0rem; color: #be23b6; }',
+  '.sidebarMonthly { font-size: 1.0rem; color: #f5528b; }',
+  '.sidebarQuarterly { font-size: 1.0rem; color: #e08008; }',
+  '.sidebarYearly { font-size: 1.0rem; color: #efba13; }',
   // TODO: Think about proper HTML checkbox and styling
 ].join('\n\t')
 
@@ -112,6 +121,8 @@ export async function showDashboardHTML(): Promise<void> {
     const config = await getSettings()
     const [sections, sectionItems] = await getDataForDashboard()
     const outputArray: Array<string> = []
+    const dailyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), "day"))
+    const weeklyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'week'))
     const startReviewXCallbackURL = createRunPluginCallbackUrl("jgclark.Reviews", "next project review", "")
 
     // Create nice HTML display for this data.
@@ -119,81 +130,111 @@ export async function showDashboardHTML(): Promise<void> {
     let totalOpenItems = 0
     let totalDoneItems: number
     outputArray.push(`\n<table style="table-layout: auto; word-wrap: break-word;">`)
-    // outputArray.push(` <colgroup><col /><col style="min-width: 10em; max-width: 14em;"><col /><col /></colgroup>`) // doesn't work as hoped
     for (const section of sections) {
       const items = sectionItems.filter((i) => i.ID === section.ID)
       if (items.length > 0) {
-        outputArray.push(` <tr>\n  <td><span style="font-size: 1.0rem; color: ${section.FAIconColor};"><i class="${section.FAIconClass}"></i></td>`)
-        // outputArray.push(` <tr>\n  <td rowspan=${items.length}><span style="font-size: 1.0rem; color: ${section.FAIconColor};"><i class="${section.FAIconClass}"></i></td>`)
-        outputArray.push(`  <td><span class="sectionName" style="max-width: 12rem; color: ${section.FAIconColor};">${section.name}</span><br />${section.description}</td>`)
-        // outputArray.push(`  <td rowspan=${items.length}><span class="sectionName" style="max-width: 12rem; color: ${section.FAIconColor};">${section.name}</span><br />${String(items.length)} ${section.description}</td>`)
+        // Prepare col 1 (section icon)
+        outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
 
+        // Prepare col 2 (section title)
+        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 12rem;">${section.name}</span><br />${section.description}</td>`)
+
+        // Start col 3: table of items in this section
         outputArray.push(`  <td>`)
         outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;">`)
         for (const item of items) {
           let reviewNoteCount = 0 // count of note-review items
           outputArray.push(`   <tr class="no-borders">`)
 
-          const thisNote = DataStore.projectNoteByFilename(item.filename)
+          // Long-winded way to get note title, as we don't have TNote available
+          const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString((item.filename).split(".")[0]))
+          // logDebug('item.filename', item.filename) // OK
           switch (item.type) {
             // Using a nested table for cols 3/4 to simplify logic and CSS
             case 'open': {
-              const paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
               outputArray.push(`    <td class="todo sectionItem no-borders"><i class="fa-regular fa-circle"></i></td>`)
-              let cell3 = `   <td class="sectionItem">${paraContent}`
-              if (thisNote) {
-                // Method 1: make [[notelinks]] via x-callbacks
-                const title = displayTitle(thisNote)
-                const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(title)
-                // TODO(finish): If context is wanted, and linked note title
-                if (config.includeTaskContext) {
-                  cell3 += noteTitleWithOpenAction
+              // Output type A: append clickable note link
+              // let cell3 = `   <td class="sectionItem">${paraContent}`
+              // if (itemNoteTitle !== weeklyNoteTitle) {
+              //   // Method 1: make [[notelinks]] via x-callbacks
+              //   // const title = displayTitle(thisNote)
+              //   const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(itemNoteTitle)
+              //   // If context is wanted, and linked note title
+              //   if (config.includeTaskContext) {
+              //     cell3 += noteTitleWithOpenAction
+              //   }
+              // }
+              // cell3 += `</td></tr>`
+
+              // Output type B: whole note link is clickable
+              // If context is wanted, and linked note title
+              let paraContent = ''
+              if (config.includeTaskContext) {
+                if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
+                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content, itemNoteTitle, 'all')
+                } else {
+                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content, itemNoteTitle, 'append')
                 }
+              } else {
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
               }
-              cell3 += `</td></tr>`
+              const cell3 = `   <td class="sectionItem">${paraContent}</td>`
               outputArray.push(cell3)
               totalOpenItems++
               break
             }
             case 'checklist': {
-              const paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
               outputArray.push(`    <td class="todo sectionItem no-borders"><i class="fa-regular fa-square"></i></td>`)
-              let cell3 = `   <td class="sectionItem">${paraContent}`
-              if (thisNote) {
-                // Make [[notelinks]] via x-callbacks
-                const titlePart = displayTitle(thisNote)
-                const titlePartEncoded = encodeURIComponent(titlePart)
-                const noteTitleWithOpenAction = `<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${titlePartEncoded}">${titlePart}</a></span>`
-                // TODO(finish): If context is wanted, and linked note title
-                if (config.includeTaskContext) {
-                  cell3 += '  [' + noteTitleWithOpenAction + ']'
+              // const paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
+              // Output type A: append clickable note link
+              // let cell3 = `   <td class="sectionItem">${paraContent}`
+              // if (itemNoteTitle !== weeklyNoteTitle) {
+              //   // Make [[notelinks]] via x-callbacks
+              //   // const title = displayTitle(thisNote)
+              //   const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(itemNoteTitle)
+              //   // If context is wanted, and linked note title
+              //   if (config.includeTaskContext) {
+              //     cell3 += noteTitleWithOpenAction
+              //   }
+              // }
+              // cell3 += `</td></tr>`
+
+              // Output type B: whole note link is clickable
+              // If context is wanted, and linked note title
+              let paraContent = ''
+              if (config.includeTaskContext) {
+                if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
+                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content, itemNoteTitle, 'all')
+                } else {
+                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content, itemNoteTitle, 'append')
                 }
+              } else {
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
               }
-              cell3 += `</td></tr>`
+              const cell3 = `   <td class="sectionItem">${paraContent}</td>`
               outputArray.push(cell3)
               totalOpenItems++
               break
             }
             case 'review-note': {
-              if (thisNote) {
+              if (itemNoteTitle) {
                 // do col 3 icon
                 outputArray.push(`    <td class="sectionItem noteTitle no-borders"><i class="fa-regular fa-file-lines"></i></td>`) // col 3
 
                 // do col 4
                 // Make [[notelinks]] via x-callbacks
                 const folderNamePart = config.includeFolderName ? getFolderFromFilename(item.filename) + ' / ' : ''
-                const titlePart = displayTitle(thisNote)
+                const titlePart = itemNoteTitle // displayTitle(thisNote)
                 const titlePartEncoded = encodeURIComponent(titlePart)
 
                 // TODO: Use createPrettyOpenNoteLink() here?
                 const noteTitleWithOpenAction = `${folderNamePart}<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${titlePartEncoded}">${titlePart}</a></span>`
-                // const noteTitleWithOpenAction = `${folderNamePart}<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${titlePartEncoded}">${titlePart}</a></span>`
                 let cell4 = `    <td class="sectionItem"><span class="">${noteTitleWithOpenAction}</span>`
-                if (reviewNoteCount === 0) { // FIXME: on first item only
+                // if (reviewNoteCount === 0) { // FIXME: on first item only
                   // TODO: make specific to that note
                   const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-calendar-check"></i> Start Reviews</a></span>`
                   cell4 += ` ${startReviewButton}`
-                }
+                // }
                 cell4 += `</td></tr>`
                 outputArray.push(cell4)
                 totalOpenItems++
@@ -225,8 +266,6 @@ export async function showDashboardHTML(): Promise<void> {
     const summaryStatStr = (totalDoneItems && !isNaN(totalDoneItems)) ? `<b>${String(totalOpenItems)} items</b> open; ${String(totalDoneItems)} closed` : `<b>${String(totalOpenItems)} items</b> open`
 
     outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}</p>`)
-
-    // TODO: Add a % circle completion? Requires done info as well.
 
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG

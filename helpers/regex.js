@@ -100,6 +100,7 @@ export const RE_EVENT_LINK: RegExp = /!\[.*\]\(\d{4}-[01]\d-[0123]\d\s[0-2]\d:[0
 export const RE_MARKDOWN_LINKS_CAPTURE_G: RegExp = /\[([^\]]+)\]\(([^\)]+)\)/g
 export const RE_MARKDOWN_LINK_PATH_CAPTURE: RegExp = /\[.+?\]\(([^\s]*?)\)/
 export const RE_SIMPLE_URI_MATCH: RegExp = /(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*,]+)/
+export const RE_SIMPLE_BARE_URI_MATCH_G: RegExp = /[^\("'](\b(\w+:\/{1,3}[\w\.\/\?\#\&\d\-\=\@%*,]+))/ig
 
 // Synced lines
 export const RE_SYNC_MARKER: RegExp = /\^[A-Za-z0-9]{6}(?![A-Za-z0-9])/

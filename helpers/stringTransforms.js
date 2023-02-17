@@ -6,11 +6,30 @@
 
 import { getNPWeekStr, RE_ISO_DATE, RE_NP_WEEK_SPEC, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, todaysDateISOString, RE_NP_YEAR_SPEC, RE_NP_DAY_SPEC } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
-import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SYNC_MARKER } from '@helpers/regex'
+import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SIMPLE_BARE_URI_MATCH_G, RE_SYNC_MARKER } from '@helpers/regex'
 
 /**
  * TODO(@dwertheimer): move 'removeDateTagsAndToday' from dateTime.js to here
  */
+
+/**
+ * Convert bare URLs to display as HTML links
+ * @author @jgclark
+ * TODO: @tests in jest file
+ * @param {string} original
+ */
+export function changeBareLinksToHTMLLink(original: string): string {
+  let output = original
+  const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
+  if (captures.length > 0) {
+    clo(captures, `${String(captures.length)} results from bare URL matches:`)
+    for (const capture of captures) {
+      const linkURL = capture[1]
+      output = output.replace(linkURL, `<span class="externalLink"><a href="${linkURL}">${linkURL}</a></span>`)
+    }
+  }
+  return output
+}
 
 /**
  * Change [title](URI) markdown links to <a href="URI">title</a> HTML style
@@ -18,7 +37,7 @@ import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SYNC_MARKER } from '@helpers/regex'
  * @tests in jest file
  * @param {string} original
  */
-export function changeMarkdownLinkToHTMLLink(original: string): string {
+export function changeMarkdownLinksToHTMLLink(original: string): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_MARKDOWN_LINKS_CAPTURE_G) ?? [])
   if (captures.length > 0) {
@@ -27,7 +46,7 @@ export function changeMarkdownLinkToHTMLLink(original: string): string {
     for (const capture of captures) {
       const linkTitle = capture[1]
       const linkURL = capture[2]
-      output = output.replace(`[${linkTitle}](${linkURL})`, `<a href="${linkURL}">${linkTitle}</a>`)
+      output = output.replace(`[${linkTitle}](${linkURL})`, `<span class="externalLink"><a href="${linkURL}">${linkTitle}</a></span>`)
     }
   }
   return output
