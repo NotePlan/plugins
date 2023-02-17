@@ -660,19 +660,19 @@ export async function runSearchesV2(
     const consolidatedResultSet: resultOutputTypeV3 = applySearchOperators(termsResults, config.resultLimit, fromDateStr, toDateStr)
     logDebug('runSearchesV2', `- Applied search logic in ${timer(outerStartTime)}s`)
 
-    // // For open tasks, add line sync with blockIDs (if we're using 'NotePlan' display style)
-    // if (config.resultStyle === 'NotePlan') {
-    //   // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
-    //   const syncdConsolidatedResultSet = await makeAnySyncs(consolidatedResultSet)
-    //   // clo(syncdConsolidatedResultSet, 'after makeAnySyncs, syncdConsolidatedResultSet =')
-    //   return syncdConsolidatedResultSet
-    // } else {
-    clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
+    // For open tasks, add line sync with blockIDs (if we're using 'NotePlan' display style)
+    // clo(consolidatedResultSet, 'after applySearchOperators, consolidatedResultSet =')
+    if (config.resultStyle === 'NotePlan') {
+      const syncdConsolidatedResultSet = await makeAnySyncs(consolidatedResultSet)
+      // clo(syncdConsolidatedResultSet, 'after makeAnySyncs, syncdConsolidatedResultSet =')
+      return syncdConsolidatedResultSet
+    } else {
       return consolidatedResultSet
-    // }
+    }
   }
   catch (err) {
     logError('runSearchesV2', err.message)
+    // $FlowFixMe
     return [] // for completeness
   }
 }
@@ -796,9 +796,6 @@ export async function runSearchV2(
       // Shouldn't get here, so raise an error
       throw new Error("Empty search term: stopping.")
     }
-
-    // FIXME(@EduardMe): the @Jared problem manifests in the search call
-    // clo(resultParas, 'after search API , resultParas =')
 
     const noteAndLineArr: Array<noteAndLine> = []
 
