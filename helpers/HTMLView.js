@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark
-// Last updated 10.10.2022
+// Last updated 12.2.2023 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn, JSP } from '@helpers/dev'
@@ -103,14 +103,14 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       rootSel.push(`--fg-main-color: ${RGBColourConvert(themeJSON?.editor?.textColor)}` ?? '#CC6666')
     }
 
-    // Set H1 (styles.title1)
+    // Set H1 from styles.title1
     tempSel = []
     styleObj = themeJSON.styles.title1
     if (styleObj) {
       const thisColor = RGBColourConvert(themeJSON.styles.title1.color ?? '#CC6666')
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('h1', tempSel))
+      output.push(makeCSSSelector('h1, .h1', tempSel))  // allow this same style to be used as a class too
       rootSel.push(`--h1-color: ${thisColor}`)
     }
     // Set H2 similarly
@@ -120,7 +120,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       const thisColor = RGBColourConvert(themeJSON.styles.title2.color ?? '#E9C062')
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('h2', tempSel))
+      output.push(makeCSSSelector('h2, .h2', tempSel))
       rootSel.push(`--h2-color: ${thisColor}`)
     }
     // Set H3 similarly
@@ -130,7 +130,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       const thisColor = RGBColourConvert(themeJSON.styles.title3.color ?? '#E9C062')
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('h3', tempSel))
+      output.push(makeCSSSelector('h3, .h3', tempSel))
       rootSel.push(`--h3-color: ${thisColor}`)
     }
     // Set H4 similarly
@@ -139,7 +139,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(themeJSON.styles.title4.color ?? '#E9C062')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('h4', tempSel))
+      output.push(makeCSSSelector('h4, .h4', tempSel))
     }
     // NP doesn't support H5 styling
 
@@ -165,6 +165,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
           'box-shadow: 0 1px 1px #CBCBCB',
           'padding: 1px 7px 1px 7px',
           'margin: 2px 4px',
+          'white-space: nowrap' // no wrapping (i.e. line break) within the button display
         ]),
       )
     } else {
@@ -181,6 +182,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
           'box-shadow: 0 -1px 1px #6F6F6F',
           'padding: 1px 7px 1px 7px',
           'margin: 1px 4px',
+          'white-space: nowrap' // no wrapping (i.e. line break) within the button display
         ]),
       )
     }
@@ -363,7 +365,6 @@ export function textDecorationFromNP(selector: string, value: number): string {
  */
 function pxToRem(thisFontSize: number, baseFontSize: number): string {
   const output = `${String((thisFontSize / baseFontSize).toPrecision(2))}rem`
-  // logDebug('', `${String(thisFontSize)} -> ${output}`)
   return output
 }
 
@@ -600,8 +601,9 @@ export const getErrorBridgeCodeString = (): string => `
 
 /**
  * Remove selectors and props we know we will never use in CSS-to-JS
- * @param {*} themeObj
- * @returns
+ * @author @dwertheimer
+ * @param {any} themeObj
+ * @returns {any}
  */
 export function pruneTheme(themeObj: any): any {
   // remove selectors we know we will never use
@@ -642,7 +644,7 @@ export function pruneTheme(themeObj: any): any {
  * All code lifted from @jgclark CSS conversion above - thank you!
  * @param {any} themeJSON - theme file (e.g. theme.values) from Editor
  */
-const getBasicColors = (themeJSON) => {
+const getBasicColors = (themeJSON: any) => {
   if (!themeJSON) return {}
   return {
     backgroundColor: themeJSON.editor?.backgroundColor ?? '#1D1E1F',
