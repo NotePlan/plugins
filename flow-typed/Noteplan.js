@@ -337,6 +337,37 @@ declare interface TEditor extends CoreNoteFields {
    * @return {string}
    */
   +currentSystemMode: string;
+
+/**
+ * Get a unique ID for the editor to make it easier to identify it later
+ * Note: Available from NotePlan v3.8.1 build 973
+ * @returns {string}
+ */
++id: string;
+/**
+ * Set / get a custom identifier, so you don't need to cache the unique id.
+ * Note: Available from NotePlan v3.8.1 build 973
+ * @returns {string}
+ */
+customId: string;
+/**
+ * Type of window where the editor is embedded in. 
+ * Possible values: main|split|floating|unsupported
+ * It's unsupported on iOS at the moment.
+ * Note: Available from NotePlan v3.8.1 build 973
+ * @returns {string}
+ */
++type: string;
+/**
+ * Get the cursor into a specific editor and send the window to the front.
+ * Note: Available from NotePlan v3.8.1 build 973
+ */
+focus(): void;
+/**
+ * Close the split view or window. If it's the main note, it will close the complete main window.
+ * Note: Available from NotePlan v3.8.1 build 973
+ */
+close(): void;
 }
 
 /**
@@ -396,6 +427,12 @@ declare class DataStore {
    * @type {Array<string>}
    */
   static +filters: $ReadOnlyArray<string>;
+  /**
+  * Get list of all overdue tasks as paragraphs
+  * Note: Available from v3.8.1
+  * @type {Array<TParagraph>}
+  */
+  static listOverdueTasks(): $ReadOnlyArray < TParagraph >;
 
   /**
    * Get or set settings for the current plugin (as a JavaScript object).
@@ -1871,7 +1908,19 @@ declare class NotePlan {
    * @param {string} version2
    * @returns {Array<RangeObject>}
    */
-  static stringDiff(version1: string, version2: string): Array<RangeObject>;
+  static stringDiff(version1: string, version2: string): Array < RangeObject >;
+  /**
+   * Returns a list of all opened editors (in the main view, in split views and in floating windows). See more details in the "Editor" documentation.
+   * Note: Available from v3.8.1 build 973
+   * @returns {Array<TEditor}
+   */
+  static editors(): Array < TEditor >;
+  /**
+   * Returns a list of all opened HTML windows.
+   * Note: Available from v3.8.1 build 973
+   * @returns {Array<HTMLView}
+   */
+  static htmlWindows(): Array < HTMLView >;
 }
 
 declare class HTMLView {
@@ -1894,6 +1943,36 @@ declare class HTMLView {
    * @param {number?} height (optional integer)
    */
   static showWindow(html: string, title: string, width?: number, height?: number): void;
+  /**
+   * Get a unique ID for the window to make it easier to identify it later
+   * Note: Available from NotePlan v3.8.1 build 973
+   * @returns {string}
+   */
+  +id: string;
+/**
+ * Set / get a custom identifier, so you don't need to cache the unique id.
+ * Note: Available from NotePlan v3.8.1 build 973
+ * @returns {string}
+ */
+customId: string;
+/**
+ * Get type of window where the window is embedded in. 
+ * Possible values: main|split|floating|unsupported
+ * It's unsupported on iOS at the moment.
+ * Note: Available from NotePlan v3.8.1 build 973
+ * @returns {string}
+ */
++type: string;
+/**
+ * Send the window to the front.
+ * Note: Available from NotePlan v3.8.1 build 973
+ */
+focus(): void;
+/**
+ * Close the split view or window. If it's the main note, it will close the complete main window.
+ * Note: Available from NotePlan v3.8.1 build 973
+ */
+close(): void;
   /**
    * After opening an html window, make changes to the contents of the window by running JS code directly inside the opened window.
    * Returns a promise you can wait for with the return value, if any (depends if you added one to the JS code that is supposed to be executed).

@@ -1,11 +1,19 @@
 # What's Changed in 🔎 Search Extensions plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
-<!--// FIXME: suffixes causing sync line problems. -->
 
-## [1.1.0-beta7] - 2023-01-25 <!-- [tell JPR1972, DW, as, kennonb, modocache, stacey, jaredos] -->
+<!-- FIXME: suffixes causing sync line problems. 
+- TODO: add type:checklist or type:open,checklist 
+- TODO: if no results just bring up a dialog and don't write a note
+- TODO: add new search operator type:checklist or type:open,checklist
+-->
+
+## [1.1.0-beta8] - 2023-02-17 <!-- [tell JPR1972, DW, as, kennonb, modocache, stacey, jaredos] -->
+- fix to scheduled items getting synced in /searchOpenTasks results, released again to go with NP v3.8.1 build 973.
+
+## [1.1.0-beta7] - 2023-01-25
 - where there are multiple copies of a line because they have been sync'd together, only one will now be shown. This will be the one in the most recently-edited note. (for @Stacey with help by @dwertheimer)
-- fix to scheduled items not getting synced in /searchOpenTasks results (thanks for tip by @JaredOS)
+- fix to scheduled items getting synced in /searchOpenTasks results (thanks for tip by @JaredOS); but this will need a new build of NP as well.
 
 ## [1.1.0-beta6] - 2023-01-18 <!-- [tell JPR1972, DW, as, kennonb, modocache] -->
 - fix to typo stopping refresh on /search results (thanks for tip by @DWREK)
