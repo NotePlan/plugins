@@ -23,26 +23,26 @@ const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateManipulation')}`
 
 describe(`${PLUGIN_NAME}`, () => {
   /*
-   * changeMarkdownLinkToHTMLLink()
+   * changeMarkdownLinksToHTMLLink()
    */
-  describe('changeMarkdownLinkToHTMLLink()' /* function */, () => {
+  describe('changeMarkdownLinksToHTMLLink()' /* function */, () => {
     test('should be empty from empty', () => {
-      const result = st.changeMarkdownLinkToHTMLLink('')
+      const result = st.changeMarkdownLinksToHTMLLink('')
       expect(result).toEqual('')
     })
     test('should be no change if no link found', () => {
       const input = 'this has [text] and (brackets) but not a valid link'
-      const result = st.changeMarkdownLinkToHTMLLink(input)
+      const result = st.changeMarkdownLinksToHTMLLink(input)
       expect(result).toEqual(input)
     })
     test('should produce HTML link 1', () => {
       const input = 'this has [text](brackets) with a valid link'
-      const result = st.changeMarkdownLinkToHTMLLink(input)
+      const result = st.changeMarkdownLinksToHTMLLink(input)
       expect(result).toEqual('this has <a href="brackets">text</a> with a valid link')
     })
     test('should produce HTML link 2', () => {
       const input = 'this has [title with spaces](https://www.something.com/with?various&chars%20ok) with a valid link'
-      const result = st.changeMarkdownLinkToHTMLLink(input)
+      const result = st.changeMarkdownLinksToHTMLLink(input)
       expect(result).toEqual('this has <a href="https://www.something.com/with?various&chars%20ok">title with spaces</a> with a valid link')
     })
   })
