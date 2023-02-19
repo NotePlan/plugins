@@ -71,7 +71,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       // sort the list only by priority, otherwise leaving order the same
       const sortedOpenParas = sortListBy(openParas, ['-priority'])
       // clo(sortedOpenParas, `${(String(sortedOpenParas.length))} sortedOpenParas:`)
-      sortedOpenParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, filename: thisFilename, type: p.calculatedType }))
+      sortedOpenParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, filename: thisFilename, type: p.calculatedType, lineIndex: p.lineIndex }))
       sections.push({
         ID: sectionCount,
         name: 'Today',
@@ -94,7 +94,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       // logDebug('', `found ${String(refParas.length ?? 0)} references to today`)
       if (refParas) {
         // $FlowFixMe[incompatible-use]
-        refParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, filename: p.note.filename, type: p.type }))
+        refParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, filename: p.note.filename, type: p.type, lineIndex: p.lineIndex }))
         sections.push({
           ID: sectionCount,
           name: 'Today',
@@ -129,8 +129,8 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       // clo(openParas, `${(String(openParas.length))} openParas:`)
       // sort the list only by priority, otherwise leaving order the same
       const sortedOpenParas = sortListBy(openParas, ['-priority'])
-      // clo(sortedOpenParas, `${(String(sortedOpenParas.length))} sortedOpenParas:`)
-      sortedOpenParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, filename: thisFilename, type: p.calculatedType, lineIndex: p.lineIndex }))
+      // clo(sortedOpenParas, `${String(sortedOpenParas.length)} sortedOpenParas:`)
+      sortedOpenParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, filename: thisFilename, type: p.calculatedType, lineIndex: p.paragraph.lineIndex }))
       sections.push({
         ID: sectionCount,
         name: 'This Week',

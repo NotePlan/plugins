@@ -14,8 +14,8 @@
 if (typeof receivingPluginID === 'undefined') {
   throw new Error('The variable receivingPluginID is not defined. This variable must be set prior to the inclusion of the pluginToHTMLCommsBridge file.')
 }
-if (typeof switchboard === 'undefined') {
-  throw new Error('The function switchboard is not defined. This function must be imported/set prior to the inclusion of the pluginToHTMLCommsBridge file.')
+if (typeof onMessageFromPlugin === 'undefined') {
+  throw new Error('The function onMessageFromPlugin is not defined. This function must be imported/set prior to the inclusion of the pluginToHTMLCommsBridge file.')
 }
 
 /**
@@ -65,7 +65,7 @@ const onMessageReceived = (event) => {
     if (!type) throw (`onMessageReceived: received a message, but the 'type' was undefined`, event.data)
     if (!payload) throw (`onMessageReceived: received a message but 'payload' was undefined`, event.data)
     console.log(`onMessageReceived: received a message of type: ${type} with a payload`, payload)
-    switchboard(type, payload) /* you need to have a function called switchboard in your code */
+    onMessageFromPlugin(type, payload) /* you need to have a function called onMessageFromPlugin in your code */
   } catch (error) {
     console.log(`Root: onMessageReceived: error=${JSON.stringify(error)}`)
   }

@@ -62,6 +62,7 @@ export const dashboardCSS: string = [
   '.sidebarMonthly { font-size: 1.0rem; color: #f5528b; }',
   '.sidebarQuarterly { font-size: 1.0rem; color: #e08008; }',
   '.sidebarYearly { font-size: 1.0rem; color: #efba13; }',
+  '#error { background-color: red; padding-left: 10px; }',
   // TODO: Think about proper HTML checkbox and styling
 ].join('\n\t')
 
@@ -93,19 +94,14 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
 // That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
 // this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
 
-/* the switchboard function is called when data is received from your plugin and needs to be processed. this function
-   should not do the work itself, it should just send the data payload to a function for processing. The switchboard function
+/* the onMessageFromPlugin function is called when data is received from your plugin and needs to be processed. this function
+   should not do the work itself, it should just send the data payload to a function for processing. The onMessageFromPlugin function
    below and your processing functions can be in your html document or could be imported in an external file. The only
-   requirement is that switchboard (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
+   requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
    be in your html document or could be imported in an external file */
 </script>
 <script type="text/javascript" src="./commsSwitchboard.js"></script>
 <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
-<script>
-// test commands
-switchboard('alert', { message: 'Hello from the plugin' })
-sendMessageToPlugin(['commsTest', 'test', 'test2'])
-</script>
 `
 
 /**
@@ -270,8 +266,8 @@ export async function showDashboardHTML(): Promise<void> {
 
     const summaryStatStr =
       totalDoneItems && !isNaN(totalDoneItems) ? `<b>${String(totalOpenItems)} items</b> open; ${String(totalDoneItems)} closed` : `<b>${String(totalOpenItems)} items</b> open`
-
     outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}</p>`)
+    outputArray.unshift(`<p id="error"></p>`)
 
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG

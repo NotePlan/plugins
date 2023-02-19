@@ -21,6 +21,7 @@ export function onMessageFromHTMLView(type: string, data: any) {
         onClickStatus(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
         break
     }
+    return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -43,6 +44,8 @@ export function onClickStatus(data: ClickStatus) {
     para.note?.updateParagraph(para)
     const newDivContent = `<td>"${para.type}"</td><td>Paragraph status was updated by the plugin!</td>`
     sendToHTMLWindow('updateDiv', { divID: lineID, html: newDivContent, innerText: false })
+    // NOTE: in this particular case, it might have been easier to just call the refresh-page command, but I thought it worthwhile
+    // to show how to update a single div in the HTML view
   } else {
     logError(pluginJson, `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
   }
