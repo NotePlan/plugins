@@ -111,7 +111,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       const thisColor = RGBColourConvert(themeJSON.styles.title1.color ?? '#CC6666')
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('h1, .h1', tempSel))  // allow this same style to be used as a class too
+      output.push(makeCSSSelector('h1, .h1', tempSel)) // allow this same style to be used as a class too
       rootSel.push(`--h1-color: ${thisColor}`)
     }
     // Set H2 similarly
@@ -166,7 +166,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
           'box-shadow: 0 1px 1px #CBCBCB',
           'padding: 1px 7px 1px 7px',
           'margin: 2px 4px',
-          'white-space: nowrap' // no wrapping (i.e. line break) within the button display
+          'white-space: nowrap', // no wrapping (i.e. line break) within the button display
         ]),
       )
     } else {
@@ -183,7 +183,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
           'box-shadow: 0 -1px 1px #6F6F6F',
           'padding: 1px 7px 1px 7px',
           'margin: 1px 4px',
-          'white-space: nowrap' // no wrapping (i.e. line break) within the button display
+          'white-space: nowrap', // no wrapping (i.e. line break) within the button display
         ]),
       )
     }
@@ -700,11 +700,11 @@ const getBasicColors = (themeJSON: any) => {
  */
 export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boolean = false): any {
   const theme = { ...Editor.currentTheme }
-  logDebug(pluginJson, `getThemeJS currentTheme="${theme?.name}"`)
+  // logDebug(pluginJson, `getThemeJS currentTheme="${theme?.name}"`)
   if (!includeSpecificStyles && theme?.values?.styles) delete theme.values.styles
   if (cleanIt) theme.values = pruneTheme(theme.values)
   if (!theme.values) {
-    clo(Editor.currentTheme, `getThemeJS Editor.currentTheme="${theme?.name || ''}"`)
+    // clo(Editor.currentTheme, `getThemeJS Editor.currentTheme="${theme?.name || ''}"`)
     throw 'No theme values found in theme, cannot continue'
   }
   theme.values.base = getBasicColors(Editor.currentTheme)
@@ -733,7 +733,6 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
       logDebug(pluginJson, `showHTMLWindow Saving NP_THEME in JavaScript`)
     }
   }
-  const initializeGlobalSharedData = `let globalSharedData = {};`
   showHTML(
     windowTitle,
     opts.headerTags ?? '',
@@ -741,7 +740,7 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
     opts.generalCSSIn ?? '',
     opts.specificCSS ?? '',
     opts.makeModal ?? false,
-    [getErrorBridgeCodeString(), initializeGlobalSharedData, ...preBody],
+    [...preBody],
     opts.postBodyScript ?? '',
     opts.savedFilename ?? '',
     opts.width,
