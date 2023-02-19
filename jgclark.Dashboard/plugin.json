@@ -8,14 +8,16 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.1.34",
+  "plugin.version": "0.2.0",
   "plugin.lastUpdateInfo": "v0.1.x: first release (read-only view)",
+  "plugin.requiredFiles": ["commsSwitchboard.js"],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
     "regular.min.flat4NP.css",
     "solid.min.flat4NP.css",
     "fa-regular-400.woff2",
-    "fa-solid-900.woff2"
+    "fa-solid-900.woff2",
+    "pluginToHTMLCommsBridge.js"
   ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -35,6 +37,12 @@
       ],
       "description": "Show Dashboard (HTML method)",
       "jsFunction": "showDashboardHTML"
+    },
+    {
+      "name": "onMessageFromHTMLView",
+      "description": "jgclark.Dashboard: Callback function to receive messages from HTML view",
+      "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
     },
     {
       "name": "show dashboard (React)",

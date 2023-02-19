@@ -13,6 +13,8 @@ import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
 
 export { showDashboardHTML } from './dashboardHTML'
+export { onMessageFromHTMLView } from './pluginToHTMLBridge'
+
 export { getDataForDashboard, logDashboardData } from './dataGeneration'
 
 const thisPluginID = 'jgclark.Dashboard'
@@ -56,8 +58,7 @@ export async function checkForWantedResources(filesToCheck?: Array<string>): Pro
         } else {
           logWarn(`checkForWantedResources`, `- ${filename} not found`)
         }
-      }
-      else {
+      } else {
         const data = DataStore.loadData(filename, false)
         if (data) {
           logDebug(`checkForWantedResources`, `- found ${filename}, length ${String(data.length)}`)
@@ -68,8 +69,7 @@ export async function checkForWantedResources(filesToCheck?: Array<string>): Pro
       }
     }
     return numFound
-  }
-  catch (error) {
+  } catch (error) {
     logError(thisPluginID, error.message)
     return false
   }
@@ -89,7 +89,10 @@ export async function init(): Promise<void> {
       logDebug(`${thisPluginID}/init`, `plugin np.Shared is loaded 😄 and provides all the ${String(wantedFileList.length)} wanted files`)
     } else if (typeof wantedRes === 'number' && wantedRes < wantedFileList.length) {
       // plugin np.Shared is loaded, but isn't providing all the wanted resources
-      logWarn(`${thisPluginID}/init`, `plugin np.Shared is loaded 😄, but is only providing ${String(wantedRes)} out of ${String(wantedFileList.length)} wanted files, so there might be display issues 😳`)
+      logWarn(
+        `${thisPluginID}/init`,
+        `plugin np.Shared is loaded 😄, but is only providing ${String(wantedRes)} out of ${String(wantedFileList.length)} wanted files, so there might be display issues 😳`,
+      )
     } else if (wantedRes) {
       // plugin np.Shared is loaded
       logWarn(`${thisPluginID}/init`, `plugin np.Shared is loaded 😄; no further checking done`)
@@ -100,8 +103,7 @@ export async function init(): Promise<void> {
 
     // In the background, see if there is an update to the plugin to install, and if so let user know
     DataStore.installOrUpdatePluginsByID([thisPluginID], false, false, false)
-  }
-  catch (error) {
+  } catch (error) {
     logError(`${thisPluginID}/init`, JSP(error))
   }
 }
@@ -109,7 +111,6 @@ export async function init(): Promise<void> {
 export function onSettingsUpdated(): void {
   // Placeholder only to stop error in logs
 }
-
 
 export async function onUpdateOrInstall(): Promise<void> {
   try {
@@ -120,9 +121,7 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     // Tell user the plugin has been updated
     if (pluginJson['plugin.lastUpdateInfo'] !== 'undefined') {
-      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
-        `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`
-      )
+      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks', `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`)
     }
   } catch (error) {
     logError(pluginJson, error)

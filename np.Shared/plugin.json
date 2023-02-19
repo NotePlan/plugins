@@ -20,7 +20,8 @@
     "fa-duotone-900.woff2",
     "fa-light-300.woff2",
     "fa-regular-400.woff2",
-    "fa-solid-900.woff2"
+    "fa-solid-900.woff2",
+    "pluginToHTMLCommsBridge.js"
   ],
   "plugin.__requiredFiles": [
     "css/duotone.min.css",
@@ -31,7 +32,8 @@
     "webfonts/fa-duotone-900.woff2",
     "webfonts/fa-light-300.woff2",
     "webfonts/fa-regular-400.woff2",
-    "webfonts/fa-solid-900.woff2"
+    "webfonts/fa-solid-900.woff2",
+    "pluginToHTMLCommsBridge.js"
   ],
   "plugin.commands": [
     {

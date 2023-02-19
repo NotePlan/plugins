@@ -6,30 +6,12 @@
 
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
-import {
-  getDataForDashboard,
-  type SectionDetails,
-  type SectionItem
-} from './dataGeneration'
-import {
-  addNoteOpenLinkToString,
-  getSettings,
-  makeNoteTitleWithOpenAction,
-  makeParaContentToLookLikeNPDisplayInHTML
-} from './dashboardHelpers'
-import {
-  toLocaleTime,
-  getDateStringFromCalendarFilename,
-} from '@helpers/dateTime'
+import { getDataForDashboard, type SectionDetails, type SectionItem } from './dataGeneration'
+import { addNoteOpenLinkToString, getSettings, makeNoteTitleWithOpenAction, makeParaContentToLookLikeNPDisplayInHTML } from './dashboardHelpers'
+import { toLocaleTime, getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import {
-  createPrettyOpenNoteLink,
-  createPrettyRunPluginLink,
-  createRunPluginCallbackUrl,
-  displayTitle,
-  returnNoteLink,
-} from '@helpers/general'
+import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
 import { showHTML } from '@helpers/HTMLView'
 import { getNoteType } from '@helpers/note'
 import { isThisMinute } from 'date-fns'
@@ -51,7 +33,7 @@ export const dashboardCSS: string = [
   '  border-collapse: collapse;', // always!
   '  border: 0px none;',
   '  empty-cells: show; }',
-  // 'i.fa-solid, i.fa-light, i.fa-regular { padding-right: 6px; }', // add space after 
+  // 'i.fa-solid, i.fa-light, i.fa-regular { padding-right: 6px; }', // add space after
   'th { text-align: left; vertical-align: bottom; padding: 8px; border: 0px none; }', // no borders
   // 'tr.new-section-header { color: var(--h3-color); padding-top: 1.0rem; font-size: 1.0rem; font-weight: bold; background-color: var(--bg-main-color); border-top: 1px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }',
   'td { text-align: left; vertical-align: top; padding: 8px 4px; border: 0px none; }', // no borders
@@ -83,34 +65,53 @@ export const dashboardCSS: string = [
   // TODO: Think about proper HTML checkbox and styling
 ].join('\n\t')
 
-const startReviewsCommandCall = (`(function() {
+const startReviewsCommandCall = `(function() {
     DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
   })()`
-)
 
-const makeProjectListsCommandCall = (`(function() {
+const makeProjectListsCommandCall = `(function() {
     DataStore.invokePluginCommandByName("show dashboard (HTML)", "jgclark.Dashboard");
   })()`
-)
 
-function makeCommandCall(commandCallJSON: string): string {
-  return `<script>
-  const callCommand = () => {
-    window.webkit.messageHandlers.jsBridge.postMessage({
-      code: ${commandCallJSON},
-      onHandle: "onHandleUpdateLabel", // TODO: remove in time
-      id: "1"
-    });
-  };
-</script>`
-}
+// function makeCommandCall(commandCallJSON: string): string {
+//   return `<script>
+//   const callCommand = () => {
+//     window.webkit.messageHandlers.jsBridge.postMessage({
+//       code: ${commandCallJSON},
+//       onHandle: "onHandleUpdateLabel", // TODO: remove in time
+//       id: "1"
+//     });
+//   };
+// </script>`
+// }
 
-//-----------------------------------------------------------------
+const commsBridge = `
+<script>
+/* per @dwertheimer: you must set these variables before you import the bridge */
+
+const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin which will receive the comms from HTML
+// That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
+// this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
+
+/* the switchboard function is called when data is received from your plugin and needs to be processed. this function
+   should not do the work itself, it should just send the data payload to a function for processing. The switchboard function
+   below and your processing functions can be in your html document or could be imported in an external file. The only
+   requirement is that switchboard (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
+   be in your html document or could be imported in an external file */
+</script>
+<script type="text/javascript" src="./commsSwitchboard.js"></script>
+<script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
+<script>
+// test commands
+switchboard('alert', { message: 'Hello from the plugin' })
+sendMessageToPlugin(['commsTest', 'test', 'test2'])
+</script>
+`
 
 /**
  * Show the generated dashboard data using native HTML.
  * @author @jgclark
- * 
+ *
  * Note: this uses x-callbacks to make actions happen.
  * TODO: ideally switch to using internal links when I can get this to work:
  * - see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
@@ -121,9 +122,9 @@ export async function showDashboardHTML(): Promise<void> {
     const config = await getSettings()
     const [sections, sectionItems] = await getDataForDashboard()
     const outputArray: Array<string> = []
-    const dailyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), "day"))
+    const dailyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'day'))
     const weeklyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'week'))
-    const startReviewXCallbackURL = createRunPluginCallbackUrl("jgclark.Reviews", "next project review", "")
+    const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '')
 
     // Create nice HTML display for this data.
     // Main table loop
@@ -142,17 +143,21 @@ export async function showDashboardHTML(): Promise<void> {
         // Start col 3: table of items in this section
         outputArray.push(`  <td>`)
         outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;">`)
+        let lineNo = 0
         for (const item of items) {
           let reviewNoteCount = 0 // count of note-review items
-          outputArray.push(`   <tr class="no-borders">`)
+          const lineID = `${section.ID}-${lineNo}`
+          outputArray.push(`   <tr class="no-borders" id=${lineID}>`)
 
           // Long-winded way to get note title, as we don't have TNote available
-          const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString((item.filename).split(".")[0]))
+          const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString(item.filename.split('.')[0]))
           // logDebug('item.filename', item.filename) // OK
           switch (item.type) {
             // Using a nested table for cols 3/4 to simplify logic and CSS
             case 'open': {
-              outputArray.push(`    <td class="todo sectionItem no-borders"><i class="fa-regular fa-circle"></i></td>`)
+              outputArray.push(
+                `    <td class="todo sectionItem no-borders" onClick="onClickStatus('${item.filename}',${item.lineIndex},'${item.type}','${lineID}')"><i class="fa-regular fa-circle"></i></td>`,
+              )
               // Output type A: append clickable note link
               // let cell3 = `   <td class="sectionItem">${paraContent}`
               // if (itemNoteTitle !== weeklyNoteTitle) {
@@ -231,21 +236,21 @@ export async function showDashboardHTML(): Promise<void> {
                 const noteTitleWithOpenAction = `${folderNamePart}<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${titlePartEncoded}">${titlePart}</a></span>`
                 let cell4 = `    <td class="sectionItem"><span class="">${noteTitleWithOpenAction}</span>`
                 // if (reviewNoteCount === 0) { // FIXME: on first item only
-                  // TODO: make specific to that note
-                  const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-calendar-check"></i> Start Reviews</a></span>`
-                  cell4 += ` ${startReviewButton}`
+                // TODO: make specific to that note
+                const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-calendar-check"></i> Start Reviews</a></span>`
+                cell4 += ` ${startReviewButton}`
                 // }
                 cell4 += `</td></tr>`
                 outputArray.push(cell4)
                 totalOpenItems++
                 reviewNoteCount++
-              }
-              else {
+              } else {
                 logError('makeDashboard', `Cannot find note for '${item.content}'`)
               }
               break
             }
           }
+          lineNo++
         }
         outputArray.push(`   </table>`)
         outputArray.push(` </td></tr>`)
@@ -260,30 +265,33 @@ export async function showDashboardHTML(): Promise<void> {
 
     // write lines before first table
     // Write time and refresh info TODO: as a fixed block at top R of window
-    const refreshXCallbackURL = createRunPluginCallbackUrl("jgclark.Dashboard", "show dashboard (HTML)", "")
+    const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard (HTML)', '')
     const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
 
-    const summaryStatStr = (totalDoneItems && !isNaN(totalDoneItems)) ? `<b>${String(totalOpenItems)} items</b> open; ${String(totalDoneItems)} closed` : `<b>${String(totalOpenItems)} items</b> open`
+    const summaryStatStr =
+      totalDoneItems && !isNaN(totalDoneItems) ? `<b>${String(totalOpenItems)} items</b> open; ${String(totalDoneItems)} closed` : `<b>${String(totalOpenItems)} items</b> open`
 
     outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}</p>`)
 
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
     const windowTitle = `Dashboard (${totalOpenItems} items)`
-    const filenameHTMLCopy = (config._logLevel === 'DEBUG') ? 'dashboard.html' : ''
-    await showHTML(windowTitle,
+    const filenameHTMLCopy = config._logLevel === 'DEBUG' ? '../../jgclark.Dashboard/dashboard.html' : ''
+    await showHTML(
+      windowTitle,
       faLinksInHeader, // no extra header tags
       outputArray.join('\n'),
       '', // get general CSS set automatically
       dashboardCSS,
       false, // = not modal window
       '', // no extra JS
-      makeCommandCall(startReviewsCommandCall),
+      commsBridge /* makeCommandCall(startReviewsCommandCall), */,
       filenameHTMLCopy,
-      780, 800) // set width; max height
+      780,
+      800,
+    ) // set width; max height
     logDebug(`makeDashboard`, `written to HTML window`)
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, `${error.name} ${error.message}`)
   }
 }
