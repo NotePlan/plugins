@@ -266,7 +266,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['flagged-1']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? ''}`)
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFE5E5')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority1', tempSel))
@@ -276,7 +276,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['flagged-2']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? ''}`)
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.color ?? '#FFC5C5')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority2', tempSel))
@@ -286,7 +286,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['flagged-3']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? ''}`)
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.color ?? '#FFA5A5')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority3', tempSel))

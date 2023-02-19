@@ -17,12 +17,16 @@
  * @param {any} data
  */
 function onMessageFromPlugin(type, data) {
+  console.log(`onMessageFromPlugin: starting with type: ${type}`)
   switch (type) {
     case 'updateDiv':
-      onUpdateDivReceived(data)
+      updateDivReceived(data)
+      break
+    case 'deleteItemRow':
+      deleteItemRow(data)
       break
     default:
-      console.log(`onMessageFromPlugin: unknown type: ${type}`)
+      console.log(`- unknown type: ${type}`)
       showError(`onMessageFromPlugin: received unknown type: ${type}`)
     // ...call other functions to process the data for other types of messages from the plugin
   }
@@ -37,10 +41,20 @@ function onMessageFromPlugin(type, data) {
  * Plugin wants to replace a div with some HTML (or plain text if innerText is true)
  * @param { { divID: string, html: string, innerText:boolean } } data
  */
-function onUpdateDivReceived(data) {
+function updateDivReceived(data) {
   const { divID, html, innerText } = data
-  console.log(`onUpdateDivReceived: divID: ${divID}, html: ${html}`)
+  console.log(`updateDivReceived: for divID: ${divID}, html: ${html}`)
   replaceHTML(divID, html, innerText)
+}
+
+/**
+ * Plugin wants to remove a row from its table
+ * @param { { ID: string, html: string, innerText:boolean } } data
+ */
+function deleteItemRow(data) {
+  const { itemID } = data
+  console.log(`deleteItemRow: for itemID: ${itemID}`)
+  deleteHTMLItem(itemID)
 }
 
 /****************************************************************************************************************************
@@ -59,21 +73,29 @@ function onUpdateDivReceived(data) {
  * @param {number} lineIndex
  * @param {string} statusWas
  */
-function onClickStatus(filename, lineIndex, statusWas, lineID) {
-  if (!filename || typeof lineIndex !== 'number' || !statusWas || !lineID) {
-    const msg = `onClickStatus: invalid data: filename: ${filename}, lineIndex: ${lineIndex}, statusWas: ${statusWas}, lineID: ${lineID}`
+function onClickDashboardCell(ID, type, filename, rawContent = '') {
+  if (!ID || !type || !filename) {
+    const msg = `onClickDashboardCell: invalid data: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: '${rawContent}'`
     console.log(msg)
     showError(msg)
   } else {
-    console.log(`onClickStatus received click on: filename: ${filename}, lineIndex: ${lineIndex}, status: ${status}; sending 'onClickStatus' to plugin`)
-    const data = { filename, lineIndex: lineIndex, statusWas, lineID }
-    sendMessageToPlugin('onClickStatus', data) // actionName, data
+    console.log(`onClickDashboardCell received click on: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: '${rawContent}; sending 'onClickDashboardCell' to plugin`)
+    const data = { ID, type, filename, rawContent }
+    sendMessageToPlugin('onClickDashboardCell', data) // actionName, data
   }
 }
 
 /****************************************************************************************************************************
  *                             HELPER FUNCTIONS
  ****************************************************************************************************************************/
+
+function deleteHTMLItem(itemID) {
+  console.log(`deleteHTMLItem: itemID: ${itemID}`)
+  const div = document.getElementById(itemID)
+  if (div) {
+    div.innerHTML = ''
+  }
+}
 
 function replaceHTML(divID, html, innerText) {
   console.log(`replaceHTML: divID: ${divID}, html: ${html}`)

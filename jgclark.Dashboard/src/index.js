@@ -1,10 +1,10 @@
 // @flow
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 31.1.2023 for v0.1.0, @jgclark
-// -----------------------------------------------------------------------------
+// last updated 19.2.2023 for v0.2.0, @jgclark
+// ----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
@@ -12,6 +12,8 @@ import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
 
+export { logWindows } from './dashboardHelpers'
+export { testCompleteItem } from './pluginToHTMLBridge'
 export { showDashboardHTML } from './dashboardHTML'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge'
 

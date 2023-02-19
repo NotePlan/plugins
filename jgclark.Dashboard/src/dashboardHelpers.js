@@ -1,16 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 15.2.2023 for v0.1.x by @jgclark
+// Last updated 18.2.2023 for v0.2.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { RE_DATE_TIME } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_EVENT_ID } from '@helpers/calendar'
 import {
-  // NP_RE_attag_G,
-  // NP_RE_hashtag_G,
   RE_EVENT_LINK,
   RE_MARKDOWN_LINKS_CAPTURE_G,
   RE_SCHEDULED_DATES_G,
@@ -193,6 +190,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string, noteT
     // (Simpler regex possible as the count comes later)
     // Note: the wrapping for 'all' needs to go last.
     if (output.match(/\B\!+\B/)) {
+      // $FlowIgnore[incompatible-use]
       const numExclamations = output.match(/\B\!+\B/)[0].length
       switch (numExclamations) {
         case 1: {
@@ -230,7 +228,7 @@ export function addNoteOpenLinkToString(displayStr: string, noteTitle: string): 
     return `<a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${displayStr}</a>`
   }
   catch (error) {
-    logError('addNoteOpenLinkToString', `${error.message} for input '${input}'`)
+    logError('addNoteOpenLinkToString', `${error.message} for input '${displayStr}'`)
     return '(error)'
   }
 }
@@ -243,4 +241,18 @@ export function addNoteOpenLinkToString(displayStr: string, noteTitle: string): 
 export function makeNoteTitleWithOpenAction(title: string): string {
   const titleEncoded = encodeURIComponent(title)
   return `<span class="noteTitle sectionItem"><i class="fa-regular fa-file-lines"></i> <a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${title}</a></span>`
+}
+
+// TODO: remove these in time --------------------------------------------------
+
+export function logWindows(): void {
+  const outputLines = []
+  for (const win of NotePlan.editors) {
+    outputLines.push(`- ${win.type}: ${win.id} ${win.customId} ${win.filename}`)
+  }
+  for (const win of NotePlan.htmlWindows) {
+    outputLines.push(`- ${win.type}: ${win.id} ${win.customId} ${win.filename ?? '-'} ${win.title ?? '-'}`)
+  }
+  outputLines.unshift(`${outputLines.length} Windows:`)
+  logInfo('logWindows', outputLines.join('\n'))
 }

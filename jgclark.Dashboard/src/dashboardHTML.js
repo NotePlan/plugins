@@ -70,10 +70,6 @@ const startReviewsCommandCall = `(function() {
     DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
   })()`
 
-const makeProjectListsCommandCall = `(function() {
-    DataStore.invokePluginCommandByName("show dashboard (HTML)", "jgclark.Dashboard");
-  })()`
-
 // function makeCommandCall(commandCallJSON: string): string {
 //   return `<script>
 //   const callCommand = () => {
@@ -117,6 +113,8 @@ export async function showDashboardHTML(): Promise<void> {
   try {
     const config = await getSettings()
     const [sections, sectionItems] = await getDataForDashboard()
+    logDebug('showDashboardHTML', `Starting with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
+
     const outputArray: Array<string> = []
     const dailyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'day'))
     const weeklyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'week'))
@@ -128,7 +126,7 @@ export async function showDashboardHTML(): Promise<void> {
     let totalDoneItems: number
     outputArray.push(`\n<table style="table-layout: auto; word-wrap: break-word;">`)
     for (const section of sections) {
-      const items = sectionItems.filter((i) => i.ID === section.ID)
+      const items = sectionItems.filter((i) => i.ID.startsWith(String(section.ID)))
       if (items.length > 0) {
         // Prepare col 1 (section icon)
         outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
@@ -139,20 +137,18 @@ export async function showDashboardHTML(): Promise<void> {
         // Start col 3: table of items in this section
         outputArray.push(`  <td>`)
         outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;">`)
-        let lineNo = 0
         for (const item of items) {
           let reviewNoteCount = 0 // count of note-review items
-          const lineID = `${section.ID}-${lineNo}`
-          outputArray.push(`   <tr class="no-borders" id=${lineID}>`)
+          outputArray.push(`    <tr class="no-borders" id=${item.ID}>`)
 
-          // Long-winded way to get note title, as we don't have TNote available
-          const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString(item.filename.split('.')[0]))
-          // logDebug('item.filename', item.filename) // OK
+          // Long-winded way to get note title, as we don't have TNote, but do have note's filename
+          const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString((item.filename).split(".")[0]))
+
           switch (item.type) {
             // Using a nested table for cols 3/4 to simplify logic and CSS
             case 'open': {
               outputArray.push(
-                `    <td class="todo sectionItem no-borders" onClick="onClickStatus('${item.filename}',${item.lineIndex},'${item.type}','${lineID}')"><i class="fa-regular fa-circle"></i></td>`,
+                `    <td class="todo sectionItem no-borders" onClick="onClickDashboardCell('${item.ID}','${item.type}','${item.filename}','${item.rawContent}')"><i class="fa-regular fa-circle"></i></td>`,
               )
               // Output type A: append clickable note link
               // let cell3 = `   <td class="sectionItem">${paraContent}`
@@ -179,13 +175,13 @@ export async function showDashboardHTML(): Promise<void> {
               } else {
                 paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
               }
-              const cell3 = `   <td class="sectionItem">${paraContent}</td>`
+              const cell3 = `    <td class="sectionItem">${paraContent}</td>`
               outputArray.push(cell3)
               totalOpenItems++
               break
             }
             case 'checklist': {
-              outputArray.push(`    <td class="todo sectionItem no-borders"><i class="fa-regular fa-square"></i></td>`)
+              outputArray.push(`    <td class="todo sectionItem no-borders" onClick="onClickDashboardCell('${item.ID}','${item.type}','${item.filename}','${item.rawContent}')"><i class="fa-regular fa-square"></i></td>`)
               // const paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
               // Output type A: append clickable note link
               // let cell3 = `   <td class="sectionItem">${paraContent}`
@@ -212,15 +208,15 @@ export async function showDashboardHTML(): Promise<void> {
               } else {
                 paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
               }
-              const cell3 = `   <td class="sectionItem">${paraContent}</td>`
+              const cell3 = `    <td class="sectionItem">${paraContent}</td>`
               outputArray.push(cell3)
               totalOpenItems++
               break
             }
-            case 'review-note': {
+            case 'review': {
               if (itemNoteTitle) {
                 // do col 3 icon
-                outputArray.push(`    <td class="sectionItem noteTitle no-borders"><i class="fa-regular fa-file-lines"></i></td>`) // col 3
+                outputArray.push(`     <td class="todo sectionItem no-borders" onClick="onClickDashboardCell('${item.ID}','review','${item.filename}','')"><i class="fa-solid fa-calendar-check"></i></td>`) 
 
                 // do col 4
                 // Make [[notelinks]] via x-callbacks
@@ -231,12 +227,12 @@ export async function showDashboardHTML(): Promise<void> {
                 // TODO: Use createPrettyOpenNoteLink() here?
                 const noteTitleWithOpenAction = `${folderNamePart}<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${titlePartEncoded}">${titlePart}</a></span>`
                 let cell4 = `    <td class="sectionItem"><span class="">${noteTitleWithOpenAction}</span>`
-                // if (reviewNoteCount === 0) { // FIXME: on first item only
-                // TODO: make specific to that note
-                const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-calendar-check"></i> Start Reviews</a></span>`
-                cell4 += ` ${startReviewButton}`
-                // }
-                cell4 += `</td></tr>`
+                // // if (reviewNoteCount === 0) { // FIXME: on first item only
+                // // TODO: make specific to that note
+                // const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-calendar-check"></i> Start Reviews</a></span>`
+                // cell4 += ` ${startReviewButton}`
+                // // }
+                cell4 += `</td>\n    </tr>`
                 outputArray.push(cell4)
                 totalOpenItems++
                 reviewNoteCount++
@@ -246,10 +242,9 @@ export async function showDashboardHTML(): Promise<void> {
               break
             }
           }
-          lineNo++
         }
         outputArray.push(`   </table>`)
-        outputArray.push(` </td></tr>`)
+        outputArray.push(`  </td>\n </tr>`)
       } else {
         // If this is the 'Done' section that recover the count
         if (section.name === 'Done') {
@@ -272,7 +267,7 @@ export async function showDashboardHTML(): Promise<void> {
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
     const windowTitle = `Dashboard (${totalOpenItems} items)`
-    const filenameHTMLCopy = config._logLevel === 'DEBUG' ? '../../jgclark.Dashboard/dashboard.html' : ''
+    const filenameHTMLCopy = config._logLevel === 'DEBUG' ? 'dashboard.html' : ''
     await showHTML(
       windowTitle,
       faLinksInHeader, // no extra header tags
