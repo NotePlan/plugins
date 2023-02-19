@@ -1912,13 +1912,13 @@ declare class NotePlan {
   /**
    * Returns a list of all opened editors (in the main view, in split views and in floating windows). See more details in the "Editor" documentation.
    * Note: Available from v3.8.1 build 973
-   * @returns {Array<TEditor}
+   * @returns {Array<TEditor>}
    */
   static editors(): Array < TEditor >;
   /**
    * Returns a list of all opened HTML windows.
    * Note: Available from v3.8.1 build 973
-   * @returns {Array<HTMLView}
+   * @returns {Array<HTMLView>}
    */
   static htmlWindows(): Array < HTMLView >;
 }
