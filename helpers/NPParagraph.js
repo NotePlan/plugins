@@ -996,13 +996,15 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
 }
 
 /**
+ * Create a simple object version of a Paragraph object
  * NotePlan objects do not JSON.stringify() well, because most/all of the properties are on the prototype chain
  * after they come across the bridge from JS. If we want to send object data somewhere (e.g. to HTML/React window)
  * we need to convert them to a static object first.
  * @param {any} obj - the NotePlan object to convert
  * @param {Array<string>} fields - list of fields to copy from the object to the static object
  * @param {any} additionalFieldObj - any additional fields you want to add to the new object (as an object) e.g. {myField: 'myValue'}
- * @returns
+ * @returns {any} - the static object
+ * @author @dwertheimer
  */
 export function createStaticObject(obj: any, fields: Array<string>, additionalFieldObj: any = {}): any {
   if (!obj) throw 'createStaticObject: input obj is null; cannot convert it'
@@ -1016,15 +1018,16 @@ export function createStaticObject(obj: any, fields: Array<string>, additionalFi
 }
 
 /**
- * Convert an array of NotePlan (obscured) objects to static objects
+ * Convert an array of NotePlan (obscured) paragraph objects to static objects (designed for paragraphs, but would work for any type of NP object though)
  * This is object-type agnostic (works for Notes, Paragraphs, etc.) just supply the fields you want to copy
  * See createStaticObject for more details
  * @param {Array<any>} arrayOfObjects
  * @param {Array<string>} fields you want copied to the new object
  * @param {any} defaultObj - any additional default fields you want to add to the new object
  * @returns {any} - the array of static objects
+ * @author @dwertheimer
  */
-export function createStaticArray(arrayOfObjects: Array<any>, fields: Array<string>, defaultObj: any = {}): Array<any> {
+export function createStaticParagraphsArray(arrayOfObjects: Array<any>, fields: Array<string>, defaultObj: any = {}): Array<any> {
   if (!arrayOfObjects) throw 'createStaticArray: input array is null; cannot convert it'
   if (!fields?.length) throw 'createStaticArray: no fieldlist provided; cannot create static object'
   if (!Array.isArray(arrayOfObjects)) throw 'createStaticArray: input array is not an array; cannot convert it'
@@ -1041,11 +1044,12 @@ export function createStaticArray(arrayOfObjects: Array<any>, fields: Array<stri
  * @param {any} fieldsObject
  * @param {Array<string>} fields
  * @returns {boolean} true if all fields match, false if any do not
+ * @author @dwertheimer
  */
 export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, fields: Array<string>): boolean {
   let match = true
+  const rawWasEdited = fields.indexOf('rawContent') > -1 && fieldsObject.originalRawContent && fieldsObject.rawContent !== fieldsObject.originalRawContent
   fields.forEach((field) => {
-    const rawWasEdited = fields.indexOf('rawContent') > 1 && fieldsObject.originalRawContent && fieldsObject.rawContent !== fieldsObject.originalRawContent
     if (field === 'rawContent' && rawWasEdited) {
       // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
       if (paragraph[field] !== fieldsObject['originalRawContent']) {
@@ -1075,7 +1079,9 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
  * @param { Array<TParagraph>} parasToLookIn - NP paragraph list to search
  * @param {any} paragraphDataToFind - object with the static data fields to match (e.g. filename, rawContent, type)
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex) -- these two fields are required. default is ['filename', 'rawContent']
- * @returns
+ * @returns {TParagraph | null } - the matching paragraph, or null if not found
+ * @author @dwertheimer
+ * @tests exist
  */
 export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragraphDataToFind: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
   // clo(parasToLookIn, `findParagraph', parasToLookIn.length=${parasToLookIn.length}`)
@@ -1113,15 +1119,17 @@ export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragra
  *    filename, lineIndex, noteType
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex) -- these two fields are required. default is ['filename', 'rawContent']
  * @returns {TParagraph|null} - the paragraph or null if not found
+ * @author @dwertheimer
  */
 export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
-  const { filename, noteType } = staticObject
+  const { filename } = staticObject
+  let { noteType } = staticObject
+  if (!noteType) {
+    noteType = getNoteType(filename) === 'Project' ? 'Notes' : 'Calendar'
+  }
   const note = DataStore.noteByFilename(filename, noteType)
   if (note) {
     logDebug(pluginJson, `getParagraphFromStaticObject found note ${note.title || ''}`)
-    // TODO: dbw - have refactored this a little. dont think we need it do we?
-    // the text we are looking for may have been cleansed, so let's add cleansed ones to the search
-    // const paras = [...note.paragraphs, ...removeOverdueDatesFromParagraphs([...note?.paragraphs], '')]
     const paras = note.paragraphs
     logDebug(pluginJson, `getParagraphFromStaticObject cleaned paragraphs. count= ${paras.length}`)
     const para = findParagraph(paras, staticObject, fieldsToMatch)

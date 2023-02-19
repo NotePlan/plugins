@@ -209,26 +209,4 @@ describe('helpers/dev', () => {
       expect(res).toEqual(expectedConfig)
     })
   })
-  /*
-   * createStaticObject()
-   */
-  describe('createStaticObject()' /* function */, () => {
-    test('should create an object with the proper fields', () => {
-      const origObj = { a: 1, b: 2, c: 3 }
-      const result = d.createStaticObject(origObj, ['a', 'b'])
-      const expected = { a: 1, b: 2 }
-      expect(result).toEqual(expected)
-    })
-  })
-  /*
-   * createStaticArray()
-   */
-  describe('createStaticArray()' /* function */, () => {
-    test('should create an array of objects with the proper fields', () => {
-      const origObj = [{ a: 1, b: 2, c: 3 }]
-      const result = d.createStaticArray(origObj, ['a', 'b'])
-      const expected = [{ a: 1, b: 2 }]
-      expect(result).toEqual(expected)
-    })
-  })
 })

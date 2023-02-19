@@ -716,6 +716,97 @@ describe('NPParagraphs()', () => {
       expect(result).toEqual(true)
     })
   })
+  /*
+   * findParagraph()
+   */
+  describe('findParagraph()' /* function */, () => {
+    test('should find a paragraph whose content has not been edited', () => {
+      const parasToLookIn = [
+        new Paragraph({ rawContent: '* not a match?', filename: '20230210.md' }),
+        new Paragraph({ rawContent: '* Shabbos dessert?', filename: '20230210.md' }),
+        new Paragraph({ rawContent: '* no match here?', filename: '20230210.md' }),
+      ]
+      const obj = {
+        rawContent: '* Shabbos dessert?',
+        filename: '20230210.md',
+      }
+      const result = p.findParagraph(parasToLookIn, obj)
+      expect(result.rawContent).toEqual(obj.rawContent)
+    })
+    test('should not find a paragraph if there is no match', () => {
+      const parasToLookIn = [
+        new Paragraph({ rawContent: '* not a match?', filename: '20230210.md' }),
+        new Paragraph({ rawContent: '* Shabbos dessert?', filename: '20230210.md' }),
+        new Paragraph({ rawContent: '* no match here?', filename: '20230210.md' }),
+      ]
+      const obj = {
+        rawContent: '* foo bar?',
+        filename: '20230210.md',
+      }
+      const result = p.findParagraph(parasToLookIn, obj)
+      expect(result).toEqual(null)
+    })
+    test('should find a paragraph by filename and lineIndex', () => {
+      const parasToLookIn = [
+        new Paragraph({ lineIndex: 0, filename: '20230210.md' }),
+        new Paragraph({ lineIndex: 1, filename: '20230210.md' }),
+        new Paragraph({ lineIndex: 2, filename: '20230210.md' }),
+      ]
+      const obj = {
+        lineIndex: 2,
+        filename: '20230210.md',
+      }
+      const result = p.findParagraph(parasToLookIn, obj, ['filename', 'lineIndex'])
+      expect(result).not.toEqual(null)
+      expect(result.lineIndex).toEqual(2)
+    })
+    test('should find a paragraph whose content has been edited', () => {
+      const parasToLookIn = [
+        new Paragraph({ rawContent: '* not a match?', filename: '20230210.md' }),
+        new Paragraph({ rawContent: '* Shabbos dessert?', filename: '20230210.md' }),
+        new Paragraph({ rawContent: '* no match here?', filename: '20230210.md' }),
+      ]
+      const obj = {
+        prefix: '* ',
+        content: 'Shabbos dessert?',
+        rawContent: '* Shabbos dessert? oops forgot<div><br></div>',
+        overdueStatus: 'Overdue',
+        noteType: 'Calendar',
+        lineIndex: 21,
+        id: 14,
+        isExpanded: true,
+        filename: '20230210.md',
+        type: 'open',
+        originalRawContent: '* Shabbos dessert?',
+      }
+      const result = p.findParagraph(parasToLookIn, obj, ['filename', 'rawContent'])
+      expect(result).not.toEqual(null)
+      expect(result.rawContent).toEqual(obj.originalRawContent)
+    })
+  })
+
+  /*
+   * createStaticObject()
+   */
+  describe('createStaticObject()' /* function */, () => {
+    test('should create an object with the proper fields', () => {
+      const origObj = { a: 1, b: 2, c: 3 }
+      const result = p.createStaticObject(origObj, ['a', 'b'])
+      const expected = { a: 1, b: 2 }
+      expect(result).toEqual(expected)
+    })
+  })
+  /*
+   * createStaticArray()
+   */
+  describe('createStaticArray()' /* function */, () => {
+    test('should create an array of objects with the proper fields', () => {
+      const origObj = [{ a: 1, b: 2, c: 3 }]
+      const result = p.createStaticParagraphsArray(origObj, ['a', 'b'])
+      const expected = [{ a: 1, b: 2 }]
+      expect(result).toEqual(expected)
+    })
+  })
 })
 
 // ----------------------------------------------------------------------------
