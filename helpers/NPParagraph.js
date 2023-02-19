@@ -1125,13 +1125,15 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
   const { filename } = staticObject
   let { noteType } = staticObject
   if (!noteType) {
-    noteType = getNoteType(filename) === 'Project' ? 'Notes' : 'Calendar'
+    // logDebug(pluginJson, `getParagraphFromStaticObject getNoteType(filename)  ${getNoteType(filename)}`)
+    noteType = getNoteType(staticObject) === 'Project' ? 'Notes' : 'Calendar'
   }
-  const note = DataStore.noteByFilename(filename, noteType)
+  let note = DataStore.noteByFilename(filename, noteType)
+  if (!note && noteType === 'Notes') note = DataStore.noteByFilename(filename, 'Calendar') // added this because getNotetype works great in Jest but sometimes doesn't short circuit properly when run in NP
   if (note) {
     logDebug(pluginJson, `getParagraphFromStaticObject found note ${note.title || ''}`)
     const paras = note.paragraphs
-    logDebug(pluginJson, `getParagraphFromStaticObject cleaned paragraphs. count= ${paras.length}`)
+    // logDebug(pluginJson, `getParagraphFromStaticObject cleaned paragraphs. count= ${paras.length}`)
     const para = findParagraph(paras, staticObject, fieldsToMatch)
     if (para) {
       const cleanParas = note.paragraphs

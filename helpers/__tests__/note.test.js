@@ -159,6 +159,12 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = n.getNoteType(input)
       expect(result).toEqual(expected)
     })
+    test('should return Daily for daily note without any note type set', () => {
+      const input = { filename: '20230127.md' }
+      const expected = 'Daily'
+      const result = n.getNoteType(input)
+      expect(result).toEqual(expected)
+    })
     test('should return Daily for daily note', () => {
       const input = { type: 'Calendar', filename: '20000101.md' }
       const expected = 'Daily'
