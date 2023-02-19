@@ -100,8 +100,11 @@ module.exports = {
       result = await this.merge(path.join(dest, 'README.md'), pluginInfo)
       result = await this.merge(path.join(dest, 'changelog.md'), pluginInfo)
       result = await this.merge(path.join(dest, 'src', 'NPPluginMain.js'), pluginInfo)
+      result = await this.merge(path.join(dest, 'src', 'NPMessagesFromHTMLWindow.js'), pluginInfo)
 
       result = await this.merge(path.join(dest, '__tests__', 'NPPluginMain.NOTACTIVE.js'), pluginInfo)
+
+      result = await this.merge(path.join(dest, 'requiredFiles', 'html-plugin-comms.js'), pluginInfo)
 
       await filesystem.delete(path.join(dest, 'script.js'))
     } catch (error) {

@@ -87,9 +87,9 @@ const makeProjectListsCommandCall = `(function() {
 // }
 
 const commsBridge = `
+<script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
 <script>
-/* per @dwertheimer: you must set these variables before you import the bridge */
-
+/* you must set this before you import the CommsBridge file */
 const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin which will receive the comms from HTML
 // That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
 // this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window

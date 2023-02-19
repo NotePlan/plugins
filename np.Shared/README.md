@@ -41,36 +41,17 @@ And then to use the icons use the non-obvious italic syntax like:
 <p><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh<p>
 ```
 
-There is also a pluginToHTMLCommsBridge file that can be used to enable bi-directional communications between the plugin and the HTML window. To use this file, import it like so:
+There is also a pluginToHTMLCommsBridge file that can be used to enable bi-directional communications between the plugin and the HTML window. To use this file, import it like so, making sure to set the variable `receivingPluginID` to your plugin where you want to receive the messages.
 
 ```html
-
+  <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
+  <script>const receivingPluginID = "jgclark.Dashboard"</script>
+  <script type="text/javascript" src="./html-plugin-comms.js"></script>
+  <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
   <script>
-    /* you must set these variables before you import the bridge */
-
-    const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin which will receive the comms from HTML
-    // That plugin should have a function NAMED `onMessageFromHTMLView` (in the plugin.json and exported in the plugin's index.js)
-    // this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
-
-    /* the onMessageFromPlugin function is called when data is received from your plugin and needs to be processed. this function
-       should not do the work itself, it should just send the data payload to a function for processing. The onMessageFromPlugin function
-       below and your processing functions can be in your html document or could be imported in an external file. The only
-       requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the `pluginToHTMLCommsBridge`
-       be in your html document or could be imported in an external file */
-    function onMessageFromPlugin(type, data) {
-      switch (type) {
-        case 'yourType1':
-          // call some function to process the data for yourType1 messages and pass the `data` parameter
-          break
-        case 'yourType2':
-          // call some function to process the data for yourType2 messages
-          break
-      }
-    }
-  </script>
-  <script type="text/javascript" src="../npShared/pluginToHTMLCommsBridge.js"></script>
-
 ```
+
+>**NOTE:** The html-plugin-comms.js is where you will do the sending/receiving in the HTML window (browser side). That file is auto-created for you when you run a `np-cli plugin:create` command. 
 
 ## Latest Updates
 

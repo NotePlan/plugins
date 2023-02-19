@@ -1,5 +1,6 @@
+/* eslint-disable no-unused-vars */
 /**
- * Generic Plugin-to-HTML communications bridge
+ * Generic Plugin<-->HTML communications bridge
  * @author @dwertheimer
  * @version 1.0.0
  * Last updated 2023-02-18 @dwertheimer
@@ -7,16 +8,14 @@
 
 /**
  * This file is loaded by the browser via <script> tag in the HTML file
+ * Requires that the following variables are set prior to the inclusion of this file:
+ * - receivingPluginID: the ID of the plugin that will receive the messages (generally this plugin.id of the plugin you are in)
+ * - onMessageFromPlugin: the function that will receive the messages (this is in the template file html-plugin-comms.js
+ * if you generated this plugin using the plugin generator, you will see the code sample
+ *
  * IMPORTANT NOTE: you can use flow and eslint to give you feedback but DO NOT put any type annotations in the actual code
  * the file will fail silently and you will be scratching your head for why it doesn't work
  */
-
-if (typeof receivingPluginID === 'undefined') {
-  throw new Error('The variable receivingPluginID is not defined. This variable must be set prior to the inclusion of the pluginToHTMLCommsBridge file.')
-}
-if (typeof onMessageFromPlugin === 'undefined') {
-  throw new Error('The function onMessageFromPlugin is not defined. This function must be imported/set prior to the inclusion of the pluginToHTMLCommsBridge file.')
-}
 
 /**
  * Generic callback bridge from HTML to the plugin. We use this to generate the convenience function sendMessageToPlugin(args)
@@ -80,24 +79,36 @@ let globalSharedData = {}
 
 /**
  * This is a bridge to route JS errors from the HTML window back to the NP console.log for debugging
+ * It should already exist in the NP WebView JS if you imported the error bridge first
+ * but it's so important for debugging that we will double check -- if it doesn't exist, we add it here
  * @param {string} msg
  * @param {string} url
  * @param {number} line
  * @param {number} column
  * @param {Error} error
  */
-window.onerror = (msg, url, line, column, error) => {
-  const message = {
-    message: msg,
-    url: url,
-    line: line,
-    column: column,
-    error: JSON.stringify(error),
-  }
+window.onerror =
+  typeof window.onerror !== 'undefined'
+    ? window.onerror
+    : (msg, url, line, column, error) => {
+        const message = {
+          message: msg,
+          url: url,
+          line: line,
+          column: column,
+          error: JSON.stringify(error),
+        }
 
-  if (window.webkit) {
-    window.webkit.messageHandlers.error.postMessage(message)
-  } else {
-    console.log('JS Error:', message)
-  }
+        if (window.webkit) {
+          window.webkit.messageHandlers.error.postMessage(message)
+        } else {
+          console.log('JS Error:', message)
+        }
+      }
+
+if (typeof receivingPluginID === 'undefined') {
+  throw new Error('The variable receivingPluginID is not defined. This variable must be set prior to the inclusion of the pluginToHTMLCommsBridge file.')
+}
+if (typeof onMessageFromPlugin === 'undefined') {
+  throw new Error('The function onMessageFromPlugin is not defined. This function must be imported/set prior to the inclusion of the pluginToHTMLCommsBridge file.')
 }

@@ -8,7 +8,8 @@
   "plugin.lastUpdateInfo": "Describe this update",
   "plugin.description": "{{pluginDescription}}",
   "plugin.author": "{{pluginAuthor}}",
-  "plugin.requiredFiles": [],
+  "plugin.requiredFiles-EDIT_ME": ["html-PluginComms.js"],
+  "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/README.md",
@@ -35,6 +36,13 @@
       "name": "onEditorWillSave",
       "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "jsFunction": "onEditorWillSave",
+      "hidden": true
+    },
+    {
+      "name": "onMessageFromHTMLView",
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "description": "{{pluginId}}: Callback function to receive messages from HTML view",
+      "jsFunction": "onMessageFromHTMLView",
       "hidden": true
     }
   ],
