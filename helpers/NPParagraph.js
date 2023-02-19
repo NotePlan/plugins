@@ -995,9 +995,142 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
   return isOverdue
 }
 
-// const noteType = getNoteType(note)
-// const openParas = note.paragraphs.filter((para) => para.type === 'open')
-// if (openParas.length) {
-//   //FIXMe: do something here
-// }
-// }
+/**
+ * NotePlan objects do not JSON.stringify() well, because most/all of the properties are on the prototype chain
+ * after they come across the bridge from JS. If we want to send object data somewhere (e.g. to HTML/React window)
+ * we need to convert them to a static object first.
+ * @param {any} obj - the NotePlan object to convert
+ * @param {Array<string>} fields - list of fields to copy from the object to the static object
+ * @param {any} additionalFieldObj - any additional fields you want to add to the new object (as an object) e.g. {myField: 'myValue'}
+ * @returns
+ */
+export function createStaticObject(obj: any, fields: Array<string>, additionalFieldObj: any = {}): any {
+  if (!obj) throw 'createStaticObject: input obj is null; cannot convert it'
+  if (!fields?.length) throw 'createStaticObject: no fieldlist provided; cannot create static object'
+  if (typeof obj !== 'object') throw 'createStaticObject: input obj is not an object; cannot convert it'
+  const staticObj = {}
+  for (const field of fields) {
+    staticObj[field] = obj[field] || null
+  }
+  return { ...staticObj, ...additionalFieldObj }
+}
+
+/**
+ * Convert an array of NotePlan (obscured) objects to static objects
+ * This is object-type agnostic (works for Notes, Paragraphs, etc.) just supply the fields you want to copy
+ * See createStaticObject for more details
+ * @param {Array<any>} arrayOfObjects
+ * @param {Array<string>} fields you want copied to the new object
+ * @param {any} defaultObj - any additional default fields you want to add to the new object
+ * @returns {any} - the array of static objects
+ */
+export function createStaticArray(arrayOfObjects: Array<any>, fields: Array<string>, defaultObj: any = {}): Array<any> {
+  if (!arrayOfObjects) throw 'createStaticArray: input array is null; cannot convert it'
+  if (!fields?.length) throw 'createStaticArray: no fieldlist provided; cannot create static object'
+  if (!Array.isArray(arrayOfObjects)) throw 'createStaticArray: input array is not an array; cannot convert it'
+  const staticArray = []
+  for (const item of arrayOfObjects) {
+    staticArray.push({ ...createStaticObject(item, fields), ...defaultObj })
+  }
+  return staticArray
+}
+
+/**
+ * Check a paragraph object against a plain object of fields to see if they match
+ * @param {TParagraph} paragraph
+ * @param {any} fieldsObject
+ * @param {Array<string>} fields
+ * @returns {boolean} true if all fields match, false if any do not
+ */
+export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, fields: Array<string>): boolean {
+  let match = true
+  fields.forEach((field) => {
+    const rawWasEdited = fields.indexOf('rawContent') > 1 && fieldsObject.originalRawContent && fieldsObject.rawContent !== fieldsObject.originalRawContent
+    if (field === 'rawContent' && rawWasEdited) {
+      // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
+      if (paragraph[field] !== fieldsObject['originalRawContent']) {
+        // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
+        // logDebug(pluginJson, `${field} paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
+        match = false
+      }
+    } else {
+      // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
+      if (typeof paragraph[field] === 'undefined') {
+        throw `paragraphMatches: paragraph.${field} is undefined. you must pass in the correct fields to match. 'fields' is set to ${JSP(fields)} but paragraph=${JSP(
+          paragraph,
+        )}, which does not have all the fields`
+      }
+      if (paragraph[field] !== fieldsObject[field]) {
+        // $FlowFixMe - Cannot get `paragraph[field]` because an index signature declaring the expected key / value type is missing in  `Paragraph` [1].
+        // logDebug(pluginJson, `${field} -- paragraphMatches failed: ${paragraph[field]} !== ${fieldsObject[field]}`)
+        match = false
+      }
+    }
+  })
+  return match
+}
+
+/**
+ * Because a paragraph may have been deleted or changed, we need to find the paragraph in the note
+ * @param { Array<TParagraph>} parasToLookIn - NP paragraph list to search
+ * @param {any} paragraphDataToFind - object with the static data fields to match (e.g. filename, rawContent, type)
+ * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex) -- these two fields are required. default is ['filename', 'rawContent']
+ * @returns
+ */
+export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragraphDataToFind: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
+  // clo(parasToLookIn, `findParagraph', parasToLookIn.length=${parasToLookIn.length}`)
+  const potentials = parasToLookIn.filter((p) => paragraphMatches(p, paragraphDataToFind, fieldsToMatch))
+  clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the ${potentials.length > 1 ? 'first' : ''}one:`)
+  if (potentials?.length === 1) {
+    return potentials[0]
+  } else if (potentials.length > 1) {
+    const matchIndexes = potentials.find((p) => p.lineIndex === paragraphDataToFind.lineIndex)
+    if (matchIndexes) {
+      return matchIndexes
+    }
+    logDebug(
+      pluginJson,
+      `findParagraph: found more than one paragraph in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(
+        paragraphDataToFind,
+      )}. Could not determine which one to use.`,
+    )
+    return null
+  } else {
+    // no matches
+    const p = paragraphDataToFind
+    logDebug(pluginJson, `findParagraph: found no paragraphs in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind)}`)
+    logDebug(`\n**** Looking for "${p[fieldsToMatch[0]]}" "${p[fieldsToMatch[1]]}" in the following list`)
+    //$FlowIgnore
+    parasToLookIn.forEach((p) => logDebug(pluginJson, `\t findParagraph: ${p[fieldsToMatch[0]]} ${p[fieldsToMatch[1]]}`))
+  }
+  logDebug(pluginJson, `findParagraph could not find paragraph in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind)}`)
+  return null
+}
+
+/**
+ * Take a static object with a subset of Paragraph fields from HTML or wherever and return the actual paragraph in the note
+ * @param {*} staticObject - the static object from the HTML must have fields:
+ *    filename, lineIndex, noteType
+ * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex) -- these two fields are required. default is ['filename', 'rawContent']
+ * @returns {TParagraph|null} - the paragraph or null if not found
+ */
+export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
+  const { filename, noteType } = staticObject
+  const note = DataStore.noteByFilename(filename, noteType)
+  if (note) {
+    logDebug(pluginJson, `getParagraphFromStaticObject found note ${note.title || ''}`)
+    // TODO: dbw - have refactored this a little. dont think we need it do we?
+    // the text we are looking for may have been cleansed, so let's add cleansed ones to the search
+    // const paras = [...note.paragraphs, ...removeOverdueDatesFromParagraphs([...note?.paragraphs], '')]
+    const paras = note.paragraphs
+    logDebug(pluginJson, `getParagraphFromStaticObject cleaned paragraphs. count= ${paras.length}`)
+    const para = findParagraph(paras, staticObject, fieldsToMatch)
+    if (para) {
+      const cleanParas = note.paragraphs
+      return cleanParas[para.lineIndex] // make sure we are returning the original, non-cleansed version
+    }
+  } else {
+    clo(staticObject, `getParagraphFromStaticObject could not open note "${filename}" of type "${noteType}"`)
+  }
+  return null
+}
