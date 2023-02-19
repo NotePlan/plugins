@@ -161,6 +161,9 @@ export function getElementsFromTask(content: string, reSearch: RegExp): Array<st
 
 /*
  * Get numeric priority level based on !!! or (B)
+ * @author @dwertheimer
+ * @param {SortableParagraphSubset} item
+ * @returns {number} priority from 3, 2, 1, -1 (default)
  */
 export function getNumericPriority(item: SortableParagraphSubset): number {
   let prio = -1
@@ -172,6 +175,27 @@ export function getNumericPriority(item: SortableParagraphSubset): number {
     prio = -1
   }
   return prio
+}
+
+/*
+ * Get numeric priority level based on !!! or (B)
+ * @author @jgclark wrapping @dwertheimer's work above
+ * @param {TParagraph} input
+ * @returns {number} priority from 3, 2, 1, -1 (default)
+ */
+export function getNumericPriorityFromPara(para: TParagraph): number {
+  const item: SortableParagraphSubset = getSortableTask(para)
+  return getNumericPriority(item)
+}
+
+export function addPriorityToParagraphs(paras: Array<TParagraph>): Array<any> {
+  // Temporarily extend TParagraph with the task's priority
+  for (let c = 0; c < paras.length; c++) {
+    const thisPriority = getNumericPriorityFromPara(paras[c])
+    // $FlowIgnore[prop-missing] - needed as we're extending TParagraph type
+    paras[c].priority = thisPriority
+  }
+  return paras
 }
 
 /**
