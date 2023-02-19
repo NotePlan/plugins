@@ -15,14 +15,14 @@ import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SIMPLE_BARE_URI_MATCH_G, RE_SYNC_MARKER
 /**
  * Convert bare URLs to display as HTML links
  * @author @jgclark
- * TODO: @tests in jest file
+ * @tests in jest file
  * @param {string} original
  */
 export function changeBareLinksToHTMLLink(original: string): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
   if (captures.length > 0) {
-    clo(captures, `${String(captures.length)} results from bare URL matches:`)
+    // clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
       const linkURL = capture[1]
       output = output.replace(linkURL, `<span class="externalLink"><a href="${linkURL}">${linkURL}</a></span>`)
@@ -41,7 +41,7 @@ export function changeMarkdownLinksToHTMLLink(original: string): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_MARKDOWN_LINKS_CAPTURE_G) ?? [])
   if (captures.length > 0) {
-    clo(captures, `${String(captures.length)} results from markdown link matches:`)
+    // clo(captures, `${String(captures.length)} results from markdown link matches:`)
     // Matches come in pairs, so process a pair at a time
     for (const capture of captures) {
       const linkTitle = capture[1]
@@ -54,6 +54,8 @@ export function changeMarkdownLinksToHTMLLink(original: string): string {
 
 /**
  * Strip URLs from a string (leaves the [text] of the link intact by default)
+ * @author @dwertheimer
+ * @tests in jest file
  * @param {string} original
  * @param {boolean} leaveLinkText - if true, leaves the [text] of a wiki link intact
  * @returns {string} the string without any URLs
@@ -62,7 +64,7 @@ export function stripLinksFromString(original: string, leaveLinkText: boolean = 
   let output = original
   const captures = Array.from(original.matchAll(/(\[([^\]]+)\]\(([^\)]+)\))|(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*,]+)/g) ?? [])
   if (captures.length > 0) {
-    clo(captures, `${String(captures.length)} results from markdown link matches:`)
+    // clo(captures, `${String(captures.length)} results from markdown link matches:`)
     // Matches come in pairs, so process a pair at a time
     for (const capture of captures) {
       if (capture[2]) output = output.replace(capture[1], leaveLinkText ? `[${capture[2]}]` : '') // [text](url)
@@ -76,6 +78,7 @@ export function stripLinksFromString(original: string, leaveLinkText: boolean = 
 /**
  * Strip ALL date references from a string <|>ANY_TYPE
  * @author @jgclark & @dwertheimer
+ * @tests in jest file
  * @param {string} original
  * @returns {string} altered string
  */
@@ -84,7 +87,7 @@ export function stripDateRefsFromString(original: string): string {
   const REGEX = new RegExp(`(>|<)(${RE_NP_DAY_SPEC}|today|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`, 'g')
   const captures = output.match(REGEX) ?? []
   if (captures.length > 0) {
-    clo(captures, `results from >(${todaysDateISOString}|today) match:`)
+    // clo(captures, `results from >(${todaysDateISOString}|today) match:`)
     for (const capture of captures) {
       output = output
         .replace(capture, '')
@@ -107,7 +110,7 @@ export function stripTodaysDateRefsFromString(original: string): string {
   const REGEX = new RegExp(`>(${todaysDateISOString}|today)`, 'g')
   const captures = output.match(REGEX) ?? []
   if (captures.length > 0) {
-    clo(captures, `results from >(${todaysDateISOString}|today) match:`)
+    // clo(captures, `results from >(${todaysDateISOString}|today) match:`)
     for (const capture of captures) {
       output = output
         .replace(capture, '')
@@ -120,7 +123,7 @@ export function stripTodaysDateRefsFromString(original: string): string {
 
 /**
  * Strip refs to this week (of form `>YYYY-Www`) from the input string
- * TODO: all
+ * TODO: tests
  * @author @jgclark
  * @param {string} original
  * @returns {string} altered string
@@ -131,7 +134,7 @@ export function stripThisWeeksDateRefsFromString(original: string): string {
   const REGEX = new RegExp(`>${thisWeekStr}`, 'g')
   const captures = output.match(REGEX) ?? []
   if (captures.length > 0) {
-    clo(captures, `results from >${thisWeekStr} match:`)
+    // clo(captures, `results from >${thisWeekStr} match:`)
     for (const capture of captures) {
       output = output
         .replace(capture, '')
@@ -154,7 +157,7 @@ export function stripBackwardsDateRefsFromString(original: string): string {
   const REGEX = new RegExp(`<${RE_ISO_DATE}`, 'g')
   const captures = Array.from(output.matchAll(REGEX) ?? [])
   if (captures.length > 0) {
-    clo(captures, `results from <YYYY-MM-DD match:`)
+    // clo(captures, `results from <YYYY-MM-DD match:`)
     for (const capture of captures) {
       output = output
         .replace(capture[0], '')
@@ -176,7 +179,7 @@ export function stripWikiLinksFromString(original: string): string {
   let output = original
   const captures = Array.from(original.matchAll(/\[\[(.*?)\]\]/g) ?? [])
   if (captures.length > 0) {
-    clo(captures, 'results from [[notelinks]] match:')
+    // clo(captures, 'results from [[notelinks]] match:')
     for (const capture of captures) {
       output = output.replace(capture[0], capture[1])
     }
