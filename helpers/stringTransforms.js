@@ -13,6 +13,18 @@ import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SIMPLE_BARE_URI_MATCH_G, RE_SYNC_MARKER
  */
 
 /**
+ * Convert any type of URL in the strimg -- [md](url) or https://bareurl to HTML links
+ * @param {string} original
+ * @returns {string} the string with any URLs converted to HTML links
+ */
+export function convertAllLinksToHTMLLinks(original: string): string {
+  let output = original
+  output = changeBareLinksToHTMLLink(output)
+  output = changeMarkdownLinksToHTMLLink(output)
+  return output
+}
+
+/**
  * Convert bare URLs to display as HTML links
  * @author @jgclark
  * @tests in jest file

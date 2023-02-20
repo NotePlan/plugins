@@ -3,10 +3,10 @@
   "noteplan.minAppVersion": "3.8.0",
   "plugin.id": "np.Shared",
   "plugin.name": "🤝 Shared",
-  "plugin.version": "0.0.1",
+  "plugin.version": "1.0.0",
   "plugin.lastUpdateInfo": "First release",
   "plugin.description": "Shared resources for NotePlan plugins",
-  "plugin.author": "jgclark",
+  "plugin.author": "jgclark + dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md",
@@ -22,7 +22,12 @@
     "fa-regular-400.woff2",
     "fa-solid-900.woff2",
     "pluginToHTMLCommsBridge.js",
-    "pluginToHTMLErrorBridge.js"
+    "pluginToHTMLErrorBridge.js",
+    "react.core.min.js",
+    "react.core.dev.js",
+    "react.c.Root.min.js",
+    "react.c.Root.dev.js",
+    "noteplanstate-edited.otf"
   ],
   "plugin.__requiredFiles": [
     "css/duotone.min.css",
@@ -35,7 +40,12 @@
     "webfonts/fa-regular-400.woff2",
     "webfonts/fa-solid-900.woff2",
     "pluginToHTMLCommsBridge.js",
-    "pluginToHTMLErrorBridge.js"
+    "pluginToHTMLErrorBridge.js",
+    "react.core.min.js",
+    "react.core.dev.js",
+    "react.c.Root.min.js",
+    "react.c.Root.dev.js",
+    "noteplanstate-edited.otf"
   ],
   "plugin.commands": [
     {
@@ -52,6 +62,12 @@
       "name": "shared:logLocallyAvailableResources",
       "description": "log locally available resources in Plugins/Data/np.Shared",
       "jsFunction": "logLocallyAvailableResources"
+    },
+    {
+      "name": "openReactWindow",
+      "description": "Run React with Local Files",
+      "jsFunction": "openReactWindow",
+      "hidden": true
     }
   ],
   "plugin.settings": [

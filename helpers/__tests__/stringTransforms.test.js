@@ -38,12 +38,12 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should produce HTML link 1', () => {
       const input = 'this has [text](brackets) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <span class=\"externalLink\"><a href="brackets">text</a></span> with a valid link')
+      expect(result).toEqual('this has <span class="externalLink"><a href="brackets">text</a></span> with a valid link')
     })
     test('should produce HTML link 2', () => {
       const input = 'this has [title with spaces](https://www.something.com/with?various&chars%20ok) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <span class=\"externalLink\"><a href="https://www.something.com/with?various&chars%20ok">title with spaces</a></span> with a valid link')
+      expect(result).toEqual('this has <span class="externalLink"><a href="https://www.something.com/with?various&chars%20ok">title with spaces</a></span> with a valid link')
     })
   })
 
@@ -68,7 +68,14 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should produce HTML link 1', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
       const result = st.changeBareLinksToHTMLLink(input)
-      expect(result).toEqual('this has a <span class=\"externalLink\"><a href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a></span> valid bare link')
+      expect(result).toEqual(
+        'this has a <span class="externalLink"><a href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a></span> valid bare link',
+      )
+    })
+    test('should produce HTML link when a link takes up the whole line', () => {
+      const input = 'https://www.something.com/with?various&chars%20ok'
+      const result = st.changeBareLinksToHTMLLink(input)
+      expect(result).toEqual('<span class="externalLink"><a href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a></span>')
     })
   })
 
