@@ -33,10 +33,10 @@ export function convertAllLinksToHTMLLinks(original: string): string {
 export function changeBareLinksToHTMLLink(original: string): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
+  logDebug(`${String(captures.length)} results from bare URL matches:`, captures ?? '-')
   if (captures.length > 0) {
-    // clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
-      const linkURL = capture[1]
+      const linkURL = capture[3]
       output = output.replace(linkURL, `<span class="externalLink"><a href="${linkURL}">${linkURL}</a></span>`)
     }
   }
@@ -202,7 +202,7 @@ export function stripWikiLinksFromString(original: string): string {
 /**
  * Strip all #hashtags from string,
  * TODO: or if second parameter passed, just the tags that match that string
- * TODO: write tests
+ * TODO: write tests -- JGC thinks you probably want .matchAll not .match
  * @param {string} original
  * @param {string?} specificItemToStrip
  * @returns {string} changed line
@@ -231,7 +231,7 @@ export function stripHashtagsFromString(original: string, specificItemToStrip?: 
  * Strip all @mentions from string,
  * TODO: or if second parameter passed, just the mentions that match that string
  * TODO: deal with @mention(...) cases as well
- * TODO: write tests
+ * TODO: write tests -- JGC thinks you probably want .matchAll not .match
  * @param {string} original
  * @param {string?} specificItemToStrip
  * @returns {string} changed line
@@ -305,4 +305,41 @@ export function stripAllMarkersFromString(original: string, stripTags: false, st
   if (stripTags) output = stripAllTagssFromString(output)
   if (stripLinks) output = stripLinksFromString(output)
   return output
+}
+
+/**
+ * Version of URL encode that extends encodeURIComponent()
+ * (which everything except A-Z a-z 0-9 - _ . ! ~ * ' ( ))
+ * plus ! ' ( ) [ ] * required by RFC3986, and needed when passing text to JS in some settings
+ * Taken from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURI#encoding_for_rfc3986
+ * @tests in jest file
+ * @param {string} input 
+ * @returns {string} URL-encoded string
+ */
+export function encodeRFC3986URIComponent(input: string): string {
+  return encodeURIComponent(input)
+    .replace(/\[/g, "%5B")
+    .replace(/\]/g, "%5D")
+    .replace(
+      /[!'()*]/g,
+      (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+    )
+}
+
+/**
+ * Reverse of encodeRFC3986URIComponent
+ * @author @jgclark
+ * @tests in jest file
+ * @param {string} input 
+ * @returns {string}
+ */
+export function decodeRFC3986URIComponent(input: string): string {
+  return decodeURIComponent(input)
+    .replace(/%5B/g, "[")
+    .replace(/%5D/g, "]")
+    .replace(/%21/g, "!")
+    .replace(/%27/g, "'")
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")")
+    .replace(/%2A/g, "*")
 }

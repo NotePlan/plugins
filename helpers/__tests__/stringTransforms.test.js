@@ -205,6 +205,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(expected)
       })
     })
+
     /*
      * stripLinksFromString()
      */
@@ -237,6 +238,66 @@ describe(`${PLUGIN_NAME}`, () => {
         const input = 'np noteplan://example.com'
         const expected = `np`
         const result = st.stripLinksFromString(input)
+        expect(result).toEqual(expected)
+      })
+    })
+
+    /*
+     * encodeRFC3986URIComponent()
+     */
+    describe('encodeRFC3986URIComponent()', () => {
+      test('empty -> empty', () => {
+        const input = ''
+        const expected = ''
+        const result = st.encodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should not change A-z 0-9 - _ . ~', () => {
+        const input = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~'
+        const expected = input
+        const result = st.encodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should encode standard punctuation', () => {
+        const input = '"#%&*+,/:;<=>?@\\^`{|}'
+        const expected = '%22%23%25%26%2A%2B%2C%2F%3A%3B%3C%3D%3E%3F%40%5C%5E%60%7B%7C%7D'
+        const result = st.encodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should encode additional punctuation', () => {
+        const input = '!()[]*\''
+        const expected = '%21%28%29%5B%5D%2A%27'
+        const result = st.encodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+    })
+
+    /*
+     * decodeRFC3986URIComponent()
+     */
+    describe('decodeRFC3986URIComponent()', () => {
+      test('empty -> empty', () => {
+        const input = ''
+        const expected = ''
+        const result = st.decodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should not change A-z 0-9 - _ . ~', () => {
+        const input = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~'
+        const expected = input
+        const result = st.decodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should encode standard punctuation', () => {
+        const input = '%22%23%25%26%2A%2B%2C%2F%3A%3B%3C%3D%3E%3F%40%5C%5E%60%7B%7C%7D'
+        const expected = '"#%&*+,/:;<=>?@\\^`{|}'
+        const result = st.decodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should encode additional punctuation', () => {
+        const input = '%21%28%29%5B%5D%2A%27'
+        const expected = '!()[]*\''
+        const result = st.decodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
       })
     })
