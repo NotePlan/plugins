@@ -135,9 +135,9 @@ export function WebView({ data, dispatch }: Props): Node {
     [data],
   )
 
-  const resetScrollEffect = ({ element, top }) => {
-    element.current.getScrollableNode().children[0].scrollTop = top
-  }
+  // const resetScrollEffect = ({ element, top }) => {
+  //   element.current.getScrollableNode().children[0].scrollTop = top
+  // }
 
   const addWindowPositionToData = (data) => {
     const newData = { ...data }
@@ -247,7 +247,7 @@ export function WebView({ data, dispatch }: Props): Node {
   })
 
   // Get the selected rows or a single row if it's just a click-expanded row
-  const getSelectedItems = React.useCallback((isMulti = true) => data.overdueParas.filter((r) => (isMulti ? r.isSelected : r.isExpanded)), [data])
+  const getSelectedItems = React.useCallback((isMulti = true) => data.overdueParas.filter((r) => (isMulti ? r.isSelected && !r.omit : r.isExpanded)), [data])
 
   /**
    * A multi-row Context Action was selected (either a button click or a dropdown selection)

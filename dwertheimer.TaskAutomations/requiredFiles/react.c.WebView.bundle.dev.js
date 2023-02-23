@@ -43419,6 +43419,22 @@ var reactBundle1677178456 = (function (exports, React$1) {
 	    }
 	*/
 
+	const isDark = bgColor => chroma(bgColor).luminance() < 0.5;
+	const isLight = bgColor => !isDark(bgColor);
+
+	/**
+	 * Calculate a lightly-offset altColor based on the background color
+	 * Useful for striped rows (default) and highlight on hover
+	 * @param {string} bgColor
+	 * @param {number} strength - 0-1 (default 0.2)
+	 * @returns
+	 */
+	const getAltColor = (bgColor, strength = 0.2) => {
+	  const calcAltFromBGColor = isLight(bgColor) ? chroma(bgColor).darken(strength).css() : chroma(bgColor).brighten(strength).css();
+	  // if (!altColor || chroma.deltaE(bgColor,altColor) < ) return calcAltFromBGColor
+	  return calcAltFromBGColor;
+	};
+
 	/**
 	 * Column Definitions
 	 */
@@ -43587,7 +43603,11 @@ var reactBundle1677178456 = (function (exports, React$1) {
 	    },
 	    stripedStyle: {
 	      color: NP_THEME.base.textColor,
-	      backgroundColor: NP_THEME.base.altColor
+	      backgroundColor: getAltColor(NP_THEME.base.backgroundColor) // calculate stripes rather than relying on NP_THEME.base.altColor,
+	    },
+
+	    highlightOnHoverStyle: {
+	      backgroundColor: getAltColor(NP_THEME.base.backgroundColor, 0.75)
 	    }
 	  },
 	  headCells: {
@@ -43756,6 +43776,11 @@ var reactBundle1677178456 = (function (exports, React$1) {
 	      highlight: true
 	    });
 	  }, [data]);
+
+	  // const resetScrollEffect = ({ element, top }) => {
+	  //   element.current.getScrollableNode().children[0].scrollTop = top
+	  // }
+
 	  const addWindowPositionToData = data => {
 	    const newData = {
 	      ...data
@@ -43872,7 +43897,7 @@ var reactBundle1677178456 = (function (exports, React$1) {
 	  });
 
 	  // Get the selected rows or a single row if it's just a click-expanded row
-	  const getSelectedItems = React__default["default"].useCallback((isMulti = true) => data.overdueParas.filter(r => isMulti ? r.isSelected : r.isExpanded), [data]);
+	  const getSelectedItems = React__default["default"].useCallback((isMulti = true) => data.overdueParas.filter(r => isMulti ? r.isSelected && !r.omit : r.isExpanded), [data]);
 
 	  /**
 	   * A multi-row Context Action was selected (either a button click or a dropdown selection)

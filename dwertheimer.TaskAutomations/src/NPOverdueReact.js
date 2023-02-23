@@ -455,8 +455,8 @@ export async function processOverdueReact(incoming: string) {
     // NOTE: Relative paths are relative to the plugin folder of dwertheimer.React
     // So ALWAYS go out and back in, like this: `../dwertheimer.TaskAutomations/xxx`
     // because you can't guarantee what folder you are in at any given time
-    const cssTagsString = `		<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.w3.css">
-		<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.plugin.css">\n`
+    const cssTagsString = `		<link rel="stylesheet" href="../../dwertheimer.TaskAutomations/css.w3.css">
+		<link rel="stylesheet" href="../../dwertheimer.TaskAutomations/css.plugin.css">\n`
 
     const data = getDataForReactView()
     /*
@@ -495,6 +495,7 @@ export async function processOverdueReact(incoming: string) {
 
 /**
  * Static test data for React view
+ * Hidden from command bar
  * fire it by xcallback: N2 -- noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=testOverdueReact
  * @author @dwertheimer
  */
@@ -536,8 +537,11 @@ export async function testOverdueReact() {
     data.debug = true
     const paras = note?.paragraphs.slice(1).filter((para) => para.content?.includes('overdue'))
     data.overdueParas = createCleanContent(getStaticTaskList(paras || []))
+    const cssTagsString = `<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.w3.css">
+		<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.plugin.css">\n`
     const windowOptions = {
-      savedFilename: 'reactLocal.html',
+      savedFilename: `../../${pluginJson['plugin.id']}/reactLocal.html`,
+      headerTags: cssTagsString,
     }
     const payload = [data, windowOptions]
 

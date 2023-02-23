@@ -62,7 +62,8 @@ const sendMessageToPlugin = (type, data) => runPluginCommand('onMessageFromHTMLV
  */
 const onMessageReceived = (event) => {
   const { origin, source, data } = event
-  if (!data || (typeof data === 'string' && data.startsWith('setImmediate$')) || (typeof data.source === 'string' && data.source.startsWith('react-devtools'))) return
+  if (!data || (typeof data === 'string' && data.startsWith('setImmediate$')) || (typeof data.source === 'string' && data.source.startsWith('react-devtools')) || data.iframeSrc)
+    return
   try {
     // $FlowFixMe
     const { type, payload } = event.data // remember: data exists even though event is not JSON.stringify-able (like NP objects)

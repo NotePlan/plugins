@@ -333,7 +333,7 @@ var reactBundle1677178456 = (function (exports, React$1) {
 	      source,
 	      data
 	    } = event;
-	    if (data && !(typeof data === 'string' && data.startsWith('setImmediate$'))) {
+	    if (data && !(typeof data === 'string' && data.startsWith('setImmediate$')) && !data.iframeSrc) {
 	      JSON.stringify(event, null, 4);
 	      try {
 	        // $FlowFixMe
@@ -392,7 +392,7 @@ var reactBundle1677178456 = (function (exports, React$1) {
 	          logDebug(`Root: onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event);
 	        }
 	      } catch (error) {
-	        logDebug('Root: onMessageReceived: error=' + JSON.stringify(error));
+	        logDebug('Root: onMessageReceived: error=' + JSON.stringify(error) + 'error=' + JSON.stringify(error));
 	      }
 	    }
 	  };

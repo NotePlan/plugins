@@ -108,7 +108,7 @@ export function Root(props: Props): Node {
    */
   const onMessageReceived = (event: MessageEvent | { data: { type: string, payload: any } }) => {
     const { origin, source, data } = event
-    if (data && !(typeof data === 'string' && data.startsWith('setImmediate$'))) {
+    if (data && !(typeof data === 'string' && data.startsWith('setImmediate$')) && !data.iframeSrc) {
       const str = JSON.stringify(event, null, 4)
       try {
         // $FlowFixMe
@@ -158,7 +158,7 @@ export function Root(props: Props): Node {
           logDebug(`Root: onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event)
         }
       } catch (error) {
-        logDebug('Root: onMessageReceived: error=' + JSON.stringify(error))
+        logDebug('Root: onMessageReceived: error=' + JSON.stringify(error) + 'error=' + JSON.stringify(error))
       }
     } else {
       // logDebug(`Root: onMessageReceived: called but event.data is undefined: noop`)
