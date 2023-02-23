@@ -13,6 +13,18 @@ import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SIMPLE_BARE_URI_MATCH_G, RE_SYNC_MARKER
  */
 
 /**
+ * Convert any type of URL in the strimg -- [md](url) or https://bareurl to HTML links
+ * @param {string} original
+ * @returns {string} the string with any URLs converted to HTML links
+ */
+export function convertAllLinksToHTMLLinks(original: string): string {
+  let output = original
+  output = changeBareLinksToHTMLLink(output)
+  output = changeMarkdownLinksToHTMLLink(output)
+  return output
+}
+
+/**
  * Convert bare URLs to display as HTML links
  * @author @jgclark
  * @tests in jest file
@@ -21,10 +33,10 @@ import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SIMPLE_BARE_URI_MATCH_G, RE_SYNC_MARKER
 export function changeBareLinksToHTMLLink(original: string): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
+  // logDebug(`${String(captures.length)} results from bare URL matches:`, captures ?? '-')
   if (captures.length > 0) {
-    // clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
-      const linkURL = capture[1]
+      const linkURL = capture[3]
       output = output.replace(linkURL, `<span class="externalLink"><a href="${linkURL}">${linkURL}</a></span>`)
     }
   }
@@ -190,7 +202,7 @@ export function stripWikiLinksFromString(original: string): string {
 /**
  * Strip all #hashtags from string,
  * TODO: or if second parameter passed, just the tags that match that string
- * TODO: write tests
+ * TODO: write tests -- JGC thinks you probably want .matchAll not .match
  * @param {string} original
  * @param {string?} specificItemToStrip
  * @returns {string} changed line
@@ -219,7 +231,7 @@ export function stripHashtagsFromString(original: string, specificItemToStrip?: 
  * Strip all @mentions from string,
  * TODO: or if second parameter passed, just the mentions that match that string
  * TODO: deal with @mention(...) cases as well
- * TODO: write tests
+ * TODO: write tests -- JGC thinks you probably want .matchAll not .match
  * @param {string} original
  * @param {string?} specificItemToStrip
  * @returns {string} changed line
@@ -254,7 +266,7 @@ export function stripBlockIDsFromString(original: string): string {
   const REGEX = new RegExp(RE_SYNC_MARKER, 'g')
   const captures = Array.from(output.matchAll(REGEX) ?? [])
   if (captures.length > 0) {
-    clo(captures, 'results from blockID match:')
+    // clo(captures, 'results from blockID match:')
     for (const capture of captures) {
       output = output
         .replace(capture[0], '')
@@ -293,4 +305,38 @@ export function stripAllMarkersFromString(original: string, stripTags: false, st
   if (stripTags) output = stripAllTagssFromString(output)
   if (stripLinks) output = stripLinksFromString(output)
   return output
+}
+
+/**
+ * Version of URL encode that extends encodeURIComponent()
+ * (which everything except A-Z a-z 0-9 - _ . ! ~ * ' ( ))
+ * plus ! ' ( ) [ ] * required by RFC3986, and needed when passing text to JS in some settings
+ * Taken from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURI#encoding_for_rfc3986
+ * @tests in jest file
+ * @param {string} input
+ * @returns {string} URL-encoded string
+ */
+export function encodeRFC3986URIComponent(input: string): string {
+  return encodeURIComponent(input)
+    .replace(/\[/g, '%5B')
+    .replace(/\]/g, '%5D')
+    .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+}
+
+/**
+ * Reverse of encodeRFC3986URIComponent
+ * @author @jgclark
+ * @tests in jest file
+ * @param {string} input
+ * @returns {string}
+ */
+export function decodeRFC3986URIComponent(input: string): string {
+  return decodeURIComponent(input)
+    .replace(/%5B/g, '[')
+    .replace(/%5D/g, ']')
+    .replace(/%21/g, '!')
+    .replace(/%27/g, "'")
+    .replace(/%28/g, '(')
+    .replace(/%29/g, ')')
+    .replace(/%2A/g, '*')
 }

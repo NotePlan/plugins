@@ -9,15 +9,16 @@ import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getDateOptions, unhyphenateString, RE_ISO_DATE, removeDateTagsAndToday } from '@helpers/dateTime'
 import { chooseOptionWithModifiers } from '@helpers/userInput'
 import { getWeekOptions } from '@helpers/NPdateTime'
+import { getInput } from '../../helpers/userInput'
 
 /**
  * Ask user for a future date or week to attach to the follow-up task
  */
-export async function getFutureDate(isMultiple: boolean = false): Promise<string> {
+export async function getFutureDate(isMultiple: boolean = false, promptString: string | null = null): Promise<string> {
   const skip = [{ label: `➡️ None - Do not add a date`, value: '__skip__' }]
   const dateOpts = [...skip, ...getDateOptions(), ...getWeekOptions()]
   const prompt = `Attach what due date to the follow-up task${isMultiple ? 's' : ''}?`
-  const res = await chooseOptionWithModifiers(prompt, dateOpts)
+  const res = await chooseOptionWithModifiers(promptString || prompt, dateOpts)
   logDebug(pluginJson, `promptUserToActOnLine user selection: ${JSP(res)}`)
   if (res && res.value && res.value !== '__skip__') return res.value
   return ''
@@ -46,24 +47,31 @@ export async function saveTodoInFuture(content: string, futureDate: string) {
 }
 
 /**
- * Helper function that does the work of marking tasks done and creating followups
- * @param {*} incoming
+ * Helper function that does the work of marking tasks (even multiple selected) done and creating followups
+ * @param {TParagraph | null} selectedParagraph (optional) - if passed, only this paragraph will be marked done and a followup created, otherwise, we check for a selection
  */
 
-export async function createFollowUps(saveHere: boolean) {
+export async function createFollowUps(saveHere: boolean, selectedParagraph: TParagraph | null = null): Promise<TParagraph | null> {
   try {
     const { followUpText, followUpLinkText, followUpLinkIsWikiLink } = DataStore.settings
-
-    logDebug(pluginJson, `createFollowUps running with saveHere=${String(saveHere)}`)
-    if (Editor?.selection && Editor?.paragraphs) {
+    let revisedPara = null
+    logDebug(pluginJson, `createFollowUps running with saveHere=${String(saveHere)}${selectedParagraph ? `, selectedParagraph:"${String(selectedParagraph?.content)}"` : ''}`)
+    if (selectedParagraph?.filename) await Editor.openNoteByFilename(selectedParagraph.filename)
+    if (selectedParagraph || (Editor?.selection && Editor?.paragraphs)) {
       // const updatedParas = []
       clo(Editor.selection, `createFollowUps: Editor.selection`)
-      if (Editor?.note?.paragraphs && Editor.selection) {
-        const indexes = selectedLinesIndex(Editor.selection, Editor.note.paragraphs)
-        const [startIndex] = indexes
-        let [, endIndex] = indexes
+      if (selectedParagraph || (Editor?.note?.paragraphs && Editor.selection)) {
+        let startIndex, endIndex
+        if (selectedParagraph) {
+          startIndex = selectedParagraph.lineIndex
+          endIndex = startIndex
+        } else {
+          const indexes = Editor.selection && Editor.note?.paragraphs ? selectedLinesIndex(Editor.selection, Editor.note.paragraphs) : [0, -1]
+          startIndex = indexes[0]
+          endIndex = indexes[1]
+        }
         if (endIndex >= startIndex) {
-          const futureDate = await getFutureDate(startIndex !== endIndex)
+          const futureDate = await getFutureDate(startIndex !== endIndex, 'Save follow-up task on what date?')
           for (let index = startIndex; index <= endIndex; index++) {
             const para = Editor.note?.paragraphs[index] || null
             if (para) {
@@ -75,19 +83,20 @@ export async function createFollowUps(saveHere: boolean) {
                 clo(para, `createFollowUps: before update paragraph[${index}]`)
                 clo(para.contentRange, `createFollowUps: contentRange for paragraph[${index}]`)
                 para.type = 'done'
-                if (Editor.note) {
-                  Editor.note.updateParagraph(para)
-                  const revisedPara = Editor.note?.paragraphs[para.lineIndex] || null
-                  const fuText = followUpText.length > 0 ? `${followUpText} ` : ''
+                if (para.note) {
+                  para.note.updateParagraph(para)
+                  revisedPara = Editor.note?.paragraphs[para.lineIndex] || null
+                  let fuText = followUpText.length > 0 ? `${followUpText} ${origText}` : origText
+                  fuText = await getInput('Edit follow-up text', 'OK', 'Follow up text', fuText)
                   const linkInfo = revisedPara ? (followUpLinkIsWikiLink ? createWikiLinkToLine(revisedPara) : createPrettyLinkToLine(revisedPara, followUpLinkText)) : ''
                   if (revisedPara) {
                     if (saveHere) {
-                      const content = `${fuText}${origText} ${linkInfo}${futureDate ? ` ${futureDate}` : ''}`
+                      const content = `${fuText ? `${fuText} ` : ''} ${linkInfo}${futureDate ? ` ${futureDate}` : ''}`
                       Editor.note?.insertTodoAfterParagraph(content, revisedPara)
                       index++ // increment index to skip the newly inserted paragraph
                       endIndex++
                     } else {
-                      const content = `${fuText}${origText} ${linkInfo}`
+                      const content = `${fuText ? `${fuText} ` : ''} ${linkInfo}`
                       await saveTodoInFuture(content, futureDate)
                     }
                   }
@@ -106,8 +115,11 @@ export async function createFollowUps(saveHere: boolean) {
         logDebug(pluginJson, `createFollowUps: no Editor.note.paragraphs || no selection`)
       }
     }
+    clo(revisedPara, `createFollowUps: sending back revisedPara`)
+    return revisedPara
   } catch (error) {
     logError(pluginJson, JSP(error))
+    return null
   }
 }
 
@@ -116,12 +128,13 @@ export async function createFollowUps(saveHere: boolean) {
  * Plugin entrypoint for command: "/Mark done and create follow-up underneath"
  * @param {*} incoming
  */
-export async function followUpSaveHere(incoming: string | null = null) {
+export async function followUpSaveHere(selectedParagraph?: ?TParagraph = null): Promise<TParagraph | null> {
   try {
-    logDebug(pluginJson, `followUpSaveHere running with incoming:${String(incoming)}`)
-    await createFollowUps(true)
+    logDebug(pluginJson, `followUpSaveHere running with selectedParagraph:"${String(selectedParagraph?.content)}"`)
+    return await createFollowUps(true, selectedParagraph)
   } catch (error) {
     logError(pluginJson, JSP(error))
+    return null
   }
 }
 
@@ -130,11 +143,12 @@ export async function followUpSaveHere(incoming: string | null = null) {
  * Plugin entrypoint for command: "/Mark done and create follow-up in future note"
  * @param {*} incoming
  */
-export async function followUpInFuture(incoming: string | null = null) {
+export async function followUpInFuture(selectedParagraph?: ?TParagraph = null): Promise<TParagraph | null> {
   try {
-    logDebug(pluginJson, `followUpInFuture running with incoming:${String(incoming)}`)
-    await createFollowUps(false)
+    logDebug(pluginJson, `followUpInFuture running with incoming:"${String(selectedParagraph?.content)}"`)
+    return await createFollowUps(false, selectedParagraph)
   } catch (error) {
     logError(pluginJson, JSP(error))
+    return null
   }
 }

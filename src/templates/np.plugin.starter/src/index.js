@@ -31,3 +31,4 @@ export { sayHello } from './NPPluginMain' // add one of these for every command 
 // eslint-disable-next-line import/order
 export { onUpdateOrInstall, init, onSettingsUpdated } from './NPTriggers-Hooks'
 export { onOpen, onEditorWillSave } from './NPTriggers-Hooks'
+export { onMessageFromHTMLView } from './NPMessagesFromHTMLWindow'

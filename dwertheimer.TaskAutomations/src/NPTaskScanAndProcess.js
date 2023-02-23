@@ -39,6 +39,7 @@ type RescheduleUserAction =
   | '__mdhere__'
   | '__mdfuture__'
   | '__newTask__'
+  | '__opentask__'
   | string /* >dateOptions */
   | number /* lineIndex of item to pop open */
 
@@ -181,6 +182,12 @@ export async function prepareUserAction(origPara: TParagraph, updatedPara: TPara
       case `__today__`: {
         origPara.content = replaceArrowDatesInString(origPara.content, '>today')
         return { action: 'set', changed: origPara } // dbw NOTE: this said "updatedPara". Not sure how/why that worked before. changing it for React
+      }
+      case '__opentask__': {
+        if (origPara.note?.filename) {
+          await Editor.openNoteByFilename(origPara.note.filename, false, origPara.contentRange?.start || 0, origPara.contentRange?.end || 0)
+          return { action: 'skip', changed: origPara }
+        }
       }
       case `__no__`: {
         return { action: 'set', changed: origPara }
@@ -476,7 +483,7 @@ export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Arra
  */
 export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<Array<TParagraph>> {
   const { foldersToIgnore = [], /* openOnly = true, datePlusOnly = true, replaceDate = true, */ replaceDate = false, noteTaskList = null, noteFolder = false } = options
-  if (replaceDate) throw new Error('getNotesAndTasksToReview: replaceDate is legacy and no longer supported. David u need to fix this')
+  // if (replaceDate) logDebug('getNotesAndTasksToReview: replaceDate is legacy and no longer supported. David u need to fix this')
   logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || 'undefined'}`)
   let notesWithDates = []
   if (!noteTaskList) {
@@ -658,7 +665,7 @@ export function getWeeklyOpenTasks(): Array<TParagraph> {
   const weeklyNote = DataStore.calendarNoteByDate(new Date(), 'week')
   const refs = weeklyNote ? getReferencedParagraphs(weeklyNote) : []
   const combined = [...refs, ...(weeklyNote?.paragraphs || [])]
-  clo(weeklyNote, 'weeklyNote')
+  // clo(weeklyNote, 'weeklyNote')
   logDebug(pluginJson, `getWeeklyOpenTasks ${weeklyNote?.filename || 0}: refs:${refs.length} paras:${weeklyNote?.paragraphs.length || 0} combined:${combined.length}`)
   return combined.filter((p) => p.type === 'open') || []
 }

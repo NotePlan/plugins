@@ -11,6 +11,7 @@ import pluginJson from '../plugin.json'
 import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
+export { openReactWindow } from './NPReactLocal'
 
 export function fakeInstall(): void {
   try {

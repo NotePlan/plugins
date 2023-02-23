@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.8.0",
+  "noteplan.minAppVersion": "3.8.1",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Dashboard",
   "plugin.name": "🎛 Dashboard",
@@ -9,8 +9,10 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
   "plugin.version": "0.2.0",
-  "plugin.lastUpdateInfo": "v0.1.x: first release (read-only view)",
-  "plugin.requiredFiles": ["commsSwitchboard.js"],
+  "plugin.lastUpdateInfo": "v0.2.0: can now check off tasks by clicking on the task circle or checklist square.\nv0.1.x: first release (read-only view)",
+  "plugin.requiredFiles": [
+    "commsSwitchboard.js"
+  ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
     "regular.min.flat4NP.css",
@@ -40,10 +42,28 @@
     },
     {
       "name": "onMessageFromHTMLView",
-      "description": "jgclark.Dashboard: Callback function to receive messages from HTML view",
+      "description": "Dashboard: Callback function to receive messages from HTML view",
       "jsFunction": "onMessageFromHTMLView",
       "hidden": true
     },
+    {
+      "name": "test complete item",
+      "alias": [
+        "tci"
+      ],
+      "description": "Complete Item tests",
+      "jsFunction": "testCompleteItem"
+    },
+    {
+      "name": "Log current windows list",
+      "alias": [
+        "tci"
+      ],
+      "description": "Log current windows list",
+      "jsFunction": "logWindows"
+    }
+  ],
+  "plugin.disabledCommands": [
     {
       "name": "show dashboard (React)",
       "alias": [

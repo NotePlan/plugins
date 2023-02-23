@@ -111,7 +111,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       const thisColor = RGBColourConvert(themeJSON.styles.title1.color ?? '#CC6666')
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('h1, .h1', tempSel))  // allow this same style to be used as a class too
+      output.push(makeCSSSelector('h1, .h1', tempSel)) // allow this same style to be used as a class too
       rootSel.push(`--h1-color: ${thisColor}`)
     }
     // Set H2 similarly
@@ -166,7 +166,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
           'box-shadow: 0 1px 1px #CBCBCB',
           'padding: 1px 7px 1px 7px',
           'margin: 2px 4px',
-          'white-space: nowrap' // no wrapping (i.e. line break) within the button display
+          'white-space: nowrap', // no wrapping (i.e. line break) within the button display
         ]),
       )
     } else {
@@ -183,7 +183,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
           'box-shadow: 0 -1px 1px #6F6F6F',
           'padding: 1px 7px 1px 7px',
           'margin: 1px 4px',
-          'white-space: nowrap' // no wrapping (i.e. line break) within the button display
+          'white-space: nowrap', // no wrapping (i.e. line break) within the button display
         ]),
       )
     }
@@ -266,7 +266,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['flagged-1']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? ''}`)
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFE5E5')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority1', tempSel))
@@ -276,7 +276,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['flagged-2']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? ''}`)
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.color ?? '#FFC5C5')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority2', tempSel))
@@ -286,7 +286,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles['flagged-3']
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? ''}`)
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.color ?? '#FFA5A5')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority3', tempSel))
@@ -700,14 +700,14 @@ const getBasicColors = (themeJSON: any) => {
  */
 export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boolean = false): any {
   const theme = { ...Editor.currentTheme }
-  logDebug(pluginJson, `getThemeJS currentTheme="${theme?.name}"`)
+  // logDebug(pluginJson, `getThemeJS currentTheme="${theme?.name}"`)
   if (!includeSpecificStyles && theme?.values?.styles) delete theme.values.styles
   if (cleanIt) theme.values = pruneTheme(theme.values)
   if (!theme.values) {
-    clo(Editor.currentTheme, `getThemeJS Editor.currentTheme="${theme?.name || ''}"`)
+    // clo(Editor.currentTheme, `getThemeJS Editor.currentTheme="${theme?.name || ''}"`)
     throw 'No theme values found in theme, cannot continue'
   }
-  theme.values.base = getBasicColors(Editor.currentTheme)
+  theme.values.base = getBasicColors(Editor.currentTheme.values)
   return theme
 }
 
@@ -733,7 +733,6 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
       logDebug(pluginJson, `showHTMLWindow Saving NP_THEME in JavaScript`)
     }
   }
-  const initializeGlobalSharedData = `let globalSharedData = {};`
   showHTML(
     windowTitle,
     opts.headerTags ?? '',
@@ -741,7 +740,7 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
     opts.generalCSSIn ?? '',
     opts.specificCSS ?? '',
     opts.makeModal ?? false,
-    [getErrorBridgeCodeString(), initializeGlobalSharedData, ...preBody],
+    [...preBody],
     opts.postBodyScript ?? '',
     opts.savedFilename ?? '',
     opts.width,
@@ -1003,7 +1002,7 @@ export async function sendToHTMLWindow(actionType: string, data: any = {}, updat
 export async function getGlobalSharedData(varName: string = 'globalSharedData'): any {
   try {
     const currentValue = await HTMLView.runJavaScript(`${varName};`)
-    if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
+    // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
     return currentValue
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -1033,8 +1032,12 @@ export async function updateGlobalSharedData(data: any, mergeData: boolean = tru
   } else {
     newData = data
   }
-  logDebug(`updateGlobalSharedData`, `writing globalSharedData (merged=${String(mergeData)}) to ${JSON.stringify(newData)}`)
-  return await HTMLView.runJavaScript(`${varName} = JSON.parse(\`${JSON.stringify(newData)}\`);`)
+  // logDebug(`updateGlobalSharedData`, `writing globalSharedData (merged=${String(mergeData)}) to ${JSON.stringify(newData)}`)
+  const code = `${varName} = JSON.parse(${JSON.stringify(newData)});`
+  logDebug(pluginJson, `updateGlobalSharedData code=\n${code}\n`)
+  //FIXME: Is this still throwing an error?
+  logDebug(pluginJson, `updateGlobalSharedData FIXME: Is this still throwing an error? ^^^`)
+  return await HTMLView.runJavaScript(code)
 }
 
 /**

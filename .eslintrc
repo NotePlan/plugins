@@ -5,19 +5,24 @@
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:flowtype/recommended",
-    "prettier"
+    "prettier",
+    "plugin:react/recommended"
   ],
   "plugins": [
     "import",
     "flowtype",
     "unused-imports",
-    "no-floating-promise"
+    "no-floating-promise",
+    "react"
   ],
   "parser": "@babel/eslint-parser",
   "parserOptions": {
     "ecmaVersion": 2020,
     "sourceType": "module",
     "requireConfigFile": false,
+    "ecmaFeatures": {
+      "jsx": true
+    },
     "babelOptions": {
       "presets": [
         "@babel/flow"
@@ -69,7 +74,9 @@
     "no-useless-escape": "off",
     "require-await": "error",
     "unused-imports/no-unused-imports": "off",
-    "unused-imports/no-unused-vars": "off"
+    "unused-imports/no-unused-vars": "off",
+    "react/react-in-jsx-scope": 0,
+    "no-console": 1
   },
   "env": {
     "node": true,

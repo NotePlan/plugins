@@ -38,12 +38,12 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should produce HTML link 1', () => {
       const input = 'this has [text](brackets) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <span class=\"externalLink\"><a href="brackets">text</a></span> with a valid link')
+      expect(result).toEqual('this has <span class="externalLink"><a href="brackets">text</a></span> with a valid link')
     })
     test('should produce HTML link 2', () => {
       const input = 'this has [title with spaces](https://www.something.com/with?various&chars%20ok) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <span class=\"externalLink\"><a href="https://www.something.com/with?various&chars%20ok">title with spaces</a></span> with a valid link')
+      expect(result).toEqual('this has <span class="externalLink"><a href="https://www.something.com/with?various&chars%20ok">title with spaces</a></span> with a valid link')
     })
   })
 
@@ -68,7 +68,14 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should produce HTML link 1', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
       const result = st.changeBareLinksToHTMLLink(input)
-      expect(result).toEqual('this has a <span class=\"externalLink\"><a href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a></span> valid bare link')
+      expect(result).toEqual(
+        'this has a <span class="externalLink"><a href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a></span> valid bare link',
+      )
+    })
+    test('should produce HTML link when a link takes up the whole line', () => {
+      const input = 'https://www.something.com/with?various&chars%20ok'
+      const result = st.changeBareLinksToHTMLLink(input)
+      expect(result).toEqual('<span class="externalLink"><a href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a></span>')
     })
   })
 
@@ -198,6 +205,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(expected)
       })
     })
+
     /*
      * stripLinksFromString()
      */
@@ -230,6 +238,66 @@ describe(`${PLUGIN_NAME}`, () => {
         const input = 'np noteplan://example.com'
         const expected = `np`
         const result = st.stripLinksFromString(input)
+        expect(result).toEqual(expected)
+      })
+    })
+
+    /*
+     * encodeRFC3986URIComponent()
+     */
+    describe('encodeRFC3986URIComponent()', () => {
+      test('empty -> empty', () => {
+        const input = ''
+        const expected = ''
+        const result = st.encodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should not change A-z 0-9 - _ . ~', () => {
+        const input = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~'
+        const expected = input
+        const result = st.encodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should encode standard punctuation', () => {
+        const input = '"#%&*+,/:;<=>?@\\^`{|}'
+        const expected = '%22%23%25%26%2A%2B%2C%2F%3A%3B%3C%3D%3E%3F%40%5C%5E%60%7B%7C%7D'
+        const result = st.encodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should encode additional punctuation', () => {
+        const input = '!()[]*\''
+        const expected = '%21%28%29%5B%5D%2A%27'
+        const result = st.encodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+    })
+
+    /*
+     * decodeRFC3986URIComponent()
+     */
+    describe('decodeRFC3986URIComponent()', () => {
+      test('empty -> empty', () => {
+        const input = ''
+        const expected = ''
+        const result = st.decodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should not change A-z 0-9 - _ . ~', () => {
+        const input = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~'
+        const expected = input
+        const result = st.decodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should encode standard punctuation', () => {
+        const input = '%22%23%25%26%2A%2B%2C%2F%3A%3B%3C%3D%3E%3F%40%5C%5E%60%7B%7C%7D'
+        const expected = '"#%&*+,/:;<=>?@\\^`{|}'
+        const result = st.decodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should encode additional punctuation', () => {
+        const input = '%21%28%29%5B%5D%2A%27'
+        const expected = '!()[]*\''
+        const result = st.decodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
       })
     })

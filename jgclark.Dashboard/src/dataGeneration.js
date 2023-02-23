@@ -13,7 +13,14 @@ import { clo, logDebug, logError, logInfo } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { getReferencedParagraphs } from '@helpers/NPnote'
-import { getTasksByType, sortListBy, type GroupedTasks, type SortableParagraphSubset } from '@helpers/sorting'
+import {
+  addPriorityToParagraphs,
+  getNumericPriorityFromPara,
+  getTasksByType,
+  sortListBy,
+  type GroupedTasks,
+  type SortableParagraphSubset
+} from '@helpers/sorting'
 
 //-----------------------------------------------------------------
 // Data types
@@ -28,8 +35,9 @@ export type SectionDetails = {
 }
 
 export type SectionItem = {
-  ID: number,
+  ID: string,
   content: string,
+  rawContent: string, // not sure if this will be needed eventually
   filename: string,
   type: ParagraphType | string,
 }
@@ -62,23 +70,22 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       const thisFilename = currentDailyNote.filename
       logDebug('getDataForDashboard', `Processing ${thisFilename} which has ${String(currentDailyNote.paragraphs.length)} paras`)
       // Need to filter out non-task types for following function
-      const allParas: GroupedTasks = getTasksByType(
-        currentDailyNote.paragraphs.filter((p) => ['open', 'checklist'].includes(p.type)),
-        true,
-      )
-      const openParas: Array<SortableParagraphSubset> = allParas.open.concat(allParas.checklist)
-      // clo(openParas, `${(String(openParas.length))} openParas:`)
+      let openParas = currentDailyNote.paragraphs.filter((p) => ["open", "checklist"].includes(p.type))
+      // Temporarily extend TParagraph with the task's priority
+      openParas = addPriorityToParagraphs(openParas)
       // sort the list only by priority, otherwise leaving order the same
       const sortedOpenParas = sortListBy(openParas, ['-priority'])
-      // clo(sortedOpenParas, `${(String(sortedOpenParas.length))} sortedOpenParas:`)
-      sortedOpenParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, filename: thisFilename, type: p.calculatedType }))
-      sections.push({
-        ID: sectionCount,
-        name: 'Today',
-        description: `${openParas.length} from daily note for ${toLocaleDateString(today)}`,
-        FAIconClass: 'fa-regular fa-calendar-star',
-        sectionTitleClass: 'sidebarDaily',
+      // make a sectionItem for each item, and then make a section too.
+      let itemCount = 0
+      sortedOpenParas.map((p) => {
+        const thisID = `${sectionCount}-${itemCount}`
+        sectionItems.push({
+          ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type
+        })
+        itemCount++
       })
+      // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
+      sections.push({ ID: sectionCount, name: 'Today', description: `${openParas.length} from daily note for ${toLocaleDateString(today)}`, FAIconClass: "fa-regular fa-calendar-star", sectionTitleClass: "sidebarDaily" })
       // sections.push({ ID: sectionCount, name: 'Today', description: `${openParas.length} from daily note for ${toLocaleDateString(today)}`, FAIconClass: "fa-regular fa-calendar-star", FAIconColor: "#d0703c" })
       sectionCount++
 
@@ -89,20 +96,26 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       doneCount += currentDailyNote.paragraphs.filter((p) => ['done', 'checklistDone'].includes(p.type)).length
 
       // Get list of open tasks/checklists scheduled to today from other notes
-      const refParas = currentDailyNote ? getReferencedParagraphs(currentDailyNote, false) : []
-      // FIXME: apply logic above here
+      let refParas = currentDailyNote ? getReferencedParagraphs(currentDailyNote, false) : []
+      // Temporarily extend TParagraph with the task's priority
+      refParas = addPriorityToParagraphs(refParas)
+
       // logDebug('', `found ${String(refParas.length ?? 0)} references to today`)
       if (refParas) {
-        // $FlowFixMe[incompatible-use]
-        refParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, filename: p.note.filename, type: p.type }))
-        sections.push({
-          ID: sectionCount,
-          name: 'Today',
-          description: `${refParas.length} scheduled to today from other notes`,
-          FAIconClass: 'fa-regular fa-clock',
-          sectionTitleClass: 'sidebarDaily',
+        // sort the list only by priority, otherwise leaving order the same
+        const sortedRefParas = sortListBy(refParas, ['-priority'])
+        // make a sectionItem for each item, and then make a section too.
+        // sortedRefParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, rawContent: p.rawContent, filename: p.note.filename, type: p.type }))
+        let itemCount = 0
+        sortedRefParas.map((p) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({
+            ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note.filename, type: p.type
+          })
+          itemCount++
         })
-        // sections.push({ ID: sectionCount, name: 'Today', description: `${refParas.length} scheduled to today from other notes`, FAIconClass: "fa-regular fa-clock", FAIconColor: "#d0703c" })
+        sections.push({ ID: sectionCount, name: 'Today', description: `${sortedRefParas.length} scheduled to today from other notes`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily" })
+        // sections.push({ ID: sectionCount, name: 'Today', description: `${sortedRefParas.length} scheduled to today from other notes`, FAIconClass: "fa-regular fa-clock", FAIconColor: "#d0703c" })
         sectionCount++
       }
 
@@ -112,67 +125,77 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       //   doneCount += ncild?.paragraphs.filter((p) => ["done", "checklistDone"].includes(p.type)).length ?? 0
       // }
     }
+    // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
     // Get list of open tasks/checklists from weekly note
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     if (currentWeeklyNote) {
-      // FIXME: apply logic above here
       const thisFilename = currentWeeklyNote.filename
       const dateStr = getDateStringFromCalendarFilename(currentWeeklyNote.filename)
       logDebug('getDataForDashboard', `Processing ${thisFilename} which has ${String(currentWeeklyNote.paragraphs.length)} paras`)
       // Need to filter out non-task types for following function
-      const allParas: GroupedTasks = getTasksByType(
-        currentWeeklyNote.paragraphs.filter((p) => ['open', 'checklist'].includes(p.type)),
-        true,
-      )
-      const openParas: Array<SortableParagraphSubset> = allParas.open.concat(allParas.checklist)
+      let openParas = currentWeeklyNote.paragraphs.filter((p) => ["open", "checklist"].includes(p.type))
       // clo(openParas, `${(String(openParas.length))} openParas:`)
+      // Temporarily extend TParagraph with the task's priority
+      openParas = addPriorityToParagraphs(openParas)
       // sort the list only by priority, otherwise leaving order the same
-      const sortedOpenParas = sortListBy(openParas, ['-priority'])
-      // clo(sortedOpenParas, `${(String(sortedOpenParas.length))} sortedOpenParas:`)
-      sortedOpenParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, filename: thisFilename, type: p.calculatedType, lineIndex: p.lineIndex }))
-      sections.push({
-        ID: sectionCount,
-        name: 'This Week',
-        description: `${openParas.length} from weekly note ${dateStr}`,
-        FAIconClass: 'fa-regular fa-calendar-week',
-        sectionTitleClass: 'sidebarWeekly',
+      const sortedParas = sortListBy(openParas, ['-priority'])
+      // make a sectionItem for each item, and then make a section too.
+      // sortedParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type }))
+      let itemCount = 0
+      sortedParas.map((p) => {
+        const thisID = `${sectionCount}-${itemCount}`
+        sectionItems.push({
+          ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type
+        })
+        itemCount++
       })
+      sections.push({ ID: sectionCount, name: 'This Week', description: `${openParas.length} from weekly note ${dateStr}`, FAIconClass: "fa-regular fa-calendar-week", sectionTitleClass: "sidebarWeekly" })
       // sections.push({ ID: sectionCount, name: 'This Week', description: `${openParas.length} from weekly note ${dateStr}`, FAIconClass: "fa-regular fa-calendar-week", FAIconColor: "#be23b6" })
       sectionCount++
+      // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
       // Get completed count too
       doneCount += currentWeeklyNote.paragraphs.filter((p) => ['done', 'checklistDone'].includes(p.type)).length
 
       // Get list of open tasks/checklists scheduled to this week from other notes
-      // FIXME: apply logic above here
-      const refParas = currentWeeklyNote ? getReferencedParagraphs(currentWeeklyNote, false) : []
+      let refParas = currentWeeklyNote ? getReferencedParagraphs(currentWeeklyNote, false) : []
       if (refParas) {
-        // $FlowFixMe[incompatible-use]
-        refParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, filename: p.note.filename, type: p.type, lineIndex: p.lineIndex }))
-        sections.push({
-          ID: sectionCount,
-          name: 'This week',
-          description: `${refParas.length} scheduled to this week from other notes`,
-          FAIconClass: 'fa-regular fa-clock',
-          sectionTitleClass: 'sidebarWeekly',
+        // Temporarily extend TParagraph with the task's priority
+        refParas = addPriorityToParagraphs(refParas)
+        // sort the list only by priority, otherwise leaving order the same
+        const sortedRefParas = sortListBy(refParas, ['-priority'])
+        // sortedRefParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, rawContent: p.rawContent, filename: p.note.filename, type: p.type }))
+        let itemCount = 0
+        sortedRefParas.map((p) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({
+            ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note.filename, type: p.type
+          })
+          itemCount++
         })
-        // sections.push({ ID: sectionCount, name: 'This week', description: `${refParas.length} scheduled to this week from other notes`, FAIconClass: "fa-regular fa-clock", FAIconColor: "#be23b6" })
+        sections.push({ ID: sectionCount, name: 'This week', description: `${sortedRefParas.length} scheduled to this week from other notes`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly" })
+        // sections.push({ ID: sectionCount, name: 'This week', description: `${sortedRefParas.length} scheduled to this week from other notes`, FAIconClass: "fa-regular fa-clock", FAIconColor: "#be23b6" })
         sectionCount++
       }
     }
+    // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
     // If Reviews plugin has produced a review list file, then show the overdue things from it
-    // TODO: change this to .fileExists when EM provides it
-    logDebug('does file exist?', String(DataStore.fileExists(fullReviewListFilename)))
-    let testReviewListContents = DataStore.loadData(fullReviewListFilename, true)
-    if (testReviewListContents && testReviewListContents.length > 0) {
+    if (DataStore.fileExists(fullReviewListFilename)) {
       const nextNotesToReview: Array<TNote> = await getNextNotesToReview(3)
       if (nextNotesToReview) {
-        for (const n of nextNotesToReview) {
-          // sectionItems.push({ ID: sectionCount, content: '', filename: 'CCC Areas/Services.md', type: 'note' }) // Example for testing only
-          sectionItems.push({ ID: sectionCount, content: '', filename: n.filename, type: 'review-note' })
-        }
+        // for (const n of nextNotesToReview) {          
+        //   sectionItems.push({ ID: sectionCount, content: '', rawContent: '', filename: n.filename, type: 'review-note' })
+        // }
+        let itemCount = 0
+        nextNotesToReview.map((n) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({
+            ID: thisID, content: '', rawContent: '', filename: n.filename, type: 'review'
+          })
+          itemCount++
+        })
         sections.push({
           ID: sectionCount,
           name: 'Projects',
@@ -186,6 +209,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         logDebug('getDataForDashboard', `looked but found no notes to review`)
       }
     }
+    // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
     // Let's also pass count of completed things, to help morale!
     sections.push({ ID: sectionCount, name: 'Done', description: String(doneCount), FAIconClass: 'fa-regular fa-circle-check', sectionTitleClass: '' })
@@ -210,10 +234,10 @@ export async function logDashboardData(): Promise<void> {
     logInfo('getDataForDashboard', `${String(sections.length)} sections and ${String(sectionItems.length)} items found:`)
 
     for (const section of sections) {
-      const thisSectionItems = sectionItems.filter((i) => i.ID === section.ID)
+      const thisSectionItems = sectionItems.filter((i) => i.ID.startsWith(String(section.ID)))
       console.log(`\n# ${section.name}\t(${section.description})`)
       for (const item of thisSectionItems) {
-        console.log(`- ${item?.content ?? ''} ${item.filename}`)
+        console.log(`- [${item.ID}] ${item?.content ?? ''} ${item.filename}`)
       }
     }
   } catch (error) {
