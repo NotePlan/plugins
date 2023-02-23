@@ -202,18 +202,18 @@ export function stripWikiLinksFromString(original: string): string {
 /**
  * Strip all #hashtags from string,
  * TODO: or if second parameter passed, just the tags that match that string
- * TODO: write tests -- JGC thinks you probably want .matchAll not .match
+ * TODO: write tests
+ * @author @jgclark
  * @param {string} original
  * @param {string?} specificItemToStrip
  * @returns {string} changed line
  */
 export function stripHashtagsFromString(original: string, specificItemToStrip?: string): string {
-  // TODO: use specificItemToStrip
-  // TODO: write tests
   let output = original
   // Note: the regex from @EduardMe's file is /(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/ but :punct: doesn't work in JS, so here's my simplified version
+  // TODO: matchAll?
   const captures = output.match(/(?:\s|^|\"|\(|\)|\')(#[A-Za-z]\w*)/g)
-  if (captures.length > 0) {
+  if (captures) {
     clo(captures, 'results from hashtag matches:')
     for (const capture of captures) {
       const match = capture.slice(1)
@@ -231,7 +231,8 @@ export function stripHashtagsFromString(original: string, specificItemToStrip?: 
  * Strip all @mentions from string,
  * TODO: or if second parameter passed, just the mentions that match that string
  * TODO: deal with @mention(...) cases as well
- * TODO: write tests -- JGC thinks you probably want .matchAll not .match
+ * TODO: write tests
+ * @author @jgclark
  * @param {string} original
  * @param {string?} specificItemToStrip
  * @returns {string} changed line
@@ -239,6 +240,7 @@ export function stripHashtagsFromString(original: string, specificItemToStrip?: 
 export function stripMentionsFromString(original: string, specificItemToStrip?: string): string {
   let output = original
   // Note: the regex from @EduardMe's file is /(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/ but :punct: doesn't work in JS, so here's my simplified version
+  // TODO: matchAll?
   const captures = output.match(/(?:\s|^|\"|\(|\)\')(@[A-Za-z][\w\d\.\-\(\)]*)/g)
   if (captures) {
     clo(captures, 'results from mention matches:')
