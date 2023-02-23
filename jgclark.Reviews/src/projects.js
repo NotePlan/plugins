@@ -58,20 +58,18 @@ export async function completeProject(): Promise<void> {
 
     // If this has worked, then ...
     if (res !== '') {
-      // Now add to the Summary note for this year (if present)
-      if (DataStore.folders.includes('Summaries')) {
-        const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
-        const summaryNote = await getOrMakeNote(thisYearStr, config.folderToStore)
-        if (summaryNote != null) {
-          logInfo(pluginJson, `Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
-          summaryNote.addParagraphBelowHeadingTitle(
-            lineToAdd,
-            'text', // bullet character gets included in the passed in string
-            config.finishedListHeading,
-            true, // append
-            true  // do create heading if not found already
-          )
-        }
+      const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
+      // Now add to the Yearly note for this year (if present)
+      const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
+      if (yearlyNote != null) {
+        logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
+        yearlyNote.addParagraphBelowHeadingTitle(
+          lineToAdd,
+          'text', // bullet character gets included in the passed in string
+          config.finishedListHeading,
+          true, // append
+          true  // do create heading if not found already
+        )
       }
 
       // ... and finally ask whether to move it to the @Archive
@@ -122,20 +120,18 @@ export async function cancelProject(): Promise<void> {
 
     // If this has worked, then ...
     if (res) {
-      // Add to the Summary note for this year (if present)
-      if (DataStore.folders.includes(config.folderToStore)) {
-        const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
-        const summaryNote = await getOrMakeNote(thisYearStr, config.folderToStore)
-        if (summaryNote != null) {
-          logInfo(pluginJson, `Will add '${lineToAdd}' to note '${summaryNote.filename}'`)
-          summaryNote.addParagraphBelowHeadingTitle(
-            lineToAdd,
-            'text', // bullet character gets included in the passed in string
-            config.finishedListHeading,
-            true, // append
-            true  // do create heading if not found already
-          )
-        }
+      const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
+      // Now add to the Yearly note for this year (if present)
+      const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
+      if (yearlyNote != null) {
+        logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
+        yearlyNote.addParagraphBelowHeadingTitle(
+          lineToAdd,
+          'text', // bullet character gets included in the passed in string
+          config.finishedListHeading,
+          true, // append
+          true  // do create heading if not found already
+        )
       }
 
       // Ask whether to move it to the @Archive

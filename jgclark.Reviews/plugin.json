@@ -8,9 +8,16 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.9.0-beta6",
-  "plugin.lastUpdateInfo": "Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time.",
-  "plugin.dependencies": [],
+  "plugin.version": "0.9.0",
+  "plugin.lastUpdateInfo": "Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time. Lots of other layout improvements too.",
+  "plugin.requiredFiles": [],
+  "plugin.requiredSharedFiles": [
+    "fontawesome.css",
+    "regular.min.flat4NP.css",
+    "solid.min.flat4NP.css",
+    "fa-regular-400.woff2",
+    "fa-solid-900.woff2"
+  ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
@@ -83,11 +90,6 @@
       "jsFunction": "cancelProject"
     },
     {
-      "name": "test:redisplayProjectList",
-      "description": "Redisplay project lists",
-      "jsFunction": "redisplayProjectList"
-    },
-    {
       "name": "test:logFullReviewList",
       "description": "write full-review-list file to log",
       "jsFunction": "logFullReviewList"
@@ -97,6 +99,13 @@
       "description": "make/update full review list note",
       "jsFunction": "makeFullReviewList"
     },
+    {
+      "name": "test:redisplayProjectList",
+      "description": "Redisplay project lists",
+      "jsFunction": "redisplayProjectList"
+    }
+  ],
+  "plugin.inactiveCommands": [
     {
       "name": "test:redToGreenInterpolation",
       "description": "test red - green interpolation",
@@ -111,9 +120,7 @@
       "name": "test:redisplayProjectListHTML",
       "description": "test redisplay Project List HTML",
       "jsFunction": "redisplayProjectListHTML"
-    }
-  ],
-  "plugin.inactiveCommands": [
+    },
     {
       "name": "test:fonts",
       "description": "test font glyphs",
@@ -125,12 +132,6 @@
       "jsFunction": "logReviewList"
     },
     {
-      "name": "test:makeReviewList",
-      "description": "make/update reviewList pref",
-      "jsFunction": "makeReviewList"
-    },
-    {
-      "comment": "Note: saved for later use",
       "name": "rev:test update Reviews plugin",
       "description": "upgrade Reviews plugin settings",
       "jsFunction": "testUpdated"

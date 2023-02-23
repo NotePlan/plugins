@@ -5,7 +5,7 @@ This plugin provides commands to help **review** Project-based notes, and it hel
 
 If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 50 of these.
 
-User George Crump (@george65) has created a [great video showing how the plugin works](https://storone.zoom.us/rec/play/Pgo9gL24JcZeLJfMW23GWVMGgYGMIN9NZgK5eJwhec8Xg0kyqTZG-uxJjjQh3tK2CvIAYAK5QheSTKis.0Qf5Lu0zvNIIIra3). (Note: it was created before v0.8 was released.)
+User George Crump (@george65) has created a video showing how the plugin works: (Note: it was created back at v0.7, so it looks rather different now.)
 
 [![video thumbnail](georgec-video-thumbnail.png)](https://storone.zoom.us/rec/play/Pgo9gL24JcZeLJfMW23GWVMGgYGMIN9NZgK5eJwhec8Xg0kyqTZG-uxJjjQh3tK2CvIAYAK5QheSTKis.0Qf5Lu0zvNIIIra3)
 
@@ -42,7 +42,7 @@ The fields I use are:
 - `Aim: free text`: optional, and not used in any processing
 - `Progress: N:YYYY-MM-DD: free text ...`: your latest summary of progress for this N% (optional)
 
-Similarly, if you follow the PARA method, then you will also have "**Areas** of responsibility" to maintain, and I use a `#area` tag to mark these. These don't normally have a start/end/completed dates, but they also need reviewing.  For example:
+Similarly, if you follow the **PARA method**, then you will also have "**Areas** of responsibility" to maintain, and I use a `#area` tag to mark these. These don't normally have a start/end/completed dates, but they also need reviewing.  For example:
 
 ```markdown
 # Car maintenance
@@ -55,10 +55,11 @@ Aim: Make sure car continues to run well, is legal etc.
 ...
 ```
 
-The first hashtag on the line defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you.
-Note: If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but will show up in the lists.
+The first hashtag on the line defines its type, so as well as `#project`, `#area` you could have a `#goal` or whatever makes most sense for you. (This example uses my related [Repeat Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/) to give more flexibility than the built-in repeats.)
 
-Note: This example uses my related [Repeat Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/) to give more flexibility than the built-in repeats.
+Other notes:
+- If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but will show up in the lists.
+- From v0.9 these 'metadata fields' can appear anywhere in the note, not just on the second line. If there are multiple copies of a field, only the first one is used.
 
 ## Reviewing Projects and/or Areas
 Use the 'Hashtags to review' setting to control which notes are included in the review lists:
@@ -69,32 +70,31 @@ Use the 'Hashtags to review' setting to control which notes are included in the 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
 ### "/project lists" command
-This creates or updates a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. 
-From v0.8 you can set the '**Output style to use**'. This is either a 'Rich' (HTML) or original 'Markdown' (normal NotePlan) output style:
+This shows a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. **Tip**: Place this list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.
+
+From v0.8 you can set the '**Output style to use**'. This is either a '**Rich**' (HTML) or original '**Markdown**' (normal NotePlan) output style:
 
 <!-- FIXME: update screenshot -->
-![Example of Rich style of "/project lists"](project-list-rich.jpg)
-![Example of Markdown style of "/project lists"](project-list-markdown_bordered.jpg) 
+![Example of Rich style of "/project lists"](review-list4-rich.jpg)
+![Example of Markdown style of "/project lists"](review-list4-md.jpg) 
 
-**Note**:  the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use. However, the **Markdown style** list _is_ stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
-
-**Tip**: Place this **Rich** list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.  From v0.9 it now includes the following buttons above the start of the lists:
-
-![Example of buttons in Rich style of "/project lists"](review-list-buttons2_bordered.jpg)
-
-This heading row deliberately 'sticks' to the top of the window as you scroll the list.
+Notes about the displays:
+- the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use. 
+- in the 'Rich' style this heading row deliberately 'sticks' to the top of the window as you scroll the list.
+![Example of buttons in Rich style of "/project lists"](review-list-buttons3.jpg)
+- due to limits on the API for 'Rich' style output, all #tags to review get shown one after the other in a single window.
+- if you can make the window wide enough it will display in 2 or even 3 columns!
+- the **Markdown style** list _is_ stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
+- the button 'Start reviews' / 'Start reviewing notes ready for review' is a shortcut to the '/start reviews' command (described next).
+- each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 Other settings:
-- ??? noteTag??? ... **Note**: due to limits on the API for 'Rich' style output, all #tags to review get shown one after the other in a single window. (This limit does not apply for Markdown style output.)
 - Specify folders to ignore using the 'Folders to ignore' shared setting (as above).
 - Display project dates?  Whether to display the project's review and due dates (where set).
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
 - Display grouped by folder? Whether to group the projects by their folder.
 - Display archived projects? Whether to display project notes marked as `#archive`.
-
-On the second line is a link 'Start reviewing notes ready for review', which is a shortcut to the '/start reviews' command (described next).
-Each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 #### Running from x-callback call
 From v0.8 this command can be run from an x-callback call:
@@ -109,7 +109,7 @@ The name of the settings are taken from the `key`s from the plugin's `plugin.jso
 This creates a hidden list of notes ready for review, and then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
 
 ### "/finish review" command
-This simply updates the current open project's `@reviewed(date)`.
+This updates the current open project's `@reviewed(date)`, and if a Rich style project list is open, it is refreshed.
 
 ### "/next review" command
 This updates this project's `@reviewed(date)`, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.

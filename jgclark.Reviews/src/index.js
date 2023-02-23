@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 1.11.2022 for v0.9.0-betas, @jgclark
+// Last updated 23.02.2023 for v0.9.0-betas, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -21,11 +21,9 @@ export {
   finishReview,
   makeProjectLists,
   redisplayProjectList,
-} from './reviews'
-export {
   renderProjectListsHTML,
   renderProjectListsMarkdown,
-} from './projectLists'
+} from './reviews'
 export {
   completeProject,
   cancelProject,
@@ -48,12 +46,16 @@ export {
 
 const pluginID = 'jgclark.Reviews'
 
-export function init(): void {
+export async function init(): Promise<void> {
   try {
-    // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
+
+    // Check for the latest version of the plugin, and if a minor update is available, install it and show a message. Do this in the background.
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
       pluginUpdated(pluginJson, r),
     )
+
+    // Check that np.Shared plugin is installed, and if not, then install it and show a message. Do this in the background (asynchronously).
+    DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, false)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

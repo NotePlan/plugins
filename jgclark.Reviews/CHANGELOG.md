@@ -1,28 +1,66 @@
 # What's changed in 🔬 Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
+<!--
+- ??? Fixed the race condition on (un)pausing a project
+- ??? ability to pause/unpause a project, by calling new **/pause project toggle** command or adding/removing `#paused` to a project's metadata. When paused this stops the note from being included in reviews, but keeps it visible in the project lists.
+-->
+## [0.9.0] - 2023-02-23
+### Added
+- to speed up reviewing projects when you have the 'Rich' Project List view open, there's now a row of buttons above the table that trigger the following commands: **/finish project review**, **/next project review**, **/complete project**, **/cancel project**, **/pause project toggle**. They work on whatever is the project note that's in NotePlan's main editor window (suggested by @John1).
+- the Project list view(s) now automatically update after finishing a review, or completing or cancelling a project.
+- can now show more than one review #type in the HTML view.
+
+### Changed
+- now picks up `reviewed()` and the other pieces of metadata from anywhere in the note, not just the "metadata line" right after tht title.
+- now writes to the yearly note on project completion or cancellation (if wanted), rather than a note in the Summaries folder.
+- now uses plugin "Shared Resources" to deliver font resources for "Rich" style
+- can now write both 'Markdown' and 'Rich' style outputs each time.
+- tasks scheduled to the future are now not counted in the % completion figures
+- clarified the special #hashtags to use on project metadata lines: now just `#paused`; `#archive` is retired.
+- only writes HTML file copy if using DEBUG mode.
+
+### Fixed
+- improved notes in lists when projects are completed or cancelled (avoids 'NaN' message @edgaulthier found)
+- fixed count of notes to review
+- fixed some sorting issues in 'review date' output
+
+<!--
+## [0.9.0-beta7] - 2023-02-12
+### Changed
+- tidied up the "Rich" (HTML) display type, which now includes possibility of multiple columns of output if your window is wide enough.
+- now picks up `reviewed()` and the other pieces of metadata from anywhere in the note, not just the "metadata line" right after tht title.
+- removed the "Toggle Pause" button for now, as there are issues with it. The "/pause project toggle" still works.
+- now writes to the yearly note on project completion or cancellation (if wanted), rather than a note in the Summaries folder.
+- disabled some older test commands
+
+### Fixed
+- fixed some sorting issues in 'review date' output
+
 ## [0.9.0-beta6] - 2022-11-04
 ### Added
 - To speed up reviewing projects when you have the 'Rich' Project List view open, there's now a row of buttons above the table that trigger the following commands: **/finish project review**, **/next project review**, **/complete project**, **/cancel project**, **/pause project toggle**. They work on whatever is the project note that's in NotePlan's main editor window (suggested by @John1).
 - Ability to pause/unpause a project, by calling new **/pause project toggle** command or adding/removing `#paused` to a project's metadata. When paused this stops the note from being included in reviews, but keeps it visible in the project lists.
 - The Project list view(s) now automatically update after finishing a review, or completing or cancelling a project.
 - Can now show more than one review #type in the HTML view.
+
 ### Changed
 - Can now write both 'Markdown' and 'Rich' style outputs each time.
 - Can now save 'Markdown' view as well as showing the 'Rich' style for "/project lists"
 - Tasks scheduled to the future are now not counted in the % completion figures
 - Clarified the special #hashtags to use on project metadata lines: now just `#paused`; `#archive` is retired.
-<!-- - (b6) Only write HTML copies if using DEBUG mode. -->
+- Only write HTML file copy if using DEBUG mode.
+
 ### Fixed
-<!-- - ??? Fixed the race condition on (un)pausing a project -->
 - Improved notes in lists when projects are completed or cancelled (avoids 'NaN' message @edgaulthier found)
 - Fixed count of notes to review
+-->
 
 ## [0.8.0] - 2022-10-10
 This is a major new version of the **/project lists** command:
 ### Added
-- option for 'Rich' style output which shows a list in a new window complete with coloured progress rings and tables (requires NotePlan 3.7)
-- now opens the new review list note (if previous 'NotePlan' style used)
+- option for '**Rich**' style output which shows a list in a new window complete with coloured progress rings and tables (requires NotePlan 3.7)
+- now opens the new review list note (if previous '**NotePlan**' style used)
 - project progress is now shown either as your most recent `Progress:` field, or as the stats it can calculate (e.g. `75% done (of 32 tasks)`)
 - new 'Refresh' button to update the review list (in either style) (suggested by @George65)
 - new option 'Display dates?' that can suppress printing project dates if you want (for @LaurenaRehbein)

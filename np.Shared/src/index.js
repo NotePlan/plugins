@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Shared Resources plugin for NotePlan
 // Jonathan Clark
-// last updated 23.2.2023 for v1.0.0, @jgclark
+// last updated 23.2.2023 for v0.3.0, @jgclark
 // -----------------------------------------------------------------------------
 
 const sharedPluginID = 'np.Shared'
