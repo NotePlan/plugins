@@ -1951,6 +1951,7 @@ declare class HTMLView {
   +id: string;
 /**
  * Set / get a custom identifier, so you don't need to cache the unique id.
+ * Example: NotePlan.editors[0].customId = "test"
  * Note: Available from NotePlan v3.8.1 build 973
  * @returns {string}
  */
