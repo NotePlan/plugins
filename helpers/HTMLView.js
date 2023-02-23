@@ -707,7 +707,7 @@ export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boole
     // clo(Editor.currentTheme, `getThemeJS Editor.currentTheme="${theme?.name || ''}"`)
     throw 'No theme values found in theme, cannot continue'
   }
-  theme.values.base = getBasicColors(Editor.currentTheme)
+  theme.values.base = getBasicColors(Editor.currentTheme.values)
   return theme
 }
 

@@ -377,7 +377,7 @@ function getConfig(pluginPath) {
   let requiredFilesWatchPlugin = null
   const requiredFilesInDevFolder = path.join(pluginPath, 'requiredFiles')
   if (existsSync(requiredFilesInDevFolder)) {
-    console.log(colors.yellow(`==> Watching "requiredFiles" folder for changes`))
+    console.log(colors.yellow(`==> Watching "${path.basename(pluginPath)}/requiredFiles" folder for changes`))
     requiredFilesWatchPlugin = {
       name: 'watch-external-files',
       async buildStart() {
