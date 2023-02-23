@@ -2,8 +2,8 @@
 
 import { getSharedOptions } from '../../dwertheimer.TaskAutomations/src/NPTaskScanAndProcess'
 import pluginJson from '../plugin.json'
-import { showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
 
 const startTime = new Date()
 
@@ -11,7 +11,7 @@ let ENV_MODE = 'production' // whether to use minified react or not
 
 const ReactDevToolsImport = `<script src="http://localhost:8097"></script>`
 
-function setEnv(globalData) {
+function setEnv(globalData: any) {
   if (globalData.hasOwnProperty('ENV_MODE')) {
     ENV_MODE = globalData.ENV_MODE
   } else {
@@ -48,7 +48,7 @@ const mountAppString = `
 // $FlowFixMe - inexact object literal
 export function openReactWindow(globalData: any = null, windowOptions?: HtmlWindowOptions = {}): boolean {
   try {
-    logDebug(`NPReactLocal.openReactWindow running...`)
+    logDebug(`NPReactLocal.openReactWindow`, `Starting ...`)
     // the first parameter sent is globalData -- some initial data we will add as a global 'globalSharedData' in the HTML window
     // react will use this to populate the page
     // that the plugin can write to and the HTML App can access
@@ -162,12 +162,13 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
 }
 
 /**
+ * Add a string or array of strings to the end of an array
  * Because we build JS from an array of strings, we need to make sure that if the user passes in a string or array of strings, we add them to the array
  * @param {Array<string>} arr
  * @param {string|Array<string>} items
- * @returns Array<string>
+ * @returns {Array<string>}
  */
-const addStringOrArrayItems = (arr, items) => {
+const addStringOrArrayItems = (arr: Array<string>, items: string | Array<string>) => {
   if (!items) return arr
   if (typeof items === 'string') {
     arr.push(items)

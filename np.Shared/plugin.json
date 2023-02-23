@@ -2,11 +2,11 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.8.0",
   "plugin.id": "np.Shared",
-  "plugin.name": "🤝 Shared",
-  "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "First release",
-  "plugin.description": "Shared resources for NotePlan plugins",
+  "plugin.name": "🤝 Shared Resources",
+  "plugin.version": "0.3.0",
+  "plugin.description": "Shared resources for NotePlan plugins. (There are no commands for users to run directly.)",
   "plugin.author": "jgclark + dwertheimer",
+  "plugin.lastUpdateInfo": "First release",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md",
@@ -29,45 +29,22 @@
     "react.c.Root.dev.js",
     "noteplanstate-edited.otf"
   ],
-  "plugin.__requiredFiles": [
-    "css/duotone.min.css",
-    "css/fontawesome.css",
-    "css/light.min.css",
-    "css/regular.min.css",
-    "css/solid.min.css",
-    "webfonts/fa-duotone-900.woff2",
-    "webfonts/fa-light-300.woff2",
-    "webfonts/fa-regular-400.woff2",
-    "webfonts/fa-solid-900.woff2",
-    "pluginToHTMLCommsBridge.js",
-    "pluginToHTMLErrorBridge.js",
-    "react.core.min.js",
-    "react.core.dev.js",
-    "react.c.Root.min.js",
-    "react.c.Root.dev.js",
-    "noteplanstate-edited.otf"
-  ],
   "plugin.commands": [
-    {
-      "name": "shared:fakeInstall",
-      "description": "Test install for np.Shared",
-      "jsFunction": "fakeInstall"
-    },
-    {
-      "name": "shared:logProvidedResources",
-      "description": "Log resources provided in np.Shared plugin",
-      "jsFunction": "logProvidedResources"
-    },
-    {
-      "name": "shared:logLocallyAvailableResources",
-      "description": "log locally available resources in Plugins/Data/np.Shared",
-      "jsFunction": "logLocallyAvailableResources"
-    },
     {
       "name": "openReactWindow",
       "description": "Run React with Local Files",
       "jsFunction": "openReactWindow",
       "hidden": true
+    },
+    {
+      "name": "shared:logProvidedSharedResources",
+      "description": "Log resources provided in np.Shared/ folder",
+      "jsFunction": "logProvidedSharedResources"
+    },
+    {
+      "name": "shared:logAvailableSharedResources",
+      "description": "log locally available resources in np.Shared/ folder",
+      "jsFunction": "logAvailableSharedResources"
     }
   ],
   "plugin.settings": [
