@@ -1,4 +1,4 @@
-var reactBundle1677103323 = (function (exports, React$1) {
+var reactBundle1677178456 = (function (exports, React$1) {
 	'use strict';
 
 	function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
@@ -521,9 +521,7 @@ var reactBundle1677103323 = (function (exports, React$1) {
 	    }, `banner test`)
 	  }, "Local Banner Display Test"), /*#__PURE__*/React__default["default"].createElement("div", {
 	    onClick: testCommsBridge
-	  }, "Test Communication Bridge"), /*#__PURE__*/React__default["default"].createElement("div", {
-	    onClick: () => runPluginCommand('onMessageFromHTMLView', 'dwertheimer.React', ['ranAPluginCommand', 'green', 'tea'])
-	  }, "Test Generic RunPlugin Command (onMessageFromHTMLView,dwertheimer.React)"), /*#__PURE__*/React__default["default"].createElement("div", null, /*#__PURE__*/React__default["default"].createElement("span", {
+	  }, "Test Communication Bridge"), /*#__PURE__*/React__default["default"].createElement("div", null, /*#__PURE__*/React__default["default"].createElement("span", {
 	    id: "debugHistory"
 	  }, "History (most recent first):"), /*#__PURE__*/React__default["default"].createElement("ul", null, history.slice().reverse().map((h, i) => /*#__PURE__*/React__default["default"].createElement("li", {
 	    style: {
@@ -544,4 +542,4 @@ var reactBundle1677103323 = (function (exports, React$1) {
 	return exports;
 
 })({}, react);
-Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, reactBundle1677103323)
+Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, reactBundle1677178456)
