@@ -2,7 +2,6 @@
 
 /*----------------------------------------------------------------------------------------------------------------------------
  * Configuration Utilities
- * Version 0.0.5
  * @author @codedungeon unless otherwise noted
  * Requires NotePlan 3.4 or greater (waiting for NotePlan.environment version method to perform proper validation)
  * Note: Everything is self contained in this method, no other dependencies beyond `json5` plugin
@@ -11,9 +10,6 @@
 import json5 from 'json5'
 import { log, JSP } from '@helpers/dev'
 import { showMessageYesNo } from '@helpers/userInput'
-
-// this is the only possible location for _configuration note
-const STATIC_TEMPLATE_FOLDER = '📋 Templates'
 
 /**
  * Returns ISO formatted date time
@@ -30,31 +26,35 @@ export const dt = (): string => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString()}`
 }
 
+// this is the only possible location for _configuration note
+// const STATIC_TEMPLATE_FOLDER = '📋 Templates'
+
 /**
  * Get NotePlan Configuration block for given section
+ * WARNING: Since NotePlan v3.4 no longer used, so commented out.
  * @author @codedungeon
  * @param {string} section - NotePlan _configuration section
  * @return return this as structured data, in the format specified by the first line of the codeblock (should be `javascript`)
  */
-export async function getConfiguration(configSection: string = ''): Promise<any> {
-  const configFile = DataStore.projectNotes.filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER)).find((n) => !!n.title?.startsWith('_configuration'))
+// export async function getConfiguration(configSection: string = ''): Promise<any> {
+//   const configFile = DataStore.projectNotes.filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER)).find((n) => !!n.title?.startsWith('_configuration'))
 
-  const content: ?string = configFile?.content
-  if (content == null) {
-    log(`getConfiguration - Unable to find _configuration note`)
-    return {}
-  }
+//   const content: ?string = configFile?.content
+//   if (content == null) {
+//     log(`getConfiguration - Unable to find _configuration note`)
+//     return {}
+//   }
 
-  const configData = content.split('\n```')[1]
+//   const configData = content.split('\n```')[1]
 
-  // $FlowIgnore
-  const config = await parseConfiguration(configData)
-  if (!config.hasOwnProperty(configSection)) {
-    log(`getConfiguration - Unable to locate ${configSection} in _configuration`)
-    return {}
-  }
-  return config[configSection]
-}
+//   // FlowIgnore
+//   const config = await parseConfiguration(configData)
+//   if (!config.hasOwnProperty(configSection)) {
+//     log(`getConfiguration - Unable to locate ${configSection} in _configuration`)
+//     return {}
+//   }
+//   return config[configSection]
+// }
 
 /**
  * initialize Plugin Settings
@@ -82,85 +82,87 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
 }
 
 /**
- * migrate existing _configuration block to plugin/settings.json
+ * Migrate existing _configuration block to plugin/settings.json
+ * WARNING: Since migration following NotePlan v3.4 this is no longer used, so commented out.
  * @author @codedungeon
  * @param {string} configSection - template section name
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
  * @return {number} migration result (-1 migration section not found, 1 success, 0 no migration necessary)
  */
-export async function migrateConfiguration(configSection: string, pluginJsonData: any, silentMode?: boolean = false): Promise<number> {
-  // migrationResult
-  // will be 1 if _configuration was migrated to plugin settings
-  // will be 0 if no migration necessary
-  // will be -1 if _configuration data not found
-  let migrationResult = 0
-  const canEditSettings: boolean = NotePlan.environment.platform === 'macOS'
+// export async function migrateConfiguration(configSection: string, pluginJsonData: any, silentMode?: boolean = false): Promise<number> {
+//   // migrationResult
+//   // will be 1 if _configuration was migrated to plugin settings
+//   // will be 0 if no migration necessary
+//   // will be -1 if _configuration data not found
+//   let migrationResult = 0
+//   const canEditSettings: boolean = NotePlan.environment.platform === 'macOS'
 
-  const pluginSettingsData = await DataStore.loadJSON(`../${pluginJsonData['plugin.id']}/settings.json`)
-  if (!pluginSettingsData) {
-    const migrateData = {}
+//   const pluginSettingsData = await DataStore.loadJSON(`../${pluginJsonData['plugin.id']}/settings.json`)
+//   if (!pluginSettingsData) {
+//     const migrateData = {}
 
-    // load _configuration data for configSection if exists
-    const configData = await getConfiguration(configSection)
-    migrationResult = Object.keys(configData).length > 0 ? 1 : -1
+//     // load _configuration data for configSection if exists
+//     const configData = await getConfiguration(configSection)
+//     migrationResult = Object.keys(configData).length > 0 ? 1 : -1
 
-    // load plugin settings object, if not exists settings object will be empty
-    const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
+//     // load plugin settings object, if not exists settings object will be empty
+//     const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
 
-    pluginSettings.forEach((setting) => {
-      const key: any = setting?.key || null
-      const type: any = setting?.type || null
+//     pluginSettings.forEach((setting) => {
+//       const key: any = setting?.key || null
+//       const type: any = setting?.type || null
 
-      if (key) {
-        log(`migrateConfiguration checking: ${key}, type: ${type}`)
-        migrateData[key] = setting?.default || ''
+//       if (key) {
+//         log(`migrateConfiguration checking: ${key}, type: ${type}`)
+//         migrateData[key] = setting?.default || ''
 
-        // add key if it does not exist in _configuration note
-        if (!configData.hasOwnProperty(key)) {
-          log(`migrateConfiguration adding key: ${key}`)
-          configData[key] = setting.default
+//         // add key if it does not exist in _configuration note
+//         if (!configData.hasOwnProperty(key)) {
+//           log(`migrateConfiguration adding key: ${key}`)
+//           configData[key] = setting.default
 
-          // Convert json to an object
-          if (setting.type === 'json' && setting.default !== 'undefined') {
-            configData[key] = JSON.parse(setting.default)
-          }
-        }
+//           // Convert json to an object
+//           if (setting.type === 'json' && setting.default !== 'undefined') {
+//             configData[key] = JSON.parse(setting.default)
+//           }
+//         }
 
-        // migration data from _configuration if exists
-        if (key && configData[key] !== 'undefined') {
-          migrateData[key] = configData[key]
+//         // migration data from _configuration if exists
+//         if (key && configData[key] !== 'undefined') {
+//           migrateData[key] = configData[key]
 
-          // Check if the variable is an array with anything but objects, then save it as comma separated string
-          // Note: We don't need to conver this here, we need to set the type in the plugin.settings of plugin.json to [string]
-          // if (Array.isArray(configData[key]) && configData[key].length > 0 && (typeof configData[key][0]) !== 'object') {
-          //   migrateData[key] = configData[key].join(', ')
-          // }
-        }
-      }
-    })
+//           // Check if the variable is an array with anything but objects, then save it as comma separated string
+//           // Note: We don't need to conver this here, we need to set the type in the plugin.settings of plugin.json to [string]
+//           // if (Array.isArray(configData[key]) && configData[key].length > 0 && (typeof configData[key][0]) !== 'object') {
+//           //   migrateData[key] = configData[key].join(', ')
+//           // }
+//         }
+//       }
+//     })
 
-    // initialize settings data
-    migrateData.version = pluginJsonData['plugin.version']
-    DataStore.settings = { ...migrateData }
+//     // initialize settings data
+//     // $FlowFixMe[prop-missing]
+//     migrateData.version = pluginJsonData['plugin.version']
+//     DataStore.settings = { ...migrateData }
 
-    log(`==> ${pluginJsonData['plugin.id']} _configuration.${configSection} migration (migration complete)`)
-  }
+//     log(`==> ${pluginJsonData['plugin.id']} _configuration.${configSection} migration (migration complete)`)
+//   }
 
-  // if settings data was migrated (first time only)
-  if (migrationResult === 1 && !silentMode) {
-    const reviewMessage: string = canEditSettings ? `\n\nWould you like to review the plugin settings now?` : ''
-    const answer: mixed = await CommandBar.prompt(
-      'Configuration Migration Complete',
-      `Your personal settings for plugin: "${configSection}" have been migrated from the _configuration note to the new NotePlan Plugin Settings.\n\nTo change your plugin settings in the future (on the Mac), please open the NotePlan preferences, navigate to "Plugins" and click on the gear icon on the right of the plugin name. ${reviewMessage}`,
-      canEditSettings ? ['Yes', 'No'] : ['OK'],
-    )
-    if (canEditSettings && answer === 0) {
-      await NotePlan.showConfigurationView()
-    }
-  }
+//   // if settings data was migrated (first time only)
+//   if (migrationResult === 1 && !silentMode) {
+//     const reviewMessage: string = canEditSettings ? `\n\nWould you like to review the plugin settings now?` : ''
+//     const answer: mixed = await CommandBar.prompt(
+//       'Configuration Migration Complete',
+//       `Your personal settings for plugin: "${configSection}" have been migrated from the _configuration note to the new NotePlan Plugin Settings.\n\nTo change your plugin settings in the future (on the Mac), please open the NotePlan preferences, navigate to "Plugins" and click on the gear icon on the right of the plugin name. ${reviewMessage}`,
+//       canEditSettings ? ['Yes', 'No'] : ['OK'],
+//     )
+//     if (canEditSettings && answer === 0) {
+//       await NotePlan.showConfigurationView()
+//     }
+//   }
 
-  return migrationResult
-}
+//   return migrationResult
+// }
 
 /**
  * update setting data in the event plugin.settings object has been updated
@@ -230,6 +232,7 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
 
     // eslint-disable-next-line
     let [format, ...contents] = block.split('\n')
+    // $FlowFixMe[incompatible-type]
     contents = contents.join('\n')
 
     const value: any = json5.parse(contents)
