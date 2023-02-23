@@ -544,7 +544,7 @@ export async function testOverdueReact() {
     console.log(`===== Calling React after ${timer(data.startTime)} =====`)
     logDebug(pluginJson, `processOverdueReact invoking window. processOverdueReact stopping here.`)
     // clo(data, `testOverdueReact data`)
-    await DataStore.invokePluginCommandByName('openReactWindow', 'dwertheimer.React', payload)
+    await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', payload)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

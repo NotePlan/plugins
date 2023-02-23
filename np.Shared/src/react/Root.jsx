@@ -271,9 +271,6 @@ export function Root(props: Props): Node {
           <React.StrictMode>
             <div onClick={() => dispatch('SHOW_BANNER', { msg: 'Banner test succeeded' }, `banner test`)}>Local Banner Display Test</div>
             <div onClick={testCommsBridge}>Test Communication Bridge</div>
-            <div onClick={() => runPluginCommand('onMessageFromHTMLView', 'dwertheimer.React', ['ranAPluginCommand', 'green', 'tea'])}>
-              Test Generic RunPlugin Command (onMessageFromHTMLView,dwertheimer.React)
-            </div>
             <div>
               <span id="debugHistory">History (most recent first):</span>
               <ul>
