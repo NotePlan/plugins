@@ -4,11 +4,10 @@
  * Configuration Utilities
  * @author @codedungeon unless otherwise noted
  * Requires NotePlan 3.4 or greater (waiting for NotePlan.environment version method to perform proper validation)
- * Note: Everything is self contained in this method, no other dependencies beyond `json5` plugin
  * --------------------------------------------------------------------------------------------------------------------------*/
 
 import json5 from 'json5'
-import { log, JSP } from '@helpers/dev'
+import { logDebug, logError, logInfo, JSP } from '@helpers/dev'
 import { showMessageYesNo } from '@helpers/userInput'
 
 /**
@@ -208,12 +207,12 @@ export async function saveSettings(pluginName: string = '', value?: any = {}): a
 }
 
 export async function savePluginJson(pluginName: string = '', value?: any = {}): Promise<boolean> {
-  log(`NPConfiguration: writing ${pluginName}/plugin.json`)
+  logDebug('NPConfiguration', `writing ${pluginName}/plugin.json`)
   return await DataStore.saveJSON(value, `../../${pluginName}/plugin.json`)
 }
 
 export async function getPluginJson(pluginName: string = ''): any {
-  log(`NPConfiguration: getting ${pluginName}/plugin.json`)
+  logDebug('NPConfiguration', `getting ${pluginName}/plugin.json`)
   return await DataStore.loadJSON(`../../${pluginName}/plugin.json`)
 }
 
@@ -278,7 +277,7 @@ export function semverVersionToNumber(version: string): number {
 export async function pluginUpdated(pluginJson: any, result: { code: number, message: string }): Promise<void> {
   // result.codes = 0=no update, 1=updated, -1=error
   if (result.code === 1) {
-    log(pluginJson, `Plugin was updated`)
+    logInfo(pluginJson, `Plugin was updated`)
     const newSettings = await getPluginJson(pluginJson['plugin.id'])
     if (newSettings) {
       const hasChangelog = newSettings['plugin.changelog']
@@ -297,9 +296,9 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
         NotePlan.openURL(url)
       }
     } else {
-      log(pluginJson, `Plugin was updated, but no new settings were loaded: newSettings was:${JSP(newSettings)}`)
+      logInfo(pluginJson, `Plugin was updated, but no new settings were loaded: newSettings was:${JSP(newSettings)}`)
     }
   } else if (result.code === -1) {
-    log(pluginJson, `Plugin update failed: ${result.message}`)
+    logError(pluginJson, `Plugin update failed: ${result.message}`)
   }
 }
