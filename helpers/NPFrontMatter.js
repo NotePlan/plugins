@@ -18,8 +18,8 @@ const pluginJson = 'helpers/NPFrontMatter.js'
 
 export type TriggerTypes = 'onEditorWillSave' | 'onOpen'
 
-//TODO: update this for each new trigger that gets added
-const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
+// TODO: update this for each new trigger that gets added
+export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
 
 /**
  * Frontmatter cannot have colons in the content (specifically ": "), so we need to wrap that in quotes
@@ -56,10 +56,10 @@ export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: stri
 /**
  * Get the paragraphs that include the front matter (optionally with the separators)
  * This is a helper function for removeFrontMatter and probably won't need to be called directly
+ * @author @dwertheimer
  * @param {CoreNoteFields} note - the note
  * @param {boolean} includeSeparators - whether to include the separator lines (---) in the returned array
  * @returns {Array<TParagraph>} just the paragraphs in the front matter (or false if no frontmatter)
- * @author @dwertheimer
  */
 export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators: boolean = false): Array<TParagraph> | false => {
   const paras = note?.paragraphs || []
@@ -75,10 +75,10 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
 /**
  * Remove the front matter from a note (optionally including the separators)
  * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly
+ * @author @dwertheimer
  * @param {CoreNoteFields} note - the note
  * @param {boolean} includeSeparators - whether to include the separator lines (---) in the deleted paragraphs
  * @returns {boolean} - whether the front matter was removed or not
- * @author @dwertheimer
  */
 export function removeFrontMatter(note: CoreNoteFields, includeSeparators: boolean = false): boolean {
   const fmParas = getFrontMatterParagraphs(note, includeSeparators)
@@ -93,9 +93,9 @@ export function removeFrontMatter(note: CoreNoteFields, includeSeparators: boole
  * You should use setFrontMatterVars instead
  * will add fields for whatever attributes you send in the second argument (could be duplicates)
  * so delete the frontmatter first (using removeFrontMatter()) if you want to add/remove/change fields
- * @param {*} note
+ * @param {CoreNoteFields} note
  * @param {*} attributes
- * @returns
+ * @returns {boolean}
  * @author @dwertheimer
  */
 export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: string }): boolean {
@@ -224,12 +224,12 @@ export function ensureFrontmatter(note: CoreNoteFields, title?: string | null): 
 
 /**
  * (helper function) Get the triggers from the frontmatter of a note and separate them by trigger, id, and command name
+ * @author @dwertheimer
  * @param {Array<string>} triggersArray - the array of triggers from the frontmatter (e.g. ['onEditorWillSave => np.test.onEditorWillSave', 'onEditorWillSave => plugin.id.commandName', 'onEditorWillSave => plugin.id2.commandName2'])
  * @returns {Object.<TriggerTypes, Array<{pluginID: string, commandName: string}>>
- * @author @dwertheimer
  */
 export function getTriggersByCommand(triggersArray: Array<string>): any {
-  const triggers = {}
+  const triggers: any = {}
   TRIGGER_LIST.forEach((triggerName) => (triggers[triggerName] = []))
   triggersArray.forEach((trigger) => {
     const [triggerName, command] = trigger.split('=>').map((s) => s.trim())
@@ -247,12 +247,13 @@ export function getTriggersByCommand(triggersArray: Array<string>): any {
 }
 
 /**
- * (helper function) Format trigger frontmatter string for ouptput as a string
+ * (helper function) Format list of trigger(s) command(s) as a string to add to frontmatter
+ * @author @dwertheimer
  * @param {*} triggerObj
  * @returns {string} - the formatted string
  */
 export function formatTriggerString(triggerObj: { [TriggerTypes]: Array<{ pluginID: string, commandName: string }> }): string {
-  let trigArray = []
+  let trigArray: Array<string> = []
   TRIGGER_LIST.forEach((triggerName) => {
     if (triggerObj[triggerName] && triggerObj[triggerName].length) {
       trigArray = trigArray.concat(
@@ -266,13 +267,13 @@ export function formatTriggerString(triggerObj: { [TriggerTypes]: Array<{ plugin
 }
 
 /**
- * Add a trigger to the frontmatter of a note (will create frontmatter if doesn't exist)
+ * Add a trigger to the frontmatter of a note (will create frontmatter if doesn't exist). Will append onto any existing list of trigger(s).
+ * @author @dwertheimer
  * @param {CoreNoteFields} note
  * @param {TriggerTypes} trigger
  * @param {string} pluginID - the ID of the plugin
  * @param {string} commandName - the name (NOT THE jsFunction) of the command to run
  * @returns {boolean} - whether the trigger was added or not
- * @author @dwertheimer
  */
 export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: string, commandName: string): boolean {
   try {
