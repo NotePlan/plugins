@@ -1,4 +1,4 @@
-var reactBundle1676917589 = (function (exports, React$1) {
+var reactBundle1677103323 = (function (exports, React$1) {
 	'use strict';
 
 	function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
@@ -232,8 +232,15 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	/****************************************************************************************************************************
 	 *                             ROOT COMPONENT
 	 ****************************************************************************************************************************/
+
+	// color this component's output differently in the console
+	const consoleStyle = 'background: #222; color: #62AFEC';
+	const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args);
+	const logSubtle = (msg, ...args) => console.log(`%c${msg}`, 'color: #6D6962', ...args);
+
+	// used by the ErrorBoundary component
 	const myErrorLogger = (error, info) => {
-	  console.log(`Root: ErrorBoundary got error: error=\n${JSON.stringify(error)},\ninfo=${JSON.stringify(info)}`);
+	  console.log(`%cRoot: ErrorBoundary got error: error=\n${JSON.stringify(error)},\ninfo=${JSON.stringify(info)}`, 'background: #ff0000; color: #ffffff');
 	};
 
 	/****************************************************************************************************************************
@@ -249,7 +256,7 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	  debug = false,
 	  ENV_MODE
 	} = globalSharedData;
-	if (typeof globalSharedData === 'undefined' || !globalSharedData) console.log('Root: Root: globalSharedData is undefined', globalSharedData);
+	if (typeof globalSharedData === 'undefined' || !globalSharedData) logDebug('Root: Root: globalSharedData is undefined', globalSharedData);
 	if (typeof globalSharedData === 'undefined') throw globalSharedData;
 	if (typeof globalSharedData.lastUpdated === 'undefined') throw `Root: globalSharedData.lastUpdated is undefined`;
 	function Root(props) {
@@ -273,7 +280,7 @@ var reactBundle1676917589 = (function (exports, React$1) {
 
 	  const MemoizedWebView = /*#__PURE__*/React__default["default"].memo(WebView);
 	  // const Profiler = React.Profiler
-	  debug && console.log(`Root: Running in Debug mode. Note: <React.StrictMode> is enabled which will run effects twice each time they are rendered. This is to help find bugs in your code.`);
+	  debug && logDebug(`Root: Running in Debug mode. Note: <React.StrictMode> is enabled which will run effects twice each time they are rendered. This is to help find bugs in your code.`);
 
 	  /****************************************************************************************************************************
 	   *                             HANDLERS
@@ -287,8 +294,8 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	   */
 	  const onClickCapture = e => {
 	    if (!debug) return;
-	    console.log(`Root: onClickCapture: ${e.target.tagName} ${e.target.className}`);
-	    console.log(`Root: onClickCapture ${e.type} ${e.target.outerText} e=`, e);
+	    logDebug(`Root: onClickCapture: ${e.target.tagName} ${e.target.className}`);
+	    logDebug(`Root: onClickCapture ${e.type} ${e.target.outerText} e=`, e);
 	    // Note: cannot setHistory because the page will refresh and any open dropdown will close, so let's just temp store it until we can write it
 	    tempSavedClicksRef.current.push({
 	      date: new Date().toLocaleDateString(),
@@ -326,7 +333,6 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	      source,
 	      data
 	    } = event;
-	    // console.log(`Root: onMessageReceived`)
 	    if (data && !(typeof data === 'string' && data.startsWith('setImmediate$'))) {
 	      JSON.stringify(event, null, 4);
 	      try {
@@ -338,13 +344,13 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	        if (!type) throw `onMessageReceived: event.data.type is undefined`, event.data;
 	        if (!payload) throw `onMessageReceived: event.data.payload is undefined`, event.data;
 	        if (type && payload) {
-	          console.log(`Root: onMessageReceived: ${type}`);
+	          logDebug(`Root: onMessageReceived: ${type}`);
 	          // Spread existing state into new object to keep it immutable
 	          // TODO: ideally, you would use a reducer here
 	          if (type === 'SHOW_BANNER') payload.lastUpdated.msg += `: ${payload.msg}`;
 	          setHistory(prevData => [...prevData, ...tempSavedClicksRef.current, payload.lastUpdated]);
 	          tempSavedClicksRef.current = [];
-	          // console.log(`Root: onMessageReceived reducer Action type: ${type || ''} payload: ${JSON.stringify(payload, null, 2)}`)
+	          // logDebug(`Root: onMessageReceived reducer Action type: ${type || ''} payload: ${JSON.stringify(payload, null, 2)}`)
 	          switch (type) {
 	            case 'SET_TITLE':
 	              // Note this works because we are using payload.title in npData
@@ -352,7 +358,7 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	              break;
 	            case 'SET_DATA':
 	            case 'UPDATE_DATA':
-	              // console.log('Root: SET_DATA before')
+	              // logDebug('Root: SET_DATA before')
 	              setNPData(prevData => ({
 	                ...prevData,
 	                ...payload
@@ -361,14 +367,14 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	                ...globalSharedData,
 	                ...payload
 	              };
-	              console.log('Root: SET_DATA after setting globalSharedData=', globalSharedData);
+	              logDebug('Root: SET_DATA after setting globalSharedData=', globalSharedData);
 	              break;
 	            case 'SHOW_BANNER':
 	              showBanner(payload.msg, payload.color, payload.border);
 	              // const warnObj = { warn: true, msg: payload.msg, color: payload.color ?? 'w3-pale-red', border: payload.border ?? 'w3-border-red' }
-	              // console.log(`Root: onMessageReceived: SHOW_BANNER: sending: ${JSON.stringify(warnObj)}`)
+	              // logDebug(`Root: onMessageReceived: SHOW_BANNER: sending: ${JSON.stringify(warnObj)}`)
 	              // setWarning(warnObj)
-	              // console.log(`Root: onMessageReceived: SHOW_BANNER: sent: ${JSON.stringify(warnObj)}`)
+	              // logDebug(`Root: onMessageReceived: SHOW_BANNER: sent: ${JSON.stringify(warnObj)}`)
 	              break;
 	            case 'SEND_TO_PLUGIN':
 	              sendToPlugin(payload);
@@ -376,17 +382,17 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	            case 'RETURN_VALUE' /* function called returned a value */:
 	              //FIXME: changing this prop is forcing refresh of all children, resetting data
 	              // same is true for message banner
-	              console.log(`Root: onMessageReceived: processing payload`);
+	              logDebug(`Root: onMessageReceived: processing payload`);
 	              setMessageFromPlugin(payload);
 	              break;
 	            default:
 	              break;
 	          }
 	        } else {
-	          console.log(`Root: onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event);
+	          logDebug(`Root: onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event);
 	        }
 	      } catch (error) {
-	        console.log('Root: onMessageReceived: error=' + JSON.stringify(error));
+	        logDebug('Root: onMessageReceived: error=' + JSON.stringify(error));
 	      }
 	    }
 	  };
@@ -422,7 +428,7 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	      color,
 	      border
 	    };
-	    console.log(`Root: showBanner: sending: ${JSON.stringify(warnObj)}`);
+	    logDebug(`Root: showBanner: sending: ${JSON.stringify(warnObj)}`);
 	    setWarning(warnObj);
 	  };
 
@@ -441,7 +447,7 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	   * For debugging purposes, send a message to the plugin to test the comms bridge
 	   */
 	  const testCommsBridge = () => {
-	    console.log(`Root: _Root: testCommsBridge`);
+	    logDebug(`Root: _Root: testCommsBridge`);
 	    // send some info to the plugin
 	    // first param is the action type and the rest are data (can be any form you want)
 	    // data.foo = 'bar'
@@ -460,7 +466,7 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	  function onRender(id, phase, actualDuration, baseDuration, startTime, commitTime, interactions) {
 	    // DBW: MOST OF THIS INFO IS NOT INTERESTING. ONLY THE PHASE IS
 	    // Much better data is available in the React Dev Tools but only when the page is open in a browser
-	    console.log(`\n===================\nPROFILING:${id} phase=${phase} actualDuration=${actualDuration} baseDuration=${baseDuration} startTime=${startTime} commitTime=${commitTime}\n===================\n`, interactions);
+	    logSubtle(`\n===================\nPROFILING:${id} phase=${phase} actualDuration=${actualDuration} baseDuration=${baseDuration} startTime=${startTime} commitTime=${commitTime}\n===================\n`);
 	  }
 
 	  /****************************************************************************************************************************
@@ -538,4 +544,4 @@ var reactBundle1676917589 = (function (exports, React$1) {
 	return exports;
 
 })({}, react);
-Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, reactBundle1676917589)
+Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, reactBundle1677103323)

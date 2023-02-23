@@ -1,5 +1,20 @@
-var reactRollupBundle = (function (exports) {
+var reactBundle1677103323 = (function (exports) {
   'use strict';
+
+  function _mergeNamespaces(n, m) {
+    m.forEach(function (e) {
+      e && typeof e !== 'string' && !Array.isArray(e) && Object.keys(e).forEach(function (k) {
+        if (k !== 'default' && !(k in n)) {
+          var d = Object.getOwnPropertyDescriptor(e, k);
+          Object.defineProperty(n, k, d.get ? d : {
+            enumerable: true,
+            get: function () { return e[k]; }
+          });
+        }
+      });
+    });
+    return Object.freeze(n);
+  }
 
   var react$1 = {exports: {}};
 
@@ -2749,6 +2764,8 @@ var reactRollupBundle = (function (exports) {
   }
 
   var react = react$1.exports;
+
+  var client$1 = {};
 
   var reactDom = {exports: {}};
 
@@ -33229,12 +33246,13 @@ var reactRollupBundle = (function (exports) {
     reactDom.exports = reactDom_development;
   }
 
+  var hydrateRoot;
   exports.createRoot = void 0;
 
   var m = reactDom.exports;
   {
     var i = m.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
-    exports.createRoot = function(c, o) {
+    exports.createRoot = client$1.createRoot = function(c, o) {
       i.usingClientEntryPoint = true;
       try {
         return m.createRoot(c, o);
@@ -33242,15 +33260,32 @@ var reactRollupBundle = (function (exports) {
         i.usingClientEntryPoint = false;
       }
     };
+    hydrateRoot = client$1.hydrateRoot = function(c, h, o) {
+      i.usingClientEntryPoint = true;
+      try {
+        return m.hydrateRoot(c, h, o);
+      } finally {
+        i.usingClientEntryPoint = false;
+      }
+    };
   }
+
+  var client = /*#__PURE__*/_mergeNamespaces({
+    __proto__: null,
+    'default': client$1,
+    get createRoot () { return exports.createRoot; },
+    get hydrateRoot () { return hydrateRoot; }
+  }, [client$1]);
 
   exports.React = react;
   exports.createElement = react$1.exports.createElement;
+  exports.dom = client;
   exports.react = react;
+  exports.reactDOM = client;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
   return exports;
 
 })({});
-Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, reactRollupBundle)
+Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, reactBundle1677103323)

@@ -17,6 +17,11 @@
  * the file will fail silently and you will be scratching your head for why it doesn't work
  */
 
+const consoleStyle = 'background: #222; color: #E14067' //dark pink
+const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
+const logSubtle = (msg, ...args) => console.log(`%c${msg}`, 'color: #6D6962', ...args)
+const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
+
 /**
  * Generic callback bridge from HTML to the plugin. We use this to generate the convenience function sendMessageToPlugin(args)
  * This command be used to run any plugin command, but it's better to use one single command: sendMessageToPlugin(args) for everything
@@ -29,8 +34,8 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
     .replace('%%commandName%%', commandName)
     .replace('%%pluginID%%', pluginID)
     .replace('%%commandArgs%%', JSON.stringify(commandArgs))
-  // console.log(`runPluginCommand: Sending command "${commandName}" to NotePlan: "${pluginID}" with args: ${JSON.stringify(commandArgs)}`);
-  console.log(`window.runPluginCommand: Sending code: "${code}"`)
+  // logDebug(`runPluginCommand: Sending command "${commandName}" to NotePlan: "${pluginID}" with args: ${JSON.stringify(commandArgs)}`);
+  logDebug(`CommsBridge: window.runPluginCommand: Sending code: "${code}"`)
   if (window.webkit) {
     window.webkit.messageHandlers.jsBridge.postMessage({
       code: code,
@@ -38,7 +43,7 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
       id: '1',
     })
   } else {
-    console.log(`Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
+    logDebug(`CommsBridge: Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
   }
 }
 
@@ -57,16 +62,16 @@ const sendMessageToPlugin = (type, data) => runPluginCommand('onMessageFromHTMLV
  */
 const onMessageReceived = (event) => {
   const { origin, source, data } = event
-  if (!data || (typeof data === 'string' && data.startsWith('setImmediate$'))) return
+  if (!data || (typeof data === 'string' && data.startsWith('setImmediate$')) || (typeof data.source === 'string' && data.source.startsWith('react-devtools'))) return
   try {
     // $FlowFixMe
     const { type, payload } = event.data // remember: data exists even though event is not JSON.stringify-able (like NP objects)
     if (!type) throw (`onMessageReceived: received a message, but the 'type' was undefined`, event.data)
     if (!payload) throw (`onMessageReceived: received a message but 'payload' was undefined`, event.data)
-    console.log(`onMessageReceived: received a message of type: ${type} with a payload`, payload)
+    logDebug(`CommsBridge: onMessageReceived: received a message of type: ${type} with a payload`, payload)
     onMessageFromPlugin(type, payload) /* you need to have a function called onMessageFromPlugin in your code */
   } catch (error) {
-    console.log(`Root: onMessageReceived: error=${JSON.stringify(error)}`)
+    logDebug(`CommsBridge onMessageReceived: ${JSON.stringify(error)}`)
   }
 }
 
@@ -102,7 +107,7 @@ window.onerror =
         if (window.webkit) {
           window.webkit.messageHandlers.error.postMessage(message)
         } else {
-          console.log('JS Error:', message)
+          logDebug('CommsBridge: JS Error:', message)
         }
       }
 
