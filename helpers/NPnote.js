@@ -87,6 +87,7 @@ export async function convertNoteToFrontmatter(note: TNote): Promise<void> {
  */
 export function selectFirstNonTitleLineInEditor(): void {
   if (Editor.content && Editor.note) {
+    // $FlowFixMe[incompatible-call]
     for (let i = findStartOfActivePartOfNote(Editor.note); i < Editor.paragraphs.length; i++) {
       const line = Editor.paragraphs[i]
       if (line.type !== 'title' && line?.contentRange && line.contentRange.start >= 0) {
@@ -99,6 +100,7 @@ export function selectFirstNonTitleLineInEditor(): void {
 
 /**
  * Find paragraphs in note which are open and (maybe) tagged for today (either >today or hyphenated date)
+ * @author @dwertheimer
  * @param {TNote} note
  * @param {boolean} includeAllTodos - whether to include all open todos, or just those tagged for today
  * @returns {Array<TParagraph>} of paragraphs which are open or open+tagged for today
@@ -106,7 +108,7 @@ export function selectFirstNonTitleLineInEditor(): void {
 export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = false): Array<TParagraph> {
   const hyphDate = getTodaysDateHyphenated()
   // const toDate = getDateObjFromDateTimeString(hyphDate)
-  const isTodayItem = (text) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
+  const isTodayItem = (text: string) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   // const todos:Array<TParagraph>  = []
   if (note.paragraphs) {
     return note.paragraphs.filter((p) => p.type === 'open' && (includeAllTodos || isTodayItem(p.content)))
