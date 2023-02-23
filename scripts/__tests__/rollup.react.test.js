@@ -71,10 +71,10 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = getRollupConfig(input)
         expect(result.plugins.length).toEqual(6)
       })
-      test('should create 6 plugins for default (production) version', () => {
+      test('should create 1 output plugin (terser) for default (production) version', () => {
         const input = { entryPointPath: 'foo', outputFilePath: 'bar', buildMode: 'production' }
         const result = getRollupConfig(input)
-        expect(result.plugins.length).toEqual(6)
+        expect(result.output.plugins.length).toEqual(1) // terser
       })
     })
   })

@@ -1002,7 +1002,7 @@ export async function sendToHTMLWindow(actionType: string, data: any = {}, updat
 export async function getGlobalSharedData(varName: string = 'globalSharedData'): any {
   try {
     const currentValue = await HTMLView.runJavaScript(`${varName};`)
-    if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
+    // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
     return currentValue
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -1032,8 +1032,12 @@ export async function updateGlobalSharedData(data: any, mergeData: boolean = tru
   } else {
     newData = data
   }
-  logDebug(`updateGlobalSharedData`, `writing globalSharedData (merged=${String(mergeData)}) to ${JSON.stringify(newData)}`)
-  return await HTMLView.runJavaScript(`${varName} = JSON.parse(\`${JSON.stringify(newData)}\`);`)
+  // logDebug(`updateGlobalSharedData`, `writing globalSharedData (merged=${String(mergeData)}) to ${JSON.stringify(newData)}`)
+  const code = `${varName} = JSON.parse(${JSON.stringify(newData)});`
+  logDebug(pluginJson, `updateGlobalSharedData code=\n${code}\n`)
+  //FIXME: Is this still throwing an error?
+  logDebug(pluginJson, `updateGlobalSharedData FIXME: Is this still throwing an error? ^^^`)
+  return await HTMLView.runJavaScript(code)
 }
 
 /**

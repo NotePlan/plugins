@@ -7,6 +7,12 @@
   "plugin.version": "2.11.0-notreleased",
   "plugin.lastUpdateInfo": "2.11.0: Task Sorting: Skip Done/Cancelled; Include Checklist in Sorting.\nOverdue: change open task to checklist item\nReact/HTML view v1",
   "plugin.dependencies": [],
+  "plugin.requiredFiles": [
+    "css.plugin.css",
+    "css.w3.css",
+    "react.c.WebView.bundle.min.js",
+    "react.c.WebView.bundle.dev.js"
+  ],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
   "plugin.commands": [
@@ -175,6 +181,15 @@
       "description": "Mac-only - Uses HTML Popup/React",
       "jsFunction": "processOverdueReact",
       "alias": [ "react"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "testOverdueReact",
+      "description": "testOverdueReact",
+      "jsFunction": "testOverdueReact",
+      "hidden":true,
+      "alias": ["tor"
       ],
       "arguments": []
     },
