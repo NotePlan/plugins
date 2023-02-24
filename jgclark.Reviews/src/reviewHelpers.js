@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 23.2.2023 for v0.9.0, @jgclark
+// Last updated 23.2.2023 for v0.9.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -263,7 +263,7 @@ export class Project {
       this.waitingTasks = paras.filter((p) => p.type === 'open').filter((p) => p.content.match('#waiting')).length
       this.futureTasks = paras.filter((p) => p.type === 'open').filter((p) => includesScheduledFutureDate(p.content)).length
 
-      if (this.folder.startsWith('TEST') || this.title.startsWith('Annual') || this.title.startsWith('Model')) {
+      if (this.folder.startsWith('TEST') || this.title.startsWith('Annual') || this.title.includes('Test')) {
         logDebug('Project constructor', `  - metadataLine = ${paras[metadataLineIndex].content}`)
         logDebug('Project constructor', `  - noteType: ${this.noteType}`)
         logDebug('Project constructor', `  - mentions: ${String(mentions)}`)
@@ -380,9 +380,10 @@ export class Project {
       if (this.reviewInterval != null) {
         if (this.reviewedDate != null) {
           this.nextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
-          this.nextReviewDateStr = toISODateString(this.nextReviewDate)
           if (this.nextReviewDate != null) {
+            this.nextReviewDateStr = toISODateString(this.nextReviewDate)
             this.nextReviewDays = daysBetween(now, this.nextReviewDate)
+            // logDebug('calcDurations', `${String(this.reviewedDate)} + ${this.reviewInterval} -> nextReviewDate: ${this.nextReviewDateStr} = ${String(this.nextReviewDays) ?? '-'}`)
           } else {
             throw new Error(`nextReviewDate is null; reviewedDate = ${String(this.reviewedDate)}`)
           }

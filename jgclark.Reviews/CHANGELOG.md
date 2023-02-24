@@ -5,6 +5,10 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - ??? Fixed the race condition on (un)pausing a project
 - ??? ability to pause/unpause a project, by calling new **/pause project toggle** command or adding/removing `#paused` to a project's metadata. When paused this stops the note from being included in reviews, but keeps it visible in the project lists.
 -->
+## [0.9.1] - 2023-02-24
+### Fixed
+- wasn't showing projects due for review today in 'Start Reviews'
+
 ## [0.9.0] - 2023-02-23
 ### Added
 - to speed up reviewing projects when you have the 'Rich' Project List view open, there's now a row of buttons above the table that trigger the following commands: **/finish project review**, **/next project review**, **/complete project**, **/cancel project**, **/pause project toggle**. They work on whatever is the project note that's in NotePlan's main editor window (suggested by @John1).

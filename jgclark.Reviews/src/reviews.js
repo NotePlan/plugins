@@ -47,11 +47,11 @@ import {
 } from '@helpers/note'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
+import { fieldSorter, sortListBy } from '@helpers/sorting'
 import {
   showMessage,
   showMessageYesNo,
 } from '@helpers/userInput'
-import { fieldSorter, sortListBy } from '@helpers/sorting'
 
 //-----------------------------------------------------------------------------
 
@@ -898,7 +898,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
       const thisLine = reviewLines[i]
       const nextReviewDays = Number(thisLine.split('\t')[0]) ?? NaN // get first field = nextReviewDays
       const nextNoteTitle = thisLine.split('\t')[2] // get third field = title
-      if (nextReviewDays < 0) {
+      if (nextReviewDays <= 0) {
         logDebug('getNextNoteToReview', `- Next to review -> '${nextNoteTitle}'`)
         const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
         return nextNotes[0] // return first matching note
@@ -1011,16 +1011,17 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
     }
 
     // If more than a day old re-calculate the full-review-list
+    // Note: now updated to always run
     // Using frontmatter library: https://github.com/jxson/front-matter
-    const fileContent = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
-    const fmObj = fm(fileContent)
-    const listUpdatedDate = fmObj.attributes.date
-    const bodyBegin = fmObj.bodyBegin
-    const listUpdatedMoment = new moment(listUpdatedDate)
-    const timeDiff = moment().diff(listUpdatedMoment, 'hours')
-    if (timeDiff >= 24) {
+    // const fileContent = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
+    // const fmObj = fm(fileContent)
+    // const listUpdatedDate = fmObj.attributes.date
+    // const bodyBegin = fmObj.bodyBegin
+    // const listUpdatedMoment = new moment(listUpdatedDate)
+    // const timeDiff = moment().diff(listUpdatedMoment, 'hours')
+    // if (timeDiff >= 24) {
       await makeFullReviewList(true)
-    }
+    // }
 
     // Call the relevant function with the updated config
     if (config.outputStyle.match(/rich/i) && NotePlan.environment.buildVersion >= 845) {

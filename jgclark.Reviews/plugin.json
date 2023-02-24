@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.9.0",
-  "plugin.lastUpdateInfo": "Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time. Lots of other layout improvements too.",
+  "plugin.version": "0.9.1",
+  "plugin.lastUpdateInfo": "0.9.1: Fixed projects due today not being offered for review.\n0.9.0: Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time. Lots of other layout improvements too.",
   "plugin.requiredFiles": [],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
