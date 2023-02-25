@@ -7,6 +7,11 @@ import {
   hyphenatedDateString,
   WEEK_NOTE_LINK,
   SCHEDULED_WEEK_NOTE_LINK,
+  RE_DATE,
+  RE_NP_WEEK_SPEC,
+  RE_NP_MONTH_SPEC,
+  RE_NP_QUARTER_SPEC,
+  RE_NP_YEAR_SPEC,
   RE_SCHEDULED_ISO_DATE,
   SCHEDULED_QUARTERLY_NOTE_LINK,
   SCHEDULED_MONTH_NOTE_LINK,
@@ -14,7 +19,7 @@ import {
   getTodaysDateHyphenated,
   isScheduled,
 } from './dateTime'
-import { getNPWeekData, toLocaleDateTimeString } from './NPdateTime'
+import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateTimeString } from './NPdateTime'
 import { clo, JSP, logDebug, logError, logWarn, timer } from './dev'
 import { calcSmartPrependPoint, findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
 import { getNoteType } from '@helpers/note'
@@ -807,40 +812,47 @@ export const isOpen = (t: TParagraph): boolean => t.type === 'open'
 
 export type OverdueDetails = {
   isOverdue: boolean,
-  isOverdueWeek?: boolean,
-  isOverdueDay?: boolean,
-  isOverdueMonth?: boolean,
-  isOverdueQuarter?: boolean,
-  isOverdueYear?: boolean,
-  overdueStrings?: Array<string>,
+  linkType?: 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly',
+  overdueLinks?: Array<string>,
+  notOverdueLinks?: Array<string>,
 }
 
 /**
  * This is a helper function not to be called directly for finding the overdue status of a paragraph
  * @param {TParagraph} para - incoming paragraph
- * @param {boolean} returnDetails whether to return the details of the overdue status or just true/false
+ * @param {boolean} returnDetails whether to return the details of the overdue status or just true/false, if true, ALWAYS returns an object with details about the overdue status
  * @param {string} regexString string to use to match the note links
  * @param {string} todayRelevantFilename (e.g. today's filename, weekly note filename, etc)
  * @returns {boolean | OverdueDetails} - true/false in base case, or an object with details about the overdue status if requested in returnDetails
  * @author @dwertheimer
  */
-export function testForOverdue(para: TParagraph, regexString: string, todayRelevantFilename: string, returnDetails: boolean = false): boolean | OverdueDetails {
+export function testForOverdue(
+  para: TParagraph,
+  regexString: string,
+  todayRelevantFilename: string,
+  returnDetails: boolean = false,
+  type: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Quarterly',
+): boolean | OverdueDetails {
   const reMATCHLINK = new RegExp(regexString, 'g')
-  const links = para.content.match(reMATCHLINK)
-  const todayString = todayRelevantFilename.replace(`.${DataStore.defaultFileExtension}`, '')
-  let overdueLinks = []
+  const links = para.content.match(reMATCHLINK) || []
+  const todayString = todayRelevantFilename // .replace(`.${DataStore.defaultFileExtension}`, '')
+  let overdueLinks = [],
+    notOverdueLinks = []
   if (links && links?.length > 0) {
     overdueLinks = links.filter((link) => link.slice(1) < todayString)
+    notOverdueLinks = links.filter((link) => link.slice(1) >= todayString)
   }
   // if there are no week note links, then it's not overdue
-  if (links == null || overdueLinks.length === 0) {
+  if (overdueLinks.length === 0 && returnDetails === false) {
     return false
   }
   // if there are week note links, then check if any of them are for this week
   else {
     const details: OverdueDetails = {
-      isOverdue: links.length === overdueLinks?.length,
-      overdueStrings: overdueLinks,
+      isOverdue: links.length > 0 && links.length === overdueLinks?.length,
+      overdueLinks: overdueLinks,
+      notOverdueLinks: notOverdueLinks,
+      linkType: type,
     }
     return returnDetails ? details : details.isOverdue
   }
@@ -850,65 +862,104 @@ export function testForOverdue(para: TParagraph, regexString: string, todayRelev
  * Test whether a paragraph has an overdue week note link
  * @param {TParagraph} para - input paragraph
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * see OverdueDetails type for details
  * @returns
  */
 export function hasOverdueDayTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
   const today = getTodaysDateHyphenated()
-  return today ? testForOverdue(para, RE_SCHEDULED_ISO_DATE, today, returnDetails) : false
+  if (today) {
+    return testForOverdue(para, RE_SCHEDULED_ISO_DATE, today, returnDetails, 'Daily')
+  } else {
+    return false
+  }
 }
 
 /**
  * Test whether a paragraph has an overdue week note link
  * @param {TParagraph} para - input paragraph
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @returns {boolean | OverdueDetails}
  * @returns
  */
 export function hasOverdueWeekTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
   const thisWeek = getNPWeekData(moment().toDate())?.weekString
-  return thisWeek ? testForOverdue(para, SCHEDULED_WEEK_NOTE_LINK, thisWeek, returnDetails) : false
+  if (thisWeek) {
+    return testForOverdue(para, SCHEDULED_WEEK_NOTE_LINK, thisWeek, returnDetails, 'Weekly')
+  } else {
+    return false
+  }
 }
 
 /**
  * Test whether a paragraph has an overdue month note link
  * @param {TParagraph} para - input paragraph
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
- * @returns
+ * @returns {boolean | OverdueDetails}
  */
 export function hasOverdueMonthTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
   const thieMonth = getTodaysDateHyphenated().slice(0, 7)
-  return thieMonth ? testForOverdue(para, SCHEDULED_MONTH_NOTE_LINK, thieMonth, returnDetails) : false
+  if (thieMonth) {
+    return testForOverdue(para, SCHEDULED_MONTH_NOTE_LINK, thieMonth, returnDetails, 'Monthly')
+  } else {
+    return false
+  }
 }
 
 /**
  * Test whether a paragraph has an overdue quarter note link
  * @param {TParagraph} para - input paragraph
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
- * @returns
+ * @returns {boolean | OverdueDetails}
  */
 export function hasOverdueQuarterTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
   const thisQuarter = moment().format('YYYY-[Q]Q')
-  return thisQuarter ? testForOverdue(para, SCHEDULED_QUARTERLY_NOTE_LINK, thisQuarter, returnDetails) : false
+  if (thisQuarter) {
+    return testForOverdue(para, SCHEDULED_QUARTERLY_NOTE_LINK, thisQuarter, returnDetails, 'Quarterly')
+  } else {
+    return false
+  }
 }
 
 /**
  * Test whether a paragraph has an overdue year note link
  * @param {TParagraph} para - input paragraph
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
- * @returns
+ * @returns {boolean | OverdueDetails}
  */
 export function hasOverdueYearTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
   const thisYear = moment().format('YYYY')
-  return thisYear ? testForOverdue(para, SCHEDULED_YEARLY_NOTE_LINK, thisYear, returnDetails) : false
+  if (thisYear) {
+    return testForOverdue(para, SCHEDULED_YEARLY_NOTE_LINK, thisYear, returnDetails, 'Yearly')
+  } else {
+    return false
+  }
 }
 
 /**
  * Single function to test whether a paragraph has any overdue tags (Day, Week, Month, Quarter, Year)
  * (e.g. a task marked with yesterday's daily note date (e.g. >2022-12-31 would now be "overdue")
  * @param {TParagraph} para - the paragraph to test
- * @returns {boolean} - true if any of the tags are overdue
+ * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @returns {boolean|OverdueDetails} - true if any of the tags are overdue. if returnDetails is true, returns an object with details about the overdue status
+ * Note that if returnDetails is true, the return type is OverdueDetails, not boolean
+ * Precedence is Daily, Weekly, Monthly, Quarterly, Yearly
+ * see OverdueDetails type for details
  */
-export function hasOverdueTag(para: TParagraph): boolean {
-  return Boolean(hasOverdueDayTag(para) || hasOverdueWeekTag(para) || hasOverdueMonthTag(para) || hasOverdueQuarterTag(para) || hasOverdueYearTag(para))
+export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
+  if (returnDetails) {
+    const typeNames = ['Daily', `Weekly`, `Monthly`, `Quarterly`, `Yearly`]
+    const typeFuncs = [hasOverdueDayTag, hasOverdueWeekTag, hasOverdueMonthTag, hasOverdueQuarterTag, hasOverdueYearTag]
+    for (let i = 0; i < typeNames.length; i++) {
+      const type = typeNames[i]
+      const result = typeFuncs[i](para, true)
+      if (result && result.isOverdue) {
+        return result
+      }
+    }
+    return false
+  } else {
+    return Boolean(hasOverdueDayTag(para) || hasOverdueWeekTag(para) || hasOverdueMonthTag(para) || hasOverdueQuarterTag(para) || hasOverdueYearTag(para))
+  }
 }
 
 /**
@@ -924,7 +975,7 @@ export function getOverdueTags(para: TParagraph): string[] {
   const funcs = [hasOverdueDayTag, hasOverdueWeekTag, hasOverdueMonthTag, hasOverdueQuarterTag, hasOverdueYearTag]
   return funcs.reduce((acc, func) => {
     // $FlowIgnore - flow doesn't know what the signature of the functions is
-    const tagList = func(para, true)?.overdueStrings || []
+    const tagList = func(para, true)?.overdueLinks || []
     // $FlowIgnore - see above
     return [...acc, ...tagList]
   }, [])
@@ -995,13 +1046,85 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
   return isOverdue
 }
 
+// DBW: commenting out for now. if you see this after March 2023, feel free to delete this comment
+// /**
+//  * Read a string with a >date in it and return the type of date the schedule is pointing to
+//  * @param {TParagraph} paragraph
+//  * @returns {'Daily' | `Weekly` | `Monthly` | `Quarterly` | `Yearly` | null}
+//  */
+// export function getScheduledDateType(paragraph: TParagraph): string | null {
+//   const tagInfo = hasOverdueTag(paragraph)
+//   let scheduleTypeName = null
+//   const scheduleTypes = [RE_DATE, RE_NP_WEEK_SPEC, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, RE_NP_YEAR_SPEC]
+//   const typeNames = ['Daily', `Weekly`, `Monthly`, `Quarterly`, `Yearly`]
+//   const scheduleType = scheduleTypes.find((type) => paragraph.content.match(`>${type}`))
+//   if (scheduleType) {
+//     let retD
+//     if ((retD = hasOverdueTag(paragraph, true))) {
+//       // scheduleTypeName = typeNames[scheduleTypes.indexOf(scheduleType)] {
+//     }
+//   }
+//   return scheduleTypeName
+// }
+
+/**
+ * Calculate the number of days overdue for a paragraph to today
+ * The tricky part is that we have to start counting with the end of the period (e.g. the end of the week, month, etc.)
+ * @param {TParagraph} paragraph
+ * @param {string} toISODate - the date to calculate overdue to. Defaults to today
+ * @returns {number} - the number of days overdue
+ */
+export function getDaysTilDue(paragraph: TParagraph, toISODate: string = getTodaysDateHyphenated()): number {
+  let daysOverdue = 0,
+    data = null
+  if (paragraph && paragraph.date) {
+    const paraDate = paragraph.date
+    const overdueDetails = hasOverdueTag(paragraph, true)
+    if (overdueDetails && overdueDetails.linkType) {
+      const overdueLinkType = overdueDetails.linkType
+      if (overdueLinkType) {
+        switch (overdueLinkType) {
+          case 'Daily':
+            data = { endDate: paraDate }
+            break
+          case 'Weekly':
+            data = getNPWeekData(paraDate)
+            break
+          case 'Monthly':
+            data = getMonthData(paraDate)
+            break
+          case 'Quarterly':
+            data = getQuarterData(paraDate)
+            break
+          case 'Yearly':
+            data = getYearData(paraDate)
+            break
+          default:
+            break
+        }
+        if (data?.endDate) {
+          const fromDateMom = moment(data.endDate)
+          const toDateMom = moment(toISODate, 'YYYY-MM-DD')
+          const diffDays = fromDateMom.diff(toDateMom, 'days', true) // negative for overdue
+          //FIXME: this needs to deal with positive and negatives. right now
+          // only doing overdue
+          daysOverdue = diffDays > 0 ? Math.ceil(diffDays) : Math.floor(diffDays) // round fractional days up
+          // if (data !== null && data.endDate) daysOverdue = data ? moment(toISODate, 'YYYY-MM-DD').diff(moment(data.endDate), 'days') : 0
+        }
+      }
+    }
+  }
+  return daysOverdue === -0 ? 0 : daysOverdue //weird -0 JS!
+}
+
 /**
  * Create a simple object version of a Paragraph object
  * NotePlan objects do not JSON.stringify() well, because most/all of the properties are on the prototype chain
  * after they come across the bridge from JS. If we want to send object data somewhere (e.g. to HTML/React window)
  * we need to convert them to a static object first.
  * @param {any} obj - the NotePlan object to convert
- * @param {Array<string>} fields - list of fields to copy from the object to the static object
+ * @param {Array<string>} fields - list of fields to copy from the object to the static object -- all fields are typical
+ * Paragraph fields except for 'daysOverdue', which is calculated
  * @param {any} additionalFieldObj - any additional fields you want to add to the new object (as an object) e.g. {myField: 'myValue'}
  * @returns {any} - the static object
  * @author @dwertheimer
@@ -1012,7 +1135,11 @@ export function createStaticObject(obj: any, fields: Array<string>, additionalFi
   if (typeof obj !== 'object') throw 'createStaticObject: input obj is not an object; cannot convert it'
   const staticObj = {}
   for (const field of fields) {
-    staticObj[field] = obj[field] || null
+    if (field === 'daysOverdue') {
+      staticObj.daysOverdue = getDaysTilDue(obj)
+    } else {
+      staticObj[field] = obj[field] || null
+    }
   }
   return { ...staticObj, ...additionalFieldObj }
 }

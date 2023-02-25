@@ -3,7 +3,7 @@ import { CustomConsole } from '@jest/console' // see note below
 import * as p from '../NPParagraph'
 import { clo, logDebug, logInfo } from '../dev'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, simpleFormatter } from '@mocks/index'
-
+import { SCHEDULED_MONTH_NOTE_LINK } from '@helpers/dateTime'
 beforeAll(() => {
   global.Calendar = Calendar
   global.Clipboard = Clipboard
@@ -409,9 +409,14 @@ describe('NPParagraphs()', () => {
   })
 
   /*
-   * hasOverdueWeekTag()
+   * testForOverdue()
+   * Most of the edges of this function are exercised in the tests for:
+   * - hasOverdueYearTag
+   * - hasOverdueWeekTag
+   * - hasOverdueMonthTag etc.
+   * But we do need to test the basic functions underneath here
    */
-  describe('hasOverdueDayTag()' /* function */, () => {
+  describe('testForOverdue()' /* function */, () => {
     let dsb = global.DataStore
     beforeAll(() => {
       dsb = { ...global.DataStore }
@@ -422,41 +427,10 @@ describe('NPParagraphs()', () => {
     })
     test('should return false if no matches', () => {
       const before = { content: 'This is a note with no tags' }
-      const result = p.hasOverdueDayTag(before)
-      const expected = false
-      expect(result).toEqual(expected)
-    })
-    test('should return false if has week tag but not overdue', () => {
-      const before = { content: 'This is a note with a tag not overdue >2999-01-01' }
-      const result = p.hasOverdueDayTag(before)
-      const expected = false
-      expect(result).toEqual(expected)
-    })
-    test('should not return true if it is a scheduled tag', () => {
-      const before = { content: 'This is a note with a tag not overdue <2000-01-01' }
-      const result = p.hasOverdueDayTag(before)
-      const expected = false
-      expect(result).toEqual(expected)
-    })
-    test('should return true if has week tag that is overdue', () => {
-      const before = { content: 'This is a note with a tag overdue >2000-01-01' }
-      const result = p.hasOverdueDayTag(before)
-      expect(result).toEqual(true)
-    })
-    test('should return object if has week tag that is overdue', () => {
-      const before = { content: 'This is a note with a tag overdue >2000-01-01' }
-      const result = p.hasOverdueDayTag(before, true)
-      expect(result).toEqual({ isOverdue: true, overdueStrings: ['>2000-01-01'] })
-    })
-    test('should work if there are two overdues (not really suggesting this use case)', () => {
-      const before = { content: 'This is a note with a tag overdue >2000-01-01 >2000-02-02' }
-      const result = p.hasOverdueDayTag(before, true)
-      expect(result).toEqual({ isOverdue: true, overdueStrings: ['>2000-01-01', '>2000-02-02'] })
-    })
-    test('should return partial overdues', () => {
-      const before = { content: 'This is a note with a tag overdue >2000-01-01 >2999-02-02' }
-      const result = p.hasOverdueDayTag(before, true)
-      expect(result).toEqual({ isOverdue: false, overdueStrings: ['>2000-01-01'] })
+      const thieMonth = '2022-01'
+      const result = p.testForOverdue(before, SCHEDULED_MONTH_NOTE_LINK, thieMonth, true, 'Monthly')
+      const expected = { isOverdue: false, overdueLinks: [], notOverdueLinks: [] }
+      expect(result).toEqual(expect.objectContaining(expected))
     })
   })
 
@@ -492,17 +466,17 @@ describe('NPParagraphs()', () => {
     test('should return object if has week tag that is overdue', () => {
       const before = { content: 'This is a note with a tag overdue >2000-W01' }
       const result = p.hasOverdueWeekTag(before, true)
-      expect(result).toEqual({ isOverdue: true, overdueStrings: ['>2000-W01'] })
+      expect(result).toEqual(expect.objectContaining({ isOverdue: true, linkType: 'Weekly', overdueLinks: ['>2000-W01'] }))
     })
     test('should work if there are two overdues (not really suggesting this use case)', () => {
       const before = { content: 'This is a note with a tag overdue >2000-W01 >2000-W02' }
       const result = p.hasOverdueWeekTag(before, true)
-      expect(result).toEqual({ isOverdue: true, overdueStrings: ['>2000-W01', '>2000-W02'] })
+      expect(result).toEqual(expect.objectContaining({ isOverdue: true, linkType: 'Weekly', overdueLinks: ['>2000-W01', '>2000-W02'] }))
     })
     test('should return partial overdues', () => {
       const before = { content: 'This is a note with a tag overdue >2000-W01 >2999-W02' }
       const result = p.hasOverdueWeekTag(before, true)
-      expect(result).toEqual({ isOverdue: false, overdueStrings: ['>2000-W01'] })
+      expect(result).toEqual(expect.objectContaining({ isOverdue: false, linkType: 'Weekly', overdueLinks: ['>2000-W01'] }))
     })
   })
 
@@ -538,7 +512,7 @@ describe('NPParagraphs()', () => {
     test('should return object if has month tag that is overdue', () => {
       const before = { content: 'This is a note with a tag overdue >2000-01' }
       const result = p.hasOverdueMonthTag(before, true)
-      expect(result).toEqual({ isOverdue: true, overdueStrings: ['>2000-01'] })
+      expect(result).toEqual(expect.objectContaining({ isOverdue: true, linkType: 'Monthly', overdueLinks: ['>2000-01'] }))
     })
   })
 
@@ -574,7 +548,7 @@ describe('NPParagraphs()', () => {
     test('should return object if has quarter tag that is overdue', () => {
       const before = { content: 'This is a note with a tag overdue >2000-Q1' }
       const result = p.hasOverdueQuarterTag(before, true)
-      expect(result).toEqual({ isOverdue: true, overdueStrings: ['>2000-Q1'] })
+      expect(result).toEqual(expect.objectContaining({ isOverdue: true, linkType: 'Quarterly', overdueLinks: ['>2000-Q1'] }))
     })
   })
 
@@ -651,12 +625,64 @@ describe('NPParagraphs()', () => {
     test('should return object if has year tag that is overdue', () => {
       const before = { content: 'This is a note with a tag overdue >2000' }
       const result = p.hasOverdueYearTag(before, true)
-      expect(result).toEqual({ isOverdue: true, overdueStrings: ['>2000'] })
+      expect(result).toEqual(expect.objectContaining({ isOverdue: true, linkType: 'Yearly', overdueLinks: ['>2000'] }))
     })
     test('should not confuse a year tag with another tag', () => {
       const before = { content: 'This is a note with a tag overdue >2000 >2000-01 >2000-Q1 >2000-01-01' }
       const result = p.hasOverdueYearTag(before, true)
-      expect(result).toEqual({ isOverdue: true, overdueStrings: ['>2000'] })
+      expect(result).toEqual(expect.objectContaining({ isOverdue: true, linkType: 'Yearly', overdueLinks: ['>2000'] }))
+    })
+  })
+
+  /*
+   * hasOverdueWeekTag()
+   */
+  describe('hasOverdueDayTag()' /* function */, () => {
+    let dsb = global.DataStore
+    beforeAll(() => {
+      dsb = { ...global.DataStore }
+      global.DataStore.defaultFileExtension = 'md'
+    })
+    afterAll(() => {
+      global.DataStore = dsb
+    })
+    test('should return false if no matches', () => {
+      const before = { content: 'This is a note with no tags' }
+      const result = p.hasOverdueDayTag(before)
+      const expected = false
+      expect(result).toEqual(expected)
+    })
+    test('should return false if has week tag but not overdue', () => {
+      const before = { content: 'This is a note with a tag not overdue >2999-01-01' }
+      const result = p.hasOverdueDayTag(before)
+      const expected = false
+      expect(result).toEqual(expected)
+    })
+    test('should not return true if it is a scheduled tag', () => {
+      const before = { content: 'This is a note with a tag not overdue <2000-01-01' }
+      const result = p.hasOverdueDayTag(before)
+      const expected = false
+      expect(result).toEqual(expected)
+    })
+    test('should return true if has week tag that is overdue', () => {
+      const before = { content: 'This is a note with a tag overdue >2000-01-01' }
+      const result = p.hasOverdueDayTag(before)
+      expect(result).toEqual(true)
+    })
+    test('should return object if has week tag that is overdue', () => {
+      const before = { content: 'This is a note with a tag overdue >2000-01-01' }
+      const result = p.hasOverdueDayTag(before, true)
+      expect(result).toEqual(expect.objectContaining({ isOverdue: true, linkType: 'Daily', overdueLinks: ['>2000-01-01'] }))
+    })
+    test('should work if there are two overdues (not really suggesting this use case)', () => {
+      const before = { content: 'This is a note with a tag overdue >2000-01-01 >2000-02-02' }
+      const result = p.hasOverdueDayTag(before, true)
+      expect(result).toEqual(expect.objectContaining({ isOverdue: true, linkType: 'Daily', overdueLinks: ['>2000-01-01', '>2000-02-02'] }))
+    })
+    test('should return partial overdues', () => {
+      const before = { content: 'This is a note with a tag overdue >2000-01-01 >2999-02-02' }
+      const result = p.hasOverdueDayTag(before, true)
+      expect(result).toEqual(expect.objectContaining({ isOverdue: false, linkType: 'Daily', overdueLinks: ['>2000-01-01'] }))
     })
   })
 
@@ -678,6 +704,16 @@ describe('NPParagraphs()', () => {
       const before = { content: 'This is a note with a tag overdue >2000 >2000-01 >2000-Q1 >2000-01-01' }
       const result = p.hasOverdueTag(before)
       expect(result).toEqual(true)
+    })
+    test('should return details if second arg is true (daily)', () => {
+      const before = { content: 'This is a note with a tag overdue >2000 >2000-01 >2000-Q1 >2000-01-01' }
+      const result = p.hasOverdueTag(before, true)
+      expect(result).toEqual(expect.objectContaining({ isOverdue: true, overdueLinks: ['>2000-01-01'], linkType: 'Daily' }))
+    })
+    test('should return details if second arg is true (yearly)', () => {
+      const before = { content: 'This is a note with a tag overdue >2000' }
+      const result = p.hasOverdueTag(before, true)
+      expect(result).toEqual(expect.objectContaining({ isOverdue: true, overdueLinks: ['>2000'], linkType: 'Yearly' }))
     })
   })
 
@@ -805,6 +841,73 @@ describe('NPParagraphs()', () => {
       const result = p.createStaticParagraphsArray(origObj, ['a', 'b'])
       const expected = [{ a: 1, b: 2 }]
       expect(result).toEqual(expected)
+    })
+  })
+  // DBW: commenting out for now. if you see this after March 2023, feel free to delete this comment
+  // /*
+  //  * getScheduledDateType()
+  //  */
+  // describe('getScheduledDateType()' /* function */, () => {
+  //   test('should return null if no overdues', () => {
+  //     const para = new Paragraph({ content: '* foo bar?' })
+  //     const result = p.getScheduledDateType(para)
+  //     expect(result).toEqual(null)
+  //   })
+  //   test('should return null if no overdues', () => {
+  //     const para = new Paragraph({ content: '* foo bar >2020-01-01', filename: '20200101.md', noteType: 'Calendar' })
+  //     const result = p.getScheduledDateType(para)
+  //     const expected = 'Daily'
+  //     expect(result).toEqual(expected)
+  //   })
+  // })
+
+  /*
+   * getDaysTilDue()
+   */
+  describe('getDaysTilDue()' /* function */, () => {
+    test('should return zero if no date', () => {
+      const result = p.getDaysTilDue()
+      expect(result).toEqual(0)
+    })
+    test('should return -1 day even if it is a fraction of a day', () => {
+      const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+      const result = p.getDaysTilDue(para, '2000-01-02')
+      expect(result).toEqual(-1)
+    })
+    test('should return two days', () => {
+      const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+      const result = p.getDaysTilDue(para, '2000-01-03')
+      expect(result).toEqual(-2)
+    })
+    test('should not be overdue if we are still in the period', () => {
+      const para = new Paragraph({ content: '* foo bar? >2000-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+      const result = p.getDaysTilDue(para, '2000-01-31')
+      expect(result).toEqual(1)
+    })
+    test('should count from the end of the period -- EOM', () => {
+      const para = new Paragraph({ content: '* foo bar? >2000-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+      const result = p.getDaysTilDue(para, '2000-02-01')
+      expect(result).toEqual(-1)
+    })
+    test('should not be overdue if we are still in the period', () => {
+      const para = new Paragraph({ content: '* foo bar? >2000-Q1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+      const result = p.getDaysTilDue(para, '2000-03-31')
+      expect(result).toEqual(1)
+    })
+    test('should count from the end of the period -- EOQ', () => {
+      const para = new Paragraph({ content: '* foo bar? >2000-Q1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+      const result = p.getDaysTilDue(para, '2000-04-02')
+      expect(result).toEqual(-2)
+    })
+    test('should count from the end of the period -- EOY', () => {
+      const para = new Paragraph({ content: '* foo bar? >2000', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+      const result = p.getDaysTilDue(para, '2001-01-01')
+      expect(result).toEqual(-1)
+    })
+    test('should count from the end of the period -- EOW', () => {
+      const para = new Paragraph({ content: '* foo bar? >2000-W1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+      const result = p.getDaysTilDue(para, '2001-01-10') //1st was a saturday, but we don't know what user setting is
+      expect(result).toEqual(-1)
     })
   })
 })

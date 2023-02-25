@@ -411,7 +411,21 @@
     {
       "key": "overdueFoldersToIgnore",
       "title": "Folders to ignore when searching for overdue tasks",
-      "description": "A comma-separated list of folders to ignore when searching for overdue and forgotten tasks.",
+      "description": "A comma-separated list of folders to ignore when searching for overdue tasks.",
+      "type": "[string]",
+      "default": [
+        "@Templates",
+        "@Searches",
+        "Reviews",
+        "Summaries",
+        "@Archive"
+      ],
+      "required": false
+    },
+    {
+      "key": "forgottenFoldersToIgnore",
+      "title": "Folders to ignore when searching for forgotten tasks",
+      "description": "A comma-separated list of folders to ignore when searching for overdue forgotten tasks.",
       "type": "[string]",
       "default": [
         "@Templates",

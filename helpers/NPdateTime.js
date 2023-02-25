@@ -6,7 +6,7 @@
 import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
-import { RE_YYYYMMDD_DATE, getWeek, monthNameAbbrev, todaysDateISOString, toISOShortDateTimeString, weekStartEnd, RE_DATE } from './dateTime'
+import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, monthNameAbbrev, todaysDateISOString, toISOShortDateTimeString, weekStartEnd, RE_DATE } from './dateTime'
 import { logDebug, logError, clo, JSP } from './dev'
 import { chooseOption, getInput } from './userInput'
 
@@ -453,8 +453,33 @@ export type NotePlanWeekInfo = {
   date: Date,
 }
 
+export type NotePlanMonthInfo = {
+  monthIndex: number /* 0-indexed */,
+  monthString: number /* 2022-01 (1-indexed) */,
+  startDate: Date,
+  endDate: Date,
+}
+
+export type NotePlanQuarterInfo = {
+  quarterIndex: number /* 0-indexed */,
+  quarterString: number /* 2022-Q1 (1-indexed) */,
+  startDate: Date,
+  endDate: Date,
+}
+
+export type NotePlanYearInfo = {
+  yearString: number /* 2022 */,
+  startDate: Date,
+  endDate: Date,
+}
+
+function pad(n: number) {
+  return n < 10 ? `0${n}` : n
+}
+
 /**
  * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * Week info is offset depending on the NotePlan setting for the first day of the week
  * @param {string} date - date string in format YYYY-MM-DD OR a Date object (default = today).
  *    NOTE:
  *    Make sure that if you send in a date that it's a date in the correct time/timezone you want.
@@ -477,9 +502,6 @@ export type NotePlanWeekInfo = {
  * @test - available in jest file
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
-  function pad(n: number) {
-    return n < 10 ? `0${n}` : n
-  }
   let dateStrFormat = 'YYYY-MM-DD',
     newMom
   if (typeof dateIn === 'string') {
@@ -504,6 +526,107 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
   return null
 }
 
+/**
+ * Get all the month details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
+ * @param {string | Date} dateIn 
+ * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
+ * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
+ * @returns {
+    monthIndex: number; /* 0-indexed 
+    monthString: number; e.g. 2022-01 (1-indexed)
+    startDate: Date; // start of month (date object in your local timezone -- could be another day in GMT)
+    endDate: Date; // end of month (date object in your local timezone -- could be another day in GMT)
+}
+ */
+export function getMonthData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'month'): NotePlanMonthInfo | null {
+  let dateStrFormat = 'YYYY-MM-DD',
+    newMom
+  if (typeof dateIn === 'string') {
+    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(RE_NP_MONTH_SPEC).test(dateIn)) dateStrFormat = 'YYYY-MM'
+    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+  } else {
+    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+  }
+  if (newMom) {
+    const monthIndex = newMom.month()
+    const monthString = newMom.format('YYYY-MM')
+    const startDate = newMom.startOf('month').toDate()
+    const endDate = newMom.endOf('month').toDate()
+
+    return { monthIndex, monthString, startDate, endDate }
+  }
+  return null
+}
+
+/**
+ * Get all the year details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
+ * @param {string | Date} dateIn 
+ * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
+ * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
+ * @returns {
+  yearString: number /* 2022 ,
+  startDate: Date,
+  endDate: Date,
+  }
+*/
+export function getYearData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'year'): NotePlanYearInfo | null {
+  let dateStrFormat = 'YYYY',
+    newMom
+  if (typeof dateIn === 'string') {
+    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(RE_DATE).test(dateIn)) dateStrFormat = 'YYYY-MM-DD'
+    if (new RegExp(RE_NP_MONTH_SPEC).test(dateIn)) dateStrFormat = 'YYYY-MM'
+    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+  } else {
+    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+  }
+  if (newMom) {
+    const yearString = newMom.format('YYYY')
+    const startDate = newMom.startOf('year').toDate()
+    const endDate = newMom.endOf('year').toDate()
+
+    return { yearString, startDate, endDate }
+  }
+  return null
+}
+
+/**
+ * Get all the month details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
+ * @param {string | Date} dateIn 
+ * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
+ * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
+ * @returns {
+  quarterIndex: number  0-indexed ,
+  quarterString: number 2022-Q1 (1-indexed) ,
+  startDate: Date,
+  endDate: Date,
+}
+ */
+export function getQuarterData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'quarter'): NotePlanQuarterInfo | null {
+  let dateStrFormat = 'YYYY-[Q]Q',
+    newMom
+  if (typeof dateIn === 'string') {
+    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(RE_DATE).test(dateIn)) dateStrFormat = 'YYYY-MM-DD'
+    if (new RegExp(RE_NP_QUARTER_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[Q]Q'
+    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+  } else {
+    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+  }
+  if (newMom) {
+    const quarterIndex = newMom.quarter()
+    const quarterString = newMom.format('YYYY-[Q]Q')
+    const startDate = newMom.startOf('quarter').toDate()
+    const endDate = newMom.endOf('quarter').toDate()
+
+    return { quarterIndex, quarterString, startDate, endDate }
+  }
+  return null
+}
 /**
  * Get upcoming date string options for use in chooseOption
  * Note: the day-specific version of this function is in ./dateTime (getDateOptions)

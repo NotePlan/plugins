@@ -349,7 +349,7 @@ export function getButtons(): Array<{ text: string, action: string }> {
   ]
 }
 
-const KEY_PARA_PROPS = ['filename', 'lineIndex', 'content', 'rawContent', 'type', 'prefix', 'noteType']
+const KEY_PARA_PROPS = ['filename', 'lineIndex', 'content', 'rawContent', 'type', 'prefix', 'noteType', 'daysOverdue']
 
 /**
  * Take in an array of paragraphs and return a static array of objects for the HTML view
@@ -455,8 +455,8 @@ export async function processOverdueReact(incoming: string) {
     // NOTE: Relative paths are relative to the plugin folder of dwertheimer.React
     // So ALWAYS go out and back in, like this: `../dwertheimer.TaskAutomations/xxx`
     // because you can't guarantee what folder you are in at any given time
-    const cssTagsString = `		<link rel="stylesheet" href="../../dwertheimer.TaskAutomations/css.w3.css">
-		<link rel="stylesheet" href="../../dwertheimer.TaskAutomations/css.plugin.css">\n`
+    const cssTagsString = `		<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.w3.css">
+		<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.plugin.css">\n`
 
     const data = getDataForReactView()
     /*
