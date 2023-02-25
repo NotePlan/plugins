@@ -131,7 +131,12 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
 
       let renderedTemplate = await NPTemplating.render(frontmatterBody, data)
 
-      Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
+      const location = frontmatterAttributes?.location || 'append'
+      if (location === 'cursor') {
+        Editor.insertTextAtCursor(renderedTemplate)
+      } else {
+        Editor.insertTextAtCharacterIndex(renderedTemplate, content.length)
+      }
     } else {
       await CommandBar.prompt('Template', 'You must have a Project Note or Calendar Note opened where you wish to append template.')
     }
