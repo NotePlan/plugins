@@ -3,7 +3,7 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 6.11.2022 for v0.15.1, @jgclark
+// Last updated 6.11.2022 for v0.15.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -32,7 +32,10 @@ import {
   weekStartEnd,
   withinDateRange,
 } from '@helpers/dateTime'
-import { getUsersFirstDayOfWeekUTC } from '@helpers/NPdateTime'
+import {
+  getUsersFirstDayOfWeekUTC,
+  setMomentLocaleFromEnvironment,
+} from '@helpers/NPdateTime'
 import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { showHTML } from '@helpers/HTMLView'
@@ -98,12 +101,8 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
     }
   }
 
-  // logDebug('heatmap', `languageCode = ${NotePlan.environment.languageCode ?? '<undefined>'}`)
-  // logDebug('heatmap', `regionCode   = ${NotePlan.environment.regionCode ?? '<undefined>'}`)
   // Set locale for momnet library
-  moment.locale(`${NotePlan.environment.languageCode}-${NotePlan.environment.regionCode}`)
-  // logDebug('heatmap', `moment locale -> ${moment.locale()}`)
-
+  setMomentLocaleFromEnvironment()
   const fromDateLocale = moment(fromDateStr, 'YYYY-MM-DD').format('L')
   await generateHeatMap(
     'NotePlan Task Completion Heatmap',
