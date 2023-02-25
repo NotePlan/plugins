@@ -66,12 +66,11 @@ export const RE_DATE_INTERVAL = `[+\\-]?\\d+[BbDdWwMmQqYy]`
 export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
 export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
 
+// Get today's date in various ways
+// these two are the same!
 export const todaysDateISOString: string = moment().toISOString().slice(0, 10)
-export const nowLocaleDateTime: string = moment().toDate().toLocaleString()
-export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
-
 export function getTodaysDateHyphenated(): string {
-  return hyphenatedDate(moment().toDate())
+  return moment().format("YYYY-MM-DD")
 }
 
 export function getTodaysDateAsArrowDate(): string {
@@ -79,8 +78,20 @@ export function getTodaysDateAsArrowDate(): string {
 }
 
 export function getTodaysDateUnhyphenated(): string {
-  return strftime(`%Y%m%d`)
+  return moment().format("YYYYMMDD")
+  // return strftime(`%Y%m%d`)
 }
+
+export function getJSDateStartOfToday(): Date {
+  return moment().startOf('day').toDate()
+}
+
+// Note: there are others in NPdateTime.js that use locale settings
+
+// Get current time in various ways
+export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): string => strftime(format)
+
+// Note: there are others in NPdateTime.js that use locale settings
 
 // See getNoteType in note.js to get the type of a note
 export const isDailyNote = (note: CoreNoteFields): boolean => new RegExp(RE_DAILY_NOTE_FILENAME).test(note.filename)
@@ -373,15 +384,22 @@ export function monthNameAbbrev(m: number): string {
 }
 
 /**
- * Return difference between start and end dates
+ * Return difference between start and end dates, ignoring any time components
+ * Note: v2 uses a.moment(b).diff(moment().startOf('day'), 'days') instead
  * @author @jgclark
- *
- * @param {Date} d1 - start Date
- * @param {Date} d2 - end Date
- * @return {number} - number of days between d1 and d2 (rounded to nearest integer)
+ * @tests in jest file
+ * @param {Date} startDate
+ * @param {Date} endDate
+ * @return {number} - number of days between startDate and endDate (rounded to nearest integer)
  */
-export function daysBetween(d1: Date, d2: Date): number {
-  return Math.round((d2 - d1) / 1000 / 60 / 60 / 24) // i.e. milliseconds -> days
+export function daysBetween(startDate: Date, endDate: Date): number {
+  // v1 method:
+  // const res = Math.round((endDate - startDate) / 1000 / 60 / 60 / 24) // i.e. milliseconds -> days
+  // return (res === -0) ? 0 : res // handle weird edge case
+
+  // v2 method:
+  // moment's a.diff(b, 'days') gives the different in days between a and b, with the answer truncated (not rounded)
+  return moment(endDate).startOf('day').diff(moment(startDate).startOf('day'), 'days')
 }
 
 /**
