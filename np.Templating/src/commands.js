@@ -6,7 +6,7 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-import { getConfiguration, initConfiguration, migrateConfiguration, updateSettingData } from '@helpers/NPConfiguration'
+import { initConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 
 import pluginJson from '../plugin.json'
 

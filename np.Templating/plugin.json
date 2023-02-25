@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 np.Templating",
-  "plugin.version": "2.0.0-beta.03",
-  "plugin.lastUpdateInfo": "2.0.0-beta.03: fix minor bug in isWeekday in NP",
+  "plugin.version": "2.0.0-beta.04",
+  "plugin.lastUpdateInfo": "2.0.0-beta.04: allow template title to be passed to np:new and np:qtn\npreviously: fixed minor bug in isWeekday in NP",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -21,7 +21,10 @@
         "npa"
       ],
       "description": "Append template to end of current note",
-      "jsFunction": "templateAppend"
+      "jsFunction": "templateAppend",
+      "arguments":[
+        "template title to run"
+      ]
     },
     {
       "name": "np:insert",
@@ -32,7 +35,10 @@
         "npi"
       ],
       "description": "Insert template to current note",
-      "jsFunction": "templateInsert"
+      "jsFunction": "templateInsert",
+      "arguments":[
+        "template title to run"
+      ]
     },
     {
       "name": "np:invoke",
@@ -52,7 +58,10 @@
         "npn"
       ],
       "description": "Create new note with title, using folder attribute",
-      "jsFunction": "templateNew"
+      "jsFunction": "templateNew",
+      "arguments":[
+        "template title to run"
+      ]
     },
     {
       "name": "np:qtn",
@@ -66,7 +75,10 @@
         "npq"
       ],
       "description": "Create new note based on Quick Note Template",
-      "jsFunction": "templateQuickNote"
+      "jsFunction": "templateQuickNote",
+      "arguments":[
+        "template title to run"
+      ]
     },
     {
       "name": "np:mtn",
@@ -81,7 +93,10 @@
       ],
       "description": "Create new note based on Meeting Note Template",
       "hidden": true,
-      "jsFunction": "templateMeetingNote"
+      "jsFunction": "templateMeetingNote",
+      "arguments":[
+        "template title to use"
+      ]
     },
     {
       "name": "np:update",
@@ -90,13 +105,6 @@
       ],
       "description": "Run np.Templating Setting",
       "jsFunction": "onUpdateOrInstall",
-      "hidden": true
-    },
-    {
-      "name": "np:migrate-quick-notes",
-      "alias": [],
-      "description": "Run Quick Note Migration (_configuration :: quickNotes)",
-      "jsFunction": "migrateQuickNotes",
       "hidden": true
     },
     {
@@ -168,7 +176,12 @@
       "alias": [],
       "description": "Load and run self-contained template instructions with arguments",
       "jsFunction": "templateRunner",
-      "hidden": true
+      "hidden": true,
+      "arguments":[
+        "template title to run",
+        "open file in editor after running",
+        "template arguments"
+      ]
     }
   ],
   "plugin.settings": [

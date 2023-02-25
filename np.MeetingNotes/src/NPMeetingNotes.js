@@ -4,7 +4,7 @@ import moment from 'moment-business-days'
 
 import pluginJson from '../plugin.json'
 import { log, logDebug, logError, clo, JSP } from '@helpers/dev'
-import { showMessage } from '@helpers/userInput'
+import { showMessage, chooseFolder } from '@helpers/userInput'
 import { getAttributes } from '@templatingModules/FrontmatterModule'
 import NPTemplating from 'NPTemplating'
 
@@ -105,6 +105,7 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
     const folder = attrs?.folder || ''
     const append = attrs?.append || ''
     const prepend = attrs?.prepend || ''
+    const cursor = attrs?.cursor || ''
     const newNoteTitle = attrs?.newNoteTitle || ''
 
     logDebug(pluginJson, 'render template')
@@ -118,9 +119,14 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
     }
 
     let newTitle = null
-    if (append || prepend) {
+    if (append || prepend || cursor) {
       logDebug(pluginJson, 'append/prepend template')
-      newTitle = (await appendPrependNewNote(append, prepend, folder, result)) ?? '<error>'
+      const noteTitle = (append || prepend || cursor).trim()
+      const location = append.length ? 'append' : cursor.length ? 'cursor' : 'prepend'
+      if (location === 'cursor' && noteTitle !== '<current>') {
+        showMessage(`Error: Your template has a cursor attribute, but the cursor attribute must only be used with the value "<current>", e.g. cursor: "<current>"`)
+      }
+      newTitle = (await appendPrependNewNote(noteTitle, location, folder, result)) ?? '<error>'
     } else {
       logDebug(pluginJson, 'create a new note with the rendered template')
       newTitle = (await newNoteWithFolder(result, folder)) ?? '<error>'
@@ -173,10 +179,8 @@ function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string):
  * @param {string} content
  * @returns {Promise<string?>} title (or null)
  */
-async function appendPrependNewNote(append: string, prepend: string, folder: string = '', content: string): Promise<?string> {
+async function appendPrependNewNote(noteName: string, location: string, folder: string = '', content: string): Promise<?string> {
   try {
-    const noteName = append || prepend
-
     let note: CoreNoteFields
     if (noteName === '<select>') {
       logDebug(pluginJson, 'load project notes (sorted) to display for selection')
@@ -247,23 +251,29 @@ async function appendPrependNewNote(append: string, prepend: string, folder: str
 
     const originalContentLength = note.content?.length ?? 0
 
-    if (append) {
+    if (location === 'append') {
       logDebug(pluginJson, 'append the template')
       note.appendParagraph(content, 'text')
-    } else if (prepend) {
+    } else if (location === 'cursor') {
+      const cursorPosition = Editor.selection
+      logDebug(pluginJson, 'insert at cursor')
+      Editor.insertTextAtCursor(content)
+      Editor.select(cursorPosition?.start || 0 + content.length + 3, 0)
+    } else {
       logDebug(pluginJson, 'prepend the template')
       note.prependParagraph(content, 'text')
     }
 
     logDebug(pluginJson, 'open the note')
-    await Editor.openNoteByFilename(note.filename)
+    if (location !== 'cursor') {
+      await Editor.openNoteByFilename(note.filename)
+    }
 
     // Scroll to the paragraph if we appended it
-    if (append) {
+    if (location === 'append') {
       logDebug(pluginJson, 'scroll down to the appended template text')
       Editor.select(originalContentLength + 3, 0)
     }
-
     return note.title
   } catch (error) {
     logDebug(pluginJson, `error in appendPrependNewNote: ${error}`)
@@ -281,9 +291,7 @@ async function newNoteWithFolder(content: string, _folder?: string): Promise<?st
   try {
     if (!folder || folder === '<select>') {
       logDebug(pluginJson, 'get all folders and show them for selection')
-      const folders = DataStore.folders
-      const selection = await CommandBar.showOptions(folders, 'Select a folder')
-      folder = folders[selection.index]
+      folder = await chooseFolder('Select a folder to create the note in', false, true)
     } else if (folder === '<current>') {
       logDebug(pluginJson, 'find the current folder of the opened note')
       let currentFilename

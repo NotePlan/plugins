@@ -4,6 +4,12 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-beta.04] - 2023-02-24 (@dwertheimer)
+
+- Fixed issue that template was not passable to np:new and np:qtn
+- Removed template migration code (now one year past migration)
+- Added folder creation option to folder chooser
+
 ## [2.0.0-beta.03] - 2023-02-05 (dwertheimer)
 
 - Fixed minor issue in .isWeekend where NP was getting different answers than Jest. Has to do with locales, so changed it to use moment in this function. there are more that need to be changed.

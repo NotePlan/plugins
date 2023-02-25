@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [1.1.7] - 2023-02-24 (@dwertheimer)
+
+- add ability to output meeting note at cursor in <current> note
+
 ## [1.1.6] - 2022-12-14 (@dwertheimer)
 
 - fix bug that Ed found in newMeetingNote asking you to select from all templates

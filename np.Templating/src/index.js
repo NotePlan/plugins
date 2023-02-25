@@ -9,9 +9,6 @@ export { init } from './Templating'
 export { onSettingsUpdated } from './Templating'
 export { onUpdateOrInstall } from './Templating'
 
-// np.Templating Migration Commands
-export { migrateTemplates, migrateQuickNotes } from './migration'
-
 // np.Templating Commands
 export { templateInit } from './Templating'
 export { templateInsert } from './Templating'
