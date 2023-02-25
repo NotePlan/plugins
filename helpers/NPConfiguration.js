@@ -80,9 +80,9 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
   return migrateData
 }
 
+/* WARNING: Since migration following NotePlan v3.4 this is no longer used, so commented out. */
 /**
  * Migrate existing _configuration block to plugin/settings.json
- * WARNING: Since migration following NotePlan v3.4 this is no longer used, so commented out.
  * @author @codedungeon
  * @param {string} configSection - template section name
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated

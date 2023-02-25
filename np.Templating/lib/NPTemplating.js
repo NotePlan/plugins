@@ -14,7 +14,7 @@ import { debug, helpInfo } from './helpers'
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
 import { clo, log, logError } from '@helpers/dev'
-import { datePicker, askDateInterval } from '@helpers/userInput'
+import { datePicker, askDateInterval, chooseFolder } from '@helpers/userInput'
 
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
@@ -1346,14 +1346,16 @@ export default class NPTemplating {
     let selectedFolder = folder
     const folders = DataStore.folders
     if (folder == '<select>' || (Editor?.type === 'Calendar' && selectedFolder.length === 0)) {
-      const selection = await CommandBar.showOptions(folders, promptMessage)
-      selectedFolder = folders[selection.index]
+      selectedFolder = await chooseFolder(promptMessage, false, true)
+      // const selection = await CommandBar.showOptions(folders, promptMessage)
+      // selectedFolder = folders[selection.index]
     } else if (folder == '<current>') {
       const currentFilename = Editor.note?.filename
 
       if (typeof currentFilename === 'undefined') {
-        const selection = await CommandBar.showOptions(folders, promptMessage)
-        selectedFolder = folders[selection.index]
+        selectedFolder = await chooseFolder(promptMessage, false, true)
+        // const selection = await CommandBar.showOptions(folders, promptMessage)
+        // selectedFolder = folders[selection.index]
       } else {
         const parts = currentFilename.split('/')
         if (parts.length > 1) {
@@ -1363,8 +1365,9 @@ export default class NPTemplating {
       }
     } else {
       if (selectedFolder.length === 0) {
-        const selection = await CommandBar.showOptions(folders, promptMessage)
-        selectedFolder = folders[selection.index]
+        selectedFolder = await chooseFolder(promptMessage, false, true)
+        // const selection = await CommandBar.showOptions(folders, promptMessage)
+        // selectedFolder = folders[selection.index]
       }
     }
 

@@ -6,6 +6,7 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
+import { log, clo, logDebug, logError } from '@helpers/dev'
 import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 import { timestamp } from '@templatingModules/DateModule'
@@ -22,14 +23,11 @@ import { getWeather } from '../lib/support/modules/weather'
 import { getDailyQuote } from '../lib/support/modules/quote'
 import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
-import { initConfiguration, migrateConfiguration, updateSettingData } from '../../helpers/NPConfiguration'
-import { clo, logError } from '@helpers/dev'
+import { initConfiguration, updateSettingData } from '@helpers/NPConfiguration'
+import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
-
-// migrations
-import { migrateTemplates, migrateQuickNotes, _checkTemplatesMigrated } from './migration'
 
 // Editor
 import { templateFileByTitleEx } from './NPEditor'
@@ -57,39 +55,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
     const pluginSettingsData = await DataStore.loadJSON(`../${pluginJson['plugin.id']}/settings.json`)
     // if we don't have settings, this will be a first time install so we will perform migrations
     if (typeof pluginSettingsData == 'undefined') {
-      // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
-      result = await migrateConfiguration('templates', pluginJson, config?.silent)
-      if (result === 0) {
-        result = updateSettingData(pluginJson)
-      }
-    }
-
-    const templatesExist = await _checkTemplatesMigrated()
-    if (!templatesExist) {
-      result = await migrateTemplates()
-      if (result === 1) {
-        // only migrate quickNotes if templates have been migrated
-        result = await migrateQuickNotes()
-      }
-    }
-
-    if (result === 1) {
-      const pluginData = {
-        'plugin.id': 'nmn.Templates',
-        'noteplan.minAppVersion': '3.0.21',
-        'plugin.name': '🔩 Templates',
-        'plugin.description': 'This plugin has been disabled and superseded by np.Templating',
-        'plugin.commands': [],
-      }
-
-      const legacyTemplateData = await DataStore.loadJSON('../../nmn.Templates/plugin.json')
-      if (typeof legacyTemplateData !== 'undefined' && legacyTemplateData.hasOwnProperty('plugin.script')) {
-        const pluginUpdateResult = await DataStore.saveJSON(pluginData, '../../nmn.Templates/plugin.json')
-        if (pluginUpdateResult) {
-          await CommandBar.prompt('The previous Templates plugin has been disabled as to not conflict with np.Templating', helpInfo('Migrating Legacy Templates'))
-        }
-        result = pluginUpdateResult ? 1 : 0
-      }
+      result = updateSettingData(pluginJson)
     }
 
     // ===== PLUGIN SPECIFIC SETTING UPDATE CODE
@@ -110,7 +76,7 @@ export async function onUpdateOrInstall(config: any = { silent: false }): Promis
 }
 
 export async function onStartup(): Promise<void> {
-  log(pluginJson, 'onStartup')
+  logDebug(pluginJson, 'onStartup')
 }
 
 export async function templateInit(): Promise<void> {
@@ -198,6 +164,7 @@ export async function templateInvoke(): Promise<void> {
           Editor.insertTextAtCharacterIndex(renderedTemplate, 0)
           break
         case 'insert':
+        case 'cursor':
           Editor.insertTextAtCursor(renderedTemplate)
           break
         default:
@@ -213,14 +180,24 @@ export async function templateInvoke(): Promise<void> {
   }
 }
 
-export async function templateNew(): Promise<void> {
+export async function templateNew(_noteTitle: string = ''): Promise<void> {
   try {
-    const selectedTemplate = await NPTemplating.chooseTemplate()
+    let selectedTemplate // will be a filename
+    if (_noteTitle?.length) {
+      const options = await NPTemplating.getTemplateList()
+      if (options.find((option) => option.label === _noteTitle)) {
+        // variable passed is a note title, but we need the filename
+        selectedTemplate = options.find((option) => option.label === _noteTitle)?.value
+      }
+    } else {
+      // ask the user for the template
+      selectedTemplate = await NPTemplating.chooseTemplate()
+    }
     const templateData = await NPTemplating.getTemplate(selectedTemplate)
     const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
 
-    let noteTitle = ''
     let folder = ''
+    let noteTitle = ''
 
     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
 
@@ -228,7 +205,7 @@ export async function templateNew(): Promise<void> {
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 
-    if (frontmatterAttributes.hasOwnProperty('newNoteTitle')) {
+    if (_noteTitle === '' && frontmatterAttributes.hasOwnProperty('newNoteTitle')) {
       noteTitle = frontmatterAttributes.newNoteTitle
     } else {
       const title = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
@@ -269,6 +246,7 @@ export async function templateNew(): Promise<void> {
       } else {
         Editor.content = `# ${noteTitle}\n${templateResult}`
       }
+      selectFirstNonTitleLineInEditor()
     } else {
       await CommandBar.prompt('New Template', `An error occured creating ${noteTitle} note`)
     }
@@ -277,7 +255,7 @@ export async function templateNew(): Promise<void> {
   }
 }
 
-export async function templateQuickNote(noteName: string = ''): Promise<void> {
+export async function templateQuickNote(noteTitle: string = ''): Promise<void> {
   try {
     const content: string = Editor.content || ''
     const templateFolder = await getTemplateFolder()
@@ -287,7 +265,14 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
       await CommandBar.prompt(`Unable to locate any Quick Notes templates in "${templateFolder}" folder`, helpInfo('Quick Notes'))
       return
     }
-    let selectedTemplate = options.length > 1 ? await NPTemplating.chooseTemplate('quick-note', 'Choose Quick Note') : options[0].value
+    let selectedTemplate // will be a filename
+    if (noteTitle?.length && options.find((option) => option.label === noteTitle)) {
+      // variable passed is a note title, but we need the filename
+      selectedTemplate = options.find((option) => option.label === noteTitle)?.value
+    } else {
+      // ask the user for the template
+      selectedTemplate = options.length > 1 ? await NPTemplating.chooseTemplate('quick-note', 'Choose Quick Note') : options[0].value
+    }
 
     if (selectedTemplate) {
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
@@ -341,6 +326,7 @@ export async function templateQuickNote(noteName: string = ''): Promise<void> {
           } else {
             Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
           }
+          selectFirstNonTitleLineInEditor()
         }
       } else {
         await CommandBar.prompt('Invalid FrontMatter Template', helpInfo('Template Anatomty: Frontmatter'))
@@ -426,6 +412,7 @@ export async function templateMeetingNote(noteName: string = '', templateData: a
           } else {
             Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
           }
+          selectFirstNonTitleLineInEditor()
         }
       }
     }
