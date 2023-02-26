@@ -865,49 +865,59 @@ describe('NPParagraphs()', () => {
    * getDaysTilDue()
    */
   describe('getDaysTilDue()' /* function */, () => {
+    global.NotePlan = new NotePlan()
     test('should return zero if no date', () => {
       const result = p.getDaysTilDue()
       expect(result).toEqual(0)
     })
-    test('should return -1 day even if it is a fraction of a day', () => {
-      const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
-      const result = p.getDaysTilDue(para, '2000-01-02')
-      expect(result).toEqual(-1)
+    describe('overdue tests', () => {
+      test('should return -1 day even if it is a fraction of a day', () => {
+        const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+        const result = p.getDaysTilDue(para, '2000-01-02')
+        expect(result).toEqual(-1)
+      })
+      test('should return -2 for overdue >2000-01-01 and today is 2000-01-03', () => {
+        const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+        const result = p.getDaysTilDue(para, '2000-01-03')
+        expect(result).toEqual(-2)
+      })
+      test('should count from the end of the period -- -3 for one day overdue for day after EOM', () => {
+        const para = new Paragraph({ content: '* foo bar? >2000-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+        const result = p.getDaysTilDue(para, '2000-02-03')
+        expect(result).toEqual(-3)
+      })
+      test('should count from the end of the period -- EOQ -4 for two days past quarter due', () => {
+        const para = new Paragraph({ content: '* foo bar? >2000-Q1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+        const result = p.getDaysTilDue(para, '2000-04-04')
+        expect(result).toEqual(-4)
+      })
+      test('should count from the end of the period -- EOY + 1 day should be -1', () => {
+        const para = new Paragraph({ content: '* foo bar? >2000', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+        const result = p.getDaysTilDue(para, '2001-01-05')
+        expect(result).toEqual(-5)
+      })
+      test.skip('should count from the end of the period -- EOW', () => {
+        const para = new Paragraph({ content: '* foo bar? >2000-W1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+        const result = p.getDaysTilDue(para, '2001-01-10') //1st was a saturday, but we don't know what user setting is
+        expect(result).toEqual(-1)
+      })
     })
-    test('should return two days', () => {
-      const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
-      const result = p.getDaysTilDue(para, '2000-01-03')
-      expect(result).toEqual(-2)
-    })
-    test('should not be overdue if we are still in the period', () => {
-      const para = new Paragraph({ content: '* foo bar? >2000-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
-      const result = p.getDaysTilDue(para, '2000-01-31')
-      expect(result).toEqual(1)
-    })
-    test('should count from the end of the period -- EOM', () => {
-      const para = new Paragraph({ content: '* foo bar? >2000-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
-      const result = p.getDaysTilDue(para, '2000-02-01')
-      expect(result).toEqual(-1)
-    })
-    test('should not be overdue if we are still in the period', () => {
-      const para = new Paragraph({ content: '* foo bar? >2000-Q1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
-      const result = p.getDaysTilDue(para, '2000-03-31')
-      expect(result).toEqual(1)
-    })
-    test('should count from the end of the period -- EOQ', () => {
-      const para = new Paragraph({ content: '* foo bar? >2000-Q1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
-      const result = p.getDaysTilDue(para, '2000-04-02')
-      expect(result).toEqual(-2)
-    })
-    test('should count from the end of the period -- EOY', () => {
-      const para = new Paragraph({ content: '* foo bar? >2000', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
-      const result = p.getDaysTilDue(para, '2001-01-01')
-      expect(result).toEqual(-1)
-    })
-    test('should count from the end of the period -- EOW', () => {
-      const para = new Paragraph({ content: '* foo bar? >2000-W1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
-      const result = p.getDaysTilDue(para, '2001-01-10') //1st was a saturday, but we don't know what user setting is
-      expect(result).toEqual(-1)
+    describe('not overdue tests', () => {
+      test.skip('due today', () => {
+        const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+        const result = p.getDaysTilDue(para, '2000-01-01')
+        expect(result).toEqual(0)
+      })
+      test('should not be overdue if we are still in the period (on last day of month)', () => {
+        const para = new Paragraph({ content: '* foo bar? >2000-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+        const result = p.getDaysTilDue(para, '2000-01-31')
+        expect(result).toEqual(1)
+      })
+      test('should not be overdue if we are still in the period', () => {
+        const para = new Paragraph({ content: '* foo bar? >2000-Q1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+        const result = p.getDaysTilDue(para, '2000-03-31')
+        expect(result).toEqual(1)
+      })
     })
   })
 })

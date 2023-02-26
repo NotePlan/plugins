@@ -6,9 +6,7 @@
  * Usage: const myNote = new Note({ param changes here })
  *
  */
-import { strings } from '@codedungeon/gunner'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
-import { throwIfEmpty } from 'rxjs'
 export class Note {
   // Properties
   backlinks = [] /* sample:  [ SOMETHING ], */
@@ -133,7 +131,7 @@ export class Note {
   async paragraphRangeAtCharacterIndex() {
     throw 'Note :: paragraphRangeAtCharacterIndex Not implemented yet'
   }
-  async prependParagraph(content: strings, type: ParagraphType) {
+  async prependParagraph(content: string, type: ParagraphType) {
     this.paragraphs = [{ content, type }, ...this.paragraphs]
     console.log(`JEST Note: note.prependParagraph() called. but .content is approximated but not exactly correct, because it does not add markdown.`)
     this.content = content.concat('\n', this.content)

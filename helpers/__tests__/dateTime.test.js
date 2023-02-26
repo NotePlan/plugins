@@ -12,7 +12,7 @@ beforeAll(() => {
   global.CommandBar = CommandBar
   global.DataStore = DataStore
   global.Editor = Editor
-  global.NotePlan = NotePlan
+  global.NotePlan = new NotePlan()
   DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
 })
 
@@ -267,6 +267,10 @@ describe(`${PLUGIN_NAME}`, () => {
     test('start 2023 -> start 2024', () => {
       const res = dt.daysBetween(new Date(2023, 0, 1, 0, 0, 0), new Date(2024, 0, 1, 0, 0, 0)) // note months are 0-based
       expect(res).toEqual(365)
+    })
+    test('dates one day-ish apart (forwards) using string date', () => {
+      const res = dt.daysBetween(new Date('2021-03-25'), new Date(2021, 2, 24, 14, 0, 0))
+      expect(res).toEqual(1)
     })
   })
 

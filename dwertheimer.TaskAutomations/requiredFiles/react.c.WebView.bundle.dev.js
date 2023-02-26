@@ -1,4 +1,4 @@
-var reactBundle1677203680 = (function (exports, React$1) {
+var WebViewBundle = (function (exports, React$1) {
 	'use strict';
 
 	function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
@@ -44353,4 +44353,4 @@ var reactBundle1677203680 = (function (exports, React$1) {
 	return exports;
 
 })({}, react);
-Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, reactBundle1677203680)
+Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, WebViewBundle)

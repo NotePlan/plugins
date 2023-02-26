@@ -11,23 +11,20 @@ import { logDebug, logError, clo, JSP } from './dev'
 // import { getSetting } from './NPConfiguration'
 import { chooseOption, getInput } from './userInput'
 
-// Locale-specific date + time formats
-// Set locale for momnet library
-const userLocaleSetting = `${NotePlan.environment.languageCode}${NotePlan.environment.regionCode ? '-' + NotePlan.environment.regionCode : ''}`
-moment.locale(userLocaleSetting)
-
 // TODO: work out how to test this
 export function setMomentLocaleFromEnvironment(): void {
   logDebug('NPdateTime', `NP reports languageCode = ${NotePlan.environment.languageCode ?? '<not set>'}`)
   logDebug('NPdateTime', `NP reports regionCode   = ${NotePlan.environment.regionCode ?? '<not set>'}`)
+  // Locale-specific date + time formats
+  // Set locale for momnet library
   const userLocaleSetting = `${NotePlan.environment.languageCode}${NotePlan.environment.regionCode ? '-' + NotePlan.environment.regionCode : ''}`
   moment.locale(userLocaleSetting)
   logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
 }
 
-export const nowLocaleShortDateTime: string = moment().format("L LT")
-export const nowLocaleDate: string = moment().format("L")
-export const nowLocaleShortTime: string = moment().format("LT")
+export const nowLocaleShortDateTime: string = moment().format('L LT')
+export const nowLocaleDate: string = moment().format('L')
+export const nowLocaleShortTime: string = moment().format('LT')
 
 // TODO: Finish moving references to this file from dateTime.js
 export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {

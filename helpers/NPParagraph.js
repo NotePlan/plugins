@@ -18,6 +18,7 @@ import {
   SCHEDULED_YEARLY_NOTE_LINK,
   getTodaysDateHyphenated,
   isScheduled,
+  daysBetween,
 } from './dateTime'
 import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateTimeString } from './NPdateTime'
 import { clo, JSP, logDebug, logError, logWarn, timer } from './dev'
@@ -1103,12 +1104,16 @@ export function getDaysTilDue(paragraph: TParagraph, toISODate: string = getToda
             break
         }
         if (data?.endDate) {
+          const fromDate = data.endDate
+          const toDate = new Date(toISODate)
           const fromDateMom = moment(data.endDate)
           const toDateMom = moment(toISODate, 'YYYY-MM-DD')
+          const daysUsingDates = daysBetween(toDate, fromDate)
           const diffDays = fromDateMom.diff(toDateMom, 'days', true) // negative for overdue
           //FIXME: this needs to deal with positive and negatives. right now
           // only doing overdue
           daysOverdue = diffDays > 0 ? Math.ceil(diffDays) : Math.floor(diffDays) // round fractional days up
+          console.log(`paragraphDate:${data.endDate} - ${toISODate} (today) daysOverdue: moment: ${daysOverdue} vs ${daysUsingDates} using dates`)
           // if (data !== null && data.endDate) daysOverdue = data ? moment(toISODate, 'YYYY-MM-DD').diff(moment(data.endDate), 'days') : 0
         }
       }
