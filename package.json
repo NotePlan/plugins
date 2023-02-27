@@ -98,6 +98,7 @@
     "typecheck": "flow check",
     "fix": "npm run lint-fix && npm run format",
     "test": "jest",
+    "test:ci": "jest --ci --reporters='default' --reporters='./github-actions-reporter'",
     "test:compact": "jest **/*.test.js --reporters jest-silent-reporter --reporters ./jest.customSummaryReporter.js",
     "test:dev": "./node_modules/.bin/jest ./**/__tests__/*.test.js --silent",
     "test:watch": "./node_modules/.bin/jest ./**/__tests__/*.test.js --silent --watchAll",
