@@ -10,7 +10,7 @@ beforeAll(() => {
   global.CommandBar = CommandBar
   global.DataStore = DataStore
   global.Editor = Editor
-  global.NotePlan = NotePlan
+  global.NotePlan = new NotePlan({ selectedSidebarFolder: `SelectedFolder` })
 })
 
 describe('dwertheimer.JestHelpers' /* pluginID */, () => {
@@ -92,7 +92,7 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
   describe('NotePlan' /* file */, () => {
     describe('local settings mock' /* function */, () => {
       test('should return mock data: selectedSidebarFolder', () => {
-        const noteplan = NotePlan // should work in local context
+        const noteplan = global.NotePlan // should work in local context
         expect(noteplan.selectedSidebarFolder).toEqual('SelectedFolder')
       })
     })

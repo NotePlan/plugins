@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.3.1] - 2023-02-23 (@dwertheimer)
+
+- release bugfix
+
 ## [0.3.0] - 2023-02-22 (@jgclark)
 
 ### Added

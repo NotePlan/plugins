@@ -194,7 +194,14 @@ function watch(watchOptions, buildMode = '') {
 
 /**
  * Get rollup config for a set of JSX/React files
- * @param {*} options
+ * @param {{
+    entryPointPath: string,
+    outputFilePath: string,
+    externalModules: [],
+    createBundleGraph: boolean,
+    buildMode: 'production'|'development',
+    bundleName: string,
+ * }} options
  * @returns
  */
 function getRollupConfig(options) {
@@ -210,7 +217,8 @@ function getRollupConfig(options) {
   const entryPointPath = path.join(rootFolderPath, opts.entryPointPath)
   let outputFilePath = path.join(rootFolderPath, opts.outputFilePath.replace('REPLACEME', buildMode === 'production' ? 'min' : 'dev'))
 
-  const exportedFileVarName = `reactBundle${Math.floor(new Date().getTime() / 1000)}` // needs to be unique for each bundle (but is never used externally)
+  // const exportedFileVarName = `reactBundle${Math.floor(new Date().getTime() / 1000)}` // needs to be unique for each bundle (but is never used externally)
+  const exportedFileVarName = options.bundleName || 'reactBundle'
 
   // $FlowIgnore
   const externalGlobals = (externalModules || []).reduce((acc, cur) => ({ ...acc, [cur]: cur }), {})

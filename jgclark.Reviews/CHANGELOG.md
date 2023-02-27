@@ -5,6 +5,18 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - ??? Fixed the race condition on (un)pausing a project
 - ??? ability to pause/unpause a project, by calling new **/pause project toggle** command or adding/removing `#paused` to a project's metadata. When paused this stops the note from being included in reviews, but keeps it visible in the project lists.
 -->
+## [0.9.2] - 2023-02-???
+### Changed
+- improved display of 0% progress circles (in 'rich' display)
+- in Project Lists, dates and intervals should now be display in the locale language
+- trying full-width result tables (in 'rich' display)
+- quicker window refresh after clicking 'Mark as Reviewed'
+<!-- - ??? do smarter stuff with windows -->
+### Added
+- new setting 'Hide top level folder?' that will suppress folder names in project list headings if wished.
+### Fixed
+- date arithmetic for times to next review should now work regardless of time zone
+
 ## [0.9.1] - 2023-02-24
 ### Fixed
 - wasn't showing projects due for review today in 'Start Reviews'

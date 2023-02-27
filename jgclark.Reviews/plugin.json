@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.9.1",
-  "plugin.lastUpdateInfo": "0.9.1: Fixed projects due today not being offered for review.\n0.9.0: Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time. Lots of other layout improvements too.",
+  "plugin.version": "0.9.2-pre-release",
+  "plugin.lastUpdateInfo": "0.9.2: date fixes, locale language used where possible, other polish.\n0.9.1: Fixed projects due today not being offered for review.\n0.9.0: Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time. Lots of other layout improvements too.",
   "plugin.requiredFiles": [],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -100,9 +100,14 @@
       "jsFunction": "makeFullReviewList"
     },
     {
-      "name": "test:redisplayProjectList",
-      "description": "Redisplay project lists",
-      "jsFunction": "redisplayProjectList"
+      "name": "test:redisplayProjectListHTML",
+      "description": "Redisplay project lists (HTML)",
+      "jsFunction": "redisplayProjectListHTML"
+    },
+    {
+      "name": "test:renderProjectLists",
+      "description": "Render project lists (without recalc)",
+      "jsFunction": "renderProjectLists"
     }
   ],
   "plugin.inactiveCommands": [
@@ -248,6 +253,14 @@
       "description": "Whether to group the projects by their folder.",
       "type": "bool",
       "default": true,
+      "required": true
+    },
+    {
+      "key": "hideTopLevelFolder",
+      "title": "Hide top-level folder in output?",
+      "description": "If 'Display projects grouped by folder?' above is set, this hides all but the lowest-level subfolder name in output.",
+      "type": "bool",
+      "default": false,
       "required": true
     },
     {

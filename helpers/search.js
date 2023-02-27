@@ -17,8 +17,14 @@ import { RE_SYNC_MARKER } from '@helpers/regex'
  * @tests available in jest file
  */
 export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): boolean {
-  const re = new RegExp(`^${searchTerm}$`, "i") // = case insensitive match
-  return re.test(textToSearch)
+  try {
+    const re = new RegExp(`^${searchTerm}$`, "i") // = case insensitive match
+    return re.test(textToSearch)
+  }
+  catch (error) {
+    logError('search/caseInsensitiveMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
+    return false
+  }
 }
 
 /**
@@ -30,8 +36,14 @@ export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): 
  * @tests available in jest file
  */
 export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string): boolean {
-  const re = new RegExp(`${searchTerm}`, "i") // = case insensitive match
-  return re.test(textToSearch)
+  try {
+    const re = new RegExp(`${searchTerm}`, "i") // = case insensitive match
+    return re.test(textToSearch)
+  }
+  catch (error) {
+    logError('search/caseInsensitiveSubstringMatch', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
+    return false
+  }
 }
 
 /**
@@ -44,8 +56,15 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
  * @tests available in jest file
  */
 export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: string): boolean {
+  try {
   const re = new RegExp(`^${searchTerm}.+`, "i") // = case insensitive 'starts with' regex
-  return re.test(textToSearch)
+    return re.test(textToSearch)
+  }
+  catch (error) {
+    logError('search/caseInsensitiveStartsWith', `Error matching '${searchTerm}' to '${textToSearch}': ${error.message}`)
+    return false
+  }
+
 }
 
 /**

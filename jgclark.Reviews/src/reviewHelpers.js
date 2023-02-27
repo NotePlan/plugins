@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 23.2.2023 for v0.9.1, @jgclark
+// Last updated 27.2.2023 for v0.9.2, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -10,7 +10,12 @@
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import { checkString } from '@helpers/checkType'
-import { calcOffsetDate, calcOffsetDateStr, daysBetween, getDateObjFromDateString, getDateFromUnhyphenatedDateString, includesScheduledFutureDate, relativeDateFromDate, relativeDateFromNumber, toISODateString, unhyphenateString } from '@helpers/dateTime'
+import {
+  calcOffsetDate, calcOffsetDateStr, daysBetween, getDateObjFromDateString, getDateFromUnhyphenatedDateString, includesScheduledFutureDate, relativeDateFromDate,
+  // relativeDateFromNumber,
+  toISODateString, unhyphenateString
+} from '@helpers/dateTime'
+import { localeRelativeDateFromNumber } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { createOpenOrDeleteNoteCallbackUrl, createRunPluginCallbackUrl, getContentFromBrackets, getStringFromList } from '@helpers/general'
@@ -37,6 +42,7 @@ export type ReviewConfig = {
   displayProgress: boolean,
   displayOrder: string,
   displayGroupedByFolder: boolean,
+  hideTopLevelFolder: boolean,
   displayArchivedProjects: boolean,
   finishedListHeading: string,
   startMentionStr: string,
@@ -95,6 +101,7 @@ export function logPreference(prefName: string): void {
 
 /**
  * Calculate the next date to review, based on last review date and date interval.
+ * TODO: change from new Date()
  * If no last review date, then the answer is today's date.
  * @author @jgclark
  * @param {Date} lastReviewDate - JS Date
@@ -342,6 +349,7 @@ export class Project {
    */
   calcDurations(): void {
     try {
+      // TODO: change from new Date()
       const now = new Date()
       this.dueDays =
         this.dueDate != null
@@ -381,7 +389,7 @@ export class Project {
         if (this.reviewedDate != null) {
           this.nextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
           if (this.nextReviewDate != null) {
-            this.nextReviewDateStr = toISODateString(this.nextReviewDate)
+            // this now uses moment and truncated (not rounded) date diffs in number of days
             this.nextReviewDays = daysBetween(now, this.nextReviewDate)
             // logDebug('calcDurations', `${String(this.reviewedDate)} + ${this.reviewInterval} -> nextReviewDate: ${this.nextReviewDateStr} = ${String(this.nextReviewDays) ?? '-'}`)
           } else {
@@ -393,6 +401,7 @@ export class Project {
           this.nextReviewDays = 0
         }
       }
+      logDebug('calcDurations', `-> reviewedDate = ${String(this.reviewedDate)} / dueDays = ${String(this.dueDays)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
     } catch (error) {
       logError('calcDurations', error.message)
     }
@@ -411,7 +420,7 @@ export class Project {
       this.isCompleted = true
       this.isCancelled = false
       this.isPaused = false
-      this.completedDate = new Date()
+      this.completedDate = new Date() // TODO: change from new Date()
       this.calcDurations()
 
       // re-write the note's metadata line
@@ -452,7 +461,7 @@ export class Project {
       this.isCompleted = false
       this.isCancelled = true
       this.isPaused = false
-      this.cancelledDate = new Date()
+      this.cancelledDate = new Date() // TODO: change from new Date()
       this.calcDurations()
 
       // re-write the note's metadata line
@@ -639,8 +648,13 @@ export class Project {
           output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (isNaN(this.percentComplete)) { // NaN
-          output += '<td>' + this.addSVGPercentRing(100, 'grey', '0') + '</td>'
+          // output += '<td>' + this.addSVGPercentRing(100, 'grey', '0') + '</td>'
+          output += '<td>' + this.addFAIcon("fa-solid fa-circle-question", "#888888") + '</td>'
           output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}`
+        }
+        else if (this.percentComplete === 0) {
+          output += '<td>' + this.addSVGPercentRing(100, '#FF000088', '0') + '</td>'
+          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else {
           output += '<td>' + this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete)) + '</td>'
@@ -680,13 +694,13 @@ export class Project {
           if (!this.isCompleted && !this.isCancelled) {
             output = (this.nextReviewDays != null && !isNaN(this.nextReviewDays))
               ? (this.nextReviewDays > 0)
-                ? `${output}<td>${relativeDateFromNumber(this.nextReviewDays)}</td>`
-                : `${output}<td><p><b>${relativeDateFromNumber(this.nextReviewDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
+                ? `${output}<td>${localeRelativeDateFromNumber(this.nextReviewDays)}</td>`
+                : `${output}<td><p><b>${localeRelativeDateFromNumber(this.nextReviewDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
               : `${output}<td></td>`
             output = (this.dueDays != null && !isNaN(this.dueDays))
               ? (this.dueDays > 0)
-                ? `${output}<td>${relativeDateFromNumber(this.dueDays)}`
-                : `${output}<td><p><b>${relativeDateFromNumber(this.dueDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
+                ? `${output}<td>${localeRelativeDateFromNumber(this.dueDays)}`
+                : `${output}<td><p><b>${localeRelativeDateFromNumber(this.dueDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
               : `${output}<td></td>`
           }
         } else {

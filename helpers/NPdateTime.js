@@ -6,11 +6,37 @@
 import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
-import { RE_YYYYMMDD_DATE, getWeek, monthNameAbbrev, todaysDateISOString, toISOShortDateTimeString, weekStartEnd, RE_DATE } from './dateTime'
+import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, todaysDateISOString, toISOShortDateTimeString, weekStartEnd, RE_DATE } from './dateTime'
 import { logDebug, logError, clo, JSP } from './dev'
+// import { getSetting } from './NPConfiguration'
 import { chooseOption, getInput } from './userInput'
 
+// TODO: work out how to test these next few functions
+export function setMomentLocaleFromEnvironment(): void {
+  logDebug('NPdateTime', `NP reports languageCode = ${NotePlan.environment.languageCode ?? '<not set>'}`)
+  logDebug('NPdateTime', `NP reports regionCode   = ${NotePlan.environment.regionCode ?? '<not set>'}`)
+  // Locale-specific date + time formats
+  // Set locale for momnet library
+  const userLocaleSetting = `${NotePlan.environment.languageCode}${NotePlan.environment.regionCode ? '-' + NotePlan.environment.regionCode : ''}`
+  moment.locale(userLocaleSetting)
+  logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
+}
+
+export function nowLocaleShortDateTime(): string {
+  setMomentLocaleFromEnvironment()
+  return moment().format('L LT')
+}
+export function nowLocaleDate(): string {
+  setMomentLocaleFromEnvironment()
+  return moment().format('L')
+}
+export function nowLocaleShortTime(): string {
+  setMomentLocaleFromEnvironment()
+  return moment().format('LT')
+}
+
 // TODO: Finish moving references to this file from dateTime.js
+// TODO: Or can this now be deprecated in favour of newer functions above?
 export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
@@ -23,8 +49,10 @@ export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<str
    */
   return dateObj.toLocaleString(locale, options)
 }
+export const nowLocaleDateTime: string = moment().toDate().toLocaleString()
 
 // TODO: Finish moving references to this file from dateTime.js
+// TODO: Or can this now be deprecated in favour of newer functions above?
 export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
@@ -38,6 +66,7 @@ export function toLocaleDateString(dateObj: Date, locale: string | Array<string>
 }
 
 // TODO: Finish moving references to this file from dateTime.js
+// TODO: Or can this now be deprecated in favour of newer functions above?
 export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
@@ -57,7 +86,8 @@ export function printDateRange(dr: DateRange) {
 
 /**
  * Return quarter start and end dates for a given quarter
-  // TODO: change to use date arithmetic in moment library and move to dateTime.js
+ * TODO: write tests for this function. Then:
+ * TODO: change to use date arithmetic in moment library and move to dateTime.js
  * @param {number} qtr - quarter number in year (1-4)
  * @param {number} year - year (4-digits)
  * @returns {[Date, Date]}} - start and end dates (as JS Dates)
@@ -114,6 +144,13 @@ export function getUsersFirstDayOfWeekUTC(): number {
   // Get user preference for start of week.
   // In NP this is Sunday = 1 ...Sat = 6.  Can also be undefined -> 1.
   return typeof DataStore.preference('firstDayOfWeek') === 'number' ? Number(DataStore.preference('firstDayOfWeek')) - 1 : 1
+}
+
+// TODO: Use moment instead ... and make locale aware
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function monthNameAbbrev(m: number): string {
+  return monthsAbbrev[m - 1]
 }
 
 /**
@@ -453,8 +490,33 @@ export type NotePlanWeekInfo = {
   date: Date,
 }
 
+export type NotePlanMonthInfo = {
+  monthIndex: number /* 0-indexed */,
+  monthString: number /* 2022-01 (1-indexed) */,
+  startDate: Date,
+  endDate: Date,
+}
+
+export type NotePlanQuarterInfo = {
+  quarterIndex: number /* 0-indexed */,
+  quarterString: number /* 2022-Q1 (1-indexed) */,
+  startDate: Date,
+  endDate: Date,
+}
+
+export type NotePlanYearInfo = {
+  yearString: number /* 2022 */,
+  startDate: Date,
+  endDate: Date,
+}
+
+function pad(n: number) {
+  return n < 10 ? `0${n}` : n
+}
+
 /**
  * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * Week info is offset depending on the NotePlan setting for the first day of the week
  * @param {string} date - date string in format YYYY-MM-DD OR a Date object (default = today).
  *    NOTE:
  *    Make sure that if you send in a date that it's a date in the correct time/timezone you want.
@@ -477,9 +539,6 @@ export type NotePlanWeekInfo = {
  * @test - available in jest file
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
-  function pad(n: number) {
-    return n < 10 ? `0${n}` : n
-  }
   let dateStrFormat = 'YYYY-MM-DD',
     newMom
   if (typeof dateIn === 'string') {
@@ -504,6 +563,107 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
   return null
 }
 
+/**
+ * Get all the month details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
+ * @param {string | Date} dateIn 
+ * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
+ * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
+ * @returns {
+    monthIndex: number; /* 0-indexed 
+    monthString: number; e.g. 2022-01 (1-indexed)
+    startDate: Date; // start of month (date object in your local timezone -- could be another day in GMT)
+    endDate: Date; // end of month (date object in your local timezone -- could be another day in GMT)
+}
+ */
+export function getMonthData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'month'): NotePlanMonthInfo | null {
+  let dateStrFormat = 'YYYY-MM-DD',
+    newMom
+  if (typeof dateIn === 'string') {
+    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(RE_NP_MONTH_SPEC).test(dateIn)) dateStrFormat = 'YYYY-MM'
+    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+  } else {
+    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+  }
+  if (newMom) {
+    const monthIndex = newMom.month()
+    const monthString = newMom.format('YYYY-MM')
+    const startDate = newMom.startOf('month').toDate()
+    const endDate = newMom.endOf('month').toDate()
+
+    return { monthIndex, monthString, startDate, endDate }
+  }
+  return null
+}
+
+/**
+ * Get all the year details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
+ * @param {string | Date} dateIn 
+ * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
+ * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
+ * @returns {
+  yearString: number /* 2022 ,
+  startDate: Date,
+  endDate: Date,
+  }
+*/
+export function getYearData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'year'): NotePlanYearInfo | null {
+  let dateStrFormat = 'YYYY',
+    newMom
+  if (typeof dateIn === 'string') {
+    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(RE_DATE).test(dateIn)) dateStrFormat = 'YYYY-MM-DD'
+    if (new RegExp(RE_NP_MONTH_SPEC).test(dateIn)) dateStrFormat = 'YYYY-MM'
+    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+  } else {
+    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+  }
+  if (newMom) {
+    const yearString = newMom.format('YYYY')
+    const startDate = newMom.startOf('year').toDate()
+    const endDate = newMom.endOf('year').toDate()
+
+    return { yearString, startDate, endDate }
+  }
+  return null
+}
+
+/**
+ * Get all the month details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
+ * @param {string | Date} dateIn 
+ * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
+ * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
+ * @returns {
+  quarterIndex: number  0-indexed ,
+  quarterString: number 2022-Q1 (1-indexed) ,
+  startDate: Date,
+  endDate: Date,
+}
+ */
+export function getQuarterData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'quarter'): NotePlanQuarterInfo | null {
+  let dateStrFormat = 'YYYY-[Q]Q',
+    newMom
+  if (typeof dateIn === 'string') {
+    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+    if (new RegExp(RE_DATE).test(dateIn)) dateStrFormat = 'YYYY-MM-DD'
+    if (new RegExp(RE_NP_QUARTER_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[Q]Q'
+    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+  } else {
+    newMom = moment(dateIn).add(offsetIncrement, offsetType)
+  }
+  if (newMom) {
+    const quarterIndex = newMom.quarter()
+    const quarterString = newMom.format('YYYY-[Q]Q')
+    const startDate = newMom.startOf('quarter').toDate()
+    const endDate = newMom.endOf('quarter').toDate()
+
+    return { quarterIndex, quarterString, startDate, endDate }
+  }
+  return null
+}
 /**
  * Get upcoming date string options for use in chooseOption
  * Note: the day-specific version of this function is in ./dateTime (getDateOptions)
@@ -548,4 +708,40 @@ export function getWeekOptions(): $ReadOnlyArray<{ label: string, value: string 
     return [...extras, ...weekOpts]
   }
   return []
+}
+
+/**
+ * Return relative string version of difference between date and today, using locale-aware formatting provided by moment library, as picked up by NP environment.
+ * Returns just the most significant unit ("in 2 months", "a week ago" etc.)
+ * Note: uses the moment library (instead of my original), but if 'useShortStyle' set then tweaks output slightly (in English), to match my original.
+ * Note: non-locale original version at dateTime::relativeDateFromNumber()
+ * @author @jgclark
+ * @param {number} diffIn - number of days difference (positive or negative)
+ * @param {boolean?} shortStyle?
+ * @returns {string} - relative date string in locale picked up from NP environment (e.g. today, 3w ago, 2m, 4y ago.)
+ */
+export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: boolean = false): string {
+  let diff = diffIn
+  if (diffIn == null || diffIn === undefined || isNaN(diffIn)) {
+    logWarn('NPdateTime / localeRelativeDateFromNumber', `diffIn param is undefined`)
+    return 'unknown date'
+  }
+  // Set locale for moment from NP environment
+  setMomentLocaleFromEnvironment()
+  const todayMom = moment().startOf('day')
+  let output = (diffIn < 0)
+    ? todayMom.add(diffIn, 'days').fromNow()
+    : (diffIn === 0)
+      ? 'today'
+      : todayMom.add(diffIn, 'days').fromNow()
+  output = output.replace(/month[s]/, 'mon') // shorten 'months' -> 'mon' (in English)
+  if (useShortStyle) {
+    // Shorten output (in English)
+    output = output.replace(/ year[s]/, 'y')
+      .replace(/ month[s]/, 'm')
+      .replace(/ week[s]/, 'w')
+      .replace(/ day[s]/, 'd')
+  }
+  // logDebug('NPdateTime / localeRelativeDateFromNumber', `--> ${output}`)
+  return output
 }

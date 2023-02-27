@@ -33,8 +33,8 @@ export function convertAllLinksToHTMLLinks(original: string): string {
 export function changeBareLinksToHTMLLink(original: string): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
-  // logDebug(`${String(captures.length)} results from bare URL matches:`, captures ?? '-')
   if (captures.length > 0) {
+    // clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
       const linkURL = capture[3]
       output = output.replace(linkURL, `<span class="externalLink"><a href="${linkURL}">${linkURL}</a></span>`)
@@ -200,15 +200,13 @@ export function stripWikiLinksFromString(original: string): string {
 }
 
 /**
- * Strip all #hashtags from string,
- * TODO: or if second parameter passed, just the tags that match that string
+ * Strip all #hashtags from string
  * TODO: write tests
  * @author @jgclark
  * @param {string} original
- * @param {string?} specificItemToStrip
  * @returns {string} changed line
  */
-export function stripHashtagsFromString(original: string, specificItemToStrip?: string): string {
+export function stripHashtagsFromString(original: string): string {
   let output = original
   // Note: the regex from @EduardMe's file is /(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/ but :punct: doesn't work in JS, so here's my simplified version
   // TODO: matchAll?
@@ -229,15 +227,13 @@ export function stripHashtagsFromString(original: string, specificItemToStrip?: 
 
 /**
  * Strip all @mentions from string,
- * TODO: or if second parameter passed, just the mentions that match that string
  * TODO: deal with @mention(...) cases as well
  * TODO: write tests
  * @author @jgclark
  * @param {string} original
- * @param {string?} specificItemToStrip
  * @returns {string} changed line
  */
-export function stripMentionsFromString(original: string, specificItemToStrip?: string): string {
+export function stripMentionsFromString(original: string): string {
   let output = original
   // Note: the regex from @EduardMe's file is /(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/ but :punct: doesn't work in JS, so here's my simplified version
   // TODO: matchAll?

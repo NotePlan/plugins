@@ -16,10 +16,12 @@ import {
 import { checkString } from '@helpers/checkType'
 import {
   hyphenatedDateString,
-  nowLocaleDateTime,
   RE_DATE,
   toLocaleDateTimeString
 } from '@helpers/dateTime'
+import {
+  nowLocaleShortDateTime,
+} from '@helpers/NPdateTime'
 import {
   clo, JSP, logDebug, logError, logInfo, logWarn,
   timer
@@ -308,7 +310,7 @@ export async function renderProjectListsMarkdown(config: any, redisplayOnly: boo
     const pauseXCallbackButton = `[Toggle Pausing Project](${pauseXCallbackURL})` // Note: not currently used
     const completeXCallbackButton = `[Complete Project](${completeXCallbackURL})`
     const cancelXCallbackButton = `[Cancel Project](${cancelXCallbackURL})`
-    const nowDateTime = toLocaleDateTimeString(new Date()) // FIXME: how to change locale options to be short date-time?
+    const nowDateTime = nowLocaleShortDateTime
 
 
     if (config.noteTypeTags.length > 0) {

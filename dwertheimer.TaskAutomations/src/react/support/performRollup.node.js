@@ -26,6 +26,7 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
       externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
       createBundleGraph: graph,
       buildMode: 'development',
+      bundleName: 'WebViewBundle',
     }),
     getRollupConfig({
       entryPointPath: 'dwertheimer.TaskAutomations/src/react/support/rollup.WebView.entry.js',
@@ -33,6 +34,7 @@ const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReact
       externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
       createBundleGraph: graph,
       buildMode: 'production',
+      bundleName: 'WebViewBundle',
     }),
   ]
   // create one single base config with two output options

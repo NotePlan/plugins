@@ -36,6 +36,7 @@ let BUNDLE_REACT_ALSO = false
       externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
       createBundleGraph: graph,
       buildMode: 'development',
+      bundleName: 'RootBundle',
     }),
     /** np.Shared Root component prod */
     getRollupConfig({
@@ -44,6 +45,7 @@ let BUNDLE_REACT_ALSO = false
       externalModules: ['React', 'react', 'reactDOM', 'dom', 'ReactDOM'],
       createBundleGraph: graph,
       buildMode: 'production',
+      bundleName: 'RootBundle',
     }),
   ]
   const config = { ...rollupConfigs[0], ...{ output: [rollupConfigs[0].output, rollupConfigs[1].output] } }
@@ -62,6 +64,7 @@ let BUNDLE_REACT_ALSO = false
         externalModules: [],
         createBundleGraph: graph,
         buildMode: 'development',
+        bundleName: 'ReactCoreBundle',
       }),
       /** np.Shared React/REACT_DOM Core (development) */
       getRollupConfig({
@@ -70,6 +73,7 @@ let BUNDLE_REACT_ALSO = false
         externalModules: [],
         createBundleGraph: graph,
         buildMode: 'production',
+        bundleName: 'ReactCoreBundle',
       }),
     )
     // we have to roll these up separately because there is a plugin replacer that needs
