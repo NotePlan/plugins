@@ -282,7 +282,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should throw error on invalid end date', () => {
         const res = () => dt.daysBetween(new Date(2021, 2, 26, 14, 0, 0), '2021-03')
-        expect(res).toThrow(/dInvalid/)
+        expect(res).toThrow(/ddInvalid/)
       })
     })
     describe('non-truncated results', () => {
