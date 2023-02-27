@@ -395,7 +395,7 @@ export function monthNameAbbrev(m: number): string {
  * @param {string|Date} endDate - if string, must be in ISO format (e.g. '2022-01-01')
  * @param {boolean} returnFractionalDays (default: false) - if true, return a fractional number of days (e.g. 1.5 for 36 hours)
  * otherwise, it truncates the decimal part (e.g. 1 for 36 hours)
- * @return {number} - number of days between startDate and endDate (rounded to nearest integer)
+ * @return {number} - number of days between startDate and endDate (truncated to integer if returnFractionalDays is false)
  */
 export function daysBetween(startDate: string | Date, endDate: string | Date, returnFractionalDays: boolean = false): number {
   const reISODATE = new RegExp(RE_DATE)
