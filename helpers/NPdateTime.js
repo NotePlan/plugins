@@ -6,12 +6,12 @@
 import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
-import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, monthNameAbbrev, todaysDateISOString, toISOShortDateTimeString, weekStartEnd, RE_DATE } from './dateTime'
+import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, todaysDateISOString, toISOShortDateTimeString, weekStartEnd, RE_DATE } from './dateTime'
 import { logDebug, logError, clo, JSP } from './dev'
 // import { getSetting } from './NPConfiguration'
 import { chooseOption, getInput } from './userInput'
 
-// TODO: work out how to test this
+// TODO: work out how to test these next few functions
 export function setMomentLocaleFromEnvironment(): void {
   logDebug('NPdateTime', `NP reports languageCode = ${NotePlan.environment.languageCode ?? '<not set>'}`)
   logDebug('NPdateTime', `NP reports regionCode   = ${NotePlan.environment.regionCode ?? '<not set>'}`)
@@ -22,11 +22,21 @@ export function setMomentLocaleFromEnvironment(): void {
   logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
 }
 
-export const nowLocaleShortDateTime: string = moment().format('L LT')
-export const nowLocaleDate: string = moment().format('L')
-export const nowLocaleShortTime: string = moment().format('LT')
+export function nowLocaleShortDateTime(): string {
+  setMomentLocaleFromEnvironment()
+  return moment().format('L LT')
+}
+export function nowLocaleDate(): string {
+  setMomentLocaleFromEnvironment()
+  return moment().format('L')
+}
+export function nowLocaleShortTime(): string {
+  setMomentLocaleFromEnvironment()
+  return moment().format('LT')
+}
 
 // TODO: Finish moving references to this file from dateTime.js
+// TODO: Or can this now be deprecated in favour of newer functions above?
 export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
@@ -42,6 +52,7 @@ export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<str
 export const nowLocaleDateTime: string = moment().toDate().toLocaleString()
 
 // TODO: Finish moving references to this file from dateTime.js
+// TODO: Or can this now be deprecated in favour of newer functions above?
 export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
@@ -55,6 +66,7 @@ export function toLocaleDateString(dateObj: Date, locale: string | Array<string>
 }
 
 // TODO: Finish moving references to this file from dateTime.js
+// TODO: Or can this now be deprecated in favour of newer functions above?
 export function toLocaleTime(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
   /**
    * TODO: use details from NotePlan.environment...
@@ -74,7 +86,8 @@ export function printDateRange(dr: DateRange) {
 
 /**
  * Return quarter start and end dates for a given quarter
-  // TODO: change to use date arithmetic in moment library and move to dateTime.js
+ * TODO: write tests for this function. Then:
+ * TODO: change to use date arithmetic in moment library and move to dateTime.js
  * @param {number} qtr - quarter number in year (1-4)
  * @param {number} year - year (4-digits)
  * @returns {[Date, Date]}} - start and end dates (as JS Dates)
@@ -131,6 +144,13 @@ export function getUsersFirstDayOfWeekUTC(): number {
   // Get user preference for start of week.
   // In NP this is Sunday = 1 ...Sat = 6.  Can also be undefined -> 1.
   return typeof DataStore.preference('firstDayOfWeek') === 'number' ? Number(DataStore.preference('firstDayOfWeek')) - 1 : 1
+}
+
+// TODO: Use moment instead ... and make locale aware
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function monthNameAbbrev(m: number): string {
+  return monthsAbbrev[m - 1]
 }
 
 /**
@@ -688,4 +708,40 @@ export function getWeekOptions(): $ReadOnlyArray<{ label: string, value: string 
     return [...extras, ...weekOpts]
   }
   return []
+}
+
+/**
+ * Return relative string version of difference between date and today, using locale-aware formatting provided by moment library, as picked up by NP environment.
+ * Returns just the most significant unit ("in 2 months", "a week ago" etc.)
+ * Note: uses the moment library (instead of my original), but if 'useShortStyle' set then tweaks output slightly (in English), to match my original.
+ * Note: non-locale original version at dateTime::relativeDateFromNumber()
+ * @author @jgclark
+ * @param {number} diffIn - number of days difference (positive or negative)
+ * @param {boolean?} shortStyle?
+ * @returns {string} - relative date string in locale picked up from NP environment (e.g. today, 3w ago, 2m, 4y ago.)
+ */
+export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: boolean = false): string {
+  let diff = diffIn
+  if (diffIn == null || diffIn === undefined || isNaN(diffIn)) {
+    logWarn('NPdateTime / localeRelativeDateFromNumber', `diffIn param is undefined`)
+    return 'unknown date'
+  }
+  // Set locale for moment from NP environment
+  setMomentLocaleFromEnvironment()
+  const todayMom = moment().startOf('day')
+  let output = (diffIn < 0)
+    ? todayMom.add(diffIn, 'days').fromNow()
+    : (diffIn === 0)
+      ? 'today'
+      : todayMom.add(diffIn, 'days').fromNow()
+  output = output.replace(/month[s]/, 'mon') // shorten 'months' -> 'mon' (in English)
+  if (useShortStyle) {
+    // Shorten output (in English)
+    output = output.replace(/ year[s]/, 'y')
+      .replace(/ month[s]/, 'm')
+      .replace(/ week[s]/, 'w')
+      .replace(/ day[s]/, 'd')
+  }
+  // logDebug('NPdateTime / localeRelativeDateFromNumber', `--> ${output}`)
+  return output
 }

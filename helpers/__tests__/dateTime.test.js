@@ -239,7 +239,6 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   describe('daysBetween', () => {
-    // TODO: this can be tested
     describe('truncated results (default)', () => {
       test('identical dates', () => {
         const res = dt.daysBetween(new Date(2021, 3, 24, 0, 0, 0), new Date(2021, 3, 24, 0, 0, 0))

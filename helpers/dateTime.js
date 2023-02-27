@@ -376,13 +376,6 @@ export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: b
   return newString
 }
 
-export const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-export const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-// TODO: Could use moment instead ... might be more locale aware too
-export function monthNameAbbrev(m: number): string {
-  return monthsAbbrev[m - 1]
-}
-
 /**
  * Return difference between start and end dates (by default ignoring any time components)
  * if returnFractionalDays is true, then use time components and return a fractional number of days (e.g. 1.5 for 36 hours)
@@ -432,9 +425,8 @@ export function withinDateRange(testDate: string, fromDate: string, toDate: stri
  * Return rough relative string version of difference between date and today.
  * Don't return all the detail, but just the most significant unit (year, month, week, day)
  * If date is in the past then adds 'ago'.
- * This is v2, now using moment library instead, but tweaking slightly to produce exactly the output as my v1 did.
+ * Note: there is a newer locale-aware version of this function, using moment library at NPdateTime::localeRelativeDateFromNumber
  * @author @jgclark
- *
  * @param {number} diffIn - number of days difference (positive or negative)
  * @param {boolean?} shortStyle?
  * @returns {string} - relative date string (e.g. today, 3w ago, 2m, 4y ago.)
@@ -491,6 +483,7 @@ export function relativeDateFromNumber(diffIn: number, useShortStyle: boolean = 
   // logDebug('dateTime / relativeDateFromNumber', `--> ${output}`)
   return output
 }
+
 
 /**
  * Turn a string that includes YYYY-MM-DD into a JS Date.
