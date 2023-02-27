@@ -775,7 +775,7 @@ export const isOverdue = (t: TParagraph): boolean => {
 export const getOverdueParagraphs = (paras: $ReadOnlyArray<TParagraph>): Array<TParagraph> => {
   const openTasks = paras?.filter(isOpen) || []
   const effectivelyOverdues = openTasks.filter(paragraphIsEffectivelyOverdue)
-  const datedOverdues = openTasks.filter(hasOverdueTag)
+  const datedOverdues = openTasks.filter((p) => hasOverdueTag(p, false))
   // FIXME: david you can't merge these because one fails and one succeeds every time? maybe?
   return [...datedOverdues, ...effectivelyOverdues].filter((t) => t.content !== '')
 }

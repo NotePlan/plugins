@@ -3,39 +3,49 @@
 'use strict'
 
 // $FlowFixMe
-const { promises: fs } = require('fs')
-const fg = require('fast-glob') //dbw adding for requiredFiles glob wildcard watch (**/)
-const { existsSync } = require('fs')
-const path = require('path')
-const notifier = require('node-notifier')
-const alias = require('@rollup/plugin-alias')
+import { promises as fs } from 'fs'
+const { readFile } = fs
 
-const colors = require('chalk')
-const messenger = require('@codedungeon/messenger')
+import fg from 'fast-glob' //dbw adding for requiredFiles glob wildcard watch (**/)
+import { existsSync } from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-const strftime = require('strftime')
-const rollup = require('rollup')
-const commonjs = require('@rollup/plugin-commonjs')
+import notifier from 'node-notifier'
+import alias from '@rollup/plugin-alias'
 
-const json = require('@rollup/plugin-json')
-const { nodeResolve } = require('@rollup/plugin-node-resolve')
+import colors from 'chalk'
+import messenger from '@codedungeon/messenger'
 
-const { babel } = require('@rollup/plugin-babel')
-const { terser } = require('rollup-plugin-terser')
-const mkdirp = require('mkdirp')
-const { program } = require('commander')
-const ProgressBar = require('progress')
-const pkgInfo = require('../package.json')
-const pluginConfig = require('../plugins.config')
-const createPluginListing = require('./createPluginListing')
+import strftime from 'strftime'
+import * as rollup from 'rollup'
+import commonjs from '@rollup/plugin-commonjs'
+
+import json from '@rollup/plugin-json'
+import { nodeResolve } from '@rollup/plugin-node-resolve'
+
+import { babel } from '@rollup/plugin-babel'
+import { terser } from 'rollup-plugin-terser'
+import mkdirp from 'mkdirp'
+import { program } from 'commander'
+import ProgressBar from 'progress'
+
+import pluginConfig from '../plugins.config.js'
 
 let progress
 let requiredFilesWatchMsg = ''
 
 let watcher
 
-const { getFolderFromCommandLine, getPluginFileContents, writeMinifiedPluginFileContents, getCopyTargetPath, getPluginConfig } = require('./shared')
-const { re } = require('mathjs')
+import { getFolderFromCommandLine, getPluginFileContents, writeMinifiedPluginFileContents, getCopyTargetPath, getPluginConfig } from './shared.js'
+import { re } from 'mathjs'
+
+// because of changes in Node, we cannot read JSON files directly by importing them anymore
+// import pkgInfo from '../package.json' assert { type: 'json' } // eventually this will work in Node 19
+const readJSON = async (url) => JSON.parse(await readFile(new URL(url, import.meta.url)))
+const pkgInfo = readJSON('../package.json')
 
 const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
 const rootFolderPath = path.join(__dirname, '..')
@@ -197,7 +207,6 @@ async function checkPluginList(pluginPaths) {
       console.log(colors.red(`^^^ checkPluginList: For some reason could not parse file at: ${pluginPath}`))
     }
   }
-  await createPluginListing(pluginCommands)
 }
 
 async function main() {

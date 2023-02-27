@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   // A map from regular expressions to module names that allow to stub out resources with a single module
   moduleNameMapper: {
     '^@helpers/(.*)$': '<rootDir>/helpers/$1',

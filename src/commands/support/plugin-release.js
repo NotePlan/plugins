@@ -5,7 +5,8 @@
 const util = require('util') // eslint-disable-line
 /* eslint-disable */
 const { filesystem, colors, print, path, system, prompt, strings, api: http } = require('@codedungeon/gunner')
-const ListPrompt = require('inquirer/lib/prompts/list')
+const { ListPrompt } = import('inquirer/lib/prompts/list')
+// const ListPrompt = require('inquirer/lib/prompts/list')
 const Listr = require('listr')
 const split = require('split')
 const execa = require('execa')

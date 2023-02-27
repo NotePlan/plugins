@@ -1,15 +1,20 @@
 'use strict'
 
-const fs = require('fs/promises')
-const os = require('os')
+import fs from 'fs/promises'
+import os from 'os'
 const username = os.userInfo().username
-const path = require('path')
-const util = require('util')
-const exec = util.promisify(require('child_process').exec)
-const inquirer = require('inquirer')
-const JSON5 = require('json5')
-const colors = require('colors')
+import path from 'path'
+import util from 'util'
+import child_process from 'child_process'
+const exec = util.promisify(child_process.exec)
+// const inquirer = import('inquirer')
+import inquirer from 'inquirer'
+import JSON5 from 'json5'
+import colors from 'colors'
 
+import { fileURLToPath } from 'url'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 const pluginPathFile = path.join(__dirname, '..', '.pluginpath')
 
 /**
@@ -26,11 +31,7 @@ async function fileExists(fullPath) {
   }
 }
 
-async function getFolderFromCommandLine(
-  rootFolderPath,
-  args,
-  minimalOutput = false,
-) {
+async function getFolderFromCommandLine(rootFolderPath, args, minimalOutput = false) {
   // const args = process.argv.slice(2)
   const limitToFolders = []
   if (args.length) {
@@ -116,8 +117,7 @@ async function getCopyTargetPath(dirents) {
     {
       type: 'list',
       name: 'shouldCopy',
-      message:
-        'Could not a find a file called ".pluginpath". Do you want to auto-copy compiled plugins to the Noteplan plugin directory?',
+      message: 'Could not a find a file called ".pluginpath". Do you want to auto-copy compiled plugins to the Noteplan plugin directory?',
       choices: [
         { name: 'Yes', value: true },
         { name: 'No', value: false },
@@ -174,12 +174,4 @@ async function getPluginConfig(key = null, defaultValue = null) {
   }
 }
 
-module.exports = {
-  fileExists,
-  getPluginFileContents,
-  runShellCommand,
-  getFolderFromCommandLine,
-  writeMinifiedPluginFileContents,
-  getCopyTargetPath,
-  getPluginConfig,
-}
+export { fileExists, getPluginFileContents, runShellCommand, getFolderFromCommandLine, writeMinifiedPluginFileContents, getCopyTargetPath, getPluginConfig }

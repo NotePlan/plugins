@@ -8,7 +8,6 @@
 const colors = require('chalk')
 const Table = require('cli-table3')
 const { print, helpers } = require('@codedungeon/gunner')
-const createPluginListing = require('../../scripts/createPluginListing')
 const pluginUtils = require('./support/plugin-utils')
 const pluginInfo = require('./support/plugin-info')
 
@@ -47,11 +46,6 @@ module.exports = {
       aliases: ['a'],
       description: `Perform Plugin Sanity Check`,
     },
-    save: {
-      type: 'boolean',
-      aliases: ['s'],
-      description: `Save Command List ${colors.gray('(Markdown Format)')}`,
-    },
   },
 
   async execute(toolbox) {
@@ -63,7 +57,6 @@ module.exports = {
 
     const check = toolbox.getOptionValue(toolbox.arguments, ['check', 'c'])
     const docs = toolbox.getOptionValue(toolbox.arguments, ['docs', 'd'])
-    const savePluginListing = toolbox.getOptionValue(toolbox.arguments, ['save', 's'])
 
     if (docs) {
       if (plugin.length > 0) {
@@ -89,18 +82,8 @@ module.exports = {
       if (plugin) {
         toolbox.print.error(` 🚫 '${check}' exists in ${plugin.pluginName} [${plugin.pluginId}].`)
       } else {
-        toolbox.print.success(
-          ` ✅ '${check}' is currently not used by any NotePlan plugin and can be used in your plugin.`,
-        )
+        toolbox.print.success(` ✅ '${check}' is currently not used by any NotePlan plugin and can be used in your plugin.`)
       }
-      process.exit()
-    }
-
-    if (savePluginListing) {
-      await createPluginListing(commands)
-
-      print.success('./Plugin-Listing.md Created Successfully', 'SUCCESS')
-
       process.exit()
     }
 
@@ -121,13 +104,7 @@ module.exports = {
         ids.push(pluginId)
       }
       if (item.pluginId !== 'yourGitID.yourPluginCollectionName') {
-        table.push([
-          `${pluginId}\n${pluginAuthor}`,
-          pluginName,
-          item.name,
-          item.jsFunction,
-          item.description.substring(0, 75),
-        ])
+        table.push([`${pluginId}\n${pluginAuthor}`, pluginName, item.name, item.jsFunction, item.description.substring(0, 75)])
       }
     })
 

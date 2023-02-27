@@ -4,7 +4,9 @@
 // run like so:
 //     jest **/*.test.js --reporters jest-silent-reporter --reporters ./jest.customSummaryReporter.js
 
-const chalk = require('chalk')
+// const chalk = require('chalk')
+import colors from 'chalk'
+
 class CustomReporter {
   constructor(globalConfig, reporterOptions, reporterContext) {
     this._globalConfig = globalConfig
@@ -20,11 +22,13 @@ class CustomReporter {
     // console.log('\n\ntest testContexts: \n', testContexts)
     // console.log('\n\ntest results: \n', results)
     const activeTests = results.numTotalTests - results.numPendingTests
-    const fails = results.numFailedTests ? chalk.red.inverse(` ${results.numFailedTests} failed `) : chalk.green(` (100%) `)
-    const pass = `${chalk.green(`${results.numPassedTests}/${activeTests} passed`)}`
-    const msg = `Test Results: ${pass}${fails}out of ${results.numTotalTests} tests in ${results.numTotalTestSuites} suites (${results.numPendingTests} tests skipped)`
+    const fails = results.numFailedTests ? colors.red.inverse(` ${results.numFailedTests} failed `) : ``
+    const pct = results.numFailedTests ? ` (100%)` : ''
+    const pass = `${results.numFailedTests ? ', ' : ' 100% '}${colors.green(`${results.numPassedTests}/${activeTests} passed${pct}`)}, `
+    const outOf = `out of ${results.numTotalTests} tests in ${results.numTotalTestSuites} suites (${results.numPendingTests} tests skipped)`
+    const msg = `Test Results: ${fails}${results.numFailedTests ? ' ' : ''}${pass} ${outOf}}`
     console.log(msg)
   }
 }
 
-module.exports = CustomReporter
+export default CustomReporter
