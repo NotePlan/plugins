@@ -64,6 +64,7 @@
     "@rollup/plugin-json": "4.1.0",
     "@rollup/plugin-node-resolve": "13.0.4",
     "concurrently": "^6.2.0",
+    "documentation": "^13.2.5",
     "eslint": "^7.26.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-import-resolver-alias": "^1.1.2",
@@ -104,7 +105,7 @@
     "security:critical": "npm audit | grep -B 1 -A 10 critical",
     "dev": "node ./tasks/start.js",
     "start": "node ./tasks/start.js",
-    "docs": "documentation build helpers/*.js flow-typed/Noteplan.js --sort-order=alpha --project-name=\"NotePlan API+@helpers shared files\" --project-description=\"An attempt to help find @helper functions\" --project-homepage \"https://help.noteplan.co/article/70-javascript-plugin-api\" -f html -o \"Documentation-Helpers\""
+    "docs": "documentation build helpers/*.js flow-typed/Noteplan.js --shallow --document-exported --sort-order=alpha --project-name=\"NotePlan API+@helpers shared files\" --project-description=\"An attempt to help find @helper functions\" --project-homepage \"https://help.noteplan.co/article/70-javascript-plugin-api\" -f html -o \"Documentation-Helpers\""
   },
   "prettier": {
     "printWidth": 180,
@@ -130,7 +131,6 @@
     "contentful-html-rich-text-converter": "1.0.9",
     "date-fns": "^2.23.0",
     "dayjs": "1.10.6",
-    "documentation": "^13.2.5",
     "enquirer": "^2.3.6",
     "fast-glob": "^3.2.12",
     "findup-sync": "4.0.0",
