@@ -33,7 +33,8 @@ If you are a developer and want to contribute and build your plugins, see the [p
 
 **Step 1.5 Have a look at the code**
 
-When you have cloned this repository, you will not only have the tooling, but you will have the actual source code for every publicly-available NotePlan plugin. This will give you a wealth of material to learn from and borrow from. Speaking of which, there is a `/helpers` directory at the root of the repository that contains a lot of re-usable code that is built upon the NotePlan APIs and will speed up your development. It would be good to familiarize yourself with that code. 
+When you have cloned this repository, you will not only have the tooling, but you will have the actual source code for every publicly-available NotePlan plugin. This will give you a wealth of material to learn from and borrow from. Speaking of which, there is a `/helpers` directory at the root of the repository that contains a lot of useful functions built upon the NotePlan APIs and will speed up your development. It would be good to familiarize yourself with that code by browsing it. There is a searchable index of the helper code that can be accessed by running this command in a terminal:
+`npm run docs`
 
 **Step 2: Install Node (if not installed)**
 
