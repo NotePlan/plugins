@@ -1,0 +1,8 @@
+{
+    "noPackage": true,
+    "project-name":"NotePlan API+@helpers shared files",
+    "project-homepage": "https://help.noteplan.co/article/70-javascript-plugin-api",
+    "project-version": "1.0.0",
+    "project-description": "An attempt to help find @helper functions",
+    "sort-order":"alpha"
+}
