@@ -3,7 +3,7 @@
 'use strict'
 
 // $FlowFixMe
-const fs = require('fs/promises')
+const { promises: fs } = require('fs')
 const fg = require('fast-glob') //dbw adding for requiredFiles glob wildcard watch (**/)
 const { existsSync } = require('fs')
 const path = require('path')
@@ -175,8 +175,8 @@ async function checkPluginList(pluginPaths) {
     // console.log(`About to read ${pluginPath}`)
     const pluginFile = await getPluginFileContents(path.join(pluginPath, 'plugin.json')) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
 
-    if (pluginFile) {
-      pluginFile['plugin.commands']?.forEach((command) => {
+    if (pluginFile && pluginFile['plugin.commands']) {
+      pluginFile['plugin.commands'].forEach((command) => {
         if (pluginCommands[command.name]) {
           console.log(colors.red.bold(`\n!!!!\nCommand collision: "${command.name}" exists already!`))
           console.log(`\tTrying to add: "${command.name}" from ${path.basename(pluginPath)}`)

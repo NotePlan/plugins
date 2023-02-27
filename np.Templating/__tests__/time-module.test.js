@@ -79,7 +79,9 @@ describe(`${PLUGIN_NAME}`, () => {
 
     describe(block(`TimeModule helpers`), () => {
       it(`time`, () => {
-        const result = new TimeModule().now()
+        // replacing 0x202F with a space because for some reason, in node 18
+        // time formatting comes with this character instead of a space
+        const result = new TimeModule().now().replace(' ', ' ')
 
         const assertValue = time('h:mm A')
 
@@ -87,7 +89,8 @@ describe(`${PLUGIN_NAME}`, () => {
       })
 
       it(`${method('.currentTime')}`, () => {
-        const result = new TimeModule().now()
+        // see replacement note above
+        const result = new TimeModule().now().replace(' ', ' ')
 
         const assertValue = currentTime()
 
