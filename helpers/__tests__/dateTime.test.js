@@ -240,37 +240,57 @@ describe(`${PLUGIN_NAME}`, () => {
 
   describe('daysBetween', () => {
     // TODO: this can be tested
-    test('identical dates', () => {
-      const res = dt.daysBetween(new Date(2021, 3, 24, 0, 0, 0), new Date(2021, 3, 24, 0, 0, 0))
-      expect(res).toEqual(0)
+    describe('truncated results (default)', () => {
+      test('identical dates', () => {
+        const res = dt.daysBetween(new Date(2021, 3, 24, 0, 0, 0), new Date(2021, 3, 24, 0, 0, 0))
+        expect(res).toEqual(0)
+      })
+      test('dates 11 hours apart (forwards)', () => {
+        const res = dt.daysBetween(new Date(2021, 3, 24, 0, 0, 0), new Date(2021, 3, 24, 11, 0, 0))
+        expect(res).toEqual(0)
+      })
+      test('dates 11 hours apart (backwards)', () => {
+        const res = dt.daysBetween(new Date(2021, 3, 24, 11, 0, 0), new Date(2021, 3, 24, 0, 0, 0))
+        expect(res).toEqual(0) // returns -0 normally!
+      })
+      test('consecutive dates (forward)', () => {
+        const res = dt.daysBetween(new Date(2021, 3, 24, 0, 0, 0), new Date(2021, 3, 25, 0, 0, 0))
+        expect(res).toEqual(1)
+      })
+      test('consecutive dates (backwards)', () => {
+        const res = dt.daysBetween(new Date(2021, 3, 24, 0, 0, 0), new Date(2021, 3, 23, 0, 0, 0))
+        expect(res).toEqual(-1)
+      })
+      test('start Feb -> start Mar', () => {
+        const res = dt.daysBetween(new Date(2023, 1, 1, 0, 0, 0), new Date(2023, 2, 1, 0, 0, 0)) // note months are 0-based
+        expect(res).toEqual(28)
+      })
+      test('start 2023 -> start 2024', () => {
+        const res = dt.daysBetween(new Date(2023, 0, 1, 0, 0, 0), new Date(2024, 0, 1, 0, 0, 0)) // note months are 0-based
+        expect(res).toEqual(365)
+      })
+      test('works for string inputs', () => {
+        const res = dt.daysBetween('2021-03-25', '2021-03-26')
+        expect(res).toEqual(1)
+      })
+      test('works for mixed string and calendar date', () => {
+        const res = dt.daysBetween('2021-03-25', new Date(2021, 2, 26, 14, 0, 0))
+        expect(res).toEqual(1)
+      })
+      test('should throw error on invalid start  date', () => {
+        const res = () => dt.daysBetween('2021-03', new Date(2021, 2, 26, 14, 0, 0))
+        expect(res).toThrow(/Invalid/)
+      })
+      test('should throw error on invalid end date', () => {
+        const res = () => dt.daysBetween(new Date(2021, 2, 26, 14, 0, 0), '2021-03')
+        expect(res).toThrow(/Invalid/)
+      })
     })
-    test('dates 11 hours apart (forwards)', () => {
-      const res = dt.daysBetween(new Date(2021, 3, 24, 0, 0, 0), new Date(2021, 3, 24, 11, 0, 0))
-      expect(res).toEqual(0)
-    })
-    test('dates 11 hours apart (backwards)', () => {
-      const res = dt.daysBetween(new Date(2021, 3, 24, 11, 0, 0), new Date(2021, 3, 24, 0, 0, 0))
-      expect(res).toEqual(0) // returns -0 normally!
-    })
-    test('consecutive dates (forward)', () => {
-      const res = dt.daysBetween(new Date(2021, 3, 24, 0, 0, 0), new Date(2021, 3, 25, 0, 0, 0))
-      expect(res).toEqual(1)
-    })
-    test('consecutive dates (backwards)', () => {
-      const res = dt.daysBetween(new Date(2021, 3, 24, 0, 0, 0), new Date(2021, 3, 23, 0, 0, 0))
-      expect(res).toEqual(-1)
-    })
-    test('start Feb -> start Mar', () => {
-      const res = dt.daysBetween(new Date(2023, 1, 1, 0, 0, 0), new Date(2023, 2, 1, 0, 0, 0)) // note months are 0-based
-      expect(res).toEqual(28)
-    })
-    test('start 2023 -> start 2024', () => {
-      const res = dt.daysBetween(new Date(2023, 0, 1, 0, 0, 0), new Date(2024, 0, 1, 0, 0, 0)) // note months are 0-based
-      expect(res).toEqual(365)
-    })
-    test('dates one day-ish apart (forwards) using string date', () => {
-      const res = dt.daysBetween(new Date('2021-03-25'), new Date(2021, 2, 24, 14, 0, 0))
-      expect(res).toEqual(1)
+    describe('non-truncated results', () => {
+      test('should return fractional day', () => {
+        const res = dt.daysBetween(new Date(2021, 2, 24, 11, 0, 0), new Date(2021, 2, 24, 12, 1, 2), true)
+        expect(res.toFixed(4)).toEqual((1 / 24 + 1 / (24 * 60) + 2 / (24 * 60 * 60)).toFixed(4))
+      })
     })
   })
 

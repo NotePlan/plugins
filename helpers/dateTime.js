@@ -70,7 +70,7 @@ export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
 // these two are the same!
 export const todaysDateISOString: string = moment().toISOString().slice(0, 10)
 export function getTodaysDateHyphenated(): string {
-  return moment().format("YYYY-MM-DD")
+  return moment().format('YYYY-MM-DD')
 }
 
 export function getTodaysDateAsArrowDate(): string {
@@ -78,7 +78,7 @@ export function getTodaysDateAsArrowDate(): string {
 }
 
 export function getTodaysDateUnhyphenated(): string {
-  return moment().format("YYYYMMDD")
+  return moment().format('YYYYMMDD')
   // return strftime(`%Y%m%d`)
 }
 
@@ -384,22 +384,35 @@ export function monthNameAbbrev(m: number): string {
 }
 
 /**
- * Return difference between start and end dates, ignoring any time components
+ * Return difference between start and end dates (by default ignoring any time components)
+ * if returnFractionalDays is true, then use time components and return a fractional number of days (e.g. 1.5 for 36 hours)
+ * Note: It is highly recommended that if you have an ISO string (e.g. '2022-01-01') you send the string
+ * rather than trying to convert it to a Date object, as the Date object may be converted to local time, which may not be what you want.
  * Note: v2 uses a.moment(b).diff(moment().startOf('day'), 'days') instead
  * @author @jgclark
  * @tests in jest file
- * @param {Date} startDate
- * @param {Date} endDate
- * @return {number} - number of days between startDate and endDate (rounded to nearest integer)
+ * @param {string|Date} startDate - if string, must be in ISO format (e.g. '2022-01-01')
+ * @param {string|Date} endDate - if string, must be in ISO format (e.g. '2022-01-01')
+ * @param {boolean} returnFractionalDays (default: false) - if true, return a fractional number of days (e.g. 1.5 for 36 hours)
+ * otherwise, it truncates the decimal part (e.g. 1 for 36 hours)
+ * @return {number} - number of days between startDate and endDate (truncated to integer if returnFractionalDays is false)
  */
-export function daysBetween(startDate: Date, endDate: Date): number {
+export function daysBetween(startDate: string | Date, endDate: string | Date, returnFractionalDays: boolean = false): number {
+  const reISODATE = new RegExp(RE_DATE)
+  if ((typeof startDate === 'string' && !startDate.match(reISODATE)) || (typeof endDate === 'string' && !endDate.match(reISODATE))) {
+    throw new Error('Invalid date format')
+  }
   // v1 method:
   // const res = Math.round((endDate - startDate) / 1000 / 60 / 60 / 24) // i.e. milliseconds -> days
   // return (res === -0) ? 0 : res // handle weird edge case
 
   // v2 method:
   // moment's a.diff(b, 'days') gives the different in days between a and b, with the answer truncated (not rounded)
-  return moment(endDate).startOf('day').diff(moment(startDate).startOf('day'), 'days')
+  if (returnFractionalDays) {
+    return moment(endDate).diff(moment(startDate), 'days', returnFractionalDays)
+  } else {
+    return moment(endDate).startOf('day').diff(moment(startDate).startOf('day'), 'days', returnFractionalDays)
+  }
 }
 
 /**
