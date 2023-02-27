@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 23.2.2023 for v0.9.0, @jgclark
+// Last updated 27.2.2023 for v0.9.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -20,12 +20,16 @@ import {
 } from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
 import {
+  getJSDateStartOfToday,
   getTodaysDateHyphenated,
   hyphenatedDateString,
-  nowLocaleDateTime,
   RE_DATE,
-  toLocaleDateTimeString,
+  // toLocaleDateTimeString,
 } from '@helpers/dateTime'
+import {
+  // nowLocaleDateTime,
+  nowLocaleShortDateTime,
+} from '@helpers/NPdateTime'
 import {
   clo, JSP, logDebug, logError, logInfo, logWarn,
   overrideSettingsWithStringArgs,
@@ -47,11 +51,11 @@ import {
 } from '@helpers/note'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
+import { fieldSorter, sortListBy } from '@helpers/sorting'
 import {
   showMessage,
   showMessageYesNo,
 } from '@helpers/userInput'
-import { fieldSorter, sortListBy } from '@helpers/sorting'
 
 //-----------------------------------------------------------------------------
 
@@ -68,6 +72,7 @@ const faLinksInHeader = `
   <link href="../np.Shared/fontawesome.css" rel="stylesheet">
   <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
   <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+  <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
 `
 
 export const reviewListCSS: string = [
@@ -75,6 +80,7 @@ export const reviewListCSS: string = [
   'body { padding: 0rem 0.25rem; }', // a little breathing room around whole content
   'table { font-size: 1.0rem;', // had been on 0.9rem to make text a little smaller
   '  border-collapse: collapse;', // always!
+  '  width: 100%;', // keep wide to avoid different table widths
   '  empty-cells: show;}',
   'p { margin-block-start: 0.5rem; margin-block-end: 0.5rem; }',
   'a, a:visited, a:active { color: inherit; text-decoration-line: none }', // turn off special colouring and underlining for links -- turn on later when desired
@@ -212,7 +218,7 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
     const pauseXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
     const completeXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
     const cancelXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
-    const nowDateTime = toLocaleDateTimeString(new Date())
+    const nowDateTime = nowLocaleShortDateTime()
 
     // Create the HTML for the 'start review button'
     // - Version 1: does work inside Safari, but not for some reason in a NP view. Eduard doesn't know why.
@@ -269,8 +275,8 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
 <colgroup>
 \t<col style="width: 3rem">
 \t<col>
-\t<col style="width: 5em">
-\t<col style="width: 5em">
+\t<col style="width: 6em">
+\t<col style="width: 6em">
 </colgroup>
 `)
         }
@@ -300,6 +306,8 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
 
     // TODO: in time make a 'timeago' relative display, e.g. using MOMENT moment.duration(-1, "minutes").humanize(true); // a minute ago
     // or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html or https://theprogrammingexpert.com/javascript-count-up-timer/
+
+    logWindows()
 
     // Show the list as HTML, and save a copy as file
     await showHTML(
@@ -345,7 +353,7 @@ export async function renderProjectListsMarkdown(config: any, redisplayOnly: boo
     const pauseXCallbackButton = `[Toggle Pausing Project](${pauseXCallbackURL})` // Note: not currently used
     const completeXCallbackButton = `[Complete Project](${completeXCallbackURL})`
     const cancelXCallbackButton = `[Cancel Project](${cancelXCallbackURL})`
-    const nowDateTime = toLocaleDateTimeString(new Date()) // FIXME: how to change locale options to be short date-time?
+    const nowDateTime = nowLocaleShortDateTime()
 
     if (config.noteTypeTags.length > 0) {
       if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
@@ -499,8 +507,11 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
 
       // Write new folder header (if change of folder)
       if (config.displayGroupedByFolder && (lastFolder !== folder)) {
+        const folderPart = (config.hideTopLevelFolder)
+          ? folder.split('/').slice(-1) // just last part
+          : folder
         if (style.match(/rich/i)) {
-          outputArray.push(`<thead>\n <tr class="section-header-row">  <td colspan=2 class="h3 section-header">${folder}</td>`)
+          outputArray.push(`<thead>\n <tr class="section-header-row">  <td colspan=2 class="h3 section-header">${folderPart}</td>`)
           if (config.displayDates) {
             outputArray.push(`  <td>Next Review</td><td>Due Date</td>`)
           }
@@ -510,7 +521,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
           outputArray.push(` </tr>\n</thead>\n`)
         }
         else if (style.match(/markdown/i)) {
-          outputArray.push(`### ${folder}`)
+          outputArray.push(`### ${folderPart}`)
         }
       }
 
@@ -557,7 +568,6 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
 
     // Iterate over the folders ...
     // ... but ignoring any in the config.foldersToIgnore list
-    const startTime = new Date()
     const projectInstances = []
     for (const folder of filteredFolderList) {
       // Either we have defined tag(s) to filter and group by, or just use ''
@@ -787,6 +797,7 @@ export async function nextReview(): Promise<void> {
  * @param {boolean} simplyDelete the project line?
  * @param {any} config
  * @param {string?} updatedMachineSummaryLine to write to full-review-list (optional)
+ * @param {boolean?} updateDisplay? (default true)
 */
 export async function updateReviewListAfterChange(reviewedTitle: string, simplyDelete: boolean, configIn: any, updatedMachineSummaryLine: string = '', updateDisplay: boolean = true): Promise<void> {
   try {
@@ -825,14 +836,18 @@ export async function updateReviewListAfterChange(reviewedTitle: string, simplyD
       if (titleField === reviewedTitle) {
         thisLineNum = i
         thisTitle = reviewedTitle
-        // logDebug('updateReviewListAfterChange', `- Found '${reviewedTitle}' to update from '${line}' at line number ${i}`)
+        logDebug('updateReviewListAfterChange', `- Found '${reviewedTitle}' to update from '${line}' at line number ${i}`)
         break
       }
     }
 
     // update (or delete) the note's summary in the full-review-list
     // Note: this was ?always? failing at one point
-    if (!isNaN(thisLineNum)) {
+    if (isNaN(thisLineNum)) {
+      logWarn('updateReviewListAfterChange', `- Can't find '${reviewedTitle}' to update in full-review-list. Will run makeFullReviewList ...`)
+      await makeFullReviewList(false)
+      return
+    } else {
       if (simplyDelete) {
         // delete line 'thisLineNum'
         reviewLines.splice(thisLineNum, 1)
@@ -847,16 +862,11 @@ export async function updateReviewListAfterChange(reviewedTitle: string, simplyD
         DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
         logDebug('updateReviewListAfterChange', `- Updated '${reviewedTitle}'  line number ${thisLineNum}`)
       }
-
-    } else {
-      logWarn('updateReviewListAfterChange', `- Can't find '${reviewedTitle}' to update in full-review-list. Will run makeFullReviewList ...`)
-      await makeFullReviewList(false)
-      return
     }
 
     // Now we can refresh the rendered views as well
     if (updateDisplay) {
-      await makeProjectLists()
+      await renderProjectLists()
     }
   }
   catch (error) {
@@ -924,8 +934,9 @@ async function getNextNoteToReview(): Promise<?TNote> {
 export async function finishReview(): Promise<?TNote> {
   try {
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-    const RE_REVIEWED_MENTION = `${reviewedMentionStr}\\(${RE_DATE}\\)`
+    const RE_REVIEWED_MENTION_STR = `${reviewedMentionStr}\\(${RE_DATE}\\)`
     const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
+    logDebug('finishReview', reviewedTodayString)
 
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
@@ -948,24 +959,17 @@ export async function finishReview(): Promise<?TNote> {
 
     // get first '@reviewed()' on metadata line
     const firstReviewedMention = thisNote.mentions?.find((m) =>
-      m.match(RE_REVIEWED_MENTION),
+      m.match(RE_REVIEWED_MENTION_STR),
     ) ?? null
     if (firstReviewedMention != null) {
-      logDebug('finishReview', `- Found existing ${reviewedMentionStr}(...) in line ${metadataLineIndex}`)
-
-      // // find line in currently open note containing @reviewed() mention
-      // for (const para of Editor.paragraphs) {
-      //   if (para.content.match(RE_REVIEWED_MENTION)) {
-      //     metadataPara = para
-      //   }
-      // }
+      logDebug('finishReview', `- Found existing ${firstReviewedMention} in line ${metadataLineIndex}`)
 
       // replace with today's date
       const older = origMetadataLineContent
       const newer = older.replace(firstReviewedMention, reviewedTodayString)
       metadataPara.content = newer
       logDebug('finishReview', `- Updating metadata para to '${newer} and updating reviewedDate in Project()`)
-      thisNoteAsProject.reviewedDate = new Date()
+      thisNoteAsProject.reviewedDate = getJSDateStartOfToday()
       thisNoteAsProject.calcDurations()
     } else {
       // no existing @reviewed(date), so append to note's default metadata line
@@ -980,7 +984,8 @@ export async function finishReview(): Promise<?TNote> {
     // update this note in the review list
     const config = await getReviewSettings()
     const updatedMachineSummaryLine = thisNoteAsProject.machineSummaryLine()
-    await updateReviewListAfterChange(thisNote.title ?? '', false, config, updatedMachineSummaryLine)
+    logDebug('finishReview', `- updatedMachineSummaryLine = '${updatedMachineSummaryLine}'`)
+    await updateReviewListAfterChange(thisNote.title ?? '', false, config, updatedMachineSummaryLine, true)
     return thisNote
   }
   catch (error) {
@@ -1012,15 +1017,15 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
 
     // If more than a day old re-calculate the full-review-list
     // Using frontmatter library: https://github.com/jxson/front-matter
-    const fileContent = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
-    const fmObj = fm(fileContent)
-    const listUpdatedDate = fmObj.attributes.date
-    const bodyBegin = fmObj.bodyBegin
-    const listUpdatedMoment = new moment(listUpdatedDate)
-    const timeDiff = moment().diff(listUpdatedMoment, 'hours')
-    if (timeDiff >= 24) {
+    // const fileContent = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
+    // const fmObj = fm(fileContent)
+    // const listUpdatedDate = fmObj.attributes.date
+    // const bodyBegin = fmObj.bodyBegin
+    // const listUpdatedMoment = new moment(listUpdatedDate)
+    // const timeDiff = moment().diff(listUpdatedMoment, 'hours')
+    // if (timeDiff >= 24) {
       await makeFullReviewList(true)
-    }
+    // }
 
     // Call the relevant function with the updated config
     if (config.outputStyle.match(/rich/i) && NotePlan.environment.buildVersion >= 845) {
@@ -1035,23 +1040,39 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
 }
 
 /**
- * Redisplay the project list. For Markdown this calls the renderer, but for Rich/HTML it re-displays the saved HTML file (if available).
+ * Render the project list, according to the chosen output style.
  * Note: this does not re-calculate the data.
  * @author @jgclark
  */
-export async function redisplayProjectList(): Promise<void> {
+export async function renderProjectLists(): Promise<void> {
   try {
-    logDebug('redisplayProjectList', `Started`)
+    logDebug('renderProjectLists', `Started`)
     const config = await getReviewSettings()
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
-      await renderProjectListsMarkdown(config, false)
+      await renderProjectListsMarkdown(config, true)
     }
+    if (config.outputStyle.match(/rich/i)) {
+      await renderProjectListsHTML(config, true)
+    }
+  }
+  catch (error) {
+    logError('renderProjectLists', error.message)
+  }
+}
 
-    // If we want HTML display, then currently only 1 window is allowed
+/**
+ * Re-display the project list from saved HTML file, if available, or if not then render the project list.
+ * Note: this does not re-calculate the data.
+ * @author @jgclark
+ */
+export async function redisplayProjectListHTML(): Promise<void> {
+  try {
+    // Currently only 1 HTML window is allowed
+    logWindows()
     // Re-load the saved HTML if it's available.
-    if (config.outputStyle.match(/rich/i) && config._logLevel === 'DEBUG') {
+    if (config._logLevel === 'DEBUG') {
       // Try loading HTML saved copy
       const windowTitle = `Review List`
       const filenameHTMLCopy = 'review_list.html'
@@ -1067,14 +1088,28 @@ export async function redisplayProjectList(): Promise<void> {
           '',
           '',
           812, 1200) // set width; max height
-        logDebug('redisplayProjectList', `Displayed HTML from saved file ${filenameHTMLCopy}`)
-      } else {
-        logWarn('redisplayProjectList', `Couldn't read HTML from saved file ${filenameHTMLCopy}`)
-
+        logDebug('redisplayProjectListHTML', `Displayed HTML from saved file ${filenameHTMLCopy}`)
+        return
       }
     }
+    logDebug('redisplayProjectListHTML', `Couldn't read HTML from saved file ${filenameHTMLCopy}, so will render afresh`)
+    await renderProjectListsHTML()
   }
   catch (error) {
-    logError('redisplayProjectList', error.message)
+    logError('redisplayProjectListHTML', error.message)
   }
+}
+
+// TODO: move these in time --------------------------------------------------
+
+export function logWindows(): void {
+  const outputLines = []
+  for (const win of NotePlan.editors) {
+    outputLines.push(`- ${win.type}: ${win.id} ${win.customId} ${win.filename}`)
+  }
+  for (const win of NotePlan.htmlWindows) {
+    outputLines.push(`- ${win.type}: ${win.id} ${win.customId} ${win.filename ?? '-'} ${win.title ?? '-'}`)
+  }
+  outputLines.unshift(`${outputLines.length} Windows:`)
+  logInfo('logWindows', outputLines.join('\n'))
 }
