@@ -7,9 +7,6 @@ name: Node.js CI
 
 on:
   workflow_dispatch:
-    inputs:
-      parameter:
-        description: Local testing
   push:
     branches: [ "main" ]
   pull_request:
