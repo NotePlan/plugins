@@ -17,4 +17,5 @@ coverage/
 .history/**/*
 .hyperlayout
 .eslintignore
-package-lock.json
+docs/assets/
+docs/index.html

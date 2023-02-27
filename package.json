@@ -105,7 +105,7 @@
     "security:critical": "npm audit | grep -B 1 -A 10 critical",
     "dev": "node ./tasks/start.js",
     "start": "node ./tasks/start.js",
-    "docs": "documentation build helpers/*.js flow-typed/Noteplan.js --shallow --document-exported --sort-order=alpha --project-name=\"NotePlan API+@helpers shared files\" --project-description=\"An attempt to help find @helper functions\" --project-homepage \"https://help.noteplan.co/article/70-javascript-plugin-api\" -f html -o \"Documentation-Helpers\""
+    "docs": "./node_modules/.bin/documentation serve helpers/*.js -c docs/documentation.cfg.json -o docs -f html --shallow --document-exported; open docs/index.html"
   },
   "prettier": {
     "printWidth": 180,
