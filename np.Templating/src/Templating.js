@@ -289,7 +289,7 @@ export async function templateQuickNote(noteTitle: string = ''): Promise<void> {
       if (isFrontmatter) {
         const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
 
-        let folder = frontmatterAttributes?.folder.trim() ?? ''
+        let folder = frontmatterAttributes?.folder?.trim() ?? ''
         if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
           folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
         }
@@ -332,9 +332,16 @@ export async function templateQuickNote(noteTitle: string = ''): Promise<void> {
             Editor.content = `# ${newNoteTitle}\n${finalRenderedData}`
           }
           selectFirstNonTitleLineInEditor()
+        } else {
+          await CommandBar.prompt(
+            'New Note Could Note Be Created',
+            `Note: "${newNoteTitle}" (newNoteTitle) in folder: "${folder}" could not be created. Check to ensure folder path is valid. For more information please refer to ${helpInfo(
+              'Template Anatomty: Frontmatter',
+            )}`,
+          )
         }
       } else {
-        await CommandBar.prompt('Invalid FrontMatter Template', helpInfo('Template Anatomty: Frontmatter'))
+        await CommandBar.prompt('New Note Could Note Be Created', helpInfo('Template Anatomty: Frontmatter'))
       }
     }
   } catch (error) {
@@ -385,8 +392,8 @@ export async function templateMeetingNote(noteName: string = '', templateData: a
         if (!newNoteTitle || newNoteTitle.length === 0) {
           const helpText = helpInfo('Templating Prompts')
           await CommandBar.prompt(
-            'Invalid Note Title',
-            `Note Title may only contain alphanumeric characters (a..z, A..Z, 0..9)\n\nIf you have used a templating prompt to obtain note title, make sure the prompt variable is valid.\n\n${helpText}`,
+            'Invalid Note Title (newNoteTitle)',
+            `QuickNotes are required to have a newNoteTitle field which specifies what the generated note's title will be. FYI, note title may only contain alphanumeric characters (a..z, A..Z, 0..9)\n\nIf you have used a templating prompt to obtain note title, make sure the prompt variable is valid.\n\n${helpText}`,
           )
           return
         }
