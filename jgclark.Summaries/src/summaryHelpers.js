@@ -16,7 +16,7 @@ import {
   unhyphenateString,
   withinDateRange,
 } from '@helpers/dateTime'
-import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
+import { clo, JSP, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
   type headingLevelType,
@@ -543,6 +543,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
     return tmOccurrencesArr
   }
   catch (error) {
+    logError('gatherOccurrences', JSP(error))
     logError('gatherOccurrences', error.message)
     return [] // for completness
   }

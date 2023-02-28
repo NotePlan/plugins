@@ -1,4 +1,4 @@
-# 🔬 Reviews  plugin
+# 🔬 Projects + Reviews plugin
 Unlike many task or project management apps, NotePlan has very little enforced structure, and is entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for tracking and managing complex work, loosely referred to here as 'Projects'.
 
 This plugin provides commands to help **review** Project-based notes, and it helps me manage over 50 such projects. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. (It probably won't have much applicability to people who just use NotePlan as a Zettelkasten-style knowledge base.)
@@ -76,7 +76,7 @@ From v0.8 you can set the '**Output style to use**'. This is either a '**Rich**'
 
 <!-- FIXME: update screenshot -->
 ![Example of Rich style of "/project lists"](review-list4-rich.jpg)
-![Example of Markdown style of "/project lists"](review-list4-md.jpg) 
+![Example of Markdown style of "/project lists"](review-list4-md.jpg)
 
 Notes about the displays:
 - the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use. 
@@ -94,6 +94,7 @@ Other settings:
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
 - Display grouped by folder? Whether to group the projects by their folder.
+- Hide top level folder? Whether to suppress higher-level folder names in project list headings.
 - Display archived projects? Whether to display project notes marked as `#archive`.
 
 #### Running from x-callback call

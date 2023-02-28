@@ -57,6 +57,7 @@ import {
   showMessage,
   showMessageYesNo,
 } from '@helpers/userInput'
+import { logWindows } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------------------
 
@@ -1086,18 +1087,4 @@ export async function redisplayProjectListHTML(): Promise<void> {
   catch (error) {
     logError('redisplayProjectListHTML', error.message)
   }
-}
-
-// TODO: move these in time --------------------------------------------------
-
-export function logWindows(): void {
-  const outputLines = []
-  for (const win of NotePlan.editors) {
-    outputLines.push(`- ${win.type}: ${win.id} ${win.customId} ${win.filename}`)
-  }
-  for (const win of NotePlan.htmlWindows) {
-    outputLines.push(`- ${win.type}: ${win.id} ${win.customId} ${win.filename ?? '-'} ${win.title ?? '-'}`)
-  }
-  outputLines.unshift(`${outputLines.length} Windows:`)
-  logInfo('logWindows', outputLines.join('\n'))
 }
