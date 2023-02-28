@@ -5,11 +5,11 @@
 
 /* eslint-disable */
 
-const colors = require('chalk')
-const Table = require('cli-table3')
-const { print, helpers } = require('@codedungeon/gunner')
-const pluginUtils = require('./support/plugin-utils')
-const pluginInfo = require('./support/plugin-info')
+import colors from 'chalk'
+import Table from 'cli-table3'
+import { print, helpers } from '@codedungeon/gunner'
+import pluginUtils from './support/plugin-utils'
+import pluginInfo from './support/plugin-info'
 
 module.exports = {
   name: 'plugin:info',

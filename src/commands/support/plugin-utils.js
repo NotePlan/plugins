@@ -1,7 +1,7 @@
 'use strict'
 
-const { filesystem, path } = require('@codedungeon/gunner')
-const github = require('./github')
+import { filesystem, path } from '@codedungeon/gunner'
+import github from './github'
 
 module.exports = {
   checkVersion: async function (pluginName, pluginVersion) {
@@ -131,9 +131,7 @@ module.exports = {
               pluginAliases.forEach((alias) => {
                 pluginCommands.push({
                   pluginId: pluginObj.hasOwnProperty('plugin.id') ? pluginObj['plugin.id'] : 'missing plugin-id',
-                  pluginName: pluginObj.hasOwnProperty('plugin.name')
-                    ? pluginObj['plugin.name']
-                    : 'missing plugin-name',
+                  pluginName: pluginObj.hasOwnProperty('plugin.name') ? pluginObj['plugin.name'] : 'missing plugin-name',
                   name: alias,
                   description: command.description,
                   jsFunction: command.jsFunction,

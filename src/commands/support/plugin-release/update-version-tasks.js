@@ -1,6 +1,6 @@
 'use strict'
 
-const { filesystem, path } = require('@codedungeon/gunner')
+import { filesystem, path } from '@codedungeon/gunner'
 
 module.exports = (pluginName, pluginVersion) => {
   const pluginJsonFilename = path.resolve(path.join(pluginName, 'plugin.json'))

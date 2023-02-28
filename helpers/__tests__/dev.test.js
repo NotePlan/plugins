@@ -17,8 +17,6 @@ beforeAll(() => {
 
 const pluginJson = 'helpers/dev.test'
 
-// const _ = require('lodash')
-
 // Jest suite
 describe('helpers/dev', () => {
   describe('getAllPropertyNames', () => {

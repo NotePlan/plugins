@@ -1,12 +1,12 @@
 /* eslint-disable */
-const { colors, helpers, print, strings, system, prompt, filesystem, path } = require('@codedungeon/gunner')
-const Messenger = require('@codedungeon/messenger')
-const appUtils = require('../utils/app')
-const security = require('../utils/security.lib')
-const pluginUtils = require('./support/plugin-utils')
-const pluginRelease = require('./support/plugin-release')
-const releasePrompts = require('./support/plugin-release/release-prompts')
-const github = require('./support/github')
+import { colors, helpers, print, strings, system, prompt, filesystem, path } from '@codedungeon/gunner'
+import Messenger from '@codedungeon/messenger'
+import appUtils from '../utils/app'
+import security from '../utils/security.lib'
+import pluginUtils from './support/plugin-utils'
+import pluginRelease from './support/plugin-release'
+import releasePrompts from './support/plugin-release/release-prompts'
+import github from './support/github'
 
 module.exports = {
   name: 'plugin:release',
@@ -113,10 +113,7 @@ module.exports = {
     const noBuild = args.noBuild || false
 
     if (result.length === 0) {
-      toolbox.print.error(
-        `Unable to locate plugin ${pluginId}, make sure you are at the project root directory`,
-        'ERROR',
-      )
+      toolbox.print.error(`Unable to locate plugin ${pluginId}, make sure you are at the project root directory`, 'ERROR')
       process.exit()
     }
     const configData = pluginUtils.getPluginConfig(pluginId)

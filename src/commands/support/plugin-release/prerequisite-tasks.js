@@ -1,10 +1,10 @@
 'use strict'
 
 /* eslint-disable */
-const { colors, filesystem, path, print, strings } = require('@codedungeon/gunner')
-const Listr = require('listr')
-const tildify = require('tildify')
-const pluginUtils = require('../plugin-utils')
+import { colors, filesystem, path, print, strings } from '@codedungeon/gunner'
+import Listr from 'listr'
+import tildify from 'tildify'
+import pluginUtils from '../plugin-utils'
 
 /* eslint-disable */
 module.exports = (pluginName, options) => {

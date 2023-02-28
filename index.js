@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-const { CLI } = require('@codedungeon/gunner')
-const colors = require('chalk')
-const parseArgs = require('minimist')
+import { CLI } from '@codedungeon/gunner'
+import colors from 'chalk'
+import parseArgs from 'minimist'
 
-const pkgInfo = require('./package.json')
+import pkgInfo from './package.json'
 
 const getLogDirectory = (argv, defaultLocation = 'system') => {
   const logDir = parseArgs(argv)['logDir'] || parseArgs(argv)['log-dir'] || ''

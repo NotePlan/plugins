@@ -1,7 +1,7 @@
 /* eslint-disable */
-const { colors, helpers, print, system } = require('@codedungeon/gunner')
-const pluginPullRequest = require('./support/plugin-pull-request')
-const github = require('./support/github')
+import { colors, helpers, print, system } from '@codedungeon/gunner'
+import pluginPullRequest from './support/plugin-pull-request'
+import github from './support/github'
 
 module.exports = {
   name: 'plugin:pr',
@@ -64,11 +64,7 @@ module.exports = {
     const currentBranch = await github.currentBranch()
     if (currentBranch === 'main') {
       toolbox.print.error('You must be on a feature branch in order to create pull request', 'ERROR')
-      toolbox.print.warn(
-        `        You can use ${colors.cyan(
-          'git checkout -b <branch>',
-        )} to create a new branch which can then be used to create pull request`,
-      )
+      toolbox.print.warn(`        You can use ${colors.cyan('git checkout -b <branch>')} to create a new branch which can then be used to create pull request`)
       process.exit()
     }
 

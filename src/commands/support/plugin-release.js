@@ -2,25 +2,24 @@
 
 'use strict'
 
-const util = require('util') // eslint-disable-line
+import util from 'util' // eslint-disable-line
 /* eslint-disable */
-const { filesystem, colors, print, path, system, prompt, strings, api: http } = require('@codedungeon/gunner')
+import { filesystem, colors, print, path, system, prompt, strings, api as http } from '@codedungeon/gunner'
 const { ListPrompt } = import('inquirer/lib/prompts/list')
-// const ListPrompt = require('inquirer/lib/prompts/list')
-const Listr = require('listr')
-const split = require('split')
-const execa = require('execa')
-const { merge, throwError } = require('rxjs')
-const { catchError, filter } = require('rxjs/operators')
-const streamToObservable = require('@samverschueren/stream-to-observable')
-const pluginUtils = require('./plugin-utils')
-const github = require('./github')
+import Listr from 'listr'
+import split from 'split'
+import execa from 'execa'
+import { merge, throwError } from 'rxjs'
+import { catchError, filter } from 'rxjs/operators'
+import streamToObservable from '@samverschueren/stream-to-observable'
+import pluginUtils from './plugin-utils'
+import github from './github'
 
-const prerequisiteTasks = require('./plugin-release/prerequisite-tasks')
-const gitTasks = require('./plugin-release/git-tasks')
-const updateVersionTasks = require('./plugin-release/update-version-tasks')
-const releaseTasks = require('./plugin-release/release-tasks')
-const releasePrompts = require('./plugin-release/release-prompts')
+import prerequisiteTasks from './plugin-release/prerequisite-tasks'
+import gitTasks from './plugin-release/git-tasks'
+import updateVersionTasks from './plugin-release/update-version-tasks'
+import releaseTasks from './plugin-release/release-tasks'
+import releasePrompts from './plugin-release/release-prompts'
 
 const exec = (cmd, args) => {
   const cp = execa(cmd, args)

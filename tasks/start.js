@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { filesystem, print, system } = require('@codedungeon/gunner')
+import { filesystem, print, system } from '@codedungeon/gunner'
 
 const pluginName = process.argv?.[2]
 

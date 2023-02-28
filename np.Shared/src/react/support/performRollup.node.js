@@ -15,7 +15,7 @@
  --graph to create the visialization graph
  --watch to watch for changes
  */
-const rollupReactScript = require('../../../../scripts/rollup.react.js')
+import rollupReactScript from '../../../../scripts/rollup.react.js'
 const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReactScript
 
 let BUNDLE_REACT_ALSO = false

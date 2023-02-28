@@ -1,6 +1,6 @@
-const { filesystem, path } = require('@codedungeon/gunner')
+import { filesystem, path } from '@codedungeon/gunner'
 /* eslint-disable */
-const appUtils = require('../../utils/app')
+import appUtils from '../../utils/app'
 
 module.exports = {
   getTestFilenames: function () {

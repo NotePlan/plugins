@@ -1,12 +1,12 @@
-const { helpers, filesystem, system, strings, print, path } = require('@codedungeon/gunner')
-const toolbox = require('@codedungeon/gunner')
+import { helpers, filesystem, system, strings, print, path } from '@codedungeon/gunner'
+import toolbox from '@codedungeon/gunner'
 
-const execa = require('execa')
-const dotProp = require('dot-prop')
-const _ = require('lodash')
-const findup = require('findup-sync')
-const Configstore = require('configstore')
-const Messenger = require('@codedungeon/messenger')
+import execa from 'execa'
+import dotProp from 'dot-prop'
+import _ from 'lodash'
+import findup from 'findup-sync'
+import Configstore from 'configstore'
+import Messenger from '@codedungeon/messenger'
 
 const appConfigPath = path.join(__dirname, '../..', 'config', 'craftsman.json')
 const projectConfigPath = path.join(process.cwd(), '/config/craftsman.json')

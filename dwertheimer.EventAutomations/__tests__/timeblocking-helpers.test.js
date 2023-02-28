@@ -6,7 +6,6 @@ import { getTasksByType } from '@helpers/sorting'
 
 // import * as ch from '../../helpers/calendar'
 import { JSP } from '@helpers/dev'
-// const _ = require('lodash')
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note /* Paragraph */ } from '@mocks/index'
 
 beforeAll(() => {

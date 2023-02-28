@@ -1,8 +1,8 @@
 /* eslint-disable */
-const { colors, helpers, print, prompt, system, filesystem, path } = require('@codedungeon/gunner')
-const { defaultsDeep } = require('lodash')
-const tildify = require('tildify')
-const pluginUtils = require('./support/plugin-utils')
+import { colors, helpers, print, prompt, system, filesystem, path } from '@codedungeon/gunner'
+import { defaultsDeep } from 'lodash'
+import tildify from 'tildify'
+import pluginUtils from './support/plugin-utils'
 
 module.exports = {
   name: 'plugin:dev',

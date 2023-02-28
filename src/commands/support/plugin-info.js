@@ -1,6 +1,6 @@
 'use strict'
 
-const pluginUtils = require('./plugin-utils')
+import pluginUtils from './plugin-utils'
 
 module.exports = {
   // returns true if every passed

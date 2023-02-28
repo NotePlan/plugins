@@ -1,8 +1,8 @@
-const fs = require('fs/promises')
-const path = require('path')
-const { parse } = require('@babel/parser')
-const generate = require('@babel/generator').default
-const mkdirp = require('mkdirp')
+import fs from 'fs/promises'
+import path from 'path'
+import { parse } from '@babel/parser'
+import { default as generate } from '@babel/generator'
+import mkdirp from 'mkdirp'
 
 const pathToNoteplanTypeDefs = path.resolve(__dirname, '../flow-typed/Noteplan.js')
 const pathToDocs = path.resolve(__dirname, '../../plugin-docs/docs/plugin-api')

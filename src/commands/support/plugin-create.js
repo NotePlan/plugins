@@ -1,9 +1,9 @@
 /* eslint-disable */
-const { filesystem, colors, print, path } = require('@codedungeon/gunner')
-const { prompt } = require('enquirer')
-const tildify = require('tildify')
-const gitUserLocal = require('git-user-local')
-const githubUsername = require('github-username')
+import { filesystem, colors, print, path } from '@codedungeon/gunner'
+import { prompt } from 'enquirer'
+import tildify from 'tildify'
+import gitUserLocal from 'git-user-local'
+import githubUsername from 'github-username'
 
 const questions = []
 

@@ -5,10 +5,10 @@
  * Licensed under the MIT license.  See LICENSE in the project root for license information.
  * -----------------------------------------------------------------------------------------*/
 
-const fs = require('fs')
-const colors = require('chalk')
+import fs from 'fs'
+import colors from 'chalk'
 
-const pkgInfo = require('../package.json')
+import pkgInfo from '../package.json'
 
 let currBuild = parseInt(pkgInfo.build)
 

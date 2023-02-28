@@ -1,8 +1,8 @@
 'use strict'
 
-const { print } = require('@codedungeon/gunner')
-const Listr = require('listr')
-const github = require('../github')
+import { print } from '@codedungeon/gunner'
+import Listr from 'listr'
+import github from '../github'
 
 /* eslint-disable */
 module.exports = (pluginName, options) => {

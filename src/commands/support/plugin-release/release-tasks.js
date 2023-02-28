@@ -1,8 +1,8 @@
 'use strict'
 
-const path = require('path')
-const pluginUtils = require('../plugin-utils')
-const github = require('../github')
+import path from 'path'
+import pluginUtils from '../plugin-utils'
+import github from '../github'
 
 module.exports = async (pluginId, pluginVersion, flags) => {
   const configData = pluginUtils.getPluginConfig(path.resolve(pluginId))

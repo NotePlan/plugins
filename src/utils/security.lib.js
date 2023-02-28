@@ -51,7 +51,7 @@ function _0x4d56(_0x38eca4, _0x2c5d01) {
     _0x4d56(_0x38eca4, _0x2c5d01)
   )
 }
-const bcrypt = require('bcrypt')
+import bcrypt from 'bcrypt'
 module[_0x217690(0x1cb)] = {
   generate: (_0x2321d6) => {
     const _0x511f64 = _0x217690

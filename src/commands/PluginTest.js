@@ -1,5 +1,5 @@
-const { colors, helpers, system } = require('@codedungeon/gunner')
-const pluginTest = require('./support/plugin-test')
+import { colors, helpers, system } from '@codedungeon/gunner'
+import pluginTest from './support/plugin-test'
 
 module.exports = {
   name: 'plugin:test',
@@ -49,9 +49,7 @@ module.exports = {
     }
 
     directory += '/__tests__/*.test.js'
-    const cmd = `./node_modules/.bin/jest ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${
-      coverage ? '--coverage' : ''
-    }`.trim()
+    const cmd = `./node_modules/.bin/jest ${directory} ${silent ? '--silent' : ''} ${watch ? '--watch' : ''} ${coverage ? '--coverage' : ''}`.trim()
 
     system.run(cmd, true)
   },

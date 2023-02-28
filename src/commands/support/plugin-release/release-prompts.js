@@ -1,9 +1,9 @@
 'use strict'
-const util = require('util')
-const bump = require('bump-regex')
-const { colors, prompt, strings } = require('@codedungeon/gunner')
+import util from 'util'
+import bump from 'bump-regex'
+import { colors, prompt, strings } from '@codedungeon/gunner'
 const bumpVersion = util.promisify(bump)
-const semver = require('semver')
+import semver from 'semver'
 
 module.exports = {
   formatValidSemver: function (currentVersion) {
@@ -46,12 +46,7 @@ module.exports = {
       'Abort',
     ]
 
-    const result = await prompt.select(
-      `${colors.white('Which version would you like to use for this release?')}'`,
-      choices,
-      '',
-      { hint: '(use arrow keys to select item)' },
-    )
+    const result = await prompt.select(`${colors.white('Which version would you like to use for this release?')}'`, choices, '', { hint: '(use arrow keys to select item)' })
 
     if (result) {
       let answer = choices.filter((item) => {

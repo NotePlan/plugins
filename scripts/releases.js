@@ -5,13 +5,13 @@ const TEST = false // when set to true, doesn't actually create or delete anythi
 const COMMAND = 'Plugin Release'
 
 // $FlowIgnore
-const fs = require('fs/promises')
-const path = require('path')
-const colors = require('chalk')
-const Messenger = require('@codedungeon/messenger')
+import fs from "fs/promises";
+import path from "path";
+import colors from "chalk";
+import Messenger from "@codedungeon/messenger";
 
-const { program } = require('commander')
-const { getFolderFromCommandLine, runShellCommand, getPluginFileContents, fileExists, getCopyTargetPath } = require('./shared')
+import { program } from "commander";
+import { getFolderFromCommandLine, runShellCommand, getPluginFileContents, fileExists, getCopyTargetPath } from "./shared";
 
 // Command line options
 program.option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')

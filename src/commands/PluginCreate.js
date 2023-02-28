@@ -1,9 +1,9 @@
 /* eslint-disable */
 
-const { colors, helpers, print, path } = require('@codedungeon/gunner')
-const gitUserLocal = require('git-user-local')
-const githubUsername = require('github-username')
-const createPlugin = require('./support/plugin-create')
+import { colors, helpers, print, path } from '@codedungeon/gunner'
+import gitUserLocal from 'git-user-local'
+import githubUsername from 'github-username'
+import createPlugin from './support/plugin-create'
 
 module.exports = {
   name: 'plugin:create',
@@ -20,9 +20,7 @@ module.exports = {
     id: {
       type: 'string',
       aliases: ['i'],
-      description: `Unique Plugin ID ${colors.gray(
-        '(recommended format "<githubUserName.PluginName>" e.g., "codedungeon.Toolbox")',
-      )}`,
+      description: `Unique Plugin ID ${colors.gray('(recommended format "<githubUserName.PluginName>" e.g., "codedungeon.Toolbox")')}`,
       required: true,
       prompt: {
         type: 'input',
@@ -135,11 +133,6 @@ module.exports = {
     print.info(`   - Open NotePlan and run your new plugin command ${colors.yellow('/sayHello')}`)
     print.info(`     from NotePlan Command Bar (CMD-J) or inline (/)`)
     console.log('')
-    print.warn(
-      `Use ${colors.cyan(
-        'noteplan-cli plugin:info --check <your_command>',
-      )} to check if a command name you want to use is available`,
-      'TIP',
-    )
+    print.warn(`Use ${colors.cyan('noteplan-cli plugin:info --check <your_command>')} to check if a command name you want to use is available`, 'TIP')
   },
 }

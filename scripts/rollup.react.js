@@ -5,21 +5,21 @@
  *     node '/Users/dwertheimer/Developer/Noteplan/np-plugins-freshstart-2022-08-21/dwertheimer.TaskAutomations/src/react/support/performRollup.node.js'
  *
  */
-const notifier = require('node-notifier') // https://www.npmjs.com/package/node-notifier
-const colors = require('chalk') // https://www.npmjs.com/package/chalk console.log(chalk.green('Hello %s'), name);
-const messenger = require('@codedungeon/messenger')
-const replace = require('rollup-plugin-replace')
-const visualizer = require('rollup-plugin-visualizer').visualizer
-const { existsSync } = require('fs')
-const path = require('path')
-const fg = require('fast-glob') //dbw adding for requiredFiles glob wildcard watch (**/)
-const { babel } = require('@rollup/plugin-babel')
-const commonjs = require('@rollup/plugin-commonjs')
-const { terser } = require('rollup-plugin-terser')
-const { nodeResolve } = require('@rollup/plugin-node-resolve')
-const json = require('@rollup/plugin-json')
-const rollup = require('rollup')
-const { program } = require('commander')
+import notifier from 'node-notifier' // https://www.npmjs.com/package/node-notifier
+import colors from 'chalk' // https://www.npmjs.com/package/chalk console.log(chalk.green('Hello %s'), name);
+import messenger from '@codedungeon/messenger'
+import replace from 'rollup-plugin-replace'
+import { visualizer as visualizer } from 'rollup-plugin-visualizer'
+import { existsSync } from 'fs'
+import path from 'path'
+import fg from 'fast-glob' //dbw adding for requiredFiles glob wildcard watch (**/)
+import { babel } from '@rollup/plugin-babel'
+import commonjs from '@rollup/plugin-commonjs'
+import { terser } from 'rollup-plugin-terser'
+import { nodeResolve } from '@rollup/plugin-node-resolve'
+import json from '@rollup/plugin-json'
+import rollup from 'rollup'
+import { program } from 'commander'
 
 const NOTIFY = true
 
