@@ -16,6 +16,7 @@ import moment from 'moment/min/moment-with-locales'
 import {
   getReviewSettings,
   logPreference,
+  makeFakeButton,
   Project,
 } from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
@@ -107,11 +108,11 @@ export const reviewListCSS: string = [
   `/* Tooltip block */
   .tooltip { position: relative; display: inline-block; }
   /* Tooltip text */
-  .tooltip .tooltiptext { visibility: hidden; width: 150px; font-weight: "400"; font-style: "normal"; color: var(--fg-main-color); background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); text-align: center; padding: 5px 0; border-radius: 6px; position: absolute; z-index: 1; bottom: 150%; left: 50%; margin-left: -75px; opacity: 0; transition: opacity 0.6s; }
+  .tooltip .tooltiptext { visibility: hidden; width: 180px; font-weight: 400; font-style: normal; line-height: 1.0rem; color: var(--fg-main-color); background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); text-align: center; padding: 5px 0; border-radius: 6px; position: absolute; z-index: 1; bottom: 120%; left: 50%; margin-left: -90px; opacity: 0; transition: opacity 0.4s; }
   /* Fade in tooltip */
   .tooltip:hover .tooltiptext { opacity: 1; position: absolute; z-index: 1; }
-  /* Make an arrow from tooltip */
-  .tooltip .tooltiptext::after { content: ""; position: absolute; top: 100%; /* At the bottom of the tooltip */ left: 50%; margin-left: -5px; border: 5px solid; border-color: var(--tint-color) transparent transparent transparent; }
+  /* Make an arrow under tooltip */
+  .tooltip .tooltiptext::after { content: ""; position: absolute; top: 100%; /* At the bottom of the tooltip */ left: 50%; margin-left: -5px; border: 8px solid; border-color: var(--tint-color) transparent transparent transparent; }
   /* Show the tooltip text when you mouse over the tooltip container */
   .tooltip:hover .tooltiptext { visibility: visible; }`
 ].join('\n\t')
@@ -209,28 +210,10 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
     // String array to save all output
     let outputArray = []
 
-    // Set up x-callback URLs for various commands, to be styled into pseudo-buttons
-    // TODO: switch to using DW's latest getCallbackCodeString() here
-    const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
-    const startReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review"
-    const reviewedXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=finish%20project%20review&arg0="
-    const nextReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
-    const pauseXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
-    const completeXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
-    const cancelXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
-    const nowDateTime = nowLocaleShortDateTime()
-
-    // Create the HTML for the 'start review button'
-    // - Version 1: does work inside Safari, but not for some reason in a NP view. Eduard doesn't know why.
-    // startReviewButton = `<button onClick="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews\&command=next%20project%20review">Start reviewing ${overdue} ready for review</button>`
-    // - Version 2: using x-callback: does work in NP, but doesn't look like a button
-    // const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}">Start reviewing ${overdue} ready for review</a></span>`
-    const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-forward"></i>\u00A0Start reviews</a></span>`
-    // - Version 3: using proper link to the internal function FIXME: doesn't yet work
-    // startReviewButton = `<button onclick=callCommand()>Start reviewing ${overdue} ready for review</button>`
-
     // Add (pseduo-)buttons for various commands
-    // Useful fontawesome fonts include:
+    // Note: this is not a real button, bcause at the time I started this real < button > wouldn't work in NP HTML views, and Eduard didn't know why.
+    // TODO: Version 3: using proper link to the internal function using HTMLView::getCallbackCodeString() instead
+    // Useful fontawesome icons include:
     // https://fontawesome.com/icons/play
     // https://fontawesome.com/icons/forward
     // https://fontawesome.com/icons/forward-step
@@ -238,19 +221,20 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
     // https://fontawesome.com/icons/calendar-pen
     // https://fontawesome.com/icons/check
     // https://fontawesome.com/icons/xmark
-    const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh</a></span>` // https://fontawesome.com/icons/arrow-rotate-right?s=solid&f=classic
-    const reviewedXCallbackButton = `<span class="fake-button"><a class="button" href="${reviewedXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>\u00A0Mark\u00A0as\u00A0Reviewed</a></span>` // calendar-pen = https://fontawesome.com/icons/calendar-pen
-    const nextReviewXCallbackButton = `<span class="fake-button tooltip"><a class="button" href="${nextReviewXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review</a><span class="tooltiptext">Mark open project note as reviewed, and start next review</span></span>`
-    const pauseXCallbackButton = `<span class="fake-button"><a class="button" href="${pauseXCallbackURL}">Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause</a></span>`
-    const completeXCallbackButton = `<span class="fake-button tooltip"><a class="button" href="${completeXCallbackURL}"><i class="fa-solid fa-check"></i>\u00A0Complete</a><span class="tooltiptext">Complete the currently open Project note</span></span>`  // previously included NP complete 'a' glyph <span class="np-task-state">a</span>
-    const cancelXCallbackButton = `<span class="fake-button tooltip"><a class="button" href="${cancelXCallbackURL}"><i class="fa-regular fa-xmark"></i>\u00A0Cancel</a><span class="tooltiptext">Cancel the currently open Project note</span></span>` // https://fontawesome.com/icons/xmark?s=regular&f=classic // previously included NP cancel 'c' glyph <span class="np-task-state">c</span>
+    const refreshXCallbackButton = makeFakeButton(`<i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh`, 'project lists', '', 'Recalculate project lists and update this window') //`<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh</a></span>`
+    const startReviewButton = makeFakeButton(`<i class="fa-solid fa-forward"></i>\u00A0Start reviews`, 'next project', '', 'Opens the next project to review in the NP editor') // `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-forward"></i>\u00A0Start reviews</a></span>`
+    const reviewedXCallbackButton = makeFakeButton(`<i class="fa-regular fa-calendar-check"></i>\u00A0Mark\u00A0as\u00A0Reviewed`, 'finish project review', '', `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`) //`<span class="fake-button"><a class="button" href="${reviewedXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>\u00A0Mark\u00A0as\u00A0Reviewed</a></span>`
+    const nextReviewXCallbackButton = makeFakeButton(`<i class="fa-regular fa-calendar-check"></i>\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review`, 'next project review', '', `Finish review of currently open Project and start the next review`) // `<span class="fake-button tooltip"><a class="button" href="${nextReviewXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review</a><span class="tooltiptext">Mark open project note as reviewed, and start next review</span></span>`
+    const pauseXCallbackButton = makeFakeButton(`Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause`, 'pause project toggle', '', 'Pause the currently open Project note') // `<span class="fake-button"><a class="button" href="${pauseXCallbackURL}">Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause</a></span>`
+    const completeXCallbackButton = makeFakeButton(`Toggle\u00A0<i class="fa-solid fa-check"></i>\u00A0Complete`, 'complete project', '', 'Complete the currently open Project note') // `<span class="fake-button tooltip"><a class="button" href="${completeXCallbackURL}"><i class="fa-solid fa-check"></i>\u00A0Complete</a><span class="tooltiptext">Complete the currently open Project note</span></span>`  // previously used NP complete 'a' glyph <span class="np-task-state">a</span>
+    const cancelXCallbackButton = makeFakeButton(`Toggle\u00A0<i class="fa-solid fa-xmark"></i>\u00A0Cancel`, 'cancel project', '', 'Cancel the currently open Project note') // `<span class="fake-button tooltip"><a class="button" href="${cancelXCallbackURL}"><i class="fa-regular fa-xmark"></i>\u00A0Cancel</a><span class="tooltiptext">Cancel the currently open Project note</span></span>` // previously used NP cancel 'c' glyph <span class="np-task-state">c</span>
 
     // write lines before first table
     outputArray.push(`<h1>${windowTitle}</h1>`)
     // Add a sticky area for buttons
     // TODO: when possible remove comment to bring Pause back into use
-    const controlButtons = `${refreshXCallbackButton} <b>Reviews</b>: ${startReviewButton} ${reviewedXCallbackButton} ${nextReviewXCallbackButton} <b>Projects</b>: ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`
-    outputArray.push(`<div class="sticky-box-top-middle">${controlButtons}</div>`)
+    const controlButtons = `${refreshXCallbackButton} \n<b>Reviews</b>: ${startReviewButton} \n${reviewedXCallbackButton} \n${nextReviewXCallbackButton}\n<br />\n<b>Projects</b>: ${pauseXCallbackButton} \n${completeXCallbackButton} \n${cancelXCallbackButton}`
+    outputArray.push(`<div class="sticky-box-top-middle">\n${controlButtons}\n</div>\n`)
 
     // Make the Summary list, for each noteTag in turn
     let tagCount = 0
@@ -263,7 +247,7 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
       if (!config.displayGroupedByFolder) {
         outputArray.push(`<h3>All folders (${noteCount} notes)</h3>`)
       }
-      outputArray.push(`<p>Last updated: ${nowDateTime}</p>`)
+      outputArray.push(`<p>Last updated: ${nowLocaleShortDateTime()}</p>`)
       outputArray.push(`<div class="multi-cols">`)
 
       // Start constructing table (if there any results)
@@ -511,6 +495,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
           ? folder.split('/').slice(-1) // just last part
           : folder
         if (style.match(/rich/i)) {
+          // $FlowFixMe
           outputArray.push(`<thead>\n <tr class="section-header-row">  <td colspan=2 class="h3 section-header">${folderPart}</td>`)
           if (config.displayDates) {
             outputArray.push(`  <td>Next Review</td><td>Due Date</td>`)
@@ -521,6 +506,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
           outputArray.push(` </tr>\n</thead>\n`)
         }
         else if (style.match(/markdown/i)) {
+          // $FlowFixMe
           outputArray.push(`### ${folderPart}`)
         }
       }
@@ -1073,6 +1059,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
     // Currently only 1 HTML window is allowed
     logWindows()
     // Re-load the saved HTML if it's available.
+    const config = await getReviewSettings()
     if (config._logLevel === 'DEBUG') {
       // Try loading HTML saved copy
       const windowTitle = `Review List`
@@ -1092,9 +1079,9 @@ export async function redisplayProjectListHTML(): Promise<void> {
         logDebug('redisplayProjectListHTML', `Displayed HTML from saved file ${filenameHTMLCopy}`)
         return
       }
+      logDebug('redisplayProjectListHTML', `Couldn't read HTML from saved file ${filenameHTMLCopy}, so will render afresh`)
+      await renderProjectListsHTML()
     }
-    logDebug('redisplayProjectListHTML', `Couldn't read HTML from saved file ${filenameHTMLCopy}, so will render afresh`)
-    await renderProjectListsHTML()
   }
   catch (error) {
     logError('redisplayProjectListHTML', error.message)

@@ -19,16 +19,16 @@ import { localeRelativeDateFromNumber } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { createOpenOrDeleteNoteCallbackUrl, createRunPluginCallbackUrl, getContentFromBrackets, getStringFromList } from '@helpers/general'
-import { findEndOfActivePartOfNote } from '@helpers/paragraph'
-import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
-import { showMessage } from '@helpers/userInput'
-
 import {
+  getCallbackCodeString,
   makeSVGPauseIcon,
   makeSVGPercentRing,
   redToGreenInterpolation,
   rgbToHex
 } from '@helpers/HTMLView'
+import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
+import { showMessage } from '@helpers/userInput'
 
 //------------------------------
 // Config setup
@@ -804,4 +804,20 @@ export class Project {
       return `<span class="${faClasses} circle-icon"></span>`
     }
   }
+}
+
+/**
+ * Form HTML for a 'fake' button that is used to call (via x-callback) one of this plugin's commands.
+ * Note: this is not a real button, bcause at the time I started this real <button> wouldn't work in NP HTML views, and Eduard didn't know why.
+ * @param {string} buttonText to display on button
+ * @param {string} commandName to call when button is 'clicked'
+ * @param {string?} tooltipText to hover display next to button
+ * @returns {string}
+ */
+export function makeFakeButton(buttonText: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
+  const xcallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', commandName, commandArgs)
+  let output = (tooltipText)
+    ? `<span class="fake-button tooltip"><a class="button" href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></span>`
+    : `<span class="fake-button"><a class="button" href="${xcallbackURL}">${buttonText}</span>`
+  return output
 }
