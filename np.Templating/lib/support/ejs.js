@@ -1,21 +1,4 @@
-// import fs from 'fs'
-const fs = {
-  existsSync: () => {},
-  readFileSync: () => {},
-}
-// import path from 'path'
-const path = {
-  dirname: () => {},
-  extname: () => {},
-  resolve: () => {},
-  basename: () => {},
-  replace: () => {},
-  charAt: () => {},
-}
-import utils from 'ejs/lib/utils.js'
-// import { version as _VERSION_STRING } from '../../plugin.json'
-const _VERSION_STRING = `3.1.6` //ejs version
-export default (function (f) {
+;(function (f) {
   if (typeof exports === 'object' && typeof module !== 'undefined') {
     module.exports = f()
   } else if (typeof define === 'function' && define.amd) {
@@ -117,8 +100,13 @@ export default (function (f) {
            * @public
            */
 
+          var fs = require('fs')
+          var path = require('path')
+          var utils = require('./utils')
+
           var scopeOptionWarned = false
           /** @type {string} */
+          var _VERSION_STRING = require('../package.json').version
           var _DEFAULT_OPEN_DELIMITER = '<'
           var _DEFAULT_CLOSE_DELIMITER = '>'
           var _DEFAULT_DELIMITER = '%'

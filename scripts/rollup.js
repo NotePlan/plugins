@@ -356,7 +356,7 @@ let watcher
         const outputOptions = options.output
 
         // create a bundle
-        const bundle = await rollup.rollup(inputOptions)
+        let bundle = await rollup.rollup(inputOptions)
 
         const { output } = await bundle.generate(outputOptions)
 
@@ -369,6 +369,8 @@ let watcher
         if (bundledPlugins.length > 1) {
           processed++
         }
+
+        bundle = undefined
       }
 
       console.log('')
