@@ -19,7 +19,6 @@ export {
   startReviews,
   nextReview,
   finishReview,
-  logWindows,
   makeProjectLists,
   redisplayProjectListHTML,
   renderProjectLists,

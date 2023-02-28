@@ -3,6 +3,7 @@
 # also uses github-actions-reporter.js for reporting
 #
 # LOCAL ACTIONS TESTING NOTES:
+# (this doesn't work because there is no local macos docker image i have found yet)
 # test github actions locally using act https://github.com/nektos/act
 # first time install: brew install act
 # then just run `act` from the command line to test a push action
@@ -36,7 +37,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm run build --if-present
       - run: npm run test:ci
 
