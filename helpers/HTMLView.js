@@ -746,6 +746,10 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
     opts.width,
     opts.height,
   )
+  // Set customID for this window to be the same as windowTitle
+  const allHTMLWindows = htmlWindows()
+  const thisWindow = allHTMLWindows[0]
+  thisWindow.customID = windowTitle
 }
 
 type ScriptObj = {
