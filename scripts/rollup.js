@@ -12,7 +12,6 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-import notifier from 'node-notifier'
 import alias from '@rollup/plugin-alias'
 
 import colors from 'chalk'
@@ -40,11 +39,18 @@ let progress
 let requiredFilesWatchMsg = ''
 
 let watcher
+
+const reportMemoryUsage = (msg = '') => {
+  const used = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)
+  console.log(`${msg}: Memory used: ${used} MB`)
+}
+
 ;(async function () {
+  reportMemoryUsage('top of script')
   // because of changes in Node, we cannot read JSON files directly by importing them anymore
   // import pkgInfo from '../package.json' assert { type: 'json' } // eventually this will work in Node 19
   const readJSON = async (url) => JSON.parse(await readFile(new URL(url, import.meta.url)))
-  const pkgInfo = await readJSON('../package.json')
+  let pkgInfo = await readJSON('../package.json')
 
   const FOLDERS_TO_IGNORE = ['scripts', 'flow-typed', 'node_modules', 'np.plugin-flow-skeleton']
   const rootFolderPath = path.join(__dirname, '..')
@@ -124,13 +130,6 @@ let watcher
         }
       }
 
-      if (NOTIFY) {
-        notifier.notify({
-          title: 'NotePlan Plugin Build',
-          message: `${pluginJsonData['plugin.name']} v${pluginJsonData['plugin.version']}`,
-        })
-      }
-
       if (!isBuildTask) {
         console.log(msg)
       }
@@ -147,7 +146,6 @@ let watcher
     .option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
     .option('-m, --minify', 'Rollup: create minified output to reduce file size')
     .option('-c, --compact', 'Rollup: use compact output')
-    .option('-n, --notify', 'Show Notification')
     .option('-b, --build', 'Rollup: build plugin only (no watcher)')
     .parse(process.argv)
 
@@ -254,6 +252,7 @@ let watcher
     watcher = rollup.watch(rollupConfigs)
 
     watcher.on('event', async (event) => {
+      reportMemoryUsage(`${event.code} event.result:${event.result}`)
       if (event.result) {
         event.result.close()
       }
@@ -270,13 +269,8 @@ let watcher
         console.log('no copyTargetPath', copyTargetPath)
       } else if (event.code === 'ERROR') {
         messenger.error(`!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`)
-        if (NOTIFY) {
-          notifier.notify({
-            title: 'NotePlan Plugins Build',
-            message: `An error occurred during build process.\nSee console for more information`,
-          })
-        }
       }
+      event = undefined
     })
 
     if (!COMPACT) {
@@ -495,4 +489,6 @@ let watcher
   } else {
     main()
   }
+  pkgInfo = undefined
+  reportMemoryUsage('end of script')
 })()
