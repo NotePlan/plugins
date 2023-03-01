@@ -2,10 +2,11 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark
-// Last updated 12.2.2023 by @jgclark
+// Last updated 1.3.2023 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn, JSP } from '@helpers/dev'
+import { setHTMLWindowID } from '@helpers/NPWindows'
 
 const pluginJson = 'helpers/HTMLView'
 
@@ -746,10 +747,6 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
     opts.width,
     opts.height,
   )
-  // Set customID for this window to be the same as windowTitle
-  const allHTMLWindows = htmlWindows()
-  const thisWindow = allHTMLWindows[0]
-  thisWindow.customID = windowTitle
 }
 
 type ScriptObj = {
@@ -872,6 +869,10 @@ export function showHTML(
         HTMLView.showWindow(fullHTMLStr, windowTitle, width, height)
       }
     }
+
+    // Set customID for this window to be the same as windowTitle
+    // TODO(Eduard): to roll this into .showWindow()
+    setHTMLWindowID(windowTitle) // Note: requires NP v3.8.1+ -- this is checked for in the function below
 
     // If wanted, also write this HTML to a file so we can work on it offline.
     // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
