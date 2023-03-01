@@ -206,7 +206,10 @@ const reportMemoryUsage = (msg = '') => {
     }
   }
 
-  async function main() {
+  /**
+   * Rollup with watch
+   */
+  async function watch() {
     // const args = getArgs()
 
     const limitToFolders = await getFolderFromCommandLine(rootFolderPath, program.args)
@@ -247,12 +250,12 @@ const reportMemoryUsage = (msg = '') => {
       })
     const bundledPlugins = (await Promise.all(rootLevelFolders)).filter(Boolean)
 
-    const rollupConfigs = bundledPlugins.map(getConfig)
+    const defaultPlugins = getDefaultPlugins() // the plugins don't change, so we can just create them once
+    const rollupConfigs = bundledPlugins.map(getConfig).map((config) => ({ ...config, plugins: [...config.plugins, ...defaultPlugins] }))
 
     watcher = rollup.watch(rollupConfigs)
 
     watcher.on('event', async (event) => {
-      reportMemoryUsage(`${event.code} event.result:${event.result}`)
       if (event.result) {
         event.result.close()
       }
@@ -262,6 +265,7 @@ const reportMemoryUsage = (msg = '') => {
 
         if (pluginDevFolder != null) {
           await copyBuild(outputFile)
+          reportMemoryUsage(`After ${event.code} event.result:${event.result}`)
         } else {
           console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
         }
@@ -279,8 +283,10 @@ const reportMemoryUsage = (msg = '') => {
     }
   }
 
+  /**
+   * Single Build command (not watch)
+   */
   async function build() {
-    console.log('')
     try {
       const limitToFolders = await getFolderFromCommandLine(rootFolderPath, program.args, true)
 
@@ -324,15 +330,16 @@ const reportMemoryUsage = (msg = '') => {
           width: 50,
         }
 
-        progress = new ProgressBar(`${colors.yellow(':bar :current/:total (:percent) built :eta/secs remaining; building: :id')}`, progressOptions)
+        progress = new ProgressBar(`${colors.yellow(':bar :current/:total (:percent) built :eta/secs remaining; building: :id :mem')}`, progressOptions)
       }
 
       let processed = 0
+      let cachedBundle = null
       for (const plugin of bundledPlugins) {
         const pluginJsonFilename = path.join(plugin, 'plugin.json')
         const pluginJsonData = JSON.parse(await fs.readFile(pluginJsonFilename))
 
-        progress?.tick({ id: pluginJsonData['plugin.id'] })
+        progress?.tick({ id: pluginJsonData['plugin.id'], mem: reportMemoryUsage('') })
 
         if (bundledPlugins.length === 1) {
           messenger.info(`  Building ${path.basename(plugin)} (${pluginJsonData['plugin.version']})`)
@@ -345,26 +352,26 @@ const reportMemoryUsage = (msg = '') => {
           input: options.input,
           plugins: options.plugins,
           context: options.context,
+          cache: cachedBundle,
         }
 
         const outputOptions = options.output
 
         // create a bundle
         let bundle = await rollup.rollup(inputOptions)
-
-        const { output } = await bundle.generate(outputOptions)
+        // const { output } = await bundle.generate(outputOptions)
+        // const bundle = await bundle.generate(outputOptions)
 
         await bundle.write(outputOptions)
 
         const result = await copyBuild(path.join(plugin, 'script.js'), true)
 
+        cachedBundle = bundle
         await bundle.close()
 
         if (bundledPlugins.length > 1) {
           processed++
         }
-
-        bundle = undefined
       }
 
       console.log('')
@@ -383,6 +390,66 @@ const reportMemoryUsage = (msg = '') => {
     }
   }
 
+  const getDefaultPlugins = () =>
+    DEBUGGING
+      ? [
+          alias({
+            entries: pluginConfig.aliasEntries,
+          }),
+          babel({
+            presets: ['@babel/flow'],
+            babelHelpers: 'bundled',
+            babelrc: false,
+            exclude: ['node_modules/**', '*.json'],
+            compact: false,
+          }),
+          commonjs(),
+          json(),
+          nodeResolve({ browser: true, jsnext: true }),
+        ]
+      : MINIFY
+      ? [
+          alias({
+            entries: pluginConfig.aliasEntries,
+          }),
+          babel({ babelHelpers: 'bundled', compact: true }),
+          commonjs(),
+          json(),
+          nodeResolve({ browser: true, jsnext: true }),
+          terser({
+            compress: true,
+            mangle: true,
+            output: {
+              comments: false,
+              beautify: false,
+              indent_level: 2,
+            },
+          }),
+        ]
+      : [
+          alias({
+            entries: pluginConfig.aliasEntries,
+          }),
+          babel({ babelHelpers: 'bundled', compact: false }),
+          commonjs(),
+          json(),
+          nodeResolve({ browser: true, jsnext: true }),
+          terser({
+            compress: false,
+            mangle: false,
+            output: {
+              comments: false,
+              beautify: true,
+              indent_level: 2,
+            },
+          }),
+        ]
+
+  /**
+   * Get specific rollup config for a plugin
+   * @param {string} pluginPath
+   * @returns
+   */
   function getConfig(pluginPath) {
     let requiredFilesWatchPlugin = null
     const requiredFilesInDevFolder = path.join(pluginPath, 'requiredFiles')
@@ -409,61 +476,7 @@ const reportMemoryUsage = (msg = '') => {
         name: 'exports',
         footer: 'Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, exports)',
       },
-      plugins: [requiredFilesWatchPlugin].concat(
-        DEBUGGING
-          ? [
-              alias({
-                entries: pluginConfig.aliasEntries,
-              }),
-              babel({
-                presets: ['@babel/flow'],
-                babelHelpers: 'bundled',
-                babelrc: false,
-                exclude: ['node_modules/**', '*.json'],
-                compact: false,
-              }),
-              commonjs(),
-              json(),
-              nodeResolve({ browser: true, jsnext: true }),
-            ]
-          : MINIFY
-          ? [
-              alias({
-                entries: pluginConfig.aliasEntries,
-              }),
-              babel({ babelHelpers: 'bundled', compact: true }),
-              commonjs(),
-              json(),
-              nodeResolve({ browser: true, jsnext: true }),
-              terser({
-                compress: true,
-                mangle: true,
-                output: {
-                  comments: false,
-                  beautify: false,
-                  indent_level: 2,
-                },
-              }),
-            ]
-          : [
-              alias({
-                entries: pluginConfig.aliasEntries,
-              }),
-              babel({ babelHelpers: 'bundled', compact: false }),
-              commonjs(),
-              json(),
-              nodeResolve({ browser: true, jsnext: true }),
-              terser({
-                compress: false,
-                mangle: false,
-                output: {
-                  comments: false,
-                  beautify: true,
-                  indent_level: 2,
-                },
-              }),
-            ],
-      ),
+      plugins: [requiredFilesWatchPlugin] /* add non-changing plugins later */,
       context: 'this',
     }
   }
@@ -474,6 +487,7 @@ const reportMemoryUsage = (msg = '') => {
       console.log(colors.yellow('Quitting...\n'))
       if (watcher) {
         watcher.close()
+        process.exit()
       }
     })
   } else {
@@ -487,7 +501,7 @@ const reportMemoryUsage = (msg = '') => {
   if (BUILD) {
     build()
   } else {
-    main()
+    watch()
   }
   pkgInfo = undefined
   reportMemoryUsage('end of script')

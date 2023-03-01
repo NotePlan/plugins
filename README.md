@@ -12,9 +12,9 @@ If you want to develop plugins, Step 1 is to read the [NotePlan Knowledgebase Do
 ## Prerequisite
 The following items are required for NotePlan Plugin Development
 
-- Node 12.15 .. 16 -- **Do Not Use Experimental Version of Node (e.g. Node 17.x.x)**
+- Node >16.19.1 -- **Do Not Use Experimental Version of Node (e.g. Node 19.x.x)**
 - npm version 8.x
-- NotePlan 3.4 or greater
+- NotePlan 3.7 or greater
 - macOS Catalina 10.15.2 or greater (strongly recommend macOS Big Sur 11.x or Monterey 12.x)
 - github `gh` is strongly recommended
 
@@ -45,7 +45,7 @@ Make sure you have a recent version of `node` and `npm` installed (if you need t
 Run the following commands from the root of your local GitHub repository for `NotePlan/plugins`.
 
 `
-npm install && npm run init
+npm i --legacy-peer-deps && npm run init
 `
 
 This will install the necessary npm dependencies and initialize your plugin working directory, including:
