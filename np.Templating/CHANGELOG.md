@@ -4,6 +4,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-beta.05] - 2023-03-01 (@dwertheimer)
+
+- roll back change of replacing '---' with '*****'
+- added new tests to ensure rendering with separators works as expected
+
 ## [2.0.0-beta.04] - 2023-02-24 (@dwertheimer)
 
 - Fixed issue that template was not passable to np:new and np:qtn

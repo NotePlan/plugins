@@ -960,7 +960,7 @@ export default class NPTemplating {
       const isFrontmatterTemplate = new FrontmatterModule().isFrontmatterTemplate(templateData)
       if (isFrontmatterTemplate) {
         const { frontmatterAttributes, frontmatterBody } = await this.preRender(templateData, sessionData)
-        templateData = frontmatterBody //.replace(/---/gi, '*****')
+        // templateData = frontmatterBody //.replace(/---/gi, '*****')
         sessionData.data = { ...sessionData.data, ...frontmatterAttributes }
       }
 

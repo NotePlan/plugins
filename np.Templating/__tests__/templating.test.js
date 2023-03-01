@@ -356,6 +356,28 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData).toContain(' - [ ] Item 4')
     })
 
+    it(`should render body which contain mulitiple separators (hr)`, async () => {
+      const templateData = await factory('frontmatter-with-separators.ejs')
+
+      let result = await templateInstance.render(templateData, {}, { extended: true })
+
+      expect(result).toContain(`---\nSection One`)
+      expect(result).toContain(`---\nSection Two`)
+      expect(result).toContain(`---\nSection Three`)
+      expect(result).toContain(`---\nSection Four`)
+    })
+
+    it(`should render body which contain mulitiple separators (hr) using asterick`, async () => {
+      const templateData = await factory('frontmatter-with-asterick-separators.ejs')
+
+      let result = await templateInstance.render(templateData, {}, { extended: true })
+
+      expect(result).toContain(`*****\nSection One`)
+      expect(result).toContain(`*****\nSection Two`)
+      expect(result).toContain(`*****\nSection Three`)
+      expect(result).toContain(`*****\nSection Four`)
+    })
+
     it(`should use proxy to template logic`, async () => {
       const templateData = await factory('template-logic.ejs')
 
