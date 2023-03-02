@@ -27,7 +27,8 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        node-version: [16.19.1, 18.x, 19.x]
+        # [16.19.1, 18.x, 19.x] -- may want to test all 3, but for speed, let's limit to one for now
+        node-version: [16.19.1]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -38,7 +39,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - run: npm ci --legacy-peer-deps
-      - run: npm run build --if-present
+      - run: npm run build
       - run: npm run test:ci
 
       - name: Check for Test Passes ✅

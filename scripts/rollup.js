@@ -392,7 +392,7 @@ const reportMemoryUsage = (msg = '') => {
       console.log(error.message)
       console.log('')
       messenger.error('Build Error Occurred', 'ERROR')
-      process.exit()
+      process.exit(1)
     }
   }
 
