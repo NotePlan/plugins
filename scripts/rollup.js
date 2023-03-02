@@ -1,6 +1,8 @@
 /* eslint-disable */
 'use strict'
 
+const REPORT_MEMORY_USAGE = false
+
 // $FlowFixMe
 import { promises as fs } from 'fs'
 const { readFile } = fs
@@ -41,6 +43,7 @@ let requiredFilesWatchMsg = ''
 let watcher
 
 const reportMemoryUsage = (msg = '') => {
+  if (!REPORT_MEMORY_USAGE) return
   const used = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)
   console.log(`${msg}: Memory used: ${used} MB`)
 }
@@ -265,7 +268,7 @@ const reportMemoryUsage = (msg = '') => {
 
         if (pluginDevFolder != null) {
           await copyBuild(outputFile)
-          reportMemoryUsage(`After ${event.code} event.result:${event.result}`)
+          reportMemoryUsage(`After ${event.code}`)
         } else {
           console.log(`Generated "${outputFile.replace(rootFolder, '')}"`)
         }
@@ -330,7 +333,10 @@ const reportMemoryUsage = (msg = '') => {
           width: 50,
         }
 
-        progress = new ProgressBar(`${colors.yellow(':bar :current/:total (:percent) built :eta/secs remaining; building: :id :mem')}`, progressOptions)
+        progress = new ProgressBar(
+          `${colors.yellow(`:bar :current/:total (:percent) built :eta/secs remaining; building: :id${REPORT_MEMORY_USAGE ? ' :mem' : ''}`)}`,
+          progressOptions,
+        )
       }
 
       let processed = 0

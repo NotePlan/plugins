@@ -88,9 +88,9 @@
   },
   "scripts": {
     "init": "node ./tasks/init.js",
-    "build": "node scripts/rollup.js --build",
-    "build:compact": "node scripts/rollup.js --build --compact",
-    "autowatch": "node scripts/rollup.js",
+    "build": "node --max-old-space-size=8192 scripts/rollup.js --build",
+    "build:compact": "node --max-old-space-size=8192 scripts/rollup.js --build --compact",
+    "autowatch": "node --max-old-space-size=8192 scripts/rollup.js",
     "autowatch:compact": "node scripts/rollup.js --compact",
     "release": "node scripts/releases.js",
     "lint": "eslint .",
