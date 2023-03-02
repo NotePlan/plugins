@@ -1,4 +1,6 @@
-# NotePlan Plugins
+# NotePlan Plugins 
+
+[![Node.js CI](https://github.com/NotePlan/plugins/actions/workflows/node.js.yml/badge.svg)](https://github.com/NotePlan/plugins/actions/workflows/node.js.yml)
 
 ## Overview
 NotePlan Plugins provides an extensive API for extending default editing and task management and work across all platforms (macOS and iOS).
@@ -21,7 +23,7 @@ The following items are required for NotePlan Plugin Development
 _NotePlan Plugin API has been tested using Node.js range, any version outside of this range may lead to unexpected issues_
 
 ## Plugin Information
-If you have an idea for a plugin, [submit them here](https://feedback.noteplan.co/plugins-scripting) or inquire in the [NotePlan Discord community](https://discord.gg/D4268MT)'s `#plugin` channel.
+If you have an idea for a plugin, inquire in the [NotePlan Discord community](https://discord.gg/D4268MT)'s `#plugins` channel.
 
 If you are a developer and want to contribute and build your plugins, see the [plugin writing documentation](https://help.noteplan.co/article/67-create-command-bar-plugins) and discuss this with other developers on [Discord](https://discord.gg/D4268MT) `#plugin-dev` channel.  You might want to consult this [good modern JavaScript tutorial](https://javascript.info/).
 
@@ -38,7 +40,7 @@ When you have cloned this repository, you will not only have the tooling, but yo
 
 **Step 2: Install Node (if not installed)**
 
-Make sure you have a recent version of `node` and `npm` installed (if you need to install node, `brew install node@16` is the quickest method, you can follow instructions on [node website](https://nodejs.org/en/download/)).
+Make sure you have a recent version of `node` and `npm` installed (if you need to install node, `brew install node@16.19.1` is the quickest method, you can follow instructions on [node website](https://nodejs.org/en/download/)).
 
 **Step 3: Initialize Local Development Environment**
 
@@ -117,9 +119,9 @@ npc <command>
 For all CLI commands, you can pass the `--help` for available flags
 
 #### npc plugin:dev
-The most common CLI, this can be used to build plugin, test plugins (wrapper for `npc plugin:test`)
+The most common CLI command, this can be used to build plugin, test plugins (wrapper for `npc plugin:test`)
 
-```shell
+```shell s
 npc plugin:dev <plugin> [options]
 
 # run watcher, compact mode and display notification with build result
