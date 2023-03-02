@@ -49,6 +49,24 @@ const reportMemoryUsage = (msg = '') => {
 }
 
 ;(async function () {
+  // Command line options
+  program
+    .option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
+    .option('-m, --minify', 'Rollup: create minified output to reduce file size')
+    .option('-c, --compact', 'Rollup: use compact output')
+    .option('-b, --build', 'Rollup: build plugin only (no watcher)')
+    .option('-ci, --ci', 'Rollup: build plugin only (no copy, no watcher) for CI')
+    .parse(process.argv)
+
+  const options = program.opts()
+  const DEBUGGING = options.debug || false
+  const MINIFY = options.minify || false
+  const COMPACT = options.compact || false
+  const BUILD = options.build || false
+  const NOTIFY = options.notify || false
+  const CI = options.ci || false
+  console.log(CI)
+
   reportMemoryUsage('top of script')
   // because of changes in Node, we cannot read JSON files directly by importing them anymore
   // import pkgInfo from '../package.json' assert { type: 'json' } // eventually this will work in Node 19
@@ -59,6 +77,9 @@ const reportMemoryUsage = (msg = '') => {
   const rootFolderPath = path.join(__dirname, '..')
 
   const copyBuild = async (outputFile = '', isBuildTask = false) => {
+    if (CI) {
+      return
+    }
     if (!existsSync(outputFile)) {
       messenger.error(`Invalid Script: ${outputFile}`)
     }
@@ -143,21 +164,6 @@ const reportMemoryUsage = (msg = '') => {
 
   console.log('')
   console.log(colors.yellow.bold(`🧩 NotePlan Plugin Development v${pkgInfo.version} (${pkgInfo.build})`))
-
-  // Command line options
-  program
-    .option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
-    .option('-m, --minify', 'Rollup: create minified output to reduce file size')
-    .option('-c, --compact', 'Rollup: use compact output')
-    .option('-b, --build', 'Rollup: build plugin only (no watcher)')
-    .parse(process.argv)
-
-  const options = program.opts()
-  const DEBUGGING = options.debug || false
-  const MINIFY = options.minify || false
-  const COMPACT = options.compact || false
-  const BUILD = options.build || false
-  const NOTIFY = options.notify || false
 
   if (DEBUGGING && !COMPACT) {
     console.log(
@@ -253,7 +259,6 @@ const reportMemoryUsage = (msg = '') => {
       })
     const bundledPlugins = (await Promise.all(rootLevelFolders)).filter(Boolean)
 
-    const defaultPlugins = getDefaultPlugins() // the plugins don't change, so we can just create them once
     const rollupConfigs = bundledPlugins.map(getConfig).map((config) => ({ ...config, plugins: [...config.plugins, ...defaultPlugins] }))
 
     watcher = rollup.watch(rollupConfigs)
@@ -296,7 +301,7 @@ const reportMemoryUsage = (msg = '') => {
       const rootFolder = await fs.readdir(rootFolderPath, {
         withFileTypes: true,
       })
-      const copyTargetPath = await getCopyTargetPath(rootFolder)
+      const copyTargetPath = CI ? '' : await getCopyTargetPath(rootFolder)
 
       const rootLevelFolders = rootFolder
         .filter(
@@ -356,24 +361,30 @@ const reportMemoryUsage = (msg = '') => {
         const inputOptions = {
           external: options.external,
           input: options.input,
-          plugins: options.plugins,
+          plugins: [...options.plugins, ...getDefaultPlugins],
           context: options.context,
           cache: cachedBundle,
         }
 
         const outputOptions = options.output
 
+        if (CI) console.log(`Starting build of: ${pluginJsonData['plugin.id']} `)
+
         // create a bundle
-        let bundle = await rollup.rollup(inputOptions)
+        try {
+          let bundle = await rollup.rollup(inputOptions)
+          if (!CI) {
+            await bundle.write(outputOptions)
+            const result = await copyBuild(path.join(plugin, 'script.js'), true)
+            cachedBundle = bundle
+          }
+          await bundle.close()
+        } catch (error) {
+          console.log(colors.red(`Build of plugin: "${plugin}" failed`), error)
+          if (CI) process.exit(1)
+        }
         // const { output } = await bundle.generate(outputOptions)
         // const bundle = await bundle.generate(outputOptions)
-
-        await bundle.write(outputOptions)
-
-        const result = await copyBuild(path.join(plugin, 'script.js'), true)
-
-        cachedBundle = bundle
-        await bundle.close()
 
         if (bundledPlugins.length > 1) {
           processed++
@@ -388,68 +399,67 @@ const reportMemoryUsage = (msg = '') => {
       }
     } catch (error) {
       progress?.interrupt('An error occurred; stopping...')
-      console.log('\n')
-      console.log(error.message)
+      console.log(`\nError Building plugin`)
+      console.log(`${error.message}`)
       console.log('')
       messenger.error('Build Error Occurred', 'ERROR')
-      process.exit(1)
+      // process.exit(1)
     }
   }
 
-  const getDefaultPlugins = () =>
-    DEBUGGING
-      ? [
-          alias({
-            entries: pluginConfig.aliasEntries,
-          }),
-          babel({
-            presets: ['@babel/flow'],
-            babelHelpers: 'bundled',
-            babelrc: false,
-            exclude: ['node_modules/**', '*.json'],
-            compact: false,
-          }),
-          commonjs(),
-          json(),
-          nodeResolve({ browser: true, jsnext: true }),
-        ]
-      : MINIFY
-      ? [
-          alias({
-            entries: pluginConfig.aliasEntries,
-          }),
-          babel({ babelHelpers: 'bundled', compact: true }),
-          commonjs(),
-          json(),
-          nodeResolve({ browser: true, jsnext: true }),
-          terser({
-            compress: true,
-            mangle: true,
-            output: {
-              comments: false,
-              beautify: false,
-              indent_level: 2,
-            },
-          }),
-        ]
-      : [
-          alias({
-            entries: pluginConfig.aliasEntries,
-          }),
-          babel({ babelHelpers: 'bundled', compact: false }),
-          commonjs(),
-          json(),
-          nodeResolve({ browser: true, jsnext: true }),
-          terser({
-            compress: false,
-            mangle: false,
-            output: {
-              comments: false,
-              beautify: true,
-              indent_level: 2,
-            },
-          }),
-        ]
+  const getDefaultPlugins = DEBUGGING
+    ? [
+        alias({
+          entries: pluginConfig.aliasEntries,
+        }),
+        babel({
+          presets: ['@babel/flow'],
+          babelHelpers: 'bundled',
+          babelrc: false,
+          exclude: ['node_modules/**', '*.json'],
+          compact: false,
+        }),
+        commonjs(),
+        json(),
+        nodeResolve({ browser: true, jsnext: true }),
+      ]
+    : MINIFY
+    ? [
+        alias({
+          entries: pluginConfig.aliasEntries,
+        }),
+        babel({ babelHelpers: 'bundled', compact: true }),
+        commonjs(),
+        json(),
+        nodeResolve({ browser: true, jsnext: true }),
+        terser({
+          compress: true,
+          mangle: true,
+          output: {
+            comments: false,
+            beautify: false,
+            indent_level: 2,
+          },
+        }),
+      ]
+    : [
+        alias({
+          entries: pluginConfig.aliasEntries,
+        }),
+        babel({ babelHelpers: 'bundled', compact: false }),
+        commonjs(),
+        json(),
+        nodeResolve({ browser: true, jsnext: true }),
+        terser({
+          compress: false,
+          mangle: false,
+          output: {
+            comments: false,
+            beautify: true,
+            indent_level: 2,
+          },
+        }),
+      ]
 
   /**
    * Get specific rollup config for a plugin
