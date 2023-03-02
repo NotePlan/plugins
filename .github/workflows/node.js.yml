@@ -41,7 +41,7 @@ jobs:
       - run: npm run build --if-present
       - run: npm run test:ci
 
-      - name: Tests ✅
+      - name: Check for Test Passes ✅
         if: ${{ success() }}
         run: |
           curl --request POST \
@@ -55,7 +55,7 @@ jobs:
             "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }'
 
-      - name: Tests 🚨
+      - name: Check for Test Fails 🚨
         if: ${{ failure() }}
         run: |
           curl --request POST \
