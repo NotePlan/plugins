@@ -255,6 +255,45 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
+  describe(section('TemplatingEngine: Double Dashes'), () => {
+    it(`_replaceDoubleDashes should replace double dashes with triple dashes for frontmatter`, async () => {
+      const templateData = await factory('frontmatter-with-double-dashes.ejs')
+
+      let result = await templateInstance._replaceDoubleDashes(templateData, {}, { extended: true })
+      const lines = result.split('\n')
+      expect(lines[0]).toEqual(`---`) // converted these
+      expect(lines[2]).toEqual(`---`)
+      expect(lines[6]).toEqual(`--`) // left these alone
+      expect(lines[12]).toEqual(`*****`)
+    })
+    it(`_replaceDoubleDashes should leave double dashes in body alone`, async () => {
+      const templateData = await factory('double-dashes-in-body.ejs')
+
+      let result = await templateInstance._replaceDoubleDashes(templateData, {}, { extended: true })
+      const lines = result.split('\n')
+      expect(lines[1]).toEqual(`--`) // left it alone
+      expect(lines[3]).toEqual(`--`)
+    })
+    it(`render should replace double dashes with triple dashes for frontmatter`, async () => {
+      const templateData = await factory('frontmatter-with-double-dashes.ejs')
+
+      let result = await templateInstance.render(templateData, {}, { extended: true })
+      const lines = result.split('\n')
+      expect(lines[0]).toEqual(`---`) // converted these
+      expect(lines[2]).toEqual(`---`)
+      expect(lines[6]).toEqual(`--`) // left these alone
+      expect(lines[12]).toEqual(`*****`)
+    })
+    it(`render should leave double dashes in body alone`, async () => {
+      const templateData = await factory('double-dashes-in-body.ejs')
+
+      let result = await templateInstance.render(templateData, {}, { extended: true })
+      const lines = result.split('\n')
+      expect(lines[1]).toEqual(`--`) // left it alone
+      expect(lines[3]).toEqual(`--`)
+    })
+  })
+
   describe(section('Miscellaneous'), () => {
     it(`should render complex event data`, async () => {
       const templateData = await factory('invalid-syntax.eta')
@@ -354,6 +393,28 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(renderedData).toContain('Open Items [2]:')
       expect(renderedData).toContain(' - [ ] Item 2')
       expect(renderedData).toContain(' - [ ] Item 4')
+    })
+
+    it(`should render body which contain mulitiple separators (hr)`, async () => {
+      const templateData = await factory('frontmatter-with-separators.ejs')
+
+      let result = await templateInstance.render(templateData, {}, { extended: true })
+
+      expect(result).toContain(`---\nSection One`)
+      expect(result).toContain(`---\nSection Two`)
+      expect(result).toContain(`---\nSection Three`)
+      expect(result).toContain(`---\nSection Four`)
+    })
+
+    it(`should render body which contain mulitiple separators (hr) using asterick`, async () => {
+      const templateData = await factory('frontmatter-with-asterick-separators.ejs')
+
+      let result = await templateInstance.render(templateData, {}, { extended: true })
+
+      expect(result).toContain(`*****\nSection One`)
+      expect(result).toContain(`*****\nSection Two`)
+      expect(result).toContain(`*****\nSection Three`)
+      expect(result).toContain(`*****\nSection Four`)
     })
 
     it(`should use proxy to template logic`, async () => {
