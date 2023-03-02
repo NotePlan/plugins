@@ -2,6 +2,15 @@
 
 ## About Plugins/package.json / package-lock.json
 
+## [3.19.0] - 2023-03-01 (@dwertheimer)
+
+- Major change to up Note minimum due to some of the package upgrades. Minimum Node version is 16.19.1 (anything before 16 is not considered current by Node.js)
+- Change all modules to ESM from CJS (remove all require statements)
+- Add CI Jest testing Github Actions
+- Add custom Jest Reporter
+- Add github actions reporter for reporting back detailed issues during failures
+
+
 ## [3.18.0] - 2023-01-08 (@dwertheimer)
 
 - edits to rollup & releases to help with "plugin.requiredFiles" and the requiredFiles folder (files to be copied to the Plugins folder and to releases for React, etc.)
