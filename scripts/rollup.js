@@ -27,7 +27,7 @@ import json from '@rollup/plugin-json'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 
 import { babel } from '@rollup/plugin-babel'
-import { terser } from 'rollup-plugin-terser'
+import terser from '@rollup/plugin-terser'
 import mkdirp from 'mkdirp'
 import { program } from 'commander'
 import ProgressBar from 'progress'
