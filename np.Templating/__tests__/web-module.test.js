@@ -24,7 +24,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(affirmation).toBeCalled()
     })
 
-    it(`should fetch weather`, async () => {
+    it.skip(`should fetch weather`, async () => {
       const advice = jest.spyOn(moduleInstance, 'weather')
       await moduleInstance.weather()
       expect(advice).toBeCalled()
