@@ -25,6 +25,7 @@ import { getVerse, getVersePlain } from '../lib/support/modules/verse'
 
 import { initConfiguration, updateSettingData } from '@helpers/NPConfiguration'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
+import { hasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
 
 import pluginJson from '../plugin.json'
 import DateModule from '../lib/support/modules/DateModule'
@@ -185,14 +186,15 @@ export async function templateInvoke(): Promise<void> {
   }
 }
 
-export async function templateNew(_noteTitle: string = ''): Promise<void> {
+export async function templateNew(templateTitle: string = ''): Promise<void> {
   try {
     let selectedTemplate // will be a filename
-    if (_noteTitle?.length) {
+    if (templateTitle?.length) {
       const options = await NPTemplating.getTemplateList()
-      if (options.find((option) => option.label === _noteTitle)) {
+      const chosenOpt = options.find((option) => option.label === templateTitle)
+      if (chosenOpt) {
         // variable passed is a note title, but we need the filename
-        selectedTemplate = options.find((option) => option.label === _noteTitle)?.value
+        selectedTemplate = chosenOpt.value
       }
     } else {
       // ask the user for the template
@@ -210,7 +212,7 @@ export async function templateNew(_noteTitle: string = ''): Promise<void> {
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 
-    if (_noteTitle === '' && frontmatterAttributes.hasOwnProperty('newNoteTitle')) {
+    if (frontmatterAttributes.hasOwnProperty('newNoteTitle')) {
       noteTitle = frontmatterAttributes.newNoteTitle
     } else {
       const title = await CommandBar.textPrompt('Template', 'Enter New Note Title', '')
@@ -240,14 +242,10 @@ export async function templateNew(_noteTitle: string = ''): Promise<void> {
 
       await Editor.openNoteByFilename(filename)
 
-      const lines = templateResult.split('\n')
-      const startBlock = lines.indexOf('--')
-      const endBlock = startBlock === 0 ? lines.indexOf('--', startBlock + 1) : -1
-
-      if (startBlock >= 0 && endBlock >= 0) {
-        lines[startBlock] = '---'
-        lines[endBlock] = '---'
-        Editor.content = lines.join('\n')
+      const hasFM = hasFrontMatter(templateResult)
+      if (hasFM) {
+        Editor.content = templateResult
+        setFrontMatterVars(Editor, { title: noteTitle })
       } else {
         Editor.content = `# ${noteTitle}\n${templateResult}`
       }
@@ -260,7 +258,7 @@ export async function templateNew(_noteTitle: string = ''): Promise<void> {
   }
 }
 
-export async function templateQuickNote(noteTitle: string = ''): Promise<void> {
+export async function templateQuickNote(templateTitle: string = ''): Promise<void> {
   try {
     const content: string = Editor.content || ''
     const templateFolder = await getTemplateFolder()
@@ -271,9 +269,9 @@ export async function templateQuickNote(noteTitle: string = ''): Promise<void> {
       return
     }
     let selectedTemplate // will be a filename
-    if (noteTitle?.length && options.find((option) => option.label === noteTitle)) {
+    if (templateTitle?.length && options.find((option) => option.label === templateTitle)) {
       // variable passed is a note title, but we need the filename
-      selectedTemplate = options.find((option) => option.label === noteTitle)?.value
+      selectedTemplate = options.find((option) => option.label === templateTitle)?.value
     } else {
       // ask the user for the template
       selectedTemplate = options.length > 1 ? await NPTemplating.chooseTemplate('quick-note', 'Choose Quick Note') : options[0].value
@@ -349,7 +347,7 @@ export async function templateQuickNote(noteTitle: string = ''): Promise<void> {
   }
 }
 
-export async function templateMeetingNote(noteName: string = '', templateData: any = {}): Promise<void> {
+export async function templateMeetingNote(templateName: string = '', templateData: any = {}): Promise<void> {
   try {
     const content: string = Editor.content || ''
     const templateFolder = await getTemplateFolder()
@@ -360,7 +358,14 @@ export async function templateMeetingNote(noteName: string = '', templateData: a
       return
     }
 
-    let selectedTemplate = options.length > 1 ? await NPTemplating.chooseTemplate('meeting-note', 'Choose Meeting Note') : options[0].value
+    let selectedTemplate = ''
+    if (templateName?.length && options.find((option) => option.label === templateName)) {
+      // variable passed is a note title, but we need the filename
+      selectedTemplate = options.find((option) => option.label === templateName)?.value
+    } else {
+      // ask the user for the template
+      selectedTemplate = options.length > 1 ? await NPTemplating.chooseTemplate('meeting-note', 'Choose Meeting Note') : options[0].value
+    }
 
     if (selectedTemplate) {
       // $FlowIgnore
@@ -383,7 +388,8 @@ export async function templateMeetingNote(noteName: string = '', templateData: a
           newNoteTitle = frontmatterAttributes.newNoteTitle
         } else {
           const format = getSetting('np.Templating', 'timestampFormat')
-          newNoteTitle = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', timestamp(format))
+          const info = await CommandBar.textPrompt('Meeting Note', 'What is date/time of meeeting?', timestamp(format))
+          newNoteTitle = info ? info : ''
           if (typeof newNoteTitle === 'boolean' || newNoteTitle.length === 0) {
             return // user did not provide note title (Cancel) abort
           }
