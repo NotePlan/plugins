@@ -56,6 +56,21 @@ export default class TemplatingEngine {
     }
   }
 
+  _replaceDoubleDashes(templateData: string): string {
+    let returnedData = templateData
+    // replace double dashes at top with triple dashes
+    const lines = templateData.split('\n')
+    const startBlock = lines.indexOf('--')
+    const endBlock = startBlock === 0 ? lines.indexOf('--', startBlock + 1) : -1
+    clo(lines, `templateData: ${templateData}`)
+    if (startBlock >= 0 && endBlock > 0) {
+      lines[startBlock] = '---'
+      lines[endBlock] = '---'
+      returnedData = lines.join('\n')
+    }
+    return returnedData
+  }
+
   async heartbeat(): Promise<string> {
     return '```\n' + JSON.stringify(this.templateConfig, null, 2) + '\n```\n'
   }
@@ -191,7 +206,7 @@ export default class TemplatingEngine {
       let result = await ejs.render(processedTemplateData, renderData, options)
       result = (result && result?.replace(/undefined/g, '')) || ''
 
-      return result
+      return this._replaceDoubleDashes(result)
     } catch (error) {
       logDebug(`199 np.Templating error: ${error}`)
 
