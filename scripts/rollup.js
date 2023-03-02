@@ -42,6 +42,81 @@ let requiredFilesWatchMsg = ''
 
 let watcher
 
+// Command line options
+program
+  .option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
+  .option('-m, --minify', 'Rollup: create minified output to reduce file size')
+  .option('-c, --compact', 'Rollup: use compact output')
+  .option('-b, --build', 'Rollup: build plugin only (no watcher)')
+  .option('-ci, --ci', 'Rollup: build plugin only (no copy, no watcher) for CI')
+  .parse(process.argv)
+
+const options = program.opts()
+const DEBUGGING = options.debug || false
+const MINIFY = options.minify || false
+const COMPACT = options.compact || false
+const BUILD = options.build || false
+const NOTIFY = options.notify || false
+const CI = options.ci || false
+console.log(CI)
+
+/**
+ * Most of the rollup plugins will the same for all files, so we can just create them once
+ */
+const defaultPlugins = DEBUGGING
+  ? [
+      alias({
+        entries: pluginConfig.aliasEntries,
+      }),
+      babel({
+        presets: ['@babel/flow'],
+        babelHelpers: 'bundled',
+        babelrc: false,
+        exclude: ['node_modules/**', '*.json'],
+        compact: false,
+      }),
+      commonjs(),
+      json(),
+      nodeResolve({ browser: true, jsnext: true }),
+    ]
+  : MINIFY
+  ? [
+      alias({
+        entries: pluginConfig.aliasEntries,
+      }),
+      babel({ babelHelpers: 'bundled', compact: true }),
+      commonjs(),
+      json(),
+      nodeResolve({ browser: true, jsnext: true }),
+      terser({
+        compress: true,
+        mangle: true,
+        output: {
+          comments: false,
+          beautify: false,
+          indent_level: 2,
+        },
+      }),
+    ]
+  : [
+      alias({
+        entries: pluginConfig.aliasEntries,
+      }),
+      babel({ babelHelpers: 'bundled', compact: false }),
+      commonjs(),
+      json(),
+      nodeResolve({ browser: true, jsnext: true }),
+      terser({
+        compress: false,
+        mangle: false,
+        output: {
+          comments: false,
+          beautify: true,
+          indent_level: 2,
+        },
+      }),
+    ]
+
 const reportMemoryUsage = (msg = '') => {
   if (!REPORT_MEMORY_USAGE) return
   const used = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)
@@ -49,24 +124,6 @@ const reportMemoryUsage = (msg = '') => {
 }
 
 ;(async function () {
-  // Command line options
-  program
-    .option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
-    .option('-m, --minify', 'Rollup: create minified output to reduce file size')
-    .option('-c, --compact', 'Rollup: use compact output')
-    .option('-b, --build', 'Rollup: build plugin only (no watcher)')
-    .option('-ci, --ci', 'Rollup: build plugin only (no copy, no watcher) for CI')
-    .parse(process.argv)
-
-  const options = program.opts()
-  const DEBUGGING = options.debug || false
-  const MINIFY = options.minify || false
-  const COMPACT = options.compact || false
-  const BUILD = options.build || false
-  const NOTIFY = options.notify || false
-  const CI = options.ci || false
-  console.log(CI)
-
   reportMemoryUsage('top of script')
   // because of changes in Node, we cannot read JSON files directly by importing them anymore
   // import pkgInfo from '../package.json' assert { type: 'json' } // eventually this will work in Node 19
@@ -361,7 +418,7 @@ const reportMemoryUsage = (msg = '') => {
         const inputOptions = {
           external: options.external,
           input: options.input,
-          plugins: [...options.plugins, ...getDefaultPlugins],
+          plugins: [...options.plugins, ...defaultPlugins],
           context: options.context,
           cache: cachedBundle,
         }
@@ -406,60 +463,6 @@ const reportMemoryUsage = (msg = '') => {
       // process.exit(1)
     }
   }
-
-  const getDefaultPlugins = DEBUGGING
-    ? [
-        alias({
-          entries: pluginConfig.aliasEntries,
-        }),
-        babel({
-          presets: ['@babel/flow'],
-          babelHelpers: 'bundled',
-          babelrc: false,
-          exclude: ['node_modules/**', '*.json'],
-          compact: false,
-        }),
-        commonjs(),
-        json(),
-        nodeResolve({ browser: true, jsnext: true }),
-      ]
-    : MINIFY
-    ? [
-        alias({
-          entries: pluginConfig.aliasEntries,
-        }),
-        babel({ babelHelpers: 'bundled', compact: true }),
-        commonjs(),
-        json(),
-        nodeResolve({ browser: true, jsnext: true }),
-        terser({
-          compress: true,
-          mangle: true,
-          output: {
-            comments: false,
-            beautify: false,
-            indent_level: 2,
-          },
-        }),
-      ]
-    : [
-        alias({
-          entries: pluginConfig.aliasEntries,
-        }),
-        babel({ babelHelpers: 'bundled', compact: false }),
-        commonjs(),
-        json(),
-        nodeResolve({ browser: true, jsnext: true }),
-        terser({
-          compress: false,
-          mangle: false,
-          output: {
-            comments: false,
-            beautify: true,
-            indent_level: 2,
-          },
-        }),
-      ]
 
   /**
    * Get specific rollup config for a plugin
