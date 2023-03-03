@@ -361,10 +361,11 @@ export async function getPeriodStartEndDates(
         'getPeriodStartEndDates',
         `userwtd: dayOfWeekWithSundayZero: ${dayOfWeekWithSundayZero}, usersStartOfWeekWithSundayZero: ${usersStartOfWeekWithSundayZero}, dateWithinInterval: ${dateWithinInterval}`,
       )
-      fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -(dateWithinInterval - 1))
-      toDate = Calendar.addUnitToDate(fromDate, 'day', 6)
+      fromDate = Calendar.startOfWeek(new Date()) //Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -(dateWithinInterval - 1))
+      toDate = Calendar.addUnitToDate(fromDate, 'day', dateWithinInterval-1) // Eduard, 3rd March '23: week to date means the start of the week till today? Before it went till the end.
+
       periodString = `this week`
-      periodAndPartStr = `day ${dateWithinInterval} this week`
+      periodAndPartStr = `to day ${dateWithinInterval} this week`
       break
     }
     case 'wtd': {
