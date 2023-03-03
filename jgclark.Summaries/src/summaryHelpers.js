@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 19.1.2023 for v0.17.3 by @jgclark
+// Last updated 3.3.2023 for v0.18.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -40,24 +40,28 @@ export type SummariesConfig = {
   folderToStore: string,
   statsHeading: string,
   headingLevel: headingLevelType,
+  excludeToday: boolean,
   hashtagCountsHeading: string,
   mentionCountsHeading: string,
   showAsHashtagOrMention: boolean,
-  includedHashtags: Array<string>,
-  excludedHashtags: Array<string>,
-  includedMentions: Array<string>,
-  excludedMentions: Array<string>,
   weeklyStatsDuration: ?number,
   weeklyStatsItems: Array<string>,
   progressPeriod: string,
   progressDestination: string,
   progressHeading: string,
-  progressHashtags: Array<string>,
+  progressHashtags: Array<string>, // for progressUpdate ...
   progressMentions: Array<string>,
   progressMentionsAverage: Array<string>,
   progressMentionsTotal: Array<string>,
   progressYesNo: Array<string>,
   progressYesNoChars: string,
+  includedHashtags: Array<string>, // for periodStats ...
+  excludedHashtags: Array<string>,
+  includedMentions: Array<string>,
+  excludedMentions: Array<string>,
+  periodStatsMentionsAverage: Array<string>,
+  periodStatsMentionsTotal: Array<string>,
+  periodStatsYesNo: Array<string>,
 }
 
 /**
@@ -252,7 +256,7 @@ export class TMOccurrences {
     for (let f of this.valuesMap.values()) {
       outArr.push(f)
     }
-    logDebug('TMOcc:getValues', `for ${this.term} = ${outArr.length} items: ${outArr.toString()}`)
+    // logDebug('TMOcc:getValues', `for ${this.term} = ${outArr.length} items: ${outArr.toString()}`)
     return outArr
   }
 
@@ -557,14 +561,19 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
  * @param {string} fromDateStr 
  * @param {string} toDateStr 
  * @param {string} style 
- * @param {boolean} showSparklines 
+ * @param {boolean} requestToShowSparklines 
  * @param {boolean} sortOutput
  * @returns Array<string>
  */
-export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: string, fromDateStr: string, toDateStr: string, style: string, showSparklines: boolean, sortOutput: boolean): Array<string> {
+export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: string, fromDateStr: string, toDateStr: string, style: string, requestToShowSparklines: boolean, sortOutput: boolean): Array<string> {
   try {
-    logDebug('generateProgressUpdate', `starting for ${periodString} (${fromDateStr} - ${toDateStr}) with ${occObjs.length} occObjs`)
+    logDebug('generateProgressUpdate', `starting for ${periodString} (${fromDateStr} - ${toDateStr}) with ${occObjs.length} occObjs and sparklines? ${String(requestToShowSparklines)}`)
 
+    const toDateMom = moment(toDateStr, "YYYY-MM-DD")
+    const fromDateMom = moment(fromDateStr, "YYYY-MM-DD")
+    const daysBetween = toDateMom.diff(fromDateMom, 'days')
+    // Include sparklines only if this period is a month or less
+    const showSparklines = (requestToShowSparklines && daysBetween <= 31)
     // Get length of longest progress term (to use with sparklines)
     const maxTermLen = Math.max(...occObjs.map((m) => m.term.length))
 
@@ -574,8 +583,7 @@ export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodStri
       let thisOutput = ''
       switch (style) {
         case 'markdown': {
-          // Include sparklines if this period is a month or less
-          if (showSparklines && occObjs.length <= 31) {
+          if (showSparklines) {
             thisOutput = "`" + occObj.getTerm(maxTermLen) + " " + occObj.getSparkline('ascii') + "`"
           } else {
             thisOutput = "**" + occObj.getTerm() + "**: "
@@ -590,8 +598,14 @@ export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodStri
       }
       outputArray.push(thisOutput)
       if (sortOutput) {
-        // sort using locale-aware sorting
-        outputArray.sort((a, b) => a.localeCompare(b))
+        if (showSparklines) {
+          // sort using locale-aware sorting (having trimmed off non-text at start of line)
+          outputArray.sort((a, b) => a.slice(1).trim().localeCompare(b.slice(1).trim()))
+
+        } else {
+          // sort using locale-aware sorting
+          outputArray.sort((a, b) => a.localeCompare(b))
+        }
       }
     }
     return outputArray
@@ -846,7 +860,7 @@ function makeSparkline(data: Array<number>, options: Object = {}): string {
   values = values.map(v => v - min)
   const sum = realNumberValues.reduce((x, y) => x + y, 0)
   const avg = sum / realNumberValues.length
-  clo(values, 'values to sparkline')
+  // clo(values, 'values to sparkline')
   // logDebug('makeSparkline', `-> ${min} - ${max} / ${sum} from ${values.length}`)
 
   const value_mapper = (value: number, i: number) => {
@@ -887,7 +901,7 @@ function makeYesNoLine(data: Array<number>, options: Object = {}): string {
   const divider = options.divider ?? '|'
 
   let values = data
-  clo(values, 'values to yesNoLine')
+  // clo(values, 'values to yesNoLine')
 
   const value_mapper = (value: number, i: number) => {
     return (value > 0) ? yesChar : noChar

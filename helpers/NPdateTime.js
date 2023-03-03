@@ -6,7 +6,7 @@
 import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
-import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, todaysDateISOString, toISOShortDateTimeString, weekStartEnd, RE_DATE } from './dateTime'
+import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, todaysDateISOString, toISOShortDateTimeString, weekStartEndDates, RE_DATE } from './dateTime'
 import { logDebug, logError, clo, JSP } from './dev'
 // import { getSetting } from './NPConfiguration'
 import { chooseOption, getInput } from './userInput'
@@ -219,8 +219,8 @@ export const periodTypesAndDescriptions = [
  * @author @jgclark
  *
  * @param {string?} question to show user
- * @param {boolean?} excludeToday?
- * @param {string?} periodType if not provided ask user
+ * @param {boolean?} excludeToday? (default true)
+ * @param {string?} periodType? if not provided ask user
  * @returns {[Date, Date, string, string, string]}
  */
 export async function getPeriodStartEndDates(
@@ -237,14 +237,14 @@ export async function getPeriodStartEndDates(
     // Ask user what date interval to do tag counts for
     periodType = await chooseOption(question, periodTypesAndDescriptions, 'mtd')
   }
-  let fromDate: Date = new Date()
   let fromDateMom = new moment()
-  let toDate: Date = new Date()
+  let fromDate: Date = fromDateMom.toDate()
   let toDateMom = new moment()
+  let toDate: Date = toDateMom.toDate()
   let periodString = ''
   let periodAndPartStr = ''
 
-  const todaysDate = new Date()
+  const todaysDate = toDateMom.toDate()
   // couldn't get const { y, m, d } = getYearMonthDate(todaysDate) to work ??
   const y = todaysDate.getFullYear()
   const m = todaysDate.getMonth() + 1 // counting from 1
@@ -256,7 +256,7 @@ export async function getPeriodStartEndDates(
   // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
   // TODO: ideally use moment library instead, which should make this easier
   const TZOffset = new Date().getTimezoneOffset()
-  // log(pluginJson, `getPeriodStartEndDates: periodType = ${periodType}, TZOffset = ${TZOffset}.`)
+  logDebug('getPeriodStartEndDates', `starting with periodType = ${periodType}, TZOffset = ${TZOffset}, excludeToday? ${String(excludeToday)}.`)
 
   switch (periodType) {
     case 'lm': {
@@ -296,16 +296,16 @@ export async function getPeriodStartEndDates(
     }
 
     case 'lq': {
-      const thisQ = Math.floor((m - 1) / 3) + 1 // quarter 1-4
-      const lastQ = thisQ > 0 ? thisQ - 1 : 4 // last quarter
-      const lastY = lastQ === 4 ? y - 1 : y // change the year if we want Q4
-      const [f, t] = quarterStartEnd(lastQ, lastY)
+      const thisQ = Math.floor((m - 1) / 3) + 1 // quarter (1-4)
+      const theQ = thisQ > 1 ? thisQ - 1 : 4 // last quarter (1-4)
+      const theY = (theQ === 4) ? y - 1 : y // change the year if we want Q4
+      const [f, t] = quarterStartEnd(theQ, theY)
       fromDate = f
       toDate = t
-      const lastQStartMonth = (lastQ - 1) * 3 + 1
+      const theQStartMonth = (theQ - 1) * 3 + 1
       toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
       toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${lastY} Q${lastQ} (${monthNameAbbrev(lastQStartMonth)}-${monthNameAbbrev(lastQStartMonth + 2)})`
+      periodString = `${theY} Q${theQ} (${monthNameAbbrev(theQStartMonth)}-${monthNameAbbrev(theQStartMonth + 2)})`
       break
     }
     case 'qtd': {
@@ -345,11 +345,12 @@ export async function getPeriodStartEndDates(
       } else {
         lastWeekNum = currentWeekNum - 1
       }
-      ;[fromDate, toDate] = weekStartEnd(lastWeekNum, theYear)
-      periodString = `${theYear}-W${lastWeekNum}`
+      ;[fromDate, toDate] = weekStartEndDates(lastWeekNum, theYear)
+      periodString = `${String(theYear)}-W${(lastWeekNum < 10 ? '0' + String(lastWeekNum) : String(lastWeekNum))}`
       break
     }
     case 'userwtd': {
+      // FIXME: Seems to be reporting weeks starting 1 day early for start of week Monday.
       // week to date from user's chosen Week Start (in app settings)
       const dayOfWeekWithSundayZero = new Date().getDay()
       // Get user preference for start of week, with Sunday = 0 ...
@@ -375,10 +376,10 @@ export async function getPeriodStartEndDates(
         theYear -= 1
       }
       // I don't know why the [from, to] construct doesn't work here, but using tempObj instead
-      const tempObj = weekStartEnd(currentWeekNum, theYear)
+      const tempObj = weekStartEndDates(currentWeekNum, theYear)
       fromDate = tempObj[0]
       toDate = tempObj[1]
-      periodString = `${theYear}-W${currentWeekNum}`
+      periodString = `${theYear}-W${(currentWeekNum < 10 ? '0' + String(currentWeekNum) : String(currentWeekNum))}`
       // get ISO dayOfWeek (Monday = 1 to Sunday = 7)
       const todaysISODayOfWeek = moment().isoWeekday()
       periodAndPartStr = `day ${todaysISODayOfWeek}, ${periodString}`
@@ -408,7 +409,7 @@ export async function getPeriodStartEndDates(
       toDateMom = moment(toDate).startOf('day')
       fromDateMom = toDateMom.subtract(13, 'days')
       fromDate = fromDateMom.toDate()
-      logDebug('last2w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+      // logDebug('last2w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
       break
     }
     case 'last4w': {
@@ -421,7 +422,7 @@ export async function getPeriodStartEndDates(
       toDateMom = moment(toDate).startOf('day')
       fromDateMom = toDateMom.subtract(27, 'days')
       fromDate = fromDateMom.toDate()
-      logDebug('last4w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+      // logDebug('last4w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
       break
     }
     case 'ow': {
@@ -429,10 +430,10 @@ export async function getPeriodStartEndDates(
       const theYear = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Week', String(y)))
       const weekNum = Number(await getInput('Choose week number, 1-53', 'OK', 'Counts for Week'))
       // I don't know why the [from, to] form doesn't work here, but using tempObj instead
-      const tempObj = weekStartEnd(weekNum, theYear)
+      const tempObj = weekStartEndDates(weekNum, theYear)
       fromDate = tempObj[0]
       toDate = tempObj[1]
-      periodString = `${theYear}-W${weekNum}`
+      periodString = `${theYear}-W${(weekNum < 10 ? '0' + String(weekNum) : String(weekNum))}`
       break
     }
 
@@ -472,7 +473,8 @@ export async function getPeriodStartEndDates(
       periodString = `<Error: couldn't parse interval type '${periodType}'>`
     }
   }
-  if (excludeToday && ['wtd,mtd,qtd,ytd'].includes(periodType)) {
+  // if (excludeToday && ['wtd,mtd,qtd,ytd'].includes(periodType)) {
+  if (excludeToday) {
     logDebug('getPeriodStartEndDates', `- as requested, today's date will be excluded`)
     toDateMom = moment(toDate).subtract(1, 'day')
     toDate = toDateMom.toDate()

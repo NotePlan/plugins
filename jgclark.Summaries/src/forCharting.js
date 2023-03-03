@@ -3,7 +3,7 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 6.11.2022 for v0.15.1, @jgclark
+// Last updated 6.11.2022 for v0.15.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,10 +29,13 @@ import {
   RE_DONE_DATE_TIME_CAPTURES,
   toISODateString,
   unhyphenatedDate,
-  weekStartEnd,
+  weekStartEndDates,
   withinDateRange,
 } from '@helpers/dateTime'
-import { getUsersFirstDayOfWeekUTC } from '@helpers/NPdateTime'
+import {
+  getUsersFirstDayOfWeekUTC,
+  setMomentLocaleFromEnvironment,
+} from '@helpers/NPdateTime'
 import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { showHTML } from '@helpers/HTMLView'
@@ -98,12 +101,8 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
     }
   }
 
-  // logDebug('heatmap', `languageCode = ${NotePlan.environment.languageCode ?? '<undefined>'}`)
-  // logDebug('heatmap', `regionCode   = ${NotePlan.environment.regionCode ?? '<undefined>'}`)
   // Set locale for momnet library
-  moment.locale(`${NotePlan.environment.languageCode}-${NotePlan.environment.regionCode}`)
-  // logDebug('heatmap', `moment locale -> ${moment.locale()}`)
-
+  setMomentLocaleFromEnvironment()
   const fromDateLocale = moment(fromDateStr, 'YYYY-MM-DD').format('L')
   await generateHeatMap(
     'NotePlan Task Completion Heatmap',
@@ -625,7 +624,7 @@ export async function weeklyStats(): Promise<void> {
       y = answer.year
       counter++
       logDebug(pluginJson, `${counter}: w ${w} y ${y}`)
-      const [weekStartDate, weekEndDate] = weekStartEnd(w, y)
+      const [weekStartDate, weekEndDate] = weekStartEndDates(w, y)
 
       // Calc hashtags stats (returns two maps)
       let weekResults = await calcHashtagStatsPeriod(unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate), config.includeHashtags, [])
@@ -822,7 +821,7 @@ export async function weeklyStats2(): Promise<void> {
           y = answer.year
           counter++
           logDebug(pluginJson, `${counter}: w ${w} y ${y}`)
-          const [weekStartDate, weekEndDate] = weekStartEnd(w, y)
+          const [weekStartDate, weekEndDate] = weekStartEndDates(w, y)
           const weekSummaryCSV = occ.summariseToInterval(toISODateString(weekStartDate), toISODateString(weekEndDate), 'week')
           outputArray.push(weekSummaryCSV)
         }

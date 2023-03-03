@@ -3,6 +3,7 @@
 This Plugin lets you do the following sorts of things:
 - track habits: for example, show when this week I've managed to `#closedmyrings` or `#tookMeds`? 
 <img alt="Habit Tracker example" src="ipu-2w-with-sparkline.jpg" width=360px/>
+
 - show your progress over the last 2 weeks against your goal of getting an average 8 hours `@sleep`
 - count every time you've noted you've visited  `#family` or watched `#tv` this month
 - count the times you've met with staff member `@alice` this year so far
@@ -10,16 +11,22 @@ This Plugin lets you do the following sorts of things:
 - show a heatmap chart of how many tasks you've completed recently
 ![Heatmap example](heatmap-0140.jpg)
 
-It does this by providing commands that generate several different sorts of **summaries** and **basic stats from your daily notes**.
+**What do you need to do?** Add tags like #closedmyrings or @habit(number) in your daily notes. In my case a day might incldue:
+```md
+@sleep(5.3) @activeCals(400) @steps(3800) @distance(2.7) @minHR(50) @maxHR(161) @restingHR(66) @fruitveg(4)
+Remember: #visit to new CFL premises in K18, Festival Place #prayer #win #filmvideo
+@work(10) #readbook
+```
 
-Each command is considered in turn. **Please note** that in each of these: 
+**What does the plugin do?** It provides commands, each described in more detail below, that read these tags and generates several different sorts of summaries and basic stats from your daily notes.
+
+**When to use the command**: It's up to you! I run  /insertProgressUpdate as part of my daily note (see Calling from a Template below), but you might want to do it at the end of a day/week/month in those notes.
+
+In each of these commands note that: 
 - all notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be exluded too using the `foldersToExclude` setting.
 - these commands require **some setup**, so it knows what you want to summarise. Do this in the Plugin Preferences panel by clicking the gear button on the 'Summaries' line. Each setting has an explanation, and they are grouped into relevant sections.
 
-(Note: the /savedSearch commands now live in the separate [SearchExtensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/).)
-
-### Sparkline graphs
-If wanted, the command output will include little "**sparkline**" graphs, as a simple in-line visualisation of the recorded activity for each item you're tracking, where the time period is a month or less. A dot `.` indicates there's no data for that day; the height of the bar indicates the value of that day, relative to the maximum in that time period. The mimimum is always 0, not the lowest value, and that is always shown as an empty space.
+The command output can include little "**sparkline" graphs**, as a simple in-line visualisation of the recorded activity for each item you're tracking, where the time period is a month or less. A dot `.` indicates there's no data for that day; the height of the bar indicates the value of that day, relative to the maximum in that time period. The mimimum is always 0, not the lowest value, and that is always shown as an empty space.
 
 To display them requires your font to have the necessary characters (`▁▂▃▄▅▆▇█`). All of NotePlan's built-in themes have the characters, and I have tested with Menlo and Cascadia Code monospace fonts as well.  See [NotePlan help on how to set fonts in themes](https://help.noteplan.co/article/44-customize-themes#fonts).
 
@@ -39,7 +46,7 @@ This displays a 'heatmap' chart of many tasks you've completed on each day (see 
 
 (NotePlan automatically appends a 'completion date' to completed tasks if you have the Preferences > Todo > Append Completion Date setting turned on.)
 
-Note: This is a first attempt at generating heatmaps, and I want to make it much more flexible in future. But this will probably require rolling my own charts, rather than using one from AnyChart, which if you rely on it should be licensed.
+Note: This is a first attempt at generating heatmaps, and I want to make it much more flexible in future. But this will probably require rolling my own charts, rather than using one from AnyChart, which should be licensed if you rely on it.
 
 ## /insertProgressUpdate
 As NotePlan is such a flexible app, there are [various ways people use it to track habits](https://help.noteplan.co/article/144-habit-tracking). 
@@ -48,24 +55,27 @@ This Plugin command helps show progress for items you track (e.g. `@work(9)`, `@
 
 For example, it produces for me: 
 
-![Habit Tracker example](ipu-2w-with-sparkline.jpg)
+![Habit Tracker example](ipu-2w-with-sparkline-v2.jpg)
 
-(The leading @ or # is removed in the output, to avoid double-counting problems.)
+Note:
+- The statistics are shown according to whether you have selected count, average or total for that tag in the settings (see below)
+- The leading @ or # is removed in the output, to avoid double-counting problems.
 
 There are now 3 ways of running this: as /insertProgressUpdate **command**; through **templates**, or by **x-callback** call. The various settings are common, but how they are applied differ depending which method is used to invoke it. The settings and their meaning are introduced next, and differences in how they're applied are described in the following sections.
 
 ### Calling by Command
 The many **settings** for this command are set in the Plugin Prererence pane:
+
 - What time period should the Progress update cover? Pick one of the options: 'wtd' or 'userwtd' (two week to date options), 'last7d' (last 7 days), 'mtd' (month to date), 'last2w' (last 2 weeks), 'last4w' (last 4 weeks). Note: `wtd` and `userwtd` behave slightly differently to each other:
   - `wtd` is the week to date using ISO standard (Monday)
   - `userwtd` is week to date using whatever you've set the start of week to be in NotePlan's 'Calendars' Preferences pane.
 - Where to write the progress update? The destination note is either the 'current'ly open note, or the current 'daily' or 'weekly' note.
 - Progress heading: this is the heading to go before the output, to which is added the period that's covered. However, if it contains the string '{{PERIOD}}, then the covered period will be inserted in place of this string wherever you want in the heading.
-- #hashtags to count: e.g. '#tv, #podcast'
-- @mentions to count: e.g. '@work' -- these are counted and displayed with count, total and average
-- @mentions to average: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average
-- @mentions to total: e.g. '@distance, @run' -- these are counted and displayed as a total
-- (new) **Yes/No items**: Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
+- #hashtags to **count**: e.g. '#tv, #podcast'
+- @mentions to **count**: e.g. '@work' -- these are counted and displayed with count, total and average
+- @mentions to **average**: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average
+- @mentions to **total**: e.g. '@distance, @run' -- these are counted and displayed as a total
+- **Yes/No items**: Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
 - Yes/No characters: sets the pair of characters to use as Yes and No in output of "Yes/No items". The first is for Yes, the second for No. Here are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□. (You can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.)
 - Exclude today's entries? Whether to exclude today's entries in progress updates. Can be enabled if you tend to run the progress update as part of a start-of-day routine, and only add the updates later in the day.
 - 'Include sparkline graphs?' true or false
@@ -134,7 +144,9 @@ It starts by asking for the time period you wish to operate over:
 ![time period selection](time-period-selection.png)
 
 It asks where to save its output: to a specially-created note in the Summaries folder, or to the current note. 
-<img alt="Calendar Notes types" src="calendar-notes@2x.jpg" width=500px align="right"/>**Note**: From NotePlan v3.7.2 it will also offer to write to the current Weekly / Monthly / Quarterly / Yearly notes if you have them enabled in the preferences.
+
+<img alt="Calendar Notes types" src="calendar-notes@2x.jpg" width=500px align="right"/>
+It also offers to write to the current Weekly / Monthly / Quarterly / Yearly notes if you have them enabled in the preferences.
 
 It  updates the previous note for that same time period, if it already exists.
 
@@ -145,24 +157,27 @@ The settings for this command are:
 - Hashtag counts heading: e.g. '#hashtag counts',
 - Mention counts heading: e.g. '@mention counts'
 - Show hashtag or mention as links?
-- Include Hashtags: e.g. '#holiday','#jog','#commute','#review', '#prayed'
-- Exclude Hashtags: e.g. ''
-- Include Mentions: e.g. '@work','@fruitveg','@water', '@sleep'
-- Exclude Mentions: e.g. '@done', '@repeat'
+- #hashtags to **count**: e.g. '#tv, #podcast'
+- #hashtags to **exclude**: e.g. ''
+- @mentions to **exclude**: e.g. '@done', '@repeat'
+- @mentions to **count**: e.g. '@work' -- these are counted and displayed with count, total and average
+- @mentions to **average**: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average
+- @mentions to **total**: e.g. '@distance, @run' -- these are counted and displayed as a total
+- **Yes/No items**: Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
 
 > (Why use `@run(...)` rather than `#run(...)`? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a decimal number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside for `@run(5.3)`.  However, you can use a `#hashtag/value` if you don't mind this limitation.
 
 Note: sparklines won't show for periods of time greater than 31 days -- they just get too wide for most devices.
 
 ## /weeklyStatsToCSV
-This is a niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV table to 'Summaries/weekly_stats'. This is designed to be used by third-party graphing tools, though in a future release I will bring this natively into NotePlan. 
+This is a niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV table to 'Summaries/weekly_stats'. This is designed to be used by third-party graphing tools. 
 
 The relevant settings for this command are:
 - Chart Duration (in weeks): e.g. 26. If no number is given, the plugin will generate a sensible longish period up to 1 year.
 - Items to Chart: Comma-separated list of @mentions or #hashtags to chart. Note: currently they will share the same scaling on the Y-axis.
 
 ## To do
-- now NotePlan has begun to make HTML content possible, I am working to create proper charts/graphs of numeric summaries. (The 'ASCII art' sparklines were an interim step towards this.)
+- now NotePlan has begun to make HTML content possible, I wish to create proper charts/graphs of numeric summaries. (The 'ASCII art' sparklines were an interim step towards this.)
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
@@ -177,4 +192,4 @@ Thanks!
 The Plugin was originally known simply as 'Summaries'. Please see the [CHANGELOG](CHANGELOG.md).
 
 ## Thanks
-Thanks to GitHub user zz85 whose code for [ASCII art sparklines](https://github.com/zz85/ascii-graphs.js) I adapted and improved in v0.12.
+Thanks to GitHub user zz85 whose code for the [ASCII art sparklines](https://github.com/zz85/ascii-graphs.js) I adapted and improved in v0.12.

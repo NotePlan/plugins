@@ -497,6 +497,12 @@ export function replaceSection(
 export function removeSection(note: TNote, headingOfSectionToRemove: string): number {
   try {
     const paras = note.paragraphs ?? []
+
+    if (paras.length === 0) {
+      // We have no paragraphs, so need to return now
+      logDebug('note / removeSection', `Note is empty, so there's nothing to do`)
+      return 0
+    }
     logDebug('note / removeSection', `Trying to remove '${headingOfSectionToRemove}' from note '${displayTitle(note)}' with ${paras.length} paras`)
 
     const startOfActive = findStartOfActivePartOfNote(note)

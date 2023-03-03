@@ -9,10 +9,12 @@ import pluginJson from '../plugin.json'
 import {
   formatNoteDate,
   getDateStrForStartofPeriodFromCalendarFilename,
-  nowLocaleDateTime,
   toISOShortDateTimeString,
   withinDateRange,
 } from '@helpers/dateTime'
+import {
+  nowLocaleShortDateTime,
+} from '@helpers/NPdateTime'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { clo, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
@@ -918,7 +920,7 @@ export async function writeSearchResultsToNote(
     const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Refresh results for '${searchTermsRepStr}'](${xCallbackURL})` : ''
 
     // Add each result line to output array
-    let titleLines = `# ${requestedTitle}\nat ${nowLocaleDateTime}${xCallbackLine}`
+    let titleLines = `# ${requestedTitle}\nat ${nowLocaleShortDateTime()}${xCallbackLine}`
     let headingLine = ''
     let resultsContent = ''
     // First check if we have any results

@@ -310,7 +310,7 @@ export async function renderProjectListsMarkdown(config: any, redisplayOnly: boo
     const pauseXCallbackButton = `[Toggle Pausing Project](${pauseXCallbackURL})` // Note: not currently used
     const completeXCallbackButton = `[Complete Project](${completeXCallbackURL})`
     const cancelXCallbackButton = `[Cancel Project](${cancelXCallbackURL})`
-    const nowDateTime = nowLocaleShortDateTime
+    const nowDateTime = nowLocaleShortDateTime()
 
 
     if (config.noteTypeTags.length > 0) {

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 16.11.2022 for v0.16.0+, @jgclark
+// Last updated 3.3.2022 for v0.18.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -23,6 +23,7 @@ import { replaceSection } from '@helpers/note'
 import { getSelectedParaIndex } from '@helpers/NPParagraph'
 import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
 import { caseInsensitiveCompare } from '@helpers/sorting'
+import { showMessage } from "../../helpers/userInput";
 
 //-------------------------------------------------------------------------------
 
@@ -67,7 +68,7 @@ export async function makeProgressUpdate(params: string = '', source: string = '
     }
     // const progressHeading = await getTagParamsFromString(params ?? '', 'progressHeading', config.progressHeading)
     // const showSparklines = await getTagParamsFromString(params ?? '', 'showSparklines', config.showSparklines)
-    // const excludeToday = await getTagParamsFromString(params ?? '', 'excludeToday', true)
+    const excludeToday = await getTagParamsFromString(params ?? '', 'excludeToday', true)
     // Use configuration setting as default for time period
     // (And allow 'period' instead of 'interval')
     let period = config.progressPeriod
@@ -182,16 +183,10 @@ export async function makeProgressUpdate(params: string = '', source: string = '
         // = 'current'
         const currentNote = Editor.note
         if (currentNote == null) {
-          // Now insert the summary to the current note
-          logError(pluginJson, `No note is open in the Editor, so I can't write to it.`)
+          logWarn(pluginJson, `No note is open in the Editor, so I can't write to it.`)
+          await showMessage(`No note is open in the Editor, so I can't write to it.`)
         } else {
-          let currentLineIndex = getSelectedParaIndex()
-          if (currentLineIndex === 0) {
-            logError(pluginJson, `Couldn't find correct cursor position, so will append to note instead.`)
-            currentLineIndex = Editor.paragraphs.length - 1
-          }
-          logDebug(pluginJson, `- inserting results to current note (${currentNote.filename ?? '(error)'}) at line ${currentLineIndex}`)
-          // Replace or add Section
+          // Now insert the summary to the current note: replace or add Section
           replaceSection(currentNote, thisHeading, headingAndXCBStr, config.headingLevel, output)
           logInfo(pluginJson, `Appended progress update for ${periodString} to current note`)
         }

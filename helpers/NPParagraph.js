@@ -388,7 +388,6 @@ export async function gatherMatchingLines(
 
 /**
  * Get the paragraph index of the start of the current selection, or 0 if no selection is active.
- * Note: Not currently used, I think. See selectedLinesIndex instead (below).
  * @author @jgclark
  * @returns {number}
  */
@@ -575,7 +574,7 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
     logDebug(pluginJson, `getParagraphContainingPosition: *** Looking for cursor position ${position}`)
     note.paragraphs.forEach((p, i) => {
       const { start, end } = p.contentRange || {}
-      logDebug(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
+      // logDebug(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
     })
     logDebug(pluginJson, `getParagraphContainingPosition: *** position ${position} not found`)
   }
@@ -754,7 +753,7 @@ export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): b
 }
 
 // returns a date object if it exists, and null if there is no forward date
-const hasTypedDate = (t) => (/>\d{4}-\d{2}-\d{2}/g.test(t.content) ? t.date : null)
+const hasTypedDate = (t: TParagraph) => (/>\d{4}-\d{2}-\d{2}/g.test(t.content) ? t.date : null)
 
 // DO NOT USE THIS FUNCTION - leaving it here for historical context, but functions below are more complete
 // Note: nmn.sweep limits how far back you look with: && hyphenatedDateString(p.date) >= afterHyphenatedDate,
@@ -996,9 +995,9 @@ const paragraphIsScheduled = (para: TParagraph): boolean => isScheduled(para.con
  * Immediately returns false if the note is not a calendar note
  * e.g. a task on yesterday's daily note would now be "overdue"
  * an open task on last week's weekly note would now be "overdue"
+ * @author @dwertheimer
  * @param {TParagraph} note
  * @returns {boolean} - true if the task is open
- * @author @dwertheimer
  */
 export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
   /* forgotten task */
@@ -1047,30 +1046,10 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
   return isOverdue
 }
 
-// DBW: commenting out for now. if you see this after March 2023, feel free to delete this comment
-// /**
-//  * Read a string with a >date in it and return the type of date the schedule is pointing to
-//  * @param {TParagraph} paragraph
-//  * @returns {'Daily' | `Weekly` | `Monthly` | `Quarterly` | `Yearly` | null}
-//  */
-// export function getScheduledDateType(paragraph: TParagraph): string | null {
-//   const tagInfo = hasOverdueTag(paragraph)
-//   let scheduleTypeName = null
-//   const scheduleTypes = [RE_DATE, RE_NP_WEEK_SPEC, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, RE_NP_YEAR_SPEC]
-//   const typeNames = ['Daily', `Weekly`, `Monthly`, `Quarterly`, `Yearly`]
-//   const scheduleType = scheduleTypes.find((type) => paragraph.content.match(`>${type}`))
-//   if (scheduleType) {
-//     let retD
-//     if ((retD = hasOverdueTag(paragraph, true))) {
-//       // scheduleTypeName = typeNames[scheduleTypes.indexOf(scheduleType)] {
-//     }
-//   }
-//   return scheduleTypeName
-// }
-
 /**
  * Calculate the number of days overdue for a paragraph to today
  * The tricky part is that we have to start counting with the end of the period (e.g. the end of the week, month, etc.)
+ * @author @dwertheimer
  * @param {TParagraph} paragraph
  * @param {string} toISODate - the date to calculate overdue to. Defaults to today
  * @returns {number} - the number of days overdue
@@ -1113,7 +1092,7 @@ export function getDaysTilDue(paragraph: TParagraph, toISODate: string = getToda
           //FIXME: this needs to deal with positive and negatives. right now
           // only doing overdue
           daysOverdue = diffDays > 0 ? Math.ceil(diffDays) : Math.floor(diffDays) // round fractional days up
-          console.log(`paragraphDate:${data.endDate} - ${toISODate} (today) daysOverdue: moment: ${daysOverdue} vs ${daysUsingDates} using dates`)
+          console.log(`paragraphDate:${String(data.endDate)} - ${toISODate} (today) daysOverdue: moment: ${daysOverdue} vs ${daysUsingDates} using dates`)
           // if (data !== null && data.endDate) daysOverdue = data ? moment(toISODate, 'YYYY-MM-DD').diff(moment(data.endDate), 'days') : 0
         }
       }
@@ -1138,7 +1117,7 @@ export function createStaticObject(obj: any, fields: Array<string>, additionalFi
   if (!obj) throw 'createStaticObject: input obj is null; cannot convert it'
   if (!fields?.length) throw 'createStaticObject: no fieldlist provided; cannot create static object'
   if (typeof obj !== 'object') throw 'createStaticObject: input obj is not an object; cannot convert it'
-  const staticObj = {}
+  const staticObj: any = {}
   for (const field of fields) {
     if (field === 'daysOverdue') {
       staticObj.daysOverdue = getDaysTilDue(obj)

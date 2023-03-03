@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 25.11.2022 for v0.17.0
+// Last updated 3.3.2022 for v0.18.0
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -15,7 +15,10 @@ import {
   getSummariesSettings,
   TMOccurrences
 } from './summaryHelpers'
-import { getWeek, hyphenatedDate, unhyphenatedDate } from '@helpers/dateTime'
+import {
+  getJSDateStartOfToday,
+  getWeek, hyphenatedDate, unhyphenatedDate
+} from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import { logDebug, logError, logInfo, timer } from '@helpers/dev'
 import { CaseInsensitiveMap, displayTitle } from '@helpers/general'
@@ -63,14 +66,14 @@ export async function statsPeriod(): Promise<void> {
     CommandBar.showLoading(true, `Creating Period Stats`)
     await CommandBar.onAsyncThread()
 
-    // Main work: calculate the progress update as an array of strings
-    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.includeHashtags, config.excludeHashtags, config.includeMentions, config.excludeMentions, [], config.progressMentions, config.progressMentionsAverage, config.progressMentionsTotal)
+    // Main work: calculate the occurrences as an array of strings
+    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.includeHashtags, config.excludeHashtags, config.includeMentions, config.excludeMentions, config.periodStatsYesNo, config.periodStatsMentions, config.periodStatsMentionsAverage, config.periodStatsMentionsTotal)
 
     const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, true).join('\n')
 
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-    logDebug('statsPeriod', `Created progress update in ${timer(startTime)}`)
+    logDebug('statsPeriod', `Created 'progress update' in ${timer(startTime)}`)
 
     // --------------------------------------------------------------------------
     // Ask where to save this summary to
@@ -127,7 +130,7 @@ export async function statsPeriod(): Promise<void> {
 
       case 'calendar': {
         // Weekly note (from v3.6) or Monthly / Quarterly / Yearly (from v3.7.2)
-        const todaysDate = new Date()
+        const todaysDate = getJSDateStartOfToday()
 
         logDebug('statsPeriod', `- opening ${calendarNoteType} note that starts ${fromDateStr}`)
         // TODO: when API makes this possible, make it only open a new window if not already open. Note: could work around this by writing a new func to go from fromDate+calendarNoteType -> expected filename, but I'm hoping EM will sort this soon.
@@ -137,11 +140,11 @@ export async function statsPeriod(): Promise<void> {
           logError('statsPeriod', `cannot get Calendar note`)
           await showMessage('There was an error getting the Calendar ready to write')
         } else {
-          // If note doesn't appear to have a title, then insert one
-          if (note.paragraphs.length === 0 || note.paragraphs[0].headingLevel !== 1) {
-            logDebug('statsPeriod', `- needing to add H1 title before existing p0 '${note.paragraphs[0]?.content ?? ''}'`)
-            note.insertHeading(periodString, 0, 1)
-          }
+          // // If note doesn't appear to have a title, then insert one
+          // if (note.paragraphs.length === 0 || note.paragraphs[0].headingLevel !== 1) {
+          //   logDebug('statsPeriod', `- needing to add H1 title before existing p0 '${note.paragraphs[0]?.content ?? ''}'`)
+          //   note.insertHeading(periodString, 0, 1)
+          // }
           // Replace or add output section
           replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
           logDebug('statsPeriod', `Written results to note '${periodString}' (filename=${note.filename})`)
