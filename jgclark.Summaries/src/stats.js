@@ -42,7 +42,7 @@ export async function statsPeriod(): Promise<void> {
     const config = await getSummariesSettings()
 
     // Get time period of interest
-    const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates()
+    const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('Create stats for which period?', config.excludeToday)
     if (fromDate == null || toDate == null) {
       throw new Error(`Error: failed to calculate dates`)
     }
