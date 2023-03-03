@@ -15,14 +15,14 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "insertProgressUpdate",
+      "name": "appendProgressUpdate",
       "alias": [
         "ipu",
         "progress",
         "habitTracker",
         "track"
       ],
-      "description": "Insert weekly/monthly habit and progress update",
+      "description": "Append weekly/monthly habit and progress update",
       "jsFunction": "makeProgressUpdate",
       "arguments": [
         "JSON-formatted parameter list"
