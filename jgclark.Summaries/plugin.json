@@ -299,7 +299,7 @@
       "required": false
     },
     {
-      "key": "includeMentions",
+      "key": "periodStatsMentions",
       "title": "@mentions to count",
       "description": "List of @mentions to include in counts (e.g. '@gym', '@sleepOnTime'). These take precedence over any excluded mentions (field above). If this list is empty, all mentions will be included.",
       "type": "[string]",
