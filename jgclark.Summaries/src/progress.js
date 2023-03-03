@@ -181,7 +181,7 @@ export async function makeProgressUpdate(params: string = '', source: string = '
 
       default: {
         // = 'current'
-        const currentNote = Editor.note
+        const currentNote = Editor
         if (currentNote == null) {
           logWarn(pluginJson, `No note is open in the Editor, so I can't write to it.`)
           await showMessage(`No note is open in the Editor, so I can't write to it.`)
