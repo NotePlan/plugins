@@ -75,7 +75,7 @@ The many **settings** for this command are set in the Plugin Prererence pane:
 - @mentions to **count**: e.g. '@work' -- these are counted and displayed with count, total and average
 - @mentions to **average**: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average
 - @mentions to **total**: e.g. '@distance, @run' -- these are counted and displayed as a total
-- (new) **Yes/No items**: Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
+- **Yes/No items**: Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
 - Yes/No characters: sets the pair of characters to use as Yes and No in output of "Yes/No items". The first is for Yes, the second for No. Here are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□. (You can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.)
 - Exclude today's entries? Whether to exclude today's entries in progress updates. Can be enabled if you tend to run the progress update as part of a start-of-day routine, and only add the updates later in the day.
 - 'Include sparkline graphs?' true or false
@@ -157,10 +157,13 @@ The settings for this command are:
 - Hashtag counts heading: e.g. '#hashtag counts',
 - Mention counts heading: e.g. '@mention counts'
 - Show hashtag or mention as links?
-- Include Hashtags: e.g. '#holiday','#jog','#commute','#review', '#prayed'
-- Exclude Hashtags: e.g. ''
-- Include Mentions: e.g. '@work','@fruitveg','@water', '@sleep'
-- Exclude Mentions: e.g. '@done', '@repeat'
+- #hashtags to **count**: e.g. '#tv, #podcast'
+- #hashtags to **exclude**: e.g. ''
+- @mentions to **exclude**: e.g. '@done', '@repeat'
+- @mentions to **count**: e.g. '@work' -- these are counted and displayed with count, total and average
+- @mentions to **average**: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average
+- @mentions to **total**: e.g. '@distance, @run' -- these are counted and displayed as a total
+- **Yes/No items**: Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
 
 > (Why use `@run(...)` rather than `#run(...)`? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a decimal number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside for `@run(5.3)`.  However, you can use a `#hashtag/value` if you don't mind this limitation.
 

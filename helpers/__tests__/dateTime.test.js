@@ -642,16 +642,16 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
-  describe('weekStartEnd()', () => {
+  describe('weekStartEndDates()', () => {
     // skipped, as I can't see why moment is right here
     test('2021W52 -> (2021-12-27, 2022-01-02)', () => {
-      expect(dt.weekStartEnd(52, 2021)).toEqual([new Date(2021, 11, 27, 0, 0, 0), new Date(2022, 0, 2, 23, 59, 59)])
+      expect(dt.weekStartEndDates(52, 2021)).toEqual([new Date(2021, 11, 27, 0, 0, 0), new Date(2022, 0, 2, 23, 59, 59)])
     })
     test('2022W1 -> (2022-01-03, 2022-01-09)', () => {
-      expect(dt.weekStartEnd(1, 2022)).toEqual([new Date(2022, 0, 3, 0, 0, 0), new Date(2022, 0, 9, 23, 59, 59)])
+      expect(dt.weekStartEndDates(1, 2022)).toEqual([new Date(2022, 0, 3, 0, 0, 0), new Date(2022, 0, 9, 23, 59, 59)])
     })
     test('2022W2 -> (2022-01-10, 2022-01-16)', () => {
-      expect(dt.weekStartEnd(2, 2022)).toEqual([new Date(2022, 0, 10, 0, 0, 0), new Date(2022, 0, 16, 23, 59, 59)])
+      expect(dt.weekStartEndDates(2, 2022)).toEqual([new Date(2022, 0, 10, 0, 0, 0), new Date(2022, 0, 16, 23, 59, 59)])
     })
   })
 

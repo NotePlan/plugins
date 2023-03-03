@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.17.3",
-  "plugin.lastUpdateInfo": "0.17.3: fix edge case of malformed @mentions.\n0.17.2: fix edge cases in /periodStats\n0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.\n0.17.0 Will write /periodStats summaries to the new monthly/quarterly/yearly notes available from NP 3.7.2.\n0.16.1: Minor bug fix. 0.16.0: Adds ability to run since a specific date (e.g. 2022-02-15). Adds ability to run from x-callbacks. When run from Template or x-callback, can now specify any settings to override whats in the main settings.",
+  "plugin.version": "0.18.0",
+  "plugin.lastUpdateInfo": "0.18.0: offers full set of summary types in /periodStats as well as /progressUpdate. Bug fixes.\n0.17.3: fix edge case of malformed @mentions.\n0.17.2: fix edge cases in /periodStats\n0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.\n0.17.0 Will write /periodStats summaries to the new monthly/quarterly/yearly notes available from NP 3.7.2.\n0.16.1: Minor bug fix. 0.16.0: Adds ability to run since a specific date (e.g. 2022-02-15). Adds ability to run from x-callbacks. When run from Template or x-callback, can now specify any settings to override whats in the main settings.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -109,6 +109,14 @@
       "required": false
     },
     {
+      "key": "headingLevel",
+      "title": "Heading level",
+      "description": "Heading level (1-5) to use when writing headings to notes",
+      "type": "number",
+      "default": 3,
+      "required": true
+    },
+    {
       "key": "showSparklines",
       "title": "Include sparkline graphs?",
       "description": "Where appropriate, this adds basic ASCII-art sparklines for each item, reflecting each day's data.\nNote: Sparklines won't be shown where the summarised time period is more than a month.",
@@ -117,11 +125,19 @@
       "required": true
     },
     {
-      "key": "headingLevel",
-      "title": "Heading level",
-      "description": "Heading level (1-5) to use when writing headings to notes",
-      "type": "number",
-      "default": 3,
+      "key": "progressYesNoChars",
+      "title": "Yes/No characters",
+      "description": "Pair of characters to use as Yes and No in output of Yes/No progress items. The first is for Yes, the second for No.\nHere are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□.\nYou can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.",
+      "type": "string",
+      "default": "✓·",
+      "required": false
+    },
+    {
+      "key": "excludeToday",
+      "title": "Exclude today's entries?",
+      "description": "Whether to exclude today's entries in summaries. Can be enabled if you tend to run the commands as part of a start-of-day routine, and only add the updates later in the day.",
+      "type": "bool",
+      "default": false,
       "required": true
     },
     {
@@ -187,7 +203,7 @@
     {
       "key": "progressMentionsAverage",
       "title": "@mentions to average",
-      "description": "Optional list of @mention(num)s to include in Progress updates, presented as an average.\n(Note: you need to include the @ of the @mention.)",
+      "description": "Optional list of @mention(number)s to include in Progress updates, presented as an average.\n(Note: you need to include the @ of the @mention.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -195,7 +211,7 @@
     {
       "key": "progressMentionsTotal",
       "title": "@mentions to total",
-      "description": "Optional list of @mention(num)s to include in Progress updates, presented as a total.\n(Note: you need to include the @ of the @mention.)",
+      "description": "Optional list of @mention(number)s to include in Progress updates, presented as a total.\n(Note: you need to include the @ of the @mention.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -203,26 +219,10 @@
     {
       "key": "progressYesNo",
       "title": "Yes/No items",
-      "description": "Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'.\n(Note: you do need to include the @ or # on the front.)",
+      "description": "Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'.\n(Note: you need to include the @ or # on the front.)",
       "type": "[string]",
       "default": [],
       "required": false
-    },
-    {
-      "key": "progressYesNoChars",
-      "title": "Yes/No characters",
-      "description": "Pair of characters to use as Yes and No in output of Yes/No progress items. The first is for Yes, the second for No.\nHere are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□.\nYou can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.",
-      "type": "string",
-      "default": "✓·",
-      "required": false
-    },
-    {
-      "key": "excludeToday",
-      "title": "Exclude today's entries?",
-      "description": "Whether to exclude today's entries in progress updates. Can be enabled if you tend to run the progress update as part of a start-of-day routine, and only add the updates later in the day.",
-      "type": "bool",
-      "default": false,
-      "required": true
     },
     {
       "type": "separator"
@@ -234,7 +234,7 @@
     {
       "key": "folderToStore",
       "title": "Folder for output",
-      "description": "Name of the Folder to store the summaries in.\nNote: from NotePlan v3.7.2, the first option will be to use the built-in daily/weekly/monthly/quarterly or yearly notes instead. This will also be used if this is empty.",
+      "description": "Name of the Folder to store the summaries in.\nNote: from NotePlan v3.7.2, the first option will be to use the built-in daily/weekly/monthly/quarterly or yearly notes instead. That will also be used if this is empty.",
       "type": "string",
       "default": "Summaries",
       "required": false
@@ -272,15 +272,6 @@
       "required": true
     },
     {
-      "key": "includeHashtags",
-      "title": "#hashtags to include",
-      "description": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar'). If empty, none will be included.",
-      "description_": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar'). These take precedence over any excluded hashtags (next field). If this list is empty, all hashtags will be included.",
-      "type": "[string]",
-      "default": [],
-      "required": false
-    },
-    {
       "key": "excludeHashtags",
       "title": "#hashtags to exclude",
       "description": "List of #hashtags to exclude in counts. If empty, none will be excluded.",
@@ -289,10 +280,9 @@
       "required": false
     },
     {
-      "key": "includeMentions",
-      "title": "@mentions to include",
-      "description": "List of @mentions to include in counts (e.g. '@work', '@fruitveg', '@water', '@sleep'). If empty, none will be included.",
-      "description_": "List of @mentions to include in counts (e.g. '@work', '@fruitveg', '@water', '@sleep'). These take precedence over any excluded mentions (next field). If this list is empty, all mentions will be included.",
+      "key": "includeHashtags",
+      "title": "#hashtags to count",
+      "description": "List of #hashtags to include in counts (e.g. '#holiday', '#jog', '#commute', '#webinar'). These take precedence over any excluded hashtags (field above). If this list is empty, all hashtags will be included.",
       "type": "[string]",
       "default": [],
       "required": false
@@ -306,6 +296,38 @@
         "@done",
         "@repeat"
       ],
+      "required": false
+    },
+    {
+      "key": "includeMentions",
+      "title": "@mentions to count",
+      "description": "List of @mentions to include in counts (e.g. '@gym', '@sleepOnTime'). These take precedence over any excluded mentions (field above). If this list is empty, all mentions will be included.",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "periodStatsMentionsAverage",
+      "title": "@mentions to average",
+      "description": "Optional list of @mention(number)s to include in Period Stats updates, presented as an average.\n(Note: you need to include the @ of the @mention.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "periodStatsMentionsTotal",
+      "title": "@mentions to total",
+      "description": "Optional list of @mention(number)s to include in Period Stats updates, presented as a total.\n(Note: you need to include the @ of the @mention.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "periodStatsYesNo",
+      "title": "Yes/No items",
+      "description": "Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'.\n(Note: you need to include the @ or # on the front.)",
+      "type": "[string]",
+      "default": [],
       "required": false
     },
     {

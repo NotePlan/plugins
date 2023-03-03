@@ -662,9 +662,9 @@ export function getNPWeekStr(inDate: Date): string {
  * @return {[Date, Date]}} - start and end dates (as JS Dates)
  * @test - defined in Jest, but won't work until Calendar.addUnitToDate can be stubbed out
  */
-export function weekStartEnd(week: number, year: number): [Date, Date] {
+export function weekStartEndDates(week: number, year: number): [Date, Date] {
   if (week > 53 || week < 1) {
-    logWarn('helpers/weekStartEnd', `Invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
+    logWarn('helpers/weekStartEndDates', `Invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
   }
 
   // the .milliseconds in the following shouldn't really be needed, but it seems to

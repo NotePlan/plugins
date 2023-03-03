@@ -18,7 +18,7 @@ import {
   validateAndTypeSearchTerms,
   writeSearchResultsToNote,
 } from './searchHelpers'
-import { nowLocaleDateTime } from '@helpers/dateTime'
+import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
@@ -228,10 +228,10 @@ export async function saveSearch(
           const thisResultHeading = `${searchTermsRepStr} ${config.searchHeading} ${resultCountsStr}`
           logDebug(pluginJson, `Will write update/append section '${thisResultHeading}' to current note (${currentNote.filename ?? ''})`)
 
-          // resultOutputLines.unshift(`at ${nowLocaleDateTime} [🔄 Refresh results](${xCallbackLink})`)
+          // resultOutputLines.unshift(`at ${nowLocaleShortDateTime} [🔄 Refresh results](${xCallbackLink})`)
           const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
           logDebug(pluginJson, resultOutputLines.length)
-          resultOutputLines.unshift(`at ${nowLocaleDateTime}`)
+          resultOutputLines.unshift(`at ${nowLocaleShortDateTime()}`)
           replaceSection(currentNote, searchTermsRepStr, thisResultHeading, config.headingLevel, resultOutputLines.join('\n'))
         }
         break
