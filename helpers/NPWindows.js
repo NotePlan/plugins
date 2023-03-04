@@ -35,7 +35,8 @@ export function logWindowsList(): void {
 /**
  * Set customID for the (single) HTML window
  * Note: In time, this will be removed, when @EduardMe rolls it into .showWindow() API
- * @param {string} customID 
+ * @author @jgclark
+ * @param {string} customID
  */
 export function setHTMLWindowID(customID: string): void {
   if (NotePlan.environment.buildVersion >= 973) {
@@ -54,6 +55,7 @@ export function setHTMLWindowID(customID: string): void {
 
 /**
  * Is a given HTML window open? Tests by doing a case-insensitive-starts-with match using the supplied customID string.
+ * @author @jgclark
  * @param {string} customID to look for
  * @returns {boolean}
  */
@@ -76,6 +78,7 @@ export function isHTMLWindowOpen(customID: string): boolean {
 /**
  * Set customID for the given Editor window
  * Note: Hopefully in time, this will be removed, when @EduardMe rolls it into an API call
+ * @author @jgclark
  * @param {string} openNoteFilename, i.e. note that is open in an Editor that we're trying to set customID for
  * @param {string} customID 
  */
@@ -96,6 +99,12 @@ export function setEditorWindowID(openNoteFilename: string, customID: string): v
   }
 }
 
+/**
+ * Tests whether the provided filename is open in an Editor window.
+ * @author @jgclark
+ * @param {string} openNoteFilename 
+ * @returns {boolean}
+ */
 export function noteOpenInEditor(openNoteFilename: string): boolean {
   if (NotePlan.environment.buildVersion >= 973) {
     const allEditorWindows = NotePlan.editors
@@ -109,4 +118,24 @@ export function noteOpenInEditor(openNoteFilename: string): boolean {
     logInfo('noteNotOpenInEditor', `Cannot test if note is open in Editor as not running v3.8.1 or later`)
     return false
   }
+}
+
+/**
+ * Returns the Editor object that matches a given filename (if available)
+ * @author @jgclark
+ * @param {string} openNoteFilename to find in list of open Editor windows
+ * @returns {TEditor} the matching open Editor window
+ */
+export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | false {
+  if (NotePlan.environment.buildVersion >= 973) {
+    const allEditorWindows = NotePlan.editors
+    for (const thisEditorWindow of allEditorWindows) {
+      if (thisEditorWindow.filename === openNoteFilename) {
+        return thisEditorWindow
+      }
+    }
+  } else {
+    logInfo('getOpenEditorFromFilename', `Cannot test if note is open in Editor as not running v3.8.1 or later`)
+  }
+  return false
 }
