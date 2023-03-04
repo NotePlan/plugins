@@ -271,6 +271,7 @@ export class Project {
       this.futureTasks = paras.filter((p) => p.type === 'open').filter((p) => includesScheduledFutureDate(p.content)).length
 
       if (this.folder.startsWith('TEST') || this.title.startsWith('Annual') || this.title.includes('Test')) {
+        logDebug('Project constructor', `- for '${this.title}'`)
         logDebug('Project constructor', `  - metadataLine = ${paras[metadataLineIndex].content}`)
         logDebug('Project constructor', `  - noteType: ${this.noteType}`)
         logDebug('Project constructor', `  - mentions: ${String(mentions)}`)
@@ -401,7 +402,7 @@ export class Project {
           this.nextReviewDays = 0
         }
       }
-      logDebug('calcDurations', `-> reviewedDate = ${String(this.reviewedDate)} / dueDays = ${String(this.dueDays)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
+      // logDebug('calcDurations', `-> reviewedDate = ${String(this.reviewedDate)} / dueDays = ${String(this.dueDays)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
     } catch (error) {
       logError('calcDurations', error.message)
     }
@@ -739,12 +740,12 @@ export class Project {
           }
         }
         if (displayDates && !this.isPaused && !this.isCompleted && !this.isCancelled) {
-          output = (this.dueDays != null && !isNaN(this.dueDays)) ? `${output}\tdue ${relativeDateFromNumber(this.dueDays)}` : output
+          output = (this.dueDays != null && !isNaN(this.dueDays)) ? `${output}\tdue ${localeRelativeDateFromNumber(this.dueDays)}` : output
           output =
             (this.nextReviewDays != null && !isNaN(this.nextReviewDays))
               ? this.nextReviewDays > 0
-              ? `${output}\tReview ${relativeDateFromNumber(this.nextReviewDays)}`
-              : `${output}\tReview due **${relativeDateFromNumber(this.nextReviewDays)}**`
+              ? `${output}\tReview ${localeRelativeDateFromNumber(this.nextReviewDays)}`
+              : `${output}\tReview due **${localeRelativeDateFromNumber(this.nextReviewDays)}**`
             : output
         }
         break

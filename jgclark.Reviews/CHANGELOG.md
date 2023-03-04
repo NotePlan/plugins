@@ -5,7 +5,17 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - ??? Fixed the race condition on (un)pausing a project
 - ??? ability to pause/unpause a project, by calling new **/pause project toggle** command or adding/removing `#paused` to a project's metadata. When paused this stops the note from being included in reviews, but keeps it visible in the project lists.
 -->
-<!-- - ??? do smarter stuff with windows -->
+## [0.9.4] - 2023-03-04
+### Fixed
+- 'start reviews' button not working
+- % completion stat for tasks with scheduled dates
+- now should only open a new window for 'Markdown' style results when the results aren't already open (requiers NP v3.8.1 to operate)
+
+## [0.9.3] - 2023-03-28
+### Fixed
+- issue with multi-column displays with little data
+- removed a dependency on NP 3.8.1
+
 ## [0.9.2] - 2023-02-28
 ### Changed
 - improved display of 0% progress circles (in 'rich' display)
