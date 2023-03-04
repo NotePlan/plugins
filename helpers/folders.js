@@ -59,19 +59,44 @@ export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialF
 /**
  * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
  * @author @jgclark
- *
  * @param {string} fullFilename - full filename to get folder name part from
  * @returns {string} folder/subfolder name
  */
 export function getFolderFromFilename(fullFilename: string): string {
   try {
     // drop first character if it's a slash
-    const filename = (fullFilename.startsWith('/')) ? fullFilename.substr(1) : fullFilename
+    const filename = (fullFilename.startsWith('/'))
+      ? fullFilename.substr(1)
+      : fullFilename
     const filenameParts = filename.split('/')
     return filenameParts.slice(0, filenameParts.length - 1).join('/')
   }
   catch (error) {
     logError('folders/getFolderFromFilename', `Error getting folder from filename '${fullFilename}: ${error.message}`)
+    return '(error)'
+  }
+}
+
+/**
+ * Get the lowest-level (subfolder) part of the folder name from the full NP (project) note filename, without leading or trailing slash.
+ * @tests available in jest file
+ * @author @jgclark
+ * @param {string} fullFilename - full filename to get folder name part from
+ * @returns {string} subfolder name
+ */
+export function getLowestLevelFolderFromFilename(fullFilename: string): string {
+  try {
+    // drop first character if it's a slash
+    const filename = (fullFilename.startsWith('/'))
+      ? fullFilename.substr(1)
+      : fullFilename
+    const filenameParts = filename.split('/')
+    return (filenameParts.length <= 1)
+      ? ''
+      : filenameParts.slice(filenameParts.length - 2, filenameParts.length - 1).join('')
+  }
+  catch (error) {
+    logError('folders/getLowestLevelFolderFromFilename', `Error getting folder from filename '${fullFilename}: ${error.message}`)
     return '(error)'
   }
 }
