@@ -838,7 +838,12 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
  */
 export function includesScheduledFutureDate(line: string): boolean {
   const m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
-  return m.length > 0 && m[0] > todaysDateISOString
+  if (m.length > 0) {
+    const ISODateFromMatch = m[0].slice(1)  // need to remove leading '>'
+    return ISODateFromMatch > todaysDateISOString
+  } else {
+    return false
+  }
 }
 
 /**

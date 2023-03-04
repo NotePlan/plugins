@@ -13,13 +13,13 @@ import { chooseOption, getInput } from './userInput'
 
 // TODO: work out how to test these next few functions
 export function setMomentLocaleFromEnvironment(): void {
-  logDebug('NPdateTime', `NP reports languageCode = ${NotePlan.environment.languageCode ?? '<not set>'}`)
-  logDebug('NPdateTime', `NP reports regionCode   = ${NotePlan.environment.regionCode ?? '<not set>'}`)
+  // logDebug('NPdateTime', `NP reports languageCode = ${NotePlan.environment.languageCode ?? '<not set>'}`)
+  // logDebug('NPdateTime', `NP reports regionCode   = ${NotePlan.environment.regionCode ?? '<not set>'}`)
   // Locale-specific date + time formats
   // Set locale for momnet library
   const userLocaleSetting = `${NotePlan.environment.languageCode}${NotePlan.environment.regionCode ? '-' + NotePlan.environment.regionCode : ''}`
   moment.locale(userLocaleSetting)
-  logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
+  // logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
 }
 
 export function nowLocaleShortDateTime(): string {
