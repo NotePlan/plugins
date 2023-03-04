@@ -291,6 +291,10 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(res.toFixed(4)).toEqual((1 / 24 + 1 / (24 * 60) + 2 / (24 * 60 * 60)).toFixed(4))
       })
     })
+    test('dates one day-ish apart (forwards) using string date', () => {
+      const res = dt.daysBetween(new Date('2021-03-25'), new Date(2021, 2, 24, 14, 0, 0))
+      expect(res).toEqual(1)
+    })
   })
 
   describe('relativeDateFromNumber', () => {
