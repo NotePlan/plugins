@@ -569,6 +569,7 @@ export type HtmlWindowOptions = {
   width?: number,
   height?: number,
   includeCSSAsJS?: boolean,
+  customID?: string,
 }
 
 /**
@@ -746,6 +747,7 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
     opts.savedFilename ?? '',
     opts.width,
     opts.height,
+    opts.customID ?? '',
   )
 }
 
@@ -795,18 +797,20 @@ export function generateScriptTags(scripts: string | ScriptObj | Array<string | 
 
 /**
  * Helper function to construct HTML to show in a new window
+ * Note: if customID not passed, it will fall back to using windowTitle
+ * TODO: Allow for style file when we can save arbitrary data files (and have it triggered on theme change), not just read them.
  * @param {string} windowTitle
  * @param {string} headerTags
  * @param {string} body
  * @param {string} generalCSSIn
  * @param {string} specificCSS
- * @param {boolean} makeModal?
+ * @param {boolean?} makeModal?
  * @param {string|ScriptObj | Array<string|ScriptObj>?} preBodyScript
  * @param {string|ScriptObj | Array<string|ScriptObj>?} postBodyScript
  * @param {string?} filenameForSavedFileVersion
  * @param {number?} width
  * @param {number?} height
- * TODO: Allow for style file when we can save arbitrary data files (and have it triggered on theme change), not just read them.
+ * @param {string?} customID
  */
 export function showHTML(
   windowTitle: string,
@@ -820,6 +824,7 @@ export function showHTML(
   filenameForSavedFileVersion: string = '',
   width?: number,
   height?: number,
+  customID: string = '',
 ): void {
   try {
     const fullHTML = []
@@ -871,8 +876,8 @@ export function showHTML(
     }
 
     // Set customID for this window to be the same as windowTitle
-    // TODO(Eduard): to roll this into .showWindow()
-    setHTMLWindowID(windowTitle) // Note: requires NP v3.8.1+ -- this is checked for in the function below
+    // TODO(Eduard): has said he will roll this into .showWindow()
+    setHTMLWindowID(customID ?? windowTitle) // Note: requires NP v3.8.1+ -- this is checked for in the function below
 
     // If wanted, also write this HTML to a file so we can work on it offline.
     // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
