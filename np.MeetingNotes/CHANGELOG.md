@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [1.1.8] - 2023-03-03 (@dwertheimer)
+
+- no code changes. just pulling in newest Templating code with fix for dashes in template
+
 ## [1.1.7] - 2023-02-24 (@dwertheimer)
 
 - add ability to output meeting note at cursor in <current> note

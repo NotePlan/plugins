@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-beta.06] - NOTE: this version was released publicly as [1.9.3]
+
+- double dashes in templates create frontmatter is now in render (not just np:new)
+
 ## [2.0.0-beta.05] - 2023-03-01 (@dwertheimer)
 
 - roll back change of replacing '---' with '*****'
