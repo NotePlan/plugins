@@ -8,7 +8,7 @@
   "plugin.lastUpdateInfo": "Describe this update",
   "plugin.description": "{{pluginDescription}}",
   "plugin.author": "{{pluginAuthor}}",
-  "plugin.requiredFiles-EDIT_ME": ["html-PluginComms.js"],
+  "plugin.requiredFiles-EDIT_ME": ["html-plugin-comms.js"],
   "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
   "plugin.dependencies": [],
   "plugin.script": "script.js",

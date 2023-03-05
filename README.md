@@ -1,5 +1,7 @@
 # NotePlan Plugins
 
+[![Node.js CI](https://github.com/NotePlan/plugins/actions/workflows/node.js.yml/badge.svg)](https://github.com/NotePlan/plugins/actions/workflows/node.js.yml)
+
 ## Overview
 NotePlan Plugins provides an extensive API for extending default editing and task management and work across all platforms (macOS and iOS).
 
@@ -47,6 +49,11 @@ Run the following commands from the root of your local GitHub repository for `No
 `
 npm install && npm run init
 `
+OR if you are running node >=
+`
+npm install --legacy-peer-deps && npm run init
+`
+if you get errors when you try to install using `npm install` and 
 
 This will install the necessary npm dependencies and initialize your plugin working directory, including:
 
@@ -117,7 +124,7 @@ npc <command>
 For all CLI commands, you can pass the `--help` for available flags
 
 #### npc plugin:dev
-The most common CLI, this can be used to build plugin, test plugins (wrapper for `npc plugin:test`)
+The most common CLI command, this can be used to build plugin, test plugins (wrapper for `npc plugin:test`)
 
 ```shell
 npc plugin:dev <plugin> [options]

@@ -27,7 +27,8 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x, 19.x]
+        # node-version: [14.x, 16.x, 18.x, 19.x]
+        node-version: [14.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -37,11 +38,14 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      - run: npm ci --legacy-peer-deps
-      - run: npm run build --if-present
+      # shoulde eventually be a clean install using: - run: npm ci --legacy-peer-deps
+      - run: npm i
+      - run: npm link
+      # note: when upgrade to node 16+, add this to the following --max-old-space-size=8192 
+      - run: NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js -b -ci
       - run: npm run test:ci
 
-      - name: Tests ✅
+      - name: Log Passing Tests ✅
         if: ${{ success() }}
         run: |
           curl --request POST \
@@ -55,7 +59,7 @@ jobs:
             "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }'
 
-      - name: Tests 🚨
+      - name: Log Failed Tests 🚨
         if: ${{ failure() }}
         run: |
           curl --request POST \

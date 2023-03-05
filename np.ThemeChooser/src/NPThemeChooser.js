@@ -189,7 +189,8 @@ export async function copyCurrentTheme(
         await showMessage(`Theme "${themeName}" already exists. Please choose a different name.`)
         return
       } else {
-        theme.name = themeName
+        // $FlowIgnore
+        theme.name = themeName || ''
         const success = Editor.addTheme(JSON.stringify(theme), `${themeName}.json`)
         logDebug(pluginJson, `copyCurrentTheme saving theme success: ${String(success)}`)
         if (!success) {
@@ -219,8 +220,8 @@ export async function toggleTheme() {
     }
     // const lightTheme = String(DataStore.preference('themeChooserLight')) || ''
     // const darkTheme = String(DataStore.preference('themeChooserDark')) || ''
-    const lightTheme = DataStore.preference('themeLight') || ''
-    const darkTheme = DataStore.preference('themeDark') || ''
+    const lightTheme = String(DataStore.preference('themeLight') || '')
+    const darkTheme = String(DataStore.preference('themeDark') || '')
     logDebug(pluginJson, `toggleTheme: lightTheme = ${String(lightTheme)} | darkTheme = ${String(darkTheme)}`)
     if (lightTheme && darkTheme) {
       const current = Editor.currentTheme

@@ -19,10 +19,11 @@ class CustomReporter {
     // console.log('reporter context passed from test scheduler: ', this._context)
     // console.log('\n\ntest testContexts: \n', testContexts)
     // console.log('\n\ntest results: \n', results)
-    const activeTests = results.numTotalTests - results.numPendingTests
-    const fails = results.numFailedTests ? chalk.red.inverse(` ${results.numFailedTests} failed `) : chalk.green(` (100%) `)
-    const pass = `${chalk.green(`${results.numPassedTests}/${activeTests} passed`)}`
-    const msg = `Test Results: ${pass}${fails}out of ${results.numTotalTests} tests in ${results.numTotalTestSuites} suites (${results.numPendingTests} tests skipped)`
+    const fails = results.numFailedTests ? colors.red.inverse(` ${results.numFailedTests} failed `) : ``
+    const pct = results.numFailedTests ? '' : colors.green.inverse(` (100%) `)
+    const pass = `${results.numFailedTests ? ', ' : colors.green(`${results.numPassedTests}/${activeTests} passed ${pct}`)}, `
+    const outOf = `out of ${results.numTotalTests} tests in ${results.numTotalTestSuites} suites (${results.numPendingTests} tests skipped)`
+    const msg = `Test Results: ${fails}${results.numFailedTests ? ' ' : ''}${pass} ${outOf}`
     console.log(msg)
   }
 }

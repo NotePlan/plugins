@@ -3,7 +3,7 @@
 
 import { hyphenatedDateString, removeDateTags } from '../../helpers/dateTime'
 import { chooseOption } from '../../helpers/userInput'
-import { isOverdue } from '@helpers/paragraph'
+import { isOverdue } from '@helpers/NPParagraph'
 
 export type ReturnStatus = {
   status: string,
