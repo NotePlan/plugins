@@ -1,18 +1,20 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 25.1.2023 for v0.16.0 by @jgclark
+// Last updated 5.3.2023 for v0.16.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-import { toLocaleDateString } from "../../helpers/NPdateTime";
 import pluginJson from '../plugin.json'
 import { getSettings, type noteHelpersConfigType } from './noteHelpers'
 import {
   daysBetween,
-  nowLocaleDateTime,
   relativeDateFromNumber,
   toISOShortDateTimeString,
 } from '@helpers/dateTime'
+import {
+  nowLocaleShortDateTime,
+  toLocaleDateString,
+} from '@helpers/NPdateTime'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import {
@@ -60,32 +62,38 @@ function makeFolderIndex(folder: string, displayOrder: string, dateDisplayType: 
     let isSubFolder = false
     for (const f of folderList) {
       // Get list of the notes in this folder, but ignore any '_index' notes :-)
-      const notes = notesInFolderSortedByTitle(f)
+      let notes = notesInFolderSortedByTitle(f)
         .filter((n) => !n.title?.startsWith('_index'))
-      // logDebug('makeFolderIndex', `${notes.length} notes before sort`)
+      logDebug('makeFolderIndex', `${notes.length} notes before '${displayOrder}' sort`)
+
+      // FIXME: seem to need to run twice
+      // FIXME: is arg1 createDate and arg2 updated date right?
+      // FIXME: avoid need for dialog to pop up on Refresh
 
       // Sort this list by whatever the user's setting says
       // (Need to do this before the gatherMatchingLines, as afterwards we don't have date information.)
       switch (displayOrder) {
         case 'updatedDate':
-          notes.sort((a, b) => (a.changedDate > b.changedDate ? -1 : 1))
+          notes = notes.sort((a, b) => (a.changedDate > b.changedDate ? -1 : 1))
           break
         case 'createdDate': // though data is very unreliable at least from NP 3.0.23 to 3.8.0
-          notes.sort((a, b) => (a.createdDate > b.createdDate ? -1 : 1))
+          notes = notes.sort((a, b) => (a.createdDate > b.createdDate ? -1 : 1))
           break
         default: // alphabetical
-          notes.sort((a, b) => (displayTitle(a).toUpperCase() < displayTitle(b).toUpperCase() ? -1 : 1))
+          notes = notes.sort((a, b) => (displayTitle(a).toUpperCase() < displayTitle(b).toUpperCase() ? -1 : 1))
           break
       }
       // logDebug('makeFolderIndex', `${notes.length} notes after sort`)
 
-      // Add Refresh button FIXME: firing but nothing changing
+      // FIXME: seems to write 'Rrepeat' to top-level folder
+      // Add Refresh button
       const dateExplainer = (dateDisplayType === "updated date") ? "Dates are when note was last updated. "
         : (dateDisplayType === "time since last update") ? "Times are since note was last updated. "
           : ""
       const paramsForXCB: Array<string> = [folder, displayOrder, dateDisplayType, "true"]
       const XCBStr = createPrettyRunPluginLink('🔄 Refresh', pluginID, 'index folders', paramsForXCB)
-      outputArray.push(isSubFolder ? `### ${f} (${notes.length})` : `_index ${f}\nIndex generated ${nowLocaleDateTime}. ${dateExplainer}${XCBStr}`)
+      logDebug('makeFolderIndex', `- XCBStr: ${XCBStr}`)
+      outputArray.push(isSubFolder ? `### ${f} (${notes.length})` : `_index ${f}\nIndex generated ${nowLocaleShortDateTime()}. ${dateExplainer}${XCBStr}`)
 
       if (notes.length > 0) {
         // If this is a sub-folder level, then prefix with ### for a 3rd level heading,
@@ -158,16 +166,16 @@ export async function indexFolders(folder: string, displayOrder: string = "alpha
       'Create index for which folder(s)?',
       [
         {
-          label: `🖊 This folder only (insert into current note)`,
-          value: 'one-to-current',
-        },
-        {
           label: `🖊 This folder only (add/update to _index note)`,
           value: 'one-to-index',
         },
         {
           label: `🖊 This folder and sub-folders (add/update to single _index note)`,
           value: 'all-to-one-index',
+        },
+        {
+          label: `🖊 This folder only (insert into current note)`,
+          value: 'one-to-current',
         },
         {
           label: `📋 This folder only (to console log)`,
