@@ -292,7 +292,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
     test('dates one day-ish apart (forwards) using string date', () => {
-      const res = dt.daysBetween(new Date('2021-03-25'), new Date(2021, 2, 24, 14, 0, 0))
+      const res = dt.daysBetween('2021-03-23', new Date(2021, 2, 24, 14, 0, 0))
       expect(res).toEqual(1)
     })
   })
