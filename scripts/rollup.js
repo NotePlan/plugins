@@ -36,12 +36,13 @@ const { getFolderFromCommandLine, getPluginFileContents, writeMinifiedPluginFile
 
 // Command line options
 program
-  .option('-p, --pressure', 'Rollup: report memory pressure during run')
+  .option('-b, --build', 'Rollup: build plugin only (no watcher)')
+  .option('-c, --compact', 'Rollup: use compact output')
+  .option('-ci, --ci', 'Rollup: build plugin only (no copy, no watcher) for CI')
   .option('-d, --debug', 'Rollup: allow for better JS debugging - no minification or transpiling')
   .option('-m, --minify', 'Rollup: create minified output to reduce file size')
-  .option('-c, --compact', 'Rollup: use compact output')
-  .option('-b, --build', 'Rollup: build plugin only (no watcher)')
-  .option('-ci, --ci', 'Rollup: build plugin only (no copy, no watcher) for CI')
+  .option('-n, --notify', 'Show Notification')
+  .option('-p, --pressure', 'Rollup: report memory pressure during run')
   .parse(process.argv)
 
 const options = program.opts()
@@ -201,6 +202,13 @@ const reportMemoryUsage = (msg = '') => {
         }
       }
 
+      if (NOTIFY) {
+        notifier.notify({
+          title: 'NotePlan Plugin Build',
+          message: `${pluginJsonData['plugin.name']} v${pluginJsonData['plugin.version']}`,
+        })
+      }
+
       if (!isBuildTask) {
         console.log(msg)
       }
@@ -332,6 +340,12 @@ const reportMemoryUsage = (msg = '') => {
         console.log('no copyTargetPath', copyTargetPath)
       } else if (event.code === 'ERROR') {
         messenger.error(`!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`)
+        if (NOTIFY) {
+          notifier.notify({
+            title: 'NotePlan Plugins Build',
+            message: `An error occurred during build process.\nSee console for more information`,
+          })
+        }
       }
     })
 
