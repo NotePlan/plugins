@@ -1,0 +1,19 @@
+{
+  "id": "cmpl-6NusnX0Z4nmfyNyXpZbNotQu0jupD",
+  "object": "text_completion",
+  "created": 1671158221,
+  "model": "text-davinci-003",
+  "choices": [
+    {
+      "text": "Thermal Protection,Propulsion,Magnetosphere,Orbit,Atmosphere",
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 39,
+    "completion_tokens": 13,
+    "total_tokens": 52
+  }
+}

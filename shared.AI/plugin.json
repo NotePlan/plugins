@@ -1,0 +1,384 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "shared.AI",
+  "plugin.name": "💡 NotePlan AI",
+  "plugin.version": "0.3.2",
+  "plugin.lastUpdateInfo": "Added quick access functions for most preferences..",
+  "plugin.description": "GPT integration for research, summarization, etc.",
+  "plugin.author": "A shadow figure with a little encouragement from @dwertheimer",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/shared.AI/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/shared.AI/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "name": "Test Connection",
+      "description": "GPT-3 @ OpenAI",
+      "jsFunction": "testConnection",
+      "hidden": true,
+      "alias": [
+      ],
+      "arguments": ["test"]
+    },
+    {
+      "name": "startChat",
+      "description": "Start ChatGPT Chat",
+      "jsFunction": "startChat",
+      "alias": [
+      ],
+      "arguments": []
+    },
+    {
+      "name": "AI Intro Wizard",
+      "description": "Introduction Wizard for GPT-3 @ OpenAI",
+      "jsFunction": "introWizard",
+      "hidden": true,
+      "alias": [
+        "introWizard"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "First Launch",
+      "description": "Introduction to NoteAI",
+      "jsFunction": "firstLaunch",
+      "alias": [
+        "firstlaunch"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Help OpenAI",
+      "description": "Help for GPT-3 @ OpenAI",
+      "jsFunction": "helpWizard",
+      "hidden": true,
+      "alias": [
+        "helpWizard"
+      ],
+      "arguments": []
+    },    
+    {
+      "name": "Explore - OpenAI",
+      "description": "Explore new territory with this subject.",
+      "jsFunction": "explore",
+      "hidden": true,
+      "alias": [
+        "explore"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Adjust Preferences",
+      "description": "Adjust plugin preferences",
+      "jsFunction": "adjustPreferences",
+      "hidden": false,
+      "alias": [
+        "apref"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Retrieve Research Notes",
+      "description": "Retrieves all research notes.",
+      "jsFunction": "retrieveResearchNotes",
+      "hidden": true,
+      "alias": [
+        
+      ],
+      "arguments": []
+    },  
+    {
+      "name": "Remove Entry",
+      "description": "Remove entry under this heading.",
+      "jsFunction": "removeEntry",
+      "hidden": true,
+      "alias": [
+        
+      ],
+      "arguments": []
+    },  
+    {
+      "name": "Scroll to Entry",
+      "description": "Scrolls to the selected entry.",
+      "jsFunction": "scrollToEntry",
+      "hidden": true,
+      "alias": [
+        
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Show NoteAI Commands",
+      "description": "Select from available NoteAI commands",
+      "jsFunction": "listEndpoints",
+      "alias": [
+        "naicomm"
+      ],
+      "arguments": []
+    },  
+    {
+      "name": "Move Note to Research Collection",
+      "description": "Move the current note to Research collection.",
+      "jsFunction": "moveNoteToResearchCollection",
+      "hidden": false,
+      "alias": [
+        "mvr",
+        "movere"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Create AI Images",
+      "description": "Generate images with DALL-E @ OpenAI",
+      "jsFunction": "createAIImages",
+      "hidden": false,
+      "alias": [
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Summarize Note",
+      "description": "Uses GPT-3 @ OpenAI to write a summary.",
+      "jsFunction": "summarizeNote",
+      "hidden": true,
+      "alias": [
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Note to OpenAI Prompt",
+      "description": "Use your note as a prompt for GPT-3.",
+      "jsFunction": "noteToPrompt",
+      "hidden": true,
+      "alias": [
+        "ntp"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Bullets AI",
+      "description": "Use your bullet points as a prompt for GPT-3.",
+      "jsFunction": "bulletsAI",
+      "hidden": true,
+      "alias": [
+        "bai"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Remix Query",
+      "description": "Regenerate this summary request with additional details",
+      "jsFunction": "remixQuery",
+      "hidden": true,
+      "alias": [
+        "rem"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Create Research Dig Site",
+      "description": "Create a new Research Dig Site",
+      "jsFunction": "createResearchDigSite",
+      "hidden": true,
+      "alias": [
+        "dig"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Research - NoteAI",
+      "description": "Start research using NoteAI",
+      "jsFunction": "createResearchDigSite",
+      "alias": [
+        "research",
+        "rs"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Create Research Request - Deprecated",
+      "description": "Research with GPT-3 @ OpenAI - Deprecated",
+      "jsFunction": "createResearchRequest",
+      "hidden": true,
+      "alias": [
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Create Research List Request",
+      "description": "Research with GPT-3 @ OpenAI and provide a list of details",
+      "jsFunction": "createResearchListRequest",
+      "hidden": true,
+      "alias": [
+        "listRequest"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Create Quick Search",
+      "description": "Use GPT-3 to perform a quick search.",
+      "jsFunction": "createQuickSearch",
+      "hidden": true,
+      "alias": [
+        "fs",
+        "fsearch",
+        "searchai"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Research from Selection",
+      "description": "Continue research using the selected text.",
+      "jsFunction": "researchFromSelection",
+      "alias": [
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Update README - DEV ONLY",
+      "description": "Updates README - DEV ONLY",
+      "jsFunction": "updateREADME",
+      "hidden": true,
+      "alias": [
+
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Change Max Token Target - NoteAI",
+      "description": "Provides quick access to updating the Max Token Target preference.",
+      "jsFunction": "changeDefaultMaxTokens",
+      "alias": [
+        "tokens"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Change Key Terms Target - NoteAI",
+      "description": "Provides quick access to updating the Key Terms Target preference.",
+      "jsFunction": "changeDefaultTargetKeyTerms",
+      "alias": [
+        "keyterms"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Set OpenAI API Key - NoteAI",
+      "description": "Provides quick access to updating the OpenAI API Key preference.",
+      "jsFunction": "setOpenAIAPIKey",
+      "alias": [
+        "keyterms"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Change Summary Paragraphs Target - NoteAI",
+      "description": "Provides quick access to updating the Summary Paragraphs Target preference.",
+      "jsFunction": "changeTargetSummaryParagraphs",
+      "alias": [
+        "summarytarget"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Change Preference - NoteAI",
+      "description": "Provides quick access to updating the NoteAI plugin preferences.",
+      "jsFunction": "updatePluginPreference",
+      "hidden": true,
+      "alias": [
+        "aipref"
+      ],
+      "arguments": []
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "AI Settings"
+    },
+    {
+      "title": "OpenAI API Key",
+      "key": "apiKey",
+      "type": "string",
+      "description": "Enter the API key for your OpenAI account",
+      "default": "",
+      "required": true
+    },
+    {
+      "title": "Default Text Model",
+      "key": "defaultModel",
+      "type": "string",
+      "description": "Select the desired text AI model for non-chat (research) requests.\n\n - text-davinci-003: Most capable GPT-3 model. Can do any task the other models can do, often with higher quality, longer output and better instruction-following.\n\n- text-curie-001: Very capable, but faster and lower cost than Davinci.\n\n- text-babbage-001: Capable of straightforward tasks, very fast, and lower cost.\n\n- text-ada-001: Capable of very simple tasks, usually the fastest model in the GPT-3 series, and lowest cost.\n\n- ALL: Use with caution. Will generate using all of the primary models. Good for testing.",
+      "choices": [
+        "Choose Model",
+        "text-davinci-003",
+        "text-curie-001",
+        "text-babbage-001",
+        "text-ada-001",
+        "ALL",
+        "ALWAYS ASK"
+      ]
+    },
+    {
+      "title": "Research Directory",
+      "key": "researchDirectory",
+      "type": "string",
+      "description": "Select the desired directory to store generated research in.",
+      "default": "Research"
+    },
+    {
+      "title": "Target Summary Paragraphs",
+      "key": "bulletsSummaryParagraphs",
+      "type": "number",
+      "description": "Select the desired number of paragraphs to be generated with each summary.\nLess than 3 is a good starting point.",
+      "default": 2
+    },
+    {
+      "title": "Target Key Terms",
+      "key": "bulletsAIKeyTerms",
+      "type": "number",
+      "description": "Select the desired number of key terms to be generated with each summary.\nLess than 5 is a good starting point.",
+      "default": 3
+    },
+    {
+      "title": "Show Stats",
+      "key": "showStats",
+      "type": "bool",
+      "description": "Show generation statistics in output.",
+      "default": false
+    },
+    {
+      "title": "Max Tokens",
+      "key": "max_tokens",
+      "type": "number",
+      "description": "Maximum amount of tokens any prompt can use.",
+      "default": 100
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing AI commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}

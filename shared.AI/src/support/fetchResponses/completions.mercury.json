@@ -1,0 +1,19 @@
+{
+    "id": "cmpl-6Ntdvh1HOJYzNCNjj4AgwwyFZO8dG",
+    "object": "text_completion",
+    "created": 1671153455,
+    "model": "text-davinci-003",
+    "choices": [
+      {
+        "text": "\nMercury is the smallest and innermost planet in the Solar System. Having no natural satellites and no atmosphere, it is subjected to frequent meteorite impacts and intense heat and radiation due to its proximity to the Sun. Its iron-rich core is surrounded by a mantel made up of silicate-rich rocks, with a thin crust of iron oxide-rich material on its exterior. Mercury is known for its extremely rapid rotational period and elliptical orbit, which cause the planet to experience extreme temperature ranges from -173°C to 427°C. As a result, it has a sparsely populated surface devoid of any signs of life.",
+        "index": 0,
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 25,
+      "completion_tokens": 130,
+      "total_tokens": 155
+    }
+  }

@@ -1,0 +1,19 @@
+{
+    "id": "cmpl-6ODgd16oL1B7g0LwNYWKr4S15cMTo",
+    "object": "text_completion",
+    "created": 1671230503,
+    "model": "text-davinci-003",
+    "choices": [
+      {
+        "text": "Conduction,Convection,Radiation,Heat Flux,Heat Exchanger",
+        "index": 0,
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 40,
+      "completion_tokens": 17,
+      "total_tokens": 57
+    }
+  }

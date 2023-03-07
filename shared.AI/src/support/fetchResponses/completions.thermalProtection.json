@@ -1,0 +1,19 @@
+{
+    "id": "cmpl-6NxRnOoACrXvTIsCfWZYHxJl8MPqU",
+    "object": "text_completion",
+    "created": 1671168079,
+    "model": "text-davinci-003",
+    "choices": [
+      {
+        "text": "\nThermal protection is the use of strategies, materials, and technologies to protect individuals and objects from extreme temperatures and environmental heat or cold. Thermal protection is important in many aspects, such as aerospace engineering and military applications, where personnel and equipment require protection to withstand temperature extremes. Today, advances in materials and technologies have made thermal protection more effective and efficient. In addition to enhancing safety, effective thermal protection also reduces noise and vibration, leading to improved performance and efficiency.",
+        "index": 0,
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 25,
+      "completion_tokens": 93,
+      "total_tokens": 118
+    }
+  }
