@@ -134,8 +134,7 @@ export class Note {
   async prependParagraph(content: string, type: ParagraphType) {
     this.paragraphs = [{ content, type }, ...this.paragraphs]
     console.log(`JEST Note: note.prependParagraph() called. but .content is approximated but not exactly correct, because it does not add markdown.`)
-    this.content = content.concat('\n', this.content)
-    // throw 'Note :: prependParagraph Not implemented yet'
+    this.resetLineIndexes()
   }
   async prependTodo() {
     throw 'Note :: prependTodo Not implemented yet'
@@ -150,18 +149,15 @@ export class Note {
   }
   async removeParagraph(para) {
     this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
-    this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
+    this.resetLineIndexes()
   }
   async removeParagraphAtIndex() {
     throw 'Note :: removeParagraphAtIndex Not implemented yet'
   }
   async removeParagraphs(paras) {
-    paras.forEach((para) => {
-      this.paragraphs = this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
-    })
-    this.paragraphs.forEach((p, i) => {
-      this.paragraphs[i].lineIndex = i
-    })
+    // filter this.paragraphs to remove paragraphs with lineIndex in paras
+    this.paragraphs = this.paragraphs.filter((p) => !paras.find((para) => para.lineIndex === p.lineIndex))
+    this.resetLineIndexes()
   }
   async replaceTextInCharacterRange() {
     throw 'Note :: replaceTextInCharacterRange Not implemented yet'
@@ -172,11 +168,19 @@ export class Note {
   async updateParagraphs(paras) {
     paras.forEach((para) => {
       this.paragraphs[para.lineIndex] = para
+      this.resetLineIndexes()
     })
+  }
+
+  resetLineIndexes() {
+    this.paragraphs.forEach((p, i) => (this.paragraphs[i].lineIndex = i))
+    this.content = this.paragraphs.map((p) => p.content).join('\n')
   }
 
   constructor(data?: any = {}) {
     this.__update(data)
+    if (!this.paragraphs) this.paragraphs = []
+    this.resetLineIndexes()
   }
 
   __update(data?: any = {}) {
