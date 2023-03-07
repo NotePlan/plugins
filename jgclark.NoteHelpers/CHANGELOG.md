@@ -3,11 +3,14 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
 
-## [0.16.0] - 2023-01-???
+## [0.16.0] - 2023-03-???
 ### Added
-- **/index folders** has new option to sort output by title (alphabetical), last update date, or date the note was created (though note that I think that the underlying created date data is very unreliable).
-- **/index folders** has new option to add one of several date display settings on the end of every note that's listed
-- TODO: **/index folders** now has a Refresh button at the top of each results set
+- new **/add trigger to note** command that makes it easy to add a trigger to a particular note. It lists the functions from all plugins that it can work out are written for triggers, but also allows any function to be picked.
+- **/index folders** now:
+  - has an option to sort output by title (alphabetical), last update date, or date the note was created (though note that I think that the underlying created date data is very unreliable).
+  - has an option to add one of several date display settings on the end of every note that's listed
+  - has a Refresh button at the top of each results set
+  - can be run from x-callback-url calls (see README).
 
 ### Fixed
 - **/convert to frontmatter** wasn't always working for calendar notes

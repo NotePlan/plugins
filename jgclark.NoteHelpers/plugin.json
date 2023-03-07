@@ -4,15 +4,13 @@
   "plugin.id": "jgclark.NoteHelpers",
   "plugin.name": "📙 Note Helpers",
   "plugin.description": "Commands to quickly jump around and manage notes",
-  "plugin.icon": "",
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
-  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md", 
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
   "plugin.version": "0.16.0",
-  "plugin.lastUpdateInfo": "v0.15: can now customise /indexFolders with new settings, and also use from x-callbacks.\nv0.15: Added '/enable heading links' command, and let '/jump to heading' command by used from x-callback-urls",
+  "plugin.lastUpdateInfo": "0.16.0: New command to add trigger to a note. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.\n0.15.0: Added '/enable heading links' command, and let '/jump to heading' command by used from x-callback-urls",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.isRemote": "false",
   "plugin.commands": [
     {
       "name": "add number of days to dates",
@@ -23,6 +21,15 @@
       ],
       "description": "Look for bullets mentioning dates and add number of days till that date",
       "jsFunction": "countAndAddDays"
+    },
+    {
+      "name": "add trigger to note",
+      "alias": [
+        "trigger",
+        "add"
+      ],
+      "description": "Select from a list of available triggers to add to the current note",
+      "jsFunction": "addTriggerToNote"
     },
     {
       "name": "convert to frontmatter",
@@ -50,7 +57,10 @@
         "heading"
       ],
       "description": "Jumps to the heading that the user selects. (Currently only works in main window)",
-      "jsFunction": "jumpToHeading"
+      "jsFunction": "jumpToHeading",
+      "parameters": [
+        "heading"
+      ]
     },
     {
       "name": "jump to note's heading",
@@ -162,12 +172,14 @@
       "type": "string",
       "choices": [
         "none",
-        "time since last update",
-        "updated date"
+        "timeSince",
+        "updatedDate"
       ],
       "default": "none",
       "required": true
-    },
+    }
+  ],
+  "plugin.settings.disabled": [
     {
       "type": "heading",
       "title": "/convert to frontmatter setting"
