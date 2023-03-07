@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 27.2.2023 for v0.9.2, @jgclark
+// Last updated 4.3.2023 for v0.9.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -57,7 +57,11 @@ import {
   showMessage,
   showMessageYesNo,
 } from '@helpers/userInput'
-import { logWindows } from '@helpers/NPWindows'
+import {
+  logWindowsList,
+  noteOpenInEditor,
+  setEditorWindowID
+} from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------------------
 
@@ -171,17 +175,20 @@ export const setPercentRingJSFunc: string = `<script>
  */
 export async function renderProjectListsHTML(config: any, renderOnly: boolean = false): Promise<void> {
   try {
+    if (config.noteTypeTags.length === 0) {
+      throw new Error('No noteTypeTags passed to display')
+    }
+
     // Check to see if we're running v3.6.2, build 844) or later
     if (NotePlan.environment.buildVersion <= 844) {
       await showMessage('Sorry: need to be running NP 3.6.2 or later', 'Shame', "Sorry, Dave, I can't do that.")
       return
     }
 
+    const funcTimer = new Date()
     logDebug('renderProjectListsHTML', `starting for ${config.noteTypeTags.toString()} tags and renderOnly: ${String(renderOnly)}`)
 
     // Test to see if we have the font resources we want
-    // await logProvidedSharedResources()
-    // await logAvailableSharedResources(pluginID)
     if (!(await checkForWantedResources(pluginID))) {
       logError(pluginJson, `Sorry, I can't find the font resources I need to continue.`)
       await showMessage(`Sorry, I can't find the font resources I need to continue. Please check you have installed the 'Shared Resources' plugin, and then try again.`)
@@ -194,11 +201,12 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
       }
     }
 
+    logDebug('renderProjectListsHTML', `- after checkForWantedResources and before possible makeFullReviewList: ${timer(funcTimer)}s`)
+
+    // Calculate the Full Review List, unless we're in renderOnly mode
     if (!renderOnly) {
       await makeFullReviewList()
-    }
-    if (config.noteTypeTags.length === 0) {
-      throw new Error('No noteTypeTags passed to display')
+      logDebug('renderProjectListsHTML', `- after makeFullReviewList: ${timer(funcTimer)}s`)
     }
 
     // Need to change a single string (1 tag) to an array (multiple tags)
@@ -223,7 +231,7 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
     // https://fontawesome.com/icons/check
     // https://fontawesome.com/icons/xmark
     const refreshXCallbackButton = makeFakeButton(`<i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh`, 'project lists', '', 'Recalculate project lists and update this window') //`<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh</a></span>`
-    const startReviewButton = makeFakeButton(`<i class="fa-solid fa-forward"></i>\u00A0Start reviews`, 'next project', '', 'Opens the next project to review in the NP editor') // `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-forward"></i>\u00A0Start reviews</a></span>`
+    const startReviewButton = makeFakeButton(`<i class="fa-solid fa-forward"></i>\u00A0Start\u00A0reviews`, 'start reviews', '', 'Opens the next project to review in the NP editor') // `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-forward"></i>\u00A0Start reviews</a></span>`
     const reviewedXCallbackButton = makeFakeButton(`<i class="fa-regular fa-calendar-check"></i>\u00A0Mark\u00A0as\u00A0Reviewed`, 'finish project review', '', `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`) //`<span class="fake-button"><a class="button" href="${reviewedXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>\u00A0Mark\u00A0as\u00A0Reviewed</a></span>`
     const nextReviewXCallbackButton = makeFakeButton(`<i class="fa-regular fa-calendar-check"></i>\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review`, 'next project review', '', `Finish review of currently open Project and start the next review`) // `<span class="fake-button tooltip"><a class="button" href="${nextReviewXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review</a><span class="tooltiptext">Mark open project note as reviewed, and start next review</span></span>`
     const pauseXCallbackButton = makeFakeButton(`Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause`, 'pause project toggle', '', 'Pause the currently open Project note') // `<span class="fake-button"><a class="button" href="${pauseXCallbackURL}">Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause</a></span>`
@@ -237,6 +245,10 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
     const controlButtons = `${refreshXCallbackButton} \n<b>Reviews</b>: ${startReviewButton} \n${reviewedXCallbackButton} \n${nextReviewXCallbackButton}\n<br />\n<b>Projects</b>: ${pauseXCallbackButton} \n${completeXCallbackButton} \n${cancelXCallbackButton}`
     outputArray.push(`<div class="sticky-box-top-middle">\n${controlButtons}\n</div>\n`)
 
+    outputArray.push(`<div class="multi-cols">`)
+
+    logDebug('renderProjectListsHTML', `- before main loop: ${timer(funcTimer)}s`)
+
     // Make the Summary list, for each noteTag in turn
     let tagCount = 0
     for (const thisTag of config.noteTypeTags) {
@@ -249,7 +261,6 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
         outputArray.push(`<h3>All folders (${noteCount} notes)</h3>`)
       }
       outputArray.push(`<p>Last updated: ${nowLocaleShortDateTime()}</p>`)
-      outputArray.push(`<div class="multi-cols">`)
 
       // Start constructing table (if there any results)
       outputArray.push('\n<table>')
@@ -292,7 +303,8 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
     // TODO: in time make a 'timeago' relative display, e.g. using MOMENT moment.duration(-1, "minutes").humanize(true); // a minute ago
     // or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html or https://theprogrammingexpert.com/javascript-count-up-timer/
 
-    logWindows()
+    logDebug('renderProjectListsHTML', `- before showHTML call: ${timer(funcTimer)}s`)
+    logWindowsList()
 
     // Show the list as HTML, and save a copy as file
     await showHTML(
@@ -307,6 +319,7 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
       filenameHTMLCopy,
       812, 1200)  // set width; max height
     logDebug('renderProjectListsHTML', `- written results to HTML window and file`)
+    logDebug('renderProjectListsHTML', `- end at ${timer(funcTimer)}s`)
     // }
   }
   catch (error) {
@@ -319,11 +332,18 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
  * and write out to note(s) in the config.folderToStore folder.
  * @author @jgclark
  * @param {any} config - from settings (and any passed args)
- * @param {boolean} redisplayOnly if not already open?
+ * @param {boolean} renderOnly? If true, won't regenerate data, but just read from full-review-list
  */
-export async function renderProjectListsMarkdown(config: any, redisplayOnly: boolean = true): Promise<void> {
+export async function renderProjectListsMarkdown(config: any, renderOnly: boolean = false): Promise<void> {
   try {
-    logDebug('renderProjectListsMarkdown', `Starting for ${config.noteTypeTags.toString()} tags and redisplayOnly: ${String(redisplayOnly)}`)
+    const funcTimer = new Date()
+    logDebug('renderProjectListsMarkdown', `Starting for ${config.noteTypeTags.toString()} tags and redisplayOnly: ${String(renderOnly)}`)
+
+    // Calculate the Full Review List, unless we're in renderOnly mode
+    if (!renderOnly) {
+      await makeFullReviewList()
+      logDebug('renderProjectListsMarkdown', `- after makeFullReviewList: ${timer(funcTimer)}s`)
+    }
 
     // Set up x-callback URLs for various commands, to be styled into pseudo-buttons
     // TODO: could switch to using DW's getCallbackCodeString() here
@@ -357,10 +377,12 @@ export async function renderProjectListsMarkdown(config: any, redisplayOnly: boo
 
           // Calculate the Summary list(s)
           const [outputArray, noteCount, overdue] = await generateReviewSummaryLines(tag, 'Markdown', config)
+          logDebug('renderProjectListsHTML', `- after generateReviewSummaryLines(${tag}): ${timer(funcTimer)}s`)
+
           const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
           const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
           if (noteCount > 0) { // print header just the once (if any notes)
-            // Note: can't put reviewed/complete/cancel buttons here yet, because there's no way to be clear about which project they refer to. TODO: find a way round this in time.
+            // Note: can't put reviewed/complete/cancel buttons here yet, because there's no way to be clear about which project they refer to.
 
             outputArray.unshift(`Total ${noteCount} active notes${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
             if (!config.displayGroupedByFolder) {
@@ -371,10 +393,14 @@ export async function renderProjectListsMarkdown(config: any, redisplayOnly: boo
             // Save the list(s) to this note
             note.content = outputArray.join('\n')
             logDebug('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
-            // Open the note in a new window (if wanted)
-            if (redisplayOnly) {
-              // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+            // Open the note in a window
+            // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+            if (!noteOpenInEditor(note.filename)) {
+              logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)
               await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
+              setEditorWindowID(note.filename, noteTitle)
+            } else {
+              logDebug('renderProjectListsMarkdown', `- note '${noteTitle}' already open in the editor.`)
             }
           }
         } else {
@@ -391,6 +417,8 @@ export async function renderProjectListsMarkdown(config: any, redisplayOnly: boo
         // Calculate the Summary list(s)
         const [outputArray, noteCount, overdue] = await generateReviewSummaryLines('', 'Markdown', config)
         const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
+        logDebug('renderProjectListsHTML', `- after generateReviewSummaryLines: ${timer(funcTimer)}s`)
+
         // TODO: switch to using DW's getCallbackCodeString() here
         const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
         const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
@@ -408,10 +436,14 @@ export async function renderProjectListsMarkdown(config: any, redisplayOnly: boo
         // Save the list(s) to this note
         note.content = outputArray.join('\n')
         logInfo('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
-        // Open the note in a new window (if wanted)
-        if (redisplayOnly) {
-          // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+        // Open the note in a new window
+        // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+        if (!noteOpenInEditor(note.filename)) {
+          logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)   
           await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
+          setEditorWindowID(note.filename, noteTitle)
+        } else {
+          logDebug('renderProjectListsMarkdown', `- note '${noteTitle}' already open in the editor.`)
         }
       } else {
         await showMessage('Oops: failed to find or make project summary note', 'OK')
@@ -419,6 +451,7 @@ export async function renderProjectListsMarkdown(config: any, redisplayOnly: boo
         return
       }
     }
+    logDebug('renderProjectListsMarkdown', `- end at ${timer(funcTimer)}s`)
   }
   catch (error) {
     logError('renderProjectListsMarkdown', error.message)
@@ -469,11 +502,11 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
     const fmObj = fm(reviewListContents)
     const reviewLines = fmObj.body.split('\n').filter((f) => f.match(noteTag))
 
-    // Split each TSV line into its parts
     let lastFolder = ''
+    // Process each line in the file
     for (let thisLine of reviewLines) {
+      // Split each TSV line into its parts
       const fields = thisLine.split('\t')
-      // logDebug('generateReviewSummaryLines', `  - ${fields.length} fields`)
       const title = fields[2]
       const folder = (fields[3] !== '' ? fields[3] : '(root folder)') // root is a special case
       const notes = DataStore.projectNoteByTitle(title)
@@ -493,10 +526,9 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
       // Write new folder header (if change of folder)
       if (config.displayGroupedByFolder && (lastFolder !== folder)) {
         const folderPart = (config.hideTopLevelFolder)
-          ? folder.split('/').slice(-1) // just last part
+          ? String(folder.split('/').slice(-1)) // just last part. String(...) to satisfy flow
           : folder
         if (style.match(/rich/i)) {
-          // $FlowFixMe
           outputArray.push(`<thead>\n <tr class="section-header-row">  <td colspan=2 class="h3 section-header">${folderPart}</td>`)
           if (config.displayDates) {
             outputArray.push(`  <td>Next Review</td><td>Due Date</td>`)
@@ -507,7 +539,6 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
           outputArray.push(` </tr>\n</thead>\n`)
         }
         else if (style.match(/markdown/i)) {
-          // $FlowFixMe
           outputArray.push(`### ${folderPart}`)
         }
       }
@@ -1058,7 +1089,7 @@ export async function renderProjectLists(): Promise<void> {
 export async function redisplayProjectListHTML(): Promise<void> {
   try {
     // Currently only 1 HTML window is allowed
-    logWindows()
+    logWindowsList()
     // Re-load the saved HTML if it's available.
     const config = await getReviewSettings()
     if (config._logLevel === 'DEBUG') {

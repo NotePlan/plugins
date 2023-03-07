@@ -7,7 +7,8 @@
  * -----------------------------------------------------------------------------------------*/
 
 import { initConfiguration, updateSettingData } from '@helpers/NPConfiguration'
-
+import { logError } from '../../helpers/dev'
+import { onUpdateOrInstall } from './Templating'
 import pluginJson from '../plugin.json'
 
 export async function templateInit(): Promise<void> {

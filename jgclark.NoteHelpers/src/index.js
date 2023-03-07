@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last updated 27.6.2022 for v0.15.0, @jgclark
+// last updated 1.2.2023 for v0.16.0, @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -19,11 +19,14 @@ export {
   jumpToDone,
   jumpToHeading,
   jumpToNoteHeading,
-  convertLocalLinksToPluginLinks,
-  moveNote,
   openCurrentNoteNewSplit,
   openNoteNewWindow,
-  openNoteNewSplit,
+  openNoteNewSplit
+} from './noteNavigation'
+export {
+  addTriggerToNote,
+  convertLocalLinksToPluginLinks,
+  moveNote,
   renameNoteFile,
 } from './noteHelpers'
 

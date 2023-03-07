@@ -585,6 +585,7 @@ declare class DataStore {
    * Use "/" for the root folder.
    * It will write the given title as "# title" into the new file.
    * Returns the final filename; if the there is a duplicate, it will add a number.
+   * Note: @jgclark finds that if 'folder' has different capitalisation than an existing folder, NP gets confused, in a way that reset caches doesn't solve. It needs a restart. 
    */
   static newNote(noteTitle: string, folder: string): ?string;
   /**

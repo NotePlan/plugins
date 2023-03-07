@@ -49,12 +49,35 @@ module.exports = {
     const licenseFilename = path.join(pluginPath, 'LICENSE')
     filesystem.existsSync(licenseFilename) ? fileList.push(licenseFilename) : null
 
+    const requiredFiles = this.getRequiredFiles(pluginName, pluginPath)
+    if (requiredFiles?.length) fileList.push(...requiredFiles)
+
     const response = { files: fileList }
     if (filesystem.existsSync(changeLogFilename)) {
       response.changelog = changeLogFilename
     }
-
     return response
+  },
+
+  getRequiredFiles: function (pluginName = null, pluginPath = null) {
+    if (!pluginName) throw new Error('getRequiredFiles Missing pluginName')
+    if (!pluginPath) throw new Error('getRequiredFiles Missing pluginPath')
+
+    const config = this.getPluginConfig(pluginName)
+    const requiredFiles = []
+    if (config && config['plugin.requiredFiles']?.length) {
+      config['plugin.requiredFiles'].forEach((file) => {
+        const filePath = path.join(pluginPath, 'requiredFiles', file)
+        if (filesystem.existsSync(filePath)) {
+          requiredFiles.push(filePath)
+        } else {
+          throw new Error(
+            `${pluginName}: Missing Required File: ${file}. Check the requiredFiles directory and make sure the file names match what is in plugin.json['plugin.requiredFiles'].`,
+          )
+        }
+      })
+    }
+    return requiredFiles
   },
 
   getPluginConfig(pluginName = null) {
@@ -131,9 +154,7 @@ module.exports = {
               pluginAliases.forEach((alias) => {
                 pluginCommands.push({
                   pluginId: pluginObj.hasOwnProperty('plugin.id') ? pluginObj['plugin.id'] : 'missing plugin-id',
-                  pluginName: pluginObj.hasOwnProperty('plugin.name')
-                    ? pluginObj['plugin.name']
-                    : 'missing plugin-name',
+                  pluginName: pluginObj.hasOwnProperty('plugin.name') ? pluginObj['plugin.name'] : 'missing plugin-name',
                   name: alias,
                   description: command.description,
                   jsFunction: command.jsFunction,

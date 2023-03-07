@@ -132,7 +132,7 @@ module.exports = {
     if (runBuild) {
       tasks.add([
         {
-          title: 'Buliding release',
+          title: 'Building release',
           enabled: () => {
             return true
           },

@@ -120,8 +120,10 @@ export function isMentionWanted(mentionToTest: string,
 }
 
 /**
- * Take a line's .rawContent and return any starting metadata markers
- * for open/closed/cancelled/sched tasks, quotes, lists, headings (not quite the same as .content)
+ * Take a line's .rawContent and return the first position in the string
+ * after any starting metadata markers for open/closed/cancelled/sched tasks,
+ * quotes, lists, headings.
+ * Note: this is not quite the same as .content
  * @author @jgclark
  * @param {string} input
  * @returns {string} simplified output
@@ -148,9 +150,8 @@ export function getLineMainContentPos(input: string): number {
 }
 
 /**
- * Take a line and simplify if needed.
+ * Take a line and simplify by removing blockIDs, and trim start/end.
  * Note: a different function deals with start-of-line Markdown markers (for open/closed/cancelled/sched tasks, quotes, lists, headings).
- * Also trim the output.
  * @author @jgclark
  * @param {string} input 
  * @returns {string} simplified output

@@ -3,7 +3,8 @@
 // Paragraph and block-level helpers functions
 //-----------------------------------------------------------------------------
 
-import { logDebug, logError, logWarn } from './dev'
+import { clo, logDebug, logError, logWarn } from './dev'
+import { stripLinksFromString } from '@helpers/stringTransforms'
 import {
   RE_SIMPLE_URI_MATCH,
   RE_MARKDOWN_LINK_PATH_CAPTURE,
@@ -32,19 +33,13 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
  */
 export function isTermInURL(term: string, searchString: string): boolean {
   // create version of searchString that doesn't include the URL and test that first
-  const URIMatches = searchString.match(RE_SIMPLE_URI_MATCH) ?? []
-  const thisURI = URIMatches[1] ?? ''
-  if (thisURI !== '') {
-    const restOfLine = searchString.replace(thisURI, '')
-    if (caseInsensitiveSubstringMatch(term, restOfLine)) {
-      return false
-    } else {
-      return caseInsensitiveSubstringMatch(term, thisURI)
-    }
-  } else {
-    // logDebug('paragraph/isTermInURL', `- No URI -> false`)
-    return false
-  }
+  const searchStringWithoutURL = stripLinksFromString(searchString)
+  let res = caseInsensitiveSubstringMatch(term, searchStringWithoutURL)
+    ? false
+    : RE_SIMPLE_URI_MATCH.test(searchString)
+
+  logDebug('isTermInURL', `looking for ${term} in ${searchString} ${String(caseInsensitiveSubstringMatch(term, searchStringWithoutURL))} / ${searchStringWithoutURL} ${String(RE_SIMPLE_URI_MATCH.test(searchStringWithoutURL))} -> ${String(res)}`)
+  return res
 }
 
 /**

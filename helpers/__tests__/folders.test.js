@@ -75,4 +75,22 @@ describe('helpers/folders', () => {
       expect(f.getFolderFromFilename('/sixes and sevenses/calm one.md')).toEqual('sixes and sevenses')
     })
   })
+
+  describe('getLowestLevelFolderFromFilename tests', () => {
+    test('root (no folder part) -> empty', () => {
+      expect(f.getLowestLevelFolderFromFilename('test-at-root.md')).toEqual('')
+    })
+    test('single folder level', () => {
+      expect(f.getLowestLevelFolderFromFilename('folder one/note.md')).toEqual('folder one')
+    })
+    test('subfolder 2', () => {
+      expect(f.getLowestLevelFolderFromFilename('one/two/three/four and a bit.md')).toEqual('three')
+    })
+    test('subfolder 3', () => {
+      expect(f.getLowestLevelFolderFromFilename('one/two or three/fifteen.md')).toEqual('two or three')
+    })
+    test('leading slash', () => {
+      expect(f.getLowestLevelFolderFromFilename('/sixes and sevenses/calm one.md')).toEqual('sixes and sevenses')
+    })
+  })
 })

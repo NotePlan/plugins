@@ -1,5 +1,6 @@
 {
   "noteplan.minAppVersion": "3.7",
+  "macOS.minVersion": "10.13.0",
   "plugin.id": "dwertheimer.TaskAutomations",
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",

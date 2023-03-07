@@ -7,14 +7,14 @@
 // 
 // This file holds definitions that don't live in more specific helper files, and also lists other files with useful regexes.
 //
-// Note: these are mostly strings, not JavaScript RegExp objects. This allows for composition of more complex regexes from simpler building blocks.
+// Note: these are JavaScript RegExp objects. 
+// They are then difficult to use in composition to more complex regexes: to do that start with simpler strings.
+//
 // The main ways to use them are:
 // - string.match(RE_NAME) -> array of matches
 // - RE_NAME.test(string) -> boolean
 //
-// If you wish to use this with 'g' (global flag) or 'i' (case insensitive flag), you will need to create a RegExp object in one of two ways:
-// - const RE_VAR = new RegExp(/.../gi)
-// - const RE_VAR: RegExp = /.../gi
+// Note: some have 'g' (global) or 'i' (case insensitive) flags set
 //---------------------------------------------------------------------
 
 // Times, Dates
@@ -158,5 +158,6 @@ export const NP_RE_code_right_backtick: RegExp = /(`)([^`]{1,})(`)/
 // const ATTAG_STR_FOR_JS = ORIG_ATTAG_STR.replace(/\[:punct:\]/g, PUNCT_CLASS_STR_QUOTED)
 // export const NP_RE_attag_G: RegExp = new RegExp(ATTAG_STR_FOR_JS, 'g')
 
-// To which I have added one:
+// To which @jgclark has added:
 export const NP_RE_checklist: RegExp = /^\h*\+\s(?:(?!\[[x\-\>]\] ))(?:\[\s\] )?/  // open checklist item
+export const RE_ANY_TYPE_OF_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*(\[[x\-\>]\]|[\*\-\+]\s)/

@@ -13,13 +13,13 @@ import { chooseOption, getInput } from './userInput'
 
 // TODO: work out how to test these next few functions
 export function setMomentLocaleFromEnvironment(): void {
-  logDebug('NPdateTime', `NP reports languageCode = ${NotePlan.environment.languageCode ?? '<not set>'}`)
-  logDebug('NPdateTime', `NP reports regionCode   = ${NotePlan.environment.regionCode ?? '<not set>'}`)
+  // logDebug('NPdateTime', `NP reports languageCode = ${NotePlan.environment.languageCode ?? '<not set>'}`)
+  // logDebug('NPdateTime', `NP reports regionCode   = ${NotePlan.environment.regionCode ?? '<not set>'}`)
   // Locale-specific date + time formats
   // Set locale for momnet library
   const userLocaleSetting = `${NotePlan.environment.languageCode}${NotePlan.environment.regionCode ? '-' + NotePlan.environment.regionCode : ''}`
   moment.locale(userLocaleSetting)
-  logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
+  // logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
 }
 
 export function nowLocaleShortDateTime(): string {
@@ -298,7 +298,7 @@ export async function getPeriodStartEndDates(
     case 'lq': {
       const thisQ = Math.floor((m - 1) / 3) + 1 // quarter (1-4)
       const theQ = thisQ > 1 ? thisQ - 1 : 4 // last quarter (1-4)
-      const theY = (theQ === 4) ? y - 1 : y // change the year if we want Q4
+      const theY = theQ === 4 ? y - 1 : y // change the year if we want Q4
       const [f, t] = quarterStartEnd(theQ, theY)
       fromDate = f
       toDate = t
@@ -346,7 +346,7 @@ export async function getPeriodStartEndDates(
         lastWeekNum = currentWeekNum - 1
       }
       ;[fromDate, toDate] = weekStartEndDates(lastWeekNum, theYear)
-      periodString = `${String(theYear)}-W${(lastWeekNum < 10 ? '0' + String(lastWeekNum) : String(lastWeekNum))}`
+      periodString = `${String(theYear)}-W${lastWeekNum < 10 ? '0' + String(lastWeekNum) : String(lastWeekNum)}`
       break
     }
     case 'userwtd': {
@@ -380,7 +380,7 @@ export async function getPeriodStartEndDates(
       const tempObj = weekStartEndDates(currentWeekNum, theYear)
       fromDate = tempObj[0]
       toDate = tempObj[1]
-      periodString = `${theYear}-W${(currentWeekNum < 10 ? '0' + String(currentWeekNum) : String(currentWeekNum))}`
+      periodString = `${theYear}-W${currentWeekNum < 10 ? '0' + String(currentWeekNum) : String(currentWeekNum)}`
       // get ISO dayOfWeek (Monday = 1 to Sunday = 7)
       const todaysISODayOfWeek = moment().isoWeekday()
       periodAndPartStr = `day ${todaysISODayOfWeek}, ${periodString}`
@@ -434,7 +434,7 @@ export async function getPeriodStartEndDates(
       const tempObj = weekStartEndDates(weekNum, theYear)
       fromDate = tempObj[0]
       toDate = tempObj[1]
-      periodString = `${theYear}-W${(weekNum < 10 ? '0' + String(weekNum) : String(weekNum))}`
+      periodString = `${theYear}-W${weekNum < 10 ? '0' + String(weekNum) : String(weekNum)}`
       break
     }
 
@@ -732,15 +732,12 @@ export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: bool
   // Set locale for moment from NP environment
   setMomentLocaleFromEnvironment()
   const todayMom = moment().startOf('day')
-  let output = (diffIn < 0)
-    ? todayMom.add(diffIn, 'days').fromNow()
-    : (diffIn === 0)
-      ? 'today'
-      : todayMom.add(diffIn, 'days').fromNow()
+  let output = diffIn < 0 ? todayMom.add(diffIn, 'days').fromNow() : diffIn === 0 ? 'today' : todayMom.add(diffIn, 'days').fromNow()
   output = output.replace(/month[s]/, 'mon') // shorten 'months' -> 'mon' (in English)
   if (useShortStyle) {
     // Shorten output (in English)
-    output = output.replace(/ year[s]/, 'y')
+    output = output
+      .replace(/ year[s]/, 'y')
       .replace(/ month[s]/, 'm')
       .replace(/ week[s]/, 'w')
       .replace(/ day[s]/, 'd')

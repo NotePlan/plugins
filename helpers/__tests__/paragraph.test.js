@@ -76,6 +76,18 @@ describe('paragraph.js', () => {
       const result = p.isTermInURL('tennis', 'Lots about tennis, but no URI at all')
       expect(result).toEqual(false)
     })
+    test('should not find term in string with several URIs', () => {
+      const result = p.isTermInURL('tennis', 'Lots about tennis, but not in this https://example.com/ or this https://example2.com/')
+      expect(result).toEqual(false)
+    })
+    test('should match term #test in string with multiple URIs that contain it', () => {
+      const result = p.isTermInURL('#term', 'The [`test do`](https://rubydoc.brew.sh/Formula#test-class_method) block automatically creates and changes to a temporary directory which is deleted after run. You can access this [`Pathname`](https://rubydoc.brew.sh/Pathname) with the [`testpath`](https://rubydoc.brew.sh/Formula#testpath-instance_method) function. The environment variable `HOME` is set to [`testpath`](https://rubydoc.brew.sh/Formula#testpath-instance_method) within the [`test do`](https://rubydoc.brew.sh/Formula#test-class_method) block.')
+      expect(result).toEqual(true)
+    })
+    test('should match term #test in string with one URI that contains it our of several URIs', () => {
+      const result = p.isTermInURL('#term', 'The [do](https://rubydoc.brew.sh/Formula-test-class_method) block automatically creates and changes to a temporary directory which is deleted after run. You can access this [Pathname](https://rubydoc.brew.sh/Pathname) with the [`testpath`](https://rubydoc.brew.sh/Formula-#test-path-instance_method) function. The environment variable `HOME` is set to [`testpath`](https://rubydoc.brew.sh/Formula#testpath-instance_method) within the [do](https://rubydoc.brew.sh/Formula-test-class_method) block.')
+      expect(result).toEqual(true)
+    })
   })
 
   describe('isTermInMarkdownPath()', () => {

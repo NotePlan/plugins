@@ -296,7 +296,7 @@ export async function templateQuickNote(templateTitle: string = ''): Promise<voi
         if (frontmatterAttributes?.newNoteTitle) {
           newNoteTitle = frontmatterAttributes.newNoteTitle
         } else {
-          newNoteTitle = await CommandBar.textPrompt('Quick Note', 'Enter Note Title', '')
+          newNoteTitle = (await CommandBar.textPrompt('Quick Note', 'Enter Note Title', '')) || ''
           if (typeof newNoteTitle === 'boolean' || newNoteTitle.length === 0) {
             return // user did not provide note title (Cancel) abort
           }
