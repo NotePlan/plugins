@@ -3,7 +3,7 @@
 
 import { CustomConsole } from '@jest/console' // see note below
 import * as f from '../NPFrontMatter'
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Note, mockWasCalledWithString /* , Paragraph */ } from '@mocks/index'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Note, mockWasCalledWithString, Paragraph } from '@mocks/index'
 
 const PLUGIN_NAME = `helpers`
 const FILENAME = `NPFrontMatter`
@@ -58,7 +58,7 @@ describe(`${PLUGIN_NAME}`, () => {
      */
     describe('noteHasFrontMatter()' /* function */, () => {
       test('should return true if there is frontmatter', () => {
-        const note = new Note({ content: '---\nfoo: bar\n---\n' })
+        const note = new Note({ paragraphs: [new Paragraph({ content: '---' }), new Paragraph({ content: 'bar' }), new Paragraph({ content: '---' })] })
         const result = f.noteHasFrontMatter(note)
         expect(result).toEqual(true)
       })
@@ -209,13 +209,38 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should return a line of frontmatter', () => {
         const note = new Note({ paragraphs: [{ content: '---' }, { content: 'foo' }, { content: '---' }], content: '' })
         const result = f.getFrontMatterParagraphs(note)
-        expect(result).toEqual([{ content: 'foo' }])
+        expect(result).toEqual([expect.objectContaining({ content: 'foo' })])
       })
       test('should return a line of frontmatter with separators', () => {
         const allParas = [{ content: '---' }, { content: 'foo' }, { content: '---' }]
         const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.getFrontMatterParagraphs(note, true)
         expect(result).toEqual(allParas)
+      })
+    })
+
+    /*
+     * removeFrontMatter()
+     */
+    describe('removeFrontMatter()' /* function */, () => {
+      test('should return true and delete FM paras (and --- separators)', () => {
+        const allParas = [{ content: '---' }, { content: 'foo' }, { content: '---' }, { content: '# note title' }, { content: 'comment 1' }, { content: '+ checklist 1' }]
+        let note = new Note({ paragraphs: allParas })
+        const result = f.removeFrontMatter(note, true)
+        expect(result).toEqual(true) // test 1
+        expect(note.paragraphs.length).toEqual(3) //test2
+        expect(note.paragraphs[0].content).toEqual(allParas[3].content) // test 3
+        expect(note.paragraphs[1].content).toEqual(allParas[4].content) // test 4
+        expect(note.paragraphs[2].content).toEqual(allParas[5].content) // test 5
+      })
+      test('should change FM title to a normal title)', () => {
+        const allParas = [{ content: '---' }, { content: 'title: foo bar' }, { content: '---' }, { content: 'comment 1' }, { content: '+ checklist 1' }]
+        let note = new Note({ paragraphs: allParas })
+        const result = f.removeFrontMatter(note, true)
+        expect(result).toEqual(true)
+        expect(note.paragraphs.length).toEqual(3)
+        expect(note.paragraphs[0].content).toEqual(`# foo bar`)
+        expect(note.paragraphs[1].content).toEqual(allParas[3].content)
       })
     })
 
