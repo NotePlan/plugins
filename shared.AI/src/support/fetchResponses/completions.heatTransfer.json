@@ -1,0 +1,19 @@
+{
+    "id": "cmpl-6ODgWL6I275SGZMrWUBDkD9uSRr3n",
+    "object": "text_completion",
+    "created": 1671230496,
+    "model": "text-davinci-003",
+    "choices": [
+      {
+        "text": "Heat transfer is an important consideration for any mission to Mercury. Thermal protection is essential to protect equipment and crew from the extreme temperatures on the planet, which range from +427°C in the day to -173°C at night. To ensure heat transfer is managed effectively, several thermal protection mechanisms must be implemented.\n\nOne of the most common methods of thermal protection is by using thermal blankets. Thermal blankets are typically made of multiple layers of a very thin and lightweight material like aluminum-coated fabric, ceramic cloth or silicone-impregnated fiberglass. These blankets are used to create a layer of insulation between the spacecraft and the exterior environment, trapping heat and preventing it from entering the spacecraft.\n\nAnother method of heat transfer management is through radiative cooling. This technique uses reflective surfaces to deflect radiation, specifically infrared radiation, away from the spacecraft. This helps to keep the temperature of the spacecraft within an acceptable range and prevents extreme temperatures from reaching the interior of the",
+        "index": 0,
+        "logprobs": null,
+        "finish_reason": "length"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 13,
+      "completion_tokens": 200,
+      "total_tokens": 213
+    }
+  }

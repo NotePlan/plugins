@@ -1,0 +1,19 @@
+{
+    "id": "cmpl-6NxRpdlOMHP0sRpxPA5rUYNg2EC9S",
+    "object": "text_completion",
+    "created": 1671168081,
+    "model": "text-davinci-003",
+    "choices": [
+      {
+        "text": "Thermal Protection,Heat Transfer,Heat Shield,Thermal Insulation,Thermal Diffusivity,Temperature Regulation",
+        "index": 0,
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 40,
+      "completion_tokens": 17,
+      "total_tokens": 57
+    }
+  }
