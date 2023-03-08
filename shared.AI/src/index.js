@@ -27,7 +27,7 @@ export { adjustPreferences, scrollToEntry, listEndpoints } from './support/helpe
 export { createAIImages } from './imageAI'
 export { changeDefaultMaxTokens, changeTargetSummaryParagraphs, changeDefaultTargetKeyTerms, setOpenAIAPIKey } from './support/settingsAdjustments'
 export { firstLaunch } from '../src/support/onboarding'
-export { startChat } from './chat'
+export { insertChat, createChat, continueChat } from './chat'
 
 // import './support/fetchOverrides'
 

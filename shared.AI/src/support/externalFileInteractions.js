@@ -5,7 +5,8 @@ import { logDebug, logError, JSP, clo } from '@helpers/dev'
 import type { JSONClickData } from './AIFlowTypes'
 
 /**
- * Get data file name based on Editor.title
+ * For Research Commands:
+ * Get data file name based on Editor.filename
  * @returns {string} filename
  */
 export function getDataFileName(note: CoreNoteFields = Editor): string {
@@ -70,7 +71,7 @@ export function initializeData(query?: string): JSONClickData {
  */
 export function updateClickedLinksJsonData(clickedLink: string): void {
   if (Editor.title) {
-    const filename = `Query Data/${Editor.title}/data.json`
+    const filename = getDataFileName()
     const loadedJSON = loadDataFile()
     if (!loadedJSON['clickedLinks'].includes(clickedLink)) {
       const updatedJSON = saveClickedLink(loadedJSON, clickedLink.trim())

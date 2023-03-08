@@ -1,4 +1,4 @@
-# NoteAI Plugin
+# NotePlan AI Plugin
 
 ## Latest Updates
 
@@ -6,16 +6,16 @@ See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/shared.AI/CHANGELO
 
 ## About This Plugin 
 
-**NoteAI** is a plugin designed to facilitate a number of AI related tasks using the OpenAI text-to-AI API.
+**NotePlan AI** is a plugin designed to facilitate a number of AI related tasks using the OpenAI text-to-AI API.
 
 In its initial stage, the plugin serves as a research assistant; designed to help you learn more about any subject you wish. 
 
 ### Getting Started
 To get started, you'll first need to go to the [OpenAI website](https://openai.com/api/) and sign up for an account.
 
-Once your account has been created, you'll need to access your [API Keys page](https://beta.openai.com/account/api-keys) and click on "+ Create new Secret Key". This API key should be saved in a secure location since you will not be able to see it again after you leave the page. 
+Once your account has been created, you'll need to access your [API Keys page](https://beta.openai.com/account/api-keys) and click on "+ Create new Secret Key". This API key should be saved in a secure location since you will not be able to see it again after you leave the page. Copy this key to your clipboard.
 
-In NotePlan, open the NoteAI Preferences page and add the API Key in the first field and save. Feel free to adjust any other settings in here at this time (though you may wish to start with them at the default values).
+In NotePlan, open the NotePlan AI Preferences page and add the API Key in the first field and save. Feel free to adjust any other settings in here at this time (though you may wish to start with them at the default values).
 
 That's it! You can now use the commands in the following section.
 
@@ -23,15 +23,24 @@ That's it! You can now use the commands in the following section.
 
 *Using the OpenAI API is not free.* Fortunately, it is extremely cost effective and does provide a number of tools to help you self-moderate the amount you spend on the service. There is no monthly charge. Rather, you pay per 1000 tokens used. 
 
-**Example**:
-A search for "Tell me about the planet Mercury" with the max_tokens target set to 1,000 tokens (words more-or-less) will cost approximately $0.02 using OpenAI's best (and most expensive) model -- daVinci.
+>**Example**:
+A search for "Tell me about the planet Mercury" with the max_tokens target set to 1,000 tokens (words more-or-less) will cost approximately $0.02 using OpenAI's (most expensive) models -- daVinci or chatGPT.
 
 I strongly encourage you to explore the pricing information available on the [OpenAI website](https://openai.com/api/pricing/).
 
 ---
 
-### Commands
-- **/createResearchDigSite**
+### Main Commands
+
+- ** /Create Chat **
+
+    >This command creates a new document with a GPT3 chat. You can ask an initial question and then follow up as many times as you would like, and the AI will "remember" the context of your conversation.
+
+- ** /Insert Chat **
+
+    >This command is just like "Create Chat", but instead of creating a brand-new document, the results will be inserted at the cursor position.
+
+- ** /createResearchDigSite **
 
     >This is the primary command to be used when starting to research a new subject. When called, you simply type in whatever subject you'd like to learn more about and then let it work its magic. The generated research will be placed into a folder titled "/Research" by default. This can be adjusted in the plugin preferences.
 
@@ -42,6 +51,14 @@ I strongly encourage you to explore the pricing information available on the [Op
         
     >If you have text highlighted, it will autofill the subject line so you can just press "Enter" to quickly research the selected text.
 
+- **/Create AI Images**
+
+    >Use words to have the AI generate images/art using DALL-E @ OpenAI. 
+
+-
+
+### Other Commands
+
 - **/researchFromSelection**
 
     >This command will research the selected text *in the context of the current research subject.* The generated research will be formatted and appended to the bottom of the current note.
@@ -50,12 +67,10 @@ I strongly encourage you to explore the pricing information available on the [Op
 
     >This command will move the current note into an existing or new sidebar directory within the Research tree. The command will also generate a Table of Contents at the top level of the directory to allow for quick access to the related ideas that you have researched.
 
-- **/createAIImage**
 
-    >Generate images with DALL-E @ OpenAI
 
-- **/Show NoteAI Commands**
-    > Shows an interactive list of all available NoteAI commands.
+- **/Show NotePlan AI Commands**
+    > Shows an interactive list of all available NotePlan AI commands.
 
     
 ---

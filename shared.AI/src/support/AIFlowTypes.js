@@ -10,6 +10,10 @@ export type ResearchListResult = { initialQuery: string, currentQuery: string, s
 
 export type JSONClickData = { unclickedLinks: Array<string>, clickedLinks: Array<string>, initialSubject: string, remixes: Array<string>, totalTokensUsed: number }
 
+export type ChatMode = 'insert' | 'new_document' | 'return'
+
+export type ChatReturn = { question: string, prompt: string, answer: string }
+
 export type ChatResponse = {
   id: string,
   object: string,

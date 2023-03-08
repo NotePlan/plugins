@@ -4,6 +4,7 @@ import { log, logDebug, logError, logWarn, clo, JSP, timer } from '@helpers/dev'
 import { createPrettyRunPluginLink, createPrettyOpenNoteLink } from '@helpers/general'
 import { capitalizeFirstLetter } from './helpers'
 import { removeContentUnderHeading } from '@helpers/NPParagraph'
+import { getDataFileName } from './externalFileInteractions'
 
 const pluginJson = `shared.AI/helpers`
 
@@ -58,7 +59,7 @@ export function formatSubtitle(subject: string, prevSubject?: string = '', fullH
 export async function formatKeyTermsForSummary(keyTerms: [string], subject: string, remixText?: string = '', subtitle: string = '', fullHistoryText: string) {
   // logDebug(pluginJson, `\n\nformatBulletSummary\nSubject: ${subject}\nResponse: ${summary}\nLink: ${link})}`)
   let keyString = '#### Go Deeper?\n'
-  const jsonData = DataStore.loadJSON(`Query Data/${Editor.title}/data.json`)
+  const jsonData = DataStore.loadJSON(getDataFileName())
   let prettyKeyTerm = ''
 
   for (const keyTerm of keyTerms) {
@@ -103,7 +104,7 @@ export async function formatBulletSummary(subject: string, summary: string, keyT
 
   // let title = subject.replace('- ', '')
   let title = subject.trim()
-  const jsonData = DataStore.loadJSON(`Query Data/${Editor.title}/data.json`)
+  const jsonData = DataStore.loadJSON(getDataFileName())
   const keyTermsOutput = await formatKeyTermsForSummary(keyTerms, subject, remixText, subtitle ? subtitle : '', fullHistoryText)
   const removeParagraphText = createPrettyRunPluginLink('**✖**', 'shared.AI', 'Scroll to Entry', [subject, String(true)])
   const exploreText = createPrettyRunPluginLink('Explore', 'shared.AI', 'Explore - OpenAI', [subject])
@@ -158,4 +159,3 @@ export function formatTableOfContents() {
   }
   Editor.addParagraphBelowHeadingTitle('---\n', 'text', tocLink, true, true)
 }
-

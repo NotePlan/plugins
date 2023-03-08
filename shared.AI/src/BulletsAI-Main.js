@@ -1,7 +1,7 @@
 // @flow
 import pluginJson from '../plugin.json'
 import { chooseFolder, showMessage } from '../../helpers/userInput'
-import { type JSONData } from './support/AIFlowTypes'
+import { type JSONClickData } from './support/AIFlowTypes'
 import { makeRequest } from './support/networking'
 import { generateSubjectSummaryPrompt, generateKeyTermsPrompt, generateExplorationPrompt } from './support/prompts'
 import { formatSubtitle, formatBulletSummary, formatTableOfContents } from './support/formatters'
@@ -11,7 +11,7 @@ import { logDebug, logError, JSP } from '@helpers/dev'
 import { escapeRegex, createPrettyOpenNoteLink } from '@helpers/general'
 
 type CompletionsRequest = { model: string, prompt?: string, max_tokens?: number, user?: string, suffix?: string, temperature?: string, top_p?: string, n?: number }
-const completionsComponent = 'completions'
+const completionsComponent = `completions`
 
 /**
  * Prompt for new research tunnel
@@ -248,11 +248,11 @@ export async function explore(prevSubjectIn: string) {
 export async function researchFromSelection() {
   try {
     const selectedText = Editor.selectedText
-  const matchedContent = Editor.paragraphs.find((p) => p.type === 'text' && p.content.includes(selectedText))
+    const matchedContent = Editor.paragraphs.find((p) => p.type === 'text' && p.content.includes(selectedText))
 
-  logDebug(pluginJson, `\n\n---- INFO -----\n\n${selectedText}\n${matchedContent}\n\n`)
+    logDebug(pluginJson, `\n\n---- INFO -----\n\n${selectedText}\n${matchedContent}\n\n`)
 
-  await bulletsAI(selectedText, matchedContent.heading)
+    await bulletsAI(selectedText, matchedContent.heading)
   } catch (error) {
     logError(pluginJson, error)
   }

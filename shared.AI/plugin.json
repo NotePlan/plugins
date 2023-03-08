@@ -4,15 +4,49 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "shared.AI",
   "plugin.name": "💡 NotePlan AI",
-  "plugin.version": "0.3.2",
+  "plugin.version": "0.4.0-beta1",
   "plugin.lastUpdateInfo": "Added quick access functions for most preferences..",
   "plugin.description": "GPT integration for research, summarization, etc.",
-  "plugin.author": "A shadow figure with a little encouragement from @dwertheimer",
+  "plugin.author": "A collaborative effort",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/shared.AI/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/shared.AI/CHANGELOG.md",
   "plugin.commands": [
+    {
+      "name": "Insert Chat",
+      "description": "NotePlan AI: Insert ChatGPT Chat at cursor",
+      "jsFunction": "insertChat",
+      "alias": [
+      ],
+      "arguments": ["Prompt to ask ChatGPT"]
+    },
+    {
+      "name": "Create Chat",
+      "description": "NotePlan AI: Create ChatGPT in New Document",
+      "jsFunction": "createChat",
+      "alias": [
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Research - NotePlan AI",
+      "description": "Start Clickable Research using NotePlan AI",
+      "jsFunction": "createResearchDigSite",
+      "alias": [
+        "research",
+        "rs"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Create AI Images",
+      "description": "NotePlan AI: Generate images with DALL-E @ OpenAI",
+      "jsFunction": "createAIImages",
+      "hidden": false,
+      "alias": ["NotePlan AI Images"],
+      "arguments": []
+    },
     {
       "name": "Test Connection",
       "description": "GPT-3 @ OpenAI",
@@ -23,9 +57,10 @@
       "arguments": ["test"]
     },
     {
-      "name": "startChat",
-      "description": "Start ChatGPT Chat",
-      "jsFunction": "startChat",
+      "name": "continueChat",
+      "description": "Continue ChatGPT chat",
+      "jsFunction": "continueChat",
+      "hidden": true,
       "alias": [
       ],
       "arguments": []
@@ -42,8 +77,9 @@
     },
     {
       "name": "First Launch",
-      "description": "Introduction to NoteAI",
+      "description": "Introduction to NotePlan AI",
       "jsFunction": "firstLaunch",
+      "hidden": true,
       "alias": [
         "firstlaunch"
       ],
@@ -73,7 +109,7 @@
       "name": "Adjust Preferences",
       "description": "Adjust plugin preferences",
       "jsFunction": "adjustPreferences",
-      "hidden": false,
+      "hidden": true,
       "alias": [
         "apref"
       ],
@@ -110,12 +146,13 @@
       "arguments": []
     },
     {
-      "name": "Show NoteAI Commands",
-      "description": "Select from available NoteAI commands",
+      "name": "Show NotePlan AI Commands",
+      "description": "Select from available NotePlan AI commands",
       "jsFunction": "listEndpoints",
       "alias": [
         "naicomm"
       ],
+      "hidden": true,
       "arguments": []
     },  
     {
@@ -126,15 +163,6 @@
       "alias": [
         "mvr",
         "movere"
-      ],
-      "arguments": []
-    },
-    {
-      "name": "Create AI Images",
-      "description": "Generate images with DALL-E @ OpenAI",
-      "jsFunction": "createAIImages",
-      "hidden": false,
-      "alias": [
       ],
       "arguments": []
     },
@@ -174,26 +202,6 @@
       "hidden": true,
       "alias": [
         "rem"
-      ],
-      "arguments": []
-    },
-    {
-      "name": "Create Research Dig Site",
-      "description": "Create a new Research Dig Site",
-      "jsFunction": "createResearchDigSite",
-      "hidden": true,
-      "alias": [
-        "dig"
-      ],
-      "arguments": []
-    },
-    {
-      "name": "Research - NoteAI",
-      "description": "Start research using NoteAI",
-      "jsFunction": "createResearchDigSite",
-      "alias": [
-        "research",
-        "rs"
       ],
       "arguments": []
     },
@@ -247,44 +255,48 @@
       "arguments": []
     },
     {
-      "name": "Change Max Token Target - NoteAI",
+      "name": "Change Max Token Target - NotePlan AI",
       "description": "Provides quick access to updating the Max Token Target preference.",
       "jsFunction": "changeDefaultMaxTokens",
       "alias": [
         "tokens"
       ],
-      "arguments": []
+      "arguments": [],
+      "hidden":true
     },
     {
-      "name": "Change Key Terms Target - NoteAI",
+      "name": "Change Key Terms Target - NotePlan AI",
       "description": "Provides quick access to updating the Key Terms Target preference.",
       "jsFunction": "changeDefaultTargetKeyTerms",
       "alias": [
         "keyterms"
       ],
+      "hidden":true,
       "arguments": []
     },
     {
-      "name": "Set OpenAI API Key - NoteAI",
+      "name": "Set OpenAI API Key - NotePlan AI",
       "description": "Provides quick access to updating the OpenAI API Key preference.",
       "jsFunction": "setOpenAIAPIKey",
       "alias": [
         "keyterms"
       ],
-      "arguments": []
+      "arguments": [],
+      "hidden":true
     },
     {
-      "name": "Change Summary Paragraphs Target - NoteAI",
+      "name": "Change Summary Paragraphs Target - NotePlan AI",
       "description": "Provides quick access to updating the Summary Paragraphs Target preference.",
       "jsFunction": "changeTargetSummaryParagraphs",
       "alias": [
         "summarytarget"
       ],
+      "hidden":true,
       "arguments": []
     },
     {
-      "name": "Change Preference - NoteAI",
-      "description": "Provides quick access to updating the NoteAI plugin preferences.",
+      "name": "Change Preference - NotePlan AI",
+      "description": "Provides quick access to updating the NotePlan AI plugin preferences.",
       "jsFunction": "updatePluginPreference",
       "hidden": true,
       "alias": [
@@ -308,6 +320,29 @@
       "required": true
     },
     {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "ChatGPT Settings"
+    },
+    {
+      "key": "outputAttribution",
+      "title": "Show Chat GPT Source + Date After answer",
+      "description": "",
+      "type": "bool",
+      "default": true,
+      "required": true,
+      "OTHER:": "choices: [array of options], boxHeight: set size of input box"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Research"
+    },
+    {
       "title": "Default Text Model",
       "key": "defaultModel",
       "type": "string",
@@ -320,7 +355,8 @@
         "text-ada-001",
         "ALL",
         "ALWAYS ASK"
-      ]
+      ],
+      "default": "gpt-3.5-turbo"
     },
     {
       "title": "Research Directory",
@@ -334,14 +370,14 @@
       "key": "bulletsSummaryParagraphs",
       "type": "number",
       "description": "Select the desired number of paragraphs to be generated with each summary.\nLess than 3 is a good starting point.",
-      "default": 2
+      "default": 3
     },
     {
       "title": "Target Key Terms",
       "key": "bulletsAIKeyTerms",
       "type": "number",
       "description": "Select the desired number of key terms to be generated with each summary.\nLess than 5 is a good starting point.",
-      "default": 3
+      "default": 5
     },
     {
       "title": "Show Stats",
@@ -355,7 +391,7 @@
       "key": "max_tokens",
       "type": "number",
       "description": "Maximum amount of tokens any prompt can use.",
-      "default": 100
+      "default": 1000
     },
     {
       "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
