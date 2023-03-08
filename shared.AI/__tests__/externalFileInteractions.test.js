@@ -1,10 +1,10 @@
 /* global jest, describe, test, expect, beforeAll */
-import * as f from '../src/BulletsAI-Main'
+import * as f from '../src/support/externalFileInteractions'
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
 const PLUGIN_NAME = `shared.AI`
-const FILENAME = `BulletsAI-Main`
+const FILENAME = `externalFileInteractions`
 
 beforeAll(() => {
   global.Calendar = Calendar
