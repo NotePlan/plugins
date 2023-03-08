@@ -83,7 +83,9 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
 export function removeFrontMatter(note: CoreNoteFields, includeSeparators: boolean = false): boolean {
   const fmParas = getFrontMatterParagraphs(note, includeSeparators)
   if (!fmParas) return false
+  const fm = getFrontMatterAttributes(note || '')
   note.removeParagraphs(fmParas)
+  if (fm && fm.title) note.prependParagraph(`# ${fm.title}`, 'text')
   return true
 }
 
