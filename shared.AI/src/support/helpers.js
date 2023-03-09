@@ -85,10 +85,9 @@ export async function rerollSingleKeyTerm(promptIn: string, exclusions: string) 
  * @returns {string|null} the model ID chosen
  */
 export async function adjustPreferences() {
-  logDebug(pluginJson, `${noteAISettings}`)
   // let availablePreferences = []
   let prefs = getPreferences()
-
+  const noteAISettings = DataStore.settings
   // const availablePreferences = noteAISettings.getOwnPropertyNames.map((option) => ({ label: option, value: option }))
   // const selectedPreference = await CommandBar.showOptions(availablePreferences, 'Select Preference')
   // const filteredModels = noteAISettings.filter((m) => noteAISettings.hasOwnProperty(m.id))
