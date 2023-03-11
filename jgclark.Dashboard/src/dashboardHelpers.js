@@ -1,10 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 18.2.2023 for v0.2.x by @jgclark
+// Last updated 10.3.2023 for v0.3.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { checkForWantedResources } from '../../np.Shared/src/index.js'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_EVENT_ID } from '@helpers/calendar'
 import {
@@ -24,11 +25,32 @@ import {
 import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
+// Data types
+
+export type SectionDetails = {
+  ID: number,
+  name: string,
+  description: string,
+  FAIconClass: string,
+  sectionTitleClass: string,
+  // FAIconColor: string,
+}
+
+export type SectionItem = {
+  ID: string,
+  content: string,
+  rawContent: string, // not sure if this will be needed eventually
+  filename: string,
+  type: ParagraphType | string,
+}
+
+//-----------------------------------------------------------------
 // Settings
 
 const pluginID = 'jgclark.Dashboard'
 
 export type dashboardConfigType = {
+  ignoreTasksWithPhrase: string,
   includeFolderName: boolean,
   includeTaskContext: boolean,
   _logLevel: string,
@@ -61,6 +83,35 @@ export async function getSettings(): Promise<any> {
 
 //-----------------------------------------------------------------
 
+export async function checkForRequiredSharedFiles(): Promise<void> {
+  // logDebug(pluginJson, `Start of checkForRequiredSharedFiles()`)
+  try {
+    const wantedFileList = pluginJson['plugin.requiredSharedFiles']
+    logDebug(`${pluginID}/init`, `${String(wantedFileList.length)} wanted files: ${String(wantedFileList)}`)
+    const wantedRes = await checkForWantedResources(wantedFileList)
+    if (typeof wantedRes === 'number' && wantedRes >= wantedFileList.length) {
+      // plugin np.Shared is loaded, and is providing all the wanted resources
+      logDebug(`${pluginID}/init`, `plugin np.Shared is loaded 😄 and provides all the ${String(wantedFileList.length)} wanted files`)
+    } else if (typeof wantedRes === 'number' && wantedRes < wantedFileList.length) {
+      // plugin np.Shared is loaded, but isn't providing all the wanted resources
+      logWarn(
+        `${pluginID}/init`,
+        `plugin np.Shared is loaded 😄, but is only providing ${String(wantedRes)} out of ${String(wantedFileList.length)} wanted files, so there might be display issues 😳`,
+      )
+    } else if (wantedRes) {
+      // plugin np.Shared is loaded
+      logDebug(`${pluginID}/init`, `plugin np.Shared is loaded 😄; no further checking done`)
+    } else {
+      // plugin np.Shared is not loaded
+      logWarn(`${pluginID}/init`, `plugin np.Shared isn't loaded 🥵, so icons probably won't display`)
+    }
+  } catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+  }
+}
+
+//-----------------------------------------------------------------
+
 /**
  * Alter the provided paragraph's content to display suitably in HTML to mimic NP native display of markdown (as best we can). Currently this:
  * - simplifies NP event links, and tries to colour them
@@ -75,9 +126,13 @@ export async function getSettings(): Promise<any> {
  * @param {string?} noteLinkStyle: "append" or "all"
  * @returns {string} altered string
  */
-export function makeParaContentToLookLikeNPDisplayInHTML(original: string, noteTitle: string = "", noteLinkStyle: string = "all"): string {
+export function makeParaContentToLookLikeNPDisplayInHTML(original: SectionItem, noteTitle: string = "", noteLinkStyle: string = "all"): string {
   try {
-    let output = original
+    let output = original.content
+
+    if (noteTitle === '(error)') {
+      logError('makeParaCTLLNDIH', `starting with noteTitle '(error)' for '${original.content}'`)
+    }
 
     // TODO: Simplify NP event links
     // of the form `![📅](2023-01-13 18:00:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Contact X about Y:::#63DA38)`
@@ -87,7 +142,6 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string, noteT
       // Matches come in threes (plus full match), so process four at a time
       for (let c = 0; c < captures.length; c = c + 3) {
         const eventLink = captures[c]
-        // const eventID = captures[c + 1]
         const eventTitle = captures[c + 1]
         const eventColor = captures[c + 2]
         output = output.replace(eventLink, `<i class="fa-regular fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
@@ -109,7 +163,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string, noteT
     if (captures) {
       // clo(captures, 'results from hashtag matches:')
       for (const capture of captures) {
-        const match = capture.slice(1)
+        const match = capture.slice()
         output = output.replace(match, `<span class="hashtag">${match}</span>`)
       }
     }
@@ -123,7 +177,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string, noteT
     if (captures) {
       // clo(captures, 'results from mention matches:')
       for (const capture of captures) {
-        const match = capture.slice(1)
+        const match = capture.slice()
         output = output.replace(match, `<span class="attag">${match}</span>`)
       }
     }
@@ -164,22 +218,21 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string, noteT
     if (captures) {
       // clo(captures, 'results from [[notelinks]] match:')
       for (const capture of captures) {
-        const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(capture)
+        const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(original, capture)
         output = output.replace('[[' + capture + ']]', noteTitleWithOpenAction)
       }
     }
 
     // Now include an active link to the note, if 'noteTitle' is given
     if (noteTitle) {
-      // logDebug('makeParaContet...', `- before: ${output}`)
+      // logDebug('makeParaContet...', `- before '${noteLinkStyle}' for <${noteTitle}> ${output}`)
       switch (noteLinkStyle) {
         case 'append': {
-          output += ' ' + makeNoteTitleWithOpenAction(noteTitle)
+          output = addNoteOpenLinkToString(original, output, noteTitle) + ' ' + makeNoteTitleWithOpenAction(original, noteTitle)
           break
         }
         case 'all': {
-          // FIXME: altering order: needs to be <span> then <a> ...
-          output = addNoteOpenLinkToString(output, noteTitle)
+          output = addNoteOpenLinkToString(original, output, noteTitle)
           break
         }
       }
@@ -188,7 +241,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string, noteT
 
     // If there's a ! !! or !!! add priorityN styling
     // (Simpler regex possible as the count comes later)
-    // Note: the wrapping for 'all' needs to go last.
+    // Note: this wrapping needs to go last
     if (output.match(/\B\!+\B/)) {
       // $FlowIgnore[incompatible-use]
       const numExclamations = output.match(/\B\!+\B/)[0].length
@@ -222,10 +275,14 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: string, noteT
  * @param {string} noteTitle
  * @returns {string} transformed output
  */
-export function addNoteOpenLinkToString(displayStr: string, noteTitle: string): string {
+export function addNoteOpenLinkToString(item: SectionItem, displayStr: string, noteTitle: string): string {
   try {
-    const titleEncoded = encodeURIComponent(noteTitle)
-    return `<a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${displayStr}</a>`
+    // Method 1: x-callback
+    // const titleEncoded = encodeURIComponent(noteTitle)
+    // return `<a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${displayStr}</a>`
+
+    // TODO: Method 2: pass request back to plugin
+    return `<a class="" href="" onClick="onClickDashboardItem('${item.ID}','showLineInEditor','${item.filename}','${item.rawContent}')">${displayStr}</a>`
   }
   catch (error) {
     logError('addNoteOpenLinkToString', `${error.message} for input '${displayStr}'`)
@@ -238,21 +295,17 @@ export function addNoteOpenLinkToString(displayStr: string, noteTitle: string): 
  * @param {string} title 
  * @returns {string} output
  */
-export function makeNoteTitleWithOpenAction(title: string): string {
-  const titleEncoded = encodeURIComponent(title)
-  return `<span class="noteTitle sectionItem"><i class="fa-regular fa-file-lines"></i> <a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${title}</a></span>`
-}
+export function makeNoteTitleWithOpenAction(item: SectionItem, title: string): string {
+  try {
+    // Method 1: x-callback
+    // const titleEncoded = encodeURIComponent(title)
+    // return `<span class="noteTitle sectionItem"><i class="fa-regular fa-file-lines"></i> <a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${title}</a></span>`
 
-// TODO: remove these in time --------------------------------------------------
-
-export function logWindows(): void {
-  const outputLines = []
-  for (const win of NotePlan.editors) {
-    outputLines.push(`- ${win.type}: ${win.id} ${win.customId} ${win.filename}`)
+    // TODO: Method 2: pass request back to plugin
+    return `<a class="noteTitle sectionItem" href="" onClick="onClickDashboardItem('${item.ID}','showNoteInEditor','${item.filename}','${item.rawContent}')"><i class="fa-regular fa-file-lines"></i> ${title}</a>`
   }
-  for (const win of NotePlan.htmlWindows) {
-    outputLines.push(`- ${win.type}: ${win.id} ${win.customId} ${win.filename ?? '-'} ${win.title ?? '-'}`)
+  catch (error) {
+    logError('makeNoteTitleWithOpenAction', `${error.message} for input '${title}'`)
+    return '(error)'
   }
-  outputLines.unshift(`${outputLines.length} Windows:`)
-  logInfo('logWindows', outputLines.join('\n'))
 }
