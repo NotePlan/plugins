@@ -139,3 +139,28 @@ export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | f
   }
   return false
 }
+
+/**
+ * If the customID matches an open HTML window, then simply focus it, and return true.
+ * FIXME(EduardMe): currently (b983) not working as expected, as HTML entities appear not to be deleted when they should be.
+ * @param {string} customID
+ * @returns {boolean} true if we have given focus to an existing window
+ */
+export function focusHTMLWindowIfAvailable(customID: string): boolean {
+  if (NotePlan.environment.buildVersion >= 973) {
+    // TODO: until Eduard fixes this, always return false
+    logInfo('focusHTMLWindowIfAvailable', `(Currently no check run as there's an API bug.)`)
+    // const allHTMLWindows = NotePlan.htmlWindows
+    // for (const thisWindow of allHTMLWindows) {
+    //   if (thisWindow.customId === customID) {
+    //     thisWindow.focus()
+    //     logInfo('focusHTMLWindowIfAvailable', `Focused HTML window '${thisWindow.customId}'`)
+    //     return true
+    //   }
+    // }
+    // logInfo('focusHTMLWindowIfAvailable', `No HTML window with '${customID}' is open`)
+  } else {
+    logInfo('focusHTMLWindowIfAvailable', `(Cannot find window Ids as not running v3.8.1 or later)`)
+  }
+  return false
+}
