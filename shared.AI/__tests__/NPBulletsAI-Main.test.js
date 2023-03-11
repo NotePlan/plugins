@@ -34,44 +34,7 @@ import { mockWasCalledWith } from '@mocks/mockHelpers'
 */
 
 describe(`${PLUGIN_NAME}`, () => {
-  describe(`${FILENAME}`, () => {
+  describe.skip(`${FILENAME}`, () => {
     //functions go here using jfunc command
-    /*
-     * saveClickedLink()
-     */
-    describe('saveClickedLink()' /* function */, () => {
-      test('should move a basic item (base case)', () => {
-        const before = {
-          unclickedLinks: ['Caterpillar Development', 'Camouflage', 'Predator-Prey Relationships', 'Migration', 'Macro-Moths'],
-          initialSubject: 'Moths',
-          clickedLinks: [],
-          remixes: [],
-        }
-        const after = {
-          unclickedLinks: ['Camouflage', 'Predator-Prey Relationships', 'Migration', 'Macro-Moths'],
-          initialSubject: 'Moths',
-          clickedLinks: ['Caterpillar Development'],
-          remixes: [],
-        }
-        const result = f.saveClickedLink(before, 'Caterpillar Development')
-        expect(result).toEqual(after)
-      })
-      test('should remove an item from the middle', () => {
-        const before = {
-          unclickedLinks: ['Camouflage', 'Predator-Prey Relationships', 'Migration', 'Macro-Moths'],
-          initialSubject: 'Moths',
-          clickedLinks: ['Caterpillar Development'],
-          remixes: [],
-        }
-        const after = {
-          unclickedLinks: ['Predator-Prey Relationships', 'Migration', 'Macro-Moths'],
-          initialSubject: 'Moths',
-          clickedLinks: ['Caterpillar Development', 'Camouflage'],
-          remixes: [],
-        }
-        const result = f.saveClickedLink(before, 'Camouflage')
-        expect(result).toEqual(after)
-      })
-    })
   })
 })

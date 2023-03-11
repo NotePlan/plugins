@@ -1,5 +1,7 @@
 // @flow
 
+const CHAT_MODEL = 'gpt-3.5-turbo'
+
 import { findParagraph } from '../../helpers/NPParagraph'
 import { createPrettyRunPluginLink } from '../../helpers/general'
 
@@ -11,7 +13,7 @@ const SAVE_RESPONSES = true
 
 import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { makeRequest } from './support/networking'
+import { makeRequest, saveDebugResponse, CHAT_COMPONENT } from './support/networking'
 import { type ChatRequest, type ChatResponse, type ChatMode, type ChatReturn } from './support/AIFlowTypes'
 import { getInput } from '@helpers/userInput'
 import { saveDataFile } from './support/externalFileInteractions'
@@ -26,10 +28,13 @@ import { saveDataFile } from './support/externalFileInteractions'
  * @param {string} model
  * @returns
  */
-const createInitialChatRequest = (model: string): ChatRequest => ({
-  model,
-  messages: [{ role: 'system', content: 'You are a helpful assistant.' }],
-})
+export function createInitialChatRequest(model: string = CHAT_MODEL): ChatRequest {
+  const { initialChatSystemPrompt } = DataStore.settings
+  return {
+    model,
+    messages: [{ role: 'system', content: initialChatSystemPrompt }],
+  }
+}
 
 /**
  * Write Q&A out to editor
@@ -66,8 +71,6 @@ export async function outputResponse(question: string, prompt: string, answer: s
  * @param {string} originalQuestion - the original question, if this is a follow-up
  */
 export async function askNewQuestion(originalQuestion?: string, mode?: ChatMode = 'insert'): Promise<ChatReturn | null> {
-  const chatComponent = 'chat/completions'
-  const model = 'gpt-3.5-turbo'
   const fu = originalQuestion ? 'follow-up ' : ' '
   const prompt = await CommandBar.showInput(`What is your ${fu}question?`, `Ask the AI`)
   if (prompt && prompt.length) {
@@ -76,14 +79,14 @@ export async function askNewQuestion(originalQuestion?: string, mode?: ChatMode 
       const filename: string = getDataFilename(originalQuestion)
       request = DataStore.loadJSON(filename) // load the chat history into the request
     } else {
-      request = createInitialChatRequest(model) // start a new request
+      request = createInitialChatRequest() // start a new request
     }
     request.messages.push({ role: 'user', content: prompt })
-    const chatResponse: ChatResponse = await makeRequest(chatComponent, 'POST', request)
+    const chatResponse: ChatResponse = await makeRequest(CHAT_COMPONENT, 'POST', request)
     clo(chatResponse, `chat response typeof=${typeof chatResponse}`)
     // save responses for fetch mocking
     const question = originalQuestion ?? prompt
-    SAVE_RESPONSES ? DataStore.saveJSON(chatResponse, `chatResponse/${question}.${String(request.messages.length / 2)}.json`) : null
+    saveDebugResponse('chatResponse', question, request, chatResponse)
     if (chatResponse && chatResponse.choices.length) {
       const answer = chatResponse.choices[0].message
       const history = { ...request, messages: [...request.messages, { role: answer.role, content: answer.content }] }
