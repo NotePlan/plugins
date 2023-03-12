@@ -4,7 +4,10 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/shared.AI/READ
 
 ## What's Changed?
 
-<<<<<<< HEAD
+## [0.4.3] - 2023-03-10 (@dwertheimer)
+
+- Added summarize note/selection command and the start of some localizations.
+
 [0.3.2] - 2023-01-07 (@shadowfigure)
 
 #### **Added**
@@ -19,13 +22,11 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/shared.AI/READ
 
 #### **Known Issues**
 
-=======
 [0.3.2] - 2023-01-11 (@dwertheimer)
 
 #### **Fixed**
 - Fixed token count not being saved properly
 - Consolidated all writing and reading of JSONs into one function each for clarity/consistency
->>>>>>> origin/olive-branch
 
 [0.3.1] - 2023-01-06 (@shadowfigure)
 

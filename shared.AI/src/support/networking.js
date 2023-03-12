@@ -1,6 +1,9 @@
+// @flow
+
 import pluginJson from '../../plugin.json'
 import { showMessage } from '@helpers/userInput'
 import { logDebug, logError, clo, JSP } from '@helpers/dev'
+import type { ChatResponse, ChatRequest } from './AIFlowTypes'
 
 /*
  * CONSTANTS
@@ -9,6 +12,7 @@ import { logDebug, logError, clo, JSP } from '@helpers/dev'
 const baseURL = 'https://api.openai.com/v1'
 const modelsComponent = 'models'
 const completionsComponent = 'completions'
+export const CHAT_COMPONENT = 'chat/completions'
 
 const availableModels = ['text-davinci-003', 'text-curie-001', 'text-babbage-001', 'text-ada-001', 'gpt-3.5-turbo']
 
@@ -73,5 +77,26 @@ export const getRequestObj = (method: string = 'GET', body: any = null): any => 
   } else {
     showMessage('Please set your API key in the plugin settings')
     logError(pluginJson, 'No API Key found')
+  }
+}
+
+/****************************************************************************************************************************
+ *                             DEBUGGING
+ ****************************************************************************************************************************/
+
+/**
+ * If the user has enabled saving responses, save the response to the DataStore
+ * @param {string} folderName
+ * @param {string} question - a short version of the request for use as filename
+ * @param {ChatRequest} request
+ * @param {ChatResponse} chatResponse
+ */
+export function saveDebugResponse(folderName: string, question: string, request: ChatRequest, chatResponse: ChatResponse | null) {
+  if (chatResponse) {
+    const { saveResponses } = DataStore.settings
+    if (saveResponses) {
+      DataStore.saveJSON(chatResponse, `${folderName}/${question}.${String(request.messages.length / 2)}.json`)
+      clo(chatResponse, `chatResponse/${question}.${String(request.messages.length / 2)}.json`)
+    }
   }
 }
