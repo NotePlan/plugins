@@ -4,15 +4,21 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "shared.AI",
   "plugin.name": "💡 NotePlan AI",
-  "plugin.version": "0.4.0-beta2",
-  "plugin.lastUpdateInfo": "0.4.0-beta2: Added summarize note/selection command and the start of some localizations. Look at the 'NotePlan AI' plugin preferences at the bottom for localization information.",
+  "plugin.version": "0.4.3",
+  "plugin.lastUpdateInfo": "0.4.3-beta2: Added summarize note/selection command and the start of some localizations. Look at the 'NotePlan AI' plugin preferences at the bottom for localization information.",
   "plugin.description": "GPT integration for research, summarization, etc.",
-  "plugin.author": "A collaborative effort",
+  "plugin.author": "Started by a man of mystery, now maintained by @dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/shared.AI/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/shared.AI/CHANGELOG.md",
   "plugin.commands": [
+    {
+      "note": "================== COMMMANDS ========================"
+    },
+    {
+      "note": "************************************ CHAT ****************************************"
+    },
     {
       "name": "Insert Chat",
       "description": "NotePlan AI: Insert ChatGPT Chat at cursor",
@@ -30,6 +36,27 @@
       "arguments": []
     },
     {
+      "name": "continueChat",
+      "description": "Continue ChatGPT chat",
+      "jsFunction": "continueChat",
+      "hidden": true,
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "note": "************************************ SUMMARIZE ****************************************"
+    },
+    {
+      "name": "Summarize Note/Selection",
+      "description": "Uses ChatGPT/OpenAI to summarize a note/selection",
+      "jsFunction": "summarizeNote",
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "note": "************************************ RESEARCH ****************************************"
+    },
+    {
       "name": "Research - NotePlan AI",
       "description": "Start Clickable Research using NotePlan AI",
       "jsFunction": "createResearchDigSite",
@@ -38,6 +65,43 @@
         "rs"
       ],
       "arguments": []
+    },
+    {
+      "name": "Scroll to Entry",
+      "description": "Scrolls to the selected entry.",
+      "jsFunction": "scrollToEntry",
+      "hidden": true,
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "name": "Retrieve Research Notes",
+      "description": "Retrieves all research notes.",
+      "jsFunction": "retrieveResearchNotes",
+      "hidden": true,
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "name": "Remove Entry",
+      "description": "Remove entry under this heading.",
+      "jsFunction": "removeEntry",
+      "hidden": true,
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "name": "Remix Query",
+      "description": "Regenerate this summary request with additional details",
+      "jsFunction": "remixQuery",
+      "hidden": true,
+      "alias": [
+        "rem"
+      ],
+      "arguments": []
+    },
+    {
+      "note": "************************************ IMAGES ****************************************"
     },
     {
       "name": "Create AI Images",
@@ -50,22 +114,7 @@
       "arguments": []
     },
     {
-      "name": "Test Connection",
-      "description": "GPT-3 @ OpenAI",
-      "jsFunction": "testConnection",
-      "hidden": true,
-      "alias": [],
-      "arguments": [
-        "test"
-      ]
-    },
-    {
-      "name": "continueChat",
-      "description": "Continue ChatGPT chat",
-      "jsFunction": "continueChat",
-      "hidden": true,
-      "alias": [],
-      "arguments": []
+      "note": "************************************ INTRO WIZARD ****************************************"
     },
     {
       "name": "AI Intro Wizard",
@@ -118,28 +167,7 @@
       "arguments": []
     },
     {
-      "name": "Retrieve Research Notes",
-      "description": "Retrieves all research notes.",
-      "jsFunction": "retrieveResearchNotes",
-      "hidden": true,
-      "alias": [],
-      "arguments": []
-    },
-    {
-      "name": "Remove Entry",
-      "description": "Remove entry under this heading.",
-      "jsFunction": "removeEntry",
-      "hidden": true,
-      "alias": [],
-      "arguments": []
-    },
-    {
-      "name": "Scroll to Entry",
-      "description": "Scrolls to the selected entry.",
-      "jsFunction": "scrollToEntry",
-      "hidden": true,
-      "alias": [],
-      "arguments": []
+      "note": "************************************ INTRO WIZARD ****************************************"
     },
     {
       "name": "Show NotePlan AI Commands",
@@ -163,13 +191,6 @@
       "arguments": []
     },
     {
-      "name": "Summarize Note",
-      "description": "Uses ChatGPT @ OpenAI to summarize your current note",
-      "jsFunction": "summarizeNote",
-      "alias": [],
-      "arguments": []
-    },
-    {
       "name": "Note to OpenAI Prompt",
       "description": "Use your note as a prompt for GPT-3.",
       "jsFunction": "noteToPrompt",
@@ -186,16 +207,6 @@
       "hidden": true,
       "alias": [
         "bai"
-      ],
-      "arguments": []
-    },
-    {
-      "name": "Remix Query",
-      "description": "Regenerate this summary request with additional details",
-      "jsFunction": "remixQuery",
-      "hidden": true,
-      "alias": [
-        "rem"
       ],
       "arguments": []
     },
@@ -245,16 +256,6 @@
       "arguments": []
     },
     {
-      "name": "Change Max Token Target - NotePlan AI",
-      "description": "Provides quick access to updating the Max Token Target preference.",
-      "jsFunction": "changeDefaultMaxTokens",
-      "alias": [
-        "tokens"
-      ],
-      "arguments": [],
-      "hidden": true
-    },
-    {
       "name": "Change Key Terms Target - NotePlan AI",
       "description": "Provides quick access to updating the Key Terms Target preference.",
       "jsFunction": "changeDefaultTargetKeyTerms",
@@ -293,9 +294,25 @@
         "aipref"
       ],
       "arguments": []
+    },
+    {
+      "note": "************************************ UNUSED/DEPRECATED ****************************************"
+    },
+    {
+      "name": "Test Connection",
+      "description": "GPT-3 @ OpenAI",
+      "jsFunction": "testConnection",
+      "hidden": true,
+      "alias": [],
+      "arguments": [
+        "test"
+      ]
     }
   ],
   "plugin.settings": [
+    {
+      "note": "================== SETTINGS ========================"
+    },
     {
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
@@ -327,8 +344,8 @@
     },
     {
       "key": "userApprovedSummaryWarning",
-      "title": "Approval to Send Selected Content to OpenAI for Summarizing",
-      "description": "Generating AI summaries requires the app to send your note contents to OpenAI to be summarized. You will need to check this box (or approve the dialog box message) to confirm you are okay with this.",
+      "title": "You Approve the Sending of Selected Content to OpenAI for Summarizing",
+      "description": "Generating an AI summary of a note requires the plugin to send the note you choose to OpenAI to be summarized. You will need to check this box (or approve the dialog box message) to confirm you are okay with this.",
       "type": "bool",
       "default": false,
       "required": true

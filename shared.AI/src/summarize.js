@@ -2,18 +2,18 @@
 
 import { chooseFolder, chooseNote, chooseOption, showMessage, showMessageYesNo } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
+import { findStartOfActivePartOfNote } from '../../helpers/paragraph'
 import { createInitialChatRequest } from './chat'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import type { ChatResponse, ChatRequest } from './support/AIFlowTypes'
 import { makeRequest, saveDebugResponse, CHAT_COMPONENT } from './support/networking'
-import { findStartOfActivePartOfNote } from '../../helpers/paragraph'
+import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 
 /**
  * Ask the user to choose which note they want to summarize
  * @returns {TNote}
  */
 async function chooseNotetoSummarize() {
-  return await chooseNote(true, true, ['@Archive', '@Trash'], 'Choose a note to summarize', true)
+  return await chooseNote(true, true, ['@Archive', '@Trash'], 'Choose a note/content to summarize', true)
 }
 
 /**
@@ -22,8 +22,10 @@ async function chooseNotetoSummarize() {
  * @returns
  */
 async function askAboutSelection(sel) {
+  const selClean = sel.replace(/\n|\t/g, ' ').trim()
+  const truncatedLength = 50
   const options = [
-    { value: 'selection', label: 'Selected Text' },
+    { value: 'selection', label: `Selected Text: '${selClean.substring(0, truncatedLength)}...'` },
     { value: 'all', label: 'The Whole Note' },
   ]
   return await chooseOption('What text would you like to summarize?', options)
@@ -50,7 +52,7 @@ async function userApprovesSummaries() {
   const { userApprovedSummaryWarning } = DataStore.settings
   if (userApprovedSummaryWarning) return true
   const resp = await showMessageYesNo(
-    'Generating AI summaries requires the app to send your note contents to OpenAI to be summarized. Do you understand and still want to proceed?',
+    'Generating an AI summary of a note requires the plugin to send the note you choose to OpenAI to be summarized. Do you understand and still want to proceed?',
   )
   if (resp && resp === 'Yes') {
     const settings = DataStore.settings
@@ -74,17 +76,19 @@ export async function writeOutResponse(chatResponse: ChatResponse, saveWhere: 't
     const textWithHeading = `## ${summaryHeading}\n${summaryText}\n---\n`
     const textWithTitle = `# ${summaryHeading}: ${note.title || ''}\n${summaryText}\n`
     switch (saveWhere) {
-      case 'top':
+      case 'top': {
         const startIndex = findStartOfActivePartOfNote(note)
         note.insertParagraph(textWithHeading, startIndex, 'text')
         break
-      case 'newDoc':
+      }
+      case 'newDoc': {
         const folder = await chooseFolder('Choose a folder to save the summary to:', false, true)
         if (folder) {
           const filename = await DataStore.newNoteWithContent(textWithTitle, folder)
           await await Editor.openNoteByFilename(filename)
         }
         break
+      }
       case 'clipboard':
         Clipboard.string = `#${textWithTitle}` //output two ## at front on clipboard version
         break
@@ -121,7 +125,7 @@ async function getNoteText(note: CoreNoteFields) {
  */
 export function createSummaryRequest(text: string): ChatRequest {
   const { summaryPrompt } = DataStore.settings
-  let request = createInitialChatRequest()
+  const request = createInitialChatRequest()
   const prompt = `${summaryPrompt}:\n${text}}`
   request.messages.push({ role: 'user', content: prompt })
   return request

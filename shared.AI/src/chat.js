@@ -2,21 +2,20 @@
 
 const CHAT_MODEL = 'gpt-3.5-turbo'
 
+import moment from 'moment'
 import { findParagraph } from '../../helpers/NPParagraph'
 import { createPrettyRunPluginLink } from '../../helpers/general'
 
-import { chooseFolder } from '../../helpers/userInput'
+import { chooseFolder , getInput } from '../../helpers/userInput'
 
-import moment from 'moment'
 
 const SAVE_RESPONSES = true
 
 import pluginJson from '../plugin.json'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { makeRequest, saveDebugResponse, CHAT_COMPONENT } from './support/networking'
 import { type ChatRequest, type ChatResponse, type ChatMode, type ChatReturn } from './support/AIFlowTypes'
-import { getInput } from '@helpers/userInput'
 import { saveDataFile } from './support/externalFileInteractions'
+import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 
 /****************************************************************************************************************************
  *

@@ -4,7 +4,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/shared.AI/READ
 
 ## What's Changed?
 
-## [0.4.0-beta2] - 2023-03-10 (@dwertheimer)
+## [0.4.3] - 2023-03-10 (@dwertheimer)
 
 - Added summarize note/selection command and the start of some localizations.
 

@@ -20,6 +20,7 @@ const gitTasks = require('./plugin-release/git-tasks')
 const updateVersionTasks = require('./plugin-release/update-version-tasks')
 const releaseTasks = require('./plugin-release/release-tasks')
 const releasePrompts = require('./plugin-release/release-prompts')
+const scriptGrep = require('./plugin-release/script-grep')
 
 const exec = (cmd, args) => {
   const cp = execa(cmd, args)
@@ -141,7 +142,7 @@ module.exports = {
               return `[Preview] npm run build ${pluginId}`
             }
           },
-          task: () =>
+          task: async () => {
             exec('npm', buildCommand).pipe(
               catchError(async (error) => {
                 console.log(error.stderr)
@@ -150,7 +151,17 @@ module.exports = {
                 process.exit()
                 return throwError(error)
               }),
-            ),
+            )
+            // check to make sure we're not trying to release with fetch mocks still enabled
+            const pluginPath = path.resolve(pluginId)
+            const scriptFilename = path.join(pluginPath, 'script.js')
+            if (await scriptGrep.existsInFile(scriptFilename, 'FetchMock')) {
+              const error = `Fetch Mocks are not allowed in the script.js file during releases. Please remove it and try again.`
+              print.error(error)
+              process.exit()
+              // return throwError(new Error(error))
+            }
+          },
         },
       ])
     }
