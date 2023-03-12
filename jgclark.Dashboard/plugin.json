@@ -8,15 +8,17 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.2.0",
-  "plugin.lastUpdateInfo": "v0.2.0: can now check off tasks by clicking on the task circle or checklist square.\nv0.1.x: first release (read-only view)",
+  "plugin.version": "0.3.0",
+  "plugin.lastUpdateInfo": "v0.3.0: will auto-update if trigger set on daily/weekly notes.\nv0.2.0: can now check off tasks by clicking on the task circle or checklist square.\nv0.1.x: first release (read-only view)",
   "plugin.requiredFiles": [
     "commsSwitchboard.js"
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
+    "light.min.flat4NP.css",
     "regular.min.flat4NP.css",
     "solid.min.flat4NP.css",
+    "fa-light-300.woff2",
     "fa-regular-400.woff2",
     "fa-solid-900.woff2",
     "pluginToHTMLCommsBridge.js"
@@ -24,14 +26,6 @@
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
-    {
-      "name": "log dashboard",
-      "alias": [
-        "ldb"
-      ],
-      "description": "Log Dashboard information",
-      "jsFunction": "logDashboardData"
-    },
     {
       "name": "show dashboard (HTML)",
       "alias": [
@@ -47,23 +41,38 @@
       "hidden": true
     },
     {
-      "name": "test complete item",
+      "name": "test:demo dashboard",
       "alias": [
-        "tci"
+        "ldb"
       ],
-      "description": "Complete Item tests",
-      "jsFunction": "testCompleteItem"
+      "description": "Show Demo Dashboard",
+      "jsFunction": "showDemoDashboardHTML",
+      "hidden": false
+    },
+    {
+      "name": "decideWhetherToUpdateDashboard",
+      "description": "Dashboard: trigger endpoint",
+      "jsFunction": "decideWhetherToUpdateDashboard",
+      "hidden": false
     },
     {
       "name": "Log current windows list",
       "alias": [
-        "tci"
+        "lwl"
       ],
       "description": "Log current windows list",
-      "jsFunction": "logWindows"
+      "jsFunction": "logWindowsList"
     }
   ],
   "plugin.disabledCommands": [
+    {
+      "name": "log dashboard",
+      "alias": [
+        "ldb"
+      ],
+      "description": "Log Dashboard information",
+      "jsFunction": "logDashboardData"
+    },
     {
       "name": "show dashboard (React)",
       "alias": [
@@ -71,12 +80,28 @@
       ],
       "description": "Show Dashboard (React method)",
       "jsFunction": "showDashboardReact"
+    },
+    {
+      "name": "test complete item",
+      "alias": [
+        "tci"
+      ],
+      "description": "Complete Item tests",
+      "jsFunction": "testCompleteItem"
     }
   ],
   "plugin.settings": [
     {
       "type": "heading",
       "title": "Dashboard settings"
+    },
+    {
+      "key": "ignoreTasksWithPhrase",
+      "title": "Ignore items with this phrase",
+      "description": "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control.",
+      "type": "string",
+      "default": "#waiting",
+      "required": false
     },
     {
       "key": "includeTaskContext",

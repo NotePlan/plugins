@@ -1151,9 +1151,9 @@ export function createStaticParagraphsArray(arrayOfObjects: Array<any>, fields: 
 
 /**
  * Check a paragraph object against a plain object of fields to see if they match
- * @param {TParagraph} paragraph
- * @param {any} fieldsObject
- * @param {Array<string>} fields
+ * @param {TParagraph} paragraph object to check
+ * @param {any} fieldsObject object with some fields
+ * @param {Array<string>} fields list of field names to check in fieldsObject
  * @returns {boolean} true if all fields match, false if any do not
  * @author @dwertheimer
  */
@@ -1195,12 +1195,13 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
  * @tests exist
  */
 export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragraphDataToFind: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
-  // clo(parasToLookIn, `findParagraph', parasToLookIn.length=${parasToLookIn.length}`)
+  // clo(parasToLookIn, `findParagraph: parasToLookIn.length=${parasToLookIn.length}`)
   const potentials = parasToLookIn.filter((p) => paragraphMatches(p, paragraphDataToFind, fieldsToMatch))
-  clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the ${potentials.length > 1 ? 'first' : ''}one:`)
   if (potentials?.length === 1) {
+    clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the one:`)
     return potentials[0]
   } else if (potentials.length > 1) {
+    clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the first:`)
     const matchIndexes = potentials.find((p) => p.lineIndex === paragraphDataToFind.lineIndex)
     if (matchIndexes) {
       return matchIndexes
@@ -1216,11 +1217,10 @@ export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragra
     // no matches
     const p = paragraphDataToFind
     logDebug(pluginJson, `findParagraph: found no paragraphs in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind)}`)
-    logDebug(`\n**** Looking for "${p[fieldsToMatch[0]]}" "${p[fieldsToMatch[1]]}" in the following list`)
+    // logDebug(`\n**** Looking for "${p[fieldsToMatch[0]]}" "${p[fieldsToMatch[1]]}" in the following list`)
     //$FlowIgnore
-    parasToLookIn.forEach((p) => logDebug(pluginJson, `\t findParagraph: ${p[fieldsToMatch[0]]} ${p[fieldsToMatch[1]]}`))
+    // parasToLookIn.forEach((p) => logDebug(pluginJson, `\t findParagraph: ${p[fieldsToMatch[0]]} ${p[fieldsToMatch[1]]}`))
   }
-  logDebug(pluginJson, `findParagraph could not find paragraph in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind)}`)
   return null
 }
 
@@ -1254,4 +1254,32 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
     clo(staticObject, `getParagraphFromStaticObject could not open note "${filename}" of type "${noteType}"`)
   }
   return null
+}
+
+/**
+ * Highlight the given Paragraph details in the open editor.
+ * The static object that's passed in must have at least the following TParagraph-type fields populated: filename, rawContent.
+ * Note: Assumes the right note is already open.
+ * @author @jgclark
+ * @param {string} rawContentToFind 
+ * @results {boolean}
+ */
+export function highlightParagraphInEditor(objectToTest: any): boolean {
+  try {
+    const { paragraphs } = Editor
+    const res: TParagraph | null = findParagraph(paragraphs, objectToTest, ['filename', 'rawContent'])
+    if (res) {
+      const lineIndex = res.lineIndex
+      Editor.highlight(res)
+      logDebug(pluginJson, `Found para to highlight at lineIndex ${String(lineIndex)}`)
+      return true
+    } else {
+      logWarn(pluginJson, `Sorry, couldn't find paragraph with rawContent <${objectToTest.rawContent}> to highlight in open note`)
+      return false
+    }
+  }
+  catch (error) {
+    logError(pluginJson, JSP(error))
+    return false
+  }
 }

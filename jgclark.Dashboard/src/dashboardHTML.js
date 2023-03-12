@@ -1,23 +1,31 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 2.2.2023 for v0.1.0 by @jgclark
+// Last updated 10.3.2023 for v0.3.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
-import { getDataForDashboard, type SectionDetails, type SectionItem } from './dataGeneration'
-import { addNoteOpenLinkToString, getSettings, makeNoteTitleWithOpenAction, makeParaContentToLookLikeNPDisplayInHTML } from './dashboardHelpers'
+import { getDataForDashboard } from './dataGeneration'
+import { getDemoDashboardData } from './demoDashboard'
+import {
+  addNoteOpenLinkToString, checkForRequiredSharedFiles, getSettings, makeNoteTitleWithOpenAction, makeParaContentToLookLikeNPDisplayInHTML,
+  type SectionDetails, type SectionItem
+} from './dashboardHelpers'
 import { toLocaleTime, getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
 import { showHTML } from '@helpers/HTMLView'
 import { getNoteType } from '@helpers/note'
-import { isThisMinute } from 'date-fns'
+import { decodeRFC3986URIComponent, encodeRFC3986URIComponent } from '@helpers/stringTransforms'
+import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
+// import { isThisMinute } from 'date-fns'
 
 //-----------------------------------------------------------------
 // HTML resources
+
+const windowCustomID = 'Dashboard'
 
 // Note: this "../np.Shared" path works to the flattened np.Shared structure, but it does *not* work when running the locally-written copy of the HTML output file.
 export const faLinksInHeader = `
@@ -25,6 +33,7 @@ export const faLinksInHeader = `
 <link href="../np.Shared/fontawesome.css" rel="stylesheet">
 <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
 <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+<link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
 `
 
 export const dashboardCSS: string = [
@@ -41,13 +50,14 @@ export const dashboardCSS: string = [
   'table tr { border-top: solid 1px var(--tint-color); border-bottom: solid 1px var(--tint-color); }', // line between rows, not columns
   '.no-borders { border-top: none 0px; border-bottom: none 0px; }', // turn off all borders
   '.sectionName { font-size: 1.0rem; font-weight: 700; }', // make noteTitles bold
+  '.sectionIcon { font-size: 1.0rem; font-weight: 400; }',
   `.sectionItem { font-size: 0.9rem; font-weight: 500;
    padding: 2px 4px; border-bottom: 0px; }`, // reduce vertical spacing and line below
   // `td:first-child .sectionItem { padding-top: 8px 4px; }`, // not working
   '.scheduledDate { color: var(--tint-color); }', // for >dates
-  '.noteTitle { color: var(--tint-color); }', // add "font-weight: 700;" to make noteTitles bold
-  'a, a:visited, a:active { color: inherit; text-decoration: none; }', // all links turn off text color and underlining by default
-  '.externalLink a { text-decoration: underline; }', // turn on underlining
+  'a, a:visited, a:active { color: inherit; text-decoration: none; cursor: pointer; }', // all links turn off text color and underlining by default
+  'a:hover { text-decoration: underline; text-decoration-color: var(--tint-color); }', // show note links when mouse-over-ing them
+  '.externalLink a, a:hover { text-decoration: underline; cursor: pointer; }', // turn on underlining
   `.event-link {
 		font-weight: 500;
 		border-color: var(--bg-alt-color);
@@ -56,6 +66,12 @@ export const dashboardCSS: string = [
     border-style: solid;
 		padding: 0px 3px;
 	}`,
+  '.noteTitle { color: var(--tint-color) !important; }', // add "font-weight: 700;" to make noteTitles bold
+  // allow multi-column flow: set max columns and min width, and some other bits and pieces
+  '.multi-cols { column-count: 3; column-width: 28rem; column-gap: 1rem; column-rule: 1px dotted var(--tint-color); }',
+  // Class to fade out an item, from https://stackoverflow.com/a/20910008
+  `.fadeOutAndHide { visibility: hidden; opacity: 0; transition: visibility 0s 2s, opacity 2s linear; }`,
+  // `.strikeoutTask { text-decoration: line-through; text-decoration-color: var(--tint-color) }`,
   // Some headings specified from measuring the colour of NP sidebar elements
   '.sidebarDaily { font-size: 1.0rem; color: #d0703c; }',
   '.sidebarWeekly { font-size: 1.0rem; color: #be23b6; }',
@@ -65,22 +81,6 @@ export const dashboardCSS: string = [
   '#error { background-color: red; padding-left: 10px; }',
   // TODO: Think about proper HTML checkbox and styling
 ].join('\n\t')
-
-const startReviewsCommandCall = `(function() {
-    DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
-  })()`
-
-// function makeCommandCall(commandCallJSON: string): string {
-//   return `<script>
-//   const callCommand = () => {
-//     window.webkit.messageHandlers.jsBridge.postMessage({
-//       code: ${commandCallJSON},
-//       onHandle: "onHandleUpdateLabel", // TODO: remove in time
-//       id: "1"
-//     });
-//   };
-// </script>`
-// }
 
 const commsBridge = `
 <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
@@ -101,18 +101,37 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
 `
 
 /**
+ * Show the dashboard HTML window, _but with some pre-configured demo data_.
+ */
+export async function showDemoDashboardHTML(): Promise<void> {
+  await showDashboardHTML(true, true)
+}
+
+/**
  * Show the generated dashboard data using native HTML.
  * @author @jgclark
- *
- * Note: this uses x-callbacks to make actions happen.
- * TODO: ideally switch to using internal links when I can get this to work:
- * - see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
- * - e.g. const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
+ * @param {boolean?} forceRefresh - if true, refresh the window even if the window is already open
+ * @param {boolean?} showDemoData - if true, show the demo data, otherwise show the real data
  */
-export async function showDashboardHTML(): Promise<void> {
+export async function showDashboardHTML(forceRefresh: boolean = false, demoMode: boolean = false): Promise<void> {
   try {
+
+    // First try just focussing the existing dashboard window if it's open
+    if (!forceRefresh && focusHTMLWindowIfAvailable(windowCustomID)) {
+      return
+    }
+
     const config = await getSettings()
-    const [sections, sectionItems] = await getDataForDashboard()
+    await checkForRequiredSharedFiles()
+    let sections: Array<SectionDetails> = []
+    let sectionItems: Array<SectionItem> = []
+
+    if (demoMode) {
+      [sections, sectionItems] = getDemoDashboardData()
+    } else {
+      [sections, sectionItems] = await getDataForDashboard()
+    }
+
     logDebug('showDashboardHTML', `Starting with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
 
     const outputArray: Array<string> = []
@@ -125,21 +144,37 @@ export async function showDashboardHTML(): Promise<void> {
     let totalOpenItems = 0
     let totalDoneItems: number
     outputArray.push(`\n<table style="table-layout: auto; word-wrap: break-word;">`)
+    let sectionNumber = 0
     for (const section of sections) {
       const items = sectionItems.filter((i) => i.ID.startsWith(String(section.ID)))
-      if (items.length > 0) {
+      // if (items.length > 0) {
         // Prepare col 1 (section icon)
         outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
 
         // Prepare col 2 (section title)
-        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 12rem;">${section.name}</span><br />${section.description}</td>`)
+      // First prepend a sectionNCount ID and populate it
+      const sectionCountID = `section${String(section.ID)}Count`
+      const sectionCountPrefix = `<span id="${sectionCountID}">${String(items.length)}</span>`
+      if (items.length > 0) {
+        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 12rem;">${section.name}</span><br />${sectionCountPrefix} ${section.description}</td>`)
+      } else {
+        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 12rem;">${section.name}</span>`)
+      }
 
         // Start col 3: table of items in this section
         outputArray.push(`  <td>`)
-        outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;">`)
+      outputArray.push(`  <div class="multi-cols">`)
+      outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;">`)
+
+      // If there are no items in section 1, then add a congratulatory message
+      if (sectionNumber === 0 && items.length === 0) {
+        items.push({ ID: '0-0C', type: 'congrats', content: `Nothing to do: take a break! <i class="fa-regular fa-face-party fa-face-sleeping"></i>`, rawContent: ``, filename: '' })
+      }
         for (const item of items) {
+          let encodedFilename = encodeRFC3986URIComponent(item.filename)
+          let encodedRawContent = encodeRFC3986URIComponent(item.rawContent)
           let reviewNoteCount = 0 // count of note-review items
-          outputArray.push(`    <tr class="no-borders" id=${item.ID}>`)
+          outputArray.push(`    <tr class="no-borders" id="${item.ID}">`)
 
           // Long-winded way to get note title, as we don't have TNote, but do have note's filename
           const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString((item.filename).split(".")[0]))
@@ -148,7 +183,7 @@ export async function showDashboardHTML(): Promise<void> {
             // Using a nested table for cols 3/4 to simplify logic and CSS
             case 'open': {
               outputArray.push(
-                `    <td class="todo sectionItem no-borders" onClick="onClickDashboardCell('${item.ID}','${item.type}','${item.filename}','${item.rawContent}')"><i class="fa-regular fa-circle"></i></td>`,
+                `    <td id="${item.ID}A" class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`,
               )
               // Output type A: append clickable note link
               // let cell3 = `   <td class="sectionItem">${paraContent}`
@@ -168,12 +203,12 @@ export async function showDashboardHTML(): Promise<void> {
               let paraContent = ''
               if (config.includeTaskContext) {
                 if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
-                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content, itemNoteTitle, 'all')
+                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
                 } else {
-                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content, itemNoteTitle, 'append')
+                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
                 }
               } else {
-                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
               }
               const cell3 = `    <td class="sectionItem">${paraContent}</td>`
               outputArray.push(cell3)
@@ -181,7 +216,7 @@ export async function showDashboardHTML(): Promise<void> {
               break
             }
             case 'checklist': {
-              outputArray.push(`    <td class="todo sectionItem no-borders" onClick="onClickDashboardCell('${item.ID}','${item.type}','${item.filename}','${item.rawContent}')"><i class="fa-regular fa-square"></i></td>`)
+              outputArray.push(`    <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
               // const paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
               // Output type A: append clickable note link
               // let cell3 = `   <td class="sectionItem">${paraContent}`
@@ -201,37 +236,41 @@ export async function showDashboardHTML(): Promise<void> {
               let paraContent = ''
               if (config.includeTaskContext) {
                 if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
-                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content, itemNoteTitle, 'all')
+                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
                 } else {
-                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content, itemNoteTitle, 'append')
+                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
                 }
               } else {
-                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
               }
               const cell3 = `    <td class="sectionItem">${paraContent}</td>`
               outputArray.push(cell3)
               totalOpenItems++
               break
             }
+            case 'congrats': {
+              const cell3 = `    <td class="checked sectionItem noborders"><i class="fa-regular fa-circle-check"></i></td>`
+              outputArray.push(cell3)
+              // TODO: why aren't icons appearing here?
+              const cell4 = `    <td class="sectionItem noborders">${item.content} </td>\n    </tr>`
+              outputArray.push(cell4)
+              break
+            }
             case 'review': {
               if (itemNoteTitle) {
                 // do col 3 icon
-                outputArray.push(`     <td class="todo sectionItem no-borders" onClick="onClickDashboardCell('${item.ID}','review','${item.filename}','')"><i class="fa-solid fa-calendar-check"></i></td>`) 
+                outputArray.push(`     <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`) 
 
                 // do col 4
-                // Make [[notelinks]] via x-callbacks
-                const folderNamePart = config.includeFolderName ? getFolderFromFilename(item.filename) + ' / ' : ''
-                const titlePart = itemNoteTitle // displayTitle(thisNote)
-                const titlePartEncoded = encodeURIComponent(titlePart)
+                const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
 
-                // TODO: Use createPrettyOpenNoteLink() here?
-                const noteTitleWithOpenAction = `${folderNamePart}<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${titlePartEncoded}">${titlePart}</a></span>`
-                let cell4 = `    <td class="sectionItem"><span class="">${noteTitleWithOpenAction}</span>`
-                // // if (reviewNoteCount === 0) { // FIXME: on first item only
-                // // TODO: make specific to that note
-                // const startReviewButton = `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-calendar-check"></i> Start Reviews</a></span>`
-                // cell4 += ` ${startReviewButton}`
-                // // }
+                // Method A: [[notelinks]] via x-callbacks
+                // const itemNoteTitleEncoded = encodeURIComponent(itemNoteTitle)
+                // const noteTitleWithOpenAction = `${folderNamePart}<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${itemNoteTitleEncoded}">${itemNoteTitle}</a></span>`
+                // let cell4 = `    <td class="sectionItem"><span class="">${noteTitleWithOpenAction}</span>`
+                // Method B: internal calls
+                let cell4 = `    <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditor','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
+                // TODO: make specific to that note
                 cell4 += `</td>\n    </tr>`
                 outputArray.push(cell4)
                 totalOpenItems++
@@ -243,24 +282,20 @@ export async function showDashboardHTML(): Promise<void> {
             }
           }
         }
-        outputArray.push(`   </table>`)
-        outputArray.push(`  </td>\n </tr>`)
-      } else {
-        // If this is the 'Done' section that recover the count
-        if (section.name === 'Done') {
-          totalDoneItems = Number(section.description)
-        }
-      }
+      outputArray.push(`   </table>`)
+      outputArray.push(`  </div>`)
+      outputArray.push(`  </td>\n </tr>`)
+      // }
     }
     outputArray.push(`</table>`)
 
     // write lines before first table
-    // Write time and refresh info TODO: as a fixed block at top R of window
+    // Write time and refresh info
     const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard (HTML)', '')
     const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
 
     const summaryStatStr =
-      totalDoneItems && !isNaN(totalDoneItems) ? `<b>${String(totalOpenItems)} items</b> open; ${String(totalDoneItems)} closed` : `<b>${String(totalOpenItems)} items</b> open`
+      totalDoneItems && !isNaN(totalDoneItems) ? `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; <span id="totalDoneCount">${String(totalDoneItems)}</span> closed` : `<b>${String(totalOpenItems)} open items</b>`
     outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}</p>`)
     outputArray.unshift(`<p id="error"></p>`)
 
@@ -276,10 +311,11 @@ export async function showDashboardHTML(): Promise<void> {
       dashboardCSS,
       false, // = not modal window
       '', // no extra JS
-      commsBridge /* makeCommandCall(startReviewsCommandCall), */,
+      commsBridge,
       filenameHTMLCopy,
-      780,
+      740,
       800,
+      windowCustomID
     ) // set width; max height
     logDebug(`makeDashboard`, `written to HTML window`)
   } catch (error) {
