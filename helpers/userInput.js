@@ -128,7 +128,8 @@ export async function showMessage(message: string, confirmButton: string = 'OK',
 }
 
 /**
- * Show a simple yes/no (could be OK/Cancel, etc.) dialog using CommandBar.
+ * Show a simple Yes/No (could be OK/Cancel, etc.) dialog using CommandBar.
+ * Returns the text of the chosen option (by default 'Yes' or 'No')
  * Will now use newer native dialog if available (from 3.3.2), which adds a title.
  * Note: There's a copy in helpers/NPParagaph.js to avoid a circular dependency
  * @author @jgclark, updating @nmn
@@ -137,7 +138,7 @@ export async function showMessage(message: string, confirmButton: string = 'OK',
  * @param {?Array<string>} choicesArray - an array of the choices to give (default: ['Yes', 'No'])
  * @param {?string} dialogTitle - title for the dialog (default: empty)
  * @param {?boolean} useCommandBar - force use NP CommandBar instead of native prompt (default: false)
- * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided
+ * @returns {string} - returns the user's choice - the actual *text* choice from the input array provided (by default 'Yes' or 'No')
  */
 export async function showMessageYesNo(message: string, choicesArray: Array<string> = ['Yes', 'No'], dialogTitle: string = '', useCommandBar: boolean = false): Promise<string> {
   let answer: number
@@ -562,9 +563,17 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
  * @param {boolean} includeProjectNotes
  * @param {boolean} includeCalendarNotes
  * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
+ * @param {string} promptText - text to display in the CommandBar
+ * @param {boolean} currentNoteFirst - add currently open note to the front of the list
  * @returns {TNote | null} note
  */
-export async function chooseNote(includeProjectNotes: boolean = true, includeCalendarNotes: boolean = false, foldersToIgnore: Array<string> = []): Promise<TNote | null> {
+export async function chooseNote(
+  includeProjectNotes: boolean = true,
+  includeCalendarNotes?: boolean = false,
+  foldersToIgnore?: Array<string> = [],
+  promptText?: string = 'Choose a note',
+  currentNoteFirst?: boolean = false,
+): Promise<TNote | null> {
   let noteList = []
   const projectNotes = DataStore.projectNotes
   const calendarNotes = DataStore.calendarNotes
@@ -574,7 +583,7 @@ export async function chooseNote(includeProjectNotes: boolean = true, includeCal
   if (includeCalendarNotes) {
     noteList = noteList.concat(calendarNotes)
   }
-  const noteListFiltered = noteList.filter((note) => {
+  let noteListFiltered = noteList.filter((note) => {
     // filter out notes that are in folders to ignore
     let isInIgnoredFolder = false
     foldersToIgnore.forEach((folder) => {
@@ -585,9 +594,13 @@ export async function chooseNote(includeProjectNotes: boolean = true, includeCal
     isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
     return !isInIgnoredFolder
   })
-  const opts = noteListFiltered.map((note) => {
+  let opts = noteListFiltered.map((note) => {
     return note.title && note.title !== '' ? note.title : note.filename
   })
-  const { index } = await CommandBar.showOptions(opts, 'Choose note')
+  if (currentNoteFirst) {
+    noteListFiltered.unshift(Editor.note)
+    opts.unshift(`[Current note: "${Editor.title || ''}"]`)
+  }
+  const { index } = await CommandBar.showOptions(opts, promptText)
   return noteListFiltered[index] ?? null
 }

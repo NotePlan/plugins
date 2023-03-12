@@ -4,30 +4,57 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "shared.AI",
   "plugin.name": "💡 NotePlan AI",
-  "plugin.version": "0.4.0-beta1",
-  "plugin.lastUpdateInfo": "Added quick access functions for most preferences..",
+  "plugin.version": "0.4.3",
+  "plugin.lastUpdateInfo": "0.4.3-beta2: Added summarize note/selection command and the start of some localizations. Look at the 'NotePlan AI' plugin preferences at the bottom for localization information.",
   "plugin.description": "GPT integration for research, summarization, etc.",
-  "plugin.author": "A collaborative effort",
+  "plugin.author": "Started by a man of mystery, now maintained by @dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/shared.AI/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/shared.AI/CHANGELOG.md",
   "plugin.commands": [
     {
+      "note": "================== COMMMANDS ========================"
+    },
+    {
+      "note": "************************************ CHAT ****************************************"
+    },
+    {
       "name": "Insert Chat",
       "description": "NotePlan AI: Insert ChatGPT Chat at cursor",
       "jsFunction": "insertChat",
-      "alias": [
-      ],
-      "arguments": ["Prompt to ask ChatGPT"]
+      "alias": [],
+      "arguments": [
+        "Prompt to ask ChatGPT"
+      ]
     },
     {
       "name": "Create Chat",
       "description": "NotePlan AI: Create ChatGPT in New Document",
       "jsFunction": "createChat",
-      "alias": [
-      ],
+      "alias": [],
       "arguments": []
+    },
+    {
+      "name": "continueChat",
+      "description": "Continue ChatGPT chat",
+      "jsFunction": "continueChat",
+      "hidden": true,
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "note": "************************************ SUMMARIZE ****************************************"
+    },
+    {
+      "name": "Summarize Note/Selection",
+      "description": "Uses ChatGPT/OpenAI to summarize a note/selection",
+      "jsFunction": "summarizeNote",
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "note": "************************************ RESEARCH ****************************************"
     },
     {
       "name": "Research - NotePlan AI",
@@ -40,30 +67,54 @@
       "arguments": []
     },
     {
+      "name": "Scroll to Entry",
+      "description": "Scrolls to the selected entry.",
+      "jsFunction": "scrollToEntry",
+      "hidden": true,
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "name": "Retrieve Research Notes",
+      "description": "Retrieves all research notes.",
+      "jsFunction": "retrieveResearchNotes",
+      "hidden": true,
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "name": "Remove Entry",
+      "description": "Remove entry under this heading.",
+      "jsFunction": "removeEntry",
+      "hidden": true,
+      "alias": [],
+      "arguments": []
+    },
+    {
+      "name": "Remix Query",
+      "description": "Regenerate this summary request with additional details",
+      "jsFunction": "remixQuery",
+      "hidden": true,
+      "alias": [
+        "rem"
+      ],
+      "arguments": []
+    },
+    {
+      "note": "************************************ IMAGES ****************************************"
+    },
+    {
       "name": "Create AI Images",
       "description": "NotePlan AI: Generate images with DALL-E @ OpenAI",
       "jsFunction": "createAIImages",
       "hidden": false,
-      "alias": ["NotePlan AI Images"],
+      "alias": [
+        "NotePlan AI Images"
+      ],
       "arguments": []
     },
     {
-      "name": "Test Connection",
-      "description": "GPT-3 @ OpenAI",
-      "jsFunction": "testConnection",
-      "hidden": true,
-      "alias": [
-      ],
-      "arguments": ["test"]
-    },
-    {
-      "name": "continueChat",
-      "description": "Continue ChatGPT chat",
-      "jsFunction": "continueChat",
-      "hidden": true,
-      "alias": [
-      ],
-      "arguments": []
+      "note": "************************************ INTRO WIZARD ****************************************"
     },
     {
       "name": "AI Intro Wizard",
@@ -94,7 +145,7 @@
         "helpWizard"
       ],
       "arguments": []
-    },    
+    },
     {
       "name": "Explore - OpenAI",
       "description": "Explore new territory with this subject.",
@@ -116,34 +167,7 @@
       "arguments": []
     },
     {
-      "name": "Retrieve Research Notes",
-      "description": "Retrieves all research notes.",
-      "jsFunction": "retrieveResearchNotes",
-      "hidden": true,
-      "alias": [
-        
-      ],
-      "arguments": []
-    },  
-    {
-      "name": "Remove Entry",
-      "description": "Remove entry under this heading.",
-      "jsFunction": "removeEntry",
-      "hidden": true,
-      "alias": [
-        
-      ],
-      "arguments": []
-    },  
-    {
-      "name": "Scroll to Entry",
-      "description": "Scrolls to the selected entry.",
-      "jsFunction": "scrollToEntry",
-      "hidden": true,
-      "alias": [
-        
-      ],
-      "arguments": []
+      "note": "************************************ INTRO WIZARD ****************************************"
     },
     {
       "name": "Show NotePlan AI Commands",
@@ -154,7 +178,7 @@
       ],
       "hidden": true,
       "arguments": []
-    },  
+    },
     {
       "name": "Move Note to Research Collection",
       "description": "Move the current note to Research collection.",
@@ -163,15 +187,6 @@
       "alias": [
         "mvr",
         "movere"
-      ],
-      "arguments": []
-    },
-    {
-      "name": "Summarize Note",
-      "description": "Uses GPT-3 @ OpenAI to write a summary.",
-      "jsFunction": "summarizeNote",
-      "hidden": true,
-      "alias": [
       ],
       "arguments": []
     },
@@ -196,22 +211,11 @@
       "arguments": []
     },
     {
-      "name": "Remix Query",
-      "description": "Regenerate this summary request with additional details",
-      "jsFunction": "remixQuery",
-      "hidden": true,
-      "alias": [
-        "rem"
-      ],
-      "arguments": []
-    },
-    {
       "name": "Create Research Request - Deprecated",
       "description": "Research with GPT-3 @ OpenAI - Deprecated",
       "jsFunction": "createResearchRequest",
       "hidden": true,
-      "alias": [
-      ],
+      "alias": [],
       "arguments": []
     },
     {
@@ -240,8 +244,7 @@
       "name": "Research from Selection",
       "description": "Continue research using the selected text.",
       "jsFunction": "researchFromSelection",
-      "alias": [
-      ],
+      "alias": [],
       "arguments": []
     },
     {
@@ -249,20 +252,8 @@
       "description": "Updates README - DEV ONLY",
       "jsFunction": "updateREADME",
       "hidden": true,
-      "alias": [
-
-      ],
+      "alias": [],
       "arguments": []
-    },
-    {
-      "name": "Change Max Token Target - NotePlan AI",
-      "description": "Provides quick access to updating the Max Token Target preference.",
-      "jsFunction": "changeDefaultMaxTokens",
-      "alias": [
-        "tokens"
-      ],
-      "arguments": [],
-      "hidden":true
     },
     {
       "name": "Change Key Terms Target - NotePlan AI",
@@ -271,7 +262,7 @@
       "alias": [
         "keyterms"
       ],
-      "hidden":true,
+      "hidden": true,
       "arguments": []
     },
     {
@@ -282,7 +273,7 @@
         "keyterms"
       ],
       "arguments": [],
-      "hidden":true
+      "hidden": true
     },
     {
       "name": "Change Summary Paragraphs Target - NotePlan AI",
@@ -291,7 +282,7 @@
       "alias": [
         "summarytarget"
       ],
-      "hidden":true,
+      "hidden": true,
       "arguments": []
     },
     {
@@ -303,9 +294,25 @@
         "aipref"
       ],
       "arguments": []
+    },
+    {
+      "note": "************************************ UNUSED/DEPRECATED ****************************************"
+    },
+    {
+      "name": "Test Connection",
+      "description": "GPT-3 @ OpenAI",
+      "jsFunction": "testConnection",
+      "hidden": true,
+      "alias": [],
+      "arguments": [
+        "test"
+      ]
     }
   ],
   "plugin.settings": [
+    {
+      "note": "================== SETTINGS ========================"
+    },
     {
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
@@ -334,6 +341,14 @@
       "default": true,
       "required": true,
       "OTHER:": "choices: [array of options], boxHeight: set size of input box"
+    },
+    {
+      "key": "userApprovedSummaryWarning",
+      "title": "You Approve the Sending of Selected Content to OpenAI for Summarizing",
+      "description": "Generating an AI summary of a note requires the plugin to send the note you choose to OpenAI to be summarized. You will need to check this box (or approve the dialog box message) to confirm you are okay with this.",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
       "type": "separator"
@@ -399,6 +414,47 @@
     },
     {
       "type": "heading",
+      "title": "Localization/Translation - translate each of these to your language of choice (if not English)."
+    },
+    {
+      "key": "initialChatSystemPrompt",
+      "title": "Initial Chat System Prompt",
+      "description": "This is the (required) text that is used to tell GPT how to respond to a basic chat request. The default text is: 'You are a helpful assistant. Please answer in English.'",
+      "type": "string",
+      "default": "You are a helpful assistant. Please answer in English.",
+      "required": true
+    },
+    {
+      "key": "summaryPrompt",
+      "title": "Summarize Note Prompt Text",
+      "description": "This is the text that will be used to instruct GPT to summarize your note. Translate this to your language if you want to use a different language. The default in English is:\n'Create a summary of the following text' (no punctuation at the end)",
+      "type": "string",
+      "default": "Create a summary of the following text",
+      "required": true
+    },
+    {
+      "key": "summaryHeading",
+      "title": "Summary Heading Text",
+      "description": "When text is summarized, this is the text that will be used as the heading for the summary. Translate this to your language if you want to use a different language. The default in English is:\n'Summary'",
+      "type": "string",
+      "default": "Summary",
+      "required": true
+    },
+    {
+      "key": "researchPrompt",
+      "title": "Research Prompt Text",
+      "description": "This is the text that is used to tell GPT what type of research to do and precisely how to format the response. That text will be replaced by the plugin when sending your request. Translate this to your language if you want to use a language other than English. Leave any text in {{brackets}} as-is and translate around it. The default prompt English is:\n'Please provide a summary of {{subject}} in the following format:\nList the top {{n}} key concepts associated with the subject and write a summary of the concept as it pertains to the subject in the following Markdown format.\nEach concept should include a Wikipedia link.\nThe further reading links should be from Goodreads.com.\nThe first heading should be '# ${{subject}}'.\nThe second heading should be '## Key Concepts'.\nFor each Key Concept, the heading should be '### [key concept in brackets](Wikipedia link)' followed by a brief summary.\nThe fourth heading should be '#### Further Reading' followed by a Goodreads.com link for a recommended book on the topic.",
+      "type": "string",
+      "default": "Please provide a summary of {{subject}} in the following format:\nList the top {{n}} key concepts associated with the subject and write a summary of the concept as it pertains to the subject in the following Markdown format.\nEach concept should include a Wikipedia link.\nThe further reading links should be from Goodreads.com.\nThe first heading should be '# ${{subject}}'.\nThe second heading should be '## Key Concepts'.\nFor each Key Concept, the heading should be '### [key concept in brackets](Wikipedia link)' followed by a brief summary.\nThe fourth heading should be '#### Further Reading' followed by a Goodreads.com link for a recommended book on the topic.",
+      "required": true,
+      "boxHeight": 200
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
       "title": "Debugging"
     },
     {
@@ -414,6 +470,14 @@
       ],
       "description": "Set how much logging output will be displayed when executing AI commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
       "default": "INFO",
+      "required": true
+    },
+    {
+      "key": "saveResponses",
+      "title": "Save Responses for Debugging",
+      "description": "Store JSON responses from OpenAI in a separate file for debugging",
+      "type": "bool",
+      "default": false,
       "required": true
     }
   ]

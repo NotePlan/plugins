@@ -1,16 +1,30 @@
 # 🎛 Dashboard plugin
-This plugin provides a 'dashboard' window that in one place shows a compact list of just the:
+This plugin provides a **dashboard window** that in one place shows a compact list of just the:
 - open tasks and checklists from today's note
 - scheduled open tasks and checklists from other notes to today
 - open tasks and checklists from this week's note
 - scheduled open tasks and checklists from other notes to this week
 - next few notes to review (if you use the "Projects and Reviews" plugin)
 
-<!-- ??? picture needed -->
+To open this run the **/show dashboard** command.
 
-Note: _It provides this in a read-only view that doesn't use NotePlan's normal editor, but a more flexible HTML-based display that mimics your current NotePlan theme._
+![](dashboard-v0.2@2x.jpg)
 
-Note: In this first release, you cannot "check off" or "complete" tasks or checklist items: the usual symbols are just to be consistent with how it looks in the NotePlan editor.
+All tasks and checklists can be marked as completed by clicking in its usual open circle or square. The item is then completed in NotePlan, and removed from view in this list.
+
+Note: _It provides this in a view that doesn't use NotePlan's normal editor, but a more flexible HTML-based display that mimics your current NotePlan theme._
+
+If already open, the dashboard window will now automatically update when a change is made in the relevant calendar note(s). This requires [adding to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly note(s):
+
+```yaml
+---
+triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDasboard
+---
+```
+
+Other notes:
+- when the window is wide enough, it will switch to a multi-column display
+- it de-dupes items that would appear twice in a list where the lines are sync'd together.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

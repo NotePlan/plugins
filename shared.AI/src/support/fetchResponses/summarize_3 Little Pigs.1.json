@@ -1,0 +1,21 @@
+{
+  "id" : "chatcmpl-6sfm6wZBAWFAzMNEmWnpaoSibMxvd",
+  "object" : "chat.completion",
+  "created" : 1678488314,
+  "model" : "gpt-3.5-turbo-0301",
+  "usage" : {
+    "total_tokens" : 1595,
+    "completion_tokens" : 198,
+    "prompt_tokens" : 1397
+  },
+  "choices" : [
+    {
+      "message" : {
+        "content" : "The story of the Three Little Pigs follows three siblings who leave home to explore the world, and upon their return during autumn, they realize they need a house to protect them from the upcoming winter. The first pig builds a straw hut while the second pig builds a wooden house. The third pig, who is the wisest, builds a brick house that is sturdy and can withstand the elements. When a wolf approaches, he demolishes the houses made of straw and wood. However, he is unable to bring down the brick house, and the pigs are safe. The wolf tries to climb down the chimney of the brick house, but the pigs light a fire that leads to the wolf getting his tail burnt, and he runs away. After that, the three little pigs go back to their work, and they complete their homes with brick, ensuring safety from the wolf. The story ends with the three brothers singing and dancing, relieved that the wicked wolf will never bother them again.",
+        "role" : "assistant"
+      },
+      "finish_reason" : "stop",
+      "index" : 0
+    }
+  ]
+}

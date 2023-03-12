@@ -1,15 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 17.2.2023 for v0.1.3 by @jgclark
+// Last updated 1.3.2023 for v0.3.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import fm from 'front-matter' // For reviewList functionality
-import { getSettings } from './dashboardHelpers'
+import {
+  getSettings,
+  type SectionDetails, type SectionItem
+} from './dashboardHelpers'
 import { toLocaleDateString, getDateStringFromCalendarFilename } from '@helpers/dateTime'
-import { clo, logDebug, logError, logInfo } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { getReferencedParagraphs } from '@helpers/NPnote'
@@ -21,31 +24,10 @@ import {
   type GroupedTasks,
   type SortableParagraphSubset
 } from '@helpers/sorting'
+import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 
 //-----------------------------------------------------------------
-// Data types
-
-export type SectionDetails = {
-  ID: number,
-  name: string,
-  description: string,
-  FAIconClass: string,
-  sectionTitleClass: string,
-  // FAIconColor: string,
-}
-
-export type SectionItem = {
-  ID: string,
-  content: string,
-  rawContent: string, // not sure if this will be needed eventually
-  filename: string,
-  type: ParagraphType | string,
-}
-
-//-----------------------------------------------------------------
-// Settings
-
-// const pluginID = 'jgclark.Dashboard' // is this needed?
+// Constants
 
 const reviewPluginID = 'jgclark.Reviews'
 const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
@@ -69,8 +51,14 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     if (currentDailyNote) {
       const thisFilename = currentDailyNote.filename
       logDebug('getDataForDashboard', `Processing ${thisFilename} which has ${String(currentDailyNote.paragraphs.length)} paras`)
-      // Need to filter out non-task types for following function
+      // Need to filter out non-open task types for following function
       let openParas = currentDailyNote.paragraphs.filter((p) => ["open", "checklist"].includes(p.type))
+      // Filter out anything from 'ignoreTasksWithPhrase' setting
+      if (config.ignoreTasksWithPhrase) {
+        logDebug('getDataForDashboard', `Before 'ignore' filter: ${openParas.length} paras`)
+        openParas = openParas.filter((p) => !p.content.includes(config.ignoreTasksWithPhrase))
+        logDebug('getDataForDashboard', `After 'ignore' filter: ${openParas.length} paras`)
+      }
       // Temporarily extend TParagraph with the task's priority
       openParas = addPriorityToParagraphs(openParas)
       // sort the list only by priority, otherwise leaving order the same
@@ -84,19 +72,22 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         itemCount++
       })
+      // clo(sortedOpenParas, "sortedOpenParas")
       // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
-      sections.push({ ID: sectionCount, name: 'Today', description: `${openParas.length} from daily note for ${toLocaleDateString(today)}`, FAIconClass: "fa-regular fa-calendar-star", sectionTitleClass: "sidebarDaily" })
-      // sections.push({ ID: sectionCount, name: 'Today', description: `${openParas.length} from daily note for ${toLocaleDateString(today)}`, FAIconClass: "fa-regular fa-calendar-star", FAIconColor: "#d0703c" })
+      sections.push({ ID: sectionCount, name: 'Today', description: `from ${toLocaleDateString(today)} daily note`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily" })
       sectionCount++
 
-      // TODO: Include context for sub-tasks/checklist
+      // TODO: Include context for sub-tasks/checklist?
       // config.includeTaskContext
 
       // Get count of tasks/checklists done today
       doneCount += currentDailyNote.paragraphs.filter((p) => ['done', 'checklistDone'].includes(p.type)).length
 
-      // Get list of open tasks/checklists scheduled to today from other notes
-      let refParas = currentDailyNote ? getReferencedParagraphs(currentDailyNote, false) : []
+      // Get list of open tasks/checklists scheduled to today from other notes, and of the right paragraph type
+      let refParas = currentDailyNote ? getReferencedParagraphs(currentDailyNote, false).filter((p) => ["open", "checklist"].includes(p.type)) : []
+      // Remove possible dupes from sync'd lines
+      refParas = eliminateDuplicateSyncedParagraphs(refParas)
+
       // Temporarily extend TParagraph with the task's priority
       refParas = addPriorityToParagraphs(refParas)
 
@@ -105,7 +96,6 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         // sort the list only by priority, otherwise leaving order the same
         const sortedRefParas = sortListBy(refParas, ['-priority'])
         // make a sectionItem for each item, and then make a section too.
-        // sortedRefParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, rawContent: p.rawContent, filename: p.note.filename, type: p.type }))
         let itemCount = 0
         sortedRefParas.map((p) => {
           const thisID = `${sectionCount}-${itemCount}`
@@ -114,8 +104,8 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           })
           itemCount++
         })
-        sections.push({ ID: sectionCount, name: 'Today', description: `${sortedRefParas.length} scheduled to today from other notes`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily" })
-        // sections.push({ ID: sectionCount, name: 'Today', description: `${sortedRefParas.length} scheduled to today from other notes`, FAIconClass: "fa-regular fa-clock", FAIconColor: "#d0703c" })
+        // clo(sortedRefParas, "sortedRefParas")
+        sections.push({ ID: sectionCount, name: 'Today', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily" })
         sectionCount++
       }
 
@@ -131,8 +121,8 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     if (currentWeeklyNote) {
       const thisFilename = currentWeeklyNote.filename
-      const dateStr = getDateStringFromCalendarFilename(currentWeeklyNote.filename)
-      logDebug('getDataForDashboard', `Processing ${thisFilename} which has ${String(currentWeeklyNote.paragraphs.length)} paras`)
+      const dateStr = getDateStringFromCalendarFilename(thisFilename)
+      logDebug('getDataForDashboard', `Processing ${thisFilename} (${dateStr}) which has ${String(currentWeeklyNote.paragraphs.length)} paras`)
       // Need to filter out non-task types for following function
       let openParas = currentWeeklyNote.paragraphs.filter((p) => ["open", "checklist"].includes(p.type))
       // clo(openParas, `${(String(openParas.length))} openParas:`)
@@ -150,17 +140,19 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         itemCount++
       })
-      sections.push({ ID: sectionCount, name: 'This Week', description: `${openParas.length} from weekly note ${dateStr}`, FAIconClass: "fa-regular fa-calendar-week", sectionTitleClass: "sidebarWeekly" })
-      // sections.push({ ID: sectionCount, name: 'This Week', description: `${openParas.length} from weekly note ${dateStr}`, FAIconClass: "fa-regular fa-calendar-week", FAIconColor: "#be23b6" })
+      // clo(sortedParas, "sortedParas")
+      sections.push({ ID: sectionCount, name: 'This Week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly" })
       sectionCount++
       // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
       // Get completed count too
       doneCount += currentWeeklyNote.paragraphs.filter((p) => ['done', 'checklistDone'].includes(p.type)).length
 
-      // Get list of open tasks/checklists scheduled to this week from other notes
-      let refParas = currentWeeklyNote ? getReferencedParagraphs(currentWeeklyNote, false) : []
+      // Get list of open tasks/checklists scheduled to this week from other notes, and of the right paragraph types
+      let refParas = currentWeeklyNote ? getReferencedParagraphs(currentWeeklyNote, false).filter((p) => ["open", "checklist"].includes(p.type)) : []
       if (refParas) {
+        // Remove possible dupes from sync'd lines
+        refParas = eliminateDuplicateSyncedParagraphs(refParas)
         // Temporarily extend TParagraph with the task's priority
         refParas = addPriorityToParagraphs(refParas)
         // sort the list only by priority, otherwise leaving order the same
@@ -174,16 +166,16 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           })
           itemCount++
         })
-        sections.push({ ID: sectionCount, name: 'This week', description: `${sortedRefParas.length} scheduled to this week from other notes`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly" })
-        // sections.push({ ID: sectionCount, name: 'This week', description: `${sortedRefParas.length} scheduled to this week from other notes`, FAIconClass: "fa-regular fa-clock", FAIconColor: "#be23b6" })
+        // clo(sortedRefParas, "sortedRefParas")
+        sections.push({ ID: sectionCount, name: 'This week', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly" })
         sectionCount++
       }
     }
     // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
-    // If Reviews plugin has produced a review list file, then show the overdue things from it
+    // If Reviews plugin has produced a review list file, then show up to 4 of the most overdue things from it
     if (DataStore.fileExists(fullReviewListFilename)) {
-      const nextNotesToReview: Array<TNote> = await getNextNotesToReview(3)
+      const nextNotesToReview: Array<TNote> = await getNextNotesToReview(4)
       if (nextNotesToReview) {
         // for (const n of nextNotesToReview) {          
         //   sectionItems.push({ ID: sectionCount, content: '', rawContent: '', filename: n.filename, type: 'review-note' })
@@ -196,24 +188,20 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           })
           itemCount++
         })
+        // clo(nextNotesToReview, "nextNotesToReview")
         sections.push({
           ID: sectionCount,
           name: 'Projects',
-          description: `Next ${nextNotesToReview.length} projects ready to review`,
+          description: `next projects to review`,
           FAIconClass: 'fa-regular fa-calendar-check',
           sectionTitleClass: 'sidebarYearly',
         }) // or "fa-solid fa-calendar-arrow-down" ?
-        // sections.push({ ID: sectionCount, name: 'Projects', description: `Next ${nextNotesToReview.length} projects ready to review`, FAIconClass: "fa-regular fa-calendar-check", FAIconColor: "#bc782e" }) // or "fa-solid fa-calendar-arrow-down" ?
         sectionCount++
       } else {
         logDebug('getDataForDashboard', `looked but found no notes to review`)
       }
     }
     // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
-
-    // Let's also pass count of completed things, to help morale!
-    sections.push({ ID: sectionCount, name: 'Done', description: String(doneCount), FAIconClass: 'fa-regular fa-circle-check', sectionTitleClass: '' })
-    sectionCount++
 
     logDebug('getDataForDashboard', `getDataForDashboard finished, with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
     return [sections, sectionItems]

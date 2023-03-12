@@ -9,21 +9,14 @@
 import pluginJson from '../plugin.json'
 import { makeRequest } from './support/networking'
 import { calculateCost, modelOptions } from './support/helpers' // FIXME: Is there something better than this growth?
-import { chooseOption, showMessage } from '@helpers/userInput'
-import { logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { intro, learningOptions, openAILearningWizard, modelsInformation, externalReading } from './support/introwizard'
 import { type CompletionsRequest, type ResearchListResult } from './support/AIFlowTypes'
+import { chooseOption, showMessage } from '@helpers/userInput'
+import { logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 
 /*
  * CONSTANTS
  */
-
-const baseURL = 'https://api.openai.com/v1'
-const modelsComponent = 'models'
-// const imagesGenerationComponent = 'images/generations'
-const completionsComponent = 'completions'
-
-const availableModels = ['text-davinci-003', 'text-curie-001', 'text-babbage-001', 'text-ada-001']
 
 /*
  * FUNCTIONS
@@ -146,8 +139,8 @@ export async function learnMore(learningTopic: Object) {
   const wizard = learningTopic
 
   if (wizard == openAILearningWizard.Models) {
-    let options = wizard.options.map((option) => ({ label: option, value: option }))
-    let externalReadingLinks = []
+    const options = wizard.options.map((option) => ({ label: option, value: option }))
+    const externalReadingLinks = []
     externalReading.models.forEach((model) => {
       externalReadingLinks.unshift(model.link)
       options.unshift({ label: model.title, value: model.link })

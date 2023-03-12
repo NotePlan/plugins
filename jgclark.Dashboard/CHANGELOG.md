@@ -1,20 +1,18 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
  
-## [0.2.0] 2023-02-18 @dwertheimer
+## [0.3.0] 2023-03-11
+### Added
+- when clicking on a paragraph, it will now highlight the right paragraph in the editor, not just open the note
+- will now automatically update the dashboard window when a change is made in the relevant calendar note. (This requires adding `triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDasboard` to the frontmatter of the relevant daily/weekly note.)
+- supports multi-column display, when the window is wide enough
+- de-dupes items that would appear twice in a list because the lines are sync'd together
+- Now updates the totals and counts
 
-### In np.Shared
-- created new shared file (pluginToHTMLCommsBridge.js) with all the bi-directional comms infrastructure that any plugin can use
-### Here at jgClark.Dashboard
-Plugin-side:
-- added new file to receive the messages from the HTML window (pluginToHTMLBridge.js)
-- added onMessageFromHTMLView command in plugin.json/index.js and new file  (to receive messages from the HTML window)
-- changed where it writes the html temp file to the actual plugin directory so it can load the external JS files from the path supplied
-HTMLView (browser) side:
-- commented out makeCommandCall in the HTML builder -- you should now use sendToPlugin(args) command instead
-- added code to import np.Shared/pluginToHTMLCommsBridge
-- created JS file (commsSwitchboard.js) that the HTML window will use to process info it receives
+## [0.2.0] 2023-02-28  (unreleased)
+### Added
+- Tasks and Checklist items can now be marked as completed; the underlying NotePlan note is updated, and the item is removed from the list in the window. (Big thanks to @dwertheimer for the clever bi-directional infrastructure that makes this possible.)
+- Note: This relies on the new "Shared Resources" plugin to be installed and active.
 
-
-## [0.1.0]
-- first release
+## [0.1.0] (unreleased)
+- first version, providing read-only view of all tasks and checklists due today or this week. Plus list of the next 3 projects to review (if you use the Projects + Reviews plugin.)

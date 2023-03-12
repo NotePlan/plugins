@@ -1,10 +1,22 @@
 // @flow
+//-----------------------------------------------------------------------------
+// Dashboard plugin helper functions
+// Last updated 9.3.2023 for v0.3.0 by @jgclark
+//-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { showDashboardHTML } from './dashboardHTML'
 import { getNPWeekStr, getTodaysDateUnhyphenated, RE_DATE_TIME } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
-import { getParagraphFromStaticObject } from '@helpers/NPParagraph'
+import { getParagraphFromStaticObject, highlightParagraphInEditor } from '@helpers/NPParagraph'
+
+//-----------------------------------------------------------------
+// Data types
+
+type MessageDataObject = { itemID: string, type: string, filename: string, rawContent: string }
+
+//-----------------------------------------------------------------
 
 /**
  * Callback function to receive async messages from HTML view
@@ -14,12 +26,12 @@ import { getParagraphFromStaticObject } from '@helpers/NPParagraph'
  * @param {string} type - the type of action the HTML view wants the plugin to perform
  * @param {any} data - the data that the HTML view sent to the plugin
  */
-export function onMessageFromHTMLView(type: string, data: any) {
+export function onMessageFromHTMLView(type: string, data: MessageDataObject): any {
   try {
     logDebug(pluginJson, `onMessageFromHTMLView running with args:${JSP(data)}`)
     switch (type) {
-      case 'onClickDashboardCell':
-        onClickDashboardCell(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
+      case 'onClickDashboardItem':
+        onClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
         break
     }
     return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
@@ -28,24 +40,31 @@ export function onMessageFromHTMLView(type: string, data: any) {
   }
 }
 
-type CellDetails = { ID: string, type: string, filename: string, rawContent: string }
-
 /**
- * Somebody clicked on a cell in the HTML view
- * @param {CellDetails} data - details of the item clicked
- * onClickDashboardCell: invalid data: 
+ * Somebody clicked on a something in the HTML view
+ * @param {MessageDataObject} data - details of the item clicked
+ * onClickDashboardItem: invalid data: 
  */
-export async function onClickDashboardCell(data: CellDetails) {
-  const { ID, type, filename, rawContent } = data
-  logDebug(pluginJson, `Plugin: onClickDashboardCell running with ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: '${rawContent}`)
-  if (type === 'open' || type === 'checklist') {
+export async function onClickDashboardItem(data: MessageDataObject) {
+  const { itemID, type, filename, rawContent } = data
+  // logDebug(pluginJson, `Plugin: onClickDashboardItem running with itemID: ${itemID}, type: ${type}, filename: ${filename}, rawContent: '${rawContent}`)
+  if (type === 'open') {
     const res = completeItem(filename, rawContent)
     if (res) {
       logDebug(pluginJson, `-> succesful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-      const data = { itemID: ID }
-      sendToHTMLWindow('deleteItemRow', data)
+      sendToHTMLWindow('completeTask', data)
     } else {
-      logWarn(pluginJson, `-> unsuccesful call to completeItem()`)
+      logWarn(pluginJson, `-> unsuccesful call to completeItem(). Will trigger a refresh of the dashboard.`)
+      await showDashboardHTML()
+    }
+  } else if (type === 'checklist') {
+    const res = completeItem(filename, rawContent)
+    if (res) {
+      logDebug(pluginJson, `-> succesful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
+      sendToHTMLWindow('completeChecklist', data)
+    } else {
+      logWarn(pluginJson, `-> unsuccesful call to completeItem(). Will trigger a refresh of the dashboard.`)
+      await showDashboardHTML()
     }
   } else if (type === 'review') {
     // Handle a review call simply by opening the note in the main Editor. Later it might get more interesting!
@@ -55,17 +74,28 @@ export async function onClickDashboardCell(data: CellDetails) {
     } else {
       logWarn(pluginJson, `-> unsuccesful call to open filename ${filename} in Editor`)
     }
-  } else if (type === 'note') {
-    // Handle a note call simply by opening the note in the main Editor.
+  } else if (type === 'showNoteInEditor') {
+    // Handle a show note call simply by opening the note in the main Editor.
     const note = await Editor.openNoteByFilename(filename)
     if (note) {
       logDebug(pluginJson, `-> succesful call to open filename ${filename} in Editor`)
     } else {
       logWarn(pluginJson, `-> unsuccesful call to open filename ${filename} in Editor`)
     }
+  } else if (type === 'showLineInEditor') {
+    // Handle a show line call simply by opening the note in the main Editor, and then finding and highlighting the line.
+    const note = await Editor.openNoteByFilename(filename)
+    if (note) {
+      const res = highlightParagraphInEditor(data)
+      logDebug(pluginJson, `-> succesful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccesful'} call to highlight the paragraph in the editor`)
+    } else {
+      logWarn(pluginJson, `-> unsuccesful call to open filename ${filename} in Editor`)
+    }
   } else {
-    logWarn(pluginJson, `onClickDashboardCell: can't yet handle type ${type}`)
+    logWarn(pluginJson, `onClickDashboardItem: can't yet handle type ${type}`)
   }
+
+  // Other info from DW:
   // const para = getParagraphFromStaticObject(data, ['filename', 'lineIndex'])
   // if (para) {
   //   // you can do whatever you want here. For example, you could change the status of the paragraph
@@ -82,7 +112,7 @@ export async function onClickDashboardCell(data: CellDetails) {
 }
 
 /**
- * Complete a task/checklist.
+ * Complete a task/checklist item.
  * Designed to be called when you're not in an Editor (e.g. an HTML Window)
  * @param {string} noteTitle
  * @param {string} paraContent

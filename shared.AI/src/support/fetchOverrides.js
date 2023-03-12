@@ -6,6 +6,8 @@ import thermalProtection from './fetchResponses/completions.thermalProtection.js
 import thermalProtectionKeyTopics from './fetchResponses/completions.thermalProtectionKeyTopics.json'
 import heatTransfer from './fetchResponses/completions.heatTransfer.json'
 import heatTransferKeyTopics from './fetchResponses/completions.heatTransferKeyTopics.json'
+import pigs from './fetchResponses/summarize_3 Little Pigs.1.json'
+
 import { FetchMock, type FetchMockResponse } from '@mocks/Fetch.mock'
 import { logDebug } from '@helpers/dev'
 
@@ -17,7 +19,9 @@ const mockResponses: Array<FetchMockResponse> = [
   { match: { url: 'completions', optionsBody: 'topic of Heat Transfer' }, response: JSON.stringify(heatTransfer) },
   { match: { url: 'completions', optionsBody: 'Heat Transfer in the context of' }, response: JSON.stringify(heatTransfer) },
   { match: { url: 'completions', optionsBody: 'key topics associated with Heat Transfer' }, response: JSON.stringify(heatTransferKeyTopics) },
+  { match: { url: 'chat/completions', optionsBody: '3 Little Pigs' }, response: JSON.stringify(pigs) },
 ]
+
 const fm = new FetchMock(mockResponses) // add one object to array for each mock response
 fetch = async (url, opts) => {
   logDebug(`fetchOverrides.js`, `FetchMock faking response from: "${url}" (turn on/off in index.js)`)
