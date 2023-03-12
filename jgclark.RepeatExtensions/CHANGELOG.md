@@ -1,6 +1,10 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings.
 
+## [0.5.2] - 2023-03-12 unreleased
+### Changed
+- Trying no trigger timing guard, and internally running from Editor only
+
 ## [0.5.1] - 2023-01-17
 ### Changed
 - the @repeat(...) intervals can now use uppercase B,D,W,M,Q,Y characters. (for advanced Templating work by @DocJulien and @dwertheimer)

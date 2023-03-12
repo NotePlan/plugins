@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 22.1.2023 for v0.5.1+
+// last updated 9.3.2023 for v0.5.1+
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -24,6 +24,7 @@ import {
   type NotePlanWeekInfo
 } from '@helpers/NPdateTime'
 import { logDebug, logInfo, logWarn, logError } from "@helpers/dev"
+import { logAllEnvironmentSettings } from "@helpers/NPdev"
 import { displayTitle, rangeToString } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { selectedLinesIndex } from '@helpers/NPparagraph'
@@ -53,10 +54,11 @@ export async function onEditorWillSave(): Promise<void> {
       // logDebug(pluginJson, `- new version: ${String(Date.now())} [${latestContent}]`)
 
       // first check to see if this has been called in the last 1000ms: if so don't proceed, as this could be a double call.
-      if (timeSinceLastEdit <= 2000) {
-        logDebug(pluginJson, `onEditorWillSave fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
-        return
-      }
+      // FIXME: As of 12.3.23 removing this check, and seeing what happens, following Discord discussion off #templating thread
+      // if (timeSinceLastEdit <= 2000) {
+      //   logDebug(pluginJson, `onEditorWillSave fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
+      //   return
+      // }
 
       // Get changed ranges
       const ranges = NotePlan.stringDiff(previousContent, latestContent)
@@ -88,7 +90,7 @@ export async function onEditorWillSave(): Promise<void> {
       // If the changed text includes @done(...) then we may have something to update, so run repeats()
       if (changedExtent.match(RE_DONE_DATE_TIME) && changedExtent.match(RE_EXTENDED_REPEAT)) {
         // Call main repeat() function, but don't show if there are no repeats found
-        await repeats(Editor)
+        await repeats(false) // i.e. run silently
       }
     } else {
       throw new Error("Cannot get Editor details. Is there a note open in the Editor?")
@@ -106,33 +108,34 @@ export async function onEditorWillSave(): Promise<void> {
  * Valid intervals are [0-9][bdwmqy].
  * To work it relies on finding @done(YYYY-MM-DD HH:MM) tags that haven't yet been shortened to @done(YYYY-MM-DD).
  * It includes cancelled tasks as well; to remove a repeat entirely, remove the @repeat tag from the task in NotePlan.
- * TODO: Add 'Newer' mode of operation according to #351.
+ * Note: Could add a 'Newer' mode of operation according to #351.
+ * Note: Mostly operates on the currently open note (using Editor.* funcs)
  * @author @jgclark
  * @param {CoreNoteFields} noteIn?
  */
-export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
+export async function repeats(showMessages: boolean = true): Promise<void> {
   try {
     // Get passed note details, or fall back to Editor
-    let note: CoreNoteFields
-    let showMessages: boolean
-    if (noteIn) {
-      note = noteIn
-      showMessages = false
-    } else {
+    // Note: v0.5.2 changed this to run from 'Editor.note' only
+    // let note: CoreNoteFields
+    // let showMessages: boolean
+    // if (noteIn) {
+    //   note = noteIn
+      // let showMessages = false
+    // } else {
       if (!Editor.note) {
         throw new Error(`repeats: Couldn't get Editor.note to process`)
       }
-      note = Editor.note
-      showMessages = true
-    }
-    const { paragraphs, title, type, filename } = note
+    //   note = Editor.note
+    //   showMessages = true
+    // }
+    const { paragraphs, title, type, filename, note } = Editor
     if (note === null || paragraphs === null) {
       // No note open, or no paragraphs (perhaps empty note), so don't do anything.
       logError(pluginJson, 'No note open, or empty note.')
       return
     }
     let lineCount = paragraphs.length
-    logDebug(pluginJson, `repeats starting for note with ${lineCount} paras and showMessages: ${String(showMessages)}`)
 
     // check if the last paragraph is undefined, and if so delete it from our copy
     if (paragraphs[lineCount] === null) {
@@ -140,9 +143,11 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
     }
 
     // work out where ## Done or ## Cancelled sections start, if present
-    // $FlowIgnore[incompatible-call]
     const endOfActive = findEndOfActivePartOfNote(note)
-    logDebug(pluginJson, `Starting for '${filename}' for ${endOfActive} active lines`)
+
+    logDebug(pluginJson, `Starting for '${filename}' for ${endOfActive} active lines, showMessages: ${String(showMessages)}`)
+    logAllEnvironmentSettings()
+
     let repeatCount = 0
     let line = ''
     let updatedLine = ''
@@ -165,15 +170,14 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
         reReturnArray = line.match(RE_DONE_DATE_TIME_CAPTURES) ?? []
         completedDate = reReturnArray[1]
         completedTime = reReturnArray[2]
-        logDebug('repeats', `Found completed repeat ${completedDate} ${completedTime} in line ${n}`)
+        logDebug('repeats', `- Found completed repeat ${completedDate} ${completedTime} in line ${n}`)
 
         // remove time string from completed date-time
         updatedLine = line.replace(completedTime, '') // couldn't get a regex to work here
         p.content = updatedLine
         // Send the update to the Editor
         Editor.updateParagraph(p)
-        logDebug('repeats', `    updated Paragraph ${p.lineIndex}`)
-        // logDebug(pluginJson, `- updated Paragraph ${p.lineIndex}`)
+        logDebug('repeats', `- updated Paragraph ${p.lineIndex}`)
 
         // Test if this is one of my special extended repeats
         if (updatedLine.match(RE_EXTENDED_REPEAT)) {
@@ -182,9 +186,8 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
           let outputLine = ''
           // get repeat to apply
           reReturnArray = updatedLine.match(RE_EXTENDED_REPEAT_CAPTURE) ?? []
-          // $FlowIgnore[incompatible-use]
-          let dateIntervalString = (reReturnArray.length > 0) ? reReturnArray[1] : ''
-          logDebug('repeats', `  Found EXTENDED @repeat syntax: '${dateIntervalString}'`)
+          let dateIntervalString: string = (reReturnArray.length > 0) ? reReturnArray[1] : ''
+          logDebug('repeats', `- Found EXTENDED @repeat syntax: '${dateIntervalString}'`)
 
           if (dateIntervalString[0].startsWith('+')) {
             // New repeat date = completed date + interval
@@ -193,10 +196,11 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
               dateIntervalString.length,
             )
             newRepeatDate = calcOffsetDateStr(completedDate, dateIntervalString)
-            logDebug('repeats', `  Adding from completed date --> ${newRepeatDate}`)
+            logDebug('repeats', `- Adding from completed date -> ${newRepeatDate}`)
             // Remove any >date
-            updatedLine = updatedLine.replace(/\s+>\d{4}-[01]\d{1}-\d{2}/, '') // i.e. RE_DUE_DATE, but can't get regex to work with variables like this
-            logDebug('repeats', `\tupdatedLine: ${updatedLine}`)
+            // Note: ' >'+RE_DUE_DATE, but can't get regex to work with variables like this
+            updatedLine = updatedLine.replace(/\s+>\d{4}-[01]\d{1}-\d{2}/, '')
+            logDebug('repeats', `- updatedLine: ${updatedLine}`)
 
           } else {
             // New repeat date = due date + interval
@@ -216,7 +220,7 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
               logDebug('repeats', `- no match => use completed date ${dueDate}`)
             }
             newRepeatDate = calcOffsetDateStr(dueDate, dateIntervalString)
-            logDebug('repeats', `- Adding from due date --> ${newRepeatDate}`)
+            logDebug('repeats', `- Adding from due date -> ${newRepeatDate}`)
           }
 
           outputLine = updatedLine.replace(/@done\(.*\)/, '').trim()
@@ -226,25 +230,23 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
             // ...either in same project note
             outputLine += ` >${newRepeatDate}`
             logDebug(pluginJson, `- outputLine: ${outputLine}`)
-            await Editor.insertParagraphAfterParagraph(outputLine, p, 'open')
+            await Editor.insertParagraphBeforeParagraph(outputLine, p, 'open')
             logDebug(pluginJson, `- Inserted new para after line ${p.lineIndex}`)
           }
           else {
             // ... or in the future Calendar note (prepend)
             let futureNote
             let newRepeatDate = ''
-            // $FlowFixMe
             if (isDailyNote(note)) {
               // Get YYYY-MM-DD style date
               newRepeatDate = unhyphenateString(newRepeatDate)
             }
-            // $FlowFixMe
             else if (isWeeklyNote(note)) {
               // Get YYYY-Wnn style date
               // older version, but doesn't align with NP user week-start setting
               // newRepeatDate = getISOWeekString(newRepeatDate)
               // newer version, using helper that takes week-start into account
-              // $FlowFixMe
+              // $FlowFixMe[incompatible-type]
               const weekInfo: NotePlanWeekInfo = getNPWeekData(newRepeatDate)
               newRepeatDate = weekInfo.weekString
             }
@@ -263,7 +265,7 @@ export async function repeats(noteIn?: CoreNoteFields): Promise<void> {
               await Editor.insertParagraphBeforeParagraph(outputLine, p, 'open')
               logDebug('repeats', `- Inserted new para after line ${p.lineIndex}`)
             }
-            // FIXME: after a big merge not sure if this is needed.
+            // TODO: after a big merge not sure if this is needed.
             // else {
             //   // ... or in the future daily note (prepend)
             //   const newRepeatDateShorter = unhyphenateString(newRepeatDate)
