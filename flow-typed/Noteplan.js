@@ -1915,13 +1915,13 @@ declare class NotePlan {
    * Note: Available from v3.8.1 build 973
    * @returns {Array<TEditor>}
    */
-  static editors(): Array < TEditor >;
+static + editors: Array < TEditor >;
   /**
    * Returns a list of all opened HTML windows.
    * Note: Available from v3.8.1 build 973
    * @returns {Array<HTMLView>}
    */
-  static htmlWindows(): Array < HTMLView >;
+static + htmlWindows: Array < HTMLView >;
 }
 
 declare class HTMLView {
