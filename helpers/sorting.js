@@ -247,7 +247,6 @@ export function getSortableTask(para: TParagraph): SortableParagraphSubset {
 
 /**
  * Sort paragraphs into groups of like types (open, scheduled, done, cancelled, etc.) for task sorting.
- * Note: throws errors if non-task paragraphs are given to it.
  * @author @dwertheimer
  * @param {Array<Paragraph>} paragraphs - array of paragraph objects input
  * @param {boolean} ignoreIndents - whether to pay attention to child/indented paragraphs
@@ -268,8 +267,11 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
         if (!ignoreIndents && para.indents > lastParent.indents) {
           lastParent.children.push(task)
         } else {
-          const len = tasks[task.calculatedType || 0].push(task)
-          lastParent = tasks[task.calculatedType || 0][len - 1]
+          const ct = task.calculatedType // will always be the same as para.type except in case of scheduled
+          if (ct && tasks[ct]) {
+            const len = tasks[ct].push(task)
+            lastParent = tasks[ct][len - 1]
+          }
         }
       } catch (error) {
         logError('getTasksByType', `${error.message}: ${para.content}, ${index}`)

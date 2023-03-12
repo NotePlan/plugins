@@ -447,6 +447,7 @@ export async function writeOutTasks(
   const headings = TOP_LEVEL_HEADINGS
   // need to write in reverse order if we are going to keep adding a top insertionIndex
   const writeSequence = tasksToTop ? taskTypes.slice().reverse() : taskTypes
+  logDebug(`writeOutTasks: writing task types in ${tasksToTop ? 'reverse for lineIndex security' : 'order'} : ${writeSequence.toString()}`)
   for (let i = 0; i < writeSequence.length; i++) {
     const ty = writeSequence[i]
     if (tasks[ty]?.length) {
