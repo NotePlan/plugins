@@ -4,12 +4,11 @@
 //-----------------------------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn } from './dev'
-import { stripLinksFromString } from '@helpers/stringTransforms'
 import {
   RE_SIMPLE_URI_MATCH,
   RE_MARKDOWN_LINK_PATH_CAPTURE,
-  // RE_SYNC_MARKER
 } from '@helpers/regex'
+import { stripLinksFromString } from '@helpers/stringTransforms'
 
 //-----------------------------------------------------------------------------
 /**
@@ -38,7 +37,7 @@ export function isTermInURL(term: string, searchString: string): boolean {
     ? false
     : RE_SIMPLE_URI_MATCH.test(searchString)
 
-  logDebug('isTermInURL', `looking for ${term} in ${searchString} ${String(caseInsensitiveSubstringMatch(term, searchStringWithoutURL))} / ${searchStringWithoutURL} ${String(RE_SIMPLE_URI_MATCH.test(searchStringWithoutURL))} -> ${String(res)}`)
+  // logDebug('isTermInURL', `looking for ${term} in ${searchString} ${String(caseInsensitiveSubstringMatch(term, searchStringWithoutURL))} / ${searchStringWithoutURL} ${String(RE_SIMPLE_URI_MATCH.test(searchStringWithoutURL))} -> ${String(res)}`)
   return res
 }
 
@@ -97,8 +96,8 @@ export function displayTitle(n: ?CoreNoteFields): string {
   return !n
     ? 'error'
     : n.type === 'Calendar' && ((n: $FlowFixMe): TNote).date != null
-    ? n.filename.split('.')[0] // without file extension
-    : n.title ?? ''
+      ? n.filename.split('.')[0] // without file extension
+      : n.title ?? ''
 }
 
 /**
@@ -155,17 +154,17 @@ export function printParagraph(p: TParagraph) {
 /**
  * Works out which line to insert at top of file. Rather than just after title line,
  * go after any YAML frontmatter or a metadata line (= starts with a hashtag).
+ * TODO: How is this really different from findStartOfActivePartOfNote() ?
  * @author @jgclark
  * @tests in jest file
- *
  * @param {TNote} note - the note of interest
- * @return {number} line - the calculated line to insert/prepend at
+ * @returns {number} line - the calculated line to insert/prepend at
  */
 export function calcSmartPrependPoint(note: TNote): number {
   const lines = note.paragraphs.map((s) => s.content)
-  logDebug('paragraph/calcSmartPrependPoint', `Starting with ${lines.length} lines`)
+  // logDebug('paragraph/calcSmartPrependPoint', `Starting with ${lines.length} lines`)
 
-  // By default we prepend at line 1, i.e. right after the Title line for regulat notes
+  // By default we prepend at line 1, i.e. right after the Title line for regular notes
   let insertionLine = note.type === 'Calendar' ? 0 : 1
   // If we have any content, check for these special cases
   if (lines.length > 0) {
@@ -272,16 +271,16 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
 }
 
 /**
- * Works out which is the last line of the frontmatter (or 0 if not present).
+ * Works out which is the last line of the frontmatter, returning the line index number of the closing separator, or 0 if no frontmatter found.
+ * TODO: Move to NPFrontMatter.js ?
  * @author @jgclark
- *
  * @param {TNote} note - the note to assess
- * @return {number} - the line index number
+ * @returns {number} - the line index number of the closing separator
  */
 export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
   const paras = note.paragraphs
   const lineCount = paras.length
-  logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
+  // logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
   let inFrontMatter: boolean = false
   let lineIndex = 0
   while (lineIndex < lineCount) {
@@ -304,14 +303,15 @@ export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
  * Additionally, it skips past any front-matter like section in a project note, as used by the Reviews plugin before frontmatter was supported.
  * This is indicated by a #hashtag starting the next line. If there is, run on to next heading or blank line.
  * Note: given this is a precursor to writing to a note, it first checks if the note is completely empty (0 lines). If so, a first 'empty' line is added, to avoid edge cases in calling code.
- * Note: for a calendar note, the start is always lineIndex 0
+ * TODO: This should therefore be moved to NPparagraph.
  * @author @jgclark
- *
+ * @tests in jest file
  * @param {TNote} note - the note to assess
- * @return {number} - the line index number
+ * @returns {number} - the line index number
  */
 export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
   try {
+    let startOfActive = NaN
     let paras = note.paragraphs
     // First check there's actually anything at all! If note, add a first empty paragraph
     if (paras.length === 0) {
@@ -319,36 +319,44 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
       note.appendParagraph('', 'empty')
       return 0
     }
-    if (note.type === 'Calendar') {
-      // Calendar notes are simple -> line index 0
-      return 0
-    } else {
-      // Looking at project/regular notes
-      // set line to start looking at: after H1 or frontmatter (if present)
-      const endOfTitleOrFMIndex = endOfFrontmatterLineIndex(note)
-      let startOfActive = endOfTitleOrFMIndex + 1
-      if (paras.length === startOfActive) {
-        // NB: length = line index + 1
-        // There is no line after title or FM, so add a blank line to use
-        logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
-        note.appendParagraph('', 'empty')
-        paras = note.paragraphs
-      }
 
-      // additionally, we're going to skip past any front-matter like section in a project note,
-      // indicated by a #hashtag starting the next line.
-      // If there is, run on to next heading or blank line.
-      if (paras[startOfActive].content.match(/^#\w/)) {
-        for (let i = startOfActive; i < paras.length; i++) {
-          const p = paras[i]
-          if (p.type === 'title' || p.type === 'empty') {
-            startOfActive = i + 1
-            break
-          }
-        }
+    const endOfFMIndex = endOfFrontmatterLineIndex(note)
+    if (endOfFMIndex === 0) {
+      if (paras[0].type === 'title' && paras[0].headingLevel === 1) {
+        // logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter, but H1 title found -> next line`)
+        startOfActive = 1
+      } else {
+        // logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter or H1 title found -> first line`)
+        startOfActive = 0
       }
-      return startOfActive
+    } else {
+      // logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, so looking at line after frontmatter`)
+      startOfActive = endOfFMIndex + 1
     }
+    // If there is no line after title or FM, add a blank line to use (NB: length = line index + 1)
+    if (paras.length === startOfActive) {
+      // logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
+      note.appendParagraph('', 'empty')
+      paras = note.paragraphs
+    }
+
+    // additionally, we're going to skip past any front-matter-like section in a project note,
+    // indicated by a #hashtag starting the next line.
+    // If there is, run on to next heading or blank line (if found)
+    if (paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/)) {
+      // logDebug('paragraph/findStartOfActivePartOfNote', `with ${String(startOfActive)} Found a metadata line, so trying to find next heading or blank line`)
+      for (let i = startOfActive + 1; i < paras.length; i++) {
+        const p = paras[i]
+        if (p.type === 'title' || p.type === 'empty') {
+          startOfActive = i
+          break
+        }
+        // logDebug('paragraph/findStartOfActivePartOfNote', `  - title/empty not found`)
+      }
+      // logDebug('paragraph/findStartOfActivePartOfNote', `-> with ${String(startOfActive)}`)
+    }
+    return startOfActive
+    // }
   } catch (err) {
     logError('paragraph/findStartOfActivePartOfNote', err.message)
     return NaN // for completeness

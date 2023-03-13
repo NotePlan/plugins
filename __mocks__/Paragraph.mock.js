@@ -88,8 +88,15 @@ export class Paragraph {
         case 'checklistScheduled':
           this.rawContent = `+ [>] ${this.content}`
           break
+        case 'separator':
+          this.rawContent = `---`
+          break
+        case 'empty':
+          this.rawContent = ``
+          break
       }
     }
+    // TODO: is there a way of incrementing lineIndex here?
   }
 
   __update(data?: any = {}) {

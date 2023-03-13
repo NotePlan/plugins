@@ -38,14 +38,14 @@ describe(`${FILE}`, () => {
       const p = new Paragraph({ content: 'This is a test ^223344', note: n, rawContent: 'This is a test ^223344', blockId: '^223344' })
       n.paragraphs = [p]
       const result = sc.createURLToLine(p)
-      expect(result).toEqual('noteplan://x-callback-url/openNote?noteTitle=PLACEHOLDER%5E223344')
+      expect(result).toEqual('noteplan://x-callback-url/openNote?noteTitle=TITLE_PLACEHOLDER_FROM_NOTE_MOCK%5E223344')
     })
     test('should Create link to line that does not have a blockId', () => {
       const n = new Note()
       const p = new Paragraph({ content: 'This is a test', note: n, rawContent: 'This is a test' })
       n.paragraphs = [p]
       const result = sc.createURLToLine(p)
-      expect(result).toEqual('noteplan://x-callback-url/openNote?noteTitle=PLACEHOLDER%5E123456')
+      expect(result).toEqual('noteplan://x-callback-url/openNote?noteTitle=TITLE_PLACEHOLDER_FROM_NOTE_MOCK%5E123456')
     })
   })
 
@@ -59,14 +59,14 @@ describe(`${FILE}`, () => {
       const p = new Paragraph({ content: 'This is a test ^223344', note: n, rawContent: 'This is a test ^223344', blockId: '^223344' })
       n.paragraphs = [p]
       const result = sc.createWikiLinkToLine(p)
-      expect(result).toEqual('[[PLACEHOLDER^223344]]')
+      expect(result).toEqual('[[TITLE_PLACEHOLDER_FROM_NOTE_MOCK^223344]]')
     })
     test('should Create link to line that does not have a blockId', () => {
       const n = new Note()
       const p = new Paragraph({ content: 'This is a test', note: n, rawContent: 'This is a test' })
       n.paragraphs = [p]
       const result = sc.createWikiLinkToLine(p)
-      expect(result).toEqual('[[PLACEHOLDER^123456]]')
+      expect(result).toEqual('[[TITLE_PLACEHOLDER_FROM_NOTE_MOCK^123456]]')
     })
   })
 
@@ -80,14 +80,14 @@ describe(`${FILE}`, () => {
       const p = new Paragraph({ content: 'This is a test ^223344', note: n, rawContent: 'This is a test ^223344', blockId: '^223344' })
       n.paragraphs = [p]
       const result = sc.createPrettyLinkToLine(p, 'foo bar')
-      expect(result).toEqual('[foo bar](noteplan://x-callback-url/openNote?noteTitle=PLACEHOLDER%5E223344)')
+      expect(result).toEqual('[foo bar](noteplan://x-callback-url/openNote?noteTitle=TITLE_PLACEHOLDER_FROM_NOTE_MOCK%5E223344)')
     })
     test('should Create link to line that does not have a blockId', () => {
       const n = new Note()
       const p = new Paragraph({ content: 'This is a test', note: n, rawContent: 'This is a test' })
       n.paragraphs = [p]
       const result = sc.createPrettyLinkToLine(p, 'foo bar')
-      expect(result).toEqual('[foo bar](noteplan://x-callback-url/openNote?noteTitle=PLACEHOLDER%5E123456)')
+      expect(result).toEqual('[foo bar](noteplan://x-callback-url/openNote?noteTitle=TITLE_PLACEHOLDER_FROM_NOTE_MOCK%5E123456)')
     })
   })
 })

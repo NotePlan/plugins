@@ -364,7 +364,6 @@ export function getUniqueNoteTitle(title: string): string {
 /**
  * Return list of all notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- *
  * @return {Array<TNote>} - list of notes
  */
 export function allNotesSortedByChanged(): Array<TNote> {
@@ -378,7 +377,6 @@ export function allNotesSortedByChanged(): Array<TNote> {
 /**
  * Return list of calendar notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- *
  * @return {Array<TNote>} - list of notes
  */
 export function calendarNotesSortedByChanged(): Array<TNote> {
@@ -386,9 +384,22 @@ export function calendarNotesSortedByChanged(): Array<TNote> {
 }
 
 /**
+ * Return list of past calendar notes, of any duration
+ * TODO: check whether the .date is start or end of period
+ * FIXME: not returning 2023-W09, but is 202303
+ * @author @jgclark
+ * @return {Array<TNote>} - list of notes
+ */
+export function pastCalendarNotes(): Array<TNote> {
+  const startOfTodayDate = moment().startOf('day').toDate()
+  return DataStore.calendarNotes.slice().filter((note) => {
+    return note.date < startOfTodayDate
+  })
+}
+
+/**
  * Return list of weekly notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- *
  * @return {Array<TNote>} - list of notes
  */
 export function weeklyNotesSortedByChanged(): Array<TNote> {
@@ -399,7 +410,6 @@ export function weeklyNotesSortedByChanged(): Array<TNote> {
 /**
  * Return list of project notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- *
  * @return {Array<TNote>} - list of notes
  */
 export function projectNotesSortedByChanged(): Array<TNote> {
