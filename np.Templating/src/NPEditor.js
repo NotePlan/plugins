@@ -19,11 +19,10 @@ import NPTemplating from 'NPTemplating'
 import FrontmatterModule from '@templatingModules/FrontmatterModule'
 
 import pluginJson from '../plugin.json'
-import { chooseHeading } from '@helpers/userInput'
+import { hyphenatedDate } from '@helpers/dateTime'
 import { selectFirstNonTitleLineInEditor } from '@helpers/NPnote'
-import { showMessage } from '../../helpers/userInput'
-import { hyphenatedDate } from '../../helpers/dateTime'
-import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
+import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { chooseHeading, showMessage } from '@helpers/userInput'
 
 /**
  * Write out the contents to either Today's Calendar note or the Note which was opened

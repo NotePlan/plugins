@@ -22,10 +22,12 @@ import {
 } from './dateTime'
 import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateTimeString } from './NPdateTime'
 import { clo, JSP, logDebug, logError, logWarn, timer } from './dev'
-import { calcSmartPrependPoint, findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
+import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
 import { getNoteType } from '@helpers/note'
 
 const pluginJson = 'NPParagraph'
+
+
 
 /**
  * Remove all headings (type=='title') from a note matching the given text

@@ -1,12 +1,12 @@
 // @flow
 
-import { chooseFolder, chooseNote, chooseOption, showMessage, showMessageYesNo } from '../../helpers/userInput'
-import pluginJson from '../plugin.json'
-import { findStartOfActivePartOfNote } from '../../helpers/paragraph'
 import { createInitialChatRequest } from './chat'
 import type { ChatResponse, ChatRequest } from './support/AIFlowTypes'
 import { makeRequest, saveDebugResponse, CHAT_COMPONENT } from './support/networking'
+import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { chooseFolder, chooseNote, chooseOption, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 /**
  * Ask the user to choose which note they want to summarize

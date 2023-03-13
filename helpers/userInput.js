@@ -5,7 +5,7 @@
 import json5 from 'json5'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { clo, logDebug, logError, logWarn, JSP } from './dev'
-import { calcSmartPrependPoint, findEndOfActivePartOfNote } from './paragraph'
+import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
@@ -327,7 +327,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         // ask for new heading, find smart insertion position, and insert it
         newHeading = await getInput(`Enter heading to add at the start of the note`)
         if (newHeading && typeof newHeading === 'string') {
-          const startPos = calcSmartPrependPoint(note)
+          const startPos = findStartOfActivePartOfNote(note)
           note.insertHeading(newHeading, startPos, headingLevel)
           logDebug('userInput / chooseHeading', `prepended new heading '${newHeading}' at line ${startPos} (project note)`)
           headingToReturn = newHeading

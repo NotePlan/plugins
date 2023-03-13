@@ -18,15 +18,15 @@ import {
 } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
 import {
-  calcSmartPrependPoint,
+  findStartOfActivePartOfNote,
   parasToText,
 } from '@helpers/paragraph'
-import { chooseHeading, showMessage } from '@helpers/userInput'
 import {
   getParagraphBlock,
   selectedLinesIndex,
   // getSelectedParaIndex,
 } from '@helpers/NPParagraph'
+import { chooseHeading, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 // Get settings
@@ -398,7 +398,7 @@ export function addParasAsText(
   let insertionIndex: number
   if (headingToFind === destinationNote.title || headingToFind.includes('(top of note)')) {
     // i.e. the first line in project or calendar note
-    insertionIndex = calcSmartPrependPoint(destinationNote)
+    insertionIndex = findStartOfActivePartOfNote(destinationNote)
     logDebug(pluginJson, `-> top of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
