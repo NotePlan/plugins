@@ -11,14 +11,13 @@
 
 import fm from 'front-matter'
 // import { showMessage } from './userInput'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { clo, JSP, logError, logDebug, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getAttributes } from '@templating/support/modules/FrontmatterModule'
 const pluginJson = 'helpers/NPFrontMatter.js'
 
+// TODO: update these for each new trigger that gets added
 export type TriggerTypes = 'onEditorWillSave' | 'onOpen'
-
-// TODO: update this for each new trigger that gets added
 export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
 
 /**
@@ -77,31 +76,98 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
  * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly
  * @author @dwertheimer
  * @param {CoreNoteFields} note - the note
- * @param {boolean} includeSeparators - whether to include the separator lines (---) in the deleted paragraphs
+ * @param {boolean} removeSeparators - whether to include the separator lines (---) in the deletion
  * @returns {boolean} - whether the front matter was removed or not
  */
-export function removeFrontMatter(note: CoreNoteFields, includeSeparators: boolean = false): boolean {
-  const fmParas = getFrontMatterParagraphs(note, includeSeparators)
+export function removeFrontMatter(note: CoreNoteFields, removeSeparators: boolean = false): boolean {
+  const fmParas = getFrontMatterParagraphs(note, removeSeparators)
+  // clo(fmParas, 'fmParas')
+  // clo(note.paragraphs, 'note.paragraphs')
   if (!fmParas) return false
   const fm = getFrontMatterAttributes(note || '')
   note.removeParagraphs(fmParas)
-  if (fm && fm.title) note.prependParagraph(`# ${fm.title}`, 'text')
+  if (removeSeparators && fm && fm.title) note.prependParagraph(`# ${fm.title}`, 'text')
   return true
 }
 
 /**
- * write the frontmatter vars to a note which already has frontmatter
+ * Remove a particular frontmatter field, or if value provided as well, delete only if both match.
+ * TODO: the simpler case above
+ * @author @jgclark
+ * @param {CoreNoteFields} note - the note
+ * @param {boolean} removeSeparators - if no fields remain, whether to remove the separator lines (---) as well
+ * @returns {boolean} - whether the field was removed or not
+ */
+export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: string, value?: string | null, removeSeparators: boolean = true): boolean {
+  try {
+    const fmFields = getFrontMatterAttributes(note)
+    const fmParas = getFrontMatterParagraphs(note, true)
+    if (!fmFields || !fmParas) {
+      logDebug('rFMF', `no front matter in note '${displayTitle(note)}'`)
+      return false
+    }
+    let removed = false
+    Object.keys(fmFields).forEach((thisKey) => {
+      if (thisKey === fieldToRemove) {
+        const thisValue = fmFields[thisKey]
+        // logDebug('rFMF', `- for thisKey ${thisKey}, looking for <${fieldToRemove}:${value ?? "<undefined>"}> to remove. thisValue=${thisValue}`)
+        if (!value || thisValue === value) {
+          // logDebug('rFMF', `  - value:${value ?? "<undefined>"} / thisValue:${value ?? "<undefined>"}`)
+          // remove this attribute fully
+          delete fmFields[thisKey]
+          // clo(fmFields, 'fmFields after deletion:')
+          // and then find the line to remove from the frontmatter, removing separators if wanted, if no frontmatter left
+          for (let i = 1; i < fmParas.length; i++) { // ignore first and last paras which are separators
+            const para = fmParas[i]
+            if (((!value) && para.content.startsWith(fieldToRemove))
+              || (value && para.content === `${fieldToRemove}: ${quoteText(value)}`)) {
+              // logDebug('rFMF', `- will delete fmPara ${String(i)}`)
+              fmParas.splice(i, 1) // delete this item
+              removed = true
+              if (fmParas.length <= 2) {
+                logDebug('rFMF', `- this was the only field in the FM`)
+                const res = removeFrontMatter(note, removeSeparators)
+                logDebug('rFMF', `removeFrontMatter -> ${String(res)}`)
+              } else {
+                logDebug('rFMF', `- now ${fmParas.length} FM paras remain`)
+                const res1 = removeFrontMatter(note, false)
+                logDebug('rFMF', `removeFrontMatter -> ${String(res1)}`)
+                const res2 = writeFrontMatter(note, fmFields, false) // don't mind if there isn't a title; that's not relevant to this operation
+                logDebug('rFMF', `writeFrontMatter -> ${String(res2)}`)
+              }
+            }
+          }
+        }
+      }
+    })
+    if (!removed) {
+      logDebug('rFMF', `didn't find '${fieldToRemove}' to remove in note '${displayTitle(note)}'`)
+    }
+    return removed
+  } catch (err) {
+    logError('rFMF', JSP(err))
+    return false
+  }
+}
+
+/**
+ * Write the frontmatter vars to a note which already has frontmatter
  * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly
  * You should use setFrontMatterVars instead
  * will add fields for whatever attributes you send in the second argument (could be duplicates)
  * so delete the frontmatter first (using removeFrontMatter()) if you want to add/remove/change fields
  * @param {CoreNoteFields} note
  * @param {*} attributes
- * @returns {boolean}
+ * @param {boolean?} alsoEnsureTitle?
+ * @returns {boolean} was frontmatter written OK?
  * @author @dwertheimer
  */
-export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: string }): boolean {
-  if (ensureFrontmatter(note)) {
+export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: string }, alsoEnsureTitle: boolean = true): boolean {
+  if (!noteHasFrontMatter(note)) {
+    logError(pluginJson, `writeFrontMatter: no frontmatter already found in note, so stopping.`)
+    return false
+  }
+  if (ensureFrontmatter(note, alsoEnsureTitle)) {
     const outputArr = []
     Object.keys(attributes).forEach((key) => {
       const value = attributes[key]
@@ -113,7 +179,7 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
     note.insertParagraph(output, 1, 'text')
     return true
   } else {
-    logError(pluginJson, `writeFrontMatter: Could not change frontmatter for note "${note.filename || ''}" because it has no frontmatter.`)
+    logError(pluginJson, `writeFrontMatter: Could not write frontmatter for note "${note.filename || ''}" for some reason.`)
   }
   return false
 }
@@ -132,12 +198,13 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
  */
 export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: string }): boolean {
   const title = varObj.title || null
-  const hasFM = ensureFrontmatter(note, title)
+  const hasFM = ensureFrontmatter(note, true, title)
+  clo(note, 'after ensureFrontMatter')
   if (!hasFM) {
     logError(`setFrontMatterVars: Could not add front matter to note which has no title. Note should have a title, or you should pass in a title in the varObj.`)
     return false
   }
-  if (hasFrontMatter(note?.content || '')) {
+  if (hasFrontMatter(note.content || '')) {
     const existingAttributes = getAttributes(note.content)
     const changedAttributes = { ...existingAttributes }
     Object.keys(varObj).forEach((key) => {
@@ -149,74 +216,89 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
     })
     removeFrontMatter(note)
     writeFrontMatter(note, changedAttributes)
+    clo(note, 'end of setFMV')
   } else {
     logError(pluginJson, `setFrontMatterVars: Could not change frontmatter for note "${note.filename || ''}" because it has no frontmatter.`)
   }
   return true
 }
 
+// /**
+//  * TODO: Decide whether to keep this or the earlier rFMF one
+//  * @param {CoreNoteFields} note
+//  * @param {{[string]:string}} varObj - an object with the key:value pairs to unset (i.e. remove) in the front matter (all strings).
+//  * @returns {boolean} - whether the front matter was unset or not
+//  */
+// export function unsetFrontMatterFields(note: CoreNoteFields, fields: Array<string>): boolean {
+//   const attributes: { [string]: string | null } = {}
+//   // make object with a key for each field to unset
+//   for (let field of fields) {
+//     attributes[field] = null
+//   }
+//   const result = setFrontMatterVars(note, attributes)
+//   return result
+// }
+
 /**
- * Ensure that a note has front matter (and optionally has a title you specify)
- * If the note already has front matter, returns true
- * If the note does not have front matter, adds it and returns true
- * If optional title is given, it overrides any title in the note for the frontmatter title.
+ * Ensure that a note has front matter (and optionally has a title you specify).
+ * If the note already has front matter, returns true.
+ * If the note does not have front matter, adds it and returns true.
+ * If optional title is given, it overrides any existing title in the note for the frontmatter title.
  * @author @dwertheimer based on @jgclark's convertNoteToFrontmatter code
  * @param {TNote} note
- * @param {string} title - optional override text that will be added to the frontmatter as the note title (regardless of whether it already had for a title)
+ * @param {boolean?} alsoEnsureTitle - if true then fail if a title can't be set. Default: true. For calendar notes this wants to be false.
+ * @param {string?} title - optional override text that will be added to the frontmatter as the note title (regardless of whether it already had for a title)
  * @returns {boolean} true if front matter existed or was added, false if failed for some reason
  * @author @dwertheimer
  */
-export function ensureFrontmatter(note: CoreNoteFields, title?: string | null): boolean {
+export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean = true, title?: string | null): boolean {
   let retVal = false
   if (note == null) {
     // no note - return false
-    logError(pluginJson, `ensureFrontmatter: No note found. Stopping conversion.`)
+    logError('ensureFrontmatter', `No note found. Stopping conversion.`)
     // await showMessage(`No note found to convert to frontmatter.`)
   } else if (hasFrontMatter(note?.content || '')) {
-    //already has frontmatter
+    // already has frontmatter
     const attr = getAttributes(note.content)
     if (!attr.title && title) {
-      logDebug(pluginJson, `ensureFrontmatter: Note '${displayTitle(note)}' already has frontmatter but no title. Adding title.`)
+      logDebug('ensureFrontmatter', `Note '${displayTitle(note)}' already has frontmatter but no title. Adding title.`)
       if (note.content) note.content = note.content.replace('---', `---\ntitle: ${title}\n`)
     } else if (title && attr.title !== title) {
-      logDebug(pluginJson, `ensureFrontmatter: Note '${displayTitle(note)}' already has frontmatter but title is wrong. Updating title.`)
+      logDebug('ensureFrontmatter', `Note '${displayTitle(note)}' already has frontmatter but title is wrong. Updating title.`)
       if (note.content) note.content = note.content.replace(`title: ${attr.title}`, `title: ${title}`)
     }
     retVal = true
   } else {
+    // need to add frontmatter
     let newTitle
-    if (note.paragraphs.length < 1) {
-      if (!title) {
-        logError(pluginJson, `ensureFrontmatter: '${note.filename}' has no title line. Stopping conversion.`)
-        // await showMessage(`Cannot convert '${note.filename}' note as it is empty & has no title.`)
-        newTitle = note.title || null // cover Calendar notes where title is not in the note
-      } else {
-        newTitle = title || note.title // cover Calendar notes where title is not in the note
+    let front = ''
+    if (alsoEnsureTitle) {
+      // if (!note.title) {
+      //   logError('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, but request requires a title. Stopping conversion.`)
+      //   return false
+      // }
+
+      const firstLine = note.paragraphs.length ? note.paragraphs[0] : {}
+      const titleFromFirstLine = (firstLine.type === 'title' && firstLine.headingLevel === 1) ? firstLine.content : ''
+
+      // Make title from parameter or note's existing H1 title or note.title respectively
+      newTitle = title || titleFromFirstLine || note.title // cover Calendar notes where title is not in the note
+      // logDebug('ensureFrontmatter', `- newTitle='${newTitle ?? ''}'`)
+      if (newTitle === '') {
+        logError('ensureFrontmatter', `Cannot find title for '${note.filename}'. Stopping conversion.`)
+        return false
       }
+
+      if (titleFromFirstLine) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
+      front = `---\ntitle: ${quoteText(newTitle ?? '(error)')}\n---\n`
     } else {
-      // Get title
-      if (note.type === 'Calendar') {
-        newTitle = title || note.title // cover Calendar notes where title is not in the note
-        // logDebug(pluginJson, `ensureFrontmatter: newTitle='${newTitle ?? ''}'`)
-      } else {
-        const firstLine = note.paragraphs.length ? note.paragraphs[0] : {}
-        const titleText = firstLine.type === 'title' && firstLine.headingLevel === 1 && firstLine.content
-        if (titleText) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
-        newTitle = title || titleText
-        logDebug(pluginJson, `ensureFrontmatter: newTitle=${String(newTitle)}`)
-        if (!newTitle) {
-          logError(pluginJson, `ensureFrontmatter: '${note.filename}' has no title line. Stopping conversion.`)
-        }
-      }
+      front = `---\n---\n`
     }
-    if (newTitle) {
-      const front = note.type === 'Calendar' ? `---\n---\n` : `---\ntitle: ${quoteText(newTitle)}\n---\n`
-      note.content = `${front}${note?.content || ''}`
-      retVal = true
-      logDebug(pluginJson, `ensureFrontmatter: Note '${displayTitle(note)}' converted to use frontmatter.`)
-    }
+    note.content = `${front}${note?.content || ''}`
+    retVal = true
+    logDebug('ensureFrontmatter', `-> Note '${displayTitle(note)}' converted to use frontmatter.`)
   }
-  logDebug(pluginJson, `ensureFrontmatter returning: ${String(retVal)}`)
+  // logDebug('ensureFrontmatter', `Returning ${String(retVal)}`)
   return retVal
 }
 
@@ -228,7 +310,7 @@ export function ensureFrontmatter(note: CoreNoteFields, title?: string | null): 
  * (helper function) Get the triggers from the frontmatter of a note and separate them by trigger, id, and command name
  * @author @dwertheimer
  * @param {Array<string>} triggersArray - the array of triggers from the frontmatter (e.g. ['onEditorWillSave => np.test.onEditorWillSave', 'onEditorWillSave => plugin.id.commandName', 'onEditorWillSave => plugin.id2.commandName2'])
- * @returns {Object.<TriggerTypes, Array<{pluginID: string, commandName: string}>>
+ * @returns {Object.<TriggerTypes, Array<{pluginID: string, commandName: string}>>}
  */
 export function getTriggersByCommand(triggersArray: Array<string>): any {
   const triggers: any = {}
@@ -249,7 +331,7 @@ export function getTriggersByCommand(triggersArray: Array<string>): any {
 }
 
 /**
- * (helper function) Format list of trigger(s) command(s) as a string to add to frontmatter
+ * (helper function) Format list of trigger(s) command(s) as a single string to add to frontmatter
  * @author @dwertheimer
  * @param {*} triggerObj
  * @returns {string} - the formatted string
@@ -279,7 +361,10 @@ export function formatTriggerString(triggerObj: { [TriggerTypes]: Array<{ plugin
  */
 export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: string, commandName: string): boolean {
   try {
-    if (ensureFrontmatter(note) === false) return false
+    if (ensureFrontmatter(note) === false) {
+      logError('addTrigger', `Failed to convert note '${displayTitle(note)}' to have frontmatter. Stopping.`)
+      return false
+    }
     logDebug(pluginJson, `addTrigger adding metadata`)
     const attributes = getFrontMatterAttributes(note)
     const triggersArray = attributes ? attributes.triggers?.split(',') || [] : []

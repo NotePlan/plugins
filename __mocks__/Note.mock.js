@@ -11,11 +11,11 @@ export class Note {
   // Properties
   backlinks = [] /* sample:  [ SOMETHING ], */
   changedDate = {} /* new Date("Tue Sep 07 2021 06:49:41 GMT-0700 (PDT)"),  */
-  content = 'PLACEHOLDER' // TODO: add value
+  content = 'CONTENT_PLACEHOLDER_FROM_NOTE_MOCK' // TODO: add value
   createdDate = {} /* new Date("Thu Apr 29 2021 13:30:00 GMT-0700 (PDT)"),  */
-  date = 'PLACEHOLDER' // TODO: add value
+  date = 'DATE_PLACEHOLDER_FROM_NOTE_MOCK' // TODO: add value
   datedTodos = [] /* sample:  [ SOMETHING ], */
-  filename = 'PLACEHOLDER' // TODO: add value
+  filename = 'FILENAME_PLACEHOLDER_FROM_NOTE_MOCK' // TODO: add value
   frontmatterTypes = [] /* sample:  [ SOMETHING ], */
   hashtags = [] /* sample:  [ SOMETHING ], */
   linkedItems = [] /* sample:  [ SOMETHING ], */
@@ -38,7 +38,7 @@ export class Note {
  "referencedBlocks": [],
  "note": {}
 } ], */
-  title = 'PLACEHOLDER' // TODO: add value
+  title = 'TITLE_PLACEHOLDER_FROM_NOTE_MOCK' // TODO: add value
   type = 'Notes'
 
   // Methods
@@ -62,7 +62,7 @@ export class Note {
     throw 'Note :: addTodoBelowHeadingTitle Not implemented yet'
   }
   appendParagraph(title: string, type: ParagraphType): void {
-    this.paragraphs.push({ content: title, type })
+    this.paragraphs.push({ content: title, type: type, lineIndex: this.paragraphs.length })
     return
   }
   async appendParagraphBelowHeadingLineIndex() {
@@ -133,7 +133,7 @@ export class Note {
   }
   async prependParagraph(content: string, type: ParagraphType) {
     this.paragraphs = [{ content, type }, ...this.paragraphs]
-    console.log(`JEST Note: note.prependParagraph() called. but .content is approximated but not exactly correct, because it does not add markdown.`)
+    console.log(`JEST Note: note.prependParagraph() called. but .content is approximated but not exactly correct, because it does not add markdown.`) // TODO(@dwertheimer): Is this now correct for .rawContent? And isn't .content set here?
     this.resetLineIndexes()
   }
   async prependTodo() {
