@@ -16,7 +16,7 @@ beforeAll(() => {
   global.Editor = Editor
   global.NotePlan = NotePlan
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 /* Samples:
@@ -147,7 +147,6 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.ensureFrontmatter(note, true, 'bar')
         expect(result).toEqual(true)
       })
-
     })
 
     /*
@@ -304,27 +303,18 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(note.paragraphs[0].content).toEqual(allParas[3].content)
       })
       test('should remove matching field from frontmatter but not separators, converting to Markdown type title', () => {
-        const allParas = [
-          { content: '---' },
-          { content: 'fieldName: value' },
-          { content: 'title: note title' },
-          { content: '---' },
-          { content: '+ checklist 1' }]
+        const allParas = [{ content: '---' }, { content: 'fieldName: value' }, { content: 'title: note title' }, { content: '---' }, { content: '+ checklist 1' }]
         let note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', 'value', true)
         expect(result).toEqual(true)
         expect(note.paragraphs.length).toEqual(4)
-        expect(note.paragraphs[0].content).toEqual(allParas[0].content)  // toEqual(`# note title`) // Note: change back to MD style
+        expect(note.paragraphs[0].content).toEqual(allParas[0].content) // toEqual(`# note title`) // Note: change back to MD style
         expect(note.paragraphs[1].content).toEqual(allParas[2].content)
         expect(note.paragraphs[2].content).toEqual(allParas[3].content)
         expect(note.paragraphs[3].content).toEqual(allParas[4].content)
       })
       test('should remove matching field with no value, but leave other field, and therefore also separators', () => {
-        const allParas = [
-          { content: '---' },
-          { content: 'field_other: value1' },
-          { content: 'fieldName:' },
-          { content: '---' }]
+        const allParas = [{ content: '---' }, { content: 'field_other: value1' }, { content: 'fieldName:' }, { content: '---' }]
         let note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', null, true)
         expect(result).toEqual(true)
@@ -334,11 +324,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(note.paragraphs[2].content).toEqual(allParas[3].content)
       })
       test('should remove matching field (with no value test) with different values from frontmatter but leave other field, and therefore also separators', () => {
-        const allParas = [
-          { content: '---' },
-          { content: 'field_other: value1' },
-          { content: 'fieldName: this is, a, longer "value 1"' },
-          { content: '---' }]
+        const allParas = [{ content: '---' }, { content: 'field_other: value1' }, { content: 'fieldName: this is, a, longer "value 1"' }, { content: '---' }]
         let note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', null, true)
         expect(result).toEqual(true)

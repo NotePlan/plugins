@@ -19,7 +19,9 @@ beforeAll(() => {
   global.NotePlan = NotePlan
   global.console = {
     log: jest.fn(),
+    // eslint-disable-next-line no-console
     debug: console.debug, //these will pass through
+    // eslint-disable-next-line no-console
     trace: console.trace,
     // map other methods that you want to use like console.table
   }
@@ -157,15 +159,22 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         expect(spy).not.toHaveBeenCalled() //inserts nothing
         spy.mockRestore()
       })
-      test('should work with null/default params', () => {
+      test('should work with null/default params and no title', () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
+        const list = ['line1', 'line2']
+        const spy = jest.spyOn(note, 'insertParagraph')
+        mainFile.insertItemsIntoNote(note, list)
+        expect(spy).toHaveBeenCalledWith(list.join('\n'), 0, 'text')
+        spy.mockRestore()
+      })
+      test('should work with null/default params and a title', () => {
+        const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'title1', rawContent: '# title1', headingLevel: 1, type: 'title' })] })
         const list = ['line1', 'line2']
         const spy = jest.spyOn(note, 'insertParagraph')
         mainFile.insertItemsIntoNote(note, list)
         expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text')
         spy.mockRestore()
       })
-
       test('should work with empty heading', () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = ['line1', 'line2']
@@ -173,7 +182,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const config = configFile.getTimeBlockingDefaults()
         const spy = jest.spyOn(note, 'insertParagraph')
         mainFile.insertItemsIntoNote(note, list, heading, false, config)
-        expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text')
+        expect(spy).toHaveBeenCalledWith(list.join('\n'), 0, 'text')
         spy.mockRestore()
       })
       test('should call insert content under heading', () => {
@@ -184,7 +193,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const spy = jest.spyOn(note, 'insertParagraph')
         mainFile.insertItemsIntoNote(note, list, heading, false, config)
         const text = `## ${heading}\n`.concat(list.join('\n')).concat('\n')
-        expect(spy).toHaveBeenCalledWith(text, 1, 'text')
+        expect(spy).toHaveBeenCalledWith(text, 0, 'text')
         spy.mockRestore()
       })
       test('should ignore folding if heading is empty', () => {
@@ -194,7 +203,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const config = configFile.getTimeBlockingDefaults()
         const spy = jest.spyOn(note, 'insertParagraph')
         mainFile.insertItemsIntoNote(note, list, heading, true, config)
-        expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text') //inserts nothing
+        expect(spy).toHaveBeenCalledWith(list.join('\n'), 0, 'text') //inserts nothing
         spy.mockRestore()
       })
       //TODO FIXME: stopped working here:

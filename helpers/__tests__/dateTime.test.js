@@ -13,7 +13,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = new NotePlan()
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`
