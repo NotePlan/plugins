@@ -129,72 +129,145 @@ describe('paragraph.js', () => {
     })
   })
 
-  describe('calcSmartPrependPoint()', () => {
-    const noteA = {
-      type: 'notes',
+  describe('findStartOfActivePartOfNote()', () => {
+    // Note: needs to be created this way to trigger the mock required for the appendParagraph() function
+    let paras = [new Paragraph()]
+    const noteA = new Note({ paras })
+    test('should return 0 (empty note A)', () => {
+      const result = p.findStartOfActivePartOfNote(noteA)
+      expect(result).toEqual(0)
+    })
+
+    // Note: needs to be created this way to trigger the mock required for the appendParagraph() function
+    // TODO(@dwertheimer):, I don't understand why lineIndex needs to be set, for it looks like the note mock covers the setting of these?
+    paras = [new Paragraph({ type: 'title', lineIndex: 0, content: 'NoteB Title', headingLevel: 1 })]
+    const noteB = new Note({ paras })
+    test('should find at line 0 (note B)', () => {
+      const result = p.findStartOfActivePartOfNote(noteB)
+      expect(result).toEqual(0)
+    })
+
+    const noteC = {
       paragraphs: [
-        { type: 'title', lineIndex: 0, content: 'Note title' },
-        { type: 'empty', lineIndex: 1, content: '' },
-        { type: 'text', lineIndex: 2, content: 'First real content' },
-      ],
+        { type: 'title', lineIndex: 0, content: 'NoteC Title', headingLevel: 1 },
+        { type: 'empty', lineIndex: 1 },
+        { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
+      ]
     }
-    test('should return 1 for basic note with title', () => {
-      const result = p.calcSmartPrependPoint(noteA)
+    test('should find at line 1 (note C)', () => {
+      const result = p.findStartOfActivePartOfNote(noteC)
       expect(result).toEqual(1)
     })
-    const noteB = {
-      type: 'notes',
+
+    const noteD = {
       paragraphs: [
-        { type: 'separator', lineIndex: 0, content: '---' },
-        { type: 'text', lineIndex: 1, content: 'title: Note title' },
-        { type: 'text', lineIndex: 2, content: 'field: another' },
-        { type: 'separator', lineIndex: 3, content: '---' },
-        { type: 'empty', lineIndex: 4, content: '' },
-        { type: 'text', lineIndex: 5, content: 'First real content' },
+        { type: 'separator', lineIndex: 0, content: '---', headingLevel: 0 },
+        { type: 'text', lineIndex: 1, content: 'title: NoteD', headingLevel: 0 },
+        { type: 'text', lineIndex: 2, content: 'field: value here', headingLevel: 0 },
+        { type: 'separator', lineIndex: 3, content: '---', headingLevel: 0 },
+        { type: 'title', lineIndex: 4, content: 'Section A heading level 2 ', headingLevel: 2 },
+        { type: 'text', lineIndex: 5, content: 'A note line', headingLevel: 2 },
       ],
     }
-    test('should return 4 for note with frontmatter', () => {
-      const result = p.calcSmartPrependPoint(noteB)
+    test('should find at line 4 (note D)', () => {
+      const result = p.findStartOfActivePartOfNote(noteD)
       expect(result).toEqual(4)
     })
-    const noteC = {
-      type: 'notes',
+    const noteE = {
       paragraphs: [
-        { type: 'title', lineIndex: 0, content: 'Note title' },
-        { type: 'text', lineIndex: 1, content: '#project metadata' },
-        { type: 'empty', lineIndex: 2, content: '' },
-        { type: 'text', lineIndex: 3, content: 'First real content' },
+        { type: 'separator', lineIndex: 0, content: '---', headingLevel: 0 },
+        { type: 'text', lineIndex: 1, content: 'title: NoteD', headingLevel: 0 },
+        { type: 'text', lineIndex: 2, content: 'field: value here', headingLevel: 0 },
+        { type: 'separator', lineIndex: 3, content: '---', headingLevel: 0 },
+        { type: 'text', lineIndex: 4, content: '#metadata line', headingLevel: 2 },
+        { type: 'empty', lineIndex: 5 },
+        { type: 'text', lineIndex: 6, content: 'A note line', headingLevel: 2 },
       ],
     }
-    test('should return 3 for basic note with title, metadata and blank line', () => {
-      const result = p.calcSmartPrependPoint(noteC)
-      expect(result).toEqual(3)
+    test('should find at line 5 after metadata line (note E)', () => {
+      const result = p.findStartOfActivePartOfNote(noteE)
+      expect(result).toEqual(5)
     })
-    const noteE = {
-      type: 'Calendar',
-      paragraphs: [{ type: 'empty', lineIndex: 0, content: '' }],
-    }
-    test('should return 0 for single empty para', () => {
-      const result = p.calcSmartPrependPoint(noteE)
-      expect(result).toEqual(0)
-    })
+
     const noteF = {
-      type: 'Calendar',
-      paragraphs: [{ type: 'text', lineIndex: 0, content: 'Single line only' }],
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'NoteC Title', headingLevel: 1 },
+        { type: 'text', lineIndex: 1, content: '#metadata line', headingLevel: 2 },
+        { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
+      ],
     }
-    test('should return 0 for single text para', () => {
-      const result = p.calcSmartPrependPoint(noteF)
-      expect(result).toEqual(0)
-    })
-    const noteG = {
-      type: 'Calendar',
-      paragraphs: [],
-    }
-    test('should return 0 for no paras at all', () => {
-      const result = p.calcSmartPrependPoint(noteG)
-      expect(result).toEqual(0)
+    test('should find at line 2 after metadata line (note F)', () => {
+      const result = p.findStartOfActivePartOfNote(noteF)
+      expect(result).toEqual(2)
     })
   })
+
+  // describe('calcSmartPrependPoint()', () => {
+  //   const noteA = {
+  //     type: 'notes',
+  //     paragraphs: [
+  //       { type: 'title', lineIndex: 0, content: 'Note title' },
+  //       { type: 'empty', lineIndex: 1, content: '' },
+  //       { type: 'text', lineIndex: 2, content: 'First real content' },
+  //     ],
+  //   }
+  //   test('should return 1 for basic note with title', () => {
+  //     const result = p.calcSmartPrependPoint(noteA)
+  //     expect(result).toEqual(1)
+  //   })
+  //   const noteB = {
+  //     type: 'notes',
+  //     paragraphs: [
+  //       { type: 'separator', lineIndex: 0, content: '---' },
+  //       { type: 'text', lineIndex: 1, content: 'title: Note title' },
+  //       { type: 'text', lineIndex: 2, content: 'field: another' },
+  //       { type: 'separator', lineIndex: 3, content: '---' },
+  //       { type: 'empty', lineIndex: 4, content: '' },
+  //       { type: 'text', lineIndex: 5, content: 'First real content' },
+  //     ],
+  //   }
+  //   test('should return 4 for note with frontmatter', () => {
+  //     const result = p.calcSmartPrependPoint(noteB)
+  //     expect(result).toEqual(4)
+  //   })
+  //   const noteC = {
+  //     type: 'notes',
+  //     paragraphs: [
+  //       { type: 'title', lineIndex: 0, content: 'Note title' },
+  //       { type: 'text', lineIndex: 1, content: '#project metadata' },
+  //       { type: 'empty', lineIndex: 2, content: '' },
+  //       { type: 'text', lineIndex: 3, content: 'First real content' },
+  //     ],
+  //   }
+  //   test('should return 3 for basic note with title, metadata and blank line', () => {
+  //     const result = p.calcSmartPrependPoint(noteC)
+  //     expect(result).toEqual(3)
+  //   })
+  //   const noteE = {
+  //     type: 'Calendar',
+  //     paragraphs: [{ type: 'empty', lineIndex: 0, content: '' }],
+  //   }
+  //   test('should return 0 for single empty para', () => {
+  //     const result = p.calcSmartPrependPoint(noteE)
+  //     expect(result).toEqual(0)
+  //   })
+  //   const noteF = {
+  //     type: 'Calendar',
+  //     paragraphs: [{ type: 'text', lineIndex: 0, content: 'Single line only' }],
+  //   }
+  //   test('should return 0 for single text para', () => {
+  //     const result = p.calcSmartPrependPoint(noteF)
+  //     expect(result).toEqual(0)
+  //   })
+  //   const noteG = {
+  //     type: 'Calendar',
+  //     paragraphs: [],
+  //   }
+  //   test('should return 0 for no paras at all', () => {
+  //     const result = p.calcSmartPrependPoint(noteG)
+  //     expect(result).toEqual(0)
+  //   })
+  // })
 
   describe('findStartOfActivePartOfNote()', () => {
     // Note: needs to be created this way to trigger the mock required for the appendParagraph() function

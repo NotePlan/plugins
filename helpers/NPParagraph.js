@@ -713,7 +713,7 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
  * @author @dwertheimer
  */
 export function insertParagraph(note: TNote, content: string, index: number | null = null, type: ParagraphType = 'text'): void {
-  const insertionIndex = index ?? calcSmartPrependPoint(note)
+  const insertionIndex = index ?? findStartOfActivePartOfNote(note)
   logDebug(pluginJson, `insertParagraph -> top of note "${note.title || ''}", line ${insertionIndex}`)
   note.insertParagraph(content, insertionIndex, type)
 }
