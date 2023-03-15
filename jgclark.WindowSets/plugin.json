@@ -1,0 +1,82 @@
+{
+  "noteplan.minAppVersion": "3.8.1",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "jgclark.WindowSets",
+  "plugin.name": "🖥️ Window Sets",
+  "plugin.description": "Allows you to save particular window sets or layouts on macOS.",
+  "plugin.icon": "",
+  "plugin.author": "Jonathan Clark",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/CHANGELOG.md",
+  "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "v0.1: First version.",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.isRemote": "false",
+  "plugin.commands": [
+    {
+      "name": "open window set",
+      "alias": [
+        "ows",
+        "window",
+        "set"
+      ],
+      "description": "Open a saved set of windows/panes",
+      "jsFunction": "openWindowSet"
+    },
+    {
+      "name": "save window set",
+      "alias": [
+        "sws",
+        "window",
+        "set"
+      ],
+      "description": "Save the current windows/panes as a layout set",
+      "jsFunction": "saveWindowSet"
+    },
+    {
+      "name": "Log current window sets",
+      "alias": [
+        "lws"
+      ],
+      "description": "Log my available windows sets",
+      "jsFunction": "logWindowSets"
+    },
+    {
+      "name": "Log current windows list",
+      "alias": [
+        "lwl"
+      ],
+      "description": "Log list of currently-open windows/panes",
+      "jsFunction": "logWindowsList"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Windows Sets settings"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Tidy commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}

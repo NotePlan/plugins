@@ -30,7 +30,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 ## [0.9.1] - 2023-02-24
 ### Fixed
-- wasn't showing projects due for review today in 'Start Reviews'
+- wasn't showing projects due for review today in 'Start Reviews' (thanks to report by @dbr and @Hanideal)
 
 ## [0.9.0] - 2023-02-23
 ### Added

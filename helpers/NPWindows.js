@@ -33,20 +33,20 @@ export function logWindowsList(): void {
 }
 
 /**
- * Set customID for the (single) HTML window
+ * Set customId for the (single) HTML window
  * Note: In time, this will be removed, when @EduardMe rolls it into .showWindow() API
  * @author @jgclark
- * @param {string} customID
+ * @param {string} customId
  */
-export function setHTMLWindowID(customID: string): void {
+export function setHTMLWindowID(customId: string): void {
   if (NotePlan.environment.buildVersion >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
     const thisWindow = allHTMLWindows[0]
     if (thisWindow) {
-      thisWindow.customId = customID
+      thisWindow.customId = customId
       logWindowsList()
     } else {
-      logError('setHTMLWindowID', `Couldn't set customID '${customID}' for HTML window`)
+      logError('setHTMLWindowID', `Couldn't set customId '${customId}' for HTML window`)
     }
   } else {
     logInfo('setHTMLWindowID', `(Cannot set window title as not running v3.8.1 or later)`)
@@ -54,18 +54,18 @@ export function setHTMLWindowID(customID: string): void {
 }
 
 /**
- * Is a given HTML window open? Tests by doing a case-insensitive-starts-with match using the supplied customID string.
+ * Is a given HTML window open? Tests by doing a case-insensitive-starts-with match using the supplied customId string.
  * @author @jgclark
- * @param {string} customID to look for
+ * @param {string} customId to look for
  * @returns {boolean}
  */
-export function isHTMLWindowOpen(customID: string): boolean {
+export function isHTMLWindowOpen(customId: string): boolean {
   if (NotePlan.environment.buildVersion >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
     for (const thisWin of NotePlan.editors) {
-      if (caseInsensitiveStartsWith(customID, thisWin.customID)) {
-        thisWin.customId = customID
-        logDebug('isHTMLWindowOpen', `Found window '${thisWin.customID}' matching requested customID '${customID}'`)
+      if (caseInsensitiveStartsWith(customId, thisWin.customId)) {
+        thisWin.customId = customId
+        logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customId '${customId}'`)
         return true
       }
     }
@@ -76,24 +76,24 @@ export function isHTMLWindowOpen(customID: string): boolean {
 }
 
 /**
- * Set customID for the given Editor window
+ * Set customId for the given Editor window
  * Note: Hopefully in time, this will be removed, when @EduardMe rolls it into an API call
  * @author @jgclark
- * @param {string} openNoteFilename, i.e. note that is open in an Editor that we're trying to set customID for
- * @param {string} customID 
+ * @param {string} openNoteFilename, i.e. note that is open in an Editor that we're trying to set customId for
+ * @param {string} customId 
  */
-export function setEditorWindowID(openNoteFilename: string, customID: string): void {
+export function setEditorWindowID(openNoteFilename: string, customId: string): void {
   if (NotePlan.environment.buildVersion >= 973) {
     const allEditorWindows = NotePlan.editors
     for (const thisEditorWindow of allEditorWindows) {
       if (thisEditorWindow.filename === openNoteFilename) {
-        thisEditorWindow.customId = customID
-        logDebug('setEditorWindowID', `Set customID '${customID}' for filename ${openNoteFilename}`)
+        thisEditorWindow.customId = customId
+        logDebug('setEditorWindowID', `Set customId '${customId}' for filename ${openNoteFilename}`)
         // logWindowsList()
         return
       }
     }
-    logError('setEditorWindowID', `Couldn't match '${openNoteFilename}' to an Editor window, so can't set customID '${customID}' for Editor`)
+    logError('setEditorWindowID', `Couldn't match '${openNoteFilename}' to an Editor window, so can't set customId '${customId}' for Editor`)
   } else {
     logInfo('setEditorWindowID', `Cannot set window title as not running v3.8.1 or later`)
   }
@@ -141,24 +141,24 @@ export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | f
 }
 
 /**
- * If the customID matches an open HTML window, then simply focus it, and return true.
+ * If the customId matches an open HTML window, then simply focus it, and return true.
  * FIXME(EduardMe): currently (b983) not working as expected, as HTML entities appear not to be deleted when they should be.
- * @param {string} customID
+ * @param {string} customId
  * @returns {boolean} true if we have given focus to an existing window
  */
-export function focusHTMLWindowIfAvailable(customID: string): boolean {
+export function focusHTMLWindowIfAvailable(customId: string): boolean {
   if (NotePlan.environment.buildVersion >= 973) {
     // TODO: until Eduard fixes this, always return false
     logInfo('focusHTMLWindowIfAvailable', `(Currently no check run as there's an API bug.)`)
     // const allHTMLWindows = NotePlan.htmlWindows
     // for (const thisWindow of allHTMLWindows) {
-    //   if (thisWindow.customId === customID) {
+    //   if (thisWindow.customId === customId) {
     //     thisWindow.focus()
     //     logInfo('focusHTMLWindowIfAvailable', `Focused HTML window '${thisWindow.customId}'`)
     //     return true
     //   }
     // }
-    // logInfo('focusHTMLWindowIfAvailable', `No HTML window with '${customID}' is open`)
+    // logInfo('focusHTMLWindowIfAvailable', `No HTML window with '${customId}' is open`)
   } else {
     logInfo('focusHTMLWindowIfAvailable', `(Cannot find window Ids as not running v3.8.1 or later)`)
   }
