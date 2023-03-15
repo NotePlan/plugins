@@ -1,5 +1,5 @@
 /* globals describe, expect, test, beforeAll */
-import colors from 'chalk'
+// import colors from 'chalk'
 import /* differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, */ 'date-fns'
 import * as tb from '../src/timeblocking-helpers'
 import { getTasksByType } from '@helpers/sorting'
@@ -19,7 +19,7 @@ beforeAll(() => {
 })
 
 const PLUGIN_NAME = `dwertheimer.EventAutomations`
-const section = colors.blue
+// const section = colors.blue
 
 const config = {
   todoChar: '*' /* character at the front of a timeblock line - can be *,-,or a heading, e.g. #### */,

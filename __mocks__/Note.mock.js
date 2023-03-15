@@ -1,5 +1,5 @@
 /* eslint-disable */
-
+import { logDebug } from '../helpers/dev'
 /*
  * Note mock class
  *
@@ -133,7 +133,7 @@ export class Note {
   }
   async prependParagraph(content: string, type: ParagraphType) {
     this.paragraphs = [{ content, type }, ...this.paragraphs]
-    console.log(`JEST Note: note.prependParagraph() called. but .content is approximated but not exactly correct, because it does not add markdown.`) // TODO(@dwertheimer): Is this now correct for .rawContent? And isn't .content set here?
+    logDebug(`JEST Note: note.prependParagraph() called. but .content is approximated but not exactly correct, because it does not add markdown.`) // TODO(@dwertheimer): Is this now correct for .rawContent? And isn't .content set here?
     this.resetLineIndexes()
   }
   async prependTodo() {

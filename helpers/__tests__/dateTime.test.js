@@ -3,10 +3,12 @@
 // Last updated: 23.11.2022 by @jgclark
 
 import colors from 'chalk'
+import { CustomConsole } from '@jest/console' // see note below
 import * as dt from '../dateTime'
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /*, Note, Paragraph */ } from '@mocks/index'
 
 beforeAll(() => {
+  global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
   global.Calendar = Calendar
   global.Clipboard = Clipboard
   global.CommandBar = CommandBar

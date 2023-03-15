@@ -1,8 +1,14 @@
 // Jest testing docs: https://jestjs.io/docs/using-matchers
-/* global describe, expect, test  */
-
+/* global describe, expect, test, beforeAll  */
+import { CustomConsole } from '@jest/console' // see note below
 import * as helpers from '../src/support/helpers'
+import { simpleFormatter, DataStore /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
+beforeAll(() => {
+  global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
+  global.DataStore = DataStore
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
+})
 describe('shared.AI' /* pluginID */, () => {
   describe('helpers' /* file */, () => {
     describe('calculateCost' /* function */, () => {

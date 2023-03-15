@@ -1,9 +1,18 @@
-/* global describe, expect, test */
+/* global describe, expect, test, beforeAll */
 import colors from 'chalk'
+import { CustomConsole } from '@jest/console' // see note below
 import * as sc from '../syncedCopies'
+import { DataStore, CommandBar, simpleFormatter } from '@mocks/index' //had to skip all the tests because the DataStore __json needs to be figured out
 
 const FILE = `helpers/syncedCopies`
 const section = colors.blue
+
+beforeAll(() => {
+  global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
+  DataStore.settings['logLevel'] = 'none' // change to DEBUG to see more console output during test runs
+  global.DataStore = DataStore // so we see DEBUG logs in VSCode Jest debugs
+  global.CommandBar = CommandBar
+})
 
 describe(`${FILE}`, () => {
   describe(section('textWithoutSyncedCopyTag'), () => {

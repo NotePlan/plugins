@@ -24,11 +24,13 @@ export const RE_BARE_DATE_CAPTURE = `[^\d(<\/-](${RE_DATE})` // capturing date i
 export const RE_FILE_EXTENSIONS_GROUP = `\\.(md|txt)$` // and tie to end of string
 export const RE_NP_DAY_SPEC = RE_ISO_DATE
 export const RE_DAILY_NOTE_FILENAME = `(^|\\/)${RE_YYYYMMDD_DATE}${RE_FILE_EXTENSIONS_GROUP}`
+export const RE_SCHEDULED_DAILY_NOTE_LINK: RegExp = /\s+>\d{4}-[01]\d-[0123]\d/ // find ' >RE_DATE'
 
 // Week regexes
 export const RE_NP_WEEK_SPEC = '\\d{4}\\-W[0-5]\\d' // find dates of form YYYY-Wnn
 export const WEEK_NOTE_LINK = `[\<\>]${RE_NP_WEEK_SPEC}`
-export const SCHEDULED_WEEK_NOTE_LINK = `>${RE_NP_WEEK_SPEC}`
+export const SCHEDULED_WEEK_NOTE_LINK = '\\s+>\\d{4}\\-W[0-5]\\d'
+export const RE_SCHEDULED_WEEK_NOTE_LINK: RegExp = /\s+>\d{4}\-W[0-5]\d/ // find ' RE_NP_WEEK_SPEC'
 export const RE_WEEKLY_NOTE_FILENAME = `(^|\\/)${RE_NP_WEEK_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 export const RE_BARE_WEEKLY_DATE = `[^\d(<\/-]${RE_NP_WEEK_SPEC}` // a YYYY-Www date without a digit or ( or < or / or - before it. Note: > is allowed.
 export const RE_BARE_WEEKLY_DATE_CAPTURE = `[^\d(<\/-](${RE_NP_WEEK_SPEC})` // capturing date in above
@@ -133,7 +135,7 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
       .replace(RE_PLUS_DATE, '')
       .replace('>today', '')
       .replace(new RegExp(RE_SCHEDULED_ISO_DATE), '')
-      .replace(new RegExp(SCHEDULED_WEEK_NOTE_LINK), '')
+      .replace(RE_SCHEDULED_WEEK_NOTE_LINK, '')
       .replace(new RegExp(SCHEDULED_MONTH_NOTE_LINK), '')
       .replace(new RegExp(SCHEDULED_QUARTERLY_NOTE_LINK), '')
       .replace(new RegExp(SCHEDULED_YEARLY_NOTE_LINK), '')
@@ -483,7 +485,6 @@ export function relativeDateFromNumber(diffIn: number, useShortStyle: boolean = 
   // logDebug('dateTime / relativeDateFromNumber', `--> ${output}`)
   return output
 }
-
 
 /**
  * Turn a string that includes YYYY-MM-DD into a JS Date.
@@ -839,7 +840,7 @@ export function calcOffsetDateStr(baseDateISO: string, interval: string): string
 export function includesScheduledFutureDate(line: string): boolean {
   const m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
   if (m.length > 0) {
-    const ISODateFromMatch = m[0].slice(1)  // need to remove leading '>'
+    const ISODateFromMatch = m[0].slice(1) // need to remove leading '>'
     return ISODateFromMatch > todaysDateISOString
   } else {
     return false

@@ -7,11 +7,6 @@ import {
   hyphenatedDateString,
   WEEK_NOTE_LINK,
   SCHEDULED_WEEK_NOTE_LINK,
-  RE_DATE,
-  RE_NP_WEEK_SPEC,
-  RE_NP_MONTH_SPEC,
-  RE_NP_QUARTER_SPEC,
-  RE_NP_YEAR_SPEC,
   RE_SCHEDULED_ISO_DATE,
   SCHEDULED_QUARTERLY_NOTE_LINK,
   SCHEDULED_MONTH_NOTE_LINK,
@@ -26,8 +21,6 @@ import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from '
 import { getNoteType } from '@helpers/note'
 
 const pluginJson = 'NPParagraph'
-
-
 
 /**
  * Remove all headings (type=='title') from a note matching the given text
@@ -574,10 +567,10 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
       return note.paragraphs[0]
     }
     logDebug(pluginJson, `getParagraphContainingPosition: *** Looking for cursor position ${position}`)
-    note.paragraphs.forEach((p, i) => {
-      const { start, end } = p.contentRange || {}
-      // logDebug(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
-    })
+    // note.paragraphs.forEach((p, i) => {
+    //   const { start, end } = p.contentRange || {}
+    //   // logDebug(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
+    // })
     logDebug(pluginJson, `getParagraphContainingPosition: *** position ${position} not found`)
   }
   return foundParagraph
@@ -836,11 +829,12 @@ export function testForOverdue(
   type: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Quarterly',
 ): boolean | OverdueDetails {
   const reMATCHLINK = new RegExp(regexString, 'g')
-  const links = para.content.match(reMATCHLINK) || []
+  let links = para.content.match(reMATCHLINK) || []
   const todayString = todayRelevantFilename // .replace(`.${DataStore.defaultFileExtension}`, '')
   let overdueLinks = [],
     notOverdueLinks = []
   if (links && links?.length > 0) {
+    links = links.map((link) => link.trim())
     overdueLinks = links.filter((link) => link.slice(1) < todayString)
     notOverdueLinks = links.filter((link) => link.slice(1) >= todayString)
   }
@@ -952,7 +946,7 @@ export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false):
     const typeNames = ['Daily', `Weekly`, `Monthly`, `Quarterly`, `Yearly`]
     const typeFuncs = [hasOverdueDayTag, hasOverdueWeekTag, hasOverdueMonthTag, hasOverdueQuarterTag, hasOverdueYearTag]
     for (let i = 0; i < typeNames.length; i++) {
-      const type = typeNames[i]
+      // const type = typeNames[i]
       const result = typeFuncs[i](para, true)
       if (result && result.isOverdue) {
         return result
@@ -1094,12 +1088,13 @@ export function getDaysTilDue(paragraph: TParagraph, toISODate: string = getToda
           //FIXME: this needs to deal with positive and negatives. right now
           // only doing overdue
           daysOverdue = diffDays > 0 ? Math.ceil(diffDays) : Math.floor(diffDays) // round fractional days up
-          console.log(`paragraphDate:${String(data.endDate)} - ${toISODate} (today) daysOverdue: moment: ${daysOverdue} vs ${daysUsingDates} using dates`)
+          logDebug(`paragraphDate:${String(data.endDate)} - ${toISODate} (today) daysOverdue: moment: ${daysOverdue} vs ${daysUsingDates} using dates`)
           // if (data !== null && data.endDate) daysOverdue = data ? moment(toISODate, 'YYYY-MM-DD').diff(moment(data.endDate), 'days') : 0
         }
       }
     }
   }
+  // eslint-disable-next-line no-compare-neg-zero
   return daysOverdue === -0 ? 0 : daysOverdue //weird -0 JS!
 }
 
@@ -1217,7 +1212,7 @@ export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragra
     return null
   } else {
     // no matches
-    const p = paragraphDataToFind
+    // const p = paragraphDataToFind
     logDebug(pluginJson, `findParagraph: found no paragraphs in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind)}`)
     // logDebug(`\n**** Looking for "${p[fieldsToMatch[0]]}" "${p[fieldsToMatch[1]]}" in the following list`)
     //$FlowIgnore
@@ -1263,7 +1258,7 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
  * The static object that's passed in must have at least the following TParagraph-type fields populated: filename, rawContent.
  * Note: Assumes the right note is already open.
  * @author @jgclark
- * @param {string} rawContentToFind 
+ * @param {string} rawContentToFind
  * @results {boolean}
  */
 export function highlightParagraphInEditor(objectToTest: any): boolean {
@@ -1279,8 +1274,7 @@ export function highlightParagraphInEditor(objectToTest: any): boolean {
       logWarn(pluginJson, `Sorry, couldn't find paragraph with rawContent <${objectToTest.rawContent}> to highlight in open note`)
       return false
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, JSP(error))
     return false
   }

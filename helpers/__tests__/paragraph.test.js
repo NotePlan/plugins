@@ -10,7 +10,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
 })
 
 beforeEach(() => {
@@ -81,11 +81,17 @@ describe('paragraph.js', () => {
       expect(result).toEqual(false)
     })
     test('should match term #test in string with multiple URIs that contain it', () => {
-      const result = p.isTermInURL('#term', 'The [`test do`](https://rubydoc.brew.sh/Formula#test-class_method) block automatically creates and changes to a temporary directory which is deleted after run. You can access this [`Pathname`](https://rubydoc.brew.sh/Pathname) with the [`testpath`](https://rubydoc.brew.sh/Formula#testpath-instance_method) function. The environment variable `HOME` is set to [`testpath`](https://rubydoc.brew.sh/Formula#testpath-instance_method) within the [`test do`](https://rubydoc.brew.sh/Formula#test-class_method) block.')
+      const result = p.isTermInURL(
+        '#term',
+        'The [`test do`](https://rubydoc.brew.sh/Formula#test-class_method) block automatically creates and changes to a temporary directory which is deleted after run. You can access this [`Pathname`](https://rubydoc.brew.sh/Pathname) with the [`testpath`](https://rubydoc.brew.sh/Formula#testpath-instance_method) function. The environment variable `HOME` is set to [`testpath`](https://rubydoc.brew.sh/Formula#testpath-instance_method) within the [`test do`](https://rubydoc.brew.sh/Formula#test-class_method) block.',
+      )
       expect(result).toEqual(true)
     })
     test('should match term #test in string with one URI that contains it our of several URIs', () => {
-      const result = p.isTermInURL('#term', 'The [do](https://rubydoc.brew.sh/Formula-test-class_method) block automatically creates and changes to a temporary directory which is deleted after run. You can access this [Pathname](https://rubydoc.brew.sh/Pathname) with the [`testpath`](https://rubydoc.brew.sh/Formula-#test-path-instance_method) function. The environment variable `HOME` is set to [`testpath`](https://rubydoc.brew.sh/Formula#testpath-instance_method) within the [do](https://rubydoc.brew.sh/Formula-test-class_method) block.')
+      const result = p.isTermInURL(
+        '#term',
+        'The [do](https://rubydoc.brew.sh/Formula-test-class_method) block automatically creates and changes to a temporary directory which is deleted after run. You can access this [Pathname](https://rubydoc.brew.sh/Pathname) with the [`testpath`](https://rubydoc.brew.sh/Formula-#test-path-instance_method) function. The environment variable `HOME` is set to [`testpath`](https://rubydoc.brew.sh/Formula#testpath-instance_method) within the [do](https://rubydoc.brew.sh/Formula-test-class_method) block.',
+      )
       expect(result).toEqual(true)
     })
   })
@@ -152,7 +158,7 @@ describe('paragraph.js', () => {
         { type: 'title', lineIndex: 0, content: 'NoteC Title', headingLevel: 1 },
         { type: 'empty', lineIndex: 1 },
         { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
-      ]
+      ],
     }
     test('should find at line 1 (note C)', () => {
       const result = p.findStartOfActivePartOfNote(noteC)
@@ -292,7 +298,7 @@ describe('paragraph.js', () => {
         { type: 'title', lineIndex: 0, content: 'NoteC Title', headingLevel: 1 },
         { type: 'empty', lineIndex: 1 },
         { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
-      ]
+      ],
     }
     test('should find at line 1 (note C)', () => {
       const result = p.findStartOfActivePartOfNote(noteC)

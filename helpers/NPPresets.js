@@ -1,6 +1,6 @@
 // @flow
 
-const pluginJson = 'helpers/NPPresets'
+// const pluginJson = 'helpers/NPPresets'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getPluginJson, savePluginJson } from '@helpers/NPConfiguration'
 import { chooseOption, showMessage } from '@helpers/userInput'
@@ -75,7 +75,7 @@ And passes it through to the callback passed (themePresetChosen in above example
  * Show Users a list of command names and return the chosen command's jsFunction
  * @param {object} pluginJson - the entire settings object for a plugin
  * @param {?string} msg - to display to user
-  * @param {?boolean} showHiddenValueOf - show commands that have a hidden field of true|false (leave blank for both)
+ * @param {?boolean} showHiddenValueOf - show commands that have a hidden field of true|false (leave blank for both)
  * @returns {string | false} - jsFunction string of command chosen or false
  * @author @dwertheimer
  */
@@ -196,7 +196,7 @@ export async function rememberPresetsAfterInstall(pluginJson: any): Promise<void
   for (let index = 0; index < keys.length; index++) {
     const key = keys[index]
     if (key.includes('runPreset')) {
-      log(pluginJson, `rememberPresetsAfterInstall: ${key}=${JSP(settings[key])}`)
+      logDebug(pluginJson, `rememberPresetsAfterInstall: ${key}=${JSP(settings[key])}`)
       const value =
         typeof settings[key] === 'string'
           ? {
