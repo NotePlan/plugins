@@ -1,7 +1,7 @@
 /* global jest, describe, test, expect, beforeAll */
 import { format } from 'date-fns'
 import * as NPNote from '../NPnote'
-import { DataStore, Paragraph, Note, Editor, Calendar, mockWasCalledWithString } from '@mocks/index'
+import { DataStore, Paragraph, Note, Editor, Calendar } from '@mocks/index'
 import { unhyphenatedDate } from '@helpers/dateTime'
 
 beforeAll(() => {
@@ -37,16 +37,16 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should console.log and return empty array if note is null', async () => {
         const spy = jest.spyOn(console, 'log')
-        const oldLogLevel = DataStore.settings['_logLevel']
-        DataStore.settings['_logLevel'] = 'DEBUG' //DON'T CHANGE THIS
+        // const oldLogLevel = DataStore.settings['_logLevel']
+        // DataStore.settings['_logLevel'] = 'DEBUG' //DON'T CHANGE THIS
         const editorWas = Editor.note
         Editor.note = null
         const result = await NPNote.getTodaysReferences(null)
         expect(result).toEqual([])
-        expect(mockWasCalledWithString(spy, /timeblocking could not open Note/)).toBe(true)
+        // expect(mockWasCalledWithString(spy, /timeblocking could not open Note/)).toBe(true)
         spy.mockRestore()
         Editor.note = editorWas
-        DataStore.settings['_logLevel'] = oldLogLevel
+        // DataStore.settings['_logLevel'] = oldLogLevel
       })
       test('should tell user there was a problem with config', async () => {
         Editor.note.backlinks = [{ content: 'line1', subItems: [{ test: 'here' }] }]

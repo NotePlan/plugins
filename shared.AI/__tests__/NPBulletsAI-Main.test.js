@@ -1,6 +1,7 @@
-/* global jest, describe, test, expect, beforeAll */
-import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
-import * as f from '../src/BulletsAI-Main'
+/* global describe, test, expect, beforeAll */
+// jest test
+import { CustomConsole } from '@jest/console' // see note below
+// import * as f from '../src/BulletsAI-Main'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
 const PLUGIN_NAME = `shared.AI`
@@ -35,7 +36,14 @@ import { mockWasCalledWith } from '@mocks/mockHelpers'
 
 describe(`${PLUGIN_NAME}`, () => {
   describe(`${FILENAME}`, () => {
-    expect(true).toEqual(true) // this is just a placeholder
+    /*
+     * placeholder()
+     */
+    describe('placeholder()' /* function */, () => {
+      test('should do nothing!', () => {
+        expect(true).toEqual(true) // this is just a placeholder
+      })
+    })
     //functions go here using jfunc command
   })
 })

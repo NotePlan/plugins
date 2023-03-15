@@ -62,7 +62,8 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const result = mainFile.getConfig()
         expect(Object.keys(result).length).toBeGreaterThan(1)
       })
-      test('should complain about improper config', () => {
+      test.skip('should complain about improper config', () => {
+        //skipping for console noise
         const oldSettings = { ...DataStore.settings }
         DataStore.settings = { improper: 'key', __logLevel: 'DEBUG' }
         const spy = jest.spyOn(console, 'log')

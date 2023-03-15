@@ -1,8 +1,16 @@
-/* global describe, expect, test */
+/* global describe, expect, test, beforeAll */
+import { CustomConsole } from '@jest/console' // see note below
 import * as s from '../search'
 
-describe('search.js tests', () => {
+import { simpleFormatter, DataStore /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
+beforeAll(() => {
+  global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
+  global.DataStore = DataStore
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
+})
+
+describe('search.js tests', () => {
   describe('caseInsensitiveMatch', () => {
     test('should not match ABC to ABCDEFG', () => {
       const result = s.caseInsensitiveMatch('ABC', 'ABCDEFG')
@@ -133,7 +141,7 @@ describe('search.js tests', () => {
       const output = s.simplifyRawContent('^abc123 > blockID line ^d4w2g7')
       expect(output).toEqual('> blockID line')
     })
-    test('don\'t remove: invalid blockID', () => {
+    test("don't remove: invalid blockID", () => {
       const output = s.simplifyRawContent('this is invalid ^abc1234 ok?')
       expect(output).toEqual('this is invalid ^abc1234 ok?')
     })
@@ -221,7 +229,7 @@ describe('search.js tests', () => {
   /**
    * This will be rather fiddly to test fully, but here's some to get started.
    * Will not test inside of URIs or [MD](links) because if present they're not significant.
-  */
+   */
   describe('trimAndHighlightTermInLine()', () => {
     test('should return same as input (no maxChars)', () => {
       const output = s.trimAndHighlightTermInLine('Something in [tennis title](http://www.random-rubbish.org/)', ['tennis'], false, false, '- ')
@@ -260,37 +268,67 @@ describe('search.js tests', () => {
       expect(output).toEqual("- There's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!")
     })
     test('should return highlights from 2 different consecutive terms', () => {
-      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['tempor', 'eiusmod'], true, true, '- ', 100)
-      expect(output).toEqual("- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do ==eiusmod== ==tempor== incididunt")
+      const output = s.trimAndHighlightTermInLine(
+        'Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt',
+        ['tempor', 'eiusmod'],
+        true,
+        true,
+        '- ',
+        100,
+      )
+      expect(output).toEqual('- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do ==eiusmod== ==tempor== incididunt')
     })
     test('should return 1 highlight and end trimmng, as simplifying', () => {
-      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], true, false, '- ', 86)
-      expect(output).toEqual("- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod ...")
+      const output = s.trimAndHighlightTermInLine('Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt', ['sed'], true, false, '- ', 86)
+      expect(output).toEqual('- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod ...')
     })
     test('should return 1 highlight and front and end trimming, as simplifying', () => {
-      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], true, false, '- ', 70)
-      expect(output).toEqual("- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed ...")
+      const output = s.trimAndHighlightTermInLine('Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt', ['sed'], true, false, '- ', 70)
+      expect(output).toEqual('- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed ...')
     })
     test('should return 1 highlight and no shortening (as no simplication)', () => {
-      const output = s.trimAndHighlightTermInLine("  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], false, false, '- ', 70)
-      expect(output).toEqual("  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt")
+      const output = s.trimAndHighlightTermInLine(
+        '  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt',
+        ['sed'],
+        false,
+        false,
+        '- ',
+        70,
+      )
+      expect(output).toEqual('  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt')
     })
     test('should return 1 highlight and front and end trimming + simplify to set prefix -', () => {
-      const output = s.trimAndHighlightTermInLine("  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], true, false, '- ', 70)
-      expect(output).toEqual("- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed ...")
+      const output = s.trimAndHighlightTermInLine(
+        '  * [x] Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt',
+        ['sed'],
+        true,
+        false,
+        '- ',
+        70,
+      )
+      expect(output).toEqual('- Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed ...')
     })
     test('should return 1 new highlight but not add extra to existing highlit term', () => {
-      const output = s.trimAndHighlightTermInLine("Should add highlight to tennis, but not to this existing one: ==tennis==", ['tennis'], true, true, '- ')
-      expect(output).toEqual("- Should add highlight to ==tennis==, but not to this existing one: ==tennis==")
+      const output = s.trimAndHighlightTermInLine('Should add highlight to tennis, but not to this existing one: ==tennis==', ['tennis'], true, true, '- ')
+      expect(output).toEqual('- Should add highlight to ==tennis==, but not to this existing one: ==tennis==')
     })
     test('specific case that was returning just a bullet', () => {
-      const output = s.trimAndHighlightTermInLine("- Kate's #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to Holy Spirit", ['Holy', 'Spirit'], false, true, '- ', 200)
-      expect(output).toEqual("- Kate's #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to ==Holy== ==Spirit==")
+      const output = s.trimAndHighlightTermInLine(
+        "- Kate's #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to Holy Spirit",
+        ['Holy', 'Spirit'],
+        false,
+        true,
+        '- ',
+        200,
+      )
+      expect(output).toEqual(
+        "- Kate's #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to ==Holy== ==Spirit==",
+      )
     })
     // TODO: Ran out of energy to do the detail on this ...
     test.skip('should return 1 highlight and front and end trimming', () => {
-      const output = s.trimAndHighlightTermInLine("Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt", ['sed'], true, true, '- ', 48)
-      expect(output).toEqual("- ... ipsum dolor sit amet, ==sed== consectetur adipisicing elit, ...")
+      const output = s.trimAndHighlightTermInLine('Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt', ['sed'], true, true, '- ', 48)
+      expect(output).toEqual('- ... ipsum dolor sit amet, ==sed== consectetur adipisicing elit, ...')
     })
   })
 })

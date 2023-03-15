@@ -1,4 +1,6 @@
 /* eslint-disable */
+import { CustomConsole } from '@jest/console' // see note below
+import { simpleFormatter, DataStore /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
 import path from 'path'
 import colors from 'chalk'
@@ -42,6 +44,12 @@ const factory = async (factoryName = '') => {
   }
   return 'FACTORY_NOT_FOUND'
 }
+
+beforeAll(() => {
+  global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
+  global.DataStore = DataStore
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
+})
 
 describe(`${PLUGIN_NAME}`, () => {
   let templateInstance
@@ -305,7 +313,7 @@ describe(`${PLUGIN_NAME}`, () => {
 
       let data = {
         events: function (data = {}) {
-          console.log(data)
+          // console.log(data)
         },
       }
 

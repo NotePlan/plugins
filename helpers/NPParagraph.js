@@ -7,11 +7,6 @@ import {
   hyphenatedDateString,
   WEEK_NOTE_LINK,
   SCHEDULED_WEEK_NOTE_LINK,
-  RE_DATE,
-  RE_NP_WEEK_SPEC,
-  RE_NP_MONTH_SPEC,
-  RE_NP_QUARTER_SPEC,
-  RE_NP_YEAR_SPEC,
   RE_SCHEDULED_ISO_DATE,
   SCHEDULED_QUARTERLY_NOTE_LINK,
   SCHEDULED_MONTH_NOTE_LINK,
@@ -572,10 +567,10 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
       return note.paragraphs[0]
     }
     logDebug(pluginJson, `getParagraphContainingPosition: *** Looking for cursor position ${position}`)
-    note.paragraphs.forEach((p, i) => {
-      const { start, end } = p.contentRange || {}
-      // logDebug(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
-    })
+    // note.paragraphs.forEach((p, i) => {
+    //   const { start, end } = p.contentRange || {}
+    //   // logDebug(pluginJson, `getParagraphContainingPosition: paragraph ${i} (${start}-${end}) "${p.content}"`)
+    // })
     logDebug(pluginJson, `getParagraphContainingPosition: *** position ${position} not found`)
   }
   return foundParagraph
@@ -951,7 +946,7 @@ export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false):
     const typeNames = ['Daily', `Weekly`, `Monthly`, `Quarterly`, `Yearly`]
     const typeFuncs = [hasOverdueDayTag, hasOverdueWeekTag, hasOverdueMonthTag, hasOverdueQuarterTag, hasOverdueYearTag]
     for (let i = 0; i < typeNames.length; i++) {
-      const type = typeNames[i]
+      // const type = typeNames[i]
       const result = typeFuncs[i](para, true)
       if (result && result.isOverdue) {
         return result
@@ -1093,12 +1088,13 @@ export function getDaysTilDue(paragraph: TParagraph, toISODate: string = getToda
           //FIXME: this needs to deal with positive and negatives. right now
           // only doing overdue
           daysOverdue = diffDays > 0 ? Math.ceil(diffDays) : Math.floor(diffDays) // round fractional days up
-          console.log(`paragraphDate:${String(data.endDate)} - ${toISODate} (today) daysOverdue: moment: ${daysOverdue} vs ${daysUsingDates} using dates`)
+          logDebug(`paragraphDate:${String(data.endDate)} - ${toISODate} (today) daysOverdue: moment: ${daysOverdue} vs ${daysUsingDates} using dates`)
           // if (data !== null && data.endDate) daysOverdue = data ? moment(toISODate, 'YYYY-MM-DD').diff(moment(data.endDate), 'days') : 0
         }
       }
     }
   }
+  // eslint-disable-next-line no-compare-neg-zero
   return daysOverdue === -0 ? 0 : daysOverdue //weird -0 JS!
 }
 
@@ -1216,7 +1212,7 @@ export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragra
     return null
   } else {
     // no matches
-    const p = paragraphDataToFind
+    // const p = paragraphDataToFind
     logDebug(pluginJson, `findParagraph: found no paragraphs in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind)}`)
     // logDebug(`\n**** Looking for "${p[fieldsToMatch[0]]}" "${p[fieldsToMatch[1]]}" in the following list`)
     //$FlowIgnore
