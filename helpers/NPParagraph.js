@@ -27,8 +27,6 @@ import { getNoteType } from '@helpers/note'
 
 const pluginJson = 'NPParagraph'
 
-
-
 /**
  * Remove all headings (type=='title') from a note matching the given text
  * @author @dwertheimer
@@ -836,11 +834,12 @@ export function testForOverdue(
   type: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Quarterly',
 ): boolean | OverdueDetails {
   const reMATCHLINK = new RegExp(regexString, 'g')
-  const links = para.content.match(reMATCHLINK) || []
+  let links = para.content.match(reMATCHLINK) || []
   const todayString = todayRelevantFilename // .replace(`.${DataStore.defaultFileExtension}`, '')
   let overdueLinks = [],
     notOverdueLinks = []
   if (links && links?.length > 0) {
+    links = links.map((link) => link.trim())
     overdueLinks = links.filter((link) => link.slice(1) < todayString)
     notOverdueLinks = links.filter((link) => link.slice(1) >= todayString)
   }
@@ -1263,7 +1262,7 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
  * The static object that's passed in must have at least the following TParagraph-type fields populated: filename, rawContent.
  * Note: Assumes the right note is already open.
  * @author @jgclark
- * @param {string} rawContentToFind 
+ * @param {string} rawContentToFind
  * @results {boolean}
  */
 export function highlightParagraphInEditor(objectToTest: any): boolean {
@@ -1279,8 +1278,7 @@ export function highlightParagraphInEditor(objectToTest: any): boolean {
       logWarn(pluginJson, `Sorry, couldn't find paragraph with rawContent <${objectToTest.rawContent}> to highlight in open note`)
       return false
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, JSP(error))
     return false
   }

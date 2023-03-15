@@ -14,7 +14,7 @@ beforeAll(() => {
   global.Paragraph = Paragraph
   global.NotePlan = NotePlan
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging | none for quiet
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging | none for quiet
 })
 
 // mimicking a project note
@@ -42,7 +42,6 @@ Editor.note = new Note({ paragraphs, type: 'Notes' })
 // block, but now need to override it for some tests.
 
 describe('NPParagraphs()', () => {
-
   /*
    * findHeading()
    */

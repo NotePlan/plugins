@@ -34,7 +34,8 @@ import { mockWasCalledWith } from '@mocks/mockHelpers'
 */
 
 describe(`${PLUGIN_NAME}`, () => {
-  describe.skip(`${FILENAME}`, () => {
+  describe(`${FILENAME}`, () => {
+    expect(true).toEqual(true) // this is just a placeholder
     //functions go here using jfunc command
   })
 })
