@@ -28,7 +28,7 @@ type MessageDataObject = { itemID: string, type: string, filename: string, rawCo
  */
 export function onMessageFromHTMLView(type: string, data: MessageDataObject): any {
   try {
-    logDebug(pluginJson, `onMessageFromHTMLView running with args:${JSP(data)}`)
+    logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${type}`)
     switch (type) {
       case 'onClickDashboardItem':
         onClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
@@ -46,8 +46,9 @@ export function onMessageFromHTMLView(type: string, data: MessageDataObject): an
  * onClickDashboardItem: invalid data: 
  */
 export async function onClickDashboardItem(data: MessageDataObject) {
-  const { itemID, type, filename, rawContent } = data
-  // logDebug(pluginJson, `Plugin: onClickDashboardItem running with itemID: ${itemID}, type: ${type}, filename: ${filename}, rawContent: '${rawContent}`)
+  try {
+    const { itemID, type, filename, rawContent } = data
+    logDebug(pluginJson, `pluginToHTMLBridge/onClickDashboardItem starting with type: ${type}, itemID: ${itemID}, filename: ${filename}, rawContent: '${rawContent}'`)
   if (type === 'open') {
     const res = completeItem(filename, rawContent)
     if (res) {
@@ -86,7 +87,11 @@ export async function onClickDashboardItem(data: MessageDataObject) {
     // Handle a show line call simply by opening the note in the main Editor, and then finding and highlighting the line.
     const note = await Editor.openNoteByFilename(filename)
     if (note) {
-      const res = highlightParagraphInEditor(data)
+      // TODO: decode rawContent and pass to highlightParagraphInEditor()
+      logDebug(pluginJson, `raw in ${data.rawContent}`)
+      const decodedRawContent = decodeURIComponent(data.rawContent)
+      logDebug(pluginJson, `raw decoded ${decodedRawContent}`)
+      const res = highlightParagraphInEditor({ filename: filename, rawContent: decodedRawContent })
       logDebug(pluginJson, `-> succesful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccesful'} call to highlight the paragraph in the editor`)
     } else {
       logWarn(pluginJson, `-> unsuccesful call to open filename ${filename} in Editor`)
@@ -109,6 +114,9 @@ export async function onClickDashboardItem(data: MessageDataObject) {
   // } else {
   //   logError(pluginJson, `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
   // }
+  } catch (error) {
+    logError(pluginJson, 'onClickDashboardItem:' + JSP(error))
+  }
 }
 
 /**

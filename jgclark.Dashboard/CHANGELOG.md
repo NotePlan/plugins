@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
  
+## [0.3.1] - 2023-03-15
+### Fixed
+- clicking note links with apostrophes in them
+
 ## [0.3.0] 2023-03-11
 ### Added
 - when clicking on a paragraph, it will now highlight the right paragraph in the editor, not just open the note

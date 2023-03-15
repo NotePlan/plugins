@@ -173,6 +173,15 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     }
     // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
+    // Send doneCount through as a special type item:
+    sections.push({
+      ID: doneCount,
+      name: 'Done',
+      description: ``,
+      FAIconClass: '',
+      sectionTitleClass: '',
+    })
+
     // If Reviews plugin has produced a review list file, then show up to 4 of the most overdue things from it
     if (DataStore.fileExists(fullReviewListFilename)) {
       const nextNotesToReview: Array<TNote> = await getNextNotesToReview(4)

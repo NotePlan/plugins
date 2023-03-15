@@ -18,6 +18,7 @@ import { getNumericPriority } from '@helpers/sorting'
 import {
   changeBareLinksToHTMLLink,
   changeMarkdownLinksToHTMLLink,
+  encodeRFC3986URIComponent,
   stripBackwardsDateRefsFromString,
   stripThisWeeksDateRefsFromString,
   stripTodaysDateRefsFromString
@@ -201,6 +202,12 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: SectionItem, 
     // Strip all `<YYYY-MM-DD` dates
     output = stripBackwardsDateRefsFromString(output)
 
+    // TODO: add basic ***bolditalic*** styling
+
+    // TODO: add basic _italic_ styling
+    
+    // TODO: add basic **bold** styling
+
     // Add suitable colouring to remaining >date items
     // Note: This is my attempt at finding all scheduled date links
     // TODO(@EduardMe): send us his version of this
@@ -270,9 +277,11 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: SectionItem, 
 }
 
 /**
- * Return an NP x-callback string to open a Note (via ite 'noteTitle') but displaying a different 'displayStr'
+ * v2: Make an HTML link showing displayStr, but with href onClick event to show noteTitle in editor and select the given line content
+ * v1: Used to use x-callback method to open a Note (via ite 'noteTitle')
+ * @param {SectionItem} item's details, with raw
  * @param {string} displayStr
- * @param {string} noteTitle
+ * @param {string} noteTitle -- not used in V2
  * @returns {string} transformed output
  */
 export function addNoteOpenLinkToString(item: SectionItem, displayStr: string, noteTitle: string): string {
@@ -281,8 +290,8 @@ export function addNoteOpenLinkToString(item: SectionItem, displayStr: string, n
     // const titleEncoded = encodeURIComponent(noteTitle)
     // return `<a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${displayStr}</a>`
 
-    // TODO: Method 2: pass request back to plugin
-    return `<a class="" href="" onClick="onClickDashboardItem('${item.ID}','showLineInEditor','${item.filename}','${item.rawContent}')">${displayStr}</a>`
+    // Method 2: pass request back to plugin
+    return `<a class="" onClick="onClickDashboardItem('${item.ID}','showLineInEditor','${item.filename}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
   }
   catch (error) {
     logError('addNoteOpenLinkToString', `${error.message} for input '${displayStr}'`)
@@ -291,21 +300,24 @@ export function addNoteOpenLinkToString(item: SectionItem, displayStr: string, n
 }
 
 /**
- * Include note titles as an HTML link -> x-callback open action
- * @param {string} title 
+ * v2: Wrap string with href onClick event to show note in editor
+ * v1: Used to use x-callback method to open a Note (via ite 'noteTitle')
+ * @param {SectionItem} item's details
+ * @param {string} noteTitle 
  * @returns {string} output
  */
-export function makeNoteTitleWithOpenAction(item: SectionItem, title: string): string {
+export function makeNoteTitleWithOpenAction(item: SectionItem, noteTitle: string): string {
   try {
     // Method 1: x-callback
-    // const titleEncoded = encodeURIComponent(title)
-    // return `<span class="noteTitle sectionItem"><i class="fa-regular fa-file-lines"></i> <a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${title}</a></span>`
+    // const titleEncoded = encodeURIComponent(noteTitle)
+    // return `<span class="noteTitle sectionItem"><i class="fa-regular fa-file-lines"></i> <a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${noteTitle}</a></span>`
 
-    // TODO: Method 2: pass request back to plugin
-    return `<a class="noteTitle sectionItem" href="" onClick="onClickDashboardItem('${item.ID}','showNoteInEditor','${item.filename}','${item.rawContent}')"><i class="fa-regular fa-file-lines"></i> ${title}</a>`
+    // Method 2: pass request back to plugin
+    // Note: not passing rawContent (param 4) as its not needed
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('${item.ID}','showNoteInEditor','${item.filename}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
   }
   catch (error) {
-    logError('makeNoteTitleWithOpenAction', `${error.message} for input '${title}'`)
+    logError('makeNoteTitleWithOpenAction', `${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
 }

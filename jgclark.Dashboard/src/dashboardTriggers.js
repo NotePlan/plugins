@@ -24,6 +24,12 @@ export function decideWhetherToUpdateDashboard(): void {
     //   logDebug(pluginJson, `Not updating dashboard because the change hasn't added or completed or removed a task or checklist.`)
     //   return
     // }
+    // FIXME: Temporary check to stop it running on iOS
+    if (NotePlan.environment.platform !== 'macOS') {
+      logDebug(pluginJson, `Designed only to run on macOS. Stopping.`)
+      return
+    }
+
     if (!(Editor.content && Editor.note)) {
       logDebug(pluginJson, `Cannot get Editor details. Is there a note open in the Editor?`)
       return

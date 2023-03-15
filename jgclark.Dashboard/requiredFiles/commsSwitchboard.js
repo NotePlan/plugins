@@ -80,12 +80,12 @@ async function completeTask(data) {
   addClassToID(itemID, "checked") // adds colour + line-through
   addClassToID(itemID, "fadeOutAndHide")
   await delay(2000)
-  deleteItemRow(itemID)
+  deleteHTMLItem(itemID)
   // update the totals and other counts
   decrementItemCount("totalOpenCount")
   incrementItemCount("totalDoneCount")
-  // update the section count
-  const sectionID = 'section' + ID.split('-')[0] + 'Count'
+  // update the section count, which is identified as the first part of the itemID
+  const sectionID = 'section' + itemID.split('-')[0] + 'Count'
   decrementItemCount(sectionID)
 }
 
@@ -112,6 +112,7 @@ async function completeChecklist(data) {
 
 async function showLineInEditor(data) {
   const { ID } = data
+  console.log(`showLineInEditor: for ID: ${ID}`)
 }
 
 /******************************************************************************

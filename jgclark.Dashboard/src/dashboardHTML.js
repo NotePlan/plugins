@@ -68,7 +68,7 @@ export const dashboardCSS: string = [
 	}`,
   '.noteTitle { color: var(--tint-color) !important; }', // add "font-weight: 700;" to make noteTitles bold
   // allow multi-column flow: set max columns and min width, and some other bits and pieces
-  '.multi-cols { column-count: 3; column-width: 28rem; column-gap: 1rem; column-rule: 1px dotted var(--tint-color); }',
+  '.multi-cols { column-count: 3; column-width: 25rem; column-gap: 1rem; column-rule: 1px dotted var(--tint-color); }',
   // Class to fade out an item, from https://stackoverflow.com/a/20910008
   `.fadeOutAndHide { visibility: hidden; opacity: 0; transition: visibility 0s 2s, opacity 2s linear; }`,
   // `.strikeoutTask { text-decoration: line-through; text-decoration-color: var(--tint-color) }`,
@@ -109,6 +109,11 @@ export async function showDemoDashboardHTML(): Promise<void> {
 
 /**
  * Show the generated dashboard data using native HTML.
+ * The HTML item IDs are defined as:
+ * - x-y = section x item y, used in <tr> tags and onClick references
+ * - x-yA = href link for section x item y, used in 'col 3' <td> tags
+ * - x-yI = icon for section x item y, used in 'col 3' <td> tags
+ * 
  * @author @jgclark
  * @param {boolean?} forceRefresh - if true, refresh the window even if the window is already open
  * @param {boolean?} showDemoData - if true, show the demo data, otherwise show the real data
@@ -142,16 +147,23 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
     // Create nice HTML display for this data.
     // Main table loop
     let totalOpenItems = 0
-    let totalDoneItems: number
+    let totalDoneItems = 0
     outputArray.push(`\n<table style="table-layout: auto; word-wrap: break-word;">`)
     let sectionNumber = 0
     for (const section of sections) {
+      // Special case to handle count of done items
+      if (section.name === 'Done') {
+        logDebug('showDashboardHTML', `Section ${section.name} has ID ${String(section.ID)}`)
+        totalDoneItems = section.ID
+        continue // to next loop item
+      }
+
       const items = sectionItems.filter((i) => i.ID.startsWith(String(section.ID)))
       // if (items.length > 0) {
-        // Prepare col 1 (section icon)
-        outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
+      // Prepare col 1 (section icon)
+      outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
 
-        // Prepare col 2 (section title)
+      // Prepare col 2 (section title)
       // First prepend a sectionNCount ID and populate it
       const sectionCountID = `section${String(section.ID)}Count`
       const sectionCountPrefix = `<span id="${sectionCountID}">${String(items.length)}</span>`
@@ -161,8 +173,8 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
         outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 12rem;">${section.name}</span>`)
       }
 
-        // Start col 3: table of items in this section
-        outputArray.push(`  <td>`)
+      // Start col 3: table of items in this section
+      outputArray.push(`  <td>`)
       outputArray.push(`  <div class="multi-cols">`)
       outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;">`)
 
@@ -182,21 +194,24 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
           switch (item.type) {
             // Using a nested table for cols 3/4 to simplify logic and CSS
             case 'open': {
+              // do col3
               outputArray.push(
-                `    <td id="${item.ID}A" class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`,
+                `     <td id="${item.ID}A" class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`,
               )
+
+              // do col 4
               // Output type A: append clickable note link
-              // let cell3 = `   <td class="sectionItem">${paraContent}`
+              // let cell4 = `   <td class="sectionItem">${paraContent}`
               // if (itemNoteTitle !== weeklyNoteTitle) {
               //   // Method 1: make [[notelinks]] via x-callbacks
               //   // const title = displayTitle(thisNote)
               //   const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(itemNoteTitle)
               //   // If context is wanted, and linked note title
               //   if (config.includeTaskContext) {
-              //     cell3 += noteTitleWithOpenAction
+              //     cell4 += noteTitleWithOpenAction
               //   }
               // }
-              // cell3 += `</td></tr>`
+              // cell4 += `</td></tr>`
 
               // Output type B: whole note link is clickable
               // If context is wanted, and linked note title
@@ -210,26 +225,29 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
               } else {
                 paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
               }
-              const cell3 = `    <td class="sectionItem">${paraContent}</td>`
-              outputArray.push(cell3)
+              const cell4 = `     <td class="sectionItem">${paraContent}</td>\n    </tr>`
+              outputArray.push(cell4)
               totalOpenItems++
               break
             }
             case 'checklist': {
-              outputArray.push(`    <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
+              // do col 3 icon
+              outputArray.push(`     <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
+
+              // do col 4
               // const paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
               // Output type A: append clickable note link
-              // let cell3 = `   <td class="sectionItem">${paraContent}`
+              // let cell4 = `   <td class="sectionItem">${paraContent}`
               // if (itemNoteTitle !== weeklyNoteTitle) {
               //   // Make [[notelinks]] via x-callbacks
               //   // const title = displayTitle(thisNote)
               //   const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(itemNoteTitle)
               //   // If context is wanted, and linked note title
               //   if (config.includeTaskContext) {
-              //     cell3 += noteTitleWithOpenAction
+              //     cell4 += noteTitleWithOpenAction
               //   }
               // }
-              // cell3 += `</td></tr>`
+              // cell4 += `</td></tr>`
 
               // Output type B: whole note link is clickable
               // If context is wanted, and linked note title
@@ -243,23 +261,23 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
               } else {
                 paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
               }
-              const cell3 = `    <td class="sectionItem">${paraContent}</td>`
-              outputArray.push(cell3)
+              const cell4 = `     <td class="sectionItem">${paraContent}</td>\n    </tr>`
+              outputArray.push(cell4)
               totalOpenItems++
               break
             }
             case 'congrats': {
-              const cell3 = `    <td class="checked sectionItem noborders"><i class="fa-regular fa-circle-check"></i></td>`
+              const cell3 = `     <td class="checked sectionItem noborders"><i class="fa-regular fa-circle-check"></i></td>`
               outputArray.push(cell3)
               // TODO: why aren't icons appearing here?
-              const cell4 = `    <td class="sectionItem noborders">${item.content} </td>\n    </tr>`
+              const cell4 = `     <td class="sectionItem noborders">${item.content} </td>\n    </tr>`
               outputArray.push(cell4)
               break
             }
             case 'review': {
               if (itemNoteTitle) {
                 // do col 3 icon
-                outputArray.push(`     <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`) 
+                outputArray.push(`      <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`) 
 
                 // do col 4
                 const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
@@ -267,9 +285,9 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
                 // Method A: [[notelinks]] via x-callbacks
                 // const itemNoteTitleEncoded = encodeURIComponent(itemNoteTitle)
                 // const noteTitleWithOpenAction = `${folderNamePart}<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${itemNoteTitleEncoded}">${itemNoteTitle}</a></span>`
-                // let cell4 = `    <td class="sectionItem"><span class="">${noteTitleWithOpenAction}</span>`
+                // let cell4 = `     <td class="sectionItem"><span class="">${noteTitleWithOpenAction}</span>`
                 // Method B: internal calls
-                let cell4 = `    <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditor','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
+                let cell4 = `      <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditor','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
                 // TODO: make specific to that note
                 cell4 += `</td>\n    </tr>`
                 outputArray.push(cell4)
@@ -294,15 +312,15 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
     const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard (HTML)', '')
     const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
 
-    const summaryStatStr =
-      totalDoneItems && !isNaN(totalDoneItems) ? `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; <span id="totalDoneCount">${String(totalDoneItems)}</span> closed` : `<b>${String(totalOpenItems)} open items</b>`
+    let summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; `
+    summaryStatStr += `<span id="totalDoneCount">${String(totalDoneItems)}</span> closed`
     outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}</p>`)
     outputArray.unshift(`<p id="error"></p>`)
 
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
     const windowTitle = `Dashboard (${totalOpenItems} items)`
-    const filenameHTMLCopy = config._logLevel === 'DEBUG' ? 'dashboard.html' : ''
+    const filenameHTMLCopy = config._logLevel === 'DEBUG' ? '../../jgclark.Dashboard/dashboard.html' : ''
     await showHTML(
       windowTitle,
       faLinksInHeader, // no extra header tags
@@ -313,8 +331,8 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
       '', // no extra JS
       commsBridge,
       filenameHTMLCopy,
-      740,
-      800,
+      1000, // = width of window
+      500, // = height of window
       windowCustomID
     ) // set width; max height
     logDebug(`makeDashboard`, `written to HTML window`)
