@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 9.3.2023 for v0.3.0 by @jgclark
+// Last updated 15.3.2023 for v0.3.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -9,7 +9,7 @@ import { showDashboardHTML } from './dashboardHTML'
 import { getNPWeekStr, getTodaysDateUnhyphenated, RE_DATE_TIME } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
-import { getParagraphFromStaticObject, highlightParagraphInEditor } from '@helpers/NPParagraph'
+import { completeItem, getParagraphFromStaticObject, highlightParagraphInEditor } from '@helpers/NPParagraph'
 
 //-----------------------------------------------------------------
 // Data types
@@ -117,90 +117,4 @@ export async function onClickDashboardItem(data: MessageDataObject) {
   } catch (error) {
     logError(pluginJson, 'onClickDashboardItem:' + JSP(error))
   }
-}
-
-/**
- * Complete a task/checklist item.
- * Designed to be called when you're not in an Editor (e.g. an HTML Window)
- * @param {string} noteTitle
- * @param {string} paraContent
- */
-export function completeItem(filenameIn: string, rawContent: string): boolean {
-  try {
-    logDebug('completeItem', `starting with filename: ${filenameIn}, rawContent: ${rawContent}`)
-    let filename = filenameIn
-    if (filenameIn === 'today') {
-      filename = getTodaysDateUnhyphenated()
-    } else if (filenameIn === 'thisweek') {
-      filename = getNPWeekStr(new Date())
-    }
-    // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-    // $FlowIgnore[incompatible-type]
-    const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
-
-    if (thisNote) {
-      if (thisNote.paragraphs.length > 0) {
-        let foundParaIndex = NaN
-        let c = 0
-        for (const para of thisNote.paragraphs) {
-          if (para.rawContent === rawContent) {
-            logDebug('completeItem', `found matching para ${c} of type ${para.type}: ${rawContent}`)
-            if (para.type === 'open') {
-              para.type = 'done'
-              thisNote.updateParagraph(para)
-              logDebug('completeItem', `updated para ${c}`)
-              return true
-            }
-            else if (para.type === 'checklist') {
-              para.type = 'checklistDone'
-              thisNote.updateParagraph(para)
-              logDebug('completeItem', `updated para ${c}`)
-              return true
-            }
-            else {
-              logInfo('completeItem', `unexpected para type ${para.type}, so won't continue`)
-              return false
-            }
-          }
-          c++
-        }
-        logWarn('completeItem', `Couldn't find paragraph '${rawContent}' to complete`)
-        return false
-      } else {
-        logInfo('completeItem', `Note '${filename}' appears to be empty?`)
-        return false
-      }
-    } else {
-      logWarn('completeItem', `Can't find note '${filename}'`)
-      return false
-    }
-  }
-  catch (error) {
-    logError('completeItem', `${error.message} for note '${filenameIn}'`)
-    return false
-  }
-}
-
-// TODO: remove these in time --------------------------------------------------
-
-export function testCompleteItem(): void {
-  let testNoteTitle = 'today'
-  let testRawContent = '+ not present'
-  let res = completeItem(testNoteTitle, testRawContent)
-  logDebug('testCompleteItem', `- ${String(res)} for ${testNoteTitle} / ${testRawContent}`)
-
-  testNoteTitle = 'today'
-  testRawContent = '* ! Use Holiday templates'
-  res = completeItem(testNoteTitle, testRawContent)
-  logDebug('testCompleteItem', `- ${String(res)} for ${testNoteTitle} / ${testRawContent}`)
-
-  testNoteTitle = 'thisweek'
-  testRawContent = '- not present item'
-  res = completeItem(testNoteTitle, testRawContent)
-  logDebug('testCompleteItem', `- ${String(res)} for ${testNoteTitle} / ${testRawContent}`)
-
-  testNoteTitle = 'not-a-note'
-  testRawContent = '* item not present'
-  res = completeItem(testNoteTitle, testRawContent)
-  logDebug('testCompleteItem', `- ${String(res)} for ${testNoteTitle} / ${testRawContent}`)
 }

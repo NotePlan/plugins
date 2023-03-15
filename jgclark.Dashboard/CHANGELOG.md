@@ -2,6 +2,8 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
  
 ## [0.3.1] - 2023-03-15
+### Added
+- when completing a task/checklist in the dashboard, it will now have a @done(...) date added if the user has 'add completion date' setting ticked.
 ### Fixed
 - clicking note links with apostrophes in them
 
