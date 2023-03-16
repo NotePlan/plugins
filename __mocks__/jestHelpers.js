@@ -1,4 +1,6 @@
 // @flow
+import path from 'path'
+import { existsSync, promises as fs } from 'fs'
 
 /**
  * Check if a spy was called (at any point) with a string parameter matching the given string/regex
@@ -38,4 +40,18 @@ export function simpleFormatter(type: string, message: string): string {
     .split(/\n/)
     .map((line) => CONSOLE_INDENT + line)
     .join('\n')
+}
+
+/**
+ * Load a factory file for use in Jest debugging
+ * Factory files are in the /factories subfolder of the calling function
+ * @param {string} factoryName
+ * @returns
+ */
+export async function loadFactoryFile(factoryName: string = ''): Promise<string> {
+  const factoryFilename = path.join(__dirname, 'factories', factoryName)
+  if (existsSync(factoryFilename)) {
+    return await fs.readFile(factoryFilename, 'utf-8')
+  }
+  return `FACTORY_NOT_FOUND - ${factoryFilename}`
 }

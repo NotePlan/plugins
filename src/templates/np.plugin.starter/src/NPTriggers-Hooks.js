@@ -4,6 +4,7 @@
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
+import { editSettings } from '@helpers/NPSettings'
 
 /**
  * NOTEPLAN PER-NOTE TRIGGERS
@@ -102,5 +103,19 @@ export async function onSettingsUpdated(): Promise<void> {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated running`)
   } catch (error) {
     logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Update Settings/Preferences (for iOS etc)
+ * Plugin entrypoint for command: "/{{pluginName}}: Update Plugin Settings"
+ * @author @dwertheimer
+ */
+export async function updateSettings() {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }

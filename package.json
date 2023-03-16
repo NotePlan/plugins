@@ -89,6 +89,7 @@
   "scripts": {
     "init": "node ./tasks/init.js",
     "build": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --build",
+    "build:minified": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --build --minify",
     "build:compact": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --build --compact",
     "autowatch": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js",
     "autowatch:compact": "NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js --compact",

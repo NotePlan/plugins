@@ -4,10 +4,10 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "shared.AI",
   "plugin.name": "💡 NotePlan AI",
-  "plugin.version": "0.4.3",
-  "plugin.lastUpdateInfo": "0.4.3-beta2: Added summarize note/selection command and the start of some localizations. Look at the 'NotePlan AI' plugin preferences at the bottom for localization information.",
+  "plugin.version": "0.5.4",
+  "plugin.lastUpdateInfo": "0.5.0: add iOS settings editing v1 (for my mom); 0.4.3-beta2: Added summarize note/selection command and the start of some localizations. Look at the 'NotePlan AI' plugin preferences at the bottom for localization information.",
   "plugin.description": "GPT integration for research, summarization, etc.",
-  "plugin.author": "Started by a man of mystery, now maintained by @dwertheimer",
+  "plugin.author": "a man of mystery and @dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/shared.AI/README.md",
@@ -115,6 +115,16 @@
     },
     {
       "note": "************************************ INTRO WIZARD ****************************************"
+    },
+    {
+      "name": "NotePlan AI: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "updateSettings",
+      "alias": [
+        "aisettings",
+        "aipreferences"
+      ],
+      "arguments": []
     },
     {
       "name": "AI Intro Wizard",
@@ -272,8 +282,7 @@
       "alias": [
         "keyterms"
       ],
-      "arguments": [],
-      "hidden": true
+      "arguments": []
     },
     {
       "name": "Change Summary Paragraphs Target - NotePlan AI",
@@ -324,6 +333,7 @@
       "type": "string",
       "description": "Enter the API key for your OpenAI account",
       "default": "",
+      "hidden": true,
       "required": true
     },
     {
