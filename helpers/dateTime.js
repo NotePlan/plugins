@@ -95,6 +95,8 @@ export const getFormattedTime = (format: string = '%Y-%m-%d %I:%M:%S %P'): strin
 
 // Note: there are others in NPdateTime.js that use locale settings
 
+export const nowShortDateTimeISOString: string = moment().toISOString().replace('T', ' ').slice(0, 16)
+
 // See getNoteType in note.js to get the type of a note
 export const isDailyNote = (note: CoreNoteFields): boolean => new RegExp(RE_DAILY_NOTE_FILENAME).test(note.filename)
 

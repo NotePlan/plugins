@@ -1,12 +1,12 @@
 // @flow
 //-------------------------------------------------------------------------------
 // Note-level Functions that require NP API calls
+//-------------------------------------------------------------------------------
 
-// import moment from 'moment/min/moment-with-locales'
+import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
 import {
   getTodaysDateHyphenated,
-  // WEEK_NOTE_LINK
 } from '@helpers/dateTime'
 // import { getNPWeekData } from '@helpers/NPdateTime'
 import { JSP, log, logError, logDebug, timer, clo } from '@helpers/dev'
@@ -251,4 +251,57 @@ export function scrollToParagraphWithContent(content: string): boolean {
   }
   logError(`scrollToParagraphWithContent could not find paragraph with content: "${content}" in the Editor`)
   return false
+}
+
+/**
+ * Return list of all notes changed in the last 'numDays'.
+ * Edge case: if numDays === 0 return all Calendar and Project notes
+ * @author @jgclark
+ * @param {number} numDays
+ * @returns {Array<TNote>}
+ */
+export function getNotesChangedInInterval(numDays: number): Array<TNote> {
+  try {
+    const projectNotes = DataStore.projectNotes.slice()
+    const calendarNotes = DataStore.calendarNotes.slice()
+    const allNotes = projectNotes.concat(calendarNotes)
+    let matchingNotes: Array<TNote> = []
+    if (numDays > 0) {
+      const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
+      const momentToStartLooking = todayStart.subtract(numDays, 'days')
+      const jsdateToStartLooking = momentToStartLooking.toDate()
+
+      matchingNotes = allNotes.filter((f) => f.changedDate >= jsdateToStartLooking)
+      logDebug('getNotesChangedInInterval', `from ${allNotes.length} notes found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`)
+    } else {
+      matchingNotes = allNotes
+      logDebug('getNotesChangedInInterval', `returning all ${allNotes.length} notes`)
+    }
+    return matchingNotes
+  } catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    return [] // for completeness
+  }
+}
+
+/**
+ * Return array of notes changed in the last 'numDays' from provided array of 'notesToCheck'
+ * @author @jgclark
+ * @param {Array<TNote>} notesToCheck
+ * @param {number} numDays
+ * @returns {Array<TNote>}
+ */
+export function getNotesChangedInIntervalFromList(notesToCheck: $ReadOnlyArray<TNote>, numDays: number): Array<TNote> {
+  try {
+    const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
+    const momentToStartLooking = todayStart.subtract(numDays, 'days')
+    const jsdateToStartLooking = momentToStartLooking.toDate()
+
+    let matchingNotes: Array<TNote> = notesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
+    // logDebug('getNotesChangedInInterval', `from ${notesToCheck.length} notes found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`)
+    return matchingNotes
+  } catch (err) {
+    logError(pluginJson, `${err.name}: ${err.message}`)
+    return [] // for completeness
+  }
 }

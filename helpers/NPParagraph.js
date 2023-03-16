@@ -3,20 +3,23 @@
 import moment from 'moment/min/moment-with-locales'
 import { trimString } from './dataManipulation'
 import {
+  daysBetween,
+  getNPWeekStr,
+  getTodaysDateHyphenated,
+  getTodaysDateUnhyphenated,
   hyphenatedDate,
   hyphenatedDateString,
-  WEEK_NOTE_LINK,
+  isScheduled,
+  nowShortDateTimeISOString,
   SCHEDULED_WEEK_NOTE_LINK,
   RE_SCHEDULED_ISO_DATE,
   SCHEDULED_QUARTERLY_NOTE_LINK,
   SCHEDULED_MONTH_NOTE_LINK,
   SCHEDULED_YEARLY_NOTE_LINK,
-  getTodaysDateHyphenated,
-  isScheduled,
-  daysBetween,
+  WEEK_NOTE_LINK,
 } from './dateTime'
 import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateTimeString } from './NPdateTime'
-import { clo, JSP, logDebug, logError, logWarn, timer } from './dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from './dev'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
 import { getNoteType } from '@helpers/note'
 
@@ -575,50 +578,6 @@ export function getParagraphContainingPosition(note: CoreNoteFields, position: n
   }
   return foundParagraph
 }
-
-// dwertheimer 2023-02-03: commenting out for now, as it's causing a lot of tests to fail. if you see this in a month, delete it and the tests!
-// /**
-//  * Get all paragraphs in a note which are open tasks and overdue (were scheduled and all the dates have passed)
-//  * Return the paragraphs with new content with the date replaced with {replaceOverdueDatesWith} or empty
-//  * Does not actually update the note/paragraph, but returns each one clean if you want to run note.updateParagraphs() on it
-//  * @param {TNote} note
-//  * @param {string} replaceOverdueDatesWith - normally '', but if you don't specify or send null, no replacement of dates will occur
-//  */
-// export function getOverdueParagraphs(note: TNote, replaceOverdueDatesWith: ?string): Array<TParagraph> {
-//   const datedOpenTodos = note?.datedTodos?.filter((t) => t.type === 'open') || [] // only open tasks
-//   clo(note?.datedTodos, `note/getOverdueParagraphs note?.datedTodos before filter: ${note?.datedTodos?.length || ''} tasks`)
-//   return replaceOverdueDatesWith == null ? datedOpenTodos : removeOverdueDatesFromParagraphs(datedOpenTodos, replaceOverdueDatesWith)
-// }
-// /**
-//  * Remove overdue dates from paragraphs and replace with {replaceOverdueDatesWith -- often with empty string ''}
-//  * @param {Array<TParagraph>} paragraphs
-//  * @param {string} replaceOverdueDatesWith
-//  * @returns {Array<TParagraph>} updated paragraphs (content updated but not saved)
-//  */
-// export function removeOverdueDatesFromParagraphs(paragraphs: Array<TParagraph>, replaceOverdueDatesWith: string = ''): Array<TParagraph> {
-//   logDebug(pluginJson, `removeOverdueDatesFromParagraphs paragraphs=${paragraphs.length}`)
-//   // clo(paragraphs, `note/getOverdueParagraphs paragraphs: `)
-//   // logDebug(`removeOverdueDatesFromParagraphs ^^^^ that was the paragraphs`)
-//   const updatedParas = []
-//   paragraphs?.forEach((todo) => {
-//     const note = todo.note
-//     if (note) {
-//       const fileType = getNoteType(note)
-//       logDebug(pluginJson, `removeOverdueDatesFromParagraphs fileType=${fileType || ''}`)
-//       const overdueDates = getOverdueTags(todo)
-//       logDebug(pluginJson, `removeOverdueDatesFromParagraphs overdueDates=${overdueDates.length}`)
-//       overdueDates.forEach((d) => {
-//         // logDebug(`note/getOverdueParagraphs`, `overdue date found: ${d} in content:"${todo.content}"`)
-//         todo.content = replaceOverdueDatesWith.length
-//           ? todo.content.replace(d, replaceOverdueDatesWith).trim().replace(/ {2,}/, ' ')
-//           : todo.content.replace(d, '').trim().replace(/ {2,}/, ' ')
-//       })
-//       overdueDates.length ? updatedParas.push(todo) : null
-//     }
-//   })
-//   // updatedParas.length ? updatedParas.map((p, i) => logDebug(`note/getOverdueParagraphs ${note.filename} [${i}]: type=${p.type} content="${p.content}"`)) : null
-//   return updatedParas
-// }
 
 /**
  * Try to determine the paragraph that the cursor is in (in the Editor)
@@ -1276,6 +1235,74 @@ export function highlightParagraphInEditor(objectToTest: any): boolean {
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
+    return false
+  }
+}
+
+/**
+ * Complete a task/checklist item (given by 'rawContent') in note (given by 'filenameIn').
+ * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * Appends a '@done(...)' date to the line if the user has selected to 'add completion date'.
+ * @param {string} noteTitle
+ * @param {string} paraContent
+ * @returns {boolean} true if succesful, false if unsuccesful
+ */
+export function completeItem(filenameIn: string, rawContent: string): boolean {
+  try {
+    logDebug('completeItem', `starting with filename: ${filenameIn}, rawContent: ${rawContent}`)
+    let filename = filenameIn
+    if (filenameIn === 'today') {
+      filename = getTodaysDateUnhyphenated()
+    } else if (filenameIn === 'thisweek') {
+      filename = getNPWeekStr(new Date())
+    }
+    // Long-winded way to get note title, as we don't have TNote, but do have note's filename
+    // $FlowIgnore[incompatible-type]
+    const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
+
+    // Work out @done() string to append (if user preference wishes this)
+    let doneString = (DataStore.preference('isAppendCompletionLinks')) ? ` @done(${nowShortDateTimeISOString})` : ''
+
+    if (thisNote) {
+      if (thisNote.paragraphs.length > 0) {
+        let foundParaIndex = NaN
+        let c = 0
+        for (const para of thisNote.paragraphs) {
+          if (para.rawContent === rawContent) {
+            logDebug('completeItem', `found matching para ${c} of type ${para.type}: ${rawContent}`)
+            if (para.type === 'open') {
+              para.type = 'done'
+              para.content += doneString
+              thisNote.updateParagraph(para)
+              logDebug('completeItem', `updated para ${c}`)
+              return true
+            }
+            else if (para.type === 'checklist') {
+              para.type = 'checklistDone'
+              thisNote.updateParagraph(para)
+              logDebug('completeItem', `updated para ${c}`)
+              return true
+            }
+            else {
+              logInfo('completeItem', `unexpected para type ${para.type}, so won't continue`)
+              return false
+            }
+          }
+          c++
+        }
+        logWarn('completeItem', `Couldn't find paragraph '${rawContent}' to complete`)
+        return false
+      } else {
+        logInfo('completeItem', `Note '${filename}' appears to be empty?`)
+        return false
+      }
+    } else {
+      logWarn('completeItem', `Can't find note '${filename}'`)
+      return false
+    }
+  }
+  catch (error) {
+    logError('completeItem', `${error.message} for note '${filenameIn}'`)
     return false
   }
 }
