@@ -7,7 +7,7 @@ import { generateSubjectSummaryPrompt, generateKeyTermsPrompt, generateExplorati
 import { formatSubtitle, formatBulletSummary, formatTableOfContents } from './support/formatters'
 import { capitalizeFirstLetter, scrollToEntry } from './support/helpers'
 import { initializeData, loadDataFile, saveClickedLink, saveDataFile, updateClickedLinksJsonData } from './support/externalFileInteractions'
-import { logDebug, logError, JSP } from '@helpers/dev'
+import { logDebug, logError, logWarn, JSP } from '@helpers/dev'
 import { escapeRegex, createPrettyOpenNoteLink } from '@helpers/general'
 
 type CompletionsRequest = { model: string, prompt?: string, max_tokens?: number, user?: string, suffix?: string, temperature?: string, top_p?: string, n?: number }
@@ -33,7 +33,7 @@ export async function createResearchDigSite(promptIn?: string | null = null) {
     ]
     let subject = ''
     subject = promptIn ?? (await CommandBar.showInput(Editor.selectedText ? `${capitalizeFirstLetter(Editor.selectedText)}` : 'Type in your subject..', 'Start Research'))
-    if (subject == '' && Editor.selectedText) {
+    if (subject === '' && Editor.selectedText?.length) {
       subject = capitalizeFirstLetter(Editor.selectedText)
       // const useSelectedFolder = await chooseOption('g', options)
       await createOuterLink()
@@ -248,11 +248,14 @@ export async function explore(prevSubjectIn: string) {
 export async function researchFromSelection() {
   try {
     const selectedText = Editor.selectedText
-    const matchedContent = Editor.paragraphs.find((p) => p.type === 'text' && p.content.includes(selectedText))
-
-    logDebug(pluginJson, `\n\n---- INFO -----\n\n${selectedText}\n${matchedContent}\n\n`)
-
-    await bulletsAI(selectedText, matchedContent.heading)
+    if (selectedText) {
+      const matchedContent = Editor.paragraphs.find((p) => p.type === 'text' && p.content.includes(selectedText))
+      logDebug(pluginJson, `researchFromSelection: ${selectedText} in heading: ${matchedContent?.heading || ''}`)
+      await bulletsAI(selectedText, matchedContent?.heading)
+    } else {
+      logWarn(pluginJson, 'researchFromSelection: No text was selected. Please try again.')
+      await showMessage('Research Selected Text: No text was selected. Please try again with a selection or run a different command.')
+    }
   } catch (error) {
     logError(pluginJson, error)
   }

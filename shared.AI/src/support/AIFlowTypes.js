@@ -15,6 +15,12 @@ export type ChatMode = 'insert' | 'new_document' | 'return'
 export type ChatReturn = { question: string, prompt: string, answer: string }
 
 export type ChatResponse = {
+  error?: {
+    message: string,
+    type: string,
+    param: string,
+    code: string,
+  },
   id: string,
   object: string,
   created: number,

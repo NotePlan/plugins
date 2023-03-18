@@ -4,6 +4,11 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/shared.AI/READ
 
 ## What's Changed?
 
+## [0.6.0] - 2023-03-17
+
+- Add date to calendar day summary so ChatGPT knows what this day 
+- Simplify plugin preferences on iOS call (removed settings.js file)
+
 ## [0.5.0] - 2023-03-16 (@dwertheimer)
 
 - add iOS settings editing v1 (for my mom)

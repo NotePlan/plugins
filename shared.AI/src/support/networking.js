@@ -1,20 +1,37 @@
 // @flow
 
 import pluginJson from '../../plugin.json'
+import type { ChatResponse, ChatRequest } from './AIFlowTypes'
 import { showMessage } from '@helpers/userInput'
 import { logDebug, logError, clo, JSP } from '@helpers/dev'
-import type { ChatResponse, ChatRequest } from './AIFlowTypes'
 
 /*
  * CONSTANTS
  */
 
 const baseURL = 'https://api.openai.com/v1'
-const modelsComponent = 'models'
-const completionsComponent = 'completions'
+// const modelsComponent = 'models'
+// const completionsComponent = 'completions'
+// const availableModels = ['text-davinci-003', 'text-curie-001', 'text-babbage-001', 'text-ada-001', 'gpt-3.5-turbo']
+
 export const CHAT_COMPONENT = 'chat/completions'
 
-const availableModels = ['text-davinci-003', 'text-curie-001', 'text-babbage-001', 'text-ada-001', 'gpt-3.5-turbo']
+function getErrorStringToDisplay(resultJSON: any): string {
+  const open = `OpenAI sent back an error message:\n"${resultJSON?.error?.message || ''}"`
+  let middle = ''
+  switch (resultJSON?.error?.code) {
+    case 'insufficient_quota':
+      middle = `\n\nDo you have a current credit card on your OpenAI account? If not, you will need to add one. Using OpenAI (chatGPT/DALL-E etc.) is quite inexpensive, but you do need a credit card on file.`
+      break
+    case 'too_many_requests':
+      middle = `\n\nYou have may have made too many API calls in a short period of time or their servers are overloaded.`
+      break
+    case 'invalid_api_key':
+      middle = `\n\nYou need to put a valid OpenAI API key in the plugin preferences for these commands to work properly. Please check your API key on OpenAI's website or create a new one.`
+  }
+  const close = `\n\nPlease correct the error and try again.`
+  return `${open}${middle}${close}`
+}
 
 /**
  * Make a request to the GPT API
@@ -29,15 +46,15 @@ export async function makeRequest(component: string, requestType: string = 'GET'
   // clo(data, `makeRequest() about to send to: "${url}" data=`)
   const result = await fetch(url, getRequestObj(requestType, data))
   if (result) {
-    clo(result, `makeRequest() result of fetch to: "${url}"`)
+    clo(result, `makeRequest() result of fetch to: "${url}" response is type: ${typeof result} and value:`)
     const resultJSON = JSON.parse(result)
-    if (resultJSON) {
-      return resultJSON
-    } else if (resultJSON.error) {
-      logError(pluginJson, `makeRequest received error: ${JSP(resultJSON.error)}`)
-      await showMessage(`GPT API Returned Error: ${resultJSON.error.message}`)
+    if (!resultJSON || resultJSON?.error) {
+      const msg = resultJSON ? getErrorStringToDisplay(resultJSON) : `No response from OpenAI. Check log.`
+      await showMessage(msg)
+      clo(resultJSON?.error || {}, `askNewQuestion: Error:`)
+      return null
     }
-    return null
+    return resultJSON
   } else {
     // must have failed, let's find out why
     fetch(url, getRequestObj(requestType, data))

@@ -21,7 +21,11 @@
 // import './support/fetchOverrides'
 
 // chat
-export { updateSettings } from './settings'
+// export { updateSettings } from './settings'
+import pluginJson from '../plugin.json'
+import { showMessage } from '@helpers/userInput'
+
+export { editSettings } from '@helpers/NPSettings'
 export { insertChat, createChat, continueChat } from './chat'
 export { summarizeNote } from './summarize'
 
@@ -33,10 +37,6 @@ export { createAIImages } from './imageAI'
 export { changeDefaultMaxTokens, changeTargetSummaryParagraphs, changeDefaultTargetKeyTerms, setOpenAIAPIKey } from './support/settingsAdjustments'
 export { firstLaunch } from '../src/support/onboarding'
 
-// export {  } from './support/formatters'
-// Do not change this line. This is here so your plugin will get recompiled every time you change your plugin.json file
-import pluginJson from '../plugin.json'
-
 /*
  * NOTEPLAN HOOKS
  * The rest of these functions are called by NotePlan automatically under certain conditions
@@ -44,7 +44,7 @@ import pluginJson from '../plugin.json'
  */
 
 // eslint-disable-next-line import/order
-import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
+import { updateSettingData, pluginUpdated, getPluginJson } from '@helpers/NPConfiguration'
 import { logError, JSP, clo } from '@helpers/dev'
 /**
  * NotePlan calls this function after the plugin is installed or updated.
@@ -75,3 +75,14 @@ export async function init(): Promise<void> {
  * You should not need to edit this function
  */
 export async function onSettingsUpdated(): Promise<void> {}
+
+/**
+ * Check the version of the plugin (and force an update if the version is out of date)
+ */
+export async function versionCheck(): Promise<void> {
+  try {
+    await showMessage(`Current Version: ${pluginJson['plugin.version']}`, 'OK', `${pluginJson['plugin.name']}`, true)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}

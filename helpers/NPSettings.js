@@ -1,6 +1,7 @@
 /* eslint-disable import/order */
 // @flow
 
+import { getPluginJson } from './NPConfiguration'
 import { getInput, showMessage, showMessageYesNo, chooseOption } from './userInput'
 
 import moment from 'moment'
@@ -191,9 +192,13 @@ export async function updateSetting(key: string, pluginJson: any): any {
  * @param {*} pluginJson - the whole plugin json object
  *
  */
-export async function editSettings(pluginJson: any): Promise<number> {
+export async function editSettings(pluginJson?: any): Promise<number> {
+  const { pluginID } = DataStore.settings
+  const plugin = pluginJson || (await getPluginJson(pluginID))
+  if (!plugin) throw 'editSettings: no pluginJson or pluginID found. It needs to be passed in or set in DataStore.settings.pluginID'
+  clo(plugin, 'editSettings: plugin.json:')
   clo(DataStore.settings, 'editSettings: starting settings:')
-  const settings = getSettingsFromPluginJson(pluginJson)
+  const settings = getSettingsFromPluginJson(plugin)
 
   let editsMade = 0
   if (settings && settings.length) {
