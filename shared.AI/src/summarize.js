@@ -151,7 +151,7 @@ export async function summarizeNote(incoming: string | null = null) {
         const request = createSummaryRequest(text)
         const chatResponse = await makeRequest(CHAT_COMPONENT, 'POST', request)
         if (chatResponse) {
-          saveDebugResponse('summarizeNote', `summarize_${note.title || ''}`, request, chatResponse)
+          saveDebugResponse('summarizeNote', `summarize_${note.filename || ''}`, request, chatResponse)
           const saveWhere = await askWhereToSave()
           await writeOutResponse(chatResponse, saveWhere, note)
         }

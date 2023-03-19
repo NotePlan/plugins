@@ -73,7 +73,7 @@ function peelOutRelatedTerms(answer: string): RelatedTerms {
 export async function outputResponse(question: string, prompt: string, answer: string, mode: ChatMode): Promise<string> {
   let filename = Editor.filename
   const outputAttribution = DataStore.settings
-  const url = createPrettyRunPluginLink('Ask Follow-up Question', pluginJson['plugin.id'], 'continueChat', [question])
+  const url = createPrettyRunPluginLink('Ask Follow-up Question', pluginJson['plugin.id'], 'continueChat', [question, filename])
   const linkPara = findParagraph(Editor.paragraphs, { content: url }, ['content'])
   const credit = outputAttribution ? `\n\t*- ChatGPT ${moment().toLocaleString()}*` : ''
   const msg = `## ${prompt}\n${answer}${credit}\n`
@@ -118,16 +118,17 @@ function getPromptWithKeyTerms(prompt: string): string {
 /**
  * Ask a question - either a starting question or a follow-up question
  * @param {string} originalQuestion - the original question, if this is a follow-up
+ * @param {string} filename - the filename of the original question, if this is a follow-up
  * @param {ChatMode} mode - the mode to run in (default is 'insert')
  * @returns {Promise<ChatReturn | null>} - the question, prompt, and answer, or null if no answer
  */
-export async function askNewQuestion(originalQuestion?: string, mode?: ChatMode = 'insert'): Promise<ChatReturn | null> {
+export async function askNewQuestion(originalQuestion?: string | null, fname?: string | null, mode?: ChatMode = 'insert'): Promise<ChatReturn | null> {
   const fu = originalQuestion ? 'follow-up ' : ' '
   const prompt = await CommandBar.showInput(`What is your ${fu}question?`, `Ask the AI`)
   if (prompt && prompt.length) {
     let request: ChatRequest
-    if (originalQuestion) {
-      const filename: string = getDataFilename(originalQuestion)
+    if (originalQuestion && fname) {
+      const filename: string = getDataFilename(fname, originalQuestion)
       request = DataStore.loadJSON(filename) // load the chat history into the request
     } else {
       request = createInitialChatRequest() // start a new request
@@ -144,15 +145,15 @@ export async function askNewQuestion(originalQuestion?: string, mode?: ChatMode 
     if (chatResponse && chatResponse.choices?.length) {
       // save responses for fetch mocking
       const question = originalQuestion ?? prompt
-      saveDebugResponse('chatResponse', question, request, chatResponse)
       const answer = chatResponse.choices[0].message
       const history = { ...request, messages: [...requestMessagesWithoutKeyTermsRequest, { role: answer.role, content: answer.content }] }
       // save chat history for continuing later
-      DataStore.saveJSON(history, getDataFilename(question))
+      const savedFilename = await outputResponse(question, prompt, answer.content.trim(), mode)
+      DataStore.saveJSON(history, getDataFilename(savedFilename, originalQuestion || prompt))
+      saveDebugResponse('chatResponse', addPartialPromptToFilename(savedFilename, question), request, chatResponse)
       if (mode === 'return') {
         return { question, prompt, answer: answer.content.trim() }
       }
-      const savedFilename = await outputResponse(question, prompt, answer.content.trim(), mode)
     }
   } else {
     await showMessage('No prompt provided. Please try again and provide a prompt to ask the AI.')
@@ -162,11 +163,20 @@ export async function askNewQuestion(originalQuestion?: string, mode?: ChatMode 
 }
 
 /**
- * Create a data JSON to store chat history based on the initial prompt text
+ * Because you may have multiple chats going in one document, we need to add the prompt to the filename
+ * @param {string} filename
  * @param {string} prompt
+ * @returns {string}
+ */
+const addPartialPromptToFilename = (filename: string, prompt: string): string => `${filename.replace(/\.md$|\.txt$/g, '')}_${prompt.substring(0, 15).replace(/\/|\n|\t/g, '')}`
+
+/**
+ * Create a data JSON to store chat history based on the initial prompt text
+ * @param {string} filename - the filename of the query results document
+ * @param {string} prompt - the prompt text
  * @returns {string} filename
  */
-const getDataFilename = (prompt: string): string => `chatData/${prompt}.json`
+const getDataFilename = (filename: string, prompt: string): string => `chatData/${addPartialPromptToFilename(filename, prompt)}.json`
 
 /****************************************************************************************************************************
  *                             ENTRYPOINTS
@@ -178,9 +188,9 @@ const getDataFilename = (prompt: string): string => `chatData/${prompt}.json`
  * Also used for template response (send the question as the first argument)
  * @author @dwertheimer
  */
-export async function insertChat(question?: string): Promise<string | void> {
+export async function insertChat(question?: string, filename: string): Promise<string | void> {
   try {
-    const ret: ChatReturn | null = (await askNewQuestion(question, question ? 'return' : 'insert')) || null
+    const ret: ChatReturn | null = (await askNewQuestion(question, filename, question ? 'return' : 'insert')) || null
     if (question && ret) {
       return `### ${question}\n${ret.answer}`
     }
@@ -195,11 +205,11 @@ export async function insertChat(question?: string): Promise<string | void> {
  * @author @dwertheimer
  * @param {*} incoming
  */
-export async function continueChat(question: string | null = null) {
+export async function continueChat(question?: string | null = null, filename?: string | null = null) {
   try {
     logDebug(pluginJson, `continueChat running with question:${String(question)}`)
     if (question) {
-      await askNewQuestion(question)
+      await askNewQuestion(question, filename)
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

@@ -28,6 +28,10 @@ function getErrorStringToDisplay(resultJSON: any): string {
       break
     case 'invalid_api_key':
       middle = `\n\nYou need to put a valid OpenAI API key in the plugin preferences for these commands to work properly. Please check your API key on OpenAI's website or create a new one.`
+      break
+    case 'invalid_request_error':
+      middle = `\n\nThe request sent to OpenAI was invalid. This may be a bug in the plugin. Please report it.`
+      break
   }
   const close = `\n\nPlease correct the error and try again.`
   return `${open}${middle}${close}`
@@ -44,7 +48,12 @@ export async function makeRequest(component: string, requestType: string = 'GET'
   const url = `${baseURL}/${component}`
   logDebug(pluginJson, `makeRequest: about to fetch ${url}`)
   // clo(data, `makeRequest() about to send to: "${url}" data=`)
-  const result = await fetch(url, getRequestObj(requestType, data))
+  const requestObj = getRequestObj(requestType, data)
+  if (!requestObj) {
+    showMessage('There was an error getting the request object. Check the plugin log and please report this issue.')
+    return null
+  }
+  const result = await fetch(url, requestObj)
   if (result) {
     clo(result, `makeRequest() result of fetch to: "${url}" response is type: ${typeof result} and value:`)
     const resultJSON = JSON.parse(result)
@@ -57,13 +66,15 @@ export async function makeRequest(component: string, requestType: string = 'GET'
     return resultJSON
   } else {
     // must have failed, let's find out why
+    const failMsg = `Call to OpenAI failed. This may be a temporary problem (sometimes their servers are overloaded). Please try again, but report the problem if it persists.`
     fetch(url, getRequestObj(requestType, data))
-      .then((result) => {
-        logError(pluginJson, `makeRequest failed the first time but the second response was: ${JSP(result)}`)
+      .then(async (result) => {
+        await showMessage(failMsg)
+        logError(pluginJson, `makeRequest failed the first time but the second response was: ${JSP(result)}. Check the plugin log for more info.`)
       })
-      .catch((error) => {
+      .catch(async (error) => {
         logError(pluginJson, `makeRequest failed and response was: ${JSP(error)}`)
-        showMessage(`Fetch failed: ${JSP(error)}`)
+        await showMessage(failMsg)
       })
   }
   return null
@@ -77,7 +88,7 @@ export async function makeRequest(component: string, requestType: string = 'GET'
  */
 export const getRequestObj = (method: string = 'GET', body: any = null): any => {
   const { apiKey } = DataStore.settings
-  if (apiKey.length) {
+  if (apiKey?.length) {
     const obj = {
       method,
       headers: {
@@ -94,6 +105,7 @@ export const getRequestObj = (method: string = 'GET', body: any = null): any => 
   } else {
     showMessage('Please set your API key in the plugin settings')
     logError(pluginJson, 'No API Key found')
+    return null
   }
 }
 
@@ -104,16 +116,19 @@ export const getRequestObj = (method: string = 'GET', body: any = null): any => 
 /**
  * If the user has enabled saving responses, save the response to the DataStore
  * @param {string} folderName
- * @param {string} question - a short version of the request for use as filename
+ * @param {string} filename - the note filename (which will be based on the question but perhaps shortened by NP)
  * @param {ChatRequest} request
  * @param {ChatResponse} chatResponse
  */
-export function saveDebugResponse(folderName: string, question: string, request: ChatRequest, chatResponse: ChatResponse | null) {
+export function saveDebugResponse(folderName: string, filename: string, request: ChatRequest, chatResponse: ChatResponse | null) {
   if (chatResponse) {
     const { saveResponses } = DataStore.settings
     if (saveResponses) {
-      DataStore.saveJSON(chatResponse, `${folderName}/${question}.${String(request.messages.length / 2)}.json`)
-      clo(chatResponse, `chatResponse/${question}.${String(request.messages.length / 2)}.json`)
+      const fa = filename.split('/')
+      const fname = fa[fa.length - 1].replace(/\.md$|\.txt$/g, '')
+      logDebug(pluginJson, `saveDebugResponse fa=${fa} fname=${fname}`)
+      DataStore.saveJSON(chatResponse, `${folderName}/${fname}.${String(request.messages.length / 2)}.json`)
+      clo(chatResponse, `chatResponse/${filename}.${String(request.messages.length / 2)}.json`)
     }
   }
 }
