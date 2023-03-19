@@ -1,6 +1,25 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.1.0-beta2] - 2023-03-19
+### Added
+- new setting "Types of lines to file" for the **/...note link...** commands to choose what sorts of lines to move/copy:
+  - all lines
+  - all but incomplete task/checklist items
+  - only completed task/checklist items
+  - only non-task/checklist items
+- new setting "Where to add in the note" for the **/...note link...** commands. If the [[note link]] doesn't include a heading, then this controls whether filed lines get inserted at the start or end of the note.
+
+## [1.1.0-beta1] - 2023-03-19
+### Added
+- 4 new related commands that move or copy lines in calendar notes that include a `[[note link]]` to the project note with that title:
+  - **/move note links**
+  - **/move note links (recently changed)**
+  - **/copy note links**
+  - **/copy note links (recently changed)**
+- There are a number of settings to make it useful for a variety of ways of organising your notes -- please see the README.
+- new **/filer:update plugin settings** command, that allows settings to be changed on iOS/iPadOS (thanks to @dwertheimer for this feature).
+
 ## [1.0.0-beta3] - 2022-11-28
 ### Changed
 - polished the heading picker, particularly for Calendar notes

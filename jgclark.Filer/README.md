@@ -1,7 +1,7 @@
 # 🗃 Filer plugin
-This plugin provides several commands to help move things around in NotePlan.
+This plugin provides commands to help move or copy things around in NotePlan.
 
-It has a few settings, which you review and change by clicking on the ⚙️ gear button on the 'Filer' line in the Plugin Preferences panel. 
+It has some settings, which you review and change by clicking on the ⚙️ gear button on the 'Filer' line in the Plugin Preferences panel (on macOS) or by running the 
 
 ## /move paragraph or selection
 The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files** (moves) lines to different notes in NotePlan, _without having to lose your flow by switching to the other note_. It works on any sort of lines, not just tasks.
@@ -30,15 +30,49 @@ They could be mapped to shortcut keys to make using them even faster.
 ## /add sync'd copy to note
 This command (alias **/asc**) adds a sync'd copy of the current line to a section in another note.  Here's a demo with two notes side by side, only to make it clearer:
 
-![](add-link-line-demo-T2.gif)
+![add sync demo](add-link-line-demo-T2.gif)
 
-NB: This only works with the "synced blocks" feature available in the NotePlan Lab from v3.5.2.  (This feature only works on single lines, not whole blocks, at the moment.)
+<!-- NB: This only works with the "synced blocks" feature available in the NotePlan Lab from v3.5.2. -->
+NB: This feature only works on single lines, not whole blocks, at the moment.)
+
+## various /note link commands
+There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to the project note with that title:
+- **/move note links**
+- **/move note links (recently changed)**
+- **/copy note links**
+- **/copy note links (recently changed)**
+
+![note link demo](note-link-example1.gif)
+
+There are a number of settings to make it useful for a variety of ways of organising your notes:
+
+- Types of lines to file: for the these commands to choose what sorts of lines to move/copy:
+  - all lines
+  - all but incomplete task/checklist items
+  - only completed task/checklist items
+  - only non-task/checklist items
+- File the wider block the note link is in? If set, this command will include the rest of the following block this line is in: any indented lines, or (if this line is a heading) all lines following until a blank line, or heading of the same level or higher. Default is not to use blocks, which only files this line.
+- Where to add in the note: If the [[note link]] doesn't include a heading, then this controls whether filed lines get inserted at the start or end of the note.
+- Tag that indicates a [[note link]] should be ignored: If this tag (e.g. "#ignore") is included in a line with a [[note link]] then it (and where relevant the rest of its block) will not be moved or copied.
+
+The **/... (recently changed)** versions of these commands operate on recently-changed calendar notes, not just the currently open one. To contol this there's an additional setting:
+- How many days to include in 'recent' changes to calendar notes? This sets how many days' worth of changes to calendar notes to include? To include all days, set to 0.
+
+For example, this can be used to copy at the end of each day from the daily note a section with any completed tasks, and any notes that it contains, to a 'progress log' note. This can be run on demand.
+<!-- , or could be automated through the following method ...
+
+### Running through a Template
+
+??? parameters from Templates -->
 
 ## /new note from clipboard
 This command (alias **/nnc**) takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.
 
 ## /new note from selection
 This command (alias **/nns**) takes the current selected text to form the basis of a new note. The command asks for the note title and folder location.
+
+## /filer:update plugin settings
+This command allows settings to be changed on iOS/iPadOS.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

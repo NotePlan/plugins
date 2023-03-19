@@ -255,27 +255,33 @@ export function scrollToParagraphWithContent(content: string): boolean {
 
 /**
  * Return list of all notes changed in the last 'numDays'.
+ * Set 'noteTypesToInclude' to just ['Notes'] or ['Calendar'] to include just those note types
  * Edge case: if numDays === 0 return all Calendar and Project notes
  * @author @jgclark
  * @param {number} numDays
+ * @param {Array<string>} noteTypesToInclude
  * @returns {Array<TNote>}
  */
-export function getNotesChangedInInterval(numDays: number): Array<TNote> {
+export function getNotesChangedInInterval(numDays: number, noteTypesToInclude: Array<string> = ['Calendar', 'Notes']): Array<TNote> {
   try {
-    const projectNotes = DataStore.projectNotes.slice()
-    const calendarNotes = DataStore.calendarNotes.slice()
-    const allNotes = projectNotes.concat(calendarNotes)
+    let allNotesToCheck: Array<TNote> = []
+    if (noteTypesToInclude.includes('Calendar')) {
+      allNotesToCheck = DataStore.calendarNotes.slice()
+    }
+    if (noteTypesToInclude.includes('Notes')) {
+      allNotesToCheck = allNotesToCheck.concat(DataStore.projectNotes.slice())
+    }
     let matchingNotes: Array<TNote> = []
     if (numDays > 0) {
       const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
       const momentToStartLooking = todayStart.subtract(numDays, 'days')
       const jsdateToStartLooking = momentToStartLooking.toDate()
 
-      matchingNotes = allNotes.filter((f) => f.changedDate >= jsdateToStartLooking)
-      logDebug('getNotesChangedInInterval', `from ${allNotes.length} notes found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`)
+      matchingNotes = allNotesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
+      logDebug('getNotesChangedInInterval', `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`)
     } else {
-      matchingNotes = allNotes
-      logDebug('getNotesChangedInInterval', `returning all ${allNotes.length} notes`)
+      matchingNotes = allNotesToCheck
+      logDebug('getNotesChangedInInterval', `returning all ${allNotesToCheck.length} notes`)
     }
     return matchingNotes
   } catch (err) {

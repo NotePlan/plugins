@@ -161,5 +161,6 @@ export const NP_RE_code_right_backtick: RegExp = /(`)([^`]{1,})(`)/
 // export const NP_RE_attag_G: RegExp = new RegExp(ATTAG_STR_FOR_JS, 'g')
 
 // To which @jgclark has added:
+export const RE_NOTE_TITLE_CAPTURE: RegExp = /\[\[(.*?)(?:#(.*?))?\]*\]\]/ // to separately get [[title#...]] and [[...#heading]]
 export const NP_RE_checklist: RegExp = /^\h*\+\s(?:(?!\[[x\-\>]\] ))(?:\[\s\] )?/  // open checklist item
 export const RE_ANY_TYPE_OF_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*(\[[x\-\>]\]|[\*\-\+]\s)/
