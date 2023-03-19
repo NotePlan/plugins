@@ -6,7 +6,7 @@
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
-import { getSetting } from '@helpers/NPConfiguration'
+import { addParasAsText, getFilerSettings } from './filerHelpers'
 import {
   hyphenatedDate,
   toLocaleDateTimeString
@@ -29,47 +29,8 @@ import {
 import { chooseHeading, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
-// Get settings
 
-const pluginID = pluginJson['plugin.id'] // was 'jgclark.Filer'
-
-type FilerConfig = {
-  addDateBacklink: boolean,
-  dateRefStyle: string,
-  includeFromStartOfSection: boolean,
-  useTightBlockDefinition: boolean,
-  whereToAddInSection: string, // 'start' (default) or 'end'
-}
-
-export async function getFilerSettings(): Promise<any> {
-  try {
-    // First get global setting 'useTightBlockDefinition'
-    let useTightBlockDefinition = getSetting('np.Globals', 'useTightBlockDefinition')
-    logDebug('getFilerSettings', `- useTightBlockDefinition: np.Globals: ${String(useTightBlockDefinition)}`)
-
-    // Get settings using ConfigV2
-    const v2Config: FilerConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-
-    if (v2Config == null || Object.keys(v2Config).length === 0) {
-      logError(pluginJson, `getFilerSettings() cannot find '${pluginID}' plugin settings. Stopping.`)
-      await showMessage(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
-      return
-    } else {
-      if (useTightBlockDefinition) {
-        logDebug('getFilerSettings', `- using useTightBlockDefinition setting from np.Globals`)
-        v2Config.useTightBlockDefinition = useTightBlockDefinition
-      }
-      clo(v2Config, `${pluginID} settings from V2:`)
-      return v2Config
-    }
-
-  } catch (err) {
-    logError(pluginJson, `GetFilerSettings(): ${err.name}: ${err.message}`)
-    await showMessage('Error: ' + err.message)
-  }
-}
-
-// ----------------------------------------------------------------------------
+const pluginID = pluginJson['plugin.id']
 
 /**
  * Move text to a different note, forcing treating this as a block.
@@ -373,51 +334,5 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
   }
   catch (error) {
     logError(pluginJson, error.message)
-  }
-}
-
-/**
- * Function to write text either to top of note, bottom of note, or after a heading
- * Note: When written, there was no API function to deal with multiple selectedParagraphs,
- * but we can insert a raw text string.
- * Note: now can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports
- * @author @jgclark
- * 
- * @param {TNote} destinationNote 
- * @param {string} selectedParasAsText 
- * @param {string} headingToFind if empty, means 'end of note'
- * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
- */
-export function addParasAsText(
-  destinationNote: TNote,
-  selectedParasAsText: string,
-  headingToFind: string,
-  whereToAddInSection: string
-): void {
-  const destinationNoteParas = destinationNote.paragraphs
-  let insertionIndex: number
-  if (headingToFind === destinationNote.title || headingToFind.includes('(top of note)')) {
-    // i.e. the first line in project or calendar note
-    insertionIndex = findStartOfActivePartOfNote(destinationNote)
-    logDebug(pluginJson, `-> top of note, line ${insertionIndex}`)
-    destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
-
-  } else if (headingToFind === '') {
-    // blank return from chooseHeading has special meaning of 'end of note'
-    insertionIndex = destinationNoteParas.length + 1
-    logDebug(pluginJson, `-> bottom of note, line ${insertionIndex}`)
-    destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
-
-  } else if (whereToAddInSection === 'start') {
-    logDebug(pluginJson, `-> Inserting at start of section '${headingToFind}'`)
-    destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, false, false)
-
-  } else if (whereToAddInSection === 'end') {
-    logDebug(pluginJson, `-> Inserting at end of section '${headingToFind}'`)
-    destinationNote.addParagraphBelowHeadingTitle(selectedParasAsText, 'text', headingToFind, true, false)
-
-  } else {
-    // Shouldn't get here
-    logError(pluginJson,`Can't find heading '${headingToFind}'. Stopping.`)
   }
 }

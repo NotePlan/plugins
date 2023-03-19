@@ -8,12 +8,66 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.0.0-beta3",
-  "plugin.lastUpdateInfo": "1.0.0: existing command '/move paragraphs' renamed to '/move paragraph or selection'. This moves this paragraph (or selected paragraphs) to a different note. Added command '/move paragraph block' moves all paragraphs in the current block to a different note.",
+  "plugin.version": "1.1.0-beta1",
+  "plugin.lastUpdateInfo": "1.1.0: new '/... note links...' commands.\n1.0.0: existing command '/move paragraphs' renamed to '/move paragraph or selection'. This moves this paragraph (or selected paragraphs) to a different note. Added command '/move paragraph block' moves all paragraphs in the current block to a different note.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
   "plugin.commands": [
+    {
+      "name": "add sync'd copy to note",
+      "alias": [
+        "asc",
+        "sync",
+        "lines"
+      ],
+      "description": "Add a sync'd copy of the current line to a section in another note",
+      "jsFunction": "addIDAndAddToOtherNote"
+    },
+    {
+      "name": "copy note links",
+      "alias": [
+        "cnl",
+        "link",
+        "wikilink",
+        "file"
+      ],
+      "description": "copies [[note link]] lines or blocks from the open calendar note to their respective project notes",
+      "jsFunction": "copyNoteLinks"
+    },
+    {
+      "name": "copy note links (recently changed)",
+      "alias": [
+        "cnlnr",
+        "link",
+        "wikilink",
+        "file"
+      ],
+      "description": "copies [[note link]] lines or blocks from recently-changed calendar notes to their respective project notes",
+      "jsFunction": "copyRecentNoteLinks"
+    },
+    {
+      "name": "move note links",
+      "alias": [
+        "mnl",
+        "link",
+        "wikilink",
+        "file"
+      ],
+      "description": "moves [[note link]] lines or blocks from the open calendar note to their respective project notes",
+      "jsFunction": "moveNoteLinks"
+    },
+    {
+      "name": "move note links (recently changed)",
+      "alias": [
+        "mnlrc",
+        "link",
+        "wikilink",
+        "file"
+      ],
+      "description": "moves [[note link]] lines or blocks from recently-changed calendar notes to their respective project notes",
+      "jsFunction": "moveRecentNoteLinks"
+    },
     {
       "name": "move paragraph or selection",
       "alias": [
@@ -89,19 +143,14 @@
       "jsFunction": "newNoteFromSelection"
     },
     {
-      "name": "add sync'd copy to note",
+      "name": "Filer: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings",
       "alias": [
-        "asc",
-        "sync",
-        "lines"
+        "aisettings",
+        "aipreferences"
       ],
-      "description": "Add a sync'd copy of the current line to a section in another note",
-      "jsFunction": "addIDAndAddToOtherNote"
-    },
-    {
-      "name": "test:update Filer plugin",
-      "description": "Filer: test update plugin",
-      "jsFunction": "testUpdate"
+      "arguments": []
     }
   ],
   "plugin.settings": [
@@ -157,6 +206,45 @@
       ],
       "default": "link",
       "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "\"/note link\" commands settings"
+    },
+    {
+      "key": "recentDays",
+      "title": "How many days to include in 'recent' changes to calendar notes?",
+      "description": "This sets how many days' worth of changes to calendar notes to include? To include all days, set to 0.",
+      "type": "number",
+      "default": 7,
+      "required": true
+    },
+    {
+      "key": "justCompletedItems",
+      "title": "Only file completed items?",
+      "description": "By default will only attempt to file [[note links]] on completed tasks, checklist items, or heading lines.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "useBlocks",
+      "title": "File the rest of a block the note link is in?",
+      "description": "If set, this command will include the rest of the following block this line is in: any indented lines, or (if this line is a heading) all lines following until a blank line, or heading of the same level or higher. Default is not to use blocks, which only files this line.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "ignoreNoteLinkFilerTag",
+      "title": "Tag that indicates a [[note link]] should be ignored",
+      "description": "If this tag (e.g. '#ignore') is included in a line with a [[note link]] then it (and where relevant the rest of its block) will not be moved or copied.",
+      "type": "string",
+      "default": "",
+      "required": false
     },
     {
       "type": "separator"
