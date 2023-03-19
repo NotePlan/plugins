@@ -30,7 +30,7 @@ They could be mapped to shortcut keys to make using them even faster.
 ## /add sync'd copy to note
 This command (alias **/asc**) adds a sync'd copy of the current line to a section in another note.  Here's a demo with two notes side by side, only to make it clearer:
 
-![](add-link-line-demo-T2.gif)
+![add sync demo](add-link-line-demo-T2.gif)
 
 <!-- NB: This only works with the "synced blocks" feature available in the NotePlan Lab from v3.5.2. -->
 NB: This feature only works on single lines, not whole blocks, at the moment.)
@@ -42,11 +42,11 @@ There are 4 related commands that move or copy lines in calendar notes that incl
 - **/copy note links**
 - **/copy note links (recently changed)**
 
-<!-- ??? demo -->
+![note link demo](note-link-example1.gif)
 
 There are a number of settings to make it useful for a variety of ways of organising your notes:
-<!-- - Only file completed items? By default will only attempt to file [[note links]] on completed tasks or checklist items. -->
-- "Types of lines to file?" for the these commands to choose what sorts of lines to move/copy:
+
+- Types of lines to file: for the these commands to choose what sorts of lines to move/copy:
   - all lines
   - all but incomplete task/checklist items
   - only completed task/checklist items
