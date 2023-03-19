@@ -20,6 +20,15 @@
 // uncomment it for using server mocks in support/fetchOverrides.js
 // import './support/fetchOverrides'
 
+// chat
+// export { updateSettings } from './settings'
+import pluginJson from '../plugin.json'
+import { showMessage } from '@helpers/userInput'
+
+export { editSettings } from '@helpers/NPSettings'
+export { insertChat, createChat, continueChat } from './chat'
+export { summarizeNote } from './summarize'
+
 export { testConnection, introWizard, helpWizard } from './NPAI' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
 export { createResearchRequest, createResearchListRequest, createQuickSearch, updateREADME, noteToPrompt } from '../non-implemented_functions'
 export { bulletsAI, createResearchDigSite, remixQuery, explore, researchFromSelection, moveNoteToResearchCollection } from './BulletsAI-Main'
@@ -27,12 +36,6 @@ export { adjustPreferences, scrollToEntry, listEndpoints } from './support/helpe
 export { createAIImages } from './imageAI'
 export { changeDefaultMaxTokens, changeTargetSummaryParagraphs, changeDefaultTargetKeyTerms, setOpenAIAPIKey } from './support/settingsAdjustments'
 export { firstLaunch } from '../src/support/onboarding'
-export { insertChat, createChat, continueChat } from './chat'
-export { summarizeNote } from './summarize'
-
-// export {  } from './support/formatters'
-// Do not change this line. This is here so your plugin will get recompiled every time you change your plugin.json file
-import pluginJson from '../plugin.json'
 
 /*
  * NOTEPLAN HOOKS
@@ -41,7 +44,7 @@ import pluginJson from '../plugin.json'
  */
 
 // eslint-disable-next-line import/order
-import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
+import { updateSettingData, pluginUpdated, getPluginJson } from '@helpers/NPConfiguration'
 import { logError, JSP, clo } from '@helpers/dev'
 /**
  * NotePlan calls this function after the plugin is installed or updated.
@@ -59,7 +62,7 @@ export async function onUpdateOrInstall(): Promise<void> {
 // eslint-disable-next-line require-await
 export async function init(): Promise<void> {
   try {
-    clo(DataStore.settings, `${pluginJson['plugin.id']} Plugin Settings`)
+    clo(DataStore.settings, `${pluginJson['plugin.id']} init running. Plugin Settings`)
     // Check for the latest version of this plugin, and if a minor update is available, install it and show a message
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) => pluginUpdated(pluginJson, r))
   } catch (error) {
@@ -72,3 +75,14 @@ export async function init(): Promise<void> {
  * You should not need to edit this function
  */
 export async function onSettingsUpdated(): Promise<void> {}
+
+/**
+ * Check the version of the plugin (and force an update if the version is out of date)
+ */
+export async function versionCheck(): Promise<void> {
+  try {
+    await showMessage(`Current Version: ${pluginJson['plugin.version']}`, 'OK', `${pluginJson['plugin.name']}`, true)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}

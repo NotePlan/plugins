@@ -4,10 +4,10 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "shared.AI",
   "plugin.name": "💡 NotePlan AI",
-  "plugin.version": "0.4.3",
-  "plugin.lastUpdateInfo": "0.4.3-beta2: Added summarize note/selection command and the start of some localizations. Look at the 'NotePlan AI' plugin preferences at the bottom for localization information.",
+  "plugin.version": "0.5.5",
+  "plugin.lastUpdateInfo": "0.5.5: Improved error logging on bugs my mom found; 0.5.0: add iOS settings editing v1 (for my mom); 0.4.3-beta2: Added summarize note/selection command and the start of some localizations. Look at the 'NotePlan AI' plugin preferences at the bottom for localization information.",
   "plugin.description": "GPT integration for research, summarization, etc.",
-  "plugin.author": "Started by a man of mystery, now maintained by @dwertheimer",
+  "plugin.author": "a man of mystery and @dwertheimer",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/shared.AI/README.md",
@@ -17,11 +17,16 @@
       "note": "================== COMMMANDS ========================"
     },
     {
+      "name": "NotePlan AI: Check Version",
+      "description": "Update + Check Version",
+      "jsFunction": "versionCheck"
+    },
+    {
       "note": "************************************ CHAT ****************************************"
     },
     {
-      "name": "Insert Chat",
-      "description": "NotePlan AI: Insert ChatGPT Chat at cursor",
+      "name": "NotePlan AI: Insert Chat",
+      "description": "Insert ChatGPT Chat at cursor",
       "jsFunction": "insertChat",
       "alias": [],
       "arguments": [
@@ -29,8 +34,8 @@
       ]
     },
     {
-      "name": "Create Chat",
-      "description": "NotePlan AI: Create ChatGPT in New Document",
+      "name": "NotePlan AI: Create Chat in New Document",
+      "description": "ChatGPT in New Document",
       "jsFunction": "createChat",
       "alias": [],
       "arguments": []
@@ -57,13 +62,20 @@
       "note": "************************************ RESEARCH ****************************************"
     },
     {
-      "name": "Research - NotePlan AI",
-      "description": "Start Clickable Research using NotePlan AI",
+      "name": "NotePlan AI: Research",
+      "description": "Start Clickable Research dig site",
       "jsFunction": "createResearchDigSite",
       "alias": [
         "research",
         "rs"
       ],
+      "arguments": []
+    },
+    {
+      "name": "NotePlan AI: Research Selected Text",
+      "description": "Continue research using the selected text.",
+      "jsFunction": "researchFromSelection",
+      "alias": [],
       "arguments": []
     },
     {
@@ -104,8 +116,8 @@
       "note": "************************************ IMAGES ****************************************"
     },
     {
-      "name": "Create AI Images",
-      "description": "NotePlan AI: Generate images with DALL-E @ OpenAI",
+      "name": "NotePlan AI: Images",
+      "description": "Generate images with DALL-E",
       "jsFunction": "createAIImages",
       "hidden": false,
       "alias": [
@@ -115,6 +127,16 @@
     },
     {
       "note": "************************************ INTRO WIZARD ****************************************"
+    },
+    {
+      "name": "NotePlan AI: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings",
+      "alias": [
+        "aisettings",
+        "aipreferences"
+      ],
+      "arguments": []
     },
     {
       "name": "AI Intro Wizard",
@@ -165,9 +187,6 @@
         "apref"
       ],
       "arguments": []
-    },
-    {
-      "note": "************************************ INTRO WIZARD ****************************************"
     },
     {
       "name": "Show NotePlan AI Commands",
@@ -241,13 +260,6 @@
       "arguments": []
     },
     {
-      "name": "Research from Selection",
-      "description": "Continue research using the selected text.",
-      "jsFunction": "researchFromSelection",
-      "alias": [],
-      "arguments": []
-    },
-    {
       "name": "Update README - DEV ONLY",
       "description": "Updates README - DEV ONLY",
       "jsFunction": "updateREADME",
@@ -272,8 +284,8 @@
       "alias": [
         "keyterms"
       ],
-      "arguments": [],
-      "hidden": true
+      "hidden": true,
+      "arguments": []
     },
     {
       "name": "Change Summary Paragraphs Target - NotePlan AI",
@@ -314,6 +326,11 @@
       "note": "================== SETTINGS ========================"
     },
     {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "shared.AI"
+    },
+    {
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
       "title": "AI Settings"
@@ -324,6 +341,7 @@
       "type": "string",
       "description": "Enter the API key for your OpenAI account",
       "default": "",
+      "hidden": true,
       "required": true
     },
     {
@@ -332,6 +350,31 @@
     {
       "type": "heading",
       "title": "ChatGPT Settings"
+    },
+    {
+      "key": "numKeyTermsForFollowUp",
+      "title": "How many key terms should be highlighted for one-click/follow-ups?",
+      "description": "This plugin will highlight the top N key terms in the response from ChatGPT. You can then click on the highlighted term to create a follow-up query digging deeper on that term. Set the number of terms to highlight here. The default is 5. Set this to zero to turn it off.",
+      "type": "number",
+      "default": 5,
+      "required": true
+    },
+    {
+      "key": "highlightKeyTerms",
+      "title": "Turn all key terms into clickable links for follow-up queries?",
+      "description": "If the number of key terms is >0 this setting determines whether all key terms are turned into follow-up links in the text or whether the key term links will just be listed beneath each chat response.",
+      "type": "bool",
+      "default": false,
+      "hidden": true,
+      "required": true
+    },
+    {
+      "key": "numRelatedTerms",
+      "title": "How many related topics should be listed?",
+      "description": "If the number of key terms is >0 this setting determines whether all key terms are turned into follow-up links in the text or whether the key term links will just be listed beneath each chat response. The default is 5. Set this to zero to turn it off.",
+      "type": "number",
+      "default": 5,
+      "required": true
     },
     {
       "key": "outputAttribution",

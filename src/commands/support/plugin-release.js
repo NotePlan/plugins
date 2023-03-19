@@ -58,7 +58,7 @@ module.exports = {
     const preview = args?.preview
     const testRunner = `./node_modules/.bin/jest`
     const testCommand = ['run', 'test:dev', `${pluginId}/__tests__/*.test.js`]
-    const buildCommand = ['run', 'build', pluginId]
+    const buildCommand = ['run', 'build:minified', pluginId]
 
     if (args.preview) {
       print.info('Plugin Release Preview Mode')

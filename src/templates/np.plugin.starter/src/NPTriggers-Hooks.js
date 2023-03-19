@@ -4,6 +4,7 @@
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
+import { showMessage } from '@helpers/userInput'
 
 /**
  * NOTEPLAN PER-NOTE TRIGGERS
@@ -102,5 +103,16 @@ export async function onSettingsUpdated(): Promise<void> {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated running`)
   } catch (error) {
     logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
+  }
+}
+
+/**
+ * Check the version of the plugin (and force an update if the version is out of date)
+ */
+export async function versionCheck(): Promise<void> {
+  try {
+    await showMessage(`Current Version: ${pluginJson['plugin.version']}`, 'OK', `${pluginJson['plugin.name']}`, true)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }

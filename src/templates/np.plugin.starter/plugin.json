@@ -27,23 +27,35 @@
       ]
     },
     {
-      "name": "onOpen",
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "{{pluginName}}: Version",
+      "description": "Update + Check Version",
+      "jsFunction": "versionCheck"
+    },
+    {
       "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onOpen",
       "jsFunction": "onOpen",
       "hidden": true
     },
     {
-      "name": "onEditorWillSave",
       "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onEditorWillSave",
       "jsFunction": "onEditorWillSave",
       "hidden": true
     },
     {
-      "name": "onMessageFromHTMLView",
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onMessageFromHTMLView",
       "description": "{{pluginId}}: Callback function to receive messages from HTML view",
       "jsFunction": "onMessageFromHTMLView",
       "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "{{pluginName}}: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
     }
   ],
   "plugin.settings": [
@@ -51,6 +63,12 @@
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
       "title": "{{pluginName}} Settings"
+    },
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "{{pluginId}}",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
     },
     {
       "title": "A string in prefs",

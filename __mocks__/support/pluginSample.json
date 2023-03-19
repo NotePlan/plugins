@@ -48,6 +48,8 @@
         {
             "type": "hidden",
             "key": "hiddenKey",
+            "title": "String Setting",
+            "description": "An example of a string setting.",
             "default": "hello world"
         },
         {

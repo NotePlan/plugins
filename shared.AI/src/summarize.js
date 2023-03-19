@@ -1,9 +1,9 @@
 // @flow
 
+import pluginJson from '../plugin.json'
 import { createInitialChatRequest } from './chat'
 import type { ChatResponse, ChatRequest } from './support/AIFlowTypes'
 import { makeRequest, saveDebugResponse, CHAT_COMPONENT } from './support/networking'
-import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { chooseFolder, chooseNote, chooseOption, showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -114,7 +114,7 @@ async function getNoteText(note: CoreNoteFields) {
       }
     }
   }
-  if (!text) text = note.content || ''
+  if (!text) text = Editor.note?.type === 'Calendar' ? `# Notes taken on: ${note.title || ''}\n${note.content || ''}` : note.content || ''
   return text
 }
 
@@ -151,7 +151,7 @@ export async function summarizeNote(incoming: string | null = null) {
         const request = createSummaryRequest(text)
         const chatResponse = await makeRequest(CHAT_COMPONENT, 'POST', request)
         if (chatResponse) {
-          saveDebugResponse('summarizeNote', `summarize_${note.title || ''}`, request, chatResponse)
+          saveDebugResponse('summarizeNote', `summarize_${note.filename || ''}`, request, chatResponse)
           const saveWhere = await askWhereToSave()
           await writeOutResponse(chatResponse, saveWhere, note)
         }

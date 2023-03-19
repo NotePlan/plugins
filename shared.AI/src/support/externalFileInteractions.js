@@ -41,10 +41,10 @@ export function saveDataFile(json: JSONClickData, _filename?: string): boolean {
  */
 export function initializeData(query?: string): JSONClickData {
   const filename = getDataFileName()
-  logDebug(pluginJson, `initializeData Editor.title=${Editor.title || ''}; filename="${filename}"`)
+  logDebug(pluginJson, `initializeData: Will look for filename="${filename}"`)
   let loadedJSON = loadDataFile()
   if (!loadedJSON) {
-    logDebug(pluginJson, `initializeData JSON did not exist for "${Editor.title || ''}". Initializing blanks`)
+    logDebug(pluginJson, `initializeData JSON did not exist (as we expected) for "${filename || ''}". Creating file from template.`)
     if (query) {
       const newJSON = {
         initialSubject: query,
@@ -71,7 +71,7 @@ export function initializeData(query?: string): JSONClickData {
  */
 export function updateClickedLinksJsonData(clickedLink: string): void {
   if (Editor.title) {
-    const filename = getDataFileName()
+    // const filename = getDataFileName()
     const loadedJSON = loadDataFile()
     if (!loadedJSON['clickedLinks'].includes(clickedLink)) {
       const updatedJSON = saveClickedLink(loadedJSON, clickedLink.trim())
