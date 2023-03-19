@@ -45,8 +45,14 @@ There are 4 related commands that move or copy lines in calendar notes that incl
 <!-- ??? demo -->
 
 There are a number of settings to make it useful for a variety of ways of organising your notes:
-- Only file completed items? By default will only attempt to file [[note links]] on completed tasks or checklist items. <!-- ??? more options -->
+<!-- - Only file completed items? By default will only attempt to file [[note links]] on completed tasks or checklist items. -->
+- "Types of lines to file?" for the these commands to choose what sorts of lines to move/copy:
+  - all lines
+  - all but incomplete task/checklist items
+  - only completed task/checklist items
+  - only non-task/checklist items
 - File the wider block the note link is in? If set, this command will include the rest of the following block this line is in: any indented lines, or (if this line is a heading) all lines following until a blank line, or heading of the same level or higher. Default is not to use blocks, which only files this line.
+- Where to add in the note: If the [[note link]] doesn't include a heading, then this controls whether filed lines get inserted at the start or end of the note.
 - Tag that indicates a [[note link]] should be ignored: If this tag (e.g. "#ignore") is included in a line with a [[note link]] then it (and where relevant the rest of its block) will not be moved or copied.
 
 The **/... (recently changed)** versions of these commands operate on recently-changed calendar notes, not just the currently open one. To contol this there's an additional setting:

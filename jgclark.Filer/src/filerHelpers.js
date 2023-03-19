@@ -22,20 +22,22 @@ export type FilerConfig = {
   includeFromStartOfSection: boolean,
   useTightBlockDefinition: boolean,
   whereToAddInSection: string, // 'start' (default) or 'end'
-  recentDays: number,
-  justCompletedItems: boolean, // FIXME: change to a choice: all but incomplete tasks ???
+  // justCompletedItems: boolean, // migrating to the next item
+  typesToFile: string, // now a choice: all but incomplete tasks
   useBlocks: boolean,
+  whereToAddInNote: string, // 'start' (default) or 'end'
   ignoreNoteLinkFilerTag: string,
   copyOrMove: string, // 'copy' or 'move'. Note: not set in plugin settings, but in object to send from wrappers to main functions
+  recentDays: number,
   _logLevel: string,
 }
 
 export async function getFilerSettings(): Promise<any> {
   try {
-    // First get global setting 'useTightBlockDefinition'
-    // TODO: add to np.Shared
-    let useTightBlockDefinition = getSetting('np.Shared', 'useTightBlockDefinition')
-    logDebug('getFilerSettings', `- useTightBlockDefinition: np.Globals: ${String(useTightBlockDefinition)}`)
+    // // First get global setting 'useTightBlockDefinition'
+    // // TODO: add to np.Shared
+    // let useTightBlockDefinition = getSetting('np.Shared', 'useTightBlockDefinition')
+    // logDebug('getFilerSettings', `- useTightBlockDefinition: np.Globals: ${String(useTightBlockDefinition)}`)
 
     // Get settings using Config system
     const config: FilerConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
@@ -45,10 +47,6 @@ export async function getFilerSettings(): Promise<any> {
       await showMessage(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     } else {
-      if (useTightBlockDefinition) {
-        logDebug('getFilerSettings', `- using useTightBlockDefinition setting from np.Shared`)
-        config.useTightBlockDefinition = useTightBlockDefinition
-      }
       clo(config, `${pluginID} settings:`)
       return config
     }
@@ -67,7 +65,7 @@ export async function getFilerSettings(): Promise<any> {
  * 
  * @param {TNote} destinationNote 
  * @param {string} selectedParasAsText 
- * @param {string} headingToFind if empty, means 'end of note'
+ * @param {string} headingToFind if empty, means 'end of note'. Can also be the special string '(top of note)'
  * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
  */
 export function addParasAsText(
