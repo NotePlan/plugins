@@ -71,7 +71,7 @@ export async function askToReviewForgottenTasks(byTask: boolean = false) {
         // added a user preference for it instead
         // answer = await showMessageYesNo('Ignore items which have dates/are scheduled?', ['Yes', 'No'], "Ignore Scheduled Tasks", true)
         logDebug(pluginJson, `askToReviewForgottenTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
-        await searchForOpenTasks(null, byTask, ignoreScheduledInForgottenReview, forgottenFoldersToIgnore)
+        await searchForOpenTasks(null, byTask, ignoreScheduledInForgottenReview)
       }
     }
   } catch (error) {
@@ -329,7 +329,7 @@ export async function reviewOverdueTasksInFolder(incoming: string): Promise<void
  */
 export async function getNotesToReviewForOpenTasks(ignoreScheduledInForgottenReview: boolean = true): Promise<Array<Array<TParagraph>> | false> {
   try {
-    const { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore } = DataStore.settings
+    const { searchForgottenTasksOldestToNewest, forgottenFoldersToIgnore } = DataStore.settings
 
     const OPTIONS = [
       { label: '1 day', value: { num: 1, unit: 'day' } },
@@ -350,7 +350,11 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledInForgottenRev
     const { value, keyModifiers } = history
 
     const noteTypes = keyModifiers.indexOf('opt') > -1 ? 'both' : 'Calendar'
-    const notesWithOpenTasks = await getNotesWithOpenTasks(noteTypes, value, { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore, ignoreScheduledInForgottenReview })
+    const notesWithOpenTasks = await getNotesWithOpenTasks(noteTypes, value, {
+      searchForgottenTasksOldestToNewest,
+      overdueFoldersToIgnore: forgottenFoldersToIgnore,
+      ignoreScheduledInForgottenReview,
+    })
     const totalTasks = notesWithOpenTasks.reduce((acc, n) => acc + n.length, 0)
     logDebug(pluginJson, `Calendar + Project Notes to review: ${notesWithOpenTasks.length}; total tasks: ${totalTasks}`)
     return notesWithOpenTasks
@@ -365,14 +369,9 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledInForgottenRev
  * Plugin entrypoint for command: "/Search Forgotten Tasks Oldest to Newest"
  * @param {*} incoming
  */
-export async function searchForOpenTasks(
-  incoming: string | null = null,
-  byTask: boolean = false,
-  ignoreScheduledInForgottenReview: boolean = true,
-  forgottenFoldersToIgnore: Array<string> = [],
-) {
+export async function searchForOpenTasks(incoming: string | null = null, byTask: boolean = false, ignoreScheduledInForgottenReview: boolean = true) {
   try {
-    const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
+    const { overdueOpenOnly, forgottenFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
     logDebug(pluginJson, `searchForOpenTasks incoming:${incoming || ''} byTask:${String(byTask)} ignoreScheduledInForgottenReview:${String(ignoreScheduledInForgottenReview)}`)
     const notes = await getNotesToReviewForOpenTasks(ignoreScheduledInForgottenReview)
 

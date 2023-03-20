@@ -1,4 +1,4 @@
-# shadowfigure.AI Changelog
+# shared.AI (NotePlan AI) Changelog
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/shared.AI/README.md) for details on available commands and use case.
 

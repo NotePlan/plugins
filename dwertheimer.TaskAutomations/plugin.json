@@ -141,7 +141,7 @@
       "name": "Search Notes for Open Tasks",
       "description": "Search Calendar Notes (and optionally Project Notes) for open tasks to process",
       "jsFunction": "searchForOpenTasks",
-      "alias": ["openTasks","searchTasks"],
+      "alias": ["openTasks","searchTasks","forgotten","leftOpen"],
       "arguments": []
     },
     {

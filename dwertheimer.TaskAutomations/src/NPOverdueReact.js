@@ -400,6 +400,7 @@ export function getDataForReactView(testData: boolean = false): any {
     searchForgottenTasksOldestToNewest,
     overdueFoldersToIgnore,
     ignoreScheduledTasks,
+    forgottenFoldersToIgnore,
   } = DataStore.settings
 
   if (!testData) {
@@ -408,7 +409,11 @@ export function getDataForReactView(testData: boolean = false): any {
     const openWeeklyTasks = askToReviewWeeklyTasks ? getStaticTaskList(getWeeklyOpenTasks(), 'ThisWeek') : []
     //FIMXE: I am here. need to add settings for wherre to look and for how long
     const notesWithOpenTasks = askToReviewForgottenTasks
-      ? getNotesWithOpenTasks('Notes', { num: 30, unit: 'day' }, { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore, ignoreScheduledInForgottenReview })
+      ? getNotesWithOpenTasks(
+          'both',
+          { num: 30, unit: 'day' },
+          { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore: forgottenFoldersToIgnore, ignoreScheduledInForgottenReview },
+        )
       : []
     // clo(notesWithOpenTasks, `processOverdueReact: notesWithOpenTasks length=${notesWithOpenTasks.length}`)
     const openTasksGoneBy = notesWithOpenTasks.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])

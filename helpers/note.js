@@ -629,7 +629,8 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
       // filter out notes that are in folders to ignore
       let isInIgnoredFolder = false
       excludedFolders.forEach((folder) => {
-        if (note.filename.includes(`${folder}/`)) {
+        if (note.filename.includes(`${folder.trim()}/`)) {
+          // logDebug(`filterNotesAgainstExcludeFolders ignoring folder="${folder}" note.filename="${note.filename}}"`)
           isInIgnoredFolder = true
         }
       })

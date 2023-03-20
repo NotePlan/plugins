@@ -192,13 +192,13 @@ export async function updateSetting(key: string, pluginJson: any): any {
  * @param {*} pluginJson - the whole plugin json object
  *
  */
-export async function editSettings(pluginJson?: any): Promise<number> {
+export async function editSettings(_pluginJson?: any): Promise<number> {
   const { pluginID } = DataStore.settings
-  const plugin = pluginJson || (await getPluginJson(pluginID))
-  if (!plugin) throw 'editSettings: no pluginJson or pluginID found. It needs to be passed in or set in DataStore.settings.pluginID'
-  clo(plugin, 'editSettings: plugin.json:')
+  const pluginJson = _pluginJson || (await getPluginJson(pluginID))
+  if (!pluginJson) throw 'editSettings: no pluginJson or pluginID found. It needs to be passed in or set in DataStore.settings.pluginID'
+  clo(pluginJson, 'editSettings: plugin.json:')
   clo(DataStore.settings, 'editSettings: starting settings:')
-  const settings = getSettingsFromPluginJson(plugin)
+  const settings = getSettingsFromPluginJson(pluginJson)
 
   let editsMade = 0
   if (settings && settings.length) {

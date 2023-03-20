@@ -11,6 +11,7 @@
  */
 import { addMinutes } from 'date-fns'
 import pluginJson from '../plugin.json'
+import { addTrigger } from '../../helpers/NPFrontMatter'
 import type { AutoTimeBlockingConfig } from './config'
 import {
   blockOutEvents,
@@ -39,7 +40,6 @@ import { checkNumber, checkWithDefault } from '@helpers/checkType'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { getTodaysReferences, findOpenTodosInNote } from '@helpers/NPnote'
 import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes, selectedLinesIndex, getBlockUnderHeading } from '@helpers/NPParagraph'
-import { addTrigger } from '../../helpers/NPFrontMatter'
 
 /**
  * Get the config for this plugin, from DataStore.settings or the defaults if settings are not valid
@@ -161,8 +161,8 @@ function getExistingTimeBlocksFromNoteAsEvents(note: CoreNoteFields, defaultDura
 
 async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number, config: AutoTimeBlockingConfig): Promise<IntervalMap> {
   // const todayEvents = await Calendar.eventsToday()
-  const eventsArray: Array<TCalendarItem> = await getEventsForDay(dateStr)
-  const eventsWithStartAndEnd = getTimedEntries(eventsArray)
+  const eventsArray = await getEventsForDay(dateStr)
+  const eventsWithStartAndEnd = getTimedEntries(eventsArray || [])
   let eventsScheduledForToday = keepTodayPortionOnly(eventsWithStartAndEnd)
   if (Editor) {
     const duration = checkWithDefault(checkNumber, 60)
@@ -181,7 +181,7 @@ export async function deleteCalendarEventsWithTag(tag: string, dateStr: string):
     dateString = Editor.filename ? getDateStringFromCalendarFilename(Editor.filename) : null
   }
   if (dateString && tag) {
-    const eventsArray: Array<TCalendarItem> = await getEventsForDay(dateString)
+    const eventsArray = (await getEventsForDay(dateString)) || []
     CommandBar.showLoading(true, 'Deleting Calendar Events')
     await CommandBar.onAsyncThread()
     for (let i = 0; i < eventsArray.length; i++) {
@@ -303,8 +303,7 @@ const shouldRunCheckedItemChecksOriginal = (config: AutoTimeBlockingConfig): boo
  */
 export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingConfig = getConfig(), completedItems: Array<TParagraph> = []): Promise<?Array<string>> {
   // logDebug(pluginJson,`Starting createTimeBlocksForTodaysTasks. Time is ${new Date().toLocaleTimeString()}`)
-  const { timeBlockTag, intervalMins, insertIntoEditor, createCalendarEntries, passBackResults, deletePreviousCalendarEntries, eventEnteredOnCalTag, checkedItemChecksOriginal } =
-    config
+  const { timeBlockTag, intervalMins, insertIntoEditor, createCalendarEntries, passBackResults, deletePreviousCalendarEntries, eventEnteredOnCalTag } = config
   if (shouldRunCheckedItemChecksOriginal(config)) addTrigger(Editor, 'onEditorWillSave', pluginJson['plugin.id'], 'onEditorWillSave')
   const hypenatedDate = getTodaysDateHyphenated()
   logDebug(pluginJson, `createTimeBlocksForTodaysTasks hypenatedDate=${hypenatedDate} Editor.paras=${Editor.paragraphs.length}`)
@@ -328,15 +327,21 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
     const cleanTodayTodoParas = [...removeDateTagsFromArray(todosWithLinksMaybe)]
     logDebug(pluginJson, `After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items  Editor.paras=${Editor.paragraphs.length}`)
     const tasksByType = todosWithLinksMaybe.length ? getTasksByType(todosWithLinksMaybe, true) : null // puts in object by type of task and enriches with sort info (like priority)
-    logDebug(pluginJson, `After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items  Editor.paras=${Editor.paragraphs.length}`)
+    clo(tasksByType, 'createTimeBlocksForTodaysTasks: tasksByType')
+    logDebug(
+      pluginJson,
+      `After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items | ${tasksByType?.scheduled.length ?? 0} Scheduled (for today) items Editor.paras=${
+        Editor.paragraphs.length
+      }`,
+    )
     clo(tasksByType?.open, 'createTimeBlocksForTodaysTasks: tasksByType.open')
     if (deletePreviousCalendarEntries) {
       await deleteCalendarEventsWithTag(timeBlockTag, dateStr)
     }
     logDebug(pluginJson, `After deleteCalendarEventsWithTag, ${tasksByType?.open.length ?? 0} open items (still)  Editor.paras=${Editor.paragraphs.length}`)
-    if (tasksByType && tasksByType['open'].length) {
-      logDebug(pluginJson, `tasksByType['open'][0]: ${tasksByType['open'][0].content}  Editor.paras=${Editor.paragraphs.length}`)
-      const sortedTodos = tasksByType['open'].length ? sortListBy(tasksByType['open'], '-priority') : []
+    const openOrScheduledForToday = [...(tasksByType?.open ?? []), ...(tasksByType?.scheduled ?? [])]
+    if (openOrScheduledForToday) {
+      const sortedTodos = openOrScheduledForToday.length ? sortListBy(openOrScheduledForToday, '-priority') : []
       logDebug(pluginJson, `After sortListBy, ${sortedTodos.length} open items  Editor.paras=${Editor.paragraphs.length}`)
       // $FlowIgnore
       if (timeBlockTag?.length) {
@@ -682,7 +687,7 @@ export async function onEditorWillSave(incoming: string | null = null) {
     const completedTypes = ['done', 'scheduled', 'cancelled', 'checklistDone', 'checklistScheduled', 'checklistCancelled']
     logDebug(pluginJson, `onEditorWillSave running with incoming:${String(incoming)}`)
     const config = await getConfig()
-    const { checkedItemChecksOriginal, todoChar, timeBlockHeading } = config
+    const { timeBlockHeading } = config
     // check for today note? -- if (!editorIsOpenToToday())
     if (shouldRunCheckedItemChecksOriginal(config)) {
       // get character block

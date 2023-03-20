@@ -15,11 +15,11 @@ import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
  */
 export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialFolders: boolean = true): Array<string> {
   try {
-  // Get all folders as array of strings (other than @Trash).
-  const folderList = DataStore.folders
-  // logDebug('folders / filteredFolderList', `List of DataStore.folders: ${folderList.toString()}`)
-  const reducedList: Array<string> = []
-  // logDebug('folders / filteredFolderList', `filteredFolderList: Starting with exclusions ${exclusions.toString()}`)
+    // Get all folders as array of strings (other than @Trash).
+    const folderList = DataStore.folders
+    // logDebug('folders / filteredFolderList', `List of DataStore.folders: ${folderList.toString()}`)
+    const reducedList: Array<string> = []
+    // logDebug('folders / filteredFolderList', `filteredFolderList: Starting with exclusions ${exclusions.toString()}`)
     if (exclusions.length > 0) {
       const exclusionsTerminatedWithSlash: Array<string> = []
       for (const e of exclusions) {
@@ -49,8 +49,7 @@ export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialF
       reducedList.push(...folderList.slice())
     }
     return reducedList
-  }
-  catch (error) {
+  } catch (error) {
     logError('folders/getFilteredFolderList', JSP(error))
     return ['(error)']
   }
@@ -65,13 +64,10 @@ export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialF
 export function getFolderFromFilename(fullFilename: string): string {
   try {
     // drop first character if it's a slash
-    const filename = (fullFilename.startsWith('/'))
-      ? fullFilename.substr(1)
-      : fullFilename
+    const filename = fullFilename.startsWith('/') ? fullFilename.substr(1) : fullFilename
     const filenameParts = filename.split('/')
     return filenameParts.slice(0, filenameParts.length - 1).join('/')
-  }
-  catch (error) {
+  } catch (error) {
     logError('folders/getFolderFromFilename', `Error getting folder from filename '${fullFilename}: ${error.message}`)
     return '(error)'
   }
@@ -87,15 +83,10 @@ export function getFolderFromFilename(fullFilename: string): string {
 export function getLowestLevelFolderFromFilename(fullFilename: string): string {
   try {
     // drop first character if it's a slash
-    const filename = (fullFilename.startsWith('/'))
-      ? fullFilename.substr(1)
-      : fullFilename
+    const filename = fullFilename.startsWith('/') ? fullFilename.substr(1) : fullFilename
     const filenameParts = filename.split('/')
-    return (filenameParts.length <= 1)
-      ? ''
-      : filenameParts.slice(filenameParts.length - 2, filenameParts.length - 1).join('')
-  }
-  catch (error) {
+    return filenameParts.length <= 1 ? '' : filenameParts.slice(filenameParts.length - 2, filenameParts.length - 1).join('')
+  } catch (error) {
     logError('folders/getLowestLevelFolderFromFilename', `Error getting folder from filename '${fullFilename}: ${error.message}`)
     return '(error)'
   }

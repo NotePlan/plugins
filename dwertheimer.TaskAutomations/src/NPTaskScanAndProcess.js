@@ -596,7 +596,7 @@ export function getNotesWithOpenTasks(
   let recentProjNotes: Array<TNote> = []
   if (lookInNotes) {
     recentProjNotes = DataStore.projectNotes.filter((note) => note.changedDate >= afterDate)
-    logDebug(`getNotesWithOpenTasks`, `Project Notes in date range: ${recentProjNotes.length}`)
+    logDebug(`getNotesWithOpenTasks`, `Total Project Notes in date range: ${recentProjNotes.length}`)
     recentProjNotes = filterNotesAgainstExcludeFolders(recentProjNotes, overdueFoldersToIgnore, true)
     logDebug(`getNotesWithOpenTasks`, `Project Notes after exclude folder filter: ${recentProjNotes.length}`)
   }
@@ -615,6 +615,8 @@ export function getNotesWithOpenTasks(
   logDebug(`getNotesWithOpenTasks`, `Project Notes after filtering for open tasks: ${recentProjNotesWithOpens.length}`)
 
   const notesWithOpenTasks: Array<Array<TParagraph>> = [...recentCalNotesWithOpens, ...recentProjNotesWithOpens]
+  logDebug(`getNotesWithOpenTasks`, `Combined Notes after filtering for open tasks: ${notesWithOpenTasks.length}`)
+
   return notesWithOpenTasks
 }
 
@@ -637,7 +639,7 @@ export function getOpenTasksByNote(notes: Array<TNote>, sortOrder: string | Arra
     for (let index = 0; index < paras.length; index++) {
       const p = paras[index]
       if (p.type === 'open' && p.content.trim() !== '' && (!ignoreScheduledTasks || !(ignoreScheduledTasks && isScheduled(p.content)))) {
-        logDebug(pluginJson, `getOpenTasksByNote: Including note: "${note.title || ''}" and task: "${p.content}".`)
+        logDebug(`getOpenTasksByNote: Including note: "${note.title || ''}" and task: "${p.content}".`)
         openTasksInThisNote.push(p)
       }
     }
