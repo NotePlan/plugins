@@ -1,5 +1,5 @@
 # What's changed in 🔁 Repeat Extensions plugin?
-Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings.
+Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
 ## [0.5.2] - 2023-03-???
 ### Changed

@@ -1,8 +1,6 @@
 # 🔁 Repeat Extension plugin
 
-NotePlan has a simple [built-in repeat mechanism](https://noteplan.co/faq/Notes%20&%20Todos/How%20to%20create%20a%20recurring%20or%20repeating%20todo/), which allows for `@repeat(1/n)`.  That wasn't flexible enough for my purposes, so I created my own extension to this mechanism.
-
-This plugin allows repeats **every x days, weeks, months, quarters or years**. It does the work of creating the next task using information from completed tasks that include a `@repeat(interval)`, on the appropriate future date.  Here's an example (from v0.5) where it will repeat 6 weeks after completion:
+NotePlan has a simple [built-in repeat mechanism](https://noteplan.co/faq/Notes%20&%20Todos/How%20to%20create%20a%20recurring%20or%20repeating%20todo/), which allows for `@repeat(1/n)`.  That wasn't flexible enough for my purposes, so I wrote this plugin to allow repeats **every x days, weeks, months, quarters or years**. It does the work of creating the next task using information from completed tasks that include a `@repeat(interval)`, on the appropriate future date.  Here's an example (from v0.5) where it will repeat 6 weeks after completion:
 
 <img src="repeat-auto-mode.gif" width="500px">
 
@@ -18,6 +16,9 @@ is completed, and then `/rpt` run, the task then becomes:
 and the task will show up again 2 weeks after the last set date.
 
 Compared with the built-in functionality, it also allows you to easily change the text of a repeated task, which otherwise means visiting all the future notes with repeats.
+
+## Configuration
+For this feature to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
 
 ## Running it Automatically
 From NotePlan v3.7.2, this plugin can **automatically generate** the new repeated task after you complete an existing one. This requires adding the following line to frontmatter at the start of _every note_ you wish to automate in this way:
@@ -46,9 +47,6 @@ The time intervals have two parts: number and then a character. The **character*
 
 When the **number** starts with a **+** (e.g. `+1m`) it will duplicate the task for 1 month after the date the _task was completed_.
 When the number doesn't start with a + (e.g. `1m`) it will duplicate the task for 1 month after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. If this can't be determined, then it defaults to the first option.
-
-## Configuration
-For this feature to work, you need to have the '**Append Completion Date**' NotePlan setting turned on in the Preferences (and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed).
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

@@ -3,7 +3,7 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.RepeatExtensions",
   "plugin.name": "🔁 @repeat Extensions",
-  "plugin.description": "Commands to extend the built-in @repeat() mechanism with much more flexible time periods.",
+  "plugin.description": "Commands to extend the built-in @repeat() mechanism with much more flexible time periods. To work it needs 'append completion date' turned on in Preferences > Todo.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/",
