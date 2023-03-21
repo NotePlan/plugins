@@ -145,7 +145,7 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
     }
     return removed
   } catch (err) {
-    logError('rFMF', JSP(err))
+    logError('NPFrontMatter/removeFrontMatterField()', JSP(err))
     return false
   }
 }
@@ -197,30 +197,35 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
  * @author @dwertheimer
  */
 export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: string }): boolean {
+  try {
   const title = varObj.title || null
   const hasFM = ensureFrontmatter(note, true, title)
-  clo(note, 'after ensureFrontMatter')
+    logDebug('setFrontMatterVars', `after ensureFrontMatter with ${note.paragraphs.length} lines`)
   if (!hasFM) {
     logError(`setFrontMatterVars: Could not add front matter to note which has no title. Note should have a title, or you should pass in a title in the varObj.`)
     return false
   }
-  if (hasFrontMatter(note.content || '')) {
-    const existingAttributes = getAttributes(note.content)
-    const changedAttributes = { ...existingAttributes }
-    Object.keys(varObj).forEach((key) => {
-      if (varObj[key] === null && existingAttributes.hasOwnProperty(key)) {
-        delete changedAttributes[key]
-      } else {
-        changedAttributes[key] = String(varObj[key])
-      }
-    })
-    removeFrontMatter(note)
-    writeFrontMatter(note, changedAttributes)
-    clo(note, 'end of setFMV')
-  } else {
-    logError(pluginJson, `setFrontMatterVars: Could not change frontmatter for note "${note.filename || ''}" because it has no frontmatter.`)
+    if (hasFrontMatter(note.content || '')) {
+      const existingAttributes = getAttributes(note.content)
+      const changedAttributes = { ...existingAttributes }
+      Object.keys(varObj).forEach((key) => {
+        if (varObj[key] === null && existingAttributes.hasOwnProperty(key)) {
+          delete changedAttributes[key]
+        } else {
+          changedAttributes[key] = String(varObj[key])
+        }
+      })
+      removeFrontMatter(note)
+      writeFrontMatter(note, changedAttributes)
+      logDebug('setFrontMatterVars', `ending with ${note.paragraphs.length} lines`)
+    } else {
+      logError(pluginJson, `setFrontMatterVars: Could not change frontmatter for note "${note.filename || ''}" because it has no frontmatter.`)
+    }
+    return true
+  } catch (error) {
+    logError('NPFrontMatter/setFrontMatterVars()', JSP(error))
+    return false
   }
-  return true
 }
 
 // /**
@@ -252,54 +257,60 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
  * @author @dwertheimer
  */
 export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean = true, title?: string | null): boolean {
-  let retVal = false
-  if (note == null) {
-    // no note - return false
-    logError('ensureFrontmatter', `No note found. Stopping conversion.`)
-    // await showMessage(`No note found to convert to frontmatter.`)
-  } else if (hasFrontMatter(note?.content || '')) {
-    // already has frontmatter
-    const attr = getAttributes(note.content)
-    if (!attr.title && title) {
-      logDebug('ensureFrontmatter', `Note '${displayTitle(note)}' already has frontmatter but no title. Adding title.`)
-      if (note.content) note.content = note.content.replace('---', `---\ntitle: ${title}\n`)
-    } else if (title && attr.title !== title) {
-      logDebug('ensureFrontmatter', `Note '${displayTitle(note)}' already has frontmatter but title is wrong. Updating title.`)
-      if (note.content) note.content = note.content.replace(`title: ${attr.title}`, `title: ${title}`)
-    }
-    retVal = true
-  } else {
-    // need to add frontmatter
-    let newTitle
-    let front = ''
-    if (alsoEnsureTitle) {
-      // if (!note.title) {
-      //   logError('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, but request requires a title. Stopping conversion.`)
-      //   return false
-      // }
-
-      const firstLine = note.paragraphs.length ? note.paragraphs[0] : {}
-      const titleFromFirstLine = (firstLine.type === 'title' && firstLine.headingLevel === 1) ? firstLine.content : ''
-
-      // Make title from parameter or note's existing H1 title or note.title respectively
-      newTitle = title || titleFromFirstLine || note.title // cover Calendar notes where title is not in the note
-      // logDebug('ensureFrontmatter', `- newTitle='${newTitle ?? ''}'`)
-      if (newTitle === '') {
-        logError('ensureFrontmatter', `Cannot find title for '${note.filename}'. Stopping conversion.`)
-        return false
+  try {
+    let retVal = false
+    if (note == null) {
+      // no note - return false
+      logError('ensureFrontmatter', `No note found. Stopping conversion.`)
+      // await showMessage(`No note found to convert to frontmatter.`)
+    } else if (hasFrontMatter(note?.content || '')) {
+      // already has frontmatter
+      const attr = getAttributes(note.content)
+      if (!attr.title && title) {
+        logDebug('ensureFrontmatter', `Note '${displayTitle(note)}' already has frontmatter but no title. Adding title.`)
+        if (note.content) note.content = note.content.replace('---', `---\ntitle: ${title}\n`)
+      } else if (title && attr.title !== title) {
+        logDebug('ensureFrontmatter', `Note '${displayTitle(note)}' already has frontmatter but title is wrong. Updating title.`)
+        if (note.content) note.content = note.content.replace(`title: ${attr.title}`, `title: ${title}`)
       }
-
-      if (titleFromFirstLine) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
-      front = `---\ntitle: ${quoteText(newTitle ?? '(error)')}\n---\n`
+      retVal = true
     } else {
-      front = `---\n---\n`
+      // need to add frontmatter
+      let newTitle
+      let front = ''
+      if (alsoEnsureTitle) {
+        // if (!note.title) {
+        //   logError('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, but request requires a title. Stopping conversion.`)
+        logDebug('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, so will now make one:`)
+        //   return false
+        // }
+
+        const firstLine = note.paragraphs.length ? note.paragraphs[0] : {}
+        const titleFromFirstLine = (firstLine.type === 'title' && firstLine.headingLevel === 1) ? firstLine.content : ''
+
+        // Make title from parameter or note's existing H1 title or note.title respectively
+        newTitle = title || titleFromFirstLine || note.title // cover Calendar notes where title is not in the note
+        // logDebug('ensureFrontmatter', `- newTitle='${newTitle ?? ''}'`)
+        if (newTitle === '') {
+          logError('ensureFrontmatter', `Cannot find title for '${note.filename}'. Stopping conversion.`)
+          return false
+        }
+
+        if (titleFromFirstLine) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
+        front = `---\ntitle: ${quoteText(newTitle ?? '(error)')}\n---\n`
+      } else {
+        front = `---\n---\n`
+      }
+      note.content = `${front}${note?.content || ''}`
+      retVal = true
+      logDebug('ensureFrontmatter', `-> Note '${displayTitle(note)}' converted to use frontmatter.`)
     }
-    note.content = `${front}${note?.content || ''}`
-    retVal = true
-    logDebug('ensureFrontmatter', `-> Note '${displayTitle(note)}' converted to use frontmatter.`)
+    // logDebug('ensureFrontmatter', `Returning ${String(retVal)}`)
+    return retVal
+  } catch (error) {
+    logError('NPFrontMatter/ensureFrontmattter()', JSP(error))
+    return false
   }
-  // logDebug('ensureFrontmatter', `Returning ${String(retVal)}`)
-  return retVal
 }
 
 // Triggers in frontmatter: https://help.noteplan.co/article/173-plugin-note-triggers
@@ -337,39 +348,50 @@ export function getTriggersByCommand(triggersArray: Array<string>): any {
  * @returns {string} - the formatted string
  */
 export function formatTriggerString(triggerObj: { [TriggerTypes]: Array<{ pluginID: string, commandName: string }> }): string {
-  let trigArray: Array<string> = []
-  TRIGGER_LIST.forEach((triggerName) => {
-    if (triggerObj[triggerName] && triggerObj[triggerName].length) {
-      trigArray = trigArray.concat(
-        triggerObj[triggerName].map((trigger) => {
-          return `${triggerName} => ${trigger.pluginID}.${trigger.commandName}`
-        }),
-      )
-    }
-  })
-  return trigArray.join(', ')
+  try {
+    clo(triggerObj, `formatTriggerString() starting with triggerObj =`)
+    let trigArray: Array<string> = []
+    TRIGGER_LIST.forEach((triggerName) => {
+      // logDebug('formatTriggerString', triggerName)
+      if (triggerObj[triggerName] && triggerObj[triggerName].length) {
+        trigArray = trigArray.concat(
+          triggerObj[triggerName].map((trigger) => {
+            return `${triggerName} => ${trigger.pluginID}.${trigger.commandName}`
+          }),
+        )
+      }
+      logDebug('formatTriggerString', `  - ${trigArray.join(', ')}`)
+    })
+    logDebug('formatTriggerString', `-> ${trigArray.join(', ')}`)
+    return trigArray.join(', ')
+  } catch (error) {
+    logError('NPFrontMatter/formatTriggerString()', JSP(error))
+    return ''
+  }
 }
 
 /**
  * Add a trigger to the frontmatter of a note (will create frontmatter if doesn't exist). Will append onto any existing list of trigger(s).
  * @author @dwertheimer
  * @param {CoreNoteFields} note
- * @param {TriggerTypes} trigger
+ * @param {string} trigger 1 from the TriggerTypes
  * @param {string} pluginID - the ID of the plugin
  * @param {string} commandName - the name (NOT THE jsFunction) of the command to run
  * @returns {boolean} - whether the trigger was added or not
  */
 export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: string, commandName: string): boolean {
   try {
-    if (ensureFrontmatter(note) === false) {
-      logError('addTrigger', `Failed to convert note '${displayTitle(note)}' to have frontmatter. Stopping.`)
-      return false
+    if (!TRIGGER_LIST.includes(trigger)) {
+      throw new Error(`'${trigger}' is not in the TRIGGER_LIST. Stopping.`)
     }
-    logDebug(pluginJson, `addTrigger adding metadata`)
+    if (ensureFrontmatter(note) === false) {
+      throw new Error(`Failed to convert note '${displayTitle(note)}' to have frontmatter. Stopping.`)
+    }
+    logDebug(pluginJson, `addTrigger() will add ${trigger} / ${pluginID} /  ${commandName} to FM:`)
     const attributes = getFrontMatterAttributes(note)
+    // clo(attributes, `addTrigger() attributes =`)
     const triggersArray = attributes ? attributes.triggers?.split(',') || [] : []
     const triggersObj = getTriggersByCommand(triggersArray)
-    // clo(triggersObj, `addTrigger triggersObj`)
     if (triggersObj[trigger]) {
       const commandExists = triggersObj[trigger].find((t) => t.pluginID === pluginID && t.commandName === commandName)
       if (commandExists) {
@@ -380,11 +402,12 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
       triggersObj[trigger] = []
     }
     triggersObj[trigger].push({ pluginID, commandName })
+    // clo(triggersObj, `addTrigger() triggersObj =`)
     const triggerFrontMatter = { triggers: formatTriggerString(triggersObj) }
-    clo(triggerFrontMatter, `addTrigger triggerFrontMatter setting frontmatter for ${displayTitle(note)}`)
+    clo(triggerFrontMatter, `addTrigger() triggerFrontMatter setting frontmatter for ${displayTitle(note)}`)
     return setFrontMatterVars(note, triggerFrontMatter)
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError('NPFrontMatter/addTrigger()', JSP(error))
     return false
   }
 }

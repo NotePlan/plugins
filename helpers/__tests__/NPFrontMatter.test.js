@@ -474,12 +474,22 @@ describe(`${PLUGIN_NAME}`, () => {
      * addTrigger()
      */
     describe('addTrigger()' /* function */, () => {
+      // TODO(@dwertheimer): why should this not be able to create frontmatter?
       test('should return false if cannot create frontmatter', () => {
         const note = new Note({ content: '', paragraphs: [], title: '' })
         const result = f.addTrigger(note, 'onOpen', 'foo', 'bar')
         expect(result).toEqual(false)
       })
-      test('should add a single trigger', () => {
+      // FIXME(@dwertheimer): this is a real-life case I'm hitting.
+      test('should add frontmatter and a single trigger', () => {
+        const note = new Note({ content: '* task on first line\n+ checklist on line two', paragraphs: [{ content: '* task on first line' }, { content: '+ checklist on line two' }], title: '' })
+        const result = f.addTrigger(note, 'onEditorWillSave', 'jgclark.Dashboard', 'decideWhetherToUpdateDashboard')
+        expect(result).toEqual(true)
+        expect(note.paragraphs[0].content).toEqual('---')
+        expect(note.paragraphs[1].content).toEqual('triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard')
+        expect(note.paragraphs[2].content).toEqual('---')
+      })
+      test('should add a single trigger to existing FM', () => {
         const note = new Note({
           content: '---\ntitle: foo\nbar: baz\n---\n',
           paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { content: '---' }],
@@ -488,6 +498,16 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.addTrigger(note, 'onOpen', 'foo', 'bar')
         expect(result).toEqual(true)
         expect(note.content).toMatch(/triggers: onOpen => foo.bar/)
+      })
+      test('should not add a trigger where it already exists in FM', () => {
+        const note = new Note({
+          content: '---\ntitle: foo\ntriggers: onOpen => foo.bar\nauthor: baz\n---\n',
+          paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'triggers: onOpen => foo.bar' }, { content: 'author: baz' }, { content: '---' }],
+          title: 'foo',
+        })
+        const result = f.addTrigger(note, 'onOpen', 'foo', 'bar')
+        expect(result).toEqual(true)
+        expect(note.paragraphs[2].content).toEqual('triggers: onOpen => foo.bar')
       })
     })
 
