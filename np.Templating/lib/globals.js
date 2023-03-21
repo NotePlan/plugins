@@ -107,7 +107,7 @@ const globals = {
   },
 
   progressUpdate: async (params: any): Promise<string> => {
-    return await invokePluginCommandByName('jgclark.Summaries', 'insertProgressUpdate', [JSON.stringify(params)])
+    return await invokePluginCommandByName('jgclark.Summaries', 'appendProgressUpdate', [JSON.stringify(params)])
   },
 
   weather: async (formatParam: string = ''): Promise<string> => {

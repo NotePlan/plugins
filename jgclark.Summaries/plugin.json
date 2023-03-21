@@ -95,7 +95,7 @@
       "jsFunction": "testHeatMapGeneration3"
     }
   ],
-  "plugin.settings": [
+"plugin.settings": [
     {
       "type": "heading",
       "title": "Habits and Summaries common settings"

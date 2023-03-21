@@ -139,9 +139,9 @@ describe(`${FILE}`, () => {
     })
     test('should create a link with 3 args passed as JSON string', () => {
       const expected =
-        'noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=insertProgressUpdate&arg0=%7B%22excludeToday%22%3Afalse%2C%22progressHeading%22%3A%22Test%20Heading%22%2C%22progressYesNo%22%3A%22%23readbook%2C%23theology%22%7D'
+        'noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=appendProgressUpdate&arg0=%7B%22excludeToday%22%3Afalse%2C%22progressHeading%22%3A%22Test%20Heading%22%2C%22progressYesNo%22%3A%22%23readbook%2C%23theology%22%7D'
       expect(
-        g.createRunPluginCallbackUrl(`jgclark.Summaries`, `insertProgressUpdate`, `{"excludeToday":false,"progressHeading":"Test Heading","progressYesNo":"#readbook,#theology"}`),
+        g.createRunPluginCallbackUrl(`jgclark.Summaries`, `appendProgressUpdate`, `{"excludeToday":false,"progressHeading":"Test Heading","progressYesNo":"#readbook,#theology"}`),
       ).toEqual(expected)
     })
   })
