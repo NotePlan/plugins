@@ -2,16 +2,18 @@
 
 This Plugin lets you do the following sorts of things:
 - track habits: for example, show when this week I've managed to `#closedmyrings` or `#tookMeds`? 
-<img alt="Habit Tracker example" src="ipu-2w-with-sparkline.jpg" width=360px/>
+
+  <img alt="Habit Tracker example" src="ipu-2w-with-sparkline.jpg" width=360px/>
 
 - show your progress over the last 2 weeks against your goal of getting an average 8 hours `@sleep`
 - count every time you've noted you've visited  `#family` or watched `#tv` this month
 - count the times you've met with staff member `@alice` this year so far
 - sum the length of your `@run`s in the last quarter
 - show a heatmap chart of how many tasks you've completed recently
-![Heatmap example](heatmap-0140.jpg)
 
-**What do you need to do?** Add tags like #closedmyrings or @habit(number) in your daily notes. In my case a day might incldue:
+  ![Heatmap example](heatmap-0140.jpg)
+
+**What do you need to do?** Add tags like #closedmyrings or @habit(_number_) in your daily notes. In my case a day might incldue:
 ```md
 @sleep(5.3) @activeCals(400) @steps(3800) @distance(2.7) @minHR(50) @maxHR(161) @restingHR(66) @fruitveg(4)
 Remember: #visit to new CFL premises in K18, Festival Place #prayer #win #filmvideo
@@ -20,13 +22,13 @@ Remember: #visit to new CFL premises in K18, Festival Place #prayer #win #filmvi
 
 **What does the plugin do?** It provides commands, each described in more detail below, that read these tags and generates several different sorts of summaries and basic stats from your daily notes.
 
-**When to use the command**: It's up to you! I run  /insertProgressUpdate as part of my daily note (see Calling from a Template below), but you might want to do it at the end of a day/week/month in those notes.
+**When to use the command**: It's up to you! I run  /insertProgressUpdate as part of my daily note (see [Calling from a Template](#calling-from-a-template) below), but you might want to do it at the end of a day/week/month in those notes.
 
 In each of these commands note that: 
 - all notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be exluded too using the `foldersToExclude` setting.
 - these commands require **some setup**, so it knows what you want to summarise. Do this in the Plugin Preferences panel by clicking the gear button on the 'Summaries' line. Each setting has an explanation, and they are grouped into relevant sections.
 
-The command output can include little "**sparkline" graphs**, as a simple in-line visualisation of the recorded activity for each item you're tracking, where the time period is a month or less. A dot `.` indicates there's no data for that day; the height of the bar indicates the value of that day, relative to the maximum in that time period. The mimimum is always 0, not the lowest value, and that is always shown as an empty space.
+The command output can include little **"sparkline" graphs**, as a simple in-line visualisation of the recorded activity for each item you're tracking, where the time period is a month or less. A dot `.` indicates there's no data for that day; the height of the bar indicates the value of that day, relative to the maximum in that time period. The mimimum is always 0, not the lowest value, and that is always shown as an empty space.
 
 To display them requires your font to have the necessary characters (`▁▂▃▄▅▆▇█`). All of NotePlan's built-in themes have the characters, and I have tested with Menlo and Cascadia Code monospace fonts as well.  See [NotePlan help on how to set fonts in themes](https://help.noteplan.co/article/44-customize-themes#fonts).
 
@@ -48,20 +50,20 @@ This displays a 'heatmap' chart of many tasks you've completed on each day (see 
 
 Note: This is a first attempt at generating heatmaps, and I want to make it much more flexible in future. But this will probably require rolling my own charts, rather than using one from AnyChart, which should be licensed if you rely on it.
 
-## /insertProgressUpdate
+## /appendProgressUpdate  (or the older name /insertProgressUpdate)
 As NotePlan is such a flexible app, there are [various ways people use it to track habits](https://help.noteplan.co/article/144-habit-tracking). 
  
 This Plugin command helps show progress for items you track (e.g. `@work(9)`, `@run(5.3)` or `#prayed`) over various time periods. It does this by generating stats for the configured #hashtags or @mentions over the time interval you select, and inserts it as a section into the destination note. If the progress update section already exists in the destination note -- if for example you have it set to insert in the weekly note -- it will be updated, rather than be repeated.
 
 For example, it produces for me: 
 
-![Habit Tracker example](ipu-2w-with-sparkline-v2.jpg)
+  <img alt="Habit Tracker example" src="ipu-2w-with-sparkline-v2.jpg" width=360px/>
 
 Note:
 - The statistics are shown according to whether you have selected count, average or total for that tag in the settings (see below)
 - The leading @ or # is removed in the output, to avoid double-counting problems.
 
-There are now 3 ways of running this: as /insertProgressUpdate **command**; through **templates**, or by **x-callback** call. The various settings are common, but how they are applied differ depending which method is used to invoke it. The settings and their meaning are introduced next, and differences in how they're applied are described in the following sections.
+There are now 3 ways of running this: as /insertProgressUpdate [command](#calling-by-command); through [templates](#calling-from-a-template), or by [x-callback call](#calling-by-x-callback). The various settings are common, but how they are applied differ depending which method is used to invoke it. The settings and their meaning are introduced next, and differences in how they're applied are described in the following sections.
 
 ### Calling by Command
 The many **settings** for this command are set in the Plugin Prererence pane:

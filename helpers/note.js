@@ -344,7 +344,7 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
 }
 
 /**
- * Find a unique note title for the given text (e.g. "Title", "Title 01" (if Title exists, etc.))
+ * Find a unique note title for the given text (e.g. "Title", "Title 01" (if "Title" exists, etc.))
  * Keep adding numbers to the end of a filename (if already taken) until it works
  * @author @dwertheimer
  * @param {string} title - the name of the file
@@ -352,10 +352,11 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
  */
 export function getUniqueNoteTitle(title: string): string {
   let i = 0
-  let res = []
+  let res: $ReadOnlyArray<TNote> = []
   let newTitle = title
   while (++i === 1 || res.length > 0) {
     newTitle = i === 1 ? title : `${title} ${i}`
+    // $FlowFixMe(incompatible-type)
     res = DataStore.projectNoteByTitle(newTitle, true, false)
   }
   return newTitle
@@ -456,6 +457,7 @@ export const clearNote = (note: TNote) => {
  * A section is defined (here at least) as all the lines between the heading,
  * and the next heading of that same or higher level, or the end of the file
  * if that's sooner.
+ * If no existing section is found, then append.
  * @author @jgclark
  *
  * @param {TNote} note to use

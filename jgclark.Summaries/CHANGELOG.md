@@ -1,9 +1,11 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [0.18.0] - 2023-03-???
+## [0.18.0] - 2023-03-21
 ### New
 - Added new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting for /periodStats. These tailor the output to focus on just the average or total, rather than all the currently-presented statistics (count, total and average). (These now match what is already possible with /insertProgressUpdate.)
+### Changed
+- changed name of user command /insertProgressUpdate to /appendProgressUpdate to better reflect how it works. (The earlier name still works, and it also doesn't require changing any existing templates or x-callback calls.)
 
 ### Fixed
 - 'Exclude today?' setting being ignored

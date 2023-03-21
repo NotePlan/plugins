@@ -15,14 +15,16 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "insertProgressUpdate",
+      "name": "appendProgressUpdate",
       "alias": [
         "ipu",
+        "insertProgressUpdate",
+        "apu",
         "progress",
         "habitTracker",
         "track"
       ],
-      "description": "Insert weekly/monthly habit and progress update",
+      "description": "Append weekly/monthly habit and progress update",
       "jsFunction": "makeProgressUpdate",
       "arguments": [
         "JSON-formatted parameter list"
@@ -65,17 +67,18 @@
       "jsFunction": "weeklyStats2"
     },
     {
-      "name": "test:update Summaries plugin settings",
-      "description": "Summaries: test update settings",
-      "jsFunction": "testUpdate"
-    },
-    {
+      "hidden": true,
       "name": "test:GenStats",
       "description": "test daily gen stats",
       "jsFunction": "testGenStats"
     }
   ],
   "plugin.commands-disabled": [
+    {
+      "name": "test:update Summaries plugin settings",
+      "description": "Summaries: test update settings",
+      "jsFunction": "testUpdate"
+    },
     {
       "name": "test:HeatMapGeneration1",
       "description": "test heatmap gen 1",
@@ -299,7 +302,7 @@
       "required": false
     },
     {
-      "key": "includeMentions",
+      "key": "periodStatsMentions",
       "title": "@mentions to count",
       "description": "List of @mentions to include in counts (e.g. '@gym', '@sleepOnTime'). These take precedence over any excluded mentions (field above). If this list is empty, all mentions will be included.",
       "type": "[string]",
