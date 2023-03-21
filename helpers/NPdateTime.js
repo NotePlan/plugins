@@ -350,7 +350,6 @@ export async function getPeriodStartEndDates(
       break
     }
     case 'userwtd': {
-      // FIXME: Seems to be reporting weeks starting 1 day early for start of week Monday.
       // week to date from user's chosen Week Start (in app settings)
       const dayOfWeekWithSundayZero = new Date().getDay()
       // Get user preference for start of week, with Sunday = 0 ...
@@ -362,10 +361,14 @@ export async function getPeriodStartEndDates(
         `userwtd: dayOfWeekWithSundayZero: ${dayOfWeekWithSundayZero}, usersStartOfWeekWithSundayZero: ${usersStartOfWeekWithSundayZero}, dateWithinInterval: ${dateWithinInterval}`,
       )
       fromDate = Calendar.startOfWeek(new Date()) //Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -(dateWithinInterval - 1))
-      toDate = Calendar.addUnitToDate(fromDate, 'day', dateWithinInterval-1) // Eduard, 3rd March '23: week to date means the start of the week till today? Before it went till the end.
+      toDate = Calendar.addUnitToDate(fromDate, 'day', dateWithinInterval - 1) // Eduard, 3rd March '23: week to date means the start of the week till today? Before it went till the end.
+      logDebug(
+        'getPeriodStartEndDates',
+        `fromDate: ${String(fromDate)}, ${String(toDate)}`,
+      )
 
       periodString = `this week`
-      periodAndPartStr = `to day ${dateWithinInterval} this week`
+      periodAndPartStr = `at day ${dateWithinInterval} of this week`
       break
     }
     case 'wtd': {

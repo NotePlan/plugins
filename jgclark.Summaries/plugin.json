@@ -18,6 +18,8 @@
       "name": "appendProgressUpdate",
       "alias": [
         "ipu",
+        "insertProgressUpdate",
+        "apu",
         "progress",
         "habitTracker",
         "track"
@@ -65,17 +67,18 @@
       "jsFunction": "weeklyStats2"
     },
     {
-      "name": "test:update Summaries plugin settings",
-      "description": "Summaries: test update settings",
-      "jsFunction": "testUpdate"
-    },
-    {
+      "hidden": true,
       "name": "test:GenStats",
       "description": "test daily gen stats",
       "jsFunction": "testGenStats"
     }
   ],
   "plugin.commands-disabled": [
+    {
+      "name": "test:update Summaries plugin settings",
+      "description": "Summaries: test update settings",
+      "jsFunction": "testUpdate"
+    },
     {
       "name": "test:HeatMapGeneration1",
       "description": "test heatmap gen 1",

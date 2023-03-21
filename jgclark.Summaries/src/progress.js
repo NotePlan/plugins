@@ -186,7 +186,7 @@ export async function makeProgressUpdate(params: string = '', source: string = '
           logWarn(pluginJson, `No note is open in the Editor, so I can't write to it.`)
           await showMessage(`No note is open in the Editor, so I can't write to it.`)
         } else {
-          // Now insert the summary to the current note: replace or add Section
+          // Now insert the summary to the current note: replace or append Section
           replaceSection(currentNote, thisHeading, headingAndXCBStr, config.headingLevel, output)
           logInfo(pluginJson, `Appended progress update for ${periodString} to current note`)
         }
