@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 np.Templating",
-  "plugin.version": "2.0.0-beta.06",
-  "plugin.lastUpdateInfo": "2.0.0-beta.06: double dashes in templates create frontmatter\n2.0.0-beta.05: allow separators inside templates;\nbeta.04: allow template title to be passed to np:new and np:qtn\npreviously: fixed minor bug in isWeekday in NP",
+  "plugin.version": "2.0.0-beta.07",
+  "plugin.lastUpdateInfo": "1.9.4 (aka 2.0.0-beta.07): Change in Summaries plugin command: insertProgressUpdate is now appendProgressUpdate",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -22,7 +22,7 @@
       ],
       "description": "Append template to end of current note",
       "jsFunction": "templateAppend",
-      "arguments":[
+      "arguments": [
         "template title to run"
       ]
     },
@@ -36,7 +36,7 @@
       ],
       "description": "Insert template to current note",
       "jsFunction": "templateInsert",
-      "arguments":[
+      "arguments": [
         "template title to run"
       ]
     },
@@ -59,7 +59,7 @@
       ],
       "description": "Create new note with title, using folder attribute",
       "jsFunction": "templateNew",
-      "arguments":[
+      "arguments": [
         "template title to run"
       ]
     },
@@ -76,7 +76,7 @@
       ],
       "description": "Create new note based on Quick Note Template",
       "jsFunction": "templateQuickNote",
-      "arguments":[
+      "arguments": [
         "template title to run"
       ]
     },
@@ -94,7 +94,7 @@
       "description": "Create new note based on Meeting Note Template",
       "hidden": true,
       "jsFunction": "templateMeetingNote",
-      "arguments":[
+      "arguments": [
         "template title to use"
       ]
     },
@@ -177,7 +177,7 @@
       "description": "Load and run self-contained template instructions with arguments",
       "jsFunction": "templateRunner",
       "hidden": true,
-      "arguments":[
+      "arguments": [
         "template title to run",
         "open file in editor after running",
         "template arguments"
