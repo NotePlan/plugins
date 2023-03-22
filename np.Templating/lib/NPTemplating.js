@@ -19,8 +19,6 @@ import { datePicker, askDateInterval, chooseFolder } from '@helpers/userInput'
 /*eslint-disable */
 import TemplatingEngine from './TemplatingEngine'
 
-const TEMPLATE_FOLDER_NAME = NotePlan.environment.templateFolder
-
 // - if a new module has been added, make sure it has been added to this list
 const TEMPLATE_MODULES = ['calendar', 'date', 'frontmatter', 'note', 'system', 'time', 'user', 'utility']
 
@@ -104,7 +102,7 @@ export const selection = async (): Promise<string> => {
 // Important: Replicate _configuration.templates object in TEMPLATE_CONFIG_BLOCK
 // NOTE: When adding new properties, make sure the `plugin.json/plugin.settings` are updated
 export const DEFAULT_TEMPLATE_CONFIG = {
-  templateFolderName: TEMPLATE_FOLDER_NAME,
+  templateFolderName: typeof NotePlan !== 'undefined' ? NotePlan.environment.templateFolder : '@Templates',
   templateLocale: 'en-US',
   templateGroupTemplatesByFolder: false,
   dateFormat: 'YYYY-MM-DD',
@@ -194,7 +192,7 @@ export async function TEMPLATE_CONFIG_BLOCK(): Promise<string> {
 }
 
 export async function getTemplateFolder(): Promise<string> {
-  return TEMPLATE_FOLDER_NAME
+  return NotePlan.environment.templateFolder
 }
 
 export default class NPTemplating {
@@ -365,7 +363,7 @@ export default class NPTemplating {
       for (const template of templateList) {
         const parts = template.value.split('/')
         const filename = parts.pop()
-        let label = template.value.replace(`${TEMPLATE_FOLDER_NAME}/`, '').replace(filename, template.label.replace('/', '-'))
+        let label = template.value.replace(`${NotePlan.environment.templateFolder}/`, '').replace(filename, template.label.replace('/', '-'))
         if (!templateGroupTemplatesByFolder) {
           const parts = label.split('/')
           label = parts[parts.length - 1]
@@ -390,7 +388,7 @@ export default class NPTemplating {
     if (notes == null) {
       return 'INCOMPLETE'
     }
-    const finalNotes = notes.filter((note) => note.filename.startsWith(TEMPLATE_FOLDER_NAME))
+    const finalNotes = notes.filter((note) => note.filename.startsWith(NotePlan.environment.templateFolder))
     if (finalNotes.length > 1) {
       return 'MULTIPLE NOTES FOUND'
     } else {
@@ -919,6 +917,7 @@ export default class NPTemplating {
 
       return this._filterTemplateResult(renderedData)
     } catch (error) {
+      clo(error, `NPTemplating.renderTemplate found error dbw1`)
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
   }
@@ -1023,6 +1022,7 @@ export default class NPTemplating {
 
       return final
     } catch (error) {
+      clo(error, `NPTemplating.renderTemplate found error dbw2`)
       return this.templateErrorMessage('NPTemplating.renderTemplate', error)
     }
   }
