@@ -9,12 +9,13 @@ import {
   getTodaysDateHyphenated,
 } from '@helpers/dateTime'
 // import { getNPWeekData } from '@helpers/NPdateTime'
-import { JSP, log, logError, logDebug, timer, clo } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
 import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 // import { displayTitle } from '@helpers/general'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
+import { setFrontMatterVars } from "./NPFrontMatter";
 
 const pluginJson = 'NPnote.js'
 
@@ -48,32 +49,29 @@ export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>,
  * Convert the note to using frontmatter Syntax
  * If optional default text is given, this is added to the frontmatter.
  * @author @jgclark
- * @param {TNote} note
+ * @param {TNote} note to convert
+ * @param {string?} defaultFMText to add to frontmatter if supplied
+ * @returns {boolean} success?
  */
-export async function convertNoteToFrontmatter(note: TNote): Promise<void> {
+export async function convertNoteToFrontmatter(note: TNote, defaultFMText: string = ''): Promise<void> {
   try {
-    let thisNote: TNote
-    if (note == null) {
-      if (Editor == null) {
-        logError('note/convertNoteToFrontmatter', `No Editor found, so nothing to convert.`)
-        await showMessage(`No note open to convert.`)
-        return
-      } else {
-        thisNote = Editor
+    if (!note) {
+      throw new Error("note/convertNoteToFrontmatter: No note supplied, and can't find Editor either.")
+    }
+    const success = ensureFrontmatter(note)
+    if (success) {
+      logDebug('note/convertNoteToFrontmatter', `ensureFrontmatter() worked for note ${note.filename}`)
+      if (defaultFMText !== '') {
+        const endOfFMLineIndex = findStartOfActivePartOfNote(note) - 1 // closing separator line
+        note.insertParagraph(defaultFMText, endOfFMLineIndex, 'text') // inserts before closing separator line
       }
     } else {
-      thisNote = note
+      logWarn('note/convertNoteToFrontmatter', `ensureFrontmatter() failed for note ${note.filename}`)
     }
-    if (!thisNote) {
-      logDebug('note/convertNoteToFrontmatter', `No note supplied, and can't find Editor either.`)
-      await showMessage(`No note supplied, and can't find Editor either.`)
-      return
-    }
-    const res = ensureFrontmatter(thisNote)
-    logDebug('note/convertNoteToFrontmatter', `ensureFrontmatter() returned ${String(res)}.`)
   }
   catch (error) {
     logError(pluginJson, JSP(error))
+    await showMessage(error.message)
   }
 }
 
