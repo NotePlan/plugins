@@ -26,7 +26,7 @@ export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
  * @returns {string} quotedText (if required)
  */
 export function quoteText(text: string): string {
-  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#/.test(text) || /^@/.test(text)
+  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#/.test(text) || /^@/.test(text) || text === ''
   const isWrappedInQuotes = /^".*"$/.test(text) // pass it through if already wrapped in quotes
   return needsQuoting && !isWrappedInQuotes ? `"${text}"` : text
 }
@@ -117,10 +117,10 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
           delete fmFields[thisKey]
           // clo(fmFields, 'fmFields after deletion:')
           // and then find the line to remove from the frontmatter, removing separators if wanted, if no frontmatter left
-          for (let i = 1; i < fmParas.length; i++) { // ignore first and last paras which are separators
+          for (let i = 1; i < fmParas.length; i++) {
+            // ignore first and last paras which are separators
             const para = fmParas[i]
-            if (((!value) && para.content.startsWith(fieldToRemove))
-              || (value && para.content === `${fieldToRemove}: ${quoteText(value)}`)) {
+            if ((!value && para.content.startsWith(fieldToRemove)) || (value && para.content === `${fieldToRemove}: ${quoteText(value)}`)) {
               // logDebug('rFMF', `- will delete fmPara ${String(i)}`)
               fmParas.splice(i, 1) // delete this item
               removed = true
@@ -198,13 +198,13 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
  */
 export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: string }): boolean {
   try {
-  const title = varObj.title || null
-  const hasFM = ensureFrontmatter(note, true, title)
+    const title = varObj.title || null
+    const hasFM = ensureFrontmatter(note, true, title)
     logDebug('setFrontMatterVars', `after ensureFrontMatter with ${note.paragraphs.length} lines`)
-  if (!hasFM) {
-    logError(`setFrontMatterVars: Could not add front matter to note which has no title. Note should have a title, or you should pass in a title in the varObj.`)
-    return false
-  }
+    if (!hasFM) {
+      logError(`setFrontMatterVars: Could not add front matter to note which has no title. Note should have a title, or you should pass in a title in the varObj.`)
+      return false
+    }
     if (hasFrontMatter(note.content || '')) {
       const existingAttributes = getAttributes(note.content)
       const changedAttributes = { ...existingAttributes }
@@ -278,7 +278,7 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
       // need to add frontmatter
       let newTitle
       let front = ''
-      if (alsoEnsureTitle) {
+      if (note.type === 'Notes' && alsoEnsureTitle) {
         // if (!note.title) {
         //   logError('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, but request requires a title. Stopping conversion.`)
         logDebug('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, so will now make one:`)
@@ -286,22 +286,23 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         // }
 
         const firstLine = note.paragraphs.length ? note.paragraphs[0] : {}
-        const titleFromFirstLine = (firstLine.type === 'title' && firstLine.headingLevel === 1) ? firstLine.content : ''
+        const titleFromFirstLine = firstLine.type === 'title' && firstLine.headingLevel === 1 ? firstLine.content : ''
 
         // Make title from parameter or note's existing H1 title or note.title respectively
-        newTitle = title || titleFromFirstLine || note.title // cover Calendar notes where title is not in the note
+        newTitle = title || titleFromFirstLine || note.title || '' // cover Calendar notes where title is not in the note
         // logDebug('ensureFrontmatter', `- newTitle='${newTitle ?? ''}'`)
         if (newTitle === '') {
           logError('ensureFrontmatter', `Cannot find title for '${note.filename}'. Stopping conversion.`)
-          return false
         }
 
         if (titleFromFirstLine) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
-        front = `---\ntitle: ${quoteText(newTitle ?? '(error)')}\n---\n`
+        front = `---\ntitle: ${quoteText(newTitle)}\n---\n`
       } else {
         front = `---\n---\n`
       }
-      note.content = `${front}${note?.content || ''}`
+      const newContent = `${front}${note?.content || ''}`
+      note.content = '' // in reality, we can just set this to newContent, but for the mocks to work, we need to do it the long way
+      note.insertParagraph(newContent, 0, 'text')
       retVal = true
       logDebug('ensureFrontmatter', `-> Note '${displayTitle(note)}' converted to use frontmatter.`)
     }

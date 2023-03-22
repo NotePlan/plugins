@@ -102,10 +102,10 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.ensureFrontmatter(note)
         expect(result).toEqual(false)
       })
-      test('should return false if note content is empty and no title param', () => {
+      test('should return true if note content is empty and no title param (it will add empty "")', () => {
         const note = new Note({ paragraphs: [], content: '', title: '' })
         const result = f.ensureFrontmatter(note)
-        expect(result).toEqual(false)
+        expect(result).toEqual(true)
       })
       test('should return true if already has frontmatter', () => {
         const note = { content: '---\nfoo: bar\n---\n' }
@@ -125,7 +125,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(note.content).toMatch(/title: baz/)
       })
       test('should set empty frontmatter if Calendar note', () => {
-        const note = { content: '', type: 'Calendar', paragraphs: [], title: '2022-01-01' }
+        const note = new Note({ content: '', type: 'Calendar', paragraphs: [], title: '2022-01-01' })
         const result = f.ensureFrontmatter(note, false)
         expect(result).toEqual(true)
         expect(note.content).toMatch(/---\n---\n/)
@@ -168,6 +168,10 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should quote text with colon+space', () => {
         const result = f.quoteText('foo: bar')
         expect(result).toEqual('"foo: bar"')
+      })
+      test('should quote text with empty string value', () => {
+        const result = f.quoteText('')
+        expect(result).toEqual('""')
       })
     })
     /*
@@ -395,10 +399,10 @@ describe(`${PLUGIN_NAME}`, () => {
      * setFrontMatterVars()
      */
     describe('setFrontMatterVars()' /* function */, () => {
-      test('should fail on an empty note with no title in varObj', () => {
+      test('should pass even with no title in varObj', () => {
         const note = new Note({ content: '', paragraphs: [], title: '' })
         const result = f.setFrontMatterVars(note, { foo: 'bar' })
-        expect(result).toEqual(false)
+        expect(result).toEqual(true)
       })
       test('should work on an empty note with a title in varObj', () => {
         const note = new Note({ content: '', paragraphs: [], title: '' })
@@ -474,20 +478,22 @@ describe(`${PLUGIN_NAME}`, () => {
      * addTrigger()
      */
     describe('addTrigger()' /* function */, () => {
-      // TODO(@dwertheimer): why should this not be able to create frontmatter?
-      test('should return false if cannot create frontmatter', () => {
+      test('should throw an error if you tried to create not a legal trigger', () => {
         const note = new Note({ content: '', paragraphs: [], title: '' })
-        const result = f.addTrigger(note, 'onOpen', 'foo', 'bar')
-        expect(result).toEqual(false)
+        expect(f.addTrigger(note, 'wrongFunction', 'foo', 'bar')).toEqual(false)
       })
-      // FIXME(@dwertheimer): this is a real-life case I'm hitting.
       test('should add frontmatter and a single trigger', () => {
-        const note = new Note({ content: '* task on first line\n+ checklist on line two', paragraphs: [{ content: '* task on first line' }, { content: '+ checklist on line two' }], title: '' })
+        const note = new Note({
+          content: '* task on first line\n+ checklist on line two',
+          paragraphs: [{ content: '* task on first line' }, { content: '+ checklist on line two' }],
+          title: '',
+        })
         const result = f.addTrigger(note, 'onEditorWillSave', 'jgclark.Dashboard', 'decideWhetherToUpdateDashboard')
         expect(result).toEqual(true)
         expect(note.paragraphs[0].content).toEqual('---')
-        expect(note.paragraphs[1].content).toEqual('triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard')
-        expect(note.paragraphs[2].content).toEqual('---')
+        expect(note.paragraphs[1].content).toEqual('title: ""')
+        expect(note.paragraphs[2].content).toEqual('triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard')
+        expect(note.paragraphs[3].content).toEqual('---')
       })
       test('should add a single trigger to existing FM', () => {
         const note = new Note({
