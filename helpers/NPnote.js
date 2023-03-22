@@ -59,8 +59,7 @@ export async function convertNoteToFrontmatter(note: TNote): Promise<void> {
         await showMessage(`No note open to convert.`)
         return
       } else {
-        // $FlowFixMe[incompatible-type]
-        thisNote = Editor.note
+        thisNote = Editor
       }
     } else {
       thisNote = note
@@ -86,9 +85,8 @@ export async function convertNoteToFrontmatter(note: TNote): Promise<void> {
  * @returns
  */
 export function selectFirstNonTitleLineInEditor(): void {
-  if (Editor.content && Editor.note) {
-    // $FlowFixMe[incompatible-call]
-    for (let i = findStartOfActivePartOfNote(Editor.note); i < Editor.paragraphs.length; i++) {
+  if (Editor && Editor.content) {
+    for (let i = findStartOfActivePartOfNote(Editor); i < Editor.paragraphs.length; i++) {
       const line = Editor.paragraphs[i]
       if (line.type !== 'title' && line?.contentRange && line.contentRange.start >= 0) {
         Editor.select(line.contentRange.start, 0)

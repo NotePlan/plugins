@@ -4,6 +4,7 @@
 import pluginJson from '../plugin.json'
 import { logDebug, logWarn } from '@helpers/dev'
 import { displayTitle, percent } from '@helpers/general'
+import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -12,11 +13,11 @@ export async function showTaskCountForNote() {
   const note = Editor.note
   if (note == null) {
     // No note open.
-    logWarn(pluginJson, "No note open, so nothing to count.")
+    await showMessage("No note open, so nothing to count.")
     return
   }
   const paragraphs = Editor.paragraphs
-  const countParagraphsOfType = function (types) {
+  const countParagraphsOfType = function (types: Array<string>) {
     return paragraphs.filter((p) => types.includes(p.type)).length
   }
   // for (let p of paragraphs) {
@@ -66,7 +67,7 @@ export async function showTaskCountForAll(): Promise<void> {
   for (let i = 0; i < allNotesCount; i += 1) {
     const n = allNotes[i]
     const paragraphs = n.paragraphs
-    const countParagraphsOfType = function (types) {
+    const countParagraphsOfType = function (types: Array<string>) {
       const pf = paragraphs.filter((p) => types.includes(p.type))
       return paragraphs.filter((p) => types.includes(p.type)).length
     }

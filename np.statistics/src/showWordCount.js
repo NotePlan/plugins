@@ -1,8 +1,6 @@
 // @flow
 
-import {
-  displayTitle,
-} from '../../helpers/general'
+import { displayTitle } from '@helpers/general'
 
 // Show word counts etc. for currently displayed note
 export async function showWordCount(): Promise<void> {

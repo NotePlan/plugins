@@ -219,7 +219,7 @@ export async function saveSearch(
         // We won't write an overarching title, but will add a section heading.
         // Replace the search term's block (if already present) or append.
         // TODO: add x-callback, which first requires seeing what the current filename is when called by an x-callback
-        const currentNote = Editor.note
+        const currentNote = Editor
         if (currentNote == null) {
           logError(pluginJson, `No note is open`)
         } else {
