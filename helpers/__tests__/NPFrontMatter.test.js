@@ -1,9 +1,12 @@
-/* global jest, describe, test, expect, beforeAll */
+/* global describe, test, expect, beforeAll */
 // @author @dwertheimer
 
 import { CustomConsole } from '@jest/console' // see note below
 import * as f from '../NPFrontMatter'
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Note, mockWasCalledWithString, Paragraph } from '@mocks/index'
+import {
+  Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Note, Paragraph,
+  // mockWasCalledWithString,
+} from '@mocks/index'
 
 const PLUGIN_NAME = `helpers`
 const FILENAME = `NPFrontMatter`
@@ -178,7 +181,6 @@ describe(`${PLUGIN_NAME}`, () => {
      * writeFrontMatter()
      */
     describe('writeFrontMatter()' /* function */, () => {
-      //FIXME:
       test('should return false if there is no frontmatter', () => {
         const note = new Note({ paragraphs: [], content: '', title: null })
         const vars = { foo: 'bar' }
@@ -229,19 +231,19 @@ describe(`${PLUGIN_NAME}`, () => {
      */
     describe('removeFrontMatter()' /* function */, () => {
       test('should return false if there are no paras (and so no frontmatter)', () => {
-        let note = new Note({ paragraphs: [], content: '' })
+        const note = new Note({ paragraphs: [], content: '' })
         const result = f.removeFrontMatter(note)
         expect(result).toEqual(false)
       })
       test('should return false if there are paras but no frontmatter', () => {
         const allParas = [{ content: '# note title' }, { content: 'comment 1' }, { content: '+ checklist 1' }]
-        let note = new Note({ paragraphs: allParas, content: '' })
+        const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatter(note)
         expect(result).toEqual(false)
       })
       test('should return true and delete FM paras (but not --- separators)', () => {
         const allParas = [{ content: '---' }, { content: 'foo' }, { content: '---' }, { content: '# note title' }, { content: 'comment 1' }, { content: '+ checklist 1' }]
-        let note = new Note({ paragraphs: allParas, content: '' })
+        const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatter(note, false)
         expect(result).toEqual(true)
         expect(note.paragraphs.length).toEqual(5)
@@ -253,7 +255,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should return true and delete FM paras (and --- separators)', () => {
         const allParas = [{ content: '---' }, { content: 'foo' }, { content: '---' }, { content: '# note title' }, { content: 'comment 1' }, { content: '+ checklist 1' }]
-        let note = new Note({ paragraphs: allParas })
+        const note = new Note({ paragraphs: allParas })
         const result = f.removeFrontMatter(note, true)
         expect(result).toEqual(true) // test 1
         expect(note.paragraphs.length).toEqual(3) //test2
@@ -263,7 +265,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should change FM title to a normal title)', () => {
         const allParas = [{ content: '---' }, { content: 'title: foo bar' }, { content: '---' }, { content: 'comment 1' }, { content: '+ checklist 1' }]
-        let note = new Note({ paragraphs: allParas })
+        const note = new Note({ paragraphs: allParas })
         const result = f.removeFrontMatter(note, true)
         expect(result).toEqual(true)
         expect(note.paragraphs.length).toEqual(3)
@@ -283,13 +285,13 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should return false if there are matching fields but no frontmatter', () => {
         const allParas = [{ content: '# note title' }, { content: 'fieldName: value' }, { content: '+ checklist 1' }]
-        let note = new Note({ paragraphs: allParas, content: '' })
+        const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', 'value', false)
         expect(result).toEqual(false)
       })
       test('should remove matching field from frontmatter but leave separators', () => {
         const allParas = [{ content: '---' }, { content: 'title: note title' }, { content: 'fieldName: value' }, { content: '---' }, { content: '+ checklist 1' }]
-        let note = new Note({ paragraphs: allParas, content: '' })
+        const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', 'value', false)
         expect(result).toEqual(true)
         expect(note.paragraphs.length).toEqual(4)
@@ -300,7 +302,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should remove single matching field from frontmatter and also separators', () => {
         const allParas = [{ content: '---' }, { content: 'fieldName: value' }, { content: '---' }, { content: '+ checklist 1' }]
-        let note = new Note({ paragraphs: allParas, content: '' })
+        const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', 'value', true)
         expect(result).toEqual(true)
         expect(note.paragraphs.length).toEqual(1)
@@ -308,7 +310,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should remove matching field from frontmatter but not separators, converting to Markdown type title', () => {
         const allParas = [{ content: '---' }, { content: 'fieldName: value' }, { content: 'title: note title' }, { content: '---' }, { content: '+ checklist 1' }]
-        let note = new Note({ paragraphs: allParas, content: '' })
+        const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', 'value', true)
         expect(result).toEqual(true)
         expect(note.paragraphs.length).toEqual(4)
@@ -319,7 +321,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should remove matching field with no value, but leave other field, and therefore also separators', () => {
         const allParas = [{ content: '---' }, { content: 'field_other: value1' }, { content: 'fieldName:' }, { content: '---' }]
-        let note = new Note({ paragraphs: allParas, content: '' })
+        const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', null, true)
         expect(result).toEqual(true)
         expect(note.paragraphs.length).toEqual(3)
@@ -329,7 +331,7 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       test('should remove matching field (with no value test) with different values from frontmatter but leave other field, and therefore also separators', () => {
         const allParas = [{ content: '---' }, { content: 'field_other: value1' }, { content: 'fieldName: this is, a, longer "value 1"' }, { content: '---' }]
-        let note = new Note({ paragraphs: allParas, content: '' })
+        const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', null, true)
         expect(result).toEqual(true)
         expect(note.paragraphs.length).toEqual(3)
@@ -482,8 +484,9 @@ describe(`${PLUGIN_NAME}`, () => {
         const note = new Note({ content: '', paragraphs: [], title: '' })
         expect(f.addTrigger(note, 'wrongFunction', 'foo', 'bar')).toEqual(false)
       })
-      test('should add frontmatter and a single trigger', () => {
+      test('for a non-empty Calendar note should add frontmatter and a single trigger', () => {
         const note = new Note({
+          type: 'Calendar',
           content: '* task on first line\n+ checklist on line two',
           paragraphs: [{ content: '* task on first line' }, { content: '+ checklist on line two' }],
           title: '',
@@ -491,9 +494,8 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.addTrigger(note, 'onEditorWillSave', 'jgclark.Dashboard', 'decideWhetherToUpdateDashboard')
         expect(result).toEqual(true)
         expect(note.paragraphs[0].content).toEqual('---')
-        expect(note.paragraphs[1].content).toEqual('title: ""')
-        expect(note.paragraphs[2].content).toEqual('triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard')
-        expect(note.paragraphs[3].content).toEqual('---')
+        expect(note.paragraphs[1].content).toEqual('triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard')
+        expect(note.paragraphs[2].content).toEqual('---')
       })
       test('should add a single trigger to existing FM', () => {
         const note = new Note({
