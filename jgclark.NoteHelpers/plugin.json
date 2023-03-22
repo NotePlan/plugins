@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "0.16.0",
-  "plugin.lastUpdateInfo": "0.16.0: New command to add trigger to a note. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.\n0.15.0: Added '/enable heading links' command, and let '/jump to heading' command by used from x-callback-urls",
+  "plugin.version": "0.16.1",
+  "plugin.lastUpdateInfo": "0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.\n0.15.0: Added '/enable heading links' command, and let '/jump to heading' command by used from x-callback-urls",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -37,7 +37,7 @@
         "frontmatter"
       ],
       "description": "Convert the current note to use frontmatter syntax, including some default text that can be added in the Plugin's settings",
-      "jsFunction": "convertNoteToFrontmatter"
+      "jsFunction": "addFrontmatterToNote"
     },
     {
       "name": "enable heading links",
@@ -145,6 +145,11 @@
       ],
       "description": "Rename the current note's filename",
       "jsFunction": "renameNoteFile"
+    },
+    {
+      "name": "NoteHelpers: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
     }
   ],
   "plugin.settings": [
@@ -177,20 +182,43 @@
       ],
       "default": "none",
       "required": true
-    }
-  ],
-  "plugin.settings.disabled": [
+    },
+    {
+      "type": "separator"
+    },
     {
       "type": "heading",
       "title": "/convert to frontmatter setting"
     },
     {
-      "key": "defaultText",
-      "title": "Default Text to add",
+      "key": "defaultFMText",
+      "title": "Default Text to add to frontmatter",
       "description": "The standard text to add after the title in the frontmatter. Can include line breaks by typing return.",
       "type": "string",
       "default": "",
       "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "title": "Log Level",
+      "description": "Set how much output will be displayed for this plugin in the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent).",
+      "type": "string",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "default": "INFO",
+      "required": true
     }
   ]
 }

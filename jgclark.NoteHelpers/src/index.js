@@ -3,16 +3,17 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last updated 1.2.2023 for v0.16.0, @jgclark
+// last updated 22.3.2023 for v0.16.0, @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { log, logError } from '@helpers/dev'
+
+import { JSP, logDebug, logError } from '@helpers/dev'
 import { updateSettingData } from '@helpers/NPConfiguration'
+import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
-export { convertNoteToFrontmatter } from '@helpers/NPnote'
 export { countAndAddDays } from './countDays'
 export { indexFolders } from './indexFolders'
 export {
@@ -26,6 +27,7 @@ export {
 export {
   addTriggerToNote,
   convertLocalLinksToPluginLinks,
+  addFrontmatterToNote,
   moveNote,
   renameNoteFile,
 } from './noteHelpers'
@@ -43,10 +45,7 @@ const configKey = 'noteHelpers'
 
 export async function onUpdateOrInstall(): Promise<void> {
   try {
-    log(pluginJson, `${configKey}: onUpdateOrInstall running`)
-    // Try updating settings data
-    const updateSettings = updateSettingData(pluginJson)
-    log(pluginJson, `${configKey}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
+    logDebug(pluginJson, `${configKey}: onUpdateOrInstall running`)
 
     // Tell user the plugin has been updated
     if (pluginJson['plugin.lastUpdateInfo'] !== 'undefined') {
@@ -57,5 +56,19 @@ export async function onUpdateOrInstall(): Promise<void> {
   } catch (error) {
     logError(pluginJson, error)
   }
-  log(pluginJson, `${configKey}: onUpdateOrInstall finished`)
+  logDebug(pluginJson, `${configKey}: onUpdateOrInstall finished`)
+}
+
+/**
+ * Update Settings/Preferences (for iOS etc)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings() {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }
