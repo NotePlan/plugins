@@ -145,12 +145,7 @@
     {
       "name": "Filer: update plugin settings",
       "description": "Settings interface (even for iOS)",
-      "jsFunction": "updateSettings",
-      "alias": [
-        "aisettings",
-        "aipreferences"
-      ],
-      "arguments": []
+      "jsFunction": "updateSettings"
     }
   ],
   "plugin.settings": [

@@ -961,9 +961,9 @@ export async function finishReview(): Promise<?TNote> {
       logWarn('finishReview', `- We're not in a valid Project note (and with at least 2 lines). Note title = '${Editor.title ?? ''}'`)
       return
     }
-    const thisNote = Editor.note
-
-    // To try to work around a problem with updateParagraph() seeming not to flush before the following call, will not try creating the Project equivalent of the note straight away.
+    const thisNote = Editor
+    // TEST: line above change from Editor.note to Editor to try and solve problem on next line. Test me!
+    // TODO: To try to work around a problem with updateParagraph() seeming not to flush before the following call, will not try creating the Project equivalent of the note straight away.
     const thisNoteAsProject = new Project(thisNote)
 
     const metadataLineIndex: number = getOrMakeMetadataLine(thisNote, `<placeholder metadata line> ${reviewedTodayString}`)

@@ -51,9 +51,9 @@
     },
     {
       "name": "decideWhetherToUpdateDashboard",
-      "description": "Dashboard: trigger endpoint",
+      "description": "onEditorWillSave",
       "jsFunction": "decideWhetherToUpdateDashboard",
-      "hidden": false
+      "hidden": true
     }
   ],
   "plugin.disabledCommands": [

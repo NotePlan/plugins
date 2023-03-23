@@ -2,17 +2,17 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 7.2.2023 for v0.16.0 by @jgclark
+// Last updated 22.3.2023 for v0.16.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
+import { convertNoteToFrontmatter } from '@helpers/NPnote'
 import { addTrigger, TRIGGER_LIST } from '@helpers/NPFrontMatter'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { chooseFolder, chooseHeading, chooseOption, getInput, showMessage } from '@helpers/userInput'
-
 //-----------------------------------------------------------------
 // Settings
 
@@ -20,28 +20,27 @@ const pluginID = 'jgclark.NoteHelpers'
 
 export type noteHelpersConfigType = {
   dateDisplayType: string,
-  defaultText: string, // default text to add to frontmatter. Note: currently unused.
+  defaultFMText: string, // default text to add to frontmatter.
   displayOrder: string,
 }
 
 /**
- * Get config settings using Config V2 system.
+ * Get config settings
  * @author @jgclark
  */
 export async function getSettings(): Promise<any> {
-  // logDebug(pluginJson, `Start of getSettings()`)
   try {
-    // Get settings using ConfigV2
-    const v2Config: noteHelpersConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    // Get settings
+    const config: noteHelpersConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
-    if (v2Config == null || Object.keys(v2Config).length === 0) {
+    if (config == null || Object.keys(config).length === 0) {
       await showMessage(
         `Cannot find settings for the 'NoteHelpers' plugin. Please make sure you have installed it from the Plugin Preferences pane.`,
       )
       return
     } else {
-      // clo(v2Config, `settings`)
-      return v2Config
+      // clo(config, `settings`)
+      return config
     }
   } catch (err) {
     logError(pluginJson, JSP(err))
@@ -83,6 +82,10 @@ export async function moveNote(): Promise<void> {
 
 /**
  * Add trigger to the currently open Editor note, with choice offered to user of which trigger to add.
+ * It decides which are trigger-related functions by:
+ * - if plugin command name is on TRIGGER_LIST
+ * - if plugin command description is on TRIGGER_LIST
+ * - if either contains string 'trigger'
  * @author @jgclark
  */
 export async function addTriggerToNote(): Promise<void> {
@@ -91,17 +94,18 @@ export async function addTriggerToNote(): Promise<void> {
       throw new Error("No Editor open, so can't continue")
     }
 
-    // Get list of available triggers from looking at installed plugins (that aren't hidden)
+    // Get list of available triggers from looking at installed plugins
     let triggerRelatedCommands = []
     let allVisibleCommands = []
-    const installedPlugins = DataStore.installedPlugins().filter((p) => !p.isHidden)
+    const installedPlugins = DataStore.installedPlugins()
     for (const p of installedPlugins) {
       for (const pcom of p.commands) {
-        // Only include if this command name is a trigger type or the description includes 'trigger' (excluding this one!)
-        if ((pcom.desc.includes("trigger") || TRIGGER_LIST.includes(pcom.name)) && pcom.name !== "add trigger to note") {
+        // Only include if this command name or description is a trigger type or contains the string 'trigger' (excluding this one!)
+        if ((pcom.desc.includes("trigger") || pcom.name.includes("trigger") || TRIGGER_LIST.includes(pcom.name) || TRIGGER_LIST.includes(pcom.desc))
+          && pcom.name !== "add trigger to note") {
           triggerRelatedCommands.push(pcom)
         }
-        allVisibleCommands.push(pcom)
+        if (!pcom.hidden) allVisibleCommands.push(pcom)
       }
     }
     // clo(triggerRelatedCommands, 'triggerRelatedCommands')
@@ -117,26 +121,37 @@ export async function addTriggerToNote(): Promise<void> {
       return { label: `${pco.pluginName} '${pco.name}'`, value: pco }
     })
     commandOptions.push({ label: `Pick from whole list of functions ...`, value: "pickFromAll" })
-    let choice: PluginCommandObject | string = await chooseOption("Pick the trigger to add", commandOptions)
-
+    let result: PluginCommandObject | string = await chooseOption("Pick the trigger to add", commandOptions)
+    let choice: PluginCommandObject
     // If user has chosen pick from whole list, then show that full list and get selection
-    if (typeof choice === "string" && choice === "pickFromAll") {
+    if (typeof result === "string" && result === "pickFromAll") {
       commandOptions = allVisibleCommands.map((pco) => {
         return { label: `${pco.pluginName} '${pco.name}'`, value: pco }
       })
       choice = await chooseOption("Pick the trigger to add", commandOptions)
-      clo(choice, 'choice')
+    }
+    else if (typeof result !== "string") {
+      choice = result // this check appeases flow from here on
     }
 
-    // Add to note FIXME: not working, but reporting it has
-    // $FlowIgnore[prop-missing]
-    let res = await addTrigger(Editor, choice.name, choice.pluginID, choice.name)
-    if (res) {
-      // $FlowIgnore[prop-missing]
-      logDebug('addTriggerToNote', `Trigger ${choice.name} for ${choice.pluginID} was added to note ${displayTitle(Editor)}`)
+    if (choice) {
+      // clo(choice, 'choice')
+      // Get trigger type from either name or description
+      let triggerName = (TRIGGER_LIST.includes(choice.name)) ? choice.name
+        : (TRIGGER_LIST.includes(choice.desc)) ? choice.desc
+          : 'onEditorWillSave' // default to onEditorWillSave if no trigger type is found
+
+      // Add to note
+      let res = await addTrigger(Editor, triggerName, choice.pluginID, choice.name)
+      if (res) {
+        // $FlowIgnore[prop-missing]
+        logDebug('addTriggerToNote', `Trigger ${choice.name} for ${choice.pluginID} was added to note ${displayTitle(Editor)}`)
+      } else {
+        // $FlowIgnore[prop-missing]
+        logError('addTriggerToNote', `Trigger ${choice.name} for ${choice.pluginID} WASN'T added to note ${displayTitle(Editor)}`)
+      }
     } else {
-      // $FlowIgnore[prop-missing]
-      logError('addTriggerToNote', `Trigger ${choice.name} for ${choice.pluginID} WASN'T added to note ${displayTitle(Editor)}`)
+      throw new Error("Couldn't get a valid trigger choice for some reason. Stopping.")
     }
   }
   catch (err) {
@@ -240,4 +255,36 @@ export async function renameNoteFile(): Promise<void> {
     await showMessage(err.message)
   }
 
+}
+
+/**
+ * Convert the note to using frontmatter Syntax
+ * If optional default text is given, this is added to the frontmatter.
+ * @author @jgclark
+ * @param {TNote} note
+ */
+export async function addFrontmatterToNote(note: TNote): Promise<void> {
+  try {
+    let thisNote: TNote
+    if (note == null) {
+      if (Editor == null) {
+        throw new Error(`No note open to convert.`)
+      } else {
+        thisNote = Editor
+      }
+    } else {
+      thisNote = note
+    }
+    if (!thisNote) {
+      throw new Error(`No note supplied, and can't find Editor either.`)
+    }
+    const config = await getSettings()
+    const res = convertNoteToFrontmatter(thisNote, config.defaultFMText ?? '')
+    logDebug('note/convertNoteToFrontmatter', `ensureFrontmatter() returned ${String(res)}.`)
+  }
+  catch (error) {
+    logError(pluginJson, JSP(error))
+    await showMessage(error.message)
+    return
+  }
 }

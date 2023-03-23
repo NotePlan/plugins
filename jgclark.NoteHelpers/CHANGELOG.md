@@ -3,7 +3,15 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
 
-## [0.16.0] - 2023-03-???
+## [0.16.1] - 2023-03-22
+### Added
+- added **/NoteHelpers: update settings** command for iOS users
+- added setting for logging level
+### Changed
+- '/add trigger to note' command now is smarter in the way it works
+- restores "Default Text to add to frontmatter" setting for '/convert note to frontmatter' command
+
+## [0.16.0] - 2023-03-07
 ### Added
 - new **/add trigger to note** command that makes it easy to add a trigger to a particular note. It lists the functions from all plugins that it can work out are written for triggers, but also allows any function to be picked.
 - **/index folders** now:
@@ -11,7 +19,6 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
   - has an option to add one of several date display settings on the end of every note that's listed
   - has a Refresh button at the top of each results set
   - can be run from x-callback-url calls (see README).
-
 ### Fixed
 - **/convert to frontmatter** wasn't always working for calendar notes
 

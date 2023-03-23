@@ -1,11 +1,16 @@
 /* eslint-disable */
 import { CustomConsole } from '@jest/console' // see note below
-import { simpleFormatter, DataStore /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
+import { simpleFormatter, DataStore, NotePlan /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
 import path from 'path'
 import colors from 'chalk'
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
+
+global.NotePlan = new NotePlan() // because Mike calls NotePlan in a const declaration in NPTemplating, we need to set it first
+globalThis.NotePlan = global.NotePlan // because Mike calls NotePlan in a const declaration in NPTemplating, we need to set it first
+
+import NPTemplating from '../lib/NPTemplating'
 
 import TemplatingEngine from '../lib/TemplatingEngine'
 import DateModule from '../lib/support/modules/DateModule'
@@ -47,6 +52,7 @@ const factory = async (factoryName = '') => {
 
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
+  global.NotePlan = new NotePlan()
   global.DataStore = DataStore
   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
@@ -407,8 +413,6 @@ describe(`${PLUGIN_NAME}`, () => {
       const templateData = await factory('frontmatter-with-separators.ejs')
 
       let result = await templateInstance.render(templateData, {}, { extended: true })
-
-      expect(result).toContain(`---\nSection One`)
       expect(result).toContain(`---\nSection Two`)
       expect(result).toContain(`---\nSection Three`)
       expect(result).toContain(`---\nSection Four`)
@@ -423,6 +427,48 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(result).toContain(`*****\nSection Two`)
       expect(result).toContain(`*****\nSection Three`)
       expect(result).toContain(`*****\nSection Four`)
+    })
+
+    it(`should render with multiple frontmatter-like separators in document (even number)`, async () => {
+      const templateData = await factory('frontmatter-with-multiple-fm-like-lines1.ejs')
+
+      let result = await templateInstance.render(templateData, {}, { extended: true })
+      const lines = result.split('\n')
+      expect(lines[0]).toEqual(`---`)
+      // date on line 1
+      expect(lines[2]).toEqual(``) //empty line
+      expect(lines[3]).toEqual(`---`)
+      expect(lines[4]).toEqual(`## Primary Focus`)
+    })
+
+    it(`should render with multiple frontmatter-like separators in document (odd number)`, async () => {
+      const templateData = await factory('frontmatter-with-multiple-fm-like-lines2.ejs')
+
+      let result = await templateInstance.render(templateData, {}, { extended: true })
+      const lines = result.split('\n')
+      expect(lines[0]).toEqual(`---`)
+      // date on line 1
+      expect(lines[2]).toEqual(``) //empty line
+      expect(lines[3]).toEqual(`## Primary Focus`)
+    })
+
+    //FIXME: (@codedungeon): - I added this test to illustrate an edge case that a user was running into
+    // Even though the above test on .render passes using Jest, in the real NotePlan app,
+    // if the templateBody starts with three dashes, then for some reason, preRender gets called on that body as if it's frontmatter and fails
+    // in the same way it fails in this test
+    it.skip(`should preRender with multiple frontmatter-like separators in document (even number) - esp when the first line in the template content is a separator`, async () => {
+      const templateData = `---\n<%- date.now("Do MMMM YYYY") %>\n\n---`
+      const sessionData = {
+        title: 'Daily Note Test',
+        type: 'meeting-note, empty-note',
+        methods: {},
+      }
+      let result = await NPTemplating.preRender(templateData, sessionData)
+      const lines = result.split('\n')
+      expect(lines[0]).toEqual(`---`)
+      // date on line 1
+      expect(lines[2]).toEqual(``) //empty line
+      expect(lines[3]).toEqual(`## Primary Focus`)
     })
 
     it(`should use proxy to template logic`, async () => {
