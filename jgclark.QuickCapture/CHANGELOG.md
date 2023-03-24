@@ -1,5 +1,18 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
+<!-- ??? qalh adding a line after an earlier non-heading line with same text as the heading line. According to @Colin. -->
+## [0.13.0] - 2023-03-24
+### Added
+- command to edit settings, even on iOS
+### Breaking Changes
+- command '/quick prepend task to daily note' is renamed to '**/quick prepend task to calendar note**' as it now covers any period of calendar note. The previous alias 'qpd' still works. Note: this also changes the x-callback-url parameter accordingly.
+- same for '/quick prepend task to daily note' which is renamed to '**/quick prepend task to calendar note**'.
+- therefore command '**/quickly add to weekly note**' is removed.
+### Changed
+- 'append' commands now add before any archive section in the note, and 'prepend' commands now add after any frontmatter in the note.
+### Known bug
+- there's a known bug in commands that add text under a heading, if there's an earlier non-heading line with same text as the heading line. I'm waiting on a fix to the API. (Thanks to @Colin for the report.)
+
 ## [0.12.1] - 2022-08-21
 ### Added
 - new **/quick add to journal this week** command, for those using weekly journals (for @john1)

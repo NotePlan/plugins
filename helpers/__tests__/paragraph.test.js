@@ -510,5 +510,8 @@ describe('paragraph.js', () => {
     test("should match 'Journal for 3.4.22' with 'Journal'", () => {
       expect(p.findHeadingStartsWith(noteA, 'Journal')).toEqual('Journal for 3.4.22')
     })
+    test("should not match 'second' as there's no title line that starts with that", () => {
+      expect(p.findHeadingStartsWith(noteA, 'second')).toEqual('')
+    })
   })
 })

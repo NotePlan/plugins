@@ -14,7 +14,7 @@ import {
 } from './quickCapture'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-// import { findEndOfActivePartOfNote, smartPrependPara } from '@helpers/paragraph'
+import { smartAppendPara, smartPrependPara } from '@helpers/paragraph'
 import { chooseFolder, chooseHeading, showMessage } from '@helpers/userInput'
 
 /** /int
@@ -22,6 +22,7 @@ import { chooseFolder, chooseHeading, showMessage } from '@helpers/userInput'
  * - add to the current Daily or Weekly note, or to a fixed note (through setting 'inboxLocation')
  * - append or prepend to the inbox note (default: append)
  * Extended in v0.9.0 to allow use from x-callback with single passed argument
+ * TODO: use smartPrependPara etc.
  * @author @jgclark
  * @param {string?) taskArg
  */
@@ -77,10 +78,12 @@ export async function addTaskToInbox(taskArg?: string = ''): Promise<void> {
       taskText += ` ${config.textToAppendToTasks}`
 
       if (config.addInboxPosition === 'append') {
-        inboxNote.appendTodo(taskText)
+        // inboxNote.appendTodo(taskText)
+        smartAppendPara(inboxNote, taskText, 'open')
         logDebug(pluginJson, `- appended to note '${displayTitle(inboxNote)}'`)
       } else {
-        inboxNote.prependTodo(taskText)
+        // inboxNote.prependTodo(taskText)
+        smartPrependPara(inboxNote, taskText, 'open')
         logDebug(pluginJson, `- prepended to note '${displayTitle(inboxNote)}'`)
       }
     } else {

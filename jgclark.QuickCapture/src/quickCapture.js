@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update v0.12.1, 21.8.2022 by @jgclark
+// last update v0.13.0, 23.3.2023 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -18,6 +18,7 @@ import { allNotesSortedByChanged, calendarNotesSortedByChanged, projectNotesSort
 import {
   findEndOfActivePartOfNote,
   findHeadingStartsWith,
+  smartAppendPara,
   smartPrependPara
 } from '@helpers/paragraph'
 import {
@@ -27,10 +28,11 @@ import {
 export type QCConfigType = {
   inboxLocation: string,
   inboxTitle: string,
-  addInboxPosition: string,
-  shouldAppend: boolean,
   textToAppendToTasks: string,
+  addInboxPosition: string,
   journalHeading: string,
+  shouldAppend: boolean, // special case set in getQuickCaptureSettings()
+  _logLevel: string,
 }
 
 /**
@@ -39,17 +41,17 @@ export type QCConfigType = {
  */
 export async function getQuickCaptureSettings(): Promise<any> {
   try {
-    // Get settings using ConfigV2
-    const v2Config: QCConfigType = await DataStore.loadJSON('../jgclark.QuickCapture/settings.json')
+    // Get settings
+    const config: QCConfigType = await DataStore.loadJSON('../jgclark.QuickCapture/settings.json')
 
-    if (v2Config == null || Object.keys(v2Config).length === 0) {
+    if (config == null || Object.keys(config).length === 0) {
       await showMessage(`Cannot find settings for the 'QuickCapture' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     } else {
-      // Additionally set 'shouldAppend' from earlier setting
-      v2Config.shouldAppend = (v2Config.addInboxPosition === 'append')
-      clo(v2Config, `QuickCapture Settings:`)
-      return v2Config
+      // Additionally set 'shouldAppend' from earlier setting 'addInboxPosition'
+      config.shouldAppend = (config.addInboxPosition === 'append')
+      // clo(config, `QuickCapture Settings:`)
+      return config
     }
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -58,12 +60,11 @@ export async function getQuickCaptureSettings(): Promise<any> {
 }
 
 /** /qpt
- * Prepend a task to a note the user picks
- * Extended in v0.9.0 to allow use from x-callback with two passed arguments.
- * (Needs both arguments to be valid; if some but not all given then will attempt to log error.)
+ * Prepend a task to a (project) note the user picks
+ * Extended in v0.9.0 to allow use from x-callback with two passed arguments. (Needs both arguments to be valid; if some but not all given then will attempt to log error.)
  * @author @jgclark
- * @param {string?} noteTitleArg
- * @param {string?} textArg
+ * @param {string?} noteTitleArg project note title
+ * @param {string?} textArg text to add
  */
 export async function prependTaskToNote(
   noteTitleArg?: string = '',
@@ -105,12 +106,11 @@ export async function prependTaskToNote(
 }
 
 /** /qat
- * Append a task to a note the user picks
- * Extended in v0.9.0 to allow use from x-callback with two passed arguments.
- * (Needs both arguments to be valid; if some but not all given then will attempt to log error.)
+ * Append a task to a (project) note the user picks
+ * Extended in v0.9.0 to allow use from x-callback with two passed arguments. (Needs both arguments to be valid; if some but not all given then will attempt to log error.)
  * @author @jgclark
- * @param {string?} noteTitleArg
- * @param {string?} textArg
+ * @param {string?} noteTitleArg project note title
+ * @param {string?} textArg text to add
  */
 export async function appendTaskToNote(
   noteTitleArg?: string = '',
@@ -143,7 +143,8 @@ export async function appendTaskToNote(
 
     const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
     logDebug(pluginJson, `- Appending task '${text}' to '${displayTitle(note)}'`)
-    note.appendTodo(text)
+    // note.appendTodo(text)
+    smartAppendPara(note, text, 'open')
   } catch (err) {
     logError(pluginJson, `- ${err.name}: ${err.message}`)
     await showMessage(err.message)
@@ -156,7 +157,7 @@ export async function appendTaskToNote(
  * Extended in v0.12 to allow use from x-callback with some empty arguments: now asks users to supply missing arguments.
  * Note: duplicate headings not properly handled, due to NP architecture.
  * @author @jgclark
- * @param {string?} noteTitleArg note title to use (can be YYYY-MM-DD or YYYYMMDD)
+ * @param {string?} noteTitleArg note title to use (can be YYYYMMDD as well as usual calendar titles)
  * @param {string?} headingArg
  * @param {string?} textArg
  */
@@ -166,7 +167,6 @@ export async function addTaskToNoteHeading(
   textArg?: string = ''
 ): Promise<void> {
   try {
-    // $FlowFixMe[incompatible-type]
     logDebug(pluginJson, `starting /qath with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
     const config = await getQuickCaptureSettings()
     const notes: Array<TNote> = allNotesSortedByChanged()
@@ -182,7 +182,7 @@ export async function addTaskToNoteHeading(
       const wantedNotes = allNotesSortedByChanged().filter((n) => displayTitle(n) === noteTitleToMatch)
       note = wantedNotes != null ? wantedNotes[0] : null
       if ((note != null) && (wantedNotes.length > 1)) {
-        logWarn(pluginJson, `Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
+        logWarn('addTaskToNoteHeading', `Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
       }
     }
     // If we don't have a note by now, ask user to select one
@@ -193,10 +193,10 @@ export async function addTaskToNoteHeading(
     }
     // Double-check this is a valid note
     if (note == null) {
-      logError(pluginJson, `- Problem getting note`)
+      logError('addTaskToNoteHeading', `- Problem getting note`)
       return
     } else {
-      logDebug(pluginJson, `- note = '${displayTitle(note)}'`)
+      logDebug('addTaskToNoteHeading', `- note = '${displayTitle(note)}'`)
     }
 
     // Get text details from arg2 or user
@@ -214,7 +214,7 @@ export async function addTaskToNoteHeading(
     // then then user has chosen to append to end of note, without a heading
     if (heading !== '') {
       const matchedHeading = findHeadingStartsWith(note, heading)
-      logDebug(pluginJson, `Adding task '${taskText}' to '${displayTitle(note)}' below '${heading}'`)
+      logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to '${displayTitle(note)}' below '${heading}'`)
       note.addTodoBelowHeadingTitle(
         taskText,
         (matchedHeading !== '') ? matchedHeading : heading,
@@ -222,16 +222,19 @@ export async function addTaskToNoteHeading(
         true, // create heading if needed (possible if supplied via headingArg)
       )
     } else {
-      logDebug(pluginJson, `Adding task '${taskText}' to end of '${displayTitle(note)}'`)
+      logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to end of '${displayTitle(note)}'`)
       note.insertTodo(taskText, findEndOfActivePartOfNote(note))
     }
   } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
+    logError('addTaskToNoteHeading', `${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
 }
 
 /** /qalh
+ * FIXME(@EduardMe): adding a line after an earlier non-heading line with same text as the heading line? Raised as bug https://github.com/NotePlan/plugins/issues/429.
+ * TODO: When fixed check using index.js::tempAddParaTest()
+ * 
  * Add general text to a regular note's heading the user picks.
  * Extended in v0.9 to allow use from x-callback with three passed arguments.
  * Extended in v0.10 to allow use from x-callback with some empty arguments: now asks users to supply missing arguments.
@@ -253,12 +256,6 @@ export async function addTextToNoteHeading(
     const notes: Array<TNote> = allNotesSortedByChanged()
     let note: TNote | null
 
-    // TEMP: Code to check wrong .title for weekly notes
-    // const temp = notes.filter(f => displayTitle(f).match('-W'))
-    // for (let t of temp) {
-    //   logDebug('weeklyNoteTitle-test', `${displayTitle(t)} ${t.filename} ${t.title ?? '-'}`)
-    // }
-
     // First get note from arg0 or User
     if (noteTitleArg != null && noteTitleArg !== '') {
       // Check this is a valid note title first.
@@ -269,7 +266,7 @@ export async function addTextToNoteHeading(
       const wantedNotes = allNotesSortedByChanged().filter((n) => displayTitle(n) === noteTitleToMatch)
       note = wantedNotes != null ? wantedNotes[0] : null
       if ((note != null) && (wantedNotes.length > 1)) {
-        logWarn(pluginJson, `Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
+        logWarn('addTextToNoteHeading', `Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
       }
     }
     // If we don't have a note by now, ask user to select one
@@ -280,10 +277,10 @@ export async function addTextToNoteHeading(
     }
     // Double-check this is a valid note
     if (note == null) {
-      logError(pluginJson, `- Problem getting note`)
+      logError('addTextToNoteHeading', `- Problem getting note`)
       return
     } else {
-      logDebug(pluginJson, `- note = '${displayTitle(note)}'`)
+      // logDebug('addTextToNoteHeading', `- note = '${displayTitle(note)}'`)
     }
 
     // Get text details from arg2 or user
@@ -300,7 +297,7 @@ export async function addTextToNoteHeading(
     // then then user has chosen to append to end of note, without a heading
     if (heading !== '') {
       const matchedHeading = findHeadingStartsWith(note, heading)
-      logDebug(pluginJson, `Adding line '${textToAdd}' to '${displayTitle(note)}' below matchedHeading '${matchedHeading}' (heading was '${heading}')`)
+      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to '${displayTitle(note)}' below matchedHeading '${matchedHeading}' (heading was '${heading}')`)
       note.addParagraphBelowHeadingTitle(
         textToAdd,
         'text',
@@ -309,7 +306,7 @@ export async function addTextToNoteHeading(
         true, // create heading if needed (possible if supplied via headingArg)
       )
     } else {
-      logDebug(pluginJson, `Adding line '${textToAdd}' to end of '${displayTitle(note)}'`)
+      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to end of '${displayTitle(note)}'`)
       note.insertParagraph(textToAdd, findEndOfActivePartOfNote(note), 'text')
     }
   }
@@ -319,19 +316,18 @@ export async function addTextToNoteHeading(
   }
 }
 
-/** /qpd
- * Quickly prepend a task to a daily note
- * Extended in v0.9.0 to allow use from x-callback with two passed arguments.
- * (Needs both arguments to be valid; if some but not all given then will attempt to log error.)
+/** /qpc (was /qpd)
+ * Prepend a task to a calendar note
+ * Extended in v0.9.0 to allow use from x-callback with two passed arguments. (Needs both arguments to be valid; if some but not all given then will attempt to log error.)
  * @author @jgclark
- * @param {string?} dateArg YYYYMMDD or YYYY-MM-DD
- * @param {string?} textArg
+ * @param {string?} dateArg the usual calendar titles, plus YYYYMMDD
+ * @param {string?} textArg text to prepend
  */
-export async function prependTaskToDailyNote(
+export async function prependTaskToCalendarNote(
   dateArg?: string = '',
   textArg?: string = ''
 ): Promise<void> {
-  logDebug(pluginJson, `starting /qpd`)
+  logDebug(pluginJson, `starting /qpc`)
   try {
     const config = await getQuickCaptureSettings()
     let note: ?TNote
@@ -342,7 +338,7 @@ export async function prependTaskToDailyNote(
       ? textArg
       : await CommandBar.showInput(`Type the task`, `Add task '%@' ${config.textToAppendToTasks}`)
 
-    // Get daily note to use
+    // Get calendar note to use
     if (dateArg != null && dateArg !== '') {
       const dateArgToMatch = dateArg.match(RE_ISO_DATE) // for YYYY-MM-DD change to YYYYMMDD
         ? unhyphenateString(dateArg)
@@ -353,8 +349,8 @@ export async function prependTaskToDailyNote(
       logDebug(pluginJson, `- from dateArg, daily note = '${displayTitle(note)}'`)
     } else {
       // Get details interactively from user
-      const weeklyNoteTitles = calendarNotesSortedByChanged().map((f) => f.filename) ?? ['error: no daily notes found']
-      const res = await CommandBar.showOptions(weeklyNoteTitles, 'Select daily note for new todo')
+      const calendarNoteTitles = calendarNotesSortedByChanged().map((f) => f.filename) ?? ['error: no calendar notes found']
+      const res = await CommandBar.showOptions(calendarNoteTitles, 'Select calendar note for new todo')
       dateStr = res.value
       note = DataStore.calendarNoteByDateString(dateStr)
     }
@@ -362,7 +358,8 @@ export async function prependTaskToDailyNote(
     if (note != null) {
       const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
       logDebug(pluginJson, `- Prepending task '${text}' to '${displayTitle(note)}'`)
-      note.prependTodo(text)
+      smartPrependPara(note, text, 'open')
+      // note.prependTodo(text)
     } else {
       logError(pluginJson, `- Can't get calendar note ${dateArg}`)
     }
@@ -372,19 +369,18 @@ export async function prependTaskToDailyNote(
   }
 }
 
-/** /qad
- * Quickly add to Daily note
- * Extended in v0.9.0 to allow use from x-callback with single passed argument
- * Helpfully, doesn't fail if extra arguments passed
+/** /qac (was /qad)
+ * Append to a Calendar note
+ * Extended in v0.9.0 to allow use from x-callback with single passed argument. Helpfully, doesn't fail if extra arguments passed
  * @author @jgclark
- * @param {string?) dateArg daily note (YYYYMMDD or YYYY-MM-DD)
- * @param {string?) textArg text to add
+ * @param {string?} dateArg the usual calendar titles, plus YYYYMMDD
+ * @param {string?} textArg text to add
  */
-export async function appendTaskToDailyNote(
+export async function appendTaskToCalendarNote(
   dateArg?: string = '',
   textArg?: string = ''
 ): Promise<void> {
-  logDebug(pluginJson, `starting /qad`)
+  logDebug(pluginJson, `starting /qac`)
   try {
     const config = await getQuickCaptureSettings()
     let note: ?TNote
@@ -406,22 +402,17 @@ export async function appendTaskToDailyNote(
       logDebug(pluginJson, `- from dateArg, daily note = '${displayTitle(note)}'`)
     } else {
       // Get details interactively from user
-      const weeklyNoteTitles = calendarNotesSortedByChanged().map((f) => f.filename) ?? ['error: no daily notes found']
-      const res = await CommandBar.showOptions(weeklyNoteTitles, 'Select daily note for new todo')
+      const calendarNoteTitles = calendarNotesSortedByChanged().map((f) => f.filename) ?? ['error: no calendar notes found']
+      const res = await CommandBar.showOptions(calendarNoteTitles, 'Select calendar note for new todo')
       dateStr = res.value
       note = DataStore.calendarNoteByDateString(dateStr)
-
-      // // Earlier method:
-      // const notes = calendarNotesSortedByChanged()
-      // const res = await CommandBar.showOptions(notes.map((n) => displayTitle(n)).filter(Boolean), 'Select daily note for new todo')
-      // note = notes[res.index]
-      // dateStr = displayTitle(note)
     }
 
     if (note != null) {
       const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
       logDebug(pluginJson, `- Appending task '${text}' to ${displayTitle(note)}`)
-      note.appendTodo(text)
+      smartAppendPara(note, text, 'open')
+      // note.appendTodo(text)
     } else {
       logError(pluginJson, `- Can't get daily note for ${dateStr}`)
     }
@@ -433,7 +424,7 @@ export async function appendTaskToDailyNote(
 
 /** /qaw
  * Quickly add to Weekly note
- * Added in v0.10.0
+ * Added in v0.10.0, but then hidden in v0.13.0 as all calendar notes can already be added to in /qac
  * @author @jgclark
  * @param {string?} dateArg week date (YYYY-Wnn)
  * @param {string?} textArg text to add
@@ -470,7 +461,8 @@ export async function appendTaskToWeeklyNote(
     if (note != null) {
       const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
       logDebug(pluginJson, `- appending task '${text}' to ${displayTitle(note)}`)
-      note.appendTodo(text)
+      smartAppendPara(note, text, 'open')
+      // note.appendTodo(text)
     } else {
       logError(pluginJson, `- can't get weekly note for ${weekStr}`)
     }

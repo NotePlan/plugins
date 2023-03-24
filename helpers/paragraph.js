@@ -33,12 +33,12 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
 export function isTermInURL(term: string, searchString: string): boolean {
   // create version of searchString that doesn't include the URL and test that first
   const searchStringWithoutURL = stripLinksFromString(searchString)
-  let res = caseInsensitiveSubstringMatch(term, searchStringWithoutURL)
+  const success = caseInsensitiveSubstringMatch(term, searchStringWithoutURL)
     ? false
     : RE_SIMPLE_URI_MATCH.test(searchString)
 
-  // logDebug('isTermInURL', `looking for ${term} in ${searchString} ${String(caseInsensitiveSubstringMatch(term, searchStringWithoutURL))} / ${searchStringWithoutURL} ${String(RE_SIMPLE_URI_MATCH.test(searchStringWithoutURL))} -> ${String(res)}`)
-  return res
+  // logDebug('isTermInURL', `looking for ${term} in ${searchString} ${String(caseInsensitiveSubstringMatch(term, searchStringWithoutURL))} / ${searchStringWithoutURL} ${String(RE_SIMPLE_URI_MATCH.test(searchStringWithoutURL))} -> ${String(success)}`)
+  return success
 }
 
 /**
@@ -211,8 +211,22 @@ export function printParagraph(p: TParagraph) {
 // }
 
 /**
+ * Appends text to a chosen note, but more smartly than usual.
+ * I.e. adds before any ## Done or ## Completed archive section.
+ * @author @jgclark
+ *
+ * @param {TNote} note - the note to append to
+ * @param {string} paraText - the text to append
+ * @param {ParagraphType} paragraphType - the usual paragraph type to append
+ */
+export function smartAppendPara(note: TNote, paraText: string, paragraphType: ParagraphType): void {
+  // Insert the text at the smarter point (+ 1 as the API call inserts before the line in question)
+  note.insertParagraph(paraText, findEndOfActivePartOfNote(note) + 1, paragraphType)
+}
+
+/**
  * Prepends text to a chosen note, but more smartly than usual.
- * I.e. if the note starts with YAML frontmatter (e.g. https://docs.zettlr.com/en/core/yaml-frontmatter/)
+ * I.e. if the note starts with YAML frontmatter
  * or a metadata line (= starts with a hashtag), then add after that.
  * @author @jgclark
  *
@@ -221,7 +235,7 @@ export function printParagraph(p: TParagraph) {
  * @param {ParagraphType} paragraphType - the usual paragraph type to prepend
  */
 export function smartPrependPara(note: TNote, paraText: string, paragraphType: ParagraphType): void {
-  // Insert the text at the smarter insertionLine line
+  // Insert the text at the smarter point
   note.insertParagraph(paraText, findStartOfActivePartOfNote(note), paragraphType)
 }
 
@@ -250,37 +264,41 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
     const endOfFMIndex = endOfFrontmatterLineIndex(note)
     if (endOfFMIndex === 0) {
       if (paras[0].type === 'title' && paras[0].headingLevel === 1) {
-        // logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter, but H1 title found -> next line`)
+        logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter, but H1 title found -> next line`)
         startOfActive = 1
       } else {
-        // logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter or H1 title found -> first line`)
+        logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter or H1 title found -> first line`)
         startOfActive = 0
       }
     } else {
-      // logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, so looking at line after frontmatter`)
+      logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, so looking at line after frontmatter`)
       startOfActive = endOfFMIndex + 1
     }
     // If there is no line after title or FM, add a blank line to use (NB: length = line index + 1)
     if (paras.length === startOfActive) {
-      // logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
+      logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
       note.appendParagraph('', 'empty')
       paras = note.paragraphs
     }
 
     // additionally, we're going to skip past any front-matter-like section in a project note,
     // indicated by a #hashtag starting the next line.
-    // If there is, run on to next heading or blank line (if found)
+    // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator also stops the search.
     if (paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/)) {
-      // logDebug('paragraph/findStartOfActivePartOfNote', `with ${String(startOfActive)} Found a metadata line, so trying to find next heading or blank line`)
-      for (let i = startOfActive + 1; i < paras.length; i++) {
+      logDebug('paragraph/findStartOfActivePartOfNote', `with ${String(startOfActive)} Found a metadata line, so trying to find next heading or blank line`)
+      startOfActive += 1
+      for (let i = startOfActive; i < paras.length; i++) {
         const p = paras[i]
+        if (p.type === 'separator') {
+          break
+        }
         if (p.type === 'title' || p.type === 'empty') {
           startOfActive = i
           break
         }
         // logDebug('paragraph/findStartOfActivePartOfNote', `  - title/empty not found`)
       }
-      // logDebug('paragraph/findStartOfActivePartOfNote', `-> with ${String(startOfActive)}`)
+      logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}`)
     }
     return startOfActive
     // }
@@ -331,7 +349,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
     }
 
     const endOfActive = doneHeaderLine > 1 ? doneHeaderLine - 1 : cancelledHeaderLine > 1 ? cancelledHeaderLine - 1 : lineCount > 1 ? lineCount - 1 : 0
-    // logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
+    logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
     return endOfActive
   }
 }
@@ -341,21 +359,27 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
  * TODO: Move to NPFrontMatter.js ?
  * @author @jgclark
  * @param {TNote} note - the note to assess
- * @returns {number} - the line index number of the closing separator
+ * @returns {number} - the line index number of the closing separator, or 0 if no frontmatter found
  */
 export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
   const paras = note.paragraphs
   const lineCount = paras.length
-  // logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
+  logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
+  if (paras.filter((p) => p.type === 'separator').length < 2) {
+    // can't have frontmatter as less than 2 separators
+    return 0
+  }
   let inFrontMatter: boolean = false
   let lineIndex = 0
   while (lineIndex < lineCount) {
     const p = paras[lineIndex]
     if (p.type === 'separator') {
+      logDebug(`p/eOFLI`, `  - ${String(lineIndex)}: ${String(inFrontMatter)}: ${p.type}`)
       if (!inFrontMatter) {
         inFrontMatter = true
       } else {
         inFrontMatter = false
+        logDebug(`paragraph/endOfFrontmatterLineIndex`, `-> ${String(lineIndex)}`)
         return lineIndex
       }
     }

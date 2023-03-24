@@ -3,24 +3,25 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 21.8.22 for v0.12.1, @jgclark
+// Last updated 23.3.23 for v0.13.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { JSP, logInfo, logError } from "@helpers/dev"
+import { JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 export { addTaskToInbox } from './inbox'
 export {
   addTaskToNoteHeading,
   addTextToNoteHeading,
-  appendTaskToDailyNote,
+  appendTaskToCalendarNote,
   appendTaskToWeeklyNote,
   appendTextToDailyJournal,
   appendTextToWeeklyJournal,
-  prependTaskToDailyNote,
+  prependTaskToCalendarNote,
   appendTaskToNote,
   prependTaskToNote
 } from './quickCapture'
@@ -32,11 +33,11 @@ const pluginID = 'jgclark.QuickCapture'
 export function init(): void {
   try {
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
-    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-      pluginUpdated(pluginJson, r),
-    )
+    // Note: turned off, as it was causing too much noise in logs
+    // DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
+    //   pluginUpdated(pluginJson, r),
+    // )
   } catch (error) {
-    logError(pluginID, error.message)
     logError(pluginJson, JSP(error))
   }
 }
@@ -47,15 +48,41 @@ export function onSettingsUpdated(): void {
 
 export async function onUpdateOrInstall(): Promise<void> {
   try {
-    logInfo(pluginID, `onUpdateOrInstall ...`)
-    let updateSettingsResult = updateSettingData(pluginJson)
-    logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
-
     // Tell user the plugin has been updated
-    await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused' })
-
+    if (pluginJson['plugin.lastUpdateInfo'] !== 'undefined') {
+      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks', `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`)
+    }
   } catch (error) {
-    logError(pluginID, error.message)
+    logError(pluginJson, JSP(error))
   }
-  logInfo(pluginID, `- finished`)
+}
+
+/**
+ * Update Settings/Preferences (for iOS etc)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings() {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+  note.addParagraphBelowHeadingTitle(
+ * To test bug with .() API call reported in https://github.com/NotePlan/plugins/issues/429
+ * Assumes a note titled 'Quick Capture qalh TEST'
+ */
+export function tempAddParaTest(): void {
+  const note: TNote = DataStore.projectNoteByTitle('Quick Capture qalh TEST', false, false)[0]
+  note.addParagraphBelowHeadingTitle(
+    "test_text_addeed_below_heading",
+    'text',
+    'Head C',
+    true,
+    false,
+  )
 }

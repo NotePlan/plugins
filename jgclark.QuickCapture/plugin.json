@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.12.1",
-  "plugin.lastUpdateInfo": "Added '/quick add to journal this week' command",
+  "plugin.version": "0.13.0",
+  "plugin.lastUpdateInfo": "0.13.0: appending now comes before archive section, and prepending comes after any frontmatter. Some command name changes. ???",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -23,6 +23,18 @@
       "jsFunction": "addTaskToInbox",
       "arguments": [
         "text to add"
+      ]
+    },
+    {
+      "name": "quick append task to note",
+      "alias": [
+        "qat"
+      ],
+      "description": "Quickly append a task to a chosen project note",
+      "jsFunction": "appendTaskToNote",
+      "arguments": [
+        "note title",
+        "task to append"
       ]
     },
     {
@@ -53,29 +65,16 @@
       ]
     },
     {
-      "name": "quick add to daily note",
+      "name": "quick add to calendar note",
       "alias": [
+        "qac",
         "qad",
         "append"
       ],
-      "description": "Quickly append a task to a chosen Daily note",
-      "jsFunction": "appendTaskToDailyNote",
+      "description": "Quickly append a task to a chosen calendar note",
+      "jsFunction": "appendTaskToCalendarNote",
       "arguments": [
-        "note date (YYYYMMDD)",
-        "text to add"
-      ]
-    },
-    {
-      "name": "quick add to weekly note",
-      "alias": [
-        "qaw",
-        "week",
-        "append"
-      ],
-      "description": "Quickly append a task to a chosen Weekly note",
-      "jsFunction": "appendTaskToWeeklyNote",
-      "arguments": [
-        "note week (YYYY-Wnn)",
+        "note date (YYYY-MM-DD, YYYYMMDD or YYYY-Wnn etc.)",
         "text to add"
       ]
     },
@@ -106,27 +105,16 @@
       ]
     },
     {
-      "name": "quick prepend task to daily note",
+      "name": "quick prepend task to calendar note",
       "alias": [
-        "qpd"
+        "qpd",
+        "qpc"
       ],
-      "description": "Quickly prepend a task to a chosen daily note",
-      "jsFunction": "prependTaskToDailyNote",
+      "description": "Quickly prepend a task to a chosen calendar note",
+      "jsFunction": "prependTaskToCalendarNote",
       "arguments": [
-        "note date (YYYYMMDD or YYYY-MM-DD)",
+        "note date (YYYY-MM-DD, YYYYMMDD or YYYY-Wnn etc.)",
         "text to add"
-      ]
-    },
-    {
-      "name": "quick append task to note",
-      "alias": [
-        "qat"
-      ],
-      "description": "Quickly append a task to a chosen project note",
-      "jsFunction": "appendTaskToNote",
-      "arguments": [
-        "note title",
-        "task to append"
       ]
     },
     {
@@ -142,9 +130,30 @@
       ]
     },
     {
-      "name": "test:update QuickCapture plugin",
-      "description": "test:update QuickCapture plugin",
-      "jsFunction": "onUpdateOrInstall"
+      "name": "QuickCapture: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
+    },
+    {
+      "name": "QuickCapture: tempAddParaTest",
+      "description": "tempAddParaTest",
+      "jsFunction": "tempAddParaTest"
+    }
+  ],
+  "plugin.commands_disabled": [
+    {
+      "name": "quick add to weekly note",
+      "alias": [
+        "qaw",
+        "week",
+        "append"
+      ],
+      "description": "Quickly append a task to a chosen Weekly note",
+      "jsFunction": "appendTaskToWeeklyNote",
+      "arguments": [
+        "note week (YYYY-Wnn)",
+        "text to add"
+      ]
     }
   ],
   "plugin.settings": [
@@ -174,8 +183,8 @@
       "required": false
     },
     {
-      "type": "string",
       "key": "textToAppendToTasks",
+      "type": "string",
       "title": "Text to append to new inbox tasks",
       "description": "Optional text (that can include hashtags or mentions) that will be appended to all new tasks captured to the inbox.",
       "default": "",
@@ -198,10 +207,10 @@
       "required": true
     },
     {
-      "type": "string",
       "key": "journalHeading",
+      "type": "string",
       "title": "Heading for your Journal entries",
-      "description": "Optional heading for '/quick add to journal today' to add your journal entries under.",
+      "description": "Optional heading to add your journal entries under with /quick add to journal ... commands",
       "default": "Journal",
       "required": false
     },

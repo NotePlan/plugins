@@ -2,21 +2,24 @@
 This plugin provides commands to more quickly add tasks/todos or general text to NotePlan notes, _without having to switch away from the note you're currently working on_:
 
 - **/quick add task to inbox** (alias **/int**): Quickly add a task to your chosen Inbox location. (To configure this, see below.)
+- **/quick append task to note** (alias **/qat**): Quickly append a task to a chosen project note
 - **/quick add task under heading** (alias **/qath**): Quickly add a task at the top of a chosen note's heading
 - **/quick add line under heading** (alias **/qalh**): Quickly add text lines at the top of a chosen note's heading
-- **/quick add to daily note** (alias **/qad**): Quickly add a task to a chosen daily note
-- **/quick add to weekly note** (alias **/qaw**): Quickly add a task to a chosen weekly note
+- **/quick add to calendar note** (alias **/qac**): Quickly add a task to a chosen calendar note
+<!-- - **/quick add to weekly note** (alias **/qaw**): Quickly add a task to a chosen weekly note -->
 - **/quick add to journal today** (alias **/qajd**): Quickly add text to the Journal section of today's daily note
 - **/quick add to journal this week** (alias **/qajw**): Quickly add text to the Journal section of this week's note
-- **/quick add task to note** (alias **/qat**): Quickly append a task to a chosen project note
-- **/quick prepend task to daily note** (alias **/qpd**): Quickly prepend a task to a chosen daily note
+- **/quick prepend task to calendar note** (alias **/qpc**): Quickly prepend a task to a chosen calendar note
 - **/quick prepend task to note** (alias **/qpt**): Quickly prepend a task to a chosen project note. (Inserts after title or YAML frontmatter, or starting metadata lines.)
 
-**Tip for macOS users**: add Keyboard Shortcuts to get to these commands even more quickly.
 
+Note: there's a bug in NotePlan's API that means '/quick add task under heading' and '/quick add line under heading' don't work properly if there's an identical line to the heading you select earlier in the same file, even if it's not a markdown heading.
+## Tips for macOS users 
+- Add Keyboard Shortcuts to get to these commands even more quickly, by using macOS System Settings > Keyboard > Shortcuts.
+- My suggestions about [Using Text Expansion with NotePlan](https://noteplan.co/n/0D40215F-ACA3-4B89-8976-C6B32B1BA167) are relevant here.
 
 ## Configuration
-The command `/quick add task to inbox` requires configuring, by clicking on the gear button on the 'Event Helpers' line in the Plugin Preferences panel.
+The command `/quick add task to inbox` requires configuring, by clicking on the gear button on the 'Event Helpers' line in the Plugin Preferences panel. (Or, on iOS or iPadOS you can use the **/QuickCapture: update plugin settings** instead.)
 
 The settings are:
 - **Where is your Inbox?**: Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note. Or  choose 'Fixed' and then add the note title in the next setting
@@ -36,18 +39,16 @@ Notes:
 - The matching of section headings in /qalh and /qath is done as an exact match, or (from v0.12) just the first part of it. This means it's possible to have a section such as `## Journal for 3.4.22` that changes every day, but still refer to it by the unchanging string `Journal`.
 - from NotePlan v3.6.1 and plugin v0.12.0 it's possible to send one or more empty arguments, and that will cause the missing argument(s) be requested from the user, as it it were run interactively.
 
-<!--??? hopefully in time /qad adds yesterday, today, tomorrow terms -->
-<!--??? hopefully in time /qaw adds thisweek, nextweek terms -->
 | Command | x-callback start | arg0 | arg1 | arg2 |
 |-----|-------------|-----|-----|-----|
 | /quick add task to inbox | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20task%20to%20inbox&` | text to add (to your pre-configured Inbox location) |  |  |
 | /quick add task under heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20task%20under%20heading` | note title (can be YYYYMMDD or YYYY-MM-DD or YYYY-Wnn for existing calendar notes) | note heading to add text under | text to add |
 | /quick add line under heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20line%20under%20heading` | note title (can be YYYYMMDD, YYYY-MM-DD or YYYY-Wnn for an existing calendar notes) | note heading to add text under | text to add |
-| /quick add to daily note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20daily%20note` | note date (YYYYMMDD or YYYY-MM-DD) | text to add |  |
-| /quick add to weekly note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20weekly%20note` | note date (YYYY-Mnn) | text to add |  |
+| /quick add to calendar note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20calendar%20note` | note date (YYYYMMDD or YYYY-MM-DD) | text to add |  |
+<!-- | /quick add to weekly note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20weekly%20note` | note date (YYYY-Mnn) | text to add |  | -->
 | /quick add to journal today | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20journal%20today` | text to add |  |  |
 | /quick add to journal this week | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20journal%20this%20week` | text to add |  |  |
-| /quick prepend task to daily note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20daily%20note` | note date (YYYYMMDD or YYYY-MM-DD) | text to add |  |
+| /quick prepend task to calendar note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20calendar%20note` | note date (YYYYMMDD or YYYY-MM-DD) | text to add |  |
 | /quick append task to note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20append%20task%20to%20note` | note title | task to append | |
 | /quick prepend task to note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20prepend%20task%20to%20note` | note title | task to prepend | |
 
