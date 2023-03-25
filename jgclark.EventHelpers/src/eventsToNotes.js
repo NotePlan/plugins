@@ -85,7 +85,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
       }
 
       // Get all the events for this day, for the given calendarSet
-      const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, calendarSet)
+      const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, calendarSet) ?? []
       logDebug('listDaysEvents', `- ${eArr.length} events found on ${dateStr} from  ${calendarSet.length} calendars ${String(calendarSet)}`)
       const mapForSorting: { cal: string, start: Date, text: string }[] = []
 
@@ -208,7 +208,7 @@ export async function listMatchingDaysEvents(
       }
 
       // Get all the events for this day, for the wanted calendarSet
-      const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, calendarSet)
+      const eArr: Array<TCalendarItem> = await getEventsForDay(dateStr, calendarSet) ?? []
       const mapForSorting: { cal: string, start: Date, text: string }[] = []
 
       // for each event, check each of the strings we want to match
