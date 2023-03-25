@@ -288,7 +288,7 @@ export function getDateStringFromCalendarFilename(filename: string): string {
       return filename.slice(0, 8)
     } else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
       // logDebug('gDSFCF', `${filename} = weekly`)
-      return weekStartDateStr(filename.slice(0, 8))
+      return filename.slice(0, 8)
     } else if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
       // logDebug('gDSFCF', `${filename} = monthly`)
       return filename.slice(0, 7)

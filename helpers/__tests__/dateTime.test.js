@@ -712,7 +712,11 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     test('should return valid date for weekly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-W52.md')
-      expect(result).toEqual('20221226')
+      expect(result).toEqual('2022-W52')
+    })
+    test('should return valid date for weekly note filename', () => {
+      const result = dt.getDateStringFromCalendarFilename('2023-W12.md')
+      expect(result).toEqual('2023-W12')
     })
     test('should return valid date for monthly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-12.md')
@@ -722,11 +726,11 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = dt.getDateStringFromCalendarFilename('2022-12')
       expect(result).toEqual('(invalid date)')
     })
-    test('should return invalid date for monthly note filename', () => {
+    test('should return invalid date for malformed monthly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-3.md')
       expect(result).toEqual('(invalid date)')
     })
-    test('should return invalid date for monthly note filename', () => {
+    test('should return invalid date for invalid monthly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-23.md')
       expect(result).toEqual('(invalid date)')
     })
@@ -738,7 +742,7 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = dt.getDateStringFromCalendarFilename('2022-Q2')
       expect(result).toEqual('(invalid date)')
     })
-    test('should return invalid date for quarterly note filename', () => {
+    test('should return invalid date for invalid quarterly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-Q0.md')
       expect(result).toEqual('(invalid date)')
     })
@@ -754,11 +758,11 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = dt.getDateStringFromCalendarFilename('2022')
       expect(result).toEqual('(invalid date)')
     })
-    test('should return invalid date for yearly note filename', () => {
+    test('should return invalid date for out-of-range yearly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('20221.md')
       expect(result).toEqual('(invalid date)')
     })
-    test('should return invalid date for yearly note filename', () => {
+    test('should return invalid date for invalid yearly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-.md')
       expect(result).toEqual('(invalid date)')
     })
