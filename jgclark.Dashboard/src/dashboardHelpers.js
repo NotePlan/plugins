@@ -55,6 +55,7 @@ export type dashboardConfigType = {
   includeFolderName: boolean,
   includeTaskContext: boolean,
   _logLevel: string,
+  _triggerLogging: boolean,
 }
 
 /**

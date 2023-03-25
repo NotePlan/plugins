@@ -163,4 +163,7 @@ export const NP_RE_code_right_backtick: RegExp = /(`)([^`]{1,})(`)/
 // To which @jgclark has added:
 export const RE_NOTE_TITLE_CAPTURE: RegExp = /\[\[(.*?)(?:#(.*?))?\]*\]\]/ // to separately get [[title#...]] and [[...#heading]]
 export const NP_RE_checklist: RegExp = /^\h*\+\s(?:(?!\[[x\-\>]\] ))(?:\[\s\] )?/  // open checklist item
-export const RE_ANY_TYPE_OF_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*(\[[x\-\>]\]|[\*\-\+]\s)/
+export const RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*(\[[ \>]\]|[\*\-\+]\s[^\[])/
+export const RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp = /[\n^]\s*(\[[ \>]\]|[\*\-\+]\s[^\[])/g
+export const RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*[\*\-\+]\s*(\[[x\-]\]|s[^\[])/
+export const RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp = /[\n^]\s*[\*\-\+]\s*(\[[x\-]\]|s[^\[])/g

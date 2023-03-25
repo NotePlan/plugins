@@ -122,9 +122,10 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
   try {
 
     // First try just focussing the existing dashboard window if it's open
-    if (!forceRefresh && focusHTMLWindowIfAvailable(windowCustomID)) {
-      return
-    }
+    // FIXME: Commented out for now as API bug on focusing window
+    // if (!forceRefresh && focusHTMLWindowIfAvailable(windowCustomID)) {
+    //   return
+    // }
 
     const config = await getSettings()
     await checkForRequiredSharedFiles()
@@ -145,6 +146,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
     const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '')
 
     // Create nice HTML display for this data.
+
     // Main table loop
     let totalOpenItems = 0
     let totalDoneItems = 0
@@ -158,8 +160,10 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
         continue // to next loop item
       }
 
+      // Get all items for this section
       const items = sectionItems.filter((i) => i.ID.startsWith(String(section.ID)))
       // if (items.length > 0) {
+
       // Prepare col 1 (section icon)
       outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
 
@@ -176,6 +180,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
       // Start col 3: table of items in this section
       outputArray.push(`  <td>`)
       outputArray.push(`  <div class="multi-cols">`)
+      // Now start a nested table for cols 3/4 (to simplify logic and CSS)
       outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;">`)
 
       // If there are no items in section 1, then add a congratulatory message
@@ -191,29 +196,15 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
           // Long-winded way to get note title, as we don't have TNote, but do have note's filename
           const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString((item.filename).split(".")[0]))
 
+          // Do main work for the item
           switch (item.type) {
-            // Using a nested table for cols 3/4 to simplify logic and CSS
             case 'open': {
               // do col3
               outputArray.push(
                 `     <td id="${item.ID}A" class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`,
               )
 
-              // do col 4
-              // Output type A: append clickable note link
-              // let cell4 = `   <td class="sectionItem">${paraContent}`
-              // if (itemNoteTitle !== weeklyNoteTitle) {
-              //   // Method 1: make [[notelinks]] via x-callbacks
-              //   // const title = displayTitle(thisNote)
-              //   const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(itemNoteTitle)
-              //   // If context is wanted, and linked note title
-              //   if (config.includeTaskContext) {
-              //     cell4 += noteTitleWithOpenAction
-              //   }
-              // }
-              // cell4 += `</td></tr>`
-
-              // Output type B: whole note link is clickable
+              // do col 4: whole note link is clickable.
               // If context is wanted, and linked note title
               let paraContent = ''
               if (config.includeTaskContext) {
@@ -234,22 +225,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
               // do col 3 icon
               outputArray.push(`     <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
 
-              // do col 4
-              // const paraContent = makeParaContentToLookLikeNPDisplayInHTML(item.content)
-              // Output type A: append clickable note link
-              // let cell4 = `   <td class="sectionItem">${paraContent}`
-              // if (itemNoteTitle !== weeklyNoteTitle) {
-              //   // Make [[notelinks]] via x-callbacks
-              //   // const title = displayTitle(thisNote)
-              //   const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(itemNoteTitle)
-              //   // If context is wanted, and linked note title
-              //   if (config.includeTaskContext) {
-              //     cell4 += noteTitleWithOpenAction
-              //   }
-              // }
-              // cell4 += `</td></tr>`
-
-              // Output type B: whole note link is clickable
+              // do col 4: whole note link is clickable
               // If context is wanted, and linked note title
               let paraContent = ''
               if (config.includeTaskContext) {
@@ -279,14 +255,8 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
                 // do col 3 icon
                 outputArray.push(`      <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`) 
 
-                // do col 4
+                // do col 4: review note link as internal calls
                 const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
-
-                // Method A: [[notelinks]] via x-callbacks
-                // const itemNoteTitleEncoded = encodeURIComponent(itemNoteTitle)
-                // const noteTitleWithOpenAction = `${folderNamePart}<span class="noteTitle"><a href="noteplan://x-callback-url/openNote?noteTitle=${itemNoteTitleEncoded}">${itemNoteTitle}</a></span>`
-                // let cell4 = `     <td class="sectionItem"><span class="">${noteTitleWithOpenAction}</span>`
-                // Method B: internal calls
                 let cell4 = `      <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditor','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
                 // TODO: make specific to that note
                 cell4 += `</td>\n    </tr>`

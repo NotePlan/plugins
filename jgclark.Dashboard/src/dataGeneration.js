@@ -121,7 +121,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     if (currentWeeklyNote) {
       const thisFilename = currentWeeklyNote.filename
-      const dateStr = getDateStringFromCalendarFilename(thisFilename)
+      const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
       logDebug('getDataForDashboard', `Processing ${thisFilename} (${dateStr}) which has ${String(currentWeeklyNote.paragraphs.length)} paras`)
       // Need to filter out non-task types for following function
       let openParas = currentWeeklyNote.paragraphs.filter((p) => ["open", "checklist"].includes(p.type))

@@ -1,6 +1,13 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
- 
+<!-- split out CSS to a separate file -->
+## [0.3.2] - 2023-03-25
+### Changed
+- a new way of testing when to refresh the dashboard based on changes in daily/weekly notes. This avoids most false positives.
+### Added
+- command to edit settings, even on iOS
+- new Debug setting for Triggering dashboard refreshes
+
 ## [0.3.1] - 2023-03-15
 ### Added
 - when completing a task/checklist in the dashboard, it will now have a @done(...) date added if the user has 'add completion date' setting ticked.
