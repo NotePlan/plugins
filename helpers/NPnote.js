@@ -4,7 +4,8 @@
 //-------------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { getBlockUnderHeading, isOpen } from './NPParagraph'
+import { getBlockUnderHeading } from './NPParagraph'
+import { isOpen } from '@helpers/utils'
 import { getTodaysDateHyphenated } from '@helpers/dateTime'
 // import { getNPWeekData } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'

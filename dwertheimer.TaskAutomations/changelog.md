@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.11.2] (@dwertheimer) 2023-03-26
+
+- Add scheduled tasks to overdue types
+
 ## [2.11.1] (@dwertheimer) 2023-03-12
 
 - Removed error noise on task sorting when lines were note tasks

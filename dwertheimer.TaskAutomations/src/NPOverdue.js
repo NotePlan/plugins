@@ -2,8 +2,9 @@
 
 import pluginJson from '../plugin.json'
 import { showMessageYesNo, chooseFolder, showMessage, chooseOptionWithModifiers } from '../../helpers/userInput'
-import { getOverdueParagraphs, isOpen } from '../../helpers/NPParagraph'
+import { getOverdueParagraphs } from '../../helpers/NPParagraph'
 import { reviewTasksInNotes, getNotesAndTasksToReview, createArrayOfNotesAndTasks, getNotesWithOpenTasks, getWeeklyOpenTasks } from './NPTaskScanAndProcess'
+import { isOpen } from '@helpers/utils'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { filenameDateString } from '@helpers/dateTime'
 import { getTodaysReferences } from '@helpers/NPnote'

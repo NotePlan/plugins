@@ -24,7 +24,7 @@ import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from './paragraph'
 import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
-import { isOpen } from './NPParagraph'
+import { isOpen } from '@helpers/utils'
 
 // const pluginJson = 'helpers/note.js'
 
