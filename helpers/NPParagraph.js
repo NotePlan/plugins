@@ -1233,11 +1233,43 @@ export function highlightParagraphInEditor(objectToTest: any): boolean {
 }
 
 /**
+ * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
+ * @param {TParagraph} para 
+ * @returns 
+ */
+export function markComplete(para: TParagraph): boolean {
+  if (para) {
+    const doneString = (DataStore.preference('isAppendCompletionLinks')) ? ` @done(${nowShortDateTimeISOString})` : ''
+
+    if (para.type === 'open') {
+      para.type = 'done'
+      para.content += doneString
+      para.note?.updateParagraph(para)
+      logDebug('completeItem', `updated para ${para.content}`)
+      return true
+    }
+    else if (para.type === 'checklist') {
+      para.type = 'checklistDone'
+      para.note?.updateParagraph(para)
+      logDebug('completeItem', `updated para ${para.content}`)
+      return true
+    } else {
+      logWarn('completeItem', `unexpected para type ${para.type}, so won't continue`)
+      return false
+    }
+  }
+  else {
+    logError(pluginJson, `markComplete: para is null`)
+    return false
+  }
+}
+
+/**
  * Complete a task/checklist item (given by 'rawContent') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Appends a '@done(...)' date to the line if the user has selected to 'add completion date'.
- * @param {string} noteTitle
- * @param {string} paraContent
+ * @param {string} filenameIn to look in
+ * @param {string} rawContent to find
  * @returns {boolean} true if succesful, false if unsuccesful
  */
 export function completeItem(filenameIn: string, rawContent: string): boolean {
@@ -1253,31 +1285,14 @@ export function completeItem(filenameIn: string, rawContent: string): boolean {
     // $FlowIgnore[incompatible-type]
     const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
 
-    // Work out @done() string to append (if user preference wishes this)
-    let doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${nowShortDateTimeISOString})` : ''
-
     if (thisNote) {
-      if (thisNote.paragraphs.length > 0) {
-        let foundParaIndex = NaN
+      if (thisNote.paragraphs.length > 0) {        
         let c = 0
         for (const para of thisNote.paragraphs) {
           if (para.rawContent === rawContent) {
             logDebug('completeItem', `found matching para ${c} of type ${para.type}: ${rawContent}`)
-            if (para.type === 'open') {
-              para.type = 'done'
-              para.content += doneString
-              thisNote.updateParagraph(para)
-              logDebug('completeItem', `updated para ${c}`)
-              return true
-            } else if (para.type === 'checklist') {
-              para.type = 'checklistDone'
-              thisNote.updateParagraph(para)
-              logDebug('completeItem', `updated para ${c}`)
-              return true
-            } else {
-              logInfo('completeItem', `unexpected para type ${para.type}, so won't continue`)
-              return false
-            }
+            // Append @done(...) string (if user preference wishes this)
+            return markComplete(para)
           }
           c++
         }
