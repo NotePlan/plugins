@@ -2,7 +2,7 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { appendTaskToDailyNote } from '../../jgclark.QuickCapture/src/quickCapture'
+import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCapture'
 import { noteHasContent, moveParagraphToNote, getOverdueParagraphs } from '../../helpers/NPParagraph'
 import { getNPWeekData, getWeekOptions } from '../../helpers/NPdateTime'
 import { filterNotesAgainstExcludeFolders, noteType } from '../../helpers/note'
@@ -358,7 +358,7 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                   return updates.length ? noteIndex - 1 : noteIndex
                 }
                 case '__newTask__': {
-                  await appendTaskToDailyNote(getTodaysDateHyphenated())
+                  await appendTaskToCalendarNote(getTodaysDateHyphenated())
                   return updates.length ? noteIndex - 1 : noteIndex
                 }
               }

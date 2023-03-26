@@ -22,7 +22,7 @@ import { getGlobalSharedData, sendToHTMLWindow, updateGlobalSharedData } from '.
 import { convertAllLinksToHTMLLinks, stripAllMarkersFromString } from '../../helpers/stringTransforms'
 import { getOrMakeNote } from '../../helpers/note'
 import { followUpInFuture, followUpSaveHere } from './NPFollowUp'
-import { appendTaskToDailyNote } from '../../jgclark.QuickCapture/src/quickCapture'
+import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCapture'
 import plugin from '@babel/core/lib/config/plugin.js'
 
 /* Finalize the actions taken by the user (save/update the results)
@@ -70,7 +70,7 @@ export async function finalizeChanges(result: any): Promise<TParagraph | null> {
         // return para
       }
       case '__newTask__': {
-        await appendTaskToDailyNote(getTodaysDateHyphenated())
+        await appendTaskToCalendarNote(getTodaysDateHyphenated())
         await Editor.openNoteByDateString(getTodaysDateHyphenated())
       }
     }
@@ -103,7 +103,7 @@ export async function finalizeChanges(result: any): Promise<TParagraph | null> {
         return updates.length ? noteIndex - 1 : noteIndex
       }
       case '__newTask__': {
-        await appendTaskToDailyNote(getTodaysDateHyphenated())
+        await appendTaskToCalendarNote(getTodaysDateHyphenated())
         return updates.length ? noteIndex - 1 : noteIndex
       }
     }
