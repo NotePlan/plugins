@@ -4,10 +4,8 @@
 //-------------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import { getBlockUnderHeading } from './NPParagraph'
-import {
-  getTodaysDateHyphenated,
-} from '@helpers/dateTime'
+import { getBlockUnderHeading, isOpen } from './NPParagraph'
+import { getTodaysDateHyphenated } from '@helpers/dateTime'
 // import { getNPWeekData } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
@@ -15,7 +13,7 @@ import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 // import { displayTitle } from '@helpers/general'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
-import { setFrontMatterVars } from "./NPFrontMatter";
+import { setFrontMatterVars } from './NPFrontMatter'
 
 const pluginJson = 'NPnote.js'
 
@@ -68,8 +66,7 @@ export async function convertNoteToFrontmatter(note: TNote, defaultFMText: strin
     } else {
       logWarn('note/convertNoteToFrontmatter', `ensureFrontmatter() failed for note ${note.filename}`)
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, JSP(error))
     await showMessage(error.message)
   }
@@ -107,7 +104,7 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
   const isTodayItem = (text: string) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   // const todos:Array<TParagraph>  = []
   if (note.paragraphs) {
-    return note.paragraphs.filter((p) => p.type === 'open' && (includeAllTodos || isTodayItem(p.content)))
+    return note.paragraphs.filter((p) => isOpen(p) && (includeAllTodos || isTodayItem(p.content)))
   }
   logDebug(`findOpenTodosInNote could not find note.paragraphs. returning empty array`)
   return []
@@ -274,7 +271,10 @@ export function getNotesChangedInInterval(numDays: number, noteTypesToInclude: A
       const jsdateToStartLooking = momentToStartLooking.toDate()
 
       matchingNotes = allNotesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
-      logDebug('getNotesChangedInInterval', `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`)
+      logDebug(
+        'getNotesChangedInInterval',
+        `from ${allNotesToCheck.length} notes of type ${String(noteTypesToInclude)} found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`,
+      )
     } else {
       matchingNotes = allNotesToCheck
       logDebug('getNotesChangedInInterval', `returning all ${allNotesToCheck.length} notes`)

@@ -3,7 +3,7 @@
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { appendTaskToDailyNote } from '../../jgclark.QuickCapture/src/quickCapture'
-import { noteHasContent, moveParagraphToNote, getOverdueParagraphs } from '../../helpers/NPParagraph'
+import { noteHasContent, moveParagraphToNote, getOverdueParagraphs, isOpen } from '../../helpers/NPParagraph'
 import { getNPWeekData, getWeekOptions } from '../../helpers/NPdateTime'
 import { filterNotesAgainstExcludeFolders, noteType } from '../../helpers/note'
 import { getReferencedParagraphs } from '../../helpers/NPnote'
@@ -669,5 +669,5 @@ export function getWeeklyOpenTasks(): Array<TParagraph> {
   const combined = [...refs, ...(weeklyNote?.paragraphs || [])]
   // clo(weeklyNote, 'weeklyNote')
   logDebug(pluginJson, `getWeeklyOpenTasks ${weeklyNote?.filename || 0}: refs:${refs.length} paras:${weeklyNote?.paragraphs.length || 0} combined:${combined.length}`)
-  return combined.filter((p) => p.type === 'open') || []
+  return combined.filter(isOpen) || []
 }

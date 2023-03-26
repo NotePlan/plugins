@@ -2,7 +2,7 @@
 
 import pluginJson from '../plugin.json'
 import { showMessageYesNo, chooseFolder, showMessage, chooseOptionWithModifiers } from '../../helpers/userInput'
-import { getOverdueParagraphs } from '../../helpers/NPParagraph'
+import { getOverdueParagraphs, isOpen } from '../../helpers/NPParagraph'
 import { reviewTasksInNotes, getNotesAndTasksToReview, createArrayOfNotesAndTasks, getNotesWithOpenTasks, getWeeklyOpenTasks } from './NPTaskScanAndProcess'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { filenameDateString } from '@helpers/dateTime'
@@ -214,7 +214,7 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
       // find tasks in Editor note that are not in overdues (match by lineIndex property)
       logDebug(pluginJson, `reviewOverdueTasksInNote: after reviewTasksInNotes`)
       const paras = Editor?.note?.paragraphs || []
-      const diffTasks = paras.filter((task) => task.type === 'open' && !overdues.find((ot) => ot.lineIndex !== undefined && ot.lineIndex === task.lineIndex))
+      const diffTasks = paras.filter((task) => isOpen(task) && !overdues.find((ot) => ot.lineIndex !== undefined && ot.lineIndex === task.lineIndex))
       // if there are more tasks in the note than the overdue ones we found, ask if we should review the rest
       if (diffTasks && diffTasks.length) {
         if ((await showMessageYesNo(`Review other open tasks in this note?`, ['Yes', 'No'], 'Task Review', true)) === 'Yes') {
@@ -264,7 +264,7 @@ export async function reviewEditorReferencedTasks(incoming: string | null = null
     const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
     const refs = getTodaysReferences(Editor.note)
     logDebug(pluginJson, `reviewEditorReferencedTasks refs.length=${refs.length}`)
-    const openTasks = weeklyNote ? [] : refs.filter((p) => p.type === 'open' && p.content !== '')
+    const openTasks = weeklyNote ? [] : refs.filter((p) => isOpen(p) && p.content !== '')
     const thisWeeksTasks = weeklyNote ? getWeeklyOpenTasks() : []
     logDebug(pluginJson, `reviewEditorReferencedTasks openTasks.length=${openTasks.length} thisWeeksTasks=${thisWeeksTasks.length}`)
     // gather references by note

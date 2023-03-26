@@ -116,13 +116,14 @@ describe(`${PLUGIN_NAME}`, () => {
         datedTodos: [
           { type: 'open', content: 'foo >2020-01-01+' },
           { type: 'scheduled', content: 'foo >2020-01-01' },
+          { type: 'done', content: 'foo >2020-01-01' },
           { type: 'open', content: 'bar >2020-01-01' },
         ],
       }
       const options = { openOnly: true, plusOnlyTypes: false, replaceDate: false }
       const result = n.updateDatePlusTags(note, options)
-      expect(result.length).toEqual(2)
-      expect(result[1].content).toMatch(/bar/)
+      expect(result.length).toEqual(3)
+      expect(result[2].content).toMatch(/bar/)
     })
 
     test('should NOT consider today overdue (if no plus)', () => {

@@ -753,11 +753,11 @@ export function findOverdueWeeksInString(line: string): Array<string> {
 }
 
 /**
- * Test whether a task is open or not
+ * Test whether a task is open or not (type: 'scheduled' or 'open' counts as open)
  * @param {Paragraph} t - the paragraph/task to check
  * @returns {boolean} true if open, false if any other status/type
  */
-export const isOpen = (t: TParagraph): boolean => t.type === 'open'
+export const isOpen = (t: TParagraph): boolean => t.type === 'open' || t.type === 'scheduled'
 
 /*
  * @param paragraphs array
@@ -1261,7 +1261,7 @@ export function completeItem(filenameIn: string, rawContent: string): boolean {
     const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
 
     // Work out @done() string to append (if user preference wishes this)
-    let doneString = (DataStore.preference('isAppendCompletionLinks')) ? ` @done(${nowShortDateTimeISOString})` : ''
+    let doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${nowShortDateTimeISOString})` : ''
 
     if (thisNote) {
       if (thisNote.paragraphs.length > 0) {
@@ -1276,14 +1276,12 @@ export function completeItem(filenameIn: string, rawContent: string): boolean {
               thisNote.updateParagraph(para)
               logDebug('completeItem', `updated para ${c}`)
               return true
-            }
-            else if (para.type === 'checklist') {
+            } else if (para.type === 'checklist') {
               para.type = 'checklistDone'
               thisNote.updateParagraph(para)
               logDebug('completeItem', `updated para ${c}`)
               return true
-            }
-            else {
+            } else {
               logInfo('completeItem', `unexpected para type ${para.type}, so won't continue`)
               return false
             }
@@ -1300,8 +1298,7 @@ export function completeItem(filenameIn: string, rawContent: string): boolean {
       logWarn('completeItem', `Can't find note '${filename}'`)
       return false
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError('completeItem', `${error.message} for note '${filenameIn}'`)
     return false
   }

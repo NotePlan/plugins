@@ -24,8 +24,9 @@ import { displayTitle, type headingLevelType } from './general'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from './paragraph'
 import { sortListBy } from './sorting'
 import { showMessage } from './userInput'
+import { isOpen } from './NPParagraph'
 
-const pluginJson = 'helpers/note.js'
+// const pluginJson = 'helpers/note.js'
 
 export function noteType(filename: string): NoteType {
   return filename.match(RE_DAILY_NOTE_FILENAME) ||
@@ -580,7 +581,7 @@ export function updateDatePlusTags(note: TNote, options: { openOnly: boolean, pl
   const { openOnly, plusOnlyTypes, replaceDate } = options
   const todayHyphenated = hyphenatedDateString(new Date())
   const updatedParas = []
-  const datedOpenTodos = openOnly ? note?.datedTodos?.filter((t) => t.type === 'open') || [] : note?.datedTodos || []
+  const datedOpenTodos = openOnly ? note?.datedTodos?.filter(isOpen) || [] : note?.datedTodos || []
   datedOpenTodos.forEach((todo) => {
     if (!/>today/i.test(todo.content)) {
       const datePlusAll = [...todo?.content?.matchAll(RE_PLUS_DATE_G)] //there could be multiple dates on a line
