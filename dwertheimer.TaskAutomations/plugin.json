@@ -5,8 +5,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.11.2",
-  "plugin.lastUpdateInfo": "2.11.2: Add scheduled tasks to overdue types.\n2.11.0: Task Sorting: Skip Done/Cancelled; Include Checklist in Sorting.\nOverdue: change open task to checklist item\nReact/HTML view v1",
+  "plugin.version": "2.11.3",
+  "plugin.lastUpdateInfo": "2.11.3: bug fix, 2.11.2: Add scheduled tasks to overdue types.\n2.11.0: Task Sorting: Skip Done/Cancelled; Include Checklist in Sorting.\nOverdue: change open task to checklist item\nReact/HTML view v1",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "css.plugin.css",
@@ -18,6 +18,11 @@
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
   "plugin.commands": [
     {
+      "name": "Task Automations: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
+    },
+    {
       "name": "ts",
       "description": "Tasks Sort - Sort tasks on the page",
       "jsFunction": "sortTasks"
@@ -26,7 +31,9 @@
       "name": "sth",
       "description": "Sort tasks under heading (choose)",
       "jsFunction": "sortTasksUnderHeading",
-      "alias": ["tsh"]
+      "alias": [
+        "tsh"
+      ]
     },
     {
       "name": "tsd",
@@ -125,7 +132,7 @@
       "arguments": [
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
       ]
-    },  
+    },
     {
       "name": "Review overdue tasks (by Task)",
       "description": "Search for overdue tasks in all Calendar (and optionally Project) Notes",
@@ -136,12 +143,17 @@
       "arguments": [
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
       ]
-    }, 
+    },
     {
       "name": "Search Notes for Open Tasks",
       "description": "Search Calendar Notes (and optionally Project Notes) for open tasks to process",
       "jsFunction": "searchForOpenTasks",
-      "alias": ["openTasks","searchTasks","forgotten","leftOpen"],
+      "alias": [
+        "openTasks",
+        "searchTasks",
+        "forgotten",
+        "leftOpen"
+      ],
       "arguments": []
     },
     {
@@ -154,7 +166,7 @@
       "arguments": [
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
       ]
-    }, 
+    },
     {
       "name": "Review/Reschedule Tasks Scheduled for this week",
       "description": "Review all tasks marked for or on this week's note",
@@ -165,7 +177,7 @@
       "arguments": [
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
       ]
-    },   
+    },
     {
       "name": "Review/Reschedule Tasks Dated Today",
       "description": "Review all tasks marked for today's date",
@@ -176,12 +188,13 @@
       "arguments": [
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
       ]
-    }, 
+    },
     {
       "name": "Process Overdue Items in Separate Window",
       "description": "Mac-only - Uses HTML Popup/React",
       "jsFunction": "processOverdueReact",
-      "alias": [ "react"
+      "alias": [
+        "react"
       ],
       "arguments": []
     },
@@ -189,8 +202,9 @@
       "name": "testOverdueReact",
       "description": "testOverdueReact",
       "jsFunction": "testOverdueReact",
-      "hidden":true,
-      "alias": ["tor"
+      "hidden": true,
+      "alias": [
+        "tor"
       ],
       "arguments": []
     },
@@ -198,11 +212,10 @@
       "name": "onUserModifiedParagraphs",
       "description": "Paragraph info was changed in React HTML window",
       "jsFunction": "onUserModifiedParagraphs",
-      "alias": [
-      ],
+      "alias": [],
       "hidden": true,
       "arguments": []
-    },    
+    },
     {
       "name": "Review overdue tasks in <Choose Folder>",
       "description": "Search for overdue tasks in a folder you choose review them individually, setting to >today if today is >= the date",
@@ -213,7 +226,7 @@
       "arguments": [
         "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
       ]
-    }, 
+    },
     {
       "name": "Mark done and create follow-up underneath",
       "description": "Create a follow-up task and save it just below the task in question",
@@ -248,7 +261,7 @@
       "arguments": [
         "By default will ask you to confirm changes. Put any word/characters here to to update tasks silently"
       ]
-    } 
+    }
   ],
   "disabled": [
     {
@@ -258,6 +271,11 @@
     }
   ],
   "plugin.settings": [
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "dwertheimer.TaskAutomations"
+    },
     {
       "type": "heading",
       "title": "Follow-up Task Settings"
@@ -287,7 +305,7 @@
       "required": true
     },
     {
-      "type":"separator"
+      "type": "separator"
     },
     {
       "type": "heading",
@@ -300,7 +318,18 @@
       "type": "string",
       "default": "-priority",
       "required": true,
-      "choices": ["priority","-priority","due","-due","mentions","-mentions","hashtags","-hashtags","content","-content"]
+      "choices": [
+        "priority",
+        "-priority",
+        "due",
+        "-due",
+        "mentions",
+        "-mentions",
+        "hashtags",
+        "-hashtags",
+        "content",
+        "-content"
+      ]
     },
     {
       "key": "defaultSort2",
@@ -309,7 +338,18 @@
       "type": "string",
       "default": "hashtags",
       "required": true,
-      "choices": ["priority","-priority","due","-due","mentions","-mentions","hashtags","-hashtags","content","-content"]
+      "choices": [
+        "priority",
+        "-priority",
+        "due",
+        "-due",
+        "mentions",
+        "-mentions",
+        "hashtags",
+        "-hashtags",
+        "content",
+        "-content"
+      ]
     },
     {
       "key": "defaultSort3",
@@ -318,17 +358,44 @@
       "type": "string",
       "default": "mentions",
       "required": true,
-      "choices": ["priority","-priority","due","-due","mentions","-mentions","hashtags","-hashtags","content","-content"]
+      "choices": [
+        "priority",
+        "-priority",
+        "due",
+        "-due",
+        "mentions",
+        "-mentions",
+        "hashtags",
+        "-hashtags",
+        "content",
+        "-content"
+      ]
     },
     {
       "key": "outputOrder",
       "title": "Output order (by type)",
       "description": "After tasks are sorted, tasks are grouped by their type (status). In what order do you want the task groups outputted?",
-      "choices": ["open, scheduled, done, cancelled","open, scheduled, cancelled, done", "done, cancelled, open, scheduled","open, done, cancelled, scheduled","open, cancelled, done, scheduled","scheduled, open, done, cancelled","scheduled, open, cancelled, done","scheduled, done, cancelled, open","scheduled, cancelled, done, open","done, open, cancelled, scheduled","done, scheduled, cancelled, open","cancelled, open, done, scheduled","cancelled, scheduled, done, open","cancelled, done, open, scheduled","cancelled, done, scheduled, open"],
+      "choices": [
+        "open, scheduled, done, cancelled",
+        "open, scheduled, cancelled, done",
+        "done, cancelled, open, scheduled",
+        "open, done, cancelled, scheduled",
+        "open, cancelled, done, scheduled",
+        "scheduled, open, done, cancelled",
+        "scheduled, open, cancelled, done",
+        "scheduled, done, cancelled, open",
+        "scheduled, cancelled, done, open",
+        "done, open, cancelled, scheduled",
+        "done, scheduled, cancelled, open",
+        "cancelled, open, done, scheduled",
+        "cancelled, scheduled, done, open",
+        "cancelled, done, open, scheduled",
+        "cancelled, done, scheduled, open"
+      ],
       "type": "string",
       "default": "open, scheduled, done, cancelled",
       "required": true
-    },   
+    },
     {
       "key": "sortInHeadings",
       "title": "Sort tasks separately for each heading?",
@@ -336,7 +403,7 @@
       "type": "bool",
       "default": true,
       "required": true
-    }, 
+    },
     {
       "key": "tasksToTop",
       "title": "Put tasks at the top (before any textual items)?",
@@ -344,7 +411,7 @@
       "type": "bool",
       "default": true,
       "required": true
-    },      
+    },
     {
       "key": "includeHeading",
       "title": "Include Task Status Heading in Output?",
@@ -360,7 +427,7 @@
       "type": "bool",
       "default": true,
       "required": true
-    },    
+    },
     {
       "key": "eliminateSpinsters",
       "title": "Eliminate Headings with No Content",
@@ -368,7 +435,7 @@
       "type": "bool",
       "default": false,
       "required": true
-    }, 
+    },
     {
       "key": "stopAtDoneHeading",
       "title": "Stop at 'Done' or 'Cancelled' heading",
@@ -376,7 +443,7 @@
       "type": "bool",
       "default": false,
       "required": true
-    },  
+    },
     {
       "type": "separator"
     },

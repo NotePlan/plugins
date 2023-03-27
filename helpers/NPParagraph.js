@@ -18,6 +18,7 @@ import {
   SCHEDULED_YEARLY_NOTE_LINK,
   WEEK_NOTE_LINK,
 } from './dateTime'
+import { isOpen } from './utils'
 import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateTimeString } from './NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from './dev'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
@@ -1234,12 +1235,12 @@ export function highlightParagraphInEditor(objectToTest: any): boolean {
 
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
- * @param {TParagraph} para 
- * @returns 
+ * @param {TParagraph} para
+ * @returns
  */
 export function markComplete(para: TParagraph): boolean {
   if (para) {
-    const doneString = (DataStore.preference('isAppendCompletionLinks')) ? ` @done(${nowShortDateTimeISOString})` : ''
+    const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${nowShortDateTimeISOString})` : ''
 
     if (para.type === 'open') {
       para.type = 'done'
@@ -1247,8 +1248,7 @@ export function markComplete(para: TParagraph): boolean {
       para.note?.updateParagraph(para)
       logDebug('completeItem', `updated para ${para.content}`)
       return true
-    }
-    else if (para.type === 'checklist') {
+    } else if (para.type === 'checklist') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
       logDebug('completeItem', `updated para ${para.content}`)
@@ -1257,8 +1257,7 @@ export function markComplete(para: TParagraph): boolean {
       logWarn('completeItem', `unexpected para type ${para.type}, so won't continue`)
       return false
     }
-  }
-  else {
+  } else {
     logError(pluginJson, `markComplete: para is null`)
     return false
   }
@@ -1286,7 +1285,7 @@ export function completeItem(filenameIn: string, rawContent: string): boolean {
     const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
 
     if (thisNote) {
-      if (thisNote.paragraphs.length > 0) {        
+      if (thisNote.paragraphs.length > 0) {
         let c = 0
         for (const para of thisNote.paragraphs) {
           if (para.rawContent === rawContent) {

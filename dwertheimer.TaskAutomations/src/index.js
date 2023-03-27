@@ -9,7 +9,7 @@ import { clo } from '@helpers/dev'
 /**
  * Command Exports
  */
-
+export { editSettings } from '@helpers/NPSettings'
 export {
   sortTasks,
   sortTasksByPerson,

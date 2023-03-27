@@ -189,8 +189,23 @@ export async function updateSetting(key: string, pluginJson: any): any {
 
 /**
  * Choose from all commands in plugin.json to edit a setting (for plugin settings changes on iOS)
- * @param {*} pluginJson - the whole plugin json object
- *
+ * Can be run directly as a jsFunction or called from another function
+ * @param {any} pluginJson - the whole plugin json object (optional. if not provided, will be fetched from pluginID in DataStore.settings)
+ * @returns {number} - number of edits made
+ * @example: 3 steps below. Change <plugin_name> and <plugin_id>:
+ * Put in index.js: export { editSettings } from '@helpers/NPSettings'
+ * Put in plugin.json/commands:     {
+      "name": "<plugin_name>: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
+    },
+ * Put in plugin.json/settings:     {
+    {
+      "type": "hidden",
+      "key": "plugin_ID",
+      "default": "<pluginid>"
+    },
+ * 
  */
 export async function editSettings(_pluginJson?: any): Promise<number> {
   const { pluginID } = DataStore.settings

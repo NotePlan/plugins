@@ -5,6 +5,11 @@
 
 ## What's Changed in this Plugin?
 
+## [2.11.3] (@dwertheimer) 2023-03-26
+
+- Bug fix
+- Add iOS Preferences
+
 ## [2.11.2] (@dwertheimer) 2023-03-26
 
 - Add scheduled tasks to overdue types
