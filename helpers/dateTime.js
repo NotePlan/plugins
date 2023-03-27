@@ -116,6 +116,7 @@ export const isYearlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_YEA
  */
 // export const isScheduled = (content: string): boolean => RE_PLUS_DATE.test(content) || />today/.test(content) || new RegExp(RE_NP_WEEK_SPEC).test(content)
 export const isScheduled = (content: string): boolean => new RegExp(RE_IS_SCHEDULED).test(content)
+
 /**
  * Remove all >date or >today occurrences in a string and add (>today's-date by default) or the supplied string to the end
  * @param {string} inString - the string to start with
