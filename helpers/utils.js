@@ -3,11 +3,27 @@
 import { RE_IS_SCHEDULED } from './dateTime'
 
 /**
- * Test whether a task is open or not (type: 'open')
+ * Test whether a task is open or not (type: 'open') TODO(@dwertheimer): or 'checklist' surely?
  * @param {Paragraph} t - the paragraph/task to check
  * @returns {boolean} true if open, false if any other status/type
  */
-export const isOpen = (t: TParagraph): boolean => t.type === 'open'
+export const isOpen = (t: TParagraph): boolean => t.type === 'open' || t.type === 'checklist'
+
+/**
+ * Test whether a task is closed or not (types: 'done', 'cancelled', 'checklistDone', 'checklistCancelled').
+ * Note: not the same as isDone(), which is tighter
+ * @param {Paragraph} t - the paragraph/task to check
+ * @returns {boolean} true if open, false if any other status/type
+ */
+export const isClosed = (t: TParagraph): boolean => t.type === 'done' || t.type === 'cancelled' || t.type === 'checklistDone' || t.type === 'checklistCancelled'
+
+/**
+ * Test whether a task is closed or not (types: 'done', 'cancelled', 'checklistDone', 'checklistCancelled').
+ * Note: tighter check than isClosed()
+ * @param {Paragraph} t - the paragraph/task to check
+ * @returns {boolean} true if open, false if any other status/type
+ */
+export const isDone = (t: TParagraph): boolean => t.type === 'done' || t.type === 'checklistDone'
 
 /**
  * Test whether a string has a scheduled date (e.g. >2020-01-01, >2020-01, >2020, >2020-W1, >2020-Q1)
