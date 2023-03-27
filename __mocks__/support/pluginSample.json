@@ -2,7 +2,7 @@
     "noteplan.minAppVersion": "3.0.21",
     "macOS.minVersion": "10.15.7",
     "iOS.minVersion": "14",
-    "plugin.id": "eduardme.move",
+    "plugin.id": "test.plugin.id",
     "plugin.name": "Move selected note to another folder",
     "plugin.description": "Move a note from the current folder into another.",
     "plugin.author": "Eduard Metzger",

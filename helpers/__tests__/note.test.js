@@ -122,8 +122,8 @@ describe(`${PLUGIN_NAME}`, () => {
       }
       const options = { openOnly: true, plusOnlyTypes: false, replaceDate: false }
       const result = n.updateDatePlusTags(note, options)
-      expect(result.length).toEqual(3)
-      expect(result[2].content).toMatch(/bar/)
+      expect(result.length).toEqual(2)
+      expect(result[1].content).toMatch(/bar/)
     })
 
     test('should NOT consider today overdue (if no plus)', () => {

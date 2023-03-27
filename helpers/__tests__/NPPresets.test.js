@@ -9,7 +9,7 @@ const FILENAME = `NPPresets`
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
   global.DataStore = DataStore // so we see DEBUG logs in VSCode Jest debugs
-  DataStore.settings['logLevel'] = 'none' // change to DEBUG to see more console output during test runs
+  DataStore.settings['_logLevel'] = 'none' // change to DEBUG to see more console output during test runs
   global.CommandBar = CommandBar
 })
 
@@ -164,12 +164,15 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should save plugin commands based on settings', async () => {
         //FIXME: I am here. work on this test, need to test 196-208
         DataStore.settings = {
-          runPreset01: {
-            jsFunction: 'runPreset01',
-            data: 'someData',
+          ...DataStore.settings,
+          ...{
+            runPreset01: {
+              jsFunction: 'runPreset01',
+              data: 'someData',
+            },
+            command2: 'darkKnight',
+            notCounted: 'foo',
           },
-          command2: 'darkKnight',
-          notCounted: 'foo',
         }
         const pluginJson = await DataStore.loadJSON('') //get the default json
         await await f.rememberPresetsAfterInstall(pluginJson)

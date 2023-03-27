@@ -25,7 +25,7 @@ beforeAll(() => {
     trace: console.trace,
     // map other methods that you want to use like console.table
   }
-  DataStore.settings['logLevel'] = 'none' // change to DEBUG to see more output
+  DataStore.settings['_logLevel'] = 'none' // change to DEBUG to see more output
 })
 
 const paragraphs = [new Paragraph({ content: 'line1' }), new Paragraph({ content: 'line2' })]

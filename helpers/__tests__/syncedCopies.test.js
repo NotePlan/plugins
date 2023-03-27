@@ -9,7 +9,7 @@ const section = colors.blue
 
 beforeAll(() => {
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
-  DataStore.settings['logLevel'] = 'none' // change to DEBUG to see more console output during test runs
+  DataStore.settings['_logLevel'] = 'none' // change to DEBUG to see more console output during test runs
   global.DataStore = DataStore // so we see DEBUG logs in VSCode Jest debugs
   global.CommandBar = CommandBar
 })
