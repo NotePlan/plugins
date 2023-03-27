@@ -125,7 +125,8 @@
       "color": "#B74746",
       "_color": "#CC6666",
       "size": 24,
-      "font": "AvenirNext-Bold"
+      "font": "AvenirNext-Bold",
+      "underlineStyle" : 0
     },
     "title1_info": {
       "description": "The text properties associated with a title (EXCEPT FOR THE SPACING) can be set in these `titleX` settings. title1 is for a first level (# Heading), title2 is for a second level (## Heading), etc. If you want to change the paragraphSpacing, lineSpacing or, paragraphSpacingBefore for the titles, you need to add the attributes to the corresponding 'title-markX' keys instead of 'titleX' keys",
@@ -134,7 +135,8 @@
     "title2": {
       "color": "#E9C062",
       "size": 24,
-      "font": "AvenirNext-DemiBold"
+      "font": "AvenirNext-DemiBold",
+      "underlineStyle" : 0
     },
     "title2_info": {
       "example": "## Example Heading 2"
@@ -142,7 +144,8 @@
     "title3": {
       "color": "#E9C062",
       "size": 20,
-      "font": "AvenirNext-DemiBold"
+      "font": "AvenirNext-DemiBold",
+      "underlineStyle" : 0
     },
     "title3_info": {
       "example": "### Example Heading 3"
@@ -150,7 +153,8 @@
     "title4": {
       "color": "#E9C062",
       "size": 18,
-      "font": "AvenirNext-DemiBold"
+      "font": "AvenirNext-DemiBold",
+      "underlineStyle" : 0
     },
     "title4_info": {
       "example": "#### Example Heading 4"

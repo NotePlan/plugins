@@ -1,5 +1,9 @@
 # np.ThemeChooser Changelog
 
+## [1.5.8] 2023-03-27 @dwertheimer
+
+- Add underline style to all titles
+
 ## [1.5.7] 2022-12-15 @dwertheimer
 
 - Fix bug in dark/light toggle

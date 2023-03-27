@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.7.2",
   "plugin.id": "np.ThemeChooser",
   "plugin.name": "🎨 Theme Chooser",
-  "plugin.version": "1.5.7",
-  "plugin.lastUpdateInfo": "1.5.7: Fix dark/light toggle command.\n1.5.x: Adding '/Customize Themes' (beta)",
+  "plugin.version": "1.5.8",
+  "plugin.lastUpdateInfo": "1.5.8: Add underline style to all titles.\n1.5.7: Fix dark/light toggle command.\n1.5.x: Adding '/Customize Themes' (beta)",
   "plugin.description": "Choose from your favorite themes",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -19,7 +19,9 @@
       "alias": [
         "themechooser"
       ],
-      "arguments": ["theme name"]
+      "arguments": [
+        "theme name"
+      ]
     },
     {
       "name": "Set Default Light/Dark Theme (for this device)",
@@ -33,7 +35,9 @@
       "alias": [
         "themechooser"
       ],
-      "arguments": ["theme name"]
+      "arguments": [
+        "theme name"
+      ]
     },
     {
       "name": "Change Theme Preset",
@@ -61,15 +65,17 @@
       "description": "Choose Style from Custom Theme",
       "jsFunction": "editStyleAttribute",
       "alias": [],
-      "arguments": ["the path (e.g. styles.editor.backgroundColor) to the style attribute you want to edit","the input type (e.g. text, color, boolean, number)"],
+      "arguments": [
+        "the path (e.g. styles.editor.backgroundColor) to the style attribute you want to edit",
+        "the input type (e.g. text, color, boolean, number)"
+      ],
       "hidden": true
     },
     {
       "name": "Copy Currently Active Theme",
       "description": "",
       "jsFunction": "copyCurrentTheme",
-      "alias": [
-      ],
+      "alias": [],
       "arguments": [],
       "hidden": true
     },
@@ -95,16 +101,14 @@
       "name": "Customize Themes",
       "description": "Copy and edit themes",
       "jsFunction": "createThemeSamples",
-      "alias": [
-      ],
+      "alias": [],
       "arguments": []
     },
     {
       "name": "setColor",
       "description": "HTML callback to set color (hidden)",
       "jsFunction": "setColor",
-      "alias": [
-      ],
+      "alias": [],
       "arguments": [],
       "hidden": true
     },
@@ -177,42 +181,42 @@
     {
       "key": "runPreset01",
       "type": "hidden",
-      "default" : "",
+      "default": "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
     {
       "key": "runPreset01",
       "type": "hidden",
-      "default" : "",
+      "default": "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
     {
       "key": "runPreset02",
       "type": "hidden",
-      "default" : "",
+      "default": "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
     {
       "key": "runPreset03",
       "type": "hidden",
-      "default" : "",
+      "default": "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
     {
       "key": "runPreset04",
       "type": "hidden",
-      "default" : "",
+      "default": "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
     {
       "key": "runPreset05",
       "type": "hidden",
-      "default" : "",
+      "default": "",
       "title": "Preset 01",
       "description": "Do not change this setting manually. Use the \"/Change Theme Preset\" command."
     },
