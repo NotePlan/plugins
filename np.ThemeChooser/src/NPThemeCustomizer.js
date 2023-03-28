@@ -215,7 +215,7 @@ async function getValueFromUser(currentPropObj: any, key: string, text: string, 
       logDebug(pluginJson, `getValueFromUser falling back to text because received: ${interactionType}`)
       break
   }
-  if (newVal && newVal !== attribute) {
+  if (interactionType === 'boolean' || (newVal !== false && newVal !== attribute)) {
     logDebug(pluginJson, `User changed ${key}=${attribute} to ${String(newVal)} (typeof attribute = ${typeof attribute})`)
     const searchFor = '` \\[(.*)\\]'
     const replacement = `\` [${String(newVal)}]`

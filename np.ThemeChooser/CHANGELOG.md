@@ -1,5 +1,13 @@
 # np.ThemeChooser Changelog
 
+## [1.5.10] 2023-03-27 @dwertheimer
+
+- Added messaging about shouldOverwriteFont
+
+## [1.5.9] 2023-03-27 @dwertheimer
+
+- Fix bug with boolean settings
+
 ## [1.5.8] 2023-03-27 @dwertheimer
 
 - Add underline style to all titles

@@ -2,8 +2,8 @@
 
 import get from 'lodash/get'
 import pluginJson from '../../plugin.json'
+import { logWarn, log, logError, logDebug, timer, clo, JSP, getFilteredProps } from '../../../helpers/dev'
 import { createPrettyRunPluginLink, escapeRegex } from '@helpers/general'
-import { log, logError, logDebug, timer, clo, JSP, getFilteredProps } from '@helpers/dev'
 
 /**
  * Get a (shallow) list of properties that are different between two objects
@@ -92,6 +92,8 @@ export function getThemePropertiesInfoText(currentObj: any, output: Array<string
       if (example) output.push(`${example}`)
     }
   }
+  const shouldOverwriteFont = get(currentTheme, 'editor.shouldOverwriteFont')
+  const fontWarning = shouldOverwriteFont === true ? ' (*See `shouldOverwriteFont` note above*) ' : ''
   allProps.forEach((p) => {
     if (p.includes('.')) {
       logError(pluginJson, `getThemePropertiesInfoText: property ${p} contains a period, which is not allowed`)
@@ -132,7 +134,7 @@ export function getThemePropertiesInfoText(currentObj: any, output: Array<string
             : ''
         //TODO: LOOK AT DARK AND LIGHT THEMES AND ONLY DISPLAY THE ADD BUTTON IF YOU DON'T HAVE IT
         output.push(
-          `- ***${p}***: \` ${setLink ? `${setLink}` : valueText} \` ${addLink ? `  ${addLink}` : `  ${removeStyleLink ?? ''}`}${
+          `- ***${p}***: \` ${setLink ? `${setLink}` : valueText} \`${p === 'font' ? fontWarning : ''}${addLink ? `  ${addLink}` : `  ${removeStyleLink ?? ''}`}${
             description ? `\n\t> ${description}` : ''
           }${exampleText}`,
         )

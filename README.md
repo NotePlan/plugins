@@ -18,7 +18,7 @@ The following items are required for NotePlan Plugin Development
 - npm version 8.x
 - NotePlan 3.4 or greater
 - macOS Catalina 10.15.2 or greater (strongly recommend macOS Big Sur 11.x or Monterey 12.x)
-- github `gh` is strongly recommended
+- github CLI `gh` is strongly recommended - [how to install gh](https://cli.github.com/)
 
 _NotePlan Plugin API has been tested using Node.js range, any version outside of this range may lead to unexpected issues_
 

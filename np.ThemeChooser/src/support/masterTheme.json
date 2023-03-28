@@ -56,7 +56,7 @@
     },
     "shouldOverwriteFont": false,
     "shouldOverwriteFont_info": {
-      "description": "Preference settings should overwrite the font of the editor specified in the theme file. True by default, Select False if you want the font in your theme file to be used regardless of what the NotePlan user preferences say.",
+      "description": "Determines whether your NotePlan Preferences Font settings should take precedence over any fonts specified here in the theme file. True by default -- meaning no fonts you specify here will be used in the app (only the fonts specified in NotePlan's Preferences). Set this to False if you want any fonts specified in your theme file to be used regardless of what the NotePlan user preferences say.",
       "type": "boolean"
     }
   },
