@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 <!-- split out CSS to a separate file -->
+## [0.3.3] - 2023-03-???
+### Changed
+<!-- - trying again with simpler focus window where we can ??? -->
+
 ## [0.3.2] - 2023-03-25
 ### Changed
 - a new way of testing when to refresh the dashboard based on changes in daily/weekly notes. This avoids most false positives.

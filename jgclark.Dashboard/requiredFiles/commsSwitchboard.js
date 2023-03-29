@@ -139,7 +139,7 @@ function onClickDashboardItem(ID, type, filenameEncoded, rawContentEncoded = '')
     console.log(msg)
     showError(msg)
   } else {
-    console.log(`onClickDashboardItem received click on: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: '${rawContent}; sending 'onClickDashboardItem' to plugin`)
+    console.log(`onClickDashboardItem received click on: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: <${rawContent}>; sending 'onClickDashboardItem' to plugin`)
     const data = { ID, type, filename, rawContent }
     sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
   }

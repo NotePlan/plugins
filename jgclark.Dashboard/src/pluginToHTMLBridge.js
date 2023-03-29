@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 15.3.2023 for v0.3.1 by @jgclark
+// Last updated 27.3.2023 for v0.3.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -49,57 +49,85 @@ export async function onClickDashboardItem(data: MessageDataObject) {
   try {
     const { itemID, type, filename, rawContent } = data
     logDebug(pluginJson, `pluginToHTMLBridge/onClickDashboardItem starting with type: ${type}, itemID: ${itemID}, filename: ${filename}, rawContent: '${rawContent}'`)
-  if (type === 'open') {
-    const res = completeItem(filename, rawContent)
-    if (res) {
-      logDebug(pluginJson, `-> succesful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-      sendToHTMLWindow('completeTask', data)
-    } else {
-      logWarn(pluginJson, `-> unsuccesful call to completeItem(). Will trigger a refresh of the dashboard.`)
-      await showDashboardHTML()
+    if (type === 'open') {
+      const res = completeItem(filename, rawContent)
+      if (res) {
+        logDebug(pluginJson, `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
+        sendToHTMLWindow('completeTask', data)
+      } else {
+        logWarn(pluginJson, `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+        await showDashboardHTML()
+      }
     }
-  } else if (type === 'checklist') {
-    const res = completeItem(filename, rawContent)
-    if (res) {
-      logDebug(pluginJson, `-> succesful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-      sendToHTMLWindow('completeChecklist', data)
-    } else {
-      logWarn(pluginJson, `-> unsuccesful call to completeItem(). Will trigger a refresh of the dashboard.`)
-      await showDashboardHTML()
+    else if (type === 'checklist') {
+      const res = completeItem(filename, rawContent)
+      if (res) {
+        logDebug(pluginJson, `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
+        sendToHTMLWindow('completeChecklist', data)
+      } else {
+        logWarn(pluginJson, `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+        await showDashboardHTML()
+      }
     }
-  } else if (type === 'review') {
-    // Handle a review call simply by opening the note in the main Editor. Later it might get more interesting!
-    const note = await Editor.openNoteByFilename(filename)
-    if (note) {
-      logDebug(pluginJson, `-> succesful call to open filename ${filename} in Editor`)
-    } else {
-      logWarn(pluginJson, `-> unsuccesful call to open filename ${filename} in Editor`)
+    else if (type === 'review') {
+      // Handle a review call simply by opening the note in the main Editor. Later it might get more interesting!
+      const note = await Editor.openNoteByFilename(filename)
+      if (note) {
+        logDebug(pluginJson, `-> successful call to open filename ${filename} in Editor`)
+      } else {
+        logWarn(pluginJson, `-> unsuccessful call to open filename ${filename} in Editor`)
+      }
     }
-  } else if (type === 'showNoteInEditor') {
-    // Handle a show note call simply by opening the note in the main Editor.
-    const note = await Editor.openNoteByFilename(filename)
-    if (note) {
-      logDebug(pluginJson, `-> succesful call to open filename ${filename} in Editor`)
-    } else {
-      logWarn(pluginJson, `-> unsuccesful call to open filename ${filename} in Editor`)
+    else if (type === 'showNoteInEditorFromFilename') {
+      // Handle a show note call simply by opening the note in the main Editor.
+      const note = await Editor.openNoteByFilename(filename)
+      if (note) {
+        logDebug(pluginJson, `-> successful call to open filename ${filename} in Editor`)
+      } else {
+        logWarn(pluginJson, `-> unsuccessful call to open filename ${filename} in Editor`)
+      }
     }
-  } else if (type === 'showLineInEditor') {
-    // Handle a show line call simply by opening the note in the main Editor, and then finding and highlighting the line.
-    const note = await Editor.openNoteByFilename(filename)
-    if (note) {
-      // TODO: decode rawContent and pass to highlightParagraphInEditor()
-      logDebug(pluginJson, `raw in ${data.rawContent}`)
-      const decodedRawContent = decodeURIComponent(data.rawContent)
-      logDebug(pluginJson, `raw decoded ${decodedRawContent}`)
-      const res = highlightParagraphInEditor({ filename: filename, rawContent: decodedRawContent })
-      logDebug(pluginJson, `-> succesful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccesful'} call to highlight the paragraph in the editor`)
-    } else {
-      logWarn(pluginJson, `-> unsuccesful call to open filename ${filename} in Editor`)
+    else if (type === 'showNoteInEditorFromTitle') {
+      // Handle a show note call simply by opening the note in the main Editor
+      // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
+      const wantedTitle = decodeURIComponent(filename)
+      const note = await Editor.openNoteByTitle(wantedTitle)
+      if (note) {
+        logDebug(pluginJson, `-> successful call to open title ${wantedTitle} in Editor`)
+      } else {
+        logWarn(pluginJson, `-> unsuccessful call to open title ${wantedTitle} in Editor`)
+      }
     }
-  } else {
-    logWarn(pluginJson, `onClickDashboardItem: can't yet handle type ${type}`)
-  }
-
+    else if (type === 'showLineInEditor') {
+      // Handle a show line call simply by opening the note in the main Editor, and then finding and highlighting the line.
+      const note = await Editor.openNoteByFilename(filename)
+      if (note) {
+        // decode rawContent and pass to highlightParagraphInEditor()
+        logDebug(pluginJson, `raw in ${data.rawContent}`)
+        const decodedRawContent = decodeURIComponent(data.rawContent)
+        logDebug(pluginJson, `raw decoded ${decodedRawContent}`)
+        const res = highlightParagraphInEditor({ filename: filename, rawContent: decodedRawContent })
+        logDebug(pluginJson, `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
+      }
+    }
+    else if (type === 'showLineInEditorFromTitle') {
+      // Handle a show line call simply by opening the note in the main Editor, and then finding and highlighting the line.
+      // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
+      const wantedTitle = decodeURIComponent(filename)
+      const note = await Editor.openNoteByTitle(wantedTitle)
+      if (note) {
+        // decode rawContent and pass to highlightParagraphInEditor()
+        logDebug(pluginJson, `raw in ${data.rawContent}`)
+        const decodedRawContent = decodeURIComponent(data.rawContent)
+        logDebug(pluginJson, `raw decoded ${decodedRawContent}`)
+        const res = highlightParagraphInEditor({ filename: note.filename, rawContent: decodedRawContent })
+        logDebug(pluginJson, `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
+      } else {
+        logWarn(pluginJson, `-> unsuccessful call to open title ${wantedTitle} in Editor`)
+      }
+    } else {
+      logWarn(pluginJson, `onClickDashboardItem: can't yet handle type ${type}`)
+    }
   // Other info from DW:
   // const para = getParagraphFromStaticObject(data, ['filename', 'lineIndex'])
   // if (para) {

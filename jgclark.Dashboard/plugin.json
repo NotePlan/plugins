@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.3.2",
+  "plugin.version": "0.3.3",
   "plugin.lastUpdateInfo": "v0.3.0: will auto-update if trigger set on daily/weekly notes.\nv0.2.0: can now check off tasks by clicking on the task circle or checklist square.\nv0.1.x: first release (read-only view)",
   "plugin.requiredFiles": [
     "commsSwitchboard.js"

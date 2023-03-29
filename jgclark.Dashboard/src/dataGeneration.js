@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 1.3.2023 for v0.3.0 by @jgclark
+// Last updated 27.3.2023 for v0.3.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -25,6 +25,7 @@ import {
   type SortableParagraphSubset
 } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { isDone, isOpen } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Constants
@@ -51,8 +52,8 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     if (currentDailyNote) {
       const thisFilename = currentDailyNote.filename
       logDebug('getDataForDashboard', `Processing ${thisFilename} which has ${String(currentDailyNote.paragraphs.length)} paras`)
-      // Need to filter out non-open task types for following function
-      let openParas = currentDailyNote.paragraphs.filter((p) => ["open", "checklist"].includes(p.type))
+      // Need to filter out non-open task types for following function, and any blank tasks
+      let openParas = currentDailyNote.paragraphs.filter(isOpen).filter((p) => p.content !== '')
       // Filter out anything from 'ignoreTasksWithPhrase' setting
       if (config.ignoreTasksWithPhrase) {
         logDebug('getDataForDashboard', `Before 'ignore' filter: ${openParas.length} paras`)
@@ -81,10 +82,10 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       // config.includeTaskContext
 
       // Get count of tasks/checklists done today
-      doneCount += currentDailyNote.paragraphs.filter((p) => ['done', 'checklistDone'].includes(p.type)).length
+      doneCount += currentDailyNote.paragraphs.filter(isDone).length
 
       // Get list of open tasks/checklists scheduled to today from other notes, and of the right paragraph type
-      let refParas = currentDailyNote ? getReferencedParagraphs(currentDailyNote, false).filter((p) => ["open", "checklist"].includes(p.type)) : []
+      let refParas = currentDailyNote ? getReferencedParagraphs(currentDailyNote, false).filter(isOpen).filter((p) => p.content !== '') : []
       // Remove possible dupes from sync'd lines
       refParas = eliminateDuplicateSyncedParagraphs(refParas)
 
@@ -124,7 +125,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
       logDebug('getDataForDashboard', `Processing ${thisFilename} (${dateStr}) which has ${String(currentWeeklyNote.paragraphs.length)} paras`)
       // Need to filter out non-task types for following function
-      let openParas = currentWeeklyNote.paragraphs.filter((p) => ["open", "checklist"].includes(p.type))
+      let openParas = currentWeeklyNote.paragraphs.filter(isOpen).filter((p) => p.content !== '')
       // clo(openParas, `${(String(openParas.length))} openParas:`)
       // Temporarily extend TParagraph with the task's priority
       openParas = addPriorityToParagraphs(openParas)
@@ -146,10 +147,12 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
       // Get completed count too
-      doneCount += currentWeeklyNote.paragraphs.filter((p) => ['done', 'checklistDone'].includes(p.type)).length
+      doneCount += currentWeeklyNote.paragraphs.filter(isDone).length
 
       // Get list of open tasks/checklists scheduled to this week from other notes, and of the right paragraph types
-      let refParas = currentWeeklyNote ? getReferencedParagraphs(currentWeeklyNote, false).filter((p) => ["open", "checklist"].includes(p.type)) : []
+      let refParas = currentWeeklyNote
+        ? getReferencedParagraphs(currentWeeklyNote, false).filter(isOpen).filter((p) => p.content !== '')
+        : []
       if (refParas) {
         // Remove possible dupes from sync'd lines
         refParas = eliminateDuplicateSyncedParagraphs(refParas)

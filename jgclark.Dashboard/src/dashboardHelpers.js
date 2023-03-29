@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 10.3.2023 for v0.3.0 by @jgclark
+// Last updated 27.3.2023 for v0.3.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -123,17 +123,18 @@ export async function checkForRequiredSharedFiles(): Promise<void> {
  * - turns >date markers the colour that the theme displays them
  * Further, if noteTitle is supplied, then either 'append' it as a active NP note title, or make it the active NP note link for 'all' the string.
  * @author @jgclark
- * @param {string} original
+ * @param {SectionItem} thisItem
  * @param {string?} noteTitle
  * @param {string?} noteLinkStyle: "append" or "all"
  * @returns {string} altered string
  */
-export function makeParaContentToLookLikeNPDisplayInHTML(original: SectionItem, noteTitle: string = "", noteLinkStyle: string = "all"): string {
+export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, noteTitle: string = "", noteLinkStyle: string = "all"): string {
   try {
-    let output = original.content
+    // Start with the content of the item
+    let output = thisItem.content
 
     if (noteTitle === '(error)') {
-      logError('makeParaCTLLNDIH', `starting with noteTitle '(error)' for '${original.content}'`)
+      logError('makeParaCTLLNDIH', `starting with noteTitle '(error)' for '${thisItem.content}'`)
     }
 
     // TODO: Simplify NP event links
@@ -205,9 +206,9 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: SectionItem, 
 
     // TODO: add basic ***bolditalic*** styling
 
-    // TODO: add basic _italic_ styling
-    
     // TODO: add basic **bold** styling
+    
+    // TODO: add basic _italic_ styling
 
     // Add suitable colouring to remaining >date items
     // Note: This is my attempt at finding all scheduled date links
@@ -225,9 +226,10 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: SectionItem, 
     captures = output.match(/\[\[(.*?)\]\]/)
     if (captures) {
       // clo(captures, 'results from [[notelinks]] match:')
-      for (const capture of captures) {
-        const noteTitleWithOpenAction = makeNoteTitleWithOpenAction(original, capture)
-        output = output.replace('[[' + capture + ']]', noteTitleWithOpenAction)
+      for (const capturedTitle of captures) {
+        // logDebug('makeParaCTLLNDIH', `- making notelink with ${thisItem.filename}, ${capture}`)
+        const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(capturedTitle)
+        output = output.replace('[[' + capturedTitle + ']]', noteTitleWithOpenAction)
       }
     }
 
@@ -236,11 +238,11 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: SectionItem, 
       // logDebug('makeParaContet...', `- before '${noteLinkStyle}' for <${noteTitle}> ${output}`)
       switch (noteLinkStyle) {
         case 'append': {
-          output = addNoteOpenLinkToString(original, output, noteTitle) + ' ' + makeNoteTitleWithOpenAction(original, noteTitle)
+          output = addNoteOpenLinkToString(thisItem, output, noteTitle) + ' ' + makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)
           break
         }
         case 'all': {
-          output = addNoteOpenLinkToString(original, output, noteTitle)
+          output = addNoteOpenLinkToString(thisItem, output, noteTitle)
           break
         }
       }
@@ -251,7 +253,6 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: SectionItem, 
     // (Simpler regex possible as the count comes later)
     // Note: this wrapping needs to go last
     if (output.match(/\B\!+\B/)) {
-      // $FlowIgnore[incompatible-use]
       const numExclamations = output.match(/\B\!+\B/)[0].length
       switch (numExclamations) {
         case 1: {
@@ -278,7 +279,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: SectionItem, 
 }
 
 /**
- * v2: Make an HTML link showing displayStr, but with href onClick event to show noteTitle in editor and select the given line content
+ * v2: Make an HTML link showing displayStr, but with href onClick event to show open the 'item' in editor and select the given line content
  * v1: Used to use x-callback method to open a Note (via ite 'noteTitle')
  * @param {SectionItem} item's details, with raw
  * @param {string} displayStr
@@ -287,12 +288,13 @@ export function makeParaContentToLookLikeNPDisplayInHTML(original: SectionItem, 
  */
 export function addNoteOpenLinkToString(item: SectionItem, displayStr: string, noteTitle: string): string {
   try {
+    const titleEncoded = encodeURIComponent(noteTitle)
     // Method 1: x-callback
-    // const titleEncoded = encodeURIComponent(noteTitle)
     // return `<a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${displayStr}</a>`
 
     // Method 2: pass request back to plugin
-    return `<a class="" onClick="onClickDashboardItem('${item.ID}','showLineInEditor','${item.filename}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
+    // Note: we're overloading the third parameter to pass wanted note title
+    return `<a class="" onClick="onClickDashboardItem('fake','showLineInEditorFromTitle','${titleEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
   }
   catch (error) {
     logError('addNoteOpenLinkToString', `${error.message} for input '${displayStr}'`)
@@ -307,18 +309,38 @@ export function addNoteOpenLinkToString(item: SectionItem, displayStr: string, n
  * @param {string} noteTitle 
  * @returns {string} output
  */
-export function makeNoteTitleWithOpenAction(item: SectionItem, noteTitle: string): string {
+export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteTitle: string): string {
   try {
+    logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
     // Method 1: x-callback
     // const titleEncoded = encodeURIComponent(noteTitle)
     // return `<span class="noteTitle sectionItem"><i class="fa-regular fa-file-lines"></i> <a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${noteTitle}</a></span>`
 
     // Method 2: pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('${item.ID}','showNoteInEditor','${item.filename}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${item.filename}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
   }
   catch (error) {
-    logError('makeNoteTitleWithOpenAction', `${error.message} for input '${noteTitle}'`)
+    logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
+    return '(error)'
+  }
+}
+
+/**
+ * Wrap string with href onClick event to show note in editor
+ * Note: based only on 'noteTitle', not a filename
+ * @param {string} noteTitle 
+ * @returns {string} output
+ */
+export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string {
+  try {
+    logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
+    // Pass request back to plugin
+    // Note: not passing rawContent (param 4) as its not needed
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('fake','showNoteInEditorFromTitle','${encodeURIComponent(noteTitle)}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
+  }
+  catch (error) {
+    logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
 }

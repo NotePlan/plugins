@@ -9,7 +9,9 @@ import moment from 'moment/min/moment-with-locales'
 import { getDataForDashboard } from './dataGeneration'
 import { getDemoDashboardData } from './demoDashboard'
 import {
-  addNoteOpenLinkToString, checkForRequiredSharedFiles, getSettings, makeNoteTitleWithOpenAction, makeParaContentToLookLikeNPDisplayInHTML,
+  addNoteOpenLinkToString, checkForRequiredSharedFiles, getSettings,
+  // makeNoteTitleWithOpenAction,
+  makeParaContentToLookLikeNPDisplayInHTML,
   type SectionDetails, type SectionItem
 } from './dashboardHelpers'
 import { toLocaleTime, getDateStringFromCalendarFilename } from '@helpers/dateTime'
@@ -230,6 +232,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
               let paraContent = ''
               if (config.includeTaskContext) {
                 if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
+                  logDebug('showDashboardHTML', `- adding checklist taskContent for ${itemNoteTitle} ?= ${weeklyNoteTitle}`)
                   paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
                 } else {
                   paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
@@ -257,7 +260,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
 
                 // do col 4: review note link as internal calls
                 const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
-                let cell4 = `      <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditor','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
+                let cell4 = `      <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
                 // TODO: make specific to that note
                 cell4 += `</td>\n    </tr>`
                 outputArray.push(cell4)

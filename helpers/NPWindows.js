@@ -22,7 +22,7 @@ export function logWindowsList(): void {
     }
     c = 0
     for (const win of NotePlan.htmlWindows) {
-      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' title:'${win.title ?? ''}' filename:${win.filename ?? ''} ID:${win.id}`)
+      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id}`)
       c++
     }
     outputLines.unshift(`${outputLines.length} Windows:`)
@@ -61,11 +61,11 @@ export function setHTMLWindowID(customID: string): void {
  */
 export function isHTMLWindowOpen(customID: string): boolean {
   if (NotePlan.environment.buildVersion >= 973) {
-    const allHTMLWindows = NotePlan.htmlWindows
+    // const allHTMLWindows = NotePlan.htmlWindows // unused
     for (const thisWin of NotePlan.editors) {
-      if (caseInsensitiveStartsWith(customID, thisWin.customID)) {
+      if (caseInsensitiveStartsWith(customID, thisWin.customId)) {
         thisWin.customId = customID
-        logDebug('isHTMLWindowOpen', `Found window '${thisWin.customID}' matching requested customID '${customID}'`)
+        logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customID}'`)
         return true
       }
     }
@@ -141,24 +141,24 @@ export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | f
 }
 
 /**
- * If the customID matches an open HTML window, then simply focus it, and return true.
+ * If the customId matches an open HTML window, then simply focus it, and return true.
  * FIXME(EduardMe): currently (b983) not working as expected, as HTML entities appear not to be deleted when they should be.
  * @param {string} customID
  * @returns {boolean} true if we have given focus to an existing window
  */
-export function focusHTMLWindowIfAvailable(customID: string): boolean {
+export function focusHTMLWindowIfAvailable(customId: string): boolean {
   if (NotePlan.environment.buildVersion >= 973) {
     // TODO: until Eduard fixes this, always return false
-    logInfo('focusHTMLWindowIfAvailable', `(Currently no check run as there's an API bug.)`)
+    // logInfo('focusHTMLWindowIfAvailable', `(Currently no check run as there's an API bug.)`)
     // const allHTMLWindows = NotePlan.htmlWindows
     // for (const thisWindow of allHTMLWindows) {
-    //   if (thisWindow.customId === customID) {
+    //   if (thisWindow.customId === customId) {
     //     thisWindow.focus()
     //     logInfo('focusHTMLWindowIfAvailable', `Focused HTML window '${thisWindow.customId}'`)
     //     return true
     //   }
     // }
-    // logInfo('focusHTMLWindowIfAvailable', `No HTML window with '${customID}' is open`)
+    // logInfo('focusHTMLWindowIfAvailable', `No HTML window with '${customId}' is open`)
   } else {
     logInfo('focusHTMLWindowIfAvailable', `(Cannot find window Ids as not running v3.8.1 or later)`)
   }
