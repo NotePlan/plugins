@@ -1,9 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 <!-- split out CSS to a separate file -->
-## [0.3.3] - 2023-03-???
-### Changed
 <!-- - trying again with simpler focus window where we can ??? -->
+## [0.3.3] - 2023-03-29 (first public beta)
+### Fixed
+- some note-links on section 2 and 4
 
 ## [0.3.2] - 2023-03-25
 ### Changed

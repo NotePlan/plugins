@@ -14,7 +14,7 @@ All tasks and checklists can be marked as completed by clicking in its usual ope
 
 Note: _It provides this in a view that doesn't use NotePlan's normal editor, but a more flexible HTML-based display that mimics your current NotePlan theme._
 
-If already open, the dashboard window will now automatically update when a change is made in the relevant calendar note(s). This requires [adding to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly note(s):
+If already open, the dashboard window will now automatically update when a change is made in the relevant calendar note(s). This requires [adding a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly note(s):
 
 ```yaml
 ---
@@ -25,6 +25,9 @@ triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDasboard
 Other notes:
 - when the window is wide enough, it will switch to a multi-column display
 - it de-dupes items that would appear twice in a list where the lines are sync'd together.
+
+## Getting started
+This requires the 'Shared' plugin to be installed as well. It should automatically offer to install it if it isn't already.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
