@@ -1148,10 +1148,12 @@ export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragra
   // clo(parasToLookIn, `findParagraph: parasToLookIn.length=${parasToLookIn.length}`)
   const potentials = parasToLookIn.filter((p) => paragraphMatches(p, paragraphDataToFind, fieldsToMatch))
   if (potentials?.length === 1) {
-    clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the one:`)
+    // clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the one:`)
+    logDebug('findParagraph', `1 potential match: rawContent: <${potentials[0].rawContent}>`)
     return potentials[0]
   } else if (potentials.length > 1) {
-    clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the first:`)
+    // clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the first:`)
+    logDebug('findParagraph', `first potential match: rawContent: <${potentials[0].rawContent}>`)
     const matchIndexes = potentials.find((p) => p.lineIndex === paragraphDataToFind.lineIndex)
     if (matchIndexes) {
       return matchIndexes
