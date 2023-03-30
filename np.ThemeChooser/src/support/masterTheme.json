@@ -25,7 +25,7 @@
     },
     "toolbarBackgroundColor": "#2E2F30",
     "toolbarBackgroundColor_info": {
-      "description": "Background color of the new event/reminder popup, Line separator under the references area, Hover over the buttons on the top and the dates",
+      "description": "Background color of the iOS toolbar, iOS Command Bar, Mac: Event/reminder popup, Line separator under the references area, Hover state of the buttons on the top and the dates",
       "type": "color"
     },
     "tintColor": "#E9C0A2",
