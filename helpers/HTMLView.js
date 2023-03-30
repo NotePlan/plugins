@@ -14,7 +14,6 @@ let baseFontSize = 14
 
 /**
  * Generate CSS instructions from the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
- * Note: used to have 'if (NotePlan.environment.buildVersion > 849) {}' to check we are on 3.6.2+ which means we can get current theme name. Hopefully no longer needed.
  * @author @jgclark
  * @param {string?} themeNameIn
  * @returns {string} outputCSS
@@ -91,11 +90,12 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     rootSel.push(`--bg-main-color: ${themeJSON?.editor?.backgroundColor ?? '#1D1E1F'}`)
 
     // Set body:
-    // - main font = styles.body.font)
+    // - main font = styles.body.font
     // const bodyFont = translateFontNameNPToCSS(themeJSON.styles.body.font)
     // - main foreground colour (styles.body.color)
     // - main background colour (editor.backgroundColor)
     tempSel = []
+    tempSel.push(`font-size: ${baseFontSize}px`)
     styleObj = themeJSON.styles.body
     if (styleObj) {
       const thisColor = RGBColourConvert(themeJSON?.editor?.textColor ?? '#CC6666')
