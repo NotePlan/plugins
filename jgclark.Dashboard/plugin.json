@@ -8,10 +8,11 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.3.3",
+  "plugin.version": "0.3.4",
   "plugin.lastUpdateInfo": "v0.3.0: will auto-update if trigger set on daily/weekly notes.\nv0.2.0: can now check off tasks by clicking on the task circle or checklist square.\nv0.1.x: first release (read-only view)",
   "plugin.requiredFiles": [
-    "commsSwitchboard.js"
+    "commsSwitchboard.js",
+    "dashboard.css"
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -52,7 +53,8 @@
       "name": "decideWhetherToUpdateDashboard",
       "description": "onEditorWillSave",
       "jsFunction": "decideWhetherToUpdateDashboard",
-      "hidden": true
+      "hidden": false,
+      "comment": "@@@ hide me again"
     }
   ],
   "plugin.disabledCommands": [
@@ -101,6 +103,22 @@
       "type": "bool",
       "default": true,
       "required": true
+    },
+    {
+      "key": "windowHeight",
+      "title": "Default window height",
+      "description": "Default window height (in pixels) when the dashboard is first displayed",
+      "type": "number",
+      "default": 500,
+      "required": false
+    },
+    {
+      "key": "windowWidth",
+      "title": "Default window width",
+      "description": "Default window width (in pixels) when the dashboard is first displayed",
+      "type": "number",
+      "default": 1000,
+      "required": false
     },
     {
       "type": "separator"

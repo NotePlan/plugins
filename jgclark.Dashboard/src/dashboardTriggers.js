@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggering
-// Last updated 24.3.2023 for v0.3.x by @jgclark
+// Last updated 30.3.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,22 +11,19 @@ import { rangeToString } from '@helpers/general'
 import { selectedLinesIndex } from '@helpers/NPparagraph'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import {
-  RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE,
   RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER_MULTI_LINE
 } from '@helpers/regex'
 import plugin from "@babel/core/lib/config/plugin";
 
 /**
- * Local version of log, turned on by a more specific setting
+ * Local version of log, turned on only if we want it
  * @param {any} pluginJson 
  * @param {string} message 
  */
 function logDebug(pluginJson: any, message: string): void {
-  if (pluginJson?.settings?.triggerLogLevel) {
+  const doLog = true
+  if (doLog) {
     console.log(message)
-    // } else {
-    //   clo(pluginJson)
-    //   console.log(message)
   }
 }
 
@@ -39,7 +36,7 @@ function logDebug(pluginJson: any, message: string): void {
 function changeToNumberOfOpenItems(previousContent: string, currentContent: string): boolean {
   const prevOpenNum = numberOfOpenItems(previousContent)
   const currentOpenNum = numberOfOpenItems(currentContent)
-  // logDebug(pluginJson, `prevOpenNum: ${prevOpenNum} / currentOpenNum: ${currentOpenNum} ->  ${String(prevOpenNum - currentOpenNum)}`)
+  logDebug(pluginJson, `prevOpenNum: ${prevOpenNum} / currentOpenNum: ${currentOpenNum} ->  ${String(prevOpenNum - currentOpenNum)}`)
   return (prevOpenNum != currentOpenNum)
 }
 
@@ -49,6 +46,9 @@ function changeToNumberOfOpenItems(previousContent: string, currentContent: stri
  * @returns {number}
  */
 function numberOfOpenItems(content: string): number {
+  // FIXME: this needs to take account of user pref on dashes
+  // using DataStore.preference("isAsteriskTodo"), isDashTodo, isNumbersTodo
+  const RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp = /[\n^]\s*(\[[ \>]\]|[\*\+]\s[^\[])/g
   const res = Array.from(content.matchAll(RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
   return res ? res.length : 0
 }
@@ -72,7 +72,7 @@ export function decideWhetherToUpdateDashboard(): void {
     }
 
     if (!(Editor.content && Editor.note)) {
-      logDebug(pluginJson, `Cannot get Editor details. Is there a note open in the Editor?`)
+      logWarn(pluginJson, `Cannot get Editor details. Is there a note open in the Editor?`)
       return
     }
 
@@ -124,6 +124,8 @@ export function decideWhetherToUpdateDashboard(): void {
     const isThisChangeSignificant = changeToNumberOfOpenItems(previousContent, latestContent)
 
     if (isThisChangeSignificant) {
+      // Cache the current content
+      DataStore.updateCache(Editor.note)
       // Update the dashboard
       logDebug(pluginJson, `WILL update dashboard.`)
       showDashboardHTML()

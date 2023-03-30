@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 10.3.2023 for v0.3.0 by @jgclark
+// Last updated 30.3.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -30,59 +30,15 @@ import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 const windowCustomID = 'Dashboard'
 
 // Note: this "../np.Shared" path works to the flattened np.Shared structure, but it does *not* work when running the locally-written copy of the HTML output file.
-export const faLinksInHeader = `
+export const resourceLinksInHeader = `
+<!-- Load in Dashboard-specific CSS -->
+<link href="dashboard.css" rel="stylesheet">
 <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
 <link href="../np.Shared/fontawesome.css" rel="stylesheet">
 <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
 <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
 <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
 `
-
-export const dashboardCSS: string = [
-  '\n/* CSS specific to showDashboard() from jgclark.Dashboard plugin */\n',
-  'table { font-size: 0.9rem;', // make text a little smaller
-  '  border-collapse: collapse;', // always!
-  '  border: 0px none;',
-  '  empty-cells: show; }',
-  // 'i.fa-solid, i.fa-light, i.fa-regular { padding-right: 6px; }', // add space after
-  'th { text-align: left; vertical-align: bottom; padding: 8px; border: 0px none; }', // no borders
-  // 'tr.new-section-header { color: var(--h3-color); padding-top: 1.0rem; font-size: 1.0rem; font-weight: bold; background-color: var(--bg-main-color); border-top: 1px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }',
-  'td { text-align: left; vertical-align: top; padding: 8px 4px; border: 0px none; }', // no borders
-  // turn on top and bottom border (from theme CSS)
-  'table tr { border-top: solid 1px var(--tint-color); border-bottom: solid 1px var(--tint-color); }', // line between rows, not columns
-  '.no-borders { border-top: none 0px; border-bottom: none 0px; }', // turn off all borders
-  '.sectionName { font-size: 1.0rem; font-weight: 700; }', // make noteTitles bold
-  '.sectionIcon { font-size: 1.0rem; font-weight: 400; }',
-  `.sectionItem { font-size: 0.9rem; font-weight: 500;
-   padding: 2px 4px; border-bottom: 0px; }`, // reduce vertical spacing and line below
-  // `td:first-child .sectionItem { padding-top: 8px 4px; }`, // not working
-  '.scheduledDate { color: var(--tint-color); }', // for >dates
-  'a, a:visited, a:active { color: inherit; text-decoration: none; cursor: pointer; }', // all links turn off text color and underlining by default
-  'a:hover { text-decoration: underline; text-decoration-color: var(--tint-color); }', // show note links when mouse-over-ing them
-  '.externalLink a, a:hover { text-decoration: underline; cursor: pointer; }', // turn on underlining
-  `.event-link {
-		font-weight: 500;
-		border-color: var(--bg-alt-color);
-		border-radius: 3px;
-    border-width: 1px;
-    border-style: solid;
-		padding: 0px 3px;
-	}`,
-  '.noteTitle { color: var(--tint-color) !important; }', // add "font-weight: 700;" to make noteTitles bold
-  // allow multi-column flow: set max columns and min width, and some other bits and pieces
-  '.multi-cols { column-count: 3; column-width: 25rem; column-gap: 1rem; column-rule: 1px dotted var(--tint-color); }',
-  // Class to fade out an item, from https://stackoverflow.com/a/20910008
-  `.fadeOutAndHide { visibility: hidden; opacity: 0; transition: visibility 0s 2s, opacity 2s linear; }`,
-  // `.strikeoutTask { text-decoration: line-through; text-decoration-color: var(--tint-color) }`,
-  // Some headings specified from measuring the colour of NP sidebar elements
-  '.sidebarDaily { font-size: 1.0rem; color: #d0703c; }',
-  '.sidebarWeekly { font-size: 1.0rem; color: #be23b6; }',
-  '.sidebarMonthly { font-size: 1.0rem; color: #f5528b; }',
-  '.sidebarQuarterly { font-size: 1.0rem; color: #e08008; }',
-  '.sidebarYearly { font-size: 1.0rem; color: #efba13; }',
-  '#error { background-color: red; padding-left: 10px; }',
-  // TODO: Think about proper HTML checkbox and styling
-].join('\n\t')
 
 const commsBridge = `
 <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
@@ -296,16 +252,16 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
     const filenameHTMLCopy = config._logLevel === 'DEBUG' ? '../../jgclark.Dashboard/dashboard.html' : ''
     await showHTML(
       windowTitle,
-      faLinksInHeader, // no extra header tags
+      resourceLinksInHeader,
       outputArray.join('\n'),
       '', // get general CSS set automatically
-      dashboardCSS,
+      '',
       false, // = not modal window
       '', // no extra JS
       commsBridge,
       filenameHTMLCopy,
-      1000, // = width of window
-      500, // = height of window
+      config.windowWidth > 0 ? config.windowWidth : 1000, // = width of window
+      config.windowHeight > 0 ? config.windowHeight : 500, // = height of window
       windowCustomID
     ) // set width; max height
     logDebug(`makeDashboard`, `written to HTML window`)

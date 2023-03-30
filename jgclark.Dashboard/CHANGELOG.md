@@ -2,9 +2,18 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 <!-- split out CSS to a separate file -->
 <!-- - trying again with simpler focus window where we can ??? -->
-## [0.3.3] - 2023-03-29 (first public beta)
+## [0.3.4] - 2023-03-31 (public beta 2)
+### Added
+- will now offer to install the required "Shared Resources" plugin if that's not already installed
+- new 'window width' and 'window height' settings to set the default width and height the dashboard will use
+### Changed
+- made the font size slightly larger, to match that of your normal setting in NotePlan windows (for @fulcanelli)
+
+## [0.3.3] - 2023-03-29 (public beta 1)
 ### Fixed
 - some note-links on section 2 and 4
+
+Note: I'm trying to solve a problem when using this with its trigger, that NP hasn't finished updating itself before it re-calculates the Dashboard display.
 
 ## [0.3.2] - 2023-03-25
 ### Changed

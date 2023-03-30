@@ -58,8 +58,11 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       if (config.ignoreTasksWithPhrase) {
         logDebug('getDataForDashboard', `Before 'ignore' filter: ${openParas.length} paras`)
         openParas = openParas.filter((p) => !p.content.includes(config.ignoreTasksWithPhrase))
-        logDebug('getDataForDashboard', `After 'ignore' filter: ${openParas.length} paras`)
       }
+
+      logDebug('getDataForDashboard', `After 'ignore' filter: ${openParas.length} paras:`)
+      openParas.map((p) => console.log(`\t<${p.content}>`))
+
       // Temporarily extend TParagraph with the task's priority
       openParas = addPriorityToParagraphs(openParas)
       // sort the list only by priority, otherwise leaving order the same
