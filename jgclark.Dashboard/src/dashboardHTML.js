@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 30.3.2023 for v0.3.x by @jgclark
+// Last updated 31.3.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,12 +10,11 @@ import { getDataForDashboard } from './dataGeneration'
 import { getDemoDashboardData } from './demoDashboard'
 import {
   addNoteOpenLinkToString, checkForRequiredSharedFiles, getSettings,
-  // makeNoteTitleWithOpenAction,
   makeParaContentToLookLikeNPDisplayInHTML,
   type SectionDetails, type SectionItem
 } from './dashboardHelpers'
 import { toLocaleTime, getDateStringFromCalendarFilename } from '@helpers/dateTime'
-import { clo, logDebug, logError, logInfo } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
 import { showHTML } from '@helpers/HTMLView'
@@ -120,19 +119,26 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
 
       // Get all items for this section
       const items = sectionItems.filter((i) => i.ID.startsWith(String(section.ID)))
-      // if (items.length > 0) {
+
+      if (items.length === 0 && sectionNumber > 0) {
+        // don't add this section: go on to next section
+        logDebug('showDashboardHTML', `Section ${String(sectionNumber)} (${section.name}) is empty so will skip it`)
+        sectionNumber++
+        continue // to next loop item
+      }
 
       // Prepare col 1 (section icon)
       outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
 
       // Prepare col 2 (section title)
-      // First prepend a sectionNCount ID and populate it
+      // First prepend a sectionNCount ID and populate it. This needs an ID so that it can be updated later.
       const sectionCountID = `section${String(section.ID)}Count`
       const sectionCountPrefix = `<span id="${sectionCountID}">${String(items.length)}</span>`
       if (items.length > 0) {
-        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 12rem;">${section.name}</span><br />${sectionCountPrefix} ${section.description}</td>`)
+        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${section.name}</span><br /><span class="sectionDescription">${sectionCountPrefix} ${section.description}</span></td>`)
       } else {
-        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 12rem;">${section.name}</span>`)
+        // add a simpler version of the line
+        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${section.name}</span>`)
       }
 
       // Start col 3: table of items in this section
@@ -142,97 +148,97 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
       outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;">`)
 
       // If there are no items in section 1, then add a congratulatory message
-      if (sectionNumber === 0 && items.length === 0) {
+      if (items.length === 0) {
         items.push({ ID: '0-0C', type: 'congrats', content: `Nothing to do: take a break! <i class="fa-regular fa-face-party fa-face-sleeping"></i>`, rawContent: ``, filename: '' })
       }
-        for (const item of items) {
-          let encodedFilename = encodeRFC3986URIComponent(item.filename)
-          let encodedRawContent = encodeRFC3986URIComponent(item.rawContent)
-          let reviewNoteCount = 0 // count of note-review items
-          outputArray.push(`    <tr class="no-borders" id="${item.ID}">`)
+      for (const item of items) {
+        let encodedFilename = encodeRFC3986URIComponent(item.filename)
+        let encodedRawContent = encodeRFC3986URIComponent(item.rawContent)
+        let reviewNoteCount = 0 // count of note-review items
+        outputArray.push(`    <tr class="no-borders" id="${item.ID}">`)
 
-          // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-          const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString((item.filename).split(".")[0]))
+        // Long-winded way to get note title, as we don't have TNote, but do have note's filename
+        const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString((item.filename).split(".")[0]))
 
-          // Do main work for the item
-          switch (item.type) {
-            case 'open': {
-              // do col3
-              outputArray.push(
-                `     <td id="${item.ID}A" class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`,
-              )
+        // Do main work for the item
+        switch (item.type) {
+          case 'open': {
+            // do col3
+            outputArray.push(
+              `     <td id="${item.ID}A" class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`,
+            )
 
-              // do col 4: whole note link is clickable.
-              // If context is wanted, and linked note title
-              let paraContent = ''
-              if (config.includeTaskContext) {
-                if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
-                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
-                } else {
-                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
-                }
+            // do col 4: whole note link is clickable.
+            // If context is wanted, and linked note title
+            let paraContent = ''
+            if (config.includeTaskContext) {
+              if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
               } else {
-                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
               }
-              const cell4 = `     <td class="sectionItem">${paraContent}</td>\n    </tr>`
-              outputArray.push(cell4)
-              totalOpenItems++
-              break
+            } else {
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
             }
-            case 'checklist': {
+            const cell4 = `     <td class="sectionItem">${paraContent}</td>\n    </tr>`
+            outputArray.push(cell4)
+            totalOpenItems++
+            break
+          }
+          case 'checklist': {
+            // do col 3 icon
+            outputArray.push(`     <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
+
+            // do col 4: whole note link is clickable
+            // If context is wanted, and linked note title
+            let paraContent = ''
+            if (config.includeTaskContext) {
+              if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
+                logDebug('showDashboardHTML', `- adding checklist taskContent for ${itemNoteTitle} ?= ${weeklyNoteTitle}`)
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
+              } else {
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
+              }
+            } else {
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
+            }
+            const cell4 = `     <td class="sectionItem">${paraContent}</td>\n    </tr>`
+            outputArray.push(cell4)
+            totalOpenItems++
+            break
+          }
+          case 'congrats': {
+            const cell3 = `     <td class="checked sectionItem noborders"><i class="fa-regular fa-circle-check"></i></td>`
+            outputArray.push(cell3)
+            // TODO: why aren't icons appearing here?
+            const cell4 = `     <td class="sectionItem noborders">${item.content} </td>\n    </tr>`
+            outputArray.push(cell4)
+            break
+          }
+          case 'review': {
+            if (itemNoteTitle) {
               // do col 3 icon
-              outputArray.push(`     <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
+              outputArray.push(`      <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`)
 
-              // do col 4: whole note link is clickable
-              // If context is wanted, and linked note title
-              let paraContent = ''
-              if (config.includeTaskContext) {
-                if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
-                  logDebug('showDashboardHTML', `- adding checklist taskContent for ${itemNoteTitle} ?= ${weeklyNoteTitle}`)
-                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
-                } else {
-                  paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
-                }
-              } else {
-                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
-              }
-              const cell4 = `     <td class="sectionItem">${paraContent}</td>\n    </tr>`
+              // do col 4: review note link as internal calls
+              const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
+              let cell4 = `      <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
+              // TODO: make specific to that note
+              cell4 += `</td>\n    </tr>`
               outputArray.push(cell4)
               totalOpenItems++
-              break
+              reviewNoteCount++
+            } else {
+              logError('makeDashboard', `Cannot find note for '${item.content}'`)
             }
-            case 'congrats': {
-              const cell3 = `     <td class="checked sectionItem noborders"><i class="fa-regular fa-circle-check"></i></td>`
-              outputArray.push(cell3)
-              // TODO: why aren't icons appearing here?
-              const cell4 = `     <td class="sectionItem noborders">${item.content} </td>\n    </tr>`
-              outputArray.push(cell4)
-              break
-            }
-            case 'review': {
-              if (itemNoteTitle) {
-                // do col 3 icon
-                outputArray.push(`      <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`) 
-
-                // do col 4: review note link as internal calls
-                const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
-                let cell4 = `      <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
-                // TODO: make specific to that note
-                cell4 += `</td>\n    </tr>`
-                outputArray.push(cell4)
-                totalOpenItems++
-                reviewNoteCount++
-              } else {
-                logError('makeDashboard', `Cannot find note for '${item.content}'`)
-              }
-              break
-            }
+            break
           }
         }
+      }
       outputArray.push(`   </table>`)
       outputArray.push(`  </div>`)
       outputArray.push(`  </td>\n </tr>`)
-      // }
+      sectionNumber++
     }
     outputArray.push(`</table>`)
 
@@ -266,6 +272,6 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
     ) // set width; max height
     logDebug(`makeDashboard`, `written to HTML window`)
   } catch (error) {
-    logError(pluginJson, `${error.name} ${error.message}`)
+    logError(pluginJson, JSP(error))
   }
 }

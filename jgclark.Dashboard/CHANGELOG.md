@@ -2,14 +2,21 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 <!-- split out CSS to a separate file -->
 <!-- - trying again with simpler focus window where we can ??? -->
-## [0.3.4] - 2023-03-31 (public beta 2)
+## [0.3.5] - 2023-03-31 (private beta 3)
+### Added
+- now shows items from monthly notes as well (for @fulcanelli and @bullseye)
+- now suppresses empty sections if there aren't any open tasks in it (apart from the current daily note, where it will still show a congratulatory message)
+### Fixed
+- now supports a special font used in Apple Dark and related themes
+
+## [0.3.4] - 2023-03-31 (private beta 2)
 ### Added
 - will now offer to install the required "Shared Resources" plugin if that's not already installed
 - new 'window width' and 'window height' settings to set the default width and height the dashboard will use
 ### Changed
 - made the font size slightly larger, to match that of your normal setting in NotePlan windows (for @fulcanelli)
 
-## [0.3.3] - 2023-03-29 (public beta 1)
+## [0.3.3] - 2023-03-29 (private beta 1)
 ### Fixed
 - some note-links on section 2 and 4
 

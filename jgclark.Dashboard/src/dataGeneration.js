@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 27.3.2023 for v0.3.3 by @jgclark
+// Last updated 31.3.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -16,6 +16,7 @@ import { clo, logDebug, logError, logInfo, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { getReferencedParagraphs } from '@helpers/NPnote'
+import { makeBasicParasFromContent } from '@helpers/paragraph'
 import {
   addPriorityToParagraphs,
   getNumericPriorityFromPara,
@@ -48,12 +49,27 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     const today = new Date()
 
     // Get list of open tasks/checklists from daily note
-    const currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
+    // First check to see whether this note is open in Editor. If so use that version, otherwise if this was triggered from it, it will be out of date.
+    let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
     if (currentDailyNote) {
       const thisFilename = currentDailyNote.filename
+
       logDebug('getDataForDashboard', `Processing ${thisFilename} which has ${String(currentDailyNote.paragraphs.length)} paras`)
+
+      let parasToUse: $ReadOnlyArray<any> = []
+      // TODO: un-comment when makeBasicParasFromContent() is ready
+      // if (Editor && currentDailyNote.filename === Editor.filename) {
+      //   // currentDailyNote = Editor.note // Note: produces content, but not the most recent change
+      //   logDebug('getDataForDashboard', `Starting for Editor version of '${currentDailyNote?.filename ?? 'error'}' with ${String(Editor.note?.versions?.length ?? NaN)} versions`)
+      //   console.log(`Editor.content latest version: <${Editor.content ?? 'no content'}>`)
+      //   parasToUse = makeBasicParasFromContent(Editor.content ?? '')
+      // } else {
+      logDebug('getDataForDashboard', `Starting for '${currentDailyNote.filename ?? 'error'}'`)
+      parasToUse = currentDailyNote.paragraphs
+      // }
+
       // Need to filter out non-open task types for following function, and any blank tasks
-      let openParas = currentDailyNote.paragraphs.filter(isOpen).filter((p) => p.content !== '')
+      let openParas = parasToUse.filter(isOpen).filter((p) => p.content !== '')
       // Filter out anything from 'ignoreTasksWithPhrase' setting
       if (config.ignoreTasksWithPhrase) {
         logDebug('getDataForDashboard', `Before 'ignore' filter: ${openParas.length} paras`)
@@ -76,8 +92,8 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         itemCount++
       })
-      // clo(sortedOpenParas, "sortedOpenParas")
-      // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
+      // clo(sortedOpenParas, "daily sortedOpenParas")
+      logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
       sections.push({ ID: sectionCount, name: 'Today', description: `from ${toLocaleDateString(today)} daily note`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily" })
       sectionCount++
 
@@ -87,6 +103,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       // Get count of tasks/checklists done today
       doneCount += currentDailyNote.paragraphs.filter(isDone).length
 
+      //-----------------------------------------------------------
       // Get list of open tasks/checklists scheduled to today from other notes, and of the right paragraph type
       let refParas = currentDailyNote ? getReferencedParagraphs(currentDailyNote, false).filter(isOpen).filter((p) => p.content !== '') : []
       // Remove possible dupes from sync'd lines
@@ -121,7 +138,8 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     }
     // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
-    // Get list of open tasks/checklists from weekly note
+    //-----------------------------------------------------------
+    // Get list of open tasks/checklists from weekly note (if it exists)
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     if (currentWeeklyNote) {
       const thisFilename = currentWeeklyNote.filename
@@ -144,14 +162,15 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         itemCount++
       })
-      // clo(sortedParas, "sortedParas")
+      // clo(sortedParas, "weekly sortedParas")
       sections.push({ ID: sectionCount, name: 'This Week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly" })
       sectionCount++
-      // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
+      logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} weekly items`)
 
       // Get completed count too
       doneCount += currentWeeklyNote.paragraphs.filter(isDone).length
 
+      //-----------------------------------------------------------
       // Get list of open tasks/checklists scheduled to this week from other notes, and of the right paragraph types
       let refParas = currentWeeklyNote
         ? getReferencedParagraphs(currentWeeklyNote, false).filter(isOpen).filter((p) => p.content !== '')
@@ -177,6 +196,79 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         sectionCount++
       }
     }
+
+    //-----------------------------------------------------------
+    // Get list of open tasks/checklists from monthly note (if it exists)
+    let currentMonthlyNote = DataStore.calendarNoteByDate(today, 'month')
+    const thisFilename = currentMonthlyNote?.filename ?? '<error>'
+    const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
+    logDebug('getDataForDashboard', `Processing ${thisFilename} (${dateStr}) which has ${String(currentMonthlyNote?.paragraphs?.length ?? NaN)} paras`)
+    if (currentMonthlyNote) {
+      let parasToUse: $ReadOnlyArray<any> = []
+      // TODO: un-comment when makeBasicParasFromContent() is ready
+      // if (Editor && currentMonthlyNote?.filename === Editor.filename) {
+      //   currentMonthlyNote = Editor.note // Note: produces content, but not the most recent change
+      //   logDebug('getDataForDashboard', `Starting for Editor version of '${currentMonthlyNote?.filename ?? 'error'}' with ${String(Editor.note?.versions?.length ?? NaN)} versions`)
+      //   console.log(`Editor.content latest version: <${Editor.content ?? 'no content'}>`)
+      //   parasToUse = makeBasicParasFromContent(Editor.content ?? '')
+      // } else {
+      logDebug('getDataForDashboard', `Starting for '${currentMonthlyNote?.filename ?? 'error'}'`)
+      parasToUse = currentMonthlyNote?.paragraphs
+      // }
+
+      // Need to filter out non-task types for following function
+      let openParas = parasToUse.filter(isOpen).filter((p) => p.content !== '') ?? []
+      // clo(openParas, `${(String(openParas.length))} openParas:`)
+      // Temporarily extend TParagraph with the task's priority
+      openParas = addPriorityToParagraphs(openParas)
+      // sort the list only by priority, otherwise leaving order the same
+      const sortedParas = sortListBy(openParas, ['-priority'])
+      // make a sectionItem for each item, and then make a section too.
+      let itemCount = 0
+      sortedParas.map((p) => {
+        const thisID = `${sectionCount}-${itemCount}`
+        sectionItems.push({
+          ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type
+        })
+        itemCount++
+      })
+      // clo(sortedParas, "monthly sortedParas")
+      sections.push({ ID: sectionCount, name: 'This Month', description: `from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly" })
+      sectionCount++
+      logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} monthly items`)
+
+      // Get completed count too
+      // $FlowFixMe(incompatible-use)
+      doneCount += currentMonthlyNote.paragraphs.filter(isDone).length
+
+      //-----------------------------------------------------------
+      // Get list of open tasks/checklists scheduled to this month from other notes, and of the right paragraph types
+      let refParas = currentMonthlyNote
+        ? getReferencedParagraphs(currentMonthlyNote, false).filter(isOpen).filter((p) => p.content !== '')
+        : []
+      if (refParas) {
+        // Remove possible dupes from sync'd lines
+        refParas = eliminateDuplicateSyncedParagraphs(refParas)
+        // Temporarily extend TParagraph with the task's priority
+        refParas = addPriorityToParagraphs(refParas)
+        // sort the list only by priority, otherwise leaving order the same
+        const sortedRefParas = sortListBy(refParas, ['-priority'])
+        let itemCount = 0
+        sortedRefParas.map((p) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({
+            ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note.filename, type: p.type
+          })
+          itemCount++
+        })
+        // clo(sortedRefParas, "sortedRefParas")
+        sections.push({ ID: sectionCount, name: 'This month', description: `scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly" })
+        sectionCount++
+      }
+    }
+
+    // Note: If we want to do quarterly or yearly then the icon is fa-calendar-days
+
     // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
     // Send doneCount through as a special type item:

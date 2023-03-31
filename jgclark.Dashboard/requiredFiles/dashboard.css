@@ -24,9 +24,12 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	border-top: none 0px; 
 	border-bottom: none 0px;
 }
-.sectionName {
+.sectionName { /* column 2's title */
 	font-size: 1.0rem; 
 	font-weight: 700; /* make noteTitles bold */
+}
+.sectionDescription { /* column 2's description */
+	font-size: 0.85rem; /* smaller */
 }
 .sectionIcon {
 	font-size: 1.0rem; 

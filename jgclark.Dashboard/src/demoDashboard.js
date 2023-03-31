@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 9.3.2023 for v0.3.0 by @jgclark
+// Last updated 31.3.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import { type SectionDetails, type SectionItem } from './dashboardHelpers'
@@ -15,7 +15,7 @@ import { clo, logDebug, logError, logInfo, timer } from '@helpers/dev'
 //-----------------------------------------------------------------
 
 /**
- * ???
+ * Setup dummy data for the demo dashboard, using the same data structures as the main dataGeneration.js
  * @returns {Promise<void>}
  */
 export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionItem>] {
@@ -27,25 +27,6 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
     const today = new Date()
 
     const openParas = [
-      {
-        "priority": -1,
-        "type": "checklist",
-        "content": "include ref to 'mercy' in letter about Ali",
-        "rawContent": "+ include ref to 'mercy' in letter about Ali",
-        "prefix": "+ ",
-        "contentRange": {},
-        "lineIndex": 3,
-        "heading": "",
-        "headingLevel": -1,
-        "isRecurring": false,
-        "indents": 0,
-        "filename": "20230302.md",
-        "noteType": "Calendar",
-        "linkedNoteTitles": [],
-        "subItems": [],
-        "referencedBlocks": [],
-        "note": {}
-      },
       {
         "priority": -1,
         "type": "open",
@@ -94,7 +75,8 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
       })
       itemCount++
     })
-    sections.push({ ID: sectionCount, name: 'Today', description: `from daily note for ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily" })
+    const todayStr = "2023-03-02"
+    sections.push({ ID: sectionCount, name: 'Today', description: `from daily note for ${todayStr}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily" })
     sectionCount++
 
     const sortedRefParas = [
@@ -148,8 +130,8 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
       {
         "priority": 1,
         "type": "open",
-        "content": "write 5/3 sermon >2023-03-02 ![📅](2023-03-02 13:00:::650472A5-EF43-49A1-A09A-E3724811492B:::NA:::write 5/3 sermon:::#1BADF8)",
-        "rawContent": "* write 5/3 sermon >2023-03-02 ![📅](2023-03-02 13:00:::650472A5-EF43-49A1-A09A-E3724811492B:::NA:::write 5/3 sermon:::#1BADF8)",
+        "content": "write 5/3 sermon >2023-03-02",
+        "rawContent": "* write 5/3 sermon >2023-03-02",
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 87,
@@ -169,8 +151,8 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
       {
         "priority": 1,
         "type": "open",
-        "content": "write service leader segments plan Something Different for 5/3 >2023-03-02 ![📅](2023-03-02 13:00:::C96729EE-0654-4F51-9BAC-B86FBFC3AE3D:::NA:::write service leader segments plan Something Different for 5/3:::#1BADF8)",
-        "rawContent": "* write service leader segments plan Something Different for 5/3 >2023-03-02 ![📅](2023-03-02 13:00:::C96729EE-0654-4F51-9BAC-B86FBFC3AE3D:::NA:::write service leader segments plan Something Different for 5/3:::#1BADF8)",
+        "content": "write service leader segments plan Something Different for 5/3 >2023-03-02",
+        "rawContent": "* write service leader segments plan Something Different for 5/3 >2023-03-02",
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 89,
@@ -326,9 +308,9 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
       {
         "priority": -1,
         "type": "open",
-        "content": "@church Get iPad working on ChurchOffice-staff for Drive, Printing @church (from 2023-W04) ^bzlp1z",
+        "content": "@church Get iPad working on ChurchOffice-staff for Drive, Printing @church ^bzlp1z",
         "blockId": "^bzlp1z",
-        "rawContent": "* @church Get iPad working on ChurchOffice-staff for Drive, Printing @church (from 2023-W04) ^bzlp1z",
+        "rawContent": "* @church Get iPad working on ChurchOffice-staff for Drive, Printing @church ^bzlp1z",
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 5,
@@ -355,7 +337,7 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
       })
       itemCount++
     })
-    const dateStr = getNPWeekStr(today)
+    const dateStr = "2023-W09"
     sections.push({ ID: sectionCount, name: 'This Week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly" })
     sectionCount++
 
@@ -426,30 +408,6 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
         "referencedBlocks": [],
         "note": {}
       },
-      {
-        "priority": -1,
-        "type": "open",
-        "content": "Methodist HC sheet fix typo → @RP for printing ^l7flz7 >2023-W09",
-        "blockId": "^l7flz7",
-        "rawContent": "* Methodist HC sheet fix typo → @RP for printing ^l7flz7 >2023-W09",
-        "prefix": "* ",
-        "contentRange": {},
-        "lineIndex": 19,
-        "date": "2023-02-27T00:00:00.000Z",
-        "heading": "Interim Option",
-        "headingRange": {},
-        "headingLevel": 4,
-        "isRecurring": false,
-        "indents": 0,
-        "filename": "CCC Projects/New Service Pattern.md",
-        "noteType": "Notes",
-        "linkedNoteTitles": [],
-        "subItems": [],
-        "referencedBlocks": [
-          {}
-        ],
-        "note": {}
-      },
     ]
     // make a sectionItem for each item, and then make a section too.
     itemCount = 0
@@ -462,6 +420,42 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
     })
     sections.push({ ID: sectionCount, name: 'This week', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly" })
     sectionCount++
+
+    // Monthly note
+    const openMonthParas = [
+      {
+        "priority": 0,
+        "type": "open",
+        "content": "Pay tax bill",
+        "rawContent": "* Pay tax bill",
+        "prefix": "* ",
+        "contentRange": {},
+        "lineIndex": 0,
+        "heading": "",
+        "headingLevel": -1,
+        "isRecurring": false,
+        "indents": 0,
+        "filename": "2023-03.md",
+        "noteType": "Calendar",
+        "linkedNoteTitles": [],
+        "subItems": [],
+        "referencedBlocks": [],
+        "note": {}
+      },
+    ]
+    // make a sectionItem for each item, and then make a section too.
+    itemCount = 0
+    openMonthParas.map((p) => {
+      const thisID = `${sectionCount}-${itemCount}`
+      sectionItems.push({
+        ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename, type: p.type
+      })
+      itemCount++
+    })
+    const monthDateStr = "2023-03"
+    sections.push({ ID: sectionCount, name: 'This Month', description: `from monthly note ${monthDateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly" })
+    sectionCount++
+
 
     const nextNotesToReview = [
       {
