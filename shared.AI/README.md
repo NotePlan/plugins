@@ -86,7 +86,7 @@ I strongly encourage you to explore the pricing information available on the [Op
 
 ## One-Shot Calling from X-Callback Link or via Templating tag
 
-You can call perform a one-shot call from a template tag or xcallback link by using the "getChat" command. There is an option for output: you can include your question as a heading prior to chatGPT's response (use true for the second parameter), or you can tell it to just give you the answer (false for the second parameter). Use the X-Callback Link Creator (Link Creator plugin) to create an X-Callback or Template tag for your template (Select "Run a Plugin Command" and select the `NotePlan AI: Get Chat Response` option). Here are a couple of examples:
+You can call perform a one-shot call from a template tag or xcallback link by using the "Get Chat Response" command. You can pass it a query you want to ask chatGPT with an option for output: to include your question as a heading prior to chatGPT's response (use true for the second parameter), or you can tell it to just give you the answer (false for the second parameter). Use the X-Callback Link Creator (Link Creator plugin) to create an X-Callback or Template tag for your template (Select "Run a Plugin Command" and select the `NotePlan AI: Get Chat Response` option). Here are a couple of examples:
 
 ### Calling from X-Callback Link
 
