@@ -62,7 +62,7 @@ export default class TemplatingEngine {
     const lines = templateData.split('\n')
     const startBlock = lines.indexOf('--')
     const endBlock = startBlock === 0 ? lines.indexOf('--', startBlock + 1) : -1
-    clo(lines, `templateData: ${templateData}`)
+    // clo(lines, `_replaceDoubleDashes: templateData: ${templateData}`)
     if (startBlock >= 0 && endBlock > 0) {
       lines[startBlock] = '---'
       lines[endBlock] = '---'
@@ -203,7 +203,9 @@ export default class TemplatingEngine {
     })
 
     try {
+      logDebug(pluginJson, `\n\nrender: BEFORE render`)
       let result = await ejs.render(processedTemplateData, renderData, options)
+      logDebug(pluginJson, `\n\nrender: AFTER render`)
       result = (result && result?.replace(/undefined/g, '')) || ''
 
       return this._replaceDoubleDashes(result)
