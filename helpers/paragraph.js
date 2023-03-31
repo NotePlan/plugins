@@ -8,6 +8,7 @@ import {
   RE_SIMPLE_URI_MATCH,
   RE_MARKDOWN_LINK_PATH_CAPTURE,
 } from '@helpers/regex'
+import { getLineMainContentPos } from '@helpers/search'
 import { stripLinksFromString } from '@helpers/stringTransforms'
 
 //-----------------------------------------------------------------------------
@@ -472,4 +473,71 @@ export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $
     }
   })
   return [...syncedMap.values(), ...notSyncedArr]
+}
+
+/**
+ * Take a (multi-line) raw content block, typically from the editor, and turn it into an array of TParagraph-like objects
+ * Designed to be used with Editor.content that is available in a trigger, before Editor.note.paragraphs is updated.
+ * Only writes "type", "content", "rawContent", "lineIndex" fields.
+ * @author @jgclark
+ * @param {string} content to parse
+ * @returns {Array<any>} array of TParagraph-like objects
+ */
+export function makeBasicParasFromContent(content: string): Array<any> {
+  try {
+    const editorLines = content.split('\n')
+    logDebug('makeBasicParasFromEditorContent', `Starting with ${String(editorLines.length)} lines of editorContent}`)
+    const basicParas = []
+    let c = 0
+    for (const thisLine of editorLines) {
+      const thisPara = {}
+      // FIXME:
+      if (thisLine.match(/^\s*([\*\-]\s[^\[]|[\*\-]\s\[\s\])/)) {
+        thisPara.type = 'open'
+      }
+      else if (thisLine.match(/^\s*([\*\-]\s\[>\])/)) {
+        thisPara.type = 'scheduled'
+      }
+      // FIXME:
+      else if (thisLine.match(/^\s*(\+\s[^\[]|\+\s\[ \])/)) {
+        thisPara.type = 'checklist'
+      }
+      else if (thisLine.match(/^\s*(\+\s\[>\])/)) {
+        thisPara.type = 'checklistScheduled'
+      }
+      if (thisLine.match(/^\s*([\*\-]\s\[x\])/)) {
+        thisPara.type = 'done'
+      }
+      else if (thisLine.match(/^\s*([\*\-]\s\[\-\])/)) {
+        thisPara.type = 'cancelled'
+      }
+      else if (thisLine.match(/^\s*(\+\s\[x\])/)) {
+        thisPara.type = 'checklistDone'
+      }
+      else if (thisLine.match(/^\s*(\+\s\[\-\])/)) {
+        thisPara.type = 'checklistCancelled'
+      }
+      else if (thisLine === '---') {
+        thisPara.type = 'separator'
+      }
+      else if (thisLine === '') {
+        thisPara.type = 'empty'
+      }
+      else {
+        thisPara.type = 'text'
+      }
+      thisPara.lineIndex = c
+      thisPara.rawContent = thisLine
+      const startOfMainLineContentPos = getLineMainContentPos(thisLine)
+      thisPara.content = thisLine.slice(startOfMainLineContentPos)
+      basicParas.push(thisPara)
+      clo(thisPara, `${c}: `)
+      c++
+    }
+    return basicParas
+  }
+  catch (error) {
+    logError('makeBasicParasFromEditorContent', `${error.message} for input '${content}'`)
+    return []
+  }
 }

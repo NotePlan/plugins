@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 27.3.2023 for v0.3.3 by @jgclark
+// Last updated 31.3.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,6 +14,7 @@ import {
   RE_SCHEDULED_DATES_G,
   RE_SYNC_MARKER
 } from '@helpers/regex'
+import { getLineMainContentPos } from '@helpers/search'
 import { getNumericPriority } from '@helpers/sorting'
 import {
   changeBareLinksToHTMLLink,
@@ -24,7 +25,7 @@ import {
   stripTodaysDateRefsFromString
 } from '@helpers/stringTransforms'
 import { showMessage } from '@helpers/userInput'
-import { showMessageYesNo } from '../../helpers/userInput'
+import { showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // Data types

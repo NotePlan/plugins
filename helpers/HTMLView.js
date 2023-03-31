@@ -102,6 +102,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('body', tempSel))
+      tempSel = styleObj.size // TODO:
       rootSel.push(`--fg-main-color: ${RGBColourConvert(themeJSON?.editor?.textColor)}` ?? '#CC6666')
     }
 
@@ -432,22 +433,30 @@ function RGBColourConvert(RGBIn: string): string {
  * @returns {Array<string>} resulting CSS font properties
  */
 export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
+  // logDebug('fontPropertiesFromNP', `for '${fontNameNP}'`)
+  const outputArr = []
+
+  // Deal with special case of Apple's System font
+  // See https://www.webkit.org/blog/3709/using-the-system-font-in-web-content/ for more info
+  if (fontNameNP.startsWith(".AppleSystemUIFont")) {
+    outputArr.push(`font-family: "-apple-system"`)
+    outputArr.push(`line-height: 1.2rem`)
+    // logDebug('fontPropertiesFromNP', `special: ${fontNameNP} ->  ${outputArr.toString()}`)
+    return outputArr
+  }
+
+  // Then test to see if this is one of the other specials
   const specialFontList = new Map()
   // lookup list of special cases
   specialFontList.set('System', ['sans', 'regular', 'normal'])
   specialFontList.set('', ['sans', 'regular', 'normal'])
   specialFontList.set('noteplanstate', ['noteplanstate', 'regular', 'normal'])
-
-  const outputArr = []
-
-  // First test to see if this is one of the specials
   const specials = specialFontList.get(fontNameNP) // or undefined if none match
   if (specials !== undefined) {
     outputArr.push(`font-family: "${specials[0]}"`)
     outputArr.push(`font-weight: "${specials[1]}"`)
     outputArr.push(`font-style: "${specials[2]}"`)
-    // logDebug('translateFontNameNPToCSS', `${fontNameNP} ->  ${outputArr.toString()}`)
-    logDebug(pluginJson, `specials: ${fontNameNP} ->  ${outputArr.toString()}`)
+    // logDebug('fontPropertiesFromNP', `specials: ${fontNameNP} ->  ${outputArr.toString()}`)
     return outputArr
   }
 
@@ -469,7 +478,7 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
     }
   }
   translatedFamily = namePartSpaced.trim()
-  // logDebug('translateFontNameNPToCSS', `${fontNameNP} -> ${translatedFamily}`)
+  // logDebug('fontPropertiesFromNP', `family -> ${translatedFamily}`)
 
   // Using the numeric font-weight system
   // With info from https://developer.mozilla.org/en-US/docs/Web/CSS/font-weight#common_weight_name_mapping

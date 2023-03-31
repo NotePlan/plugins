@@ -4,11 +4,13 @@ This plugin provides a **dashboard window** that in one place shows a compact li
 - scheduled open tasks and checklists from other notes to today
 - open tasks and checklists from this week's note
 - scheduled open tasks and checklists from other notes to this week
+- open tasks and checklists from this month's note
+- scheduled open tasks and checklists from other notes to this month
 - next few notes to review (if you use the "Projects and Reviews" plugin)
 
 To open this run the **/show dashboard** command.
 
-![](dashboard-v0.2@2x.jpg) <!-- ??? update me -->
+![](Dashboard-v0.3.5@2x)
 
 All tasks and checklists can be marked as completed by clicking in its usual open circle or square. The item is then completed in NotePlan, and removed from view in this list.
 
@@ -16,7 +18,7 @@ Note: _It provides this in a view that doesn't use NotePlan's normal editor, but
 
 Note: _This plugin cannot work effectively on an **iPhone**-sized device, so it is disabled there.  On an **iPad** windows can't float in the same way as they can on macOS, so while the checking-off of tasks should work on iPad, tapping on links won't work as I can't dismiss the window from the plugin._
 
-If already open, the dashboard window will now automatically update when a change is made in the relevant calendar note(s). This requires [adding a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly note(s):
+If already open, the dashboard window will now automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly note(s):
 
 ```yaml
 ---

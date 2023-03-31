@@ -124,8 +124,8 @@ export function decideWhetherToUpdateDashboard(): void {
     const isThisChangeSignificant = changeToNumberOfOpenItems(previousContent, latestContent)
 
     if (isThisChangeSignificant) {
-      // Cache the current content
-      DataStore.updateCache(Editor.note)
+      // ??? Cache the current content
+      // DataStore.updateCache(Editor.note)
       // Update the dashboard
       logDebug(pluginJson, `WILL update dashboard.`)
       showDashboardHTML()
