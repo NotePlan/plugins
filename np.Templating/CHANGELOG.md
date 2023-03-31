@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [2.0.0-beta.08] - 2023-03-31 @dwertheimer NOTE: this version was released publicly as [1.9.5]
+
+- Fix bug where you could not use the word 'prompt' in text in a tag
+
 ## [2.0.0-beta.07] - NOTE: this version was released publicly as [1.9.4]
 
 - Updated globals for command name change to: appendProgressUpdate

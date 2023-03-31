@@ -845,7 +845,7 @@ export default class NPTemplating {
 
     // process remaining
     for (const tag of tags) {
-      if (!tag.includes('await') && !this.isControlBlock(tag) && tag.includes('(') && !tag.includes('prompt')) {
+      if (!tag.includes('await') && !this.isControlBlock(tag) && tag.includes('(') && !tag.includes('prompt(')) {
         let tempTag = tag.replace('<%-', '<%- await')
         newTemplateData = newTemplateData.replace(tag, tempTag)
       }
@@ -1206,7 +1206,7 @@ export default class NPTemplating {
         //   check = tag.includes('prompt')
         // }
 
-        let check = tag.includes('prompt')
+        let check = tag.includes('prompt(')
 
         return check
       }
@@ -1383,7 +1383,7 @@ export default class NPTemplating {
   static isMethod(tag: string = '', userData: any = null): boolean {
     const methods = userData?.hasOwnProperty('methods') ? Object.keys(userData?.methods) : []
 
-    return tag.indexOf('(') > 0 || tag.indexOf('@') > 0 || tag.indexOf('prompt') > 0
+    return tag.indexOf('(') > 0 || tag.indexOf('@') > 0 || tag.indexOf('prompt(') > 0
   }
 
   static isTemplateModule(tag: string = ''): boolean {
@@ -1404,7 +1404,7 @@ export default class NPTemplating {
       }
     }
 
-    if (tag.includes('prompt')) {
+    if (tag.includes('prompt(')) {
       result = false
     }
 
