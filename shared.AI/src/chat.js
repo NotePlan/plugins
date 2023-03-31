@@ -10,6 +10,7 @@ import { createPrettyRunPluginLink } from '../../helpers/general'
 import { chooseFolder, showMessage } from '../../helpers/userInput'
 
 import pluginJson from '../plugin.json'
+
 import { makeRequest, saveDebugResponse, CHAT_COMPONENT } from './support/networking'
 import { type ChatRequest, type ChatResponse, type ChatMode, type ChatReturn } from './support/AIFlowTypes'
 // import { saveDataFile } from './support/externalFileInteractions'
@@ -18,6 +19,18 @@ import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 /****************************************************************************************************************************
  *
  ****************************************************************************************************************************/
+
+/**
+ * Gracefully fail from errors encountered (keeping a prompt for later use)
+ * @param {string} errorMessage
+ * @param {string} text
+ */
+export async function chatError(errorMessage: string, text?: string | null): Promise<void> {
+  errorMessage ? await showMessage(errorMessage, 'OK', 'Chat Error') : null
+  Editor.insertTextAtCursor(`\n*Encountered an error: ${errorMessage ? errorMessage : ''}.\n`)
+  text ? Editor.insertTextAtCursor(`Saving your text here for cutting in case you need it:*\n> ${text}\n`) : null
+  logError(pluginJson, `chatError: "${errorMessage}"`)
+}
 
 /**
  * Create an initial chat request object with the starting system message
@@ -33,35 +46,37 @@ export function createInitialChatRequest(model: string = CHAT_MODEL): ChatReques
   }
 }
 
-function getTerms(line): Array<string> {
-  let relatedTermsLine = line.trim()
-  if (relatedTermsLine.endsWith('.')) {
-    relatedTermsLine = relatedTermsLine.substring(0, relatedTermsLine.length - 1)
-  }
-  return relatedTermsLine
-    .split(':')[1]
-    .split(',')
-    .map((term) => term.trim())
-}
+//TODO: Get back to these functions for related terms
 
-type RelatedTerms = {
-  cleanAnswer: string /* the answer with the related terms line removed */,
-  keyTerms: Array<string> /* the key terms */,
-  relatedTerms: Array<string> /* the related terms */,
-}
+// type RelatedTerms = {
+//   cleanAnswer: string /* the answer with the related terms line removed */,
+//   keyTerms: Array<string> /* the key terms */,
+//   relatedTerms: Array<string> /* the related terms */,
+// }
 
-function peelOutRelatedTerms(answer: string): RelatedTerms {
-  const lines = answer.trim().split('\n')
-  // at the bottom of the answer, there is a line with a comma-separated list of key terms that were used to generate the answer
-  // we need to find that comma-separated list and remove it from the answer and process it separately
-  // we do not know what text will used, but we do know that it will be in the form of "some text: term1, term2, term3"
-  // so we will look for the colon and then the comma
-  let relatedTermsLine = lines.find((line, i) => line.includes(':') && line.includes(','))
-  if (relatedTermsLine) {
-    // remove a period from the end of the line if it exists
-    const terms = getTerms(relatedTermsLine)
-  }
-}
+// function getTerms(line): Array<string> {
+//   let relatedTermsLine = line.trim()
+//   if (relatedTermsLine.endsWith('.')) {
+//     relatedTermsLine = relatedTermsLine.substring(0, relatedTermsLine.length - 1)
+//   }
+//   return relatedTermsLine
+//     .split(':')[1]
+//     .split(',')
+//     .map((term) => term.trim())
+// }
+
+// function peelOutRelatedTerms(answer: string): RelatedTerms {
+//   const lines = answer.trim().split('\n')
+//   // at the bottom of the answer, there is a line with a comma-separated list of key terms that were used to generate the answer
+//   // we need to find that comma-separated list and remove it from the answer and process it separately
+//   // we do not know what text will used, but we do know that it will be in the form of "some text: term1, term2, term3"
+//   // so we will look for the colon and then the comma
+//   let relatedTermsLine = lines.find((line) => line.includes(':') && line.includes(','))
+//   if (relatedTermsLine) {
+//     // remove a period from the end of the line if it exists
+//     const terms = getTerms(relatedTermsLine)
+//   }
+// }
 
 /**
  * Write Q&A out to editor
@@ -71,11 +86,16 @@ function peelOutRelatedTerms(answer: string): RelatedTerms {
  * @returns {Promise<string>} - the filename of the saved note
  */
 export async function outputResponse(question: string, prompt: string, answer: string, mode: ChatMode): Promise<string> {
-  let filename = Editor.filename
-  const outputAttribution = DataStore.settings
-  const url = createPrettyRunPluginLink('Ask Follow-up Question', pluginJson['plugin.id'], 'continueChat', [question, filename])
-  const linkPara = findParagraph(Editor.paragraphs, { content: url }, ['content'])
+  const { outputAttribution, continueChatText } = DataStore.settings
   const credit = outputAttribution ? `\n\t*- ChatGPT ${moment().toLocaleString()}*` : ''
+  let filename,
+    url = '',
+    linkPara
+  if (mode !== 'new_document') {
+    filename = Editor.filename
+    url = createPrettyRunPluginLink(continueChatText, pluginJson['plugin.id'], 'continueChat', [question, filename])
+    linkPara = findParagraph(Editor.paragraphs, { content: url }, ['content'])
+  }
   const msg = `## ${prompt}\n${answer}${credit}\n`
   if (linkPara) {
     // this is a continuation
@@ -83,18 +103,22 @@ export async function outputResponse(question: string, prompt: string, answer: s
     Editor.insertParagraph(msg, lineIndex, 'text')
   } else {
     // this is the first output
-    const content = `${msg}\t${url}\n`
     if (mode === 'new_document') {
+      // creating a new document
       const folder = await chooseFolder('Choose a folder to save the chat to:', false, true)
       if (folder) {
-        filename = await DataStore.newNoteWithContent(content, folder)
+        filename = await DataStore.newNoteWithContent(msg, folder)
         await Editor.openNoteByFilename(filename)
+        url = createPrettyRunPluginLink(continueChatText, pluginJson['plugin.id'], 'continueChat', [question, filename])
+        Editor.appendParagraph(`\n\t${url}\n`, 'text')
       }
     } else {
-      Editor.insertTextAtCursor(content)
+      // inserting into the current document
+      const contentWithURL = `${msg}\t${url}\n`
+      Editor.insertTextAtCursor(contentWithURL)
     }
   }
-  return filename
+  return filename ?? ''
 }
 
 /**
@@ -123,8 +147,10 @@ function getPromptWithKeyTerms(prompt: string): string {
  * @returns {Promise<ChatReturn | null>} - the question, prompt, and answer, or null if no answer
  */
 export async function askNewQuestion(originalQuestion?: string | null, fname?: string | null, mode?: ChatMode = 'insert'): Promise<ChatReturn | null> {
-  const fu = originalQuestion ? 'follow-up ' : ' '
-  const prompt = await CommandBar.showInput(`What is your ${fu}question?`, `Ask the AI`)
+  logDebug(pluginJson, `askNewQuestion running with vars: originalQuestion: ${String(originalQuestion)}, fname: ${String(fname)}, mode: ${mode}`)
+  const isXCB = originalQuestion && fname === null && mode === 'new_document'
+  const fu = fname ? 'follow-up ' : ' '
+  const prompt = !isXCB ? await CommandBar.showInput(`What is your ${fu}question?`, `Ask the AI`) : originalQuestion
   if (prompt && prompt.length) {
     let request: ChatRequest
     if (originalQuestion && fname) {
@@ -133,6 +159,13 @@ export async function askNewQuestion(originalQuestion?: string | null, fname?: s
     } else {
       request = createInitialChatRequest() // start a new request
     }
+    if (!request) {
+      await chatError(
+        `Could not ${originalQuestion ? 'load' : 'create'} chat history. This is probably a bug. Please try again with debug logging turned on and report the error.`,
+        prompt,
+      )
+      return null
+    }
     const requestMessagesWithoutKeyTermsRequest = [...request.messages, { role: 'user', content: prompt }]
     const promptPlus = getPromptWithKeyTerms(prompt)
     request.messages.push({ role: 'user', content: promptPlus })
@@ -140,16 +173,18 @@ export async function askNewQuestion(originalQuestion?: string | null, fname?: s
     clo(chatResponse || {}, `chat response typeof=${typeof chatResponse}`)
     if (!chatResponse || chatResponse?.error) {
       // await showMessage(`Error: ${chatResponse?.error?.message || ''}`)
-      // clo(chatResponse?.error || {}, `askNewQuestion: Error. Prompt was: ${prompt}`)
+      await chatError(`Error: ${chatResponse?.error?.message || ''}`, prompt)
     }
     if (chatResponse && chatResponse.choices?.length) {
-      // save responses for fetch mocking
       const question = originalQuestion ?? prompt
       const answer = chatResponse.choices[0].message
       const history = { ...request, messages: [...requestMessagesWithoutKeyTermsRequest, { role: answer.role, content: answer.content }] }
       // save chat history for continuing later
       const savedFilename = await outputResponse(question, prompt, answer.content.trim(), mode)
+      if (!savedFilename) throw new Error(`No filename returned from outputResponse:\nquestion:"${question}"\nprompt:"${prompt}"\nanswer:"${answer.content.trim()}"`)
+      logDebug(pluginJson, `askNewQuestion: savedFilename:${savedFilename}`)
       DataStore.saveJSON(history, getDataFilename(savedFilename, originalQuestion || prompt))
+      // save responses for fetch mocking
       saveDebugResponse('chatResponse', addPartialPromptToFilename(savedFilename, question), request, chatResponse)
       if (mode === 'return') {
         return { question, prompt, answer: answer.content.trim() }
@@ -172,6 +207,7 @@ const addPartialPromptToFilename = (filename: string, prompt: string): string =>
 
 /**
  * Create a data JSON to store chat history based on the initial prompt text
+ * So we can save multiple separate chats in one document
  * @param {string} filename - the filename of the query results document
  * @param {string} prompt - the prompt text
  * @returns {string} filename
@@ -183,18 +219,52 @@ const getDataFilename = (filename: string, prompt: string): string => `chatData/
  ****************************************************************************************************************************/
 
 /**
- * startChat
- * Plugin entrypoint for "/insertChat"
+ * getChat
+ * Plugin entrypoint for "/Get Chat Response" (NotePlan AI: Get Chat Response via template)
  * Also used for template response (send the question as the first argument)
+ * @param {string} question - the question to ask
+ * @param {string} showQuestion - whether to show the question in the output (default is false)
  * @author @dwertheimer
  */
-export async function insertChat(question?: string, filename: string): Promise<string | void> {
+export async function getChat(question: string, showQ?: string | boolean = 'false'): Promise<string | void> {
   try {
-    const ret: ChatReturn | null = (await askNewQuestion(question, filename, question ? 'return' : 'insert')) || null
+    const showQuestion = showQ === true || showQ === 'true' ? true : false
+    logDebug(pluginJson, `getChat: question: ${question || ''} showQuestion:${String(showQuestion)} (${typeof showQuestion})`)
+    const request: ChatRequest = createInitialChatRequest()
+    request.messages.push({ role: 'user', content: question })
+    const chatResponse: ChatResponse | null = await makeRequest(CHAT_COMPONENT, 'POST', request)
+    const answer = chatResponse?.choices[0]?.message?.content
+    logDebug(pluginJson, `getChat: answer: ${answer || ''}`)
+    if (showQuestion && answer) {
+      return `### ${question}\n${answer}`
+    } else if (answer) {
+      return answer.trim()
+    } else {
+      await chatError(`Error: ${chatResponse?.error?.message || ''}`, question)
+    }
+    logError(pluginJson, `getChat: No answer returned for question: ${question}`)
+  } catch (error) {
+    // await chatError(`Could not insert chat: "${error.message}". This is probably a bug. Please try again with debug logging turned on and report the error.`, question)
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * insertChat
+ * Plugin entrypoint for "/insertChat"
+ * Also used for template response (send the question as the first argument)
+ * @param {string} question - the question to ask
+ * @author @dwertheimer
+ */
+export async function insertChat(question?: string): Promise<string | void> {
+  try {
+    logDebug(pluginJson, `insertChat running with incoming question:${String(question)}`)
+    const ret: ChatReturn | null = (await askNewQuestion(question, null)) || null
     if (question && ret) {
       return `### ${question}\n${ret.answer}`
     }
   } catch (error) {
+    await chatError(`Could not insert chat: "${error.message}". This is probably a bug. Please try again with debug logging turned on and report the error.`, question)
     logError(pluginJson, JSP(error))
   }
 }
@@ -203,7 +273,8 @@ export async function insertChat(question?: string, filename: string): Promise<s
  * Continue a Chat -- this is most likely coming from a callback link
  * Plugin entrypoint for command: "/continueChat"
  * @author @dwertheimer
- * @param {*} incoming
+ * @param {string} question
+ * @param {string} filename
  */
 export async function continueChat(question?: string | null = null, filename?: string | null = null) {
   try {
@@ -212,6 +283,7 @@ export async function continueChat(question?: string | null = null, filename?: s
       await askNewQuestion(question, filename)
     }
   } catch (error) {
+    await chatError(`Could not insert chat: "${error.message}". This is probably a bug. Please try again with debug logging turned on and report the error.`, question)
     logError(pluginJson, JSP(error))
   }
 }
@@ -220,13 +292,14 @@ export async function continueChat(question?: string | null = null, filename?: s
  * Create chat in new document
  * Plugin entrypoint for command: "/createChat"
  * @author @dwertheimer
- * @param {*} incoming
+ * @param {string} question
  */
-export async function createChat(incoming: string | null = null) {
+export async function createChat(question?: string | null = null) {
   try {
-    await askNewQuestion(undefined, 'new_document')
-    logDebug(pluginJson, `createChat running with incoming:${String(incoming)}`)
+    logDebug(pluginJson, `createChat running with incoming question:${String(question)}`)
+    await askNewQuestion(question, null, 'new_document')
   } catch (error) {
+    await chatError(`Could not insert chat: "${error.message}". This is probably a bug. Please try again with debug logging turned on and report the error.`, question)
     logError(pluginJson, JSP(error))
   }
 }

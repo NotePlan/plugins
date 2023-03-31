@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "shared.AI",
   "plugin.name": "💡 NotePlan AI",
-  "plugin.version": "0.5.5",
-  "plugin.lastUpdateInfo": "0.5.5: Improved error logging on bugs my mom found; 0.5.0: add iOS settings editing v1 (for my mom); 0.4.3-beta2: Added summarize note/selection command and the start of some localizations. Look at the 'NotePlan AI' plugin preferences at the bottom for localization information.",
+  "plugin.version": "0.7.0-beta1",
+  "plugin.lastUpdateInfo": "0.7.0-beta1: Added retries because chatGPT is overloaded so often; added Xcallback/Templating command.\n0.5.0: add iOS settings editing v1 (for my mom); 0.4.3-beta2: Added summarize note/selection command and the start of some localizations. Look at the 'NotePlan AI' plugin preferences at the bottom for localization information.",
   "plugin.description": "GPT integration for research, summarization, etc.",
   "plugin.author": "a man of mystery and @dwertheimer",
   "plugin.dependencies": [],
@@ -38,7 +38,9 @@
       "description": "ChatGPT in New Document",
       "jsFunction": "createChat",
       "alias": [],
-      "arguments": []
+      "arguments": [
+        "Prompt to ask ChatGPT"
+      ]
     },
     {
       "name": "continueChat",
@@ -47,6 +49,17 @@
       "hidden": true,
       "alias": [],
       "arguments": []
+    },
+    {
+      "name": "NotePlan AI: Get Chat Response",
+      "description": "NotePlan AI: Get Chat Response",
+      "jsFunction": "getChat",
+      "alias": [],
+      "hidden": true,
+      "arguments": [
+        "Prompt to ask ChatGPT",
+        "Show question in output (true/false)"
+      ]
     },
     {
       "note": "************************************ SUMMARIZE ****************************************"
@@ -465,6 +478,14 @@
       "description": "This is the (required) text that is used to tell GPT how to respond to a basic chat request. The default text is: 'You are a helpful assistant. Please answer in English.'",
       "type": "string",
       "default": "You are a helpful assistant. Please answer in English.",
+      "required": true
+    },
+    {
+      "key": "continueChatText",
+      "title": "Link title to continue chat",
+      "description": "Text to continue chat, default in English: continueChatText",
+      "type": "string",
+      "default": "Ask Follow-up Question",
       "required": true
     },
     {

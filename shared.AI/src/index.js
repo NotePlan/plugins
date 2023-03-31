@@ -26,7 +26,7 @@ import pluginJson from '../plugin.json'
 import { showMessage } from '@helpers/userInput'
 
 export { editSettings } from '@helpers/NPSettings'
-export { insertChat, createChat, continueChat } from './chat'
+export { getChat, insertChat, createChat, continueChat } from './chat'
 export { summarizeNote } from './summarize'
 
 export { testConnection, introWizard, helpWizard } from './NPAI' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)

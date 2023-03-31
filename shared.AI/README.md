@@ -43,21 +43,17 @@ I strongly encourage you to explore the pricing information available on the [Op
 
 ### Main Commands
 
-- **/Create Chat**
+- **/Create Chat in New Document**
 
-    >This command creates a new document with a GPT3 chat. You can ask an initial question and then follow up as many times as you would like, and the AI will "remember" the context of your conversation.
+    >This command creates a new document with a GPT3 chat. You can ask an initial question and then follow up as many times as you would like, and *NotePlan AI* will help the AI "remember" the context of your conversation. [Uses ChatGPT 3.5-turbo]
 
 - **/Insert Chat**
 
-    >This command is just like "Create Chat", but instead of creating a brand-new document, the results will be inserted at the cursor position.
+    >This command is just like "Create Chat", but instead of creating a brand-new document, the results will be inserted at the cursor position. [Uses ChatGPT 3.5-turbo]
 
 - **/createResearchDigSite**
 
-    >This is the primary command to be used when starting to research a new subject. When called, you simply type in whatever subject you'd like to learn more about and then let it work its magic. The generated research will be placed into a folder titled "/Research" by default. This can be adjusted in the plugin preferences.
-
-- **/Update settings/preferences (use on iPhone/iPad)**
-
-    >Use this command to update your preferences/settings on the iPhone and iPad, which do not have a Plugins panel or plugin settings. You can still access/set this plugin's settings using an interactive menu.
+    >This is the primary command to be used when starting to research a new subject. When called, you simply type in whatever subject you'd like to learn more about and then let it work its magic. The generated research will be placed into a folder titled "/Research" by default. This can be adjusted in the plugin preferences. [Uses GPT3-davinci]
 
     *You Should Know*
 
@@ -65,11 +61,13 @@ I strongly encourage you to explore the pricing information available on the [Op
 
     >If you have text highlighted, it will autofill the subject line so you can just press "Enter" to quickly research the selected text.
 
+- **/Update settings/preferences (use on iPhone/iPad)**
+
+    >Use this command to update your preferences/settings on the iPhone and iPad, which do not have a Plugins panel or plugin settings. You can still access/set this plugin's settings using an interactive menu.
+
 - **/Create AI Images**
 
     >Use words to have the AI generate images/art using DALL-E @ OpenAI.
-
--
 
 ### Other Commands
 
@@ -83,6 +81,44 @@ I strongly encourage you to explore the pricing information available on the [Op
 
 - **/Show NotePlan AI Commands**
     > Shows an interactive list of all available NotePlan AI commands.
+
+---
+
+## One-Shot Calling from X-Callback Link or via Templating tag
+
+You can call perform a one-shot call from a template tag or xcallback link by using the "getChat" command. There is an option for output: you can include your question as a heading prior to chatGPT's response (use true for the second parameter), or you can tell it to just give you the answer (false for the second parameter). Use the X-Callback Link Creator (Link Creator plugin) to create an X-Callback or Template tag for your template (Select "Run a Plugin Command" and select the `NotePlan AI: Get Chat Response` option). Here are a couple of examples:
+
+### Calling from X-Callback Link
+
+#### Including Question with Output
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=shared.AI&command=Get%20Chat%20Response&arg0=Provide%20a%20journal%20prompt%20question&arg1=true
+```
+
+#### Not Including Question with Output
+
+```
+noteplan://x-callback-url/runPlugin?pluginID=shared.AI&command=Get%20Chat%20Response&arg0=Provide%20a%20journal%20prompt%20question&arg1=false
+```
+
+### Calling via Template
+
+#### Including Question with Output
+
+```
+<%- await DataStore.invokePluginCommandByName("NotePlan AI: Get Chat Response","shared.AI",["Provide a journal prompt question","true"])  %>
+```
+
+#### Not Including Question with Output
+
+```
+<%- await DataStore.invokePluginCommandByName("NotePlan AI: Get Chat Response","shared.AI",["Provide a journal prompt question","false"])  %>
+```
+
+### Localization
+
+The `chat` commands in the plugin have been designed to be localizable (the `research` commands are not yet localizable). ChatGPT understands many languages, so if you want the responses to come back in a language other than English, simply edit the prompts at the bottom of this plugin's settings to be in your language of choice.
 
 ---
 

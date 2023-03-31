@@ -3,13 +3,16 @@
 import pluginJson from '../../plugin.json'
 import type { ChatResponse, ChatRequest } from './AIFlowTypes'
 import { showMessage } from '@helpers/userInput'
-import { logDebug, logError, clo, JSP } from '@helpers/dev'
+import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
 
 /*
  * CONSTANTS
  */
 
-const baseURL = 'https://api.openai.com/v1'
+const BASE_URL = 'https://api.openai.com/v1'
+const TOKEN_LIMIT = 3000 // tokens per request (actually 3072)
+const MAX_RETRIES = 5 // number of times to retry a request if it fails
+
 // const modelsComponent = 'models'
 // const completionsComponent = 'completions'
 // const availableModels = ['text-davinci-003', 'text-curie-001', 'text-babbage-001', 'text-ada-001', 'gpt-3.5-turbo']
@@ -38,16 +41,53 @@ function getErrorStringToDisplay(resultJSON: any): string {
 }
 
 /**
+ * Test if a string is too long for the API
+ * @param {string} string
+ * @param {boolean} shouldShowMessage - show a message if the string is too long (default: false)
+ * @returns {boolean} true if the string is too long, false if it is not
+ */
+export async function testTOKEN_LIMIT(str: string, shouldShowMessage: boolean = false): Promise<boolean> {
+  const tokens = countTokens(str)
+  if (tokens > TOKEN_LIMIT) {
+    if (shouldShowMessage) {
+      const message = `The string you entered is ${tokens} tokens long (including history). OpenAI's API has an approx limit of ${TOKEN_LIMIT} tokens. It may get rejected, but we will try it and see.`
+      await showMessage(message, 'error')
+    }
+    return false
+  }
+  return true
+}
+
+/**
+ * Count the number of tokens in a string (words + newlines)
+ * @param {string} inputString
+ * @returns {number} number of tokens in the string
+ */
+export function countTokens(inputString: string): number {
+  const words = inputString.trim().split(' ')
+  let count = 0
+
+  words.forEach((word) => {
+    count += word.split('\n').length
+  })
+
+  return count
+}
+
+/**
  * Make a request to the GPT API
  * @param {string} component - the last part of the URL (after the base URL), e.g. "models" or "images/generations"
  * @param {string} requestType - GET, POST, PUT, etc.
  * @param {string} data - body of a POST/PUT request - can be an object (it will get stringified)
+ * @param {number} retry - number of times through the retry loop (you don't need to set this)
  * @returns {any|null} JSON results or null
  */
-export async function makeRequest(component: string, requestType: string = 'GET', data: any = null): any | null {
-  const url = `${baseURL}/${component}`
+export async function makeRequest(component: string, requestType: string = 'GET', data: any = null, retry: number = 0): any | null {
+  const timesRetried = retry + 1
+  const url = `${BASE_URL}/${component}`
   logDebug(pluginJson, `makeRequest: about to fetch ${url}`)
   // clo(data, `makeRequest() about to send to: "${url}" data=`)
+  await testTOKEN_LIMIT(JSON.stringify(data), true)
   const requestObj = getRequestObj(requestType, data)
   if (!requestObj) {
     showMessage('There was an error getting the request object. Check the plugin log and please report this issue.')
@@ -61,23 +101,27 @@ export async function makeRequest(component: string, requestType: string = 'GET'
       const msg = resultJSON ? getErrorStringToDisplay(resultJSON) : `No response from OpenAI. Check log.`
       await showMessage(msg)
       clo(resultJSON?.error || {}, `askNewQuestion: Error:`)
-      return null
+      return { error: { message: msg } }
+    }
+    // clo(resultJSON, `makeRequest() result of fetch to: "${url}" response is type: ${typeof resultJSON} and value:`)
+    if (resultJSON?.choices && resultJSON.choices[0] && resultJSON.choices[0]['finish_reason'] === 'length') {
+      resultJSON.choices[0].message += '... [ChatGPT truncated due to length, consider following up with "please continue"]'
+      logWarn(pluginJson, `makeRequest: ChatGPT truncated due to length, consider following up with "please continue"`)
     }
     return resultJSON
   } else {
-    // must have failed, let's find out why
-    const failMsg = `Call to OpenAI failed. This may be a temporary problem (sometimes their servers are overloaded). Please try again, but report the problem if it persists.`
-    fetch(url, getRequestObj(requestType, data))
-      .then(async (result) => {
-        await showMessage(failMsg)
-        logError(pluginJson, `makeRequest failed the first time but the second response was: ${JSP(result)}. Check the plugin log for more info.`)
-      })
-      .catch(async (error) => {
-        logError(pluginJson, `makeRequest failed and response was: ${JSP(error)}`)
-        await showMessage(failMsg)
-      })
+    // must have timed out/failed, let's try again
+    logWarn(pluginJson, `makeRequest failed on try: ${timesRetried}. Will retry.`)
+    while (timesRetried < MAX_RETRIES) {
+      const result = await makeRequest(component, requestType, data, timesRetried)
+      if (result) {
+        return result
+      }
+    }
+    const failMsg = `Call to OpenAI failed after ${MAX_RETRIES} attempts. This may be a temporary problem (sometimes their servers are overloaded, or maybe you're offline?). Please try again, but report the problem if it persists.`
+    await showMessage(failMsg)
+    throw failMsg
   }
-  return null
 }
 
 /**
@@ -125,8 +169,8 @@ export function saveDebugResponse(folderName: string, filename: string, request:
     const { saveResponses } = DataStore.settings
     if (saveResponses) {
       const fa = filename.split('/')
-      const fname = fa[fa.length - 1].replace(/\.md$|\.txt$/g, '')
-      logDebug(pluginJson, `saveDebugResponse fa=${fa} fname=${fname}`)
+      const fname = fa[fa.length - 1].replace(/\.md$|\.txt$/g, '').substring(0, 100) + String(new Date())
+      logDebug(pluginJson, `saveDebugResponse fa=${fa.toString()} fname=${fname}`)
       DataStore.saveJSON(chatResponse, `${folderName}/${fname}.${String(request.messages.length / 2)}.json`)
       clo(chatResponse, `chatResponse/${filename}.${String(request.messages.length / 2)}.json`)
     }

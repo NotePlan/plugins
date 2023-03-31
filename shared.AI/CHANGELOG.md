@@ -4,7 +4,14 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/shared.AI/READ
 
 ## What's Changed?
 
-## [0.6.0] - 2023-03-17
+## [0.7.0-beta1] - 2023-03-31 (@dwertheimer)
+
+- Add getChat command for using in templates
+- Add retrying to network requests since chatGPT API fails so often
+- Fix bug in create chat in new note
+- Fix bug in continue chat in new note
+
+## [0.6.0] - 2023-03-17 (@dwertheimer)
 
 - Add date to calendar day summary so ChatGPT knows what this day 
 - Simplify plugin preferences on iOS call (removed settings.js file)
