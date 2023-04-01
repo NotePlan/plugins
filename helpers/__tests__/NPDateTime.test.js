@@ -98,7 +98,8 @@ describe(`${FILENAME}`, () => {
   describe('getQuarterData()' /* function */, () => {
     test('should return today info with no params', () => {
       const result = f.getQuarterData()
-      expect(result.quarterIndex).toEqual(1)
+      expect(result.quarterIndex).toBeGreaterThanOrEqual(0)
+      expect(result.quarterIndex).toBeLessThanOrEqual(3)
       expect(typeof result.quarterString).toEqual('string')
       expect(isValidDate(result.startDate)).toEqual(true)
       expect(isValidDate(result.endDate)).toEqual(true)
