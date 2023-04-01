@@ -3,26 +3,31 @@
 [![Node.js CI](https://github.com/NotePlan/plugins/actions/workflows/node.js.yml/badge.svg)](https://github.com/NotePlan/plugins/actions/workflows/node.js.yml)
 
 ## Overview
+
 NotePlan Plugins provides an extensive API for extending default editing and task management and work across all platforms (macOS and iOS).
 
-Each plugin command can be invoked using the [NotePlan Command Bar](https://help.noteplan.co/article/65-commandbar-plugins), or by entering any of available commands directly in the editor by entering `/command` (NotePlan will auto update the list of possible commands as you type)
+Each plugin command can be invoked using the [NotePlan Command Bar](https://help.noteplan.co/article/65-commandbar-plugins), or by entering any of available commands directly in the editor by entering `/<command_name>` (NotePlan will auto update the list of possible commands as you type)
 ![](https://d33v4339jhl8k0.cloudfront.net/docs/assets/6081f7f4c9133261f23f4b41/images/608c5886f8c0ef2d98df845c/file-fLVrMGjoZr.png)
 
 ## Anatomy of a Plugin
+
 If you want to develop plugins, Step 1 is to read the [NotePlan Knowledgebase Document](https://help.noteplan.co/article/67-create-command-bar-plugins) describing how plugins work in NotePlan and the basic plugin anatomy. Once you have read that carefully and understand the basics, you should return here to acquire and start using the NotePlan Plugin tooling described below.
 
 ## Prerequisite
+
 The following items are required for NotePlan Plugin Development
 
-- Node 12.15 .. 16 -- **Do Not Use Experimental Version of Node (e.g. Node 17.x.x)**
-- npm version 8.x
+- Node 14 or 16 -- **Do Not Use any Node version <14 or >16** (see "Switching Node Versions")
 - NotePlan 3.4 or greater
 - macOS Catalina 10.15.2 or greater (strongly recommend macOS Big Sur 11.x or Monterey 12.x)
 - github CLI `gh` is strongly recommended - [how to install gh](https://cli.github.com/)
 
-_NotePlan Plugin API has been tested using Node.js range, any version outside of this range may lead to unexpected issues_
+## Switching Node Versions
+
+The NotePlan plugin code has not yet been migrated to Node versions >16. If you are developing elsewhere using Node v17+, you will want to switch to Node v16 when you are doing NotePlan Plugin development. The fast/easy way to do that is with a Node version manager [like "n"](https://www.npmjs.com/package/n). This way you can flip in and out of Node versions at will.
 
 ## Plugin Information
+
 If you have an idea for a plugin, [submit them here](https://feedback.noteplan.co/plugins-scripting) or inquire in the [NotePlan Discord community](https://discord.gg/D4268MT)'s `#plugin` channel.
 
 If you are a developer and want to contribute and build your plugins, see the [plugin writing documentation](https://help.noteplan.co/article/67-create-command-bar-plugins) and discuss this with other developers on [Discord](https://discord.gg/D4268MT) `#plugin-dev` channel.  You might want to consult this [good modern JavaScript tutorial](https://javascript.info/).
@@ -40,25 +45,29 @@ When you have cloned this repository, you will not only have the tooling, but yo
 
 **Step 2: Install Node (if not installed)**
 
-Make sure you have a recent version of `node` and `npm` installed (if you need to install node, `brew install node@16` is the quickest method, you can follow instructions on [node website](https://nodejs.org/en/download/)).
+Make sure you have the proper version of `node` installed (if you need to install node, `brew install node@16` is the quickest method, or you can follow instructions on [node website](https://nodejs.org/en/download/)).
 
 **Step 3: Initialize Local Development Environment**
 
 Run the following 3 commands from the root of your local GitHub repository for `NotePlan/plugins`.
 
+1) Update node-gyp
+
 ```shell
 npm i -g node-gyp@latest && npm config set node_gyp "/usr/local/lib/node_modules/node-gyp/bin/node-gyp.js"
 ```
 
-**and then:**
+> **Note**: Don't be surprised if this command fails. It is only necessary in certain cases. If it fails, it probably means you didn't need it. Just continue on.
+
+2) Install the node_modules
 
 ```shell
 npm install 
 ```
 
->**NOTE: if you are running node >= 16 and you get failure messages on the vanilla install command above, you may need to use this command instead:** `npm install --legacy-peer-deps`
+> **NOTE**: if you are running node >= 16 and you get failure messages on the vanilla install command above, you may need to use this command instead: `npm install --legacy-peer-deps`
 
-**and then:**
+3) Link the files to make them run properly from the command line (especially the `noteplan-cli`)
 
 ```shell
 npm run init
@@ -66,19 +75,22 @@ npm run init
 
 This will install the necessary npm dependencies and initialize your plugin working directory, including:
 
- - Configuring `eslint` [eslint](https://eslint.org/) (for checking code conventions)
- - Configuring `flow` [flow](https://flow.org/) (for type checking)
- - Configuring `babel` [babel](https://babeljs.io/) (a JS compiler)
- - Configuring `rollup` [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).
+- Configuring `eslint` [eslint](https://eslint.org/) (for checking code conventions)
+- Configuring `flow` [flow](https://flow.org/) (for type checking)
+- Configuring `babel` [babel](https://babeljs.io/) (a JS compiler)
+- Configuring `rollup` [rollup](https://rollupjs.org/guide/en/) (for bundling multiple source files into a single release).
 
 Each of these tools have their own configuration files at the root directory (e.g., `.flowconfig` or `.eslintrc`)
 
-*Note: Each of these configuration files can be overridden if needed by placing a project specific configuration file in you project plugin, however, for consistency with other NotePlan plugins, we encourage to use the defaults wherever possible.*
+_Note: Each of these configuration files can be overridden if needed by placing a project specific configuration file in you project plugin, however, for consistency with other NotePlan plugins, we encourage to use the defaults wherever possible._
 
 ### Creating your first NotePlan Plugin
+
 Using the NotePlan CLI, perform the following actions:
 
 **Step 1: Review List of Available Plugins**
+
+> **TIP:** noteplan-cli can also be run by its shorter alias: `npc`
 
 `noteplan-cli plugin:info` to see a list of all available commands across all existing NotePlan plugins.
 
@@ -95,7 +107,7 @@ Answer the prompt questions (or supply all the necessary options from command li
 **Step 4: Startup Auto Watch Process**
 
 Open up a Terminal shell, `cd` to the repository root directory, and issue the command:
-`npc plugin:dev <your_plugin_folder> --watch` from the root directory to build your plugin as you develop so it can be tested in NotePlan. This will compile your code and put it into your NotePlan app directory so you can test your plugin. The `--watch` flag keeps the process looking for changes to your files and will automatically rebuild the plugin for you. (more on that below) 
+`npc plugin:dev <your_plugin_folder> --watch` from the root directory to build your plugin as you develop so it can be tested in NotePlan. This will compile your code and put it into your NotePlan app directory so you can test your plugin. The `--watch` flag keeps the process looking for changes to your files and will automatically rebuild the plugin for you. (more on that below)
 
 **Step 5: Start your plugin command develop and test locally**
 
@@ -106,9 +118,11 @@ You can now develop and test your plugin locally,
 At this point, if you would like to make your plugin available publicly, you can proceed to [creating Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to the NotePlan Plugin Repository (see information below)
 
 ### Common Development Actions
+
 These are the most common commands you will use while developing:
 
 #### File Watcher
+
 The default watch command `npc plugin:dev <your_plugin_folder> --watch`:
 
 `npc plugin:dev` from the root of your local `NotePlan/plugins` repository which will bundle all the files in your `/src` directory into single file `script.js` and will be copied from your repository directory to your Plugins folder in the running NotePlan data directory for testing.
@@ -122,6 +136,7 @@ The `init` script should have detected whether you are using the SetApp or App S
 For example, running `npc plugin:dev dwertheimer.TaskAutomations --watch` will perform the same watching operations for the `dwertheimer.TaskAutomations` plugin only.
 
 ### NotePlan CLI Commands
+
 NotePlan includes a suite of CLI commands which you can use during development.
 
 ```shell
@@ -133,6 +148,7 @@ npc <command>
 For all CLI commands, you can pass the `--help` for available flags
 
 #### npc plugin:dev
+
 The most common CLI command, this can be used to build plugin, test plugins (wrapper for `npc plugin:test`)
 
 ```shell
@@ -151,6 +167,7 @@ npc plugin:dev codedungeon.Toolbox -tw
 ```
 
 #### npc plugin:test
+
 The `test` command can be used in addition to the `npc plugin:dev <plugin> --test` which will only execute the NotePlan Test Runner
 
 ```shell
@@ -165,6 +182,7 @@ npc plugin:test codedungeon.Toolbox -ws
 ```
 
 #### npc plugin:info
+
 Obtain information about any NotePlan Plugin
 
 ```shell
@@ -172,19 +190,25 @@ npc plugin:info <plugin> [options]
 ```
 
 #### npc plugin:create
+
 Create new NotePlan Plugin
+
 ```shell
 npc plugin:create [options]
 ```
 
 #### npc plugin:pr
+
 Create NotePlan Plugin Pull Request
+
 ```shell
 npc plugin:pr [options]
 ```
 
 #### npc plugin:test
+
 Run test suite for NotePlan Plugin
+
 ```shell
 npc plugin:test <plugin> [options]
 
@@ -206,6 +230,7 @@ npc plugin:test codedungeon.Toolbox --coverage
 Once you are finished editing and testing your plugin, you can [submit a Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to the NotePlan/plugins repository and it will be reviewed for inclusion. Once it has been approved, it will be available from **NotePlan > Preferences > Plugins** section, enabling it to be installed by other NotePlan users
 
 ### Frequently Used Commands
+
 The common script you will run `npc plugin:dev <plugin>` however, you may need to use any of the following
 
 - `npc plugin:dev <plugin> --watch --compact --notify` a less verbose version of `autowatch` that might suit more experienced developers
@@ -262,25 +287,31 @@ Use the setup guide for your preferred editor (we prefer Visual Studio Code), an
    - Open the package settings for `jsPrettier` and add `"auto_format_on_save": true,`
 
 ### Linting Code
+
 If you don't have an editor set up to lint as you code, you can run `npm run test` and it will give a list of problems to fix.
 
 ### Using Flow
+
 By practice, NotePlan plugins use [flow](https://flow.org/) for static type checking. You can get more information by referencing [NotePlan Flow Guide](https://github.com/NotePlan/plugins/blob/main/Flow_Guide.md)
 
 ## NotePlan Plugin Support
+
 Should you need support for anything related to NotePlan Plugins, you can reach us at the following:
 
 ### Email
+
 If you would prefer email, you can reach us at:
 
 - [NotePlan Info](hello@noteplan.co)
 
 ### Discord
+
 Perhaps the fastest method would be at our Discord channel, where you will have access to the widest amount of resources:
 
 - [Discord Plugins Channel](https://discord.com/channels/763107030223290449/784376250771832843)
 
 ### Github Issues
+
 This is a great resource to request assistance, either in the form of a bug report, or feature request for a current or future NotePlan Plugin
 
 - [GitHub Issues](https://github.com/NotePlan/plugins/issues/new/choose)
