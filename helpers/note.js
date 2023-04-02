@@ -633,7 +633,7 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
       let isInIgnoredFolder = false
       excludedFolders.forEach((folder) => {
         if (note.filename.includes(`${folder.trim()}/`)) {
-          // logDebug(`filterNotesAgainstExcludeFolders ignoring folder="${folder}" note.filename="${note.filename}}"`)
+          // logDebug('note/filterNotesAgainstExcludeFolders', `ignoring folder="${folder}" note.filename="${note.filename}}"`)
           isInIgnoredFolder = true
         }
       })
@@ -642,6 +642,45 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
     })
   }
   return noteListFiltered
+}
+
+/**
+ * Filter a list of paras against a list of folders to ignore and return the filtered list
+ * Obviously requires going via the notes array and not the paras array
+ * @author @jgclark building on @dwertheimer's work
+ * @param {Array<TNote>} notes - array of notes to review
+ * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
+ * @param {boolean} excludeNonMarkdownFiles - if true, exclude non-markdown files (must have .txt or .md to get through)
+ * @returns {Array<TNote>} - array of notes that are not in excluded folders
+ */
+export function filterParasAgainstExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>, excludeNonMarkdownFiles: boolean = false): Array<TParagraph> {
+  // const ignoreThisFolder = excludedFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
+
+  if (!excludedFolders) {
+    logWarn('note/filterParasAgainstExcludeFolders', `excludedFolders list is empty`)
+    return []
+  }
+  // $FlowIgnore(incompatible-type)
+  const noteList: Array<CoreNoteFields> = paras.map((p) => p.note)
+  if (noteList.length > 0) {
+    const noteListFiltered = filterNotesAgainstExcludeFolders(noteList, excludedFolders, excludeNonMarkdownFiles)
+
+    if (!noteListFiltered) {
+      logInfo('note/filterParasAgainstExcludeFolders', `all notes have been excluded`)
+      return []
+    }
+
+    // filter out paras not in these notes
+    const parasFiltered = paras.filter((p) => {
+      const thisNote = p.note
+      const isInIgnoredFolder = noteListFiltered.includes(thisNote)
+      return !isInIgnoredFolder
+    })
+    return parasFiltered
+  } else {
+    logWarn('note/filterParasAgainstExcludeFolders', `ffound no corresponding notes`)
+    return []
+  }
 }
 
 /**
