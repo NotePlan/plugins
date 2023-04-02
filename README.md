@@ -208,7 +208,7 @@ npc plugin:test codedungeon.Toolbox --coverage
 
 #### Create Pull Request
 
-Once you are finished editing and testing your plugin, you can [submit a Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to the NotePlan/plugins repository and it will be reviewed for inclusion. Once it has been approved, it will be available from **NotePlan > Preferences > Plugins** section, enabling it to be installed by other NotePlan users
+Once you are finished editing and testing your plugin, you can [submit a Pull Request](https://github.com/NotePlan/plugins/blob/main/GithubFlow.md#submitting-a-pull-request-to-noteplan) to the NotePlan/plugins repository and it will be reviewed for inclusion. Once it has been approved, it will be available from **NotePlan > Preferences > Plugins** section, enabling it to be installed by other NotePlan users.
 
 ### Frequently Used Commands
 
