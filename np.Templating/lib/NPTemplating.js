@@ -13,7 +13,7 @@ import { debug, helpInfo } from './helpers'
 
 import globals from './globals'
 import { chooseOption } from '@helpers/userInput'
-import { clo, log, logError } from '@helpers/dev'
+import { clo, log, logError, logDebug } from '@helpers/dev'
 import { datePicker, askDateInterval, chooseFolder } from '@helpers/userInput'
 
 /*eslint-disable */
@@ -1460,10 +1460,10 @@ export default class NPTemplating {
     const tags = (await this.getTags(templateData)) || []
     for (let tag of tags) {
       if (!isCommentTag(tag) && tag.includes('import(')) {
-        const importInfo = tag.replace('<%-', '').replace('<%', '').replace('%>', '').replace('import', '').replace('(', '').replace(')', '')
+        const importInfo = tag.replace('<%-', '').replace('<%', '').replace('-%>', '').replace('%>', '').replace('import', '').replace('(', '').replace(')', '')
         const parts = importInfo.split(',')
         if (parts.length > 0) {
-          const noteNamePath = parts[0].replace(/'/gi, '').trim()
+          const noteNamePath = parts[0].replace(/['"`]/gi, '').trim()
           const content = await this.getTemplate(noteNamePath)
           const body = new FrontmatterModule().body(content)
           if (body.length > 0) {

@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.9.6] (aka 2.0.0-beta.09) - 2023-04-02 @dwertheimer
+
+- Fix bug in template importing
+
 ## [2.0.0-beta.08] - 2023-03-31 @dwertheimer NOTE: this version was released publicly as [1.9.5]
 
 - Fix bug where you could not use the word 'prompt' in text in a tag
