@@ -21,8 +21,6 @@ new CLI(process.argv, __dirname)
       `noteplan-cli plugin:create ${colors.gray('(creates noteplan plugin project)')}`,
       `  noteplan-cli plugin:dev codedungeon.Toolbox -wcn ${colors.gray('(plugin development watch, compact and notify)')}`,
       `  noteplan-cli plugin:test codedungeon.Toolbox -ws ${colors.gray('(plugin testing watch, silent)')}`,
-      `  noteplan-cli plugin:info ${colors.gray('(show information about current plugins)')}`,
-      `  noteplan-cli plugin:info --check formatted ${colors.gray('(checks to see if "formatted" command is available to use)')}`,
     ].join('\n'),
   )
   .logger({ directory: getLogDirectory(process.argv), alwaysLog: true })
