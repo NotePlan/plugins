@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 31.3.2023 for v0.3.x by @jgclark
+// Last updated 2.4.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -131,14 +131,18 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
       outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
 
       // Prepare col 2 (section title)
-      // First prepend a sectionNCount ID and populate it. This needs an ID so that it can be updated later.
+      // First prepend a sectionNCount ID and populate it. This needs a span with an ID so that it can be updated later.
       const sectionCountID = `section${String(section.ID)}Count`
       const sectionCountPrefix = `<span id="${sectionCountID}">${String(items.length)}</span>`
+      const sectionNameWithPossibleLink = (section.filename)
+        ? addNoteOpenLinkToString(section, section.name)
+        : section.name
+      // FIXME: add to the generator for s1 and s3 and s5
       if (items.length > 0) {
-        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${section.name}</span><br /><span class="sectionDescription">${sectionCountPrefix} ${section.description}</span></td>`)
+        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${sectionNameWithPossibleLink}</span><br /><span class="sectionDescription">${sectionCountPrefix} ${section.description}</span></td>`)
       } else {
         // add a simpler version of the line
-        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${section.name}</span>`)
+        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${sectionNameWithPossibleLink}</span></td>`)
       }
 
       // Start col 3: table of items in this section

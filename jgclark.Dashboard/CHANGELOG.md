@@ -1,11 +1,18 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
-<!-- split out CSS to a separate file -->
 <!-- - trying again with simpler focus window where we can ??? -->
-## [0.3.5] - 2023-03-31 (private beta 3)
+## [0.3.6] - 2023-04-02 (private beta 4)
+### Added
+- new setting 'Folders to ignore when finding linked items' which can help if you have sync'd lines in Saved Searches.
+- added links to section titles (e.g. "This Week")
+### Fixed
+- note links in the 3rd section opened the wrong notes
+
+## [0.3.5] - 2023-04-01 (private beta 3)
 ### Added
 - now shows items from monthly notes as well (for @fulcanelli and @bullseye)
 - now suppresses empty sections if there aren't any open tasks in it (apart from the current daily note, where it will still show a congratulatory message)
+<!-- split out CSS to a separate file -->
 ### Fixed
 - now supports a special font used in Apple Dark and related themes
 

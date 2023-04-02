@@ -5,6 +5,7 @@
  * the file will fail silently and you will be scratching your head for why it doesn't work
  */
 
+/* eslint-disable no-console */
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
 
@@ -31,10 +32,10 @@ async function onMessageFromPlugin(type, data) {
       updateDivReceived(data)
       break
     case 'completeTask':
-      completeTask(data)
+      await completeTask(data) // Note: await not needed
       break
     case 'completeChecklist':
-      completeChecklist(data)
+      await completeChecklist(data) // Note: await not needed
       break
     default:
       console.log(`- unknown type: ${type}`)
@@ -62,7 +63,7 @@ function updateDivReceived(data) {
  * Remove an HTML item that matches data.ID
  * @param { { ID: string, html: string, innerText:boolean } } data
  */
-async function deleteItemRow(data) {
+function deleteItemRow(data) {
   const { ID } = data
   console.log(`deleteItemRow: for ID: ${ID}`)
   deleteHTMLItem(ID)
@@ -76,7 +77,7 @@ async function completeTask(data) {
   const { ID } = data
   const itemID = ID
   console.log(`completeTask: for ID: ${itemID}`)
-  replaceClassInID(itemID + 'I', "fa-regular fa-circle-check") // adds ticked box icon
+  replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked box icon
   addClassToID(itemID, "checked") // adds colour + line-through
   addClassToID(itemID, "fadeOutAndHide")
   await delay(2000)
@@ -85,7 +86,7 @@ async function completeTask(data) {
   decrementItemCount("totalOpenCount")
   incrementItemCount("totalDoneCount")
   // update the section count, which is identified as the first part of the itemID
-  const sectionID = 'section' + itemID.split('-')[0] + 'Count'
+  const sectionID = `section${itemID.split('-')[0]}Count`
   decrementItemCount(sectionID)
 }
 
@@ -97,7 +98,7 @@ async function completeChecklist(data) {
   const { ID } = data
   const itemID = ID
   console.log(`completeChecklist: for ID: ${itemID}`)
-  replaceClassInID(itemID + 'I', "fa-regular fa-box-check") // adds ticked box icon
+  replaceClassInID(`${itemID}I`, "fa-regular fa-box-check") // adds ticked box icon
   addClassToID(itemID, "checked") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
   await delay(2000)
@@ -106,14 +107,15 @@ async function completeChecklist(data) {
   decrementItemCount("totalOpenCount")
   incrementItemCount("totalDoneCount")
   // update the section count
-  const sectionID = 'section' + ID.split('-')[0] + 'Count'
+  const sectionID = `section${ID.split('-')[0]}Count`
   decrementItemCount(sectionID)
 }
 
-async function showLineInEditor(data) {
-  const { ID } = data
-  console.log(`showLineInEditor: for ID: ${ID}`)
-}
+// TODO: is this actually used? Trying it commented out to see
+// function showLineInEditor(data) {
+//   const { ID } = data
+//   console.log(`showLineInEditor: for ID: ${ID}`)
+// }
 
 /******************************************************************************
  *                       EVENT HANDLERS FOR THE HTML VIEW

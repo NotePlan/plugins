@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 31.3.2023 for v0.3.x by @jgclark
+// Last updated 2.4.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -15,6 +15,7 @@ import { toLocaleDateString, getDateStringFromCalendarFilename } from '@helpers/
 import { clo, logDebug, logError, logInfo, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
+import { filterParasAgainstExcludeFolders } from '@helpers/note'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import { makeBasicParasFromContent } from '@helpers/paragraph'
 import {
@@ -94,7 +95,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       })
       // clo(sortedOpenParas, "daily sortedOpenParas")
       logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-      sections.push({ ID: sectionCount, name: 'Today', description: `from ${toLocaleDateString(today)} daily note`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily" })
+      sections.push({ ID: sectionCount, name: 'Today', description: `from ${toLocaleDateString(today)} daily note`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
       sectionCount++
 
       // TODO: Include context for sub-tasks/checklist?
@@ -106,6 +107,8 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       //-----------------------------------------------------------
       // Get list of open tasks/checklists scheduled to today from other notes, and of the right paragraph type
       let refParas = currentDailyNote ? getReferencedParagraphs(currentDailyNote, false).filter(isOpen).filter((p) => p.content !== '') : []
+      // Remove items referenced from items in 'ignoreFolders'
+      refParas = filterParasAgainstExcludeFolders(refParas, config.includeFolders, true)
       // Remove possible dupes from sync'd lines
       refParas = eliminateDuplicateSyncedParagraphs(refParas)
 
@@ -163,7 +166,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         itemCount++
       })
       // clo(sortedParas, "weekly sortedParas")
-      sections.push({ ID: sectionCount, name: 'This Week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly" })
+      sections.push({ ID: sectionCount, name: 'This Week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
       sectionCount++
       logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} weekly items`)
 
@@ -175,9 +178,11 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       let refParas = currentWeeklyNote
         ? getReferencedParagraphs(currentWeeklyNote, false).filter(isOpen).filter((p) => p.content !== '')
         : []
+      // Remove items referenced from items in 'ignoreFolders'
+      refParas = filterParasAgainstExcludeFolders(refParas, config.includeFolders, true)
+      // Remove possible dupes from sync'd lines
+      refParas = eliminateDuplicateSyncedParagraphs(refParas)
       if (refParas) {
-        // Remove possible dupes from sync'd lines
-        refParas = eliminateDuplicateSyncedParagraphs(refParas)
         // Temporarily extend TParagraph with the task's priority
         refParas = addPriorityToParagraphs(refParas)
         // sort the list only by priority, otherwise leaving order the same
@@ -233,7 +238,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         itemCount++
       })
       // clo(sortedParas, "monthly sortedParas")
-      sections.push({ ID: sectionCount, name: 'This Month', description: `from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly" })
+      sections.push({ ID: sectionCount, name: 'This Month', description: `from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
       sectionCount++
       logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} monthly items`)
 
@@ -246,9 +251,11 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       let refParas = currentMonthlyNote
         ? getReferencedParagraphs(currentMonthlyNote, false).filter(isOpen).filter((p) => p.content !== '')
         : []
+      // Remove items referenced from items in 'ignoreFolders'
+      refParas = filterParasAgainstExcludeFolders(refParas, config.includeFolders, true)
+      // Remove possible dupes from sync'd lines
+      refParas = eliminateDuplicateSyncedParagraphs(refParas)
       if (refParas) {
-        // Remove possible dupes from sync'd lines
-        refParas = eliminateDuplicateSyncedParagraphs(refParas)
         // Temporarily extend TParagraph with the task's priority
         refParas = addPriorityToParagraphs(refParas)
         // sort the list only by priority, otherwise leaving order the same

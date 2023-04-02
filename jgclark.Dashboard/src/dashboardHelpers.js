@@ -30,19 +30,21 @@ import { showMessageYesNo } from '@helpers/userInput'
 //-----------------------------------------------------------------
 // Data types
 
+// details for a section heading
 export type SectionDetails = {
   ID: number,
   name: string,
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,
-  // FAIconColor: string,
+  filename: string,
 }
 
+// an item within a section
 export type SectionItem = {
   ID: string,
   content: string,
-  rawContent: string, // not sure if this will be needed eventually
+  rawContent: string,
   filename: string,
   type: ParagraphType | string,
 }
@@ -54,6 +56,7 @@ const pluginID = 'jgclark.Dashboard'
 
 export type dashboardConfigType = {
   ignoreTasksWithPhrase: string,
+  ignoreFolders: Array<string>,
   includeFolderName: boolean,
   includeTaskContext: boolean,
   windowWidth: number,
@@ -147,6 +150,7 @@ export async function checkForRequiredSharedFiles(): Promise<void> {
  */
 export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, noteTitle: string = "", noteLinkStyle: string = "all"): string {
   try {
+    // logDebug(`makeParaCTLLNPDIH`, `for '${thisItem.ID}' / noteTitle '${noteTitle}' filename '${thisItem.filename}'`)
     // Start with the content of the item
     let output = thisItem.content
 
@@ -255,11 +259,11 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
       // logDebug('makeParaContet...', `- before '${noteLinkStyle}' for <${noteTitle}> ${output}`)
       switch (noteLinkStyle) {
         case 'append': {
-          output = addNoteOpenLinkToString(thisItem, output, noteTitle) + ' ' + makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)
+          output = addNoteOpenLinkToString(thisItem, output) + ' ' + makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)
           break
         }
         case 'all': {
-          output = addNoteOpenLinkToString(thisItem, output, noteTitle)
+          output = addNoteOpenLinkToString(thisItem, output)
           break
         }
       }
@@ -298,21 +302,26 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
 
 /**
  * v2: Make an HTML link showing displayStr, but with href onClick event to show open the 'item' in editor and select the given line content
- * v1: Used to use x-callback method to open a Note (via ite 'noteTitle')
+ * v1: Used to use x-callback method to open a Note (via its 'noteTitle' parameter)
  * @param {SectionItem} item's details, with raw
  * @param {string} displayStr
- * @param {string} noteTitle -- not used in V2
  * @returns {string} transformed output
  */
-export function addNoteOpenLinkToString(item: SectionItem, displayStr: string, noteTitle: string): string {
+export function addNoteOpenLinkToString(item: SectionItem | SectionDetails, displayStr: string): string {
   try {
-    const titleEncoded = encodeURIComponent(noteTitle)
     // Method 1: x-callback
     // return `<a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${displayStr}</a>`
 
     // Method 2: pass request back to plugin
-    // Note: we're overloading the third parameter to pass wanted note title
-    return `<a class="" onClick="onClickDashboardItem('fake','showLineInEditorFromTitle','${titleEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
+    const filenameEncoded = encodeURIComponent(item.filename)
+
+    if (item.rawContent) {
+      // call showLineinEditor... with the filename and rawConetnt
+      return `<a class="" onClick="onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
+    } else {
+      // call showNoteinEditor... with the filename
+      return `<a class="" onClick="onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')">${displayStr}</a>`
+    }
   }
   catch (error) {
     logError('addNoteOpenLinkToString', `${error.message} for input '${displayStr}'`)

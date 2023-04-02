@@ -98,7 +98,7 @@ export async function onClickDashboardItem(data: MessageDataObject) {
         logWarn(pluginJson, `-> unsuccessful call to open title ${wantedTitle} in Editor`)
       }
     }
-    else if (type === 'showLineInEditor') {
+    else if (type === 'showLineInEditorFromFilename') {
       // Handle a show line call simply by opening the note in the main Editor, and then finding and highlighting the line.
       const note = await Editor.openNoteByFilename(filename)
       if (note) {
