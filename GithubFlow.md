@@ -4,7 +4,7 @@ The process of contributing to Noteplan/plugins is the same as contributing to a
 
 ## Creating a Fork
 
-Just head over to the GitHub page and click the "Fork" button. 
+Just head over to the NotePlan Plugins [GitHub page](https://github.com/NotePlan/plugins) and click the "Fork" button. 
 <img width="500" alt="Screen Cap 2023-04-02 at 09 29 36@2x" src="https://user-images.githubusercontent.com/8949588/229366802-404fcaa2-523d-4c27-9803-9e0ba913d01d.png">
 
 You can use all the default settings, which will fork it into your Github account under the name "plugins":
