@@ -5,49 +5,70 @@ The process of contributing to Noteplan/plugins is the same as contributing to a
 ## Creating a Fork
 
 Just head over to the GitHub page and click the "Fork" button. 
+<img width="500" alt="Screen Cap 2023-04-02 at 09 29 36@2x" src="https://user-images.githubusercontent.com/8949588/229366802-404fcaa2-523d-4c27-9803-9e0ba913d01d.png">
 
-This will create a copy of the noteplan/plugins repository in your personal github account.
+You can use all the default settings, which will fork it into your Github account under the name "plugins":
+<img width="500" alt="Screen Cap 2023-04-02 at 09 54 12@2x" src="https://user-images.githubusercontent.com/8949588/229367303-bf504ca1-15fe-4b9f-b8c9-e8b3afcc93fd.png">
 
-It's just that simple. Once you've done that, you can use your favorite git client app to clone your repo or just head straight to the command line in your terminal:
+This will create a fork (copy) of the noteplan/plugins repository in your **personal github account** (e.g. YOUR_GITHUB_USERNAME/plugins). Now we need to get the link to that repository, so Click the green `Code` button and click the overlapping squares icon to copy the link to this repository on your github account. 
+
+<img width="494" alt="Screen Cap 2023-04-02 at 10 10 00@2x" src="https://user-images.githubusercontent.com/8949588/229368157-a02bc0e9-8f82-4c84-8a1e-1556bd2165d8.png">
+
+## Cloning the Repo to your Desktop
+
+Once you have your own fork (on Github.com), you'll need to create a **clone** of that code on your local computer so you can work on it. To do that, you can use any git client app (e.g. the [free Github Desktop app](https://desktop.github.com/) to clone your repo, or if you prefer, skip the app and just head straight to the command line in your terminal:
 
 ```shell
-# Clone your fork to your local machine
-git clone git@github.com:USERNAME/FORKED-PROJECT.git
+# Change directory to where you want to install the plugins project
+cd DIR_PATH
+
+# Clone the fork we just created to your local machine
+git clone https://github.com/YOUR_GITHUB_USERNAME/plugins.git
 ```
+> **Note:** The URL above ^^^ is the one you copied in the previous step.
+
+This will create a clone (aka "working copy") of the repository on your local computer
 
 ## Keeping Your Fork Up to Date
 
 While this isn't an absolutely necessary step, if you plan on doing anything more than just a tiny quick fix, you'll want to make sure you keep your fork up to date by tracking the original "upstream" repo that you forked. To do this, you'll need to add a remote:
 
 ```shell
+# Change directory so you're in the local working copy of the plugins
+cd plugins
+
 # Add 'upstream' repo to list of remotes
-git remote add upstream https://github.com/UPSTREAM-USER/ORIGINAL-PROJECT.git
+git remote add upstream https://github.com/NotePlan/plugins.git
 
 # Verify the new remote named 'upstream'
 git remote -v
 ```
 
-Whenever you want to update your fork with the latest upstream changes, you'll need to first fetch the upstream repo's branches and latest commits to bring them into your repository:
+This should show you two sets of "remotes": 
+- push/pull to your repository on github
+- push/pull to the main NotePlan/plugins (upstream) repository
+
+To keep your fork/working copy updated with the latest upstream changes (changes in the main NotePlan repository), you'll need to first fetch the upstream repo's branches and latest commits to bring them into your repository:
 
 ```shell
 # Fetch from upstream remote
 git fetch upstream
-
-# View all branches, including those from upstream
-git branch -va
 ```
 
-Now, checkout your own master branch and merge the upstream repo's master branch:
+Now, checkout your own main (master) branch and merge the upstream repo's main branch:
+
+> ***NOTE:*** NotePlan's master branch is "main". So if you see instructions on the Internet for git-related things that tell you to do something to "master", just replace that with "main"
 
 ```shell
-# Checkout your master branch and merge upstream
-git checkout master
-git merge upstream/master
+# Checkout your main branch and merge the upstream changes into your local copy
+git checkout main
+# You will already be on the main branch by default unless you have created/switched to a branch
+git merge upstream/main
 ```
 
-If there are no unique commits on the local master branch, git will simply perform a fast-forward. However, if you have been making changes on master (in the vast majority of cases you probably shouldn't be - [see the next section](#doing-your-work), you may have to deal with conflicts. When doing so, be careful to respect the changes made upstream.
+If there are no conflicting commits on your local master/main branch, git will simply perform a "fast-forward" (it will bring all the latest NotePlan/plugins commits into your working copy). However, if you have been making changes on your master/main (in the vast majority of cases you probably shouldn't be - [see the next section](#doing-your-work), you may have to deal with conflicts. When doing so, be careful to respect the changes made upstream.
 
-Now, your local master branch is up-to-date with everything modified upstream.
+Now, your local master/main branch is up-to-date with everything modified upstream.
 
 ## Doing Your Work
 
@@ -57,8 +78,8 @@ Whenever you begin work on a new feature or bugfix, it's important that you crea
 To create a new branch and start working on it:
 
 ```shell
-# Checkout the master branch - you want your new branch to come from master
-git checkout master
+# Checkout the master/main branch - you always want your new branch to always be based on main
+git checkout main
 
 # Create a new branch named newfeature (give your branch its own simple informative name)
 git branch newfeature
@@ -67,93 +88,67 @@ git branch newfeature
 git checkout newfeature
 ```
 
-Now, go to town hacking away and making whatever changes you want to.
+Now, go to town hacking away and making whatever changes you want to. You should add files and make local commits to your repository as you work. [Read this](https://support.atlassian.com/bitbucket-cloud/docs/add-edit-and-commit-to-source-files/) for more information. A good rule of thumb is to do a commit each time you add a new file or get some meaningful piece of code working. Committing along the way gives you a "save point" that you could roll back to if things go wrong along the way. This will cause you to have lots of commits, but we will clean that up later before issuing a pull request.
 
-## Submitting a Pull Request
+When you want to submit your changes to be potentially included in the main/public NotePlan plugins repository, you will want to create a [Pull Request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests).
+
+## Submitting a Pull Request to NotePlan
 
 ### Cleaning Up Your Work
 
-Prior to submitting your pull request, you might want to do a few things to clean up your branch and make it as simple as possible for the original repo's maintainer to test, accept, and merge your work.
+Prior to submitting your pull request, you should do a few things to clean up your branch and make it as simple as possible for the NotePlan repo's maintainers to test, accept, and merge your work.
 
-If any commits have been made to the upstream master branch, you should rebase your development branch so that merging it will be a simple fast-forward that won't require any conflict resolution work.
+The first step is to make sure there are no changes on the main NotePlan repository that you haven't merged locally.  
 
 ```shell
-# Fetch upstream master and merge with your repo's master branch
+# Fetch upstream master/main and merge with your repo's master/main branch
 git fetch upstream
-git checkout master
-git merge upstream/master
+git checkout main
+git merge upstream/main
 
-# If there were any new commits, rebase your development branch
+# If you see any new commits on main mentioned, you will need to rebase your development branch
 git checkout newfeature
-git rebase master
+git rebase main
 ```
 
 Now, it may be desirable to squash some of your smaller commits down into a small number of larger more cohesive commits. You can do this with an interactive rebase:
 
 ```shell
 # Rebase all commits on your development branch
-git checkout 
-git rebase -i master
+git checkout newfeature
+git rebase -i main
 ```
 
-This will open up a text editor where you can specify which commits to squash.
+This will open up a text editor where you can specify which commits to squash. [Read this](https://medium.com/@slamflipstrom/a-beginners-guide-to-squashing-commits-with-git-rebase-8185cf6e62ec) for more information.
+
+### Pushing your changes to Github
+
+Now that you have changes committed locally on your computer, you need to push them up to your Github forked repository.
+
+```shell
+# push local changes to your github repository as a feature branch
+git push origin newfeature
+```
 
 ### Submitting
 
-Once you've committed and pushed all of your changes to GitHub, go to the page for your fork on GitHub, select your development branch, and click the pull request button. If you need to make any adjustments to your pull request, just push the updates to GitHub. Your pull request will automatically track the changes on your development branch and update.
+Once you've committed and pushed all of your changes to GitHub, go to the page for your fork on GitHub.com, select your development branch, and click the pull request button. Fill out the description and submit the request for consideration.
 
-## Accepting and Merging a Pull Request
+### Making Changes
 
-Take note that unlike the previous sections which were written from the perspective of someone that created a fork and generated a pull request, this section is written from the perspective of the original repository owner who is handling an incoming pull request. Thus, where the "forker" was referring to the original repository as `upstream`, we're now looking at it as the owner of that original repository and the standard `origin` remote.
+If you need to make any adjustments to code in your pull request (either thoughts you had or requests from the NotePlan repo maintainer), you can just just `git push` new changes/updates to the branch you submitted for a pull request. Github will automatically update the pull request with your new code.
 
-### Checking Out and Testing Pull Requests
-Open up the `.git/config` file and add a new line under `[remote "origin"]`:
+### Clean-up
 
-```
-fetch = +refs/pull/*/head:refs/pull/origin/*
-```
-
-Now you can fetch and checkout any pull request so that you can test them:
-
-```shell
-# Fetch all pull request branches
-git fetch origin
-
-# Checkout out a given pull request branch based on its number
-git checkout -b 999 pull/origin/999
-```
-
-Keep in mind that these branches will be read only and you won't be able to push any changes.
-
-### Automatically Merging a Pull Request
-In cases where the merge would be a simple fast-forward, you can automatically do the merge by just clicking the button on the pull request page on GitHub.
-
-### Manually Merging a Pull Request
-To do the merge manually, you'll need to checkout the target branch in the source repo, pull directly from the fork, and then merge and push.
-
-```shell
-# Checkout the branch you're merging to in the target repo
-git checkout master
-
-# Pull the development branch from the fork repo where the pull request development was done.
-git pull https://github.com/forkuser/forkedrepo.git newfeature
-
-# Merge the development branch
-git merge newfeature
-
-# Push master with the new feature merged into it
-git push origin master
-```
-
-Now that you're done with the development branch, you're free to delete it.
+After your PR is accepted and you're done with the development branch, you're free to delete it.
 
 ```shell
 git branch -d newfeature
 ```
 
-
-
 **Copyright**
+
+Credits: Instructions based on [this gist](https://gist.githubusercontent.com/Chaser324/ce0505fbed06b947d962/raw/23b18d33a8e1a512c53155aabdf97042d8c63768/GitHub-Forking.md)
 
 Copyright 2017, Chase Pettit
 
@@ -166,6 +161,3 @@ MIT License, http://www.opensource.org/licenses/mit-license.php
 * [GitHub - Fork a Repo](https://help.github.com/articles/fork-a-repo)
 * [GitHub - Syncing a Fork](https://help.github.com/articles/syncing-a-fork)
 * [GitHub - Checking Out a Pull Request](https://help.github.com/articles/checking-out-pull-requests-locally)
-
-
-Credits: Instructions based on [this gist](https://gist.githubusercontent.com/Chaser324/ce0505fbed06b947d962/raw/23b18d33a8e1a512c53155aabdf97042d8c63768/GitHub-Forking.md)
