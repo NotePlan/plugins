@@ -34,12 +34,9 @@ If you are a developer and want to contribute and build your plugins, see the [p
 
 ### Getting Started with Plugin Development
 
-**Step 1: Clone NotePlan Plugin Repository**
+**Step 1: Forking/Cloning NotePlan Plugin Repository**
 
-1) Fork this repository
-
-
-
+Read the instructions [[GithubFlow]] for how to fork and clone this code
 
 **Step 1.5 Have a look at the code**
 
