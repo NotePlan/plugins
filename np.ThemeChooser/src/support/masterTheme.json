@@ -662,17 +662,51 @@
       "description": "Color tiimeblocks differently from separate them from normal text",
       "example": "\t* [ ] 12:00-12:30 task with timeblock"
     },
-    "hidden-comment-percents": {
-      "dbwnote": "replacing this with the more extensive one from qualitativeeasing",
-      "regex": "(%%)([^%]+)(%%)",
+    "inline-comment": {
+      "regex": "(%%)(([^%]+%?)+)(%%)",
       "matchPosition": 2,
       "isRevealOnCursorRange": true,
       "isHiddenWithoutCursor": true,
       "color": "#888888"
     },
-    "hidden-comment-percents_info": {
-      "description": "Hide comments in a line (e.g. related to a task) between two % signs on either side",
+    "inline-comment_info": {
+      "description": "Hide comments in the middle of a line (e.g. related to a task) between two % signs on either side",
       "example": "\tWhen this is in your theme you shouldn't see inside %% ***these words*** %% (until you click in the middle of the % signs to expose the text"
+    },
+    "inline-comment-left": {
+        "regex": "(%%)(([^%]+%?)+)(%%)",
+        "matchPosition": 1,
+        "isMarkdownCharacter": true,
+        "color": "#88818475"
+    },
+    "inline-comment-right": {
+        "regex": "(%%)(([^%]+%?)+)(%%)",
+        "matchPosition": 4,
+        "isMarkdownCharacter": true,
+        "isHiddenWithoutCursor": true,
+        "isRevealOnCursorRange": true,
+        "color": "#88818475"
+    },
+    "end-of-line-comment-hide": {
+      "regex": "(.*)( // )(.*)",
+      "matchPosition": 3,
+      "isHiddenWithoutCursor": true,
+      "color": "#AA888888"
+    },
+    "end-of-line-comment-hide_info": {
+      "description": "This and the following `end-of-line...` commands hide text at the end of a line (e.g. related to a task) everything after `//` is hidden until you click on the line. Add/enable them all to get the full effect.",
+      "example": "\tWhen this is in your theme you shouldn't see beyond these slashes --> // (until you click on the line to expose the text)"
+    },
+    "end-of-line-comment-show": {
+        "regex": "(.* // .*)",
+        "matchPosition": 1,
+        "isRevealOnCursorRange": true
+    },
+    "end-of-line-comment-slash": {
+        "regex": "(.*)( // )",
+        "matchPosition": 2,
+        "isMarkdownCharacter": true,
+        "color": "#445B5B59"
     },
     "sotto-voce-comment": {
       "color": "#A9A9A9",

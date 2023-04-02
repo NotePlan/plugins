@@ -1,5 +1,13 @@
 # np.ThemeChooser Changelog
 
+## [1.6.1] 2023-03-31 @dwertheimer
+
+- Adding fancier version of inline comment hide
+
+## [1.6.0] 2023-03-31 @dwertheimer
+
+- Adding end-of-line-comment-hide
+
 ## [1.5.10] 2023-03-27 @dwertheimer
 
 - Added messaging about shouldOverwriteFont
