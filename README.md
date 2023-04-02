@@ -36,7 +36,10 @@ If you are a developer and want to contribute and build your plugins, see the [p
 
 **Step 1: Clone NotePlan Plugin Repository**
 
-[Clone this repository](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository-from-github/cloning-a-repository)
+1) Fork this repository
+
+
+
 
 **Step 1.5 Have a look at the code**
 
@@ -88,32 +91,21 @@ _Note: Each of these configuration files can be overridden if needed by placing 
 
 Using the NotePlan CLI, perform the following actions:
 
-**Step 1: Review List of Available Plugins**
-
-> **TIP:** noteplan-cli can also be run by its shorter alias: `npc`
-
-`noteplan-cli plugin:info` to see a list of all available commands across all existing NotePlan plugins.
-
-**Step 2: Check if your desired plugin command is available**
-
-You will need to make sure there are no duplicate plugin command names, otherwise NotePlan will activate the first matched command name
-`noteplan-cli plugin:info --check <name>` to see if your plugin command is available
-
-**Step 3: Create your plugin using NotePlan CLI**
+**Step 1: Create your plugin using NotePlan CLI**
 Answer the prompt questions (or supply all the necessary options from command line (see `noteplan-cli plugin:create --help` for details)
 
 `noteplan-cli plugin:create`
 
-**Step 4: Startup Auto Watch Process**
+**Step 2: Startup Auto Watch Process**
 
 Open up a Terminal shell, `cd` to the repository root directory, and issue the command:
 `npc plugin:dev <your_plugin_folder> --watch` from the root directory to build your plugin as you develop so it can be tested in NotePlan. This will compile your code and put it into your NotePlan app directory so you can test your plugin. The `--watch` flag keeps the process looking for changes to your files and will automatically rebuild the plugin for you. (more on that below)
 
-**Step 5: Start your plugin command develop and test locally**
+**Step 3: Start your plugin command develop and test locally**
 
 You can now develop and test your plugin locally,
 
-**Step 6: Create Pull Request (if you wish to make your plugin public)**
+**Step 4: Create Pull Request (if you wish to make your plugin public)**
 
 At this point, if you would like to make your plugin available publicly, you can proceed to [creating Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to the NotePlan Plugin Repository (see information below)
 
@@ -181,14 +173,6 @@ npc plugin:test codedungeon.Toolbox --watch --silent
 npc plugin:test codedungeon.Toolbox -ws
 ```
 
-#### npc plugin:info
-
-Obtain information about any NotePlan Plugin
-
-```shell
-npc plugin:info <plugin> [options]
-```
-
 #### npc plugin:create
 
 Create new NotePlan Plugin
@@ -237,7 +221,6 @@ The common script you will run `npc plugin:dev <plugin>` however, you may need t
 - `npc plugin:dev <plugin> -wcn` watcher, compact mode, notify using CLI shorthand
 - `npc plugin:dev <plugin> -tw` test mode, watcher using CLI shorthand
 - `npc plugin:test <plugin> -w` test mode, using `test` command
-- `npc plugin:info --check <name>` to check if you desired command name is in use by any other NotPlan Plugins
 <!-- - `npm run build`: Will build all the plugins into single files (where needed) -->
 - `npm run typecheck`: typecheck all javascript files with `Flow`. Only files with a `// @flow` comment are checked.
 - `npm run fix`: lint and auto-format
