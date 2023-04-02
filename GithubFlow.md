@@ -31,7 +31,7 @@ This will create a clone (aka "working copy") of the repository on your local co
 
 ## Keeping Your Fork Up to Date
 
-While this isn't an absolutely necessary step, if you plan on doing anything more than just a tiny quick fix, you'll want to make sure you keep your fork up to date by tracking the original "upstream" repo that you forked. To do this, you'll need to add a remote:
+Over time, you'll want to make sure you keep your fork up to date by tracking the original "upstream" repo that you forked. To do this, you'll need to add a remote:
 
 ```shell
 # Change directory so you're in the local working copy of the plugins
@@ -48,6 +48,8 @@ This should show you two sets of "remotes":
 - push/pull to your repository on github
 - push/pull to the main NotePlan/plugins (upstream) repository
 
+### Keeping your fork up-to-date
+
 To keep your fork/working copy updated with the latest upstream changes (changes in the main NotePlan repository), you'll need to first fetch the upstream repo's branches and latest commits to bring them into your repository:
 
 ```shell
@@ -62,7 +64,7 @@ Now, checkout your own main (master) branch and merge the upstream repo's main b
 ```shell
 # Checkout your main branch and merge the upstream changes into your local copy
 git checkout main
-# You will already be on the main branch by default unless you have created/switched to a branch
+# Note: You will already be on the main branch by default unless you have created/switched to a branch
 git merge upstream/main
 ```
 
