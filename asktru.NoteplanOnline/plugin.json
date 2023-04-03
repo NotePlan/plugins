@@ -7,8 +7,6 @@
   "plugin.lastUpdateInfo": "First working prototype of the plugin.",
   "plugin.description": "This is aimed to be the improved version of NotePlan Publish built-in feature. It should allow you to refresh published version of the page manually, password-protect your shared note and also support advanced NP-specific markup like tasks, priorities, inline comments and etc. In the future it will also support recursive sharing of the linked notes.",
   "plugin.author": "Anton Skliar",
-  "plugin.requiredFiles-EDIT_ME": ["html-plugin-comms.js"],
-  "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/asktru.NoteplanOnline/README.md",
@@ -17,7 +15,7 @@
     {
       "name": "publish", 
       "alias": ["pub"],
-      "description": "Publishes current note to NotePlan Online and inserts published page URL into then note", 
+      "description": "Publishes current note to NotePlan Online and inserts the secret link into the note",
       "jsFunction": "publish",
       "arguments": [ ]
     },
