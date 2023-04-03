@@ -10,6 +10,7 @@ dist/
 .vscode/launch.json
 */script.js
 .vscode/
+.nova/
 .pluginsrc
 .idea/
 lcov*

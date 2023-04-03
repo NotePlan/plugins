@@ -1,0 +1,171 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "asktru.NoteplanOnline",
+  "plugin.name": "🌐 NotePlan Online",
+  "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "First working prototype of the plugin.",
+  "plugin.description": "This is aimed to be the improved version of NotePlan Publish built-in feature. It should allow you to refresh published version of the page manually, password-protect your shared note and also support advanced NP-specific markup like tasks, priorities, inline comments and etc. In the future it will also support recursive sharing of the linked notes.",
+  "plugin.author": "Anton Skliar",
+  "plugin.requiredFiles-EDIT_ME": ["html-plugin-comms.js"],
+  "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/asktru.NoteplanOnline/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/asktru.NoteplanOnline/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "name": "publish", 
+      "alias": ["pub"],
+      "description": "Publishes current note to NotePlan Online and inserts published page URL into then note", 
+      "jsFunction": "publish",
+      "arguments": [ ]
+    },
+    {
+      "name": "unpublish", 
+      "alias": ["unp", "unpub"],
+      "description": "Removes the published version of the note from the server and destroys the secret link", 
+      "jsFunction": "unpublish",
+      "arguments": [ ]
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "NotePlan Online: Version",
+      "description": "Update + Check Version",
+      "jsFunction": "versionCheck"
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onOpen",
+      "jsFunction": "onOpen",
+      "hidden": true
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onEditorWillSave",
+      "jsFunction": "onEditorWillSave",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onMessageFromHTMLView",
+      "description": "asktru.NoteplanOnline: Callback function to receive messages from HTML view",
+      "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "NotePlan Online: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "NotePlan Online Settings"
+    },
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "asktru.NoteplanOnline",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+
+    {
+      "type": "heading",
+      "title": "Security"
+    },
+    {
+      "key": "secret",
+      "title": "Password for published notes (32 characters long)",
+      "description": "Your password is used to encrypt your notes before publishing as well as to open those notes at noteplan.online (can be generated automatically or updated manually)",
+      "type": "string",
+      "required": false
+    },
+    {
+      "key": "appendSecret",
+      "title": "Append the password to the URL inserted into the note",
+      "description": "If you enable this option, the secret to decrypt the note on the server will be appended to the note URL so that you do not have to enter the password manually. This is more convenient but less secure.",
+      "type": "bool",
+      "required": false
+    },
+    {
+      "key": "accessKey",
+      "title": "Access key for updating and unpublishing notes",
+      "description": "Automatically generated secret key that is used under the hood so that only you will be able to securely update or delete published notes from noteplan.online",
+      "type": "string",
+      "required": false
+    },
+    
+    {
+      "type": "heading",
+      "title": "Frontmatter"
+    },
+    {
+      "key": "linkText",
+      "title": "Text of the link",
+      "description": "Text of the NotePlan Online public URL that will be inserted into the note after publishing",
+      "type": "string",
+      "required": true,
+      "default": "NotePlan Online 🌐"
+    },
+    {
+      "key": "frontmatterLink",
+      "title": "Publish Link Line",
+      "type": "string",
+      "required": true,
+      "default": "Shared URL"
+    },
+    {
+      "key": "frontmatterDate",
+      "title": "Last Publish Date Line",
+      "type": "string",
+      "required": true,
+      "default": "Last Updated"
+    },
+    {
+      "key": "frontmatterXCallback",
+      "title": "X-Callback Links Line",
+      "description": "Leave empty if you do not want to insert the republish x-callback url link into the note.",
+      "type": "string",
+      "required": true,
+      "default": "Quick Links"
+    },
+    {
+      "key": "frontmatterEmails",
+      "title": "Emails List Line",
+      "type": "string",
+      "required": true,
+      "default": "Grant Access"
+    },
+    
+    {
+      "type": "separator"
+    },    
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing NotePlan Online commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}
