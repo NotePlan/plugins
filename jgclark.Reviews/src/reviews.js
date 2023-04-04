@@ -1089,7 +1089,7 @@ export async function renderProjectLists(): Promise<void> {
 export async function redisplayProjectListHTML(): Promise<void> {
   try {
     // Currently only 1 HTML window is allowed
-    logWindowsList()
+    // logWindowsList()
     // Re-load the saved HTML if it's available.
     const config = await getReviewSettings()
     if (config._logLevel === 'DEBUG') {
