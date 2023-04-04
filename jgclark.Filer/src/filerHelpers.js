@@ -2,14 +2,13 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Filer plugin.
 // Jonathan Clark
-// last updated 18.3.2023, for v1.1.0
+// last updated 22.3.2023, for v1.1.0+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { clo, JSP, logDebug, logError } from '@helpers/dev'
 import { getSetting } from '@helpers/NPConfiguration'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -99,19 +98,5 @@ export function addParasAsText(
   } else {
     // Shouldn't get here
     logError(pluginJson, `Can't find heading '${headingToFind}'. Stopping.`)
-  }
-}
-
-/**
- * Update Settings/Preferences (for iOS etc)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
- */
-export async function updateSettings() {
-  try {
-    logDebug(pluginJson, `updateSettings running`)
-    await editSettings(pluginJson)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
   }
 }

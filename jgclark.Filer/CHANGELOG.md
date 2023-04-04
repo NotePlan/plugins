@@ -1,6 +1,11 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.1.0] - 2023-03-???
+### Added
+- command to edit settings, even on iOS
+
+
 ## [1.1.0-beta2] - 2023-03-19
 ### Added
 - new setting "Types of lines to file" for the **/...note link...** commands to choose what sorts of lines to move/copy:

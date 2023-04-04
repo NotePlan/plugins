@@ -42,7 +42,10 @@ There are 4 related commands that move or copy lines in calendar notes that incl
 - **/copy note links**
 - **/copy note links (recently changed)**
 
-![note link demo](note-link-example1.gif)
+For example, if you collect tasks and notes on 3 different main areas in your daily note, you might want to copy or move those to different 'progress log' notes at the end of each day: ![project log overview](project-log-jordon-view.jpg)
+
+In practice running /copy note links command on a daily note can implement:
+![note link demo using /copy note links command](note-link-example1.gif)
 
 There are a number of settings to make it useful for a variety of ways of organising your notes:
 
