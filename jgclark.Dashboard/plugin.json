@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.3.6",
+  "plugin.version": "0.3.7",
   "plugin.lastUpdateInfo": "v0.3.6: small bits of polish.\nv0.3.5: adds months to output.\nv0.3.4: adds width/height settings; equalises font size with NP.\nv0.3.2: improved trigger's detection of relevant changes.\nv0.3.0: will auto-update if trigger set on daily/weekly notes.",
   "plugin.requiredFiles": [
     "commsSwitchboard.js",
