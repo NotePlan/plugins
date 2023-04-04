@@ -24,6 +24,7 @@ import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
+import { isOpen } from '@helpers/utils'
 
 
 //------------------------------------------------------------------------------
@@ -788,7 +789,8 @@ export async function runSearchV2(
         const noteList = getProjectNotesInFolder(f) // does not include any sub-folders
         logDebug('runSearchV2', `- checking ${noteList.length} notes in folder '${f}'`)
         for (const n of noteList) {
-          const theseResults = n.paragraphs?.filter((p) => p.type === 'open') ?? []
+          const theseResults = n.paragraphs?.filter(isOpen)// TEST: me replacing line below
+          // const theseResults = n.paragraphs?.filter((p) => p.type === 'open') ?? []
           resultParas.push(...theseResults)
         }
       }
