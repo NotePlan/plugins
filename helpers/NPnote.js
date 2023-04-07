@@ -25,7 +25,7 @@ const pluginJson = 'NPnote.js'
  * Get a note's filename from (in order):
  * - its title (for a project note)
  * - for date intervals '{+/-N[dwmqy}' calculate the date string relative to today
- * - for calendar notes, from it's date string
+ * - for calendar notes, from it's date string (e.g. YYYYMMDD, YYYY-Wnn etc.)
  * @param {string} title of project note, or NotePlan's (internal) calendar date string
  * @returns {string} filename of note if found, or null
  */
