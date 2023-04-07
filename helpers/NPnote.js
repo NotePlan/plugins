@@ -3,22 +3,64 @@
 // Note-level Functions that require NP API calls
 
 // import moment from 'moment/min/moment-with-locales'
-import { getBlockUnderHeading } from './NPParagraph'
 import {
+  calcOffsetDateStrUsingCalendarType,
   getTodaysDateHyphenated,
-  // WEEK_NOTE_LINK
+  isValidCalendarNoteDateStr,
+  RE_OFFSET_DATE,
+  RE_OFFSET_DATE_CAPTURE,
 } from '@helpers/dateTime'
-// import { getNPWeekData } from '@helpers/NPdateTime'
 import { JSP, log, logError, logDebug, timer, clo } from '@helpers/dev'
 import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
 import { ensureFrontmatter } from '@helpers/NPFrontMatter'
-// import { displayTitle } from '@helpers/general'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { getBlockUnderHeading } from '@helpers/NPParagraph'
 import { showMessage } from '@helpers/userInput'
 
 const pluginJson = 'NPnote.js'
 
 //-------------------------------------------------------------------------------
+
+/**
+ * Get a note's filename from (in order):
+ * - its title (for a project note)
+ * - for date intervals '{+/-N[dwmqy}' calculate the date string relative to today
+ * - for calendar notes, from it's date string
+ * @param {string} title of project note, or NotePlan's (internal) calendar date string
+ * @returns {string} filename of note if found, or null
+ */
+export function getNoteFilenameFromTitle(titleIn: string): string | null {
+  let thisFilename = ''
+  const possibleProjectNotes = DataStore.projectNoteByTitle(titleIn) ?? []
+  if (possibleProjectNotes.length > 0) {
+    thisFilename = possibleProjectNotes[0].filename
+    logDebug('NPnote/getNoteFilenameFromTitle', `-> found project note '${thisFilename}'`)
+    return thisFilename
+  }
+  // Not a project note, so look at calendar notes
+  let dateString = titleIn
+  if (new RegExp(RE_OFFSET_DATE).test(dateString)) {
+    // this is a date interval, so -> date string relative to today
+    const thisOffset = dateString.match(new RegExp(RE_OFFSET_DATE_CAPTURE))[1]
+    dateString = calcOffsetDateStrUsingCalendarType(thisOffset)
+    logDebug('NPnote/getNoteFilenameFromTitle', `found offset date ${thisOffset} -> '${dateString}'`)
+  }
+  if (isValidCalendarNoteDateStr(dateString)) {
+    const thisNote = DataStore.calendarNoteByDateString(dateString)
+    if (thisNote) {
+      thisFilename = thisNote.filename
+      logDebug('NPnote/getNoteFilenameFromTitle', `-> found calendar note '${thisFilename}' from ${dateString}`)
+      return thisFilename
+    } else {
+      logError('NPnote/getNoteFilenameFromTitle', `${dateString} doesn't seem to have a calendar note?`)
+    }
+  } else {
+    logError('NPnote/getNoteFilenameFromTitle', `${dateString} is not a valid date string`)
+  }
+  logError('NPnote/getNoteFilenameFromTitle', `-> no note found for '${titleIn}'`)
+  return null
+}
+
 /**
  * Return array of all project notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
  * @author @jgclark
