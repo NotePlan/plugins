@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 2.4.2023 for v0.3.x by @jgclark
+// Last updated 7.4.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -9,13 +9,14 @@ import moment from 'moment/min/moment-with-locales'
 import { getDataForDashboard } from './dataGeneration'
 import { getDemoDashboardData } from './demoDashboard'
 import {
-  addNoteOpenLinkToString, checkForRequiredSharedFiles, getSettings,
+  addNoteOpenLinkToString, getSettings,
   makeParaContentToLookLikeNPDisplayInHTML,
   type SectionDetails, type SectionItem
 } from './dashboardHelpers'
 import { toLocaleTime, getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
+import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
 import { showHTML } from '@helpers/HTMLView'
 import { getNoteType } from '@helpers/note'
@@ -85,7 +86,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
     // }
 
     const config = await getSettings()
-    await checkForRequiredSharedFiles()
+    await checkForRequiredSharedFiles(pluginJson)
     let sections: Array<SectionDetails> = []
     let sectionItems: Array<SectionItem> = []
 
@@ -127,23 +128,39 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
         continue // to next loop item
       }
 
-      // Prepare col 1 (section icon)
-      outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
-
-      // Prepare col 2 (section title)
-      // First prepend a sectionNCount ID and populate it. This needs a span with an ID so that it can be updated later.
+      // Prepare col 1 (section icon + title + description)
+      // Now prepend a sectionNCount ID and populate it. This needs a span with an ID so that it can be updated later.
       const sectionCountID = `section${String(section.ID)}Count`
       const sectionCountPrefix = `<span id="${sectionCountID}">${String(items.length)}</span>`
       const sectionNameWithPossibleLink = (section.filename)
         ? addNoteOpenLinkToString(section, section.name)
         : section.name
-      // FIXME: add to the generator for s1 and s3 and s5
+      outputArray.push(` <tr>\n  <td style="min-width:7rem; max-width: 9rem;"><p class="${section.sectionTitleClass} sectionName"><i class="${section.FAIconClass} pad-right"></i>${sectionNameWithPossibleLink}</p>`)
+
       if (items.length > 0) {
-        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${sectionNameWithPossibleLink}</span><br /><span class="sectionDescription">${sectionCountPrefix} ${section.description}</span></td>`)
+        outputArray.push(`   <p class="sectionDescription">${sectionCountPrefix} ${section.description}</p></td>`)
       } else {
         // add a simpler version of the line
-        outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${sectionNameWithPossibleLink}</span></td>`)
+        outputArray.push(`   </td>`)
       }
+
+      // // Prepare col 1 (section icon)
+      // outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
+
+      // // Prepare col 2 (section title)
+      // // First prepend a sectionNCount ID and populate it. This needs a span with an ID so that it can be updated later.
+      // const sectionCountID = `section${String(section.ID)}Count`
+      // const sectionCountPrefix = `<span id="${sectionCountID}">${String(items.length)}</span>`
+      // const sectionNameWithPossibleLink = (section.filename)
+      //   ? addNoteOpenLinkToString(section, section.name)
+      //   : section.name
+      // // FIXME: add to the generator for s1 and s3 and s5
+      // if (items.length > 0) {
+      //   outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${sectionNameWithPossibleLink}</span><br /><span class="sectionDescription">${sectionCountPrefix} ${section.description}</span></td>`)
+      // } else {
+      //   // add a simpler version of the line
+      //   outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${sectionNameWithPossibleLink}</span></td>`)
+      // }
 
       // Start col 3: table of items in this section
       outputArray.push(`  <td>`)

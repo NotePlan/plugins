@@ -76,8 +76,10 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
       itemCount++
     })
     const todayStr = "2023-03-02"
-    sections.push({ ID: sectionCount, name: 'Today', description: `from daily note for ${todayStr}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily" })
+    sections.push({ ID: sectionCount, name: 'Today', description: `from daily note for ${todayStr}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: todayStr + '.md' })
     sectionCount++
+
+    //-----------------------------------------------------------
 
     const sortedRefParas = [
       {
@@ -195,7 +197,6 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
         "note": {}
       },
     ]
-    // make a sectionItem for each item, and then make a section too.
     itemCount = 0
     sortedRefParas.map((p) => {
       const thisID = `${sectionCount}-${itemCount}`
@@ -204,10 +205,10 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
       })
       itemCount++
     })
-    sections.push({ ID: sectionCount, name: 'Today', description: `scheduled to today from other notes`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily" })
+    sections.push({ ID: sectionCount, name: 'Today', description: `scheduled to today from other notes`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: "" })
     sectionCount++
 
-    const openWeekParas = [
+    const demoOpenWeekParas: Array<TParagraph> = [
       {
         "priority": 2,
         "type": "open",
@@ -328,9 +329,8 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
         "note": {}
       },
     ]
-    // make a sectionItem for each item, and then make a section too.
     itemCount = 0
-    openWeekParas.map((p) => {
+    demoOpenWeekParas.map((p) => {
       const thisID = `${sectionCount}-${itemCount}`
       sectionItems.push({
         ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename, type: p.type
@@ -341,7 +341,7 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
     sections.push({ ID: sectionCount, name: 'This Week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly" })
     sectionCount++
 
-    const sortedWeekRefParas = [
+    const demoSortedWeekRefParas: Array<TParagraph> = [
       {
         "priority": -1,
         "type": "open",
@@ -409,16 +409,15 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
         "note": {}
       },
     ]
-    // make a sectionItem for each item, and then make a section too.
     itemCount = 0
-    sortedWeekRefParas.map((p) => {
+    demoSortedWeekRefParas.map((p) => {
       const thisID = `${sectionCount}-${itemCount}`
       sectionItems.push({
         ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename, type: p.type
       })
       itemCount++
     })
-    sections.push({ ID: sectionCount, name: 'This week', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly" })
+    sections.push({ ID: sectionCount, name: 'This week', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly", filename: "" })
     sectionCount++
 
     // Monthly note
@@ -498,17 +497,13 @@ export function getDemoDashboardData(): [Array<SectionDetails>, Array<SectionIte
       itemCount++
     })
     sections.push({
-      ID: sectionCount,
-      name: 'Projects',
-      description: `next projects to review`,
-      FAIconClass: 'fa-regular fa-calendar-check',
-      sectionTitleClass: 'sidebarYearly',
+      ID: sectionCount, name: 'Projects', description: `next projects to review`, FAIconClass: 'fa-regular fa-calendar-check', sectionTitleClass: 'sidebarYearly', filename: "",
     })
     logDebug('setDemoDashboardData', `getDataForDashboard finished, with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
     return [sections, sectionItems]
-  } catch (error) {
+  }
+  catch (error) {
     logError('setDemoDashboardData', error.message)
     return [[], []] // for completeness
   }
-
 }
