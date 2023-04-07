@@ -1,6 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
-<!-- - trying again with simpler focus window where we can ??? -->
+
+## [0.4.0] - 2023-04-08 (first public release)
+### Added
+- supports open items in quarterly notes too
+- new setting '"Show referenced items in separate section?" This controls whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes.\nThe same also goes for Weekly/Monthly/Quarterly notes.
+
 ## [0.3.7] - 2023-04-02 (private beta 5)
 ### Fixed
 - regression resulting from new settings 'excluded folders'
