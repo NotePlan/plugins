@@ -110,7 +110,7 @@ declare interface TEditor extends CoreNoteFields {
     highlightStart?: number,
     highlightEnd?: number,
     splitView?: boolean,
-    createIfNeeded?: false,
+    createIfNeeded ?: boolean,
     content?: string,
   ): Promise<TNote | void>;
   openNoteByFilename(

@@ -3,13 +3,13 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.WindowSets",
   "plugin.name": "🖥️ Window Sets",
-  "plugin.description": "Allows you to save particular window sets or layouts on macOS.",
+  "plugin.description": "Allows you to easily save and restore particular sets of windows on macOS.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/CHANGELOG.md",
   "plugin.version": "0.1.0",
-  "plugin.lastUpdateInfo": "v0.1: First version.",
+  "plugin.lastUpdateInfo": "v0.1: First release, with basic save and restore functions.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -31,7 +31,7 @@
         "window",
         "set"
       ],
-      "description": "Save the current windows/panes as a layout set",
+      "description": "Save the current windows/panes as a named set",
       "jsFunction": "saveWindowSet"
     },
     {
@@ -54,7 +54,167 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Windows Sets settings"
+      "title": "Window Sets General settings"
+    },
+    {
+      "key": "closeOtherWindows",
+      "title": "Close other windows which aren't in the set?",
+      "description": "When opening/restoring a window set, this controls whether existing open floating/split windows that aren't in the set are closed.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Window Set 1 settings"
+    },
+    {
+      "key": "windowSet1Name",
+      "title": "Name of Set",
+      "description": "Name used to identify this window set.",
+      "type": "string",
+      "default": "Last week, this week, next week",
+      "required": true
+    },
+    {
+      "key": "windowSet1",
+      "title": "Notes in Set",
+      "description": "Comma-separated list of note titles to open in the set. If the note title includes a comma, then enclose the title in quotes.\nSpecific Calendar notes can be specified using their internal titles (examples: 2023, 2023-Q3, 2023-09, 2023-W44, 2023-09-03), or as relative dates to today, using the special syntax  '{+n[bdwmqy]}' meaning n business days/days/weeks/months/quarters/years after today, '{-n[bdwmqy]}' meaning n before today, and '{0[dwmqy]} meaning the current day/week/month/quarter/year.\nFor example, '{-1w},{0w},{1w}' means last week, this week and next week's notes.",
+      "type": "[string]",
+      "default": [
+        "{-1w}",
+        "{0w}",
+        "{1w}"
+      ],
+      "required": true
+    },
+    {
+      "key": "windowSet1Action",
+      "title": "How to open this set",
+      "description": "Whether to open this window set as 'split' panes within a window, or a series of separate 'floating' windows.",
+      "type": "string",
+      "choices": [
+        "split",
+        "floating"
+      ],
+      "default": "split",
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Window Set 2 settings"
+    },
+    {
+      "key": "windowSet2Name",
+      "title": "Name of Set",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "windowSet2",
+      "title": "Notes in Set",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "windowSet2Action",
+      "title": "How to open this set",
+      "type": "string",
+      "choices": [
+        "split",
+        "floating"
+      ],
+      "default": "split",
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Window Set 3 settings"
+    },
+    {
+      "key": "windowSet3Name",
+      "title": "Window Set 3 Name",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "windowSet3",
+      "title": "Notes in Set",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "windowSet3Action",
+      "title": "How to open this set",
+      "type": "string",
+      "choices": [
+        "split",
+        "floating"
+      ],
+      "default": "split",
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Window Set 4 settings"
+    },
+    {
+      "key": "windowSet4Name",
+      "title": "Window Set 4 Name",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "windowSet4",
+      "title": "Notes in Set",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "windowSet4Action",
+      "title": "How to open this set",
+      "type": "string",
+      "choices": [
+        "split",
+        "floating"
+      ],
+      "default": "split",
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Window Set 5 settings"
+    },
+    {
+      "key": "windowSet5Name",
+      "title": "Window Set 5 Name",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "key": "windowSet5",
+      "title": "Notes in Set",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "windowSet5Action",
+      "title": "How to open this set",
+      "type": "string",
+      "choices": [
+        "split",
+        "floating"
+      ],
+      "default": "split",
+      "required": true
     },
     {
       "type": "separator"

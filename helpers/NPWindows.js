@@ -4,7 +4,7 @@
 // See also HTMLView for specifics of working in HTML
 // ----------------------------------------------------------------------------
 
-import { logDebug, logError, logInfo } from '@helpers/dev'
+import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { caseInsensitiveStartsWith } from '@helpers/search'
 
 /**
@@ -22,7 +22,7 @@ export function logWindowsList(): void {
     }
     c = 0
     for (const win of NotePlan.htmlWindows) {
-      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' title:'${win.title ?? ''}' filename:${win.filename ?? ''} ID:${win.id}`)
+      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' title:'${win.title ?? 'n/a'}' filename:${win.filename ?? 'n/a'} ID:${win.id}`)
       c++
     }
     outputLines.unshift(`${outputLines.length} Windows:`)
@@ -62,7 +62,7 @@ export function setHTMLWindowID(customId: string): void {
 export function isHTMLWindowOpen(customId: string): boolean {
   if (NotePlan.environment.buildVersion >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
-    for (const thisWin of NotePlan.editors) {
+    for (const thisWin of allHTMLWindows) {
       if (caseInsensitiveStartsWith(customId, thisWin.customId)) {
         thisWin.customId = customId
         logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customId '${customId}'`)
@@ -163,4 +163,24 @@ export function focusHTMLWindowIfAvailable(customId: string): boolean {
     logInfo('focusHTMLWindowIfAvailable', `(Cannot find window Ids as not running v3.8.1 or later)`)
   }
   return false
+}
+
+export async function openNoteInNewWindowIfNeeded(filename: string): Promise<boolean> {
+  const res = await Editor.openNoteByFilename(filename, true, 0, 0, false, true) // create new floating (and the note if needed)
+  if (res) {
+    logDebug('openWindowSet', `Opened floating window pane '${filename}'`)
+  } else {
+    logWarn('openWindowSet', `Failed to open floating window '${filename}'`)
+  }
+  return !!res
+}
+
+export async function openNoteInNewSplitIfNeeded(filename: string): Promise<boolean> {
+  const res = await Editor.openNoteByFilename(filename, false, 0, 0, true, true) // create new split (and the note if needed) // TODO(@EduardMe): this doesn't create an empty note if needed for Calendar notes
+  if (res) {
+    logDebug('openWindowSet', `Opened split window '${filename}'`)
+  } else {
+    logWarn('openWindowSet', `Failed to open split window '${filename}'`)
+  }
+  return !!res
 }
