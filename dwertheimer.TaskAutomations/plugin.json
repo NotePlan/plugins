@@ -5,8 +5,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.11.4",
-  "plugin.lastUpdateInfo": "2.11.4: roll back scheduled types.\n2.11.3: bug fix, 2.11.2: Add scheduled tasks to overdue types.\n2.11.0: Task Sorting: Skip Done/Cancelled; Include Checklist in Sorting.\nOverdue: change open task to checklist item\nReact/HTML view v1",
+  "plugin.version": "2.12.3",
+  "plugin.lastUpdateInfo": "2.12.2: Document xcallback links.\n2.12.1: Checklist bugfix.\n2.12.0: Add type filter to React View\n2.11.4: roll back scheduled types.\n2.11.3: bug fix, 2.11.2: Add scheduled tasks to overdue types.\n2.11.0: Task Sorting: Skip Done/Cancelled; Include Checklist in Sorting.\nOverdue: change open task to checklist item\nReact/HTML view v1",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "css.plugin.css",
@@ -196,7 +196,9 @@
       "alias": [
         "react"
       ],
-      "arguments": []
+      "arguments": [
+        "Task Filter setting: 'All', 'Overdue', 'LeftOpen'"
+      ]
     },
     {
       "name": "testOverdueReact",
@@ -493,7 +495,7 @@
     {
       "key": "forgottenFoldersToIgnore",
       "title": "Folders to ignore when searching for forgotten tasks",
-      "description": "A comma-separated list of folders to ignore when searching for overdue forgotten tasks.",
+      "description": "A comma-separated list of folders to ignore when searching for overdue/potentially forgotten tasks.",
       "type": "[string]",
       "default": [
         "@Templates",

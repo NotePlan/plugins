@@ -88,3 +88,27 @@ body { padding-left: 15px; padding-right: 15px; }
     pointer-events: auto;
     text-decoration: none;
   }
+
+  .typeFilter {
+    position: absolute;
+    right: 0px;
+    font-size: 12px;
+    font-weight: regular;
+    padding-right: 10px;
+    width: 150px;
+  }
+
+  table.greyed, th.greyed, td.greyed {
+    border: 1px solid;
+  }
+
+  th.greyed, td.greyed {
+    padding: 15px;
+    text-align: left;
+    color: '#696969'
+  }
+
+  .expanded-note-details {
+    padding-right: 10px;
+    opacity: 0.5;
+  }

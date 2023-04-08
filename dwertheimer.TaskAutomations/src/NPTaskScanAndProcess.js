@@ -511,7 +511,7 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
     for (const n of notesWithDates) {
       if (n) {
         // const updates = getOverdueParagraphs(n, replaceDate ? '' : null)
-        const updates = getOverdueParagraphs(n.paragraphs)
+        const updates = getOverdueParagraphs(n.paragraphs).filter((p) => p.type === 'open') // do not want open checklist items
         if (updates.length > 0) {
           notesToUpdate.push(updates)
         }

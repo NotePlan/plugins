@@ -21,15 +21,15 @@ type Props = {
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import chroma from 'chroma-js'
 import debounce from 'lodash/debounce'
-import React, { Component, useEffect, useRef, useMemo, useLayoutEffect, type Node } from 'react'
+import React, { useEffect, type Node } from 'react'
 import DataTable, { createTheme as createDataTableTheme } from 'react-data-table-component'
-import StatusButton from './StatusButton.jsx'
 import ThemedSelect from './ThemedSelect.jsx'
+import TypeFilter from './TypeFilter.jsx'
 import EditableElement from './EditableElement.jsx'
 import MultiActionBar from './MultiActionBar.jsx'
-import Button from './Button.jsx'
+// import StatusButton from './StatusButton.jsx'
+// import Button from './Button.jsx'
 import { columnSpec, conditionalRowStyles, customTableStyles } from './dataTableFormatting.jsx'
 
 // color this component's output differently in the console
@@ -56,6 +56,8 @@ export function WebView({ data, dispatch }: Props): Node {
    ****************************************************************************************************************************/
   const justSelectedRows = React.useRef(false) // used to prevent the selection from being cleared when the user clicks on a row
   logDebug(`Webview: justSelectedRows:${String(justSelectedRows.current)}`)
+  const filterValue = React.useRef(data.startingFilter) // used to maintain value of filter when user makes changes
+  const [filter, setFilter] = React.useState(data.startingFilter) // used to cause re-render and hide
 
   // const scrollTopRef = React.useRef(-1) // used to scroll to the last scrolled position before the table was re-rendered (e.g. for an ExpandedComponent display)
   // logDebug(`Webview: scrollTopRef:${scrollTopRef.current}`)
@@ -68,8 +70,9 @@ export function WebView({ data, dispatch }: Props): Node {
 
   // destructure all the startup data we expect from the plugin
   const { columns, overdueParas, title, dropdownOptionsAll, dropdownOptionsLine, contextButtons, returnPluginCommand, debug, autoSelectNext = true } = data
-  const nonOmittedRows = data.overdueParas.filter((row) => !row.omit)
+  const nonOmittedRows = data.overdueParas.filter((row) => !row.omit).filter(rowFilter)
   const displayRows = [...nonOmittedRows.filter((row) => !Boolean(row.highlight)), ...nonOmittedRows.filter((row) => row.highlight)]
+
   debug && logDebug(`Webview top level code running with data:`, data)
 
   logDebug(`WebView top level code running with data:`, 'data')
@@ -358,7 +361,7 @@ export function WebView({ data, dispatch }: Props): Node {
     (rowID, newStatus, highlight = false, delay = 500) => {
       if (typeof rowID === 'number' && newStatus && data.overdueParas[rowID].type !== newStatus) {
         logDebug(`Webview: WebView::handleTaskStatusChange rowID=${rowID}, newStatus=${newStatus} highlight=${String(highlight)} delay=${delay}`, newStatus)
-        const dataWithOmittedRow = data.overdueParas.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus, omit: true, highlight: false }))
+        // const dataWithOmittedRow = data.overdueParas.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus, omit: true, highlight: false }))
         // setDataTableData((prev) => prev.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus }))) // change the status immediately
         if (highlight) {
           highlightRow(rowID)
@@ -427,7 +430,7 @@ export function WebView({ data, dispatch }: Props): Node {
 
   // Wnen the user clicks the down arrow, this component is rendered
   const ExpandedComponent = ({ data: row, handler }) => {
-    logDebug(`Webview: ExpandedComponent row=${JSON.stringify(row)}`)
+    logDebug(`Webview: ExpandedComponent row=${JSON.stringify(row, null, 2)}`)
     return (
       <div className="expanded-row">
         <div className="w3-cell-row">
@@ -444,7 +447,6 @@ export function WebView({ data, dispatch }: Props): Node {
             <EditableElement onChange={handleEditableWrapperChange}>
               <p
                 key={row.id}
-                field={'content'}
                 /* contentEditable={true} */
                 onInput={(e) => handleEditableContentChange({ id: row.id, field: 'content', value: e.currentTarget.innerHTML })}
                 style={{ maxWidth: '100vw', paddingLeft: 30, paddingRight: 50 }}
@@ -455,9 +457,31 @@ export function WebView({ data, dispatch }: Props): Node {
             </EditableElement>
           </div>
         </div>
+        <div className="w3-cell-row expanded-note-details">
+          <div className="w3-cell w3-right-align">
+            Note: {row.title} (file: {row.filename})
+          </div>
+        </div>
       </div>
     )
   }
+  /****************************************************************************************************************************
+   *                             TYPE FILTER
+   ****************************************************************************************************************************/
+  const handleTypeFilterChange = React.useCallback(({ value }) => {
+    filterValue.current = value
+    setFilter(value)
+    logDebug(`WebView:handleTypeFilterChange`, value)
+  }, [])
+  function rowFilter(row) {
+    if (filterValue.current === 'All') {
+      return true
+    }
+    return filterValue.current === row.overdueStatus
+  }
+  const filterOptions = ['All', 'Overdue', 'LeftOpen'].map((item) => ({ label: item, value: item }))
+  const selectedOption = filterOptions.find((option) => option.value === filterValue.current)
+  const ThisTypeFilter = <TypeFilter options={filterOptions} onChange={handleTypeFilterChange} defaultValue={selectedOption} />
 
   /**
    * (state-setting helper function) for onSelectionCheck and the multi-select checkboxes
@@ -630,7 +654,12 @@ export function WebView({ data, dispatch }: Props): Node {
       {/* {SelectedItemComponent} */}
       <div style={{ maxWidth: '100vw', width: '100vw' }}>
         <DataTable
-          title={title}
+          title={
+            <div className="w3-row">
+              <div className="titleSpan w3-threequarter">{title}</div>
+              <div className="w3-quarter">{ThisTypeFilter}</div>
+            </div>
+          }
           striped
           highlightOnHover
           overflowY={false}
