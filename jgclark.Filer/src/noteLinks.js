@@ -15,11 +15,7 @@ import { displayTitle, rangeToString } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote, parasToText } from '@helpers/paragraph'
-import {
-  getParagraphBlock,
-  selectedLinesIndex,
-  // getSelectedParaIndex,
-} from '@helpers/NPParagraph'
+import { getParagraphBlock, selectedLinesIndex } from '@helpers/NPParagraph'
 import { NP_RE_note_title_link, RE_NOTE_TITLE_CAPTURE } from '@helpers/regex'
 import { chooseHeading, showMessage } from '@helpers/userInput'
 
@@ -80,8 +76,8 @@ export async function moveRecentNoteLinks(): Promise<number> {
 // Main functions (not exposed)
 
 /**
- * Move text to a different note, forcing treating this as a block.
- * See moveParas() for definition of selection logic.
+ * File note links from recent calendar notes to project note(s).
+ * See various settings passed in the 'config' parameter object.
  * Can be run as an on-demand command,
  * TODO: or as a template command with parameters.
  * @author @jgclark
@@ -169,8 +165,8 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
     let latestBlockLineIndex = 0
     let thisParaLineIndex = 0
     for (let thisPara of noteLinkParas) {
-      // If we previously had a block, then we need to make sure we're passed the end of the block before we start re-processing.
       thisParaLineIndex = thisPara.lineIndex
+      // If we previously had a block, then we need to make sure we're passed the end of the block before we start re-processing.
       if (thisParaLineIndex <= latestBlockLineIndex) {
         logDebug('fileNoteLinks', `- skipping line ${thisParaLineIndex}:<${thisPara.content}> as it is before the latest block line ${latestBlockLineIndex}`)
         continue // skip this paragraph as we will have seen it before
@@ -223,7 +219,7 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
       const selectedParasAsText = thisParaLineOrBlock.map(p => p.rawContent).join('\n')
       if (noteLinkHeading) {
         // add after specified heading
-        addParasAsText(noteToAddTo, selectedParasAsText, noteLinkHeading, config.whereToAddInSection)
+        addParasAsText(noteToAddTo, selectedParasAsText, noteLinkHeading, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
         logDebug(pluginJson, `- Added parasAsText after '${noteLinkHeading}`)
       } else {
 
@@ -235,7 +231,7 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
 
         // work out what indicator to send to addParasAsText(), based on setting 'whereToAddInNote' (start or end)
         const positionInNoteIndicator = (config.whereToAddInNote === 'start') ? '(top of note)' : ''
-        addParasAsText(noteToAddTo, selectedParasAsText, positionInNoteIndicator, config.whereToAddInSection)
+        addParasAsText(noteToAddTo, selectedParasAsText, positionInNoteIndicator, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
 
         // // add after title or frontmatter
         // const insertionIndex = findStartOfActivePartOfNote(noteToAddTo)
@@ -249,36 +245,7 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
         note.removeParagraphs(thisParaLineOrBlock)
       }
 
-      // }
-      // else {
-      //   // just work on thisPara
-      //   // insert updated line(s) to the right section of the project note file
-
-      //   if (noteLinkHeading) {
-      //     // add after specified heading
-      //     noteToAddTo.addParagraphBelowHeadingTitle(thisParaWithoutNotelink, thisPara.type, noteLinkHeading, (config.whereToAddInSection === 'end'), true)
-      //   }
-      //   else {
-      //     // add after header lines, or end of file, as no heading specified
-      //     if (config.whereToAddInSection === 'start') {
-      //       // Note: can't use this API as it doesn't recognise front matter. As of 3.8.1
-      //       // noteToAddTo.prependParagraph(thisParaWithoutNotelink, thisPara.type)
-      //       // Alternative method: TODO: remove in time
-      //       const index = findStartOfActivePartOfNote(noteToAddTo)
-      //       noteToAddTo.insertParagraphBeforeParagraph(thisParaWithoutNotelink, noteToAddTo.paragraphs[index], thisPara.type)
-      //     } else {
-      //       noteToAddTo.appendParagraph(thisParaWithoutNotelink, thisPara.type)
-      //     }
-      //     logDebug(pluginJson, `- Added 1 para <${thisParaWithoutNotelink}> to ${noteToAddTo.filename}`)
-      //   }
-      //   // Remove this line from the calendar note (if user wants to 'move' not 'copy')
-      //   if (config.copyOrMove === 'move') {
-      //     logDebug(pluginJson, `- Removing 1 para from original note`)
-      //     note.removeParagraph(thisPara)
-      //   }
-      // }
       filedItemCount++
-
     }
     return filedItemCount
   }

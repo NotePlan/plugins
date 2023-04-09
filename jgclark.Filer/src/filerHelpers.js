@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Filer plugin.
 // Jonathan Clark
-// last updated 22.3.2023, for v1.1.0+
+// last updated 29.4.2023, for v1.1.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -19,6 +19,7 @@ export type FilerConfig = {
   addDateBacklink: boolean,
   dateRefStyle: string,
   includeFromStartOfSection: boolean,
+  allowNotePreambleBeforeHeading: boolean,
   useTightBlockDefinition: boolean,
   whereToAddInSection: string, // 'start' (default) or 'end'
   // justCompletedItems: boolean, // migrating to the next item
@@ -66,18 +67,20 @@ export async function getFilerSettings(): Promise<any> {
  * @param {string} selectedParasAsText 
  * @param {string} headingToFind if empty, means 'end of note'. Can also be the special string '(top of note)'
  * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
+ * @param {boolean} allowNotePreambleBeforeHeading?
  */
 export function addParasAsText(
   destinationNote: TNote,
   selectedParasAsText: string,
   headingToFind: string,
-  whereToAddInSection: string
+  whereToAddInSection: string,
+  allowNotePreambleBeforeHeading: boolean
 ): void {
   const destinationNoteParas = destinationNote.paragraphs
   let insertionIndex: number
   if (headingToFind === destinationNote.title || headingToFind.includes('(top of note)')) {
     // i.e. the first line in project or calendar note
-    insertionIndex = findStartOfActivePartOfNote(destinationNote)
+    insertionIndex = findStartOfActivePartOfNote(destinationNote, allowNotePreambleBeforeHeading)
     logDebug(pluginJson, `-> top of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 

@@ -37,9 +37,9 @@ const pluginID = "jgclark.Filer"
 export function init(): void {
   try {
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
-    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-      pluginUpdated(pluginJson, r),
-    )
+    // DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
+    //   pluginUpdated(pluginJson, r),
+    // )
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

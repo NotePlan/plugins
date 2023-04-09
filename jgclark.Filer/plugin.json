@@ -8,7 +8,7 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.1.0-beta2",
+  "plugin.version": "1.1.0-beta3",
   "plugin.lastUpdateInfo": "1.1.0: new '/... note links...' commands.\n1.0.0: existing command '/move paragraphs' renamed to '/move paragraph or selection'. This moves this paragraph (or selected paragraphs) to a different note. Added command '/move paragraph block' moves all paragraphs in the current block to a different note.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -179,6 +179,14 @@
         "end"
       ],
       "default": "start",
+      "required": true
+    },
+    {
+      "key": "allowNotePreambleBeforeHeading",
+      "title": "Allow preamble before first heading?",
+      "description": "If set, some 'preamble' lines are allowed directly after the title. When filing/moving/inserting items with these commands, this preamble will be left in place, up to and including the first blank line, heading or separator. Otherwise the first heading will be directly after the note's title line (or frontmatter if used).",
+      "type": "bool",
+      "default": true,
       "required": true
     },
     {
