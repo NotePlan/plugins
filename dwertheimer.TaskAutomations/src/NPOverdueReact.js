@@ -428,7 +428,6 @@ export function getDataForReactView(testData: boolean = false): any {
   const ENV_MODE = 'production'
   const data = {
     overdueParas: staticParasToReview,
-    startingFilter: 'All',
     title: `Overdue Tasks`,
     debug: false,
     ENV_MODE: ENV_MODE,

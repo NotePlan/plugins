@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.12.4] @dwertheimer
+
+- Fix filter dropdown bug 2023-04-08
+
 ## [2.12.2] @dwertheimer 
 
 - Document xcallbacks for React view
