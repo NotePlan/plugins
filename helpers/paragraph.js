@@ -249,9 +249,10 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
  * @author @jgclark
  * @tests in jest file
  * @param {TNote} note - the note to assess
+ * @param {boolean} allowPreamble?
  * @returns {number} - the line index number
  */
-export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
+export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?: boolean = false): number {
   try {
     let startOfActive = NaN
     let paras = note.paragraphs
@@ -264,6 +265,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
 
     const endOfFMIndex = endOfFrontmatterLineIndex(note)
     if (endOfFMIndex === 0) {
+      // No frontmatter found
       if (paras[0].type === 'title' && paras[0].headingLevel === 1) {
         logDebug(`paragraph/findStartOfActivePartOfNote`, `No frontmatter, but H1 title found -> next line`)
         startOfActive = 1
@@ -272,7 +274,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
         startOfActive = 0
       }
     } else {
-      logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, so looking at line after frontmatter`)
+      logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, finishing at line ${String(endOfFMIndex)}, so looking at line after it`)
       startOfActive = endOfFMIndex + 1
     }
     // If there is no line after title or FM, add a blank line to use (NB: length = line index + 1)
@@ -282,28 +284,32 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields): number {
       paras = note.paragraphs
     }
 
-    // additionally, we're going to skip past any front-matter-like section in a project note,
-    // indicated by a #hashtag starting the next line.
+    logDebug('paragraph/findStartOfActivePartOfNote', `allowPreamble? ${String(allowPreamble)}`)
+    // Additionally, skip past any front-matter-like section in a project note,
+    // if either there's a #hashtag starting the next line,
+    // or 'allowPreamble' is true.
     // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator also stops the search.
-    if (paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/)) {
-      logDebug('paragraph/findStartOfActivePartOfNote', `with ${String(startOfActive)} Found a metadata line, so trying to find next heading or blank line`)
+    if (paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/) || allowPreamble) {
+      logDebug('paragraph/findStartOfActivePartOfNote', `with ${String(startOfActive)} Found a metadata line, or we want to allow preamble, so trying to find next heading or blank line`)
       startOfActive += 1
       for (let i = startOfActive; i < paras.length; i++) {
         const p = paras[i]
-        if (p.type === 'separator') {
+        if (p.type === 'separator' || p.type === 'empty') {
+          startOfActive = i + 1
           break
         }
-        if (p.type === 'title' || p.type === 'empty') {
+        // if (p.type === 'title' || p.type === 'empty') {
+        if (p.type === 'title') {
           startOfActive = i
           break
         }
-        // logDebug('paragraph/findStartOfActivePartOfNote', `  - title/empty not found`)
+        logDebug('paragraph/findStartOfActivePartOfNote', `  - no title/separator/empty found`)
       }
-      logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}`)
+      logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}  (after finding preamble or metadata line)`)
     }
     return startOfActive
-    // }
-  } catch (err) {
+  }
+  catch (err) {
     logError('paragraph/findStartOfActivePartOfNote', err.message)
     return NaN // for completeness
   }
@@ -479,6 +485,7 @@ export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $
  * Take a (multi-line) raw content block, typically from the editor, and turn it into an array of TParagraph-like objects
  * Designed to be used with Editor.content that is available in a trigger, before Editor.note.paragraphs is updated.
  * Only writes "type", "content", "rawContent", "lineIndex" fields.
+ * TODO: make tests
  * @author @jgclark
  * @param {string} content to parse
  * @returns {Array<any>} array of TParagraph-like objects
