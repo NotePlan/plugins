@@ -2,12 +2,16 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekendOfInterval } from 'date-fns'
+import plugin from '@babel/core/lib/config/plugin.js'
 import pluginJson from '../plugin.json'
 import { sortListBy } from '../../helpers/sorting'
-import { sendBannerMessage, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { getTodaysDateAsArrowDate, getTodaysDateHyphenated } from '../../helpers/dateTime'
 import { getWeekOptions } from '../../helpers/NPdateTime'
-import { paragraphMatches, findParagraph, getParagraphFromStaticObject, createStaticObject, createStaticParagraphsArray, noteHasContent } from '@helpers/NPParagraph'
+import { getGlobalSharedData, sendToHTMLWindow, updateGlobalSharedData } from '../../helpers/HTMLView'
+import { convertAllLinksToHTMLLinks, stripAllMarkersFromString } from '../../helpers/stringTransforms'
+import { getOrMakeNote } from '../../helpers/note'
+import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCapture'
+import { followUpInFuture, followUpSaveHere } from './NPFollowUp'
 import {
   getNotesAndTasksToReview,
   reviewTasksInNotes,
@@ -18,12 +22,8 @@ import {
   getWeeklyOpenTasks,
 } from './NPTaskScanAndProcess'
 import { log, logError, logDebug, timer, clo, JSP, getFilteredProps } from '@helpers/dev'
-import { getGlobalSharedData, sendToHTMLWindow, updateGlobalSharedData } from '../../helpers/HTMLView'
-import { convertAllLinksToHTMLLinks, stripAllMarkersFromString } from '../../helpers/stringTransforms'
-import { getOrMakeNote } from '../../helpers/note'
-import { followUpInFuture, followUpSaveHere } from './NPFollowUp'
-import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCapture'
-import plugin from '@babel/core/lib/config/plugin.js'
+import { paragraphMatches, findParagraph, getParagraphFromStaticObject, createStaticObject, createStaticParagraphsArray, noteHasContent } from '@helpers/NPParagraph'
+import { sendBannerMessage, type HtmlWindowOptions } from '@helpers/HTMLView'
 
 /* Finalize the actions taken by the user (save/update the results)
  * @param {*} resultObj - the result of the user's action { action:string, changed:TParagraph }
@@ -276,7 +276,7 @@ export async function onUserModifiedParagraphs(actionType: string, data: any): P
     }
     if (returnValue?.updatedRows?.length) {
       returnValue.updatedRows = createCleanContent(returnValue.updatedRows)
-      updateRowDataAndSend({ updatedRows: returnValue.updatedRows }, `Plugin Changed: ${JSON.stringify(returnValue.updatedRows)}`)
+      await updateRowDataAndSend({ updatedRows: returnValue.updatedRows }, `Plugin Changed: ${JSON.stringify(returnValue.updatedRows)}`)
       // sendToHTMLWindow('RETURN_VALUE', { type: actionType, dataSent: data, returnValue: returnValue })
     }
     return {} // this return value is ignored but needs to exist or we get an error
@@ -349,7 +349,7 @@ export function getButtons(): Array<{ text: string, action: string }> {
   ]
 }
 
-const KEY_PARA_PROPS = ['filename', 'lineIndex', 'content', 'rawContent', 'type', 'prefix', 'noteType', 'daysOverdue']
+const KEY_PARA_PROPS = ['filename', 'title', 'lineIndex', 'content', 'rawContent', 'type', 'prefix', 'noteType', 'daysOverdue']
 
 /**
  * Take in an array of paragraphs and return a static array of objects for the HTML view
@@ -449,13 +449,13 @@ export function getDataForReactView(testData: boolean = false): any {
  * Intended for users to invoke from Command Bar
  * @author @dwertheimer
  */
-export async function processOverdueReact(incoming: string) {
+export async function processOverdueReact(filterSetting?: string, folderToSearch?: string) {
   try {
-    logDebug(pluginJson, `reviewOverdueTasksByTask: incoming="${incoming}" typeof="${typeof incoming}" Starting Timer`)
+    logDebug(pluginJson, `reviewOverdueTasksByTask: incoming="${filterSetting || ''}" typeof="${typeof filterSetting}" Starting Timer`)
 
-    // TODO: when the react plugin is released, uncomment these lines
-    // await installPlugin('dwertheimer.React')
-    // logDebug(pluginJson, `reviewOverdueTasksByTask: installed/verified dwertheimer.React`)
+    const starter = new Date()
+    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, true, true)
+    logDebug(pluginJson, `reviewOverdueTasksByTask: installed/verified np.Shared: took:${timer(starter)}`)
 
     // NOTE: Relative paths are relative to the plugin folder of dwertheimer.React
     // So ALWAYS go out and back in, like this: `../dwertheimer.TaskAutomations/xxx`
@@ -464,6 +464,7 @@ export async function processOverdueReact(incoming: string) {
 		<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.plugin.css">\n`
 
     const data = getDataForReactView()
+    if (data && filterSetting) data.startingFilter = filterSetting
     /*
       export type HtmlWindowOptions = {
         headerTags?: string, 
@@ -515,7 +516,7 @@ export async function testOverdueReact() {
     const data = getDataForReactView(true)
     const note = await getOrMakeNote('Overdue Tasks TEST NOTE', '_TEST')
     await Editor.openNoteByFilename(note?.filename || '')
-    if (note)
+    if (note) {
       note.content = `# Overdue Tasks TEST NOTE
 * overdue >2022-02-01
 * overdue2 >2022-03-01    
@@ -539,6 +540,7 @@ export async function testOverdueReact() {
 * overdue19 >2022-05-01
 * overdue20 >2022-05-01
 `
+    }
     data.debug = true
     const paras = note?.paragraphs.slice(1).filter((para) => para.content?.includes('overdue'))
     data.overdueParas = createCleanContent(getStaticTaskList(paras || []))

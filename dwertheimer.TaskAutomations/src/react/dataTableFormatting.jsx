@@ -88,6 +88,7 @@ const columnsWithFallback = ({ handleTaskStatusChange, hideRow }) => [
     selectorName: 'hide',
     width: '40px',
     center: true,
+    omit: true,
     cell: (row) => <span onClick={() => hideRow(row)}>X</span>,
   },
 ]
