@@ -1,8 +1,8 @@
 // @flow
-// Last updated 30.12.2022 for v0.6.0 by @jgclark
+// Last updated 10.4.2023 for v0.6.1 by @jgclark
 
 import pluginJson from '../plugin.json'
-import { logDebug, logWarn } from '@helpers/dev'
+// import { logDebug, logWarn } from '@helpers/dev' // removed as there isn't the setting system to define the log level
 import { displayTitle, percent } from '@helpers/general'
 import { showMessage } from '@helpers/userInput'
 
@@ -20,9 +20,6 @@ export async function showTaskCountForNote() {
   const countParagraphsOfType = function (types: Array<string>) {
     return paragraphs.filter((p) => types.includes(p.type)).length
   }
-  // for (let p of paragraphs) {
-  //   logDebug(pluginJson, `${p.type}:\t${p.content}`)
-  // }
 
   const tasksTotal = countParagraphsOfType(["open", "done", "scheduled", "cancelled"])
   const checklistsTotal = countParagraphsOfType(["checklist", "checklistDone", "checklistScheduled", "checklistCancelled"])
@@ -71,12 +68,13 @@ export async function showTaskCountForAll(): Promise<void> {
       const pf = paragraphs.filter((p) => types.includes(p.type))
       return paragraphs.filter((p) => types.includes(p.type)).length
     }
-    openTasksTotal += countParagraphsOfType(["open"]) // doesn't include scheduled
+    let openTasksForNote = countParagraphsOfType(["open"]) // doesn't include scheduled
+    openTasksTotal += openTasksForNote
     doneTasksTotal += countParagraphsOfType(["done"])
     cancelledTasksTotal += countParagraphsOfType(["cancelled"])
     // following is not quite the same as future. TODO: make future
     scheduledTasksTotal += countParagraphsOfType(["scheduled"])
-    open.set(n.title, countParagraphsOfType(["open"]))
+    if (openTasksForNote > 0) { open.set(n.title, openTasksForNote) }
 
     openChecklistsTotal += countParagraphsOfType(["checklist"]) // doesn't include scheduled
     doneChecklistsTotal += countParagraphsOfType(["checklistDone"])
@@ -84,6 +82,7 @@ export async function showTaskCountForAll(): Promise<void> {
     // following is not quite the same as future. TODO: make future
     scheduledChecklistsTotal += countParagraphsOfType(["checklistScheduled"])
   }
+  const numNotesWithOpen = [...open.entries()].length
 
   const closedTasksTotal = doneTasksTotal + cancelledTasksTotal
   const tasksTotal = openTasksTotal + closedTasksTotal
@@ -93,6 +92,7 @@ export async function showTaskCountForAll(): Promise<void> {
     `Task statistics from ${allNotesCount.toLocaleString()} notes:`,
     `\t⚪️ Open: ${percent(openTasksTotal, tasksTotal)}\t📆 Scheduled: ${percent(scheduledTasksTotal, tasksTotal)}`,
     `\t✅ Done: ${doneTasksPercent}\t🚫 Cancelled: ${cancelledTasksPercent}`,
+    `\tNotes with open tasks: ${numNotesWithOpen.toLocaleString()}`,
   ]
   const closedChecklistsTotal = doneChecklistsTotal + cancelledChecklistsTotal
   const checklistsTotal = openChecklistsTotal + closedChecklistsTotal
