@@ -36,7 +36,7 @@ This command (alias **/asc**) adds a sync'd copy of the current line to a sectio
 NB: This feature only works on single lines, not whole blocks, at the moment.)
 
 ## various /note link commands
-There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to the project note with that title:
+There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to regular notes with that title:
 - **/move note links**
 - **/move note links (recently changed)**
 - **/copy note links**
@@ -67,12 +67,26 @@ In the demo above, the daily note includes the date ("Tues 21/3") as part of the
 The **/... (recently changed)** versions of these commands operate on recently-changed calendar notes, not just the currently open one. To contol this there's an additional setting:
 - How many days to include in 'recent' changes to calendar notes? This sets how many days' worth of changes to calendar notes to include? To include all days, set to 0.
 
-For example, this can be used to copy at the end of each day from the daily note a section with any completed tasks, and any notes that it contains, to a 'progress log' note. This can be run on demand.
-<!-- , or could be automated through the following method ...
+For example, this can be used to copy at the end of each day from the daily note a section with any completed tasks, and any notes that it contains, to a 'progress log' note. This can be run on demand, or could be automated through the following method ...
 
-### Running through a Template
+### Running '/... note links ...' through a Template
+When you've set the settings as you wish, then you can run either of the "/... (recently changed)" commands from a Template using command "/np:execute" (or "/np:invoke" etc.):
+```
+<% await DataStore.invokePluginCommandByName("copy note links (recently changed)","jgclark.Filer",['{}']) %>
+```
+or, for the 'move' variant:
+```
+<% await DataStore.invokePluginCommandByName("move note links (recently changed)","jgclark.Filer",['{}']) %>
+```
 
-??? parameters from Templates -->
+You can then have this run as part of your Daily Template processing. I suggest you set the 'recent days' setting to 3 or more, to cover periods where you don't or can't run the Template.
+
+You can override your usual settings by passing extra parameters in the `[...]` above. Please see this plugin's `plugin.json` file to know what the settings are called.
+
+You can also run from an x-callback call. At simplest this is:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20note%20links%20%28recently%20changed%29&arg0=
+```
 
 ## /new note from clipboard
 This command (alias **/nnc**) takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.

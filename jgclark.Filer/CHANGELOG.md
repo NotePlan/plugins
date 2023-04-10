@@ -1,6 +1,12 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.1.0-beta4] - 2023-04-10???
+### Added
+- can now run the copy/move recent notelink commands via x-callback or as template functions
+### Changed
+- turned off feedback dialogs for each note, instead having a single feedback dialog at the end
+
 ## [1.1.0-beta3] - 2023-04-09
 ### Added
 - command to edit settings, even on iOS

@@ -8,7 +8,7 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.1.0-beta3",
+  "plugin.version": "1.1.0-beta4",
   "plugin.lastUpdateInfo": "1.1.0: new '/... note links...' commands.\n1.0.0: existing command '/move paragraphs' renamed to '/move paragraph or selection'. This moves this paragraph (or selected paragraphs) to a different note. Added command '/move paragraph block' moves all paragraphs in the current block to a different note.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -38,13 +38,16 @@
     {
       "name": "copy note links (recently changed)",
       "alias": [
-        "cnlnr",
+        "cnlrc",
         "link",
         "wikilink",
         "file"
       ],
       "description": "copies [[note link]] lines or blocks from recently-changed calendar notes to their respective project notes",
-      "jsFunction": "copyRecentNoteLinks"
+      "jsFunction": "copyRecentNoteLinks",
+      "arguments": [
+        "JSON-formatted parameter list"
+      ]
     },
     {
       "name": "move note links",
@@ -66,7 +69,10 @@
         "file"
       ],
       "description": "moves [[note link]] lines or blocks from recently-changed calendar notes to their respective project notes",
-      "jsFunction": "moveRecentNoteLinks"
+      "jsFunction": "moveRecentNoteLinks",
+      "arguments": [
+        "JSON-formatted parameter list"
+      ]
     },
     {
       "name": "move paragraph or selection",

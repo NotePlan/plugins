@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Functions to file [[note links]] from calendar notes to project notes.
 // Jonathan Clark
-// last updated 19.3.2023, for v1.1.0
+// last updated 10.4.2023, for v1.1.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -10,7 +10,10 @@ import { addParasAsText, getFilerSettings, type FilerConfig } from './filerHelpe
 import moment from 'moment/min/moment-with-locales'
 import { getSetting } from '@helpers/NPConfiguration'
 import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
-import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import {
+  clo, logDebug, logError, logInfo, logWarn,
+  overrideSettingsWithEncodedTypedArgs,
+} from '@helpers/dev'
 import { displayTitle, rangeToString } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
 import { getNotesChangedInInterval } from '@helpers/NPnote'
@@ -37,15 +40,35 @@ export async function copyNoteLinks(): Promise<number> {
     return NaN
   }
   // main call
-  const result = fileNoteLinks(note, settings, true)
+  const result = await fileNoteLinks(note, settings, false)
+  await showMessage(`${String(result)} note links copied from ${displayTitle(note)}`, 'OK', 'Move note links')
   return result
 }
 
-export async function copyRecentNoteLinks(): Promise<number> {
-  const settings: FilerConfig = await getFilerSettings()
+/**
+ * Entry point for fileRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
+ * @param {?string} params - can pass parameter string e.g. ??? "{"period": 'mtd', "progressHeading": 'Progress'}"
+ * @returns {number} number of paragraphs copied
+ */
+export async function copyRecentNoteLinks(params: string = ''): Promise<number> {
+  logDebug(pluginJson, `copyRecentNoteLinks: Starting with params '${params}'`)
+  let settings: FilerConfig = await getFilerSettings()
   settings.copyOrMove = "copy"
+
+  // If there are params passed, then we've been called by a template command (and so use those).
+  if (params) {
+    settings = overrideSettingsWithEncodedTypedArgs(settings, params)
+    clo(settings, `- config after overriding with params '${params}'`)
+  } else {
+    // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
+    clo(settings, '- settings without params')
+  }
+
   // main call
-  const result = fileRecentNoteLinks(settings, true)
+  const result = await fileRecentNoteLinks(settings, false)
+  if (!params) {
+    await showMessage(`${String(result)} note links copied.`, 'OK', 'Copy recent note links')
+  }
   return result
 }
 
@@ -60,15 +83,35 @@ export async function moveNoteLinks(): Promise<number> {
     return NaN
   }
   // main call
-  const result = fileNoteLinks(note, settings, true)
+  const result = await fileNoteLinks(note, settings, false)
+  await showMessage(`${String(result)} note links moved from ${displayTitle(note)}`, 'OK', 'Move note links')
   return result
 }
 
-export async function moveRecentNoteLinks(): Promise<number> {
-  const settings: FilerConfig = await getFilerSettings()
+/**
+ * Entry point for moveRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
+ * @param {?string} params - can pass parameter string e.g. ??? "{"period": 'mtd', "progressHeading": 'Progress'}"
+ * @returns {number} number of paragraphs moved
+ */
+export async function moveRecentNoteLinks(params: string = ''): Promise<number> {
+  logDebug(pluginJson, `moveRecentNoteLinks: Starting with params '${params}'`)
+  let settings: FilerConfig = await getFilerSettings()
   settings.copyOrMove = "move"
+
+  // If there are params passed, then we've been called by a template command (and so use those).
+  if (params) {
+    settings = overrideSettingsWithEncodedTypedArgs(settings, params)
+    clo(settings, `- config after overriding with params '${params}'`)
+  } else {
+    // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
+    clo(settings, '- settings without params')
+  }
+
   // main call
-  const result = fileRecentNoteLinks(settings, true)
+  const result = await fileRecentNoteLinks(settings, false)
+  if (!params) {
+    await showMessage(`${String(result)} note links moved.`, 'OK', 'Move recent note links')
+  }
   return result
 }
 
@@ -78,8 +121,7 @@ export async function moveRecentNoteLinks(): Promise<number> {
 /**
  * File note links from recent calendar notes to project note(s).
  * See various settings passed in the 'config' parameter object.
- * Can be run as an on-demand command,
- * TODO: or as a template command with parameters.
+ * See above for entry points to this function.
  * @author @jgclark
  * @param {FilerConfig} settings object
  * @param {boolean} runInteractively?
@@ -97,11 +139,10 @@ async function fileRecentNoteLinks(config: FilerConfig, runInteractively: boolea
       const res = await fileNoteLinks(thisNote, config, runInteractively)
       if (res) filedItemCount++
     }
-    logInfo(`fileRecentNoteLinks`, `-> ${String(filedItemCount)} paragraphs filed`)
+    logInfo(`fileRecentNoteLinks`, `-> ${String(filedItemCount)} paragraphs filed from ${String(recentCalendarNotes.length)} recent calendar notes`)
     return filedItemCount
   } catch (err) {
     logError(pluginJson, `fileRecentNoteLinks(): ${err.name}: ${err.message}`)
-    // await showMessage('Error: ' + err.message)
     return NaN
   }
 }
@@ -138,14 +179,13 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
       default:
         throw new Error(`Invalid 'typesToFile' setting: ${config.typesToFile}`)
     }
-    logDebug('fileNoteLinks', `typesToFile from "${config.typesToFile}" = ${String(typesToFile)}`)
+    // logDebug('fileNoteLinks', `typesToFile from "${config.typesToFile}" = ${String(typesToFile)}`)
 
     // Get array of lines containing note links, filtering by the above types
     let noteLinkParas = note.paragraphs
       .filter((p) => p.content.match(NP_RE_note_title_link))
       .filter((p) => typesToFile.includes(p.type))
 
-    logDebug('fileNoteLinks', `- ${noteLinkParas.length} note links found`)
     // Check if this paragraph should be ignored
     if (noteLinkParas.length > 0 && config.ignoreNoteLinkFilerTag) {
       noteLinkParas = noteLinkParas.filter((p) => !p.content.match(config.ignoreNoteLinkFilerTag))
@@ -154,12 +194,13 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
 
     // Does it make sense to proceed?
     if (noteLinkParas.length === 0) {
-      logWarn('fileNoteLinks', `- no note links found`)
+      logInfo('fileNoteLinks', `- no note links found in ${note.filename}`)
       if (runInteractively) {
         await showMessage(`Sorry, no note links found in ${note.filename}.`)
       }
       return NaN
     }
+    logInfo('fileNoteLinks', `- ${noteLinkParas.length} note links found in ${note.filename}`)
 
     // Process each such note link line
     let latestBlockLineIndex = 0
