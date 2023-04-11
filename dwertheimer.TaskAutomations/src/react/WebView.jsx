@@ -490,7 +490,7 @@ export function WebView({ data, dispatch }: Props): Node {
     }
     return filterValue.current === row.overdueStatus
   }
-  const filterTypes = ['All', 'Overdue', 'LeftOpen', 'Processed']
+  const filterTypes = ['All', 'Overdue', 'LeftOpen', 'Today', 'Processed']
   // use a reducer to count the number of items in each type
   const typeCounts = data.overdueParas.reduce((counts, item) => {
     const type = item.overdueStatus

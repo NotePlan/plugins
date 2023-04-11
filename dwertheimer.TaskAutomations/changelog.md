@@ -5,6 +5,11 @@
 
 ## What's Changed in this Plugin?
 
+## [2.13.0] @dwertheimer 2023-03-10
+
+- Add Overdue Popup Window for a Specific Folder
+- Add Today's Tasks to React Popup
+
 ## [2.12.5] @dwertheimer 2023-04-08
 
 - Add counts to filter

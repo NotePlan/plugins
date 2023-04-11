@@ -16,6 +16,7 @@ import {
   getNotesAndTasksToReview,
   reviewTasksInNotes,
   createArrayOfNotesAndTasks,
+  getReferencesForReview,
   getSharedOptions,
   prepareUserAction,
   getNotesWithOpenTasks,
@@ -24,6 +25,7 @@ import {
 import { log, logError, logDebug, timer, clo, JSP, getFilteredProps } from '@helpers/dev'
 import { paragraphMatches, findParagraph, getParagraphFromStaticObject, createStaticObject, createStaticParagraphsArray, noteHasContent } from '@helpers/NPParagraph'
 import { sendBannerMessage, type HtmlWindowOptions } from '@helpers/HTMLView'
+import { chooseFolder } from '../../helpers/userInput'
 
 /* Finalize the actions taken by the user (save/update the results)
  * @param {*} resultObj - the result of the user's action { action:string, changed:TParagraph }
@@ -287,9 +289,10 @@ export async function onUserModifiedParagraphs(actionType: string, data: any): P
 
 /**
  * Get all overdue tasks
+ * @param {string | false} noteFolder - if false, get all tasks. If a string, get tasks only from that folder
  * @returns
  */
-export function getOverdueTasks(): Array<TParagraph> {
+export function getOverdueTasks(noteFolder?: string | false = false): Array<TParagraph> {
   const start = new Date()
   const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
   const options = {
@@ -299,7 +302,7 @@ export function getOverdueTasks(): Array<TParagraph> {
     confirm: false,
     showUpdatedTask,
     showNote: false,
-    noteFolder: false,
+    noteFolder,
     noteTaskList: null,
     replaceDate,
     overdueOnly: true,
@@ -388,7 +391,26 @@ export const createCleanContent = (statics: Array<any>): Array<any> =>
     cleanContent: convertAllLinksToHTMLLinks(stripAllMarkersFromString(item.content || '', false, false)),
   }))
 
-export function getDataForReactView(testData: boolean = false): any {
+/**
+ *  Find all tasks in today's references (either marked for today or in weekly note)
+ * @param {boolean} weeklyNote - if true, use weekly note instead of today's note
+ */
+export async function getTodayReferencedTasks(weeklyNote: boolean = false): Promise<void> {
+  try {
+    await Editor.openNoteByDate(new Date())
+    if (Editor.note?.type !== 'Calendar') {
+      throw `You must be in a Calendar Note to run this command.`
+    }
+    // clo(getTodaysReferences(Editor.note), `reviewEditorReferencedTasks todayReferences`)
+    const arrayOfOpenNotesAndTasks = getReferencesForReview(Editor.note, weeklyNote)
+    logDebug(pluginJson, `getTodayReferencedTasks: arrayOfOpenNotesAndTasks.length=${arrayOfOpenNotesAndTasks.length}`)
+    return arrayOfOpenNotesAndTasks
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+export async function getDataForReactView(testData?: boolean = false, noteFolder?: string | false = false): any {
   const startTime = new Date()
   let staticParasToReview = []
 
@@ -405,24 +427,26 @@ export function getDataForReactView(testData: boolean = false): any {
 
   if (!testData) {
     // const confirmResults = incoming ? false : true
-    const overdueStaticTasks = getStaticTaskList(getOverdueTasks(), 'Overdue')
+    const overdueStaticTasks = getStaticTaskList(getOverdueTasks(noteFolder), 'Overdue')
     const openWeeklyTasks = askToReviewWeeklyTasks ? getStaticTaskList(getWeeklyOpenTasks(), 'ThisWeek') : []
     //FIMXE: I am here. need to add settings for wherre to look and for how long
     const notesWithOpenTasks = askToReviewForgottenTasks
       ? getNotesWithOpenTasks(
           'both',
           { num: 30, unit: 'day' },
-          { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore: forgottenFoldersToIgnore, ignoreScheduledInForgottenReview },
+          { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore: forgottenFoldersToIgnore, ignoreScheduledInForgottenReview, restrictToFolder: noteFolder },
         )
       : []
     // clo(notesWithOpenTasks, `processOverdueReact: notesWithOpenTasks length=${notesWithOpenTasks.length}`)
     const openTasksGoneBy = notesWithOpenTasks.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
     const forgottenTasks = getStaticTaskList(openTasksGoneBy, 'LeftOpen')
+    const todayTaskParas = ((await getTodayReferencedTasks()) || []).reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
+    clo(todayTaskParas, `processOverdueReact: todayTaskParas length=${todayTaskParas.length}`)
+    const todayTasks = askToReviewTodaysTasks && todayTaskParas.length ? getStaticTaskList(todayTaskParas, 'Today') : []
     // clo(forgottenTasks, `processOverdueReact: forgottenTasks length=${forgottenTasks.length}`)
     logDebug(pluginJson, `processOverdueReact: forgottenTasks length=${forgottenTasks.length}`)
-    staticParasToReview = [...overdueStaticTasks, ...openWeeklyTasks, ...forgottenTasks]
+    staticParasToReview = [...overdueStaticTasks, ...openWeeklyTasks, ...forgottenTasks, ...todayTasks]
     staticParasToReview = createCleanContent(staticParasToReview)
-  } else {
   }
   // clo(staticParasToReview, `processOverdueReact: staticParasToReview length=${staticParasToReview.length}`)
   const ENV_MODE = 'production'
@@ -444,41 +468,44 @@ export function getDataForReactView(testData: boolean = false): any {
 }
 
 /**
- * Process overdue items using React HTML View
- * Plugin entrypoint for "/Process Overdue Items in Separate Window"
- * Intended for users to invoke from Command Bar
+ * Worker function called by processOverdueReact and processFolderReact
  * @author @dwertheimer
+ * @param {string} filterSetting - the intial filter setting to use in the HTML view
+ * @param {string} folderToSearch - the folder to search for tasks (if any)
  */
-export async function processOverdueReact(filterSetting?: string, folderToSearch?: string) {
+export async function startReactReview(filterSetting?: string | null, folderToSearch?: string | false) {
   try {
-    logDebug(pluginJson, `reviewOverdueTasksByTask: incoming="${filterSetting || ''}" typeof="${typeof filterSetting}" Starting Timer`)
+    logDebug(pluginJson, `startReactReview running with: folderToSearch="${filterSetting || ''}" typeof="${typeof filterSetting}" Starting Timer`)
 
-    const starter = new Date()
+    let starter = new Date()
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, true, true)
-    logDebug(pluginJson, `reviewOverdueTasksByTask: installed/verified np.Shared: took:${timer(starter)}`)
+    logDebug(pluginJson, `startReactReview: installed/verified np.Shared, took ${timer(starter)}`)
+    starter = new Date()
 
     // NOTE: Relative paths are relative to the plugin folder of dwertheimer.React
     // So ALWAYS go out and back in, like this: `../dwertheimer.TaskAutomations/xxx`
     // because you can't guarantee what folder you are in at any given time
     const cssTagsString = `		<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.w3.css">
-		<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.plugin.css">\n`
+     <link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.plugin.css">\n`
 
-    const data = getDataForReactView()
+    const data = await getDataForReactView(false, folderToSearch)
+    logDebug(pluginJson, `startReactReview: getting data for review, took ${timer(starter)}`)
+
     if (data && filterSetting) data.startingFilter = filterSetting
     /*
-      export type HtmlWindowOptions = {
-        headerTags?: string, 
-        generalCSSIn?: string, 
-        specificCSS?: string,
-        makeModal?: boolean,
-        preBodyScript?: string | ScriptObj | Array<string | ScriptObj>, -- send array or string
-        postBodyScript?: string | ScriptObj | Array<string | ScriptObj> -- send array or string
-        savedFilename?: string,
-        width?: number,
-        height?: number,
-        includeCSSAsJS?: boolean,
-      }
-    */
+       export type HtmlWindowOptions = {
+         headerTags?: string, 
+         generalCSSIn?: string, 
+         specificCSS?: string,
+         makeModal?: boolean,
+         preBodyScript?: string | ScriptObj | Array<string | ScriptObj>, -- send array or string
+         postBodyScript?: string | ScriptObj | Array<string | ScriptObj> -- send array or string
+         savedFilename?: string,
+         width?: number,
+         height?: number,
+         includeCSSAsJS?: boolean,
+       }
+     */
     // most of these ^^^ should work but I haven't tested them all yet
     // we should generalize this so you can pass anything
     const windowOptions = {
@@ -500,6 +527,36 @@ export async function processOverdueReact(filterSetting?: string, folderToSearch
 }
 
 /**
+ * Process overdue items using React HTML View
+ * Plugin entrypoint for "/Process Overdue Items in Separate Window"
+ * Intended for users to invoke from Command Bar
+ * @author @dwertheimer
+ */
+export async function processOverdueReact(filterSetting?: string | null) {
+  try {
+    await startReactReview(filterSetting)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * DESC
+ * Plugin entrypoint for command: "/COMMAND"
+ * @author @dwertheimer
+ * @param {*} incoming
+ */
+export async function processFolderReact(folderToSearch?: string | false, filterSetting?: string | null) {
+  try {
+    logDebug(pluginJson, `processFolderReact running with filterSetting:${String(filterSetting)} folderToSearch:${String(folderToSearch)}`)
+    const folder = folderToSearch || (await chooseFolder('Choose a folder to search for tasks'))
+    await startReactReview(filterSetting, folder)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
  * Static test data for React view
  * Hidden from command bar
  * fire it by xcallback: N2 -- noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=testOverdueReact
@@ -513,7 +570,7 @@ export async function testOverdueReact() {
     // await installPlugin('dwertheimer.React')
     // logDebug(pluginJson, `reviewOverdueTasksByTask: installed/verified dwertheimer.React`)
 
-    const data = getDataForReactView(true)
+    const data = await getDataForReactView(true)
     const note = await getOrMakeNote('Overdue Tasks TEST NOTE', '_TEST')
     await Editor.openNoteByFilename(note?.filename || '')
     if (note) {

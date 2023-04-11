@@ -3,11 +3,10 @@
 import pluginJson from '../plugin.json'
 import { showMessageYesNo, chooseFolder, showMessage, chooseOptionWithModifiers } from '../../helpers/userInput'
 import { getOverdueParagraphs } from '../../helpers/NPParagraph'
-import { reviewTasksInNotes, getNotesAndTasksToReview, createArrayOfNotesAndTasks, getNotesWithOpenTasks, getWeeklyOpenTasks } from './NPTaskScanAndProcess'
+import { reviewTasksInNotes, getNotesAndTasksToReview, getNotesWithOpenTasks, getReferencesForReview } from './NPTaskScanAndProcess'
 import { isOpen } from '@helpers/utils'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { filenameDateString } from '@helpers/dateTime'
-import { getTodaysReferences } from '@helpers/NPnote'
 
 const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
 
@@ -262,17 +261,8 @@ export async function reviewEditorReferencedTasks(incoming: string | null = null
     }
     // clo(getTodaysReferences(Editor.note), `reviewEditorReferencedTasks todayReferences`)
     const confirmResults = incoming ? false : true
+    const arrayOfOpenNotesAndTasks = getReferencesForReview(Editor.note, weeklyNote)
     const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
-    const refs = getTodaysReferences(Editor.note)
-    logDebug(pluginJson, `reviewEditorReferencedTasks refs.length=${refs.length}`)
-    const openTasks = weeklyNote ? [] : refs.filter((p) => isOpen(p) && p.content !== '')
-    const thisWeeksTasks = weeklyNote ? getWeeklyOpenTasks() : []
-    logDebug(pluginJson, `reviewEditorReferencedTasks openTasks.length=${openTasks.length} thisWeeksTasks=${thisWeeksTasks.length}`)
-    // gather references by note
-    const arrayOfOpenNotesAndTasks = createArrayOfNotesAndTasks([...thisWeeksTasks, ...openTasks])
-    // clo(arrayOfOpenNotesAndTasks, `reviewEditorReferencedTasks arrayOfOpenNotesAndTasks`)
-    // clo(arrayOfNotesAndTasks, `NPOverdue::reviewEditorReferencedTasks arrayOfNotesAndTasks`)
-    logDebug(pluginJson, `reviewEditorReferencedTasks arrayOfNotesAndTasks.length=${arrayOfOpenNotesAndTasks.length}`)
     const options = {
       openOnly: overdueOpenOnly,
       foldersToIgnore: overdueFoldersToIgnore,
@@ -355,6 +345,7 @@ export async function getNotesToReviewForOpenTasks(ignoreScheduledInForgottenRev
       searchForgottenTasksOldestToNewest,
       overdueFoldersToIgnore: forgottenFoldersToIgnore,
       ignoreScheduledInForgottenReview,
+      restrictToFolder: null,
     })
     const totalTasks = notesWithOpenTasks.reduce((acc, n) => acc + n.length, 0)
     logDebug(pluginJson, `Calendar + Project Notes to review: ${notesWithOpenTasks.length}; total tasks: ${totalTasks}`)

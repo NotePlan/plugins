@@ -52,7 +52,7 @@ Review tasks either on this week's note or tagged for this week
 
 You can also review tasks in a separate popup window using the command:
 `/Process Overdue Items in Separate Window`
-This will pop up a window that shows Overdue (and optionally LeftOpen tasks). LeftOpen tasks are open tasks in notes in the last 30 days that are still open but not scheduled. By default, the plugin will search for LeftOpen tasks, but you can turn that off in the plugin settings with the setting: `Review Forgotten Tasks After Overdue`
+This will pop up a window that shows Overdue (and optionally LeftOpen and Today's tasks). LeftOpen tasks are open tasks in notes in the last 30 days that are still open but not scheduled. By default, the plugin will search for LeftOpen and Today's tasks, but you can turn that off in the plugin settings with the setting: `Review Forgotten Tasks After Overdue`
 
 ### Filtering Tasks in the Window
 
@@ -62,13 +62,19 @@ You can filter tasks in the window through the dropdown menu in the upper-right 
 
 This command can be run via xcallback/URL link and when you call it that way, you can control what the default filter is on the page:
 
+### X-Callback: Show Overdue Items
+
+`noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Process%20Overdue%20Items%20in%20Separate%20Window&arg0=Overdue`
+
+> **NOTE:** LeftOpen and Today items are listed only if you have them selected for review in the plugin settings.
+
 ### X-Callback: Show Forgotten/Left Open Items
 
 `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Process%20Overdue%20Items%20in%20Separate%20Window&arg0=LeftOpen`
 
-### X-Callback: Show Overdue Items
+### X-Callback: Show Today Items
 
-`noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Process%20Overdue%20Items%20in%20Separate%20Window&arg0=Overdue`
+`noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Process%20Overdue%20Items%20in%20Separate%20Window&arg0=Today`
 
 ## Follow-up Tasks
 
