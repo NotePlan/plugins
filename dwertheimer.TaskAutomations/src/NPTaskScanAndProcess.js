@@ -688,7 +688,7 @@ export function getWeeklyOpenTasks(): Array<TParagraph> {
  * @param {boolean} confirmResults - whether to show a confirmation message (default: false)
  * @returns {Array<any>} Array of tasks to review
  */
-export function getReferencesForReview(note: CoreNoteFields, weeklyNote: boolean = false) {
+export function getReferencesForReview(note: CoreNoteFields, weeklyNote: boolean = false): Array<Array<TParagraph>> {
   const refs = getTodaysReferences(note)
   logDebug(pluginJson, `reviewEditorReferencedTasks refs.length=${refs.length}`)
   const openTasks = weeklyNote ? [] : refs.filter((p) => isOpen(p) && p.content !== '')

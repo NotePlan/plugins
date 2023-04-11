@@ -427,8 +427,13 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
 
   if (!testData) {
     // const confirmResults = incoming ? false : true
+    let start = new Date()
     const overdueStaticTasks = getStaticTaskList(getOverdueTasks(noteFolder), 'Overdue')
+    logDebug(`>>> getDataForReactView getOverdueTasks(${noteFolder || ''}) took: ${timer(start)}`)
+    start = new Date()
     const openWeeklyTasks = askToReviewWeeklyTasks ? getStaticTaskList(getWeeklyOpenTasks(), 'ThisWeek') : []
+    logDebug(`>>> getDataForReactView openWeeklyTasks() took: ${timer(start)}`)
+    start = new Date()
     //FIMXE: I am here. need to add settings for wherre to look and for how long
     const notesWithOpenTasks = askToReviewForgottenTasks
       ? getNotesWithOpenTasks(
@@ -437,17 +442,23 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
           { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore: forgottenFoldersToIgnore, ignoreScheduledInForgottenReview, restrictToFolder: noteFolder },
         )
       : []
+    logDebug(`>>> getDataForReactView getNotesWithOpenTasks() (forgotten) took: ${timer(start)}`)
+    start = new Date()
     // clo(notesWithOpenTasks, `processOverdueReact: notesWithOpenTasks length=${notesWithOpenTasks.length}`)
     const openTasksGoneBy = notesWithOpenTasks.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
     const forgottenTasks = getStaticTaskList(openTasksGoneBy, 'LeftOpen')
     const todayTaskParas = ((await getTodayReferencedTasks()) || []).reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
-    clo(todayTaskParas, `processOverdueReact: todayTaskParas length=${todayTaskParas.length}`)
+    logDebug(`>>> getDataForReactView todayReferenced took: ${timer(start)}`)
+    start = new Date()
+    // clo(todayTaskParas, `processOverdueReact: todayTaskParas length=${todayTaskParas.length}`)
     const todayTasks = askToReviewTodaysTasks && todayTaskParas.length ? getStaticTaskList(todayTaskParas, 'Today') : []
     // clo(forgottenTasks, `processOverdueReact: forgottenTasks length=${forgottenTasks.length}`)
     logDebug(pluginJson, `processOverdueReact: forgottenTasks length=${forgottenTasks.length}`)
     staticParasToReview = [...overdueStaticTasks, ...openWeeklyTasks, ...forgottenTasks, ...todayTasks]
     staticParasToReview = createCleanContent(staticParasToReview)
+    logDebug(`>>> getDataForReactView cleaning conten took: ${timer(start)}`)
   }
+  const startReactDataPackaging = new Date()
   // clo(staticParasToReview, `processOverdueReact: staticParasToReview length=${staticParasToReview.length}`)
   const ENV_MODE = 'production'
   const data = {
@@ -463,7 +474,7 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
     contextButtons: getButtons(),
     startTime,
   }
-  logDebug(pluginJson, `getDataForReactView overdueParas:${data.overdueParas.length}`)
+  logDebug(`>>> getDataForReactView overdueParas:${data.overdueParas.length} took: ${timer(startReactDataPackaging)}`)
   return data
 }
 
