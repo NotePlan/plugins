@@ -1,13 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 7.4.2023 for v0.3.x by @jgclark
+// Last updated 12.4.2023 for v0.4.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import { getDataForDashboard } from './dataGeneration'
-import { getDemoDashboardData } from './demoDashboard'
+import { getDemoDataForDashboard } from './demoDashboard'
 import {
   addNoteOpenLinkToString, getSettings,
   makeParaContentToLookLikeNPDisplayInHTML,
@@ -91,7 +91,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
     let sectionItems: Array<SectionItem> = []
 
     if (demoMode) {
-      [sections, sectionItems] = getDemoDashboardData()
+      [sections, sectionItems] = await getDemoDataForDashboard()
     } else {
       [sections, sectionItems] = await getDataForDashboard()
     }
@@ -101,6 +101,8 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
     const outputArray: Array<string> = []
     const dailyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'day'))
     const weeklyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'week'))
+    const monthlyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'month'))
+    const quarterlyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'quarter'))
     const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '')
 
     // Create nice HTML display for this data.
@@ -162,7 +164,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
       //   outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${sectionNameWithPossibleLink}</span></td>`)
       // }
 
-      // Start col 3: table of items in this section
+      // Start col 2: table of items in this section
       outputArray.push(`  <td>`)
       outputArray.push(`  <div class="multi-cols">`)
       // Now start a nested table for cols 3/4 (to simplify logic and CSS)
@@ -184,7 +186,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
         // Do main work for the item
         switch (item.type) {
           case 'open': {
-            // do col3
+            // do icon col (was col3)
             outputArray.push(
               `     <td id="${item.ID}A" class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`,
             )
@@ -193,7 +195,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
             // If context is wanted, and linked note title
             let paraContent = ''
             if (config.includeTaskContext) {
-              if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
+              if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle || itemNoteTitle === monthlyNoteTitle || itemNoteTitle === quarterlyNoteTitle) {
                 paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
               } else {
                 paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
@@ -207,10 +209,10 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
             break
           }
           case 'checklist': {
-            // do col 3 icon
+            // do icon col (was col3)
             outputArray.push(`     <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
 
-            // do col 4: whole note link is clickable
+            // do item details col (was col4): whole note link is clickable
             // If context is wanted, and linked note title
             let paraContent = ''
             if (config.includeTaskContext) {
@@ -238,10 +240,10 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
           }
           case 'review': {
             if (itemNoteTitle) {
-              // do col 3 icon
+              // do icon col (was col3)
               outputArray.push(`      <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`)
 
-              // do col 4: review note link as internal calls
+              // do item details col (was col4): review note link as internal calls
               const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
               let cell4 = `      <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
               // TODO: make specific to that note
@@ -265,7 +267,7 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
 
     // write lines before first table
     // Write time and refresh info
-    const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard (HTML)', '')
+    const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', '')
     const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
 
     let summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; `

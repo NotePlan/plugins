@@ -70,10 +70,10 @@ export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
 
 // Get today's date in various ways
 // these two are the same!
-export const todaysDateISOString: string = moment().toISOString().slice(0, 10)
 export function getTodaysDateHyphenated(): string {
   return moment().format('YYYY-MM-DD')
 }
+export const todaysDateISOString: string = moment().format('YYYY-MM-DD')
 
 export function getTodaysDateAsArrowDate(): string {
   return `>${getTodaysDateHyphenated()}`
@@ -81,7 +81,6 @@ export function getTodaysDateAsArrowDate(): string {
 
 export function getTodaysDateUnhyphenated(): string {
   return moment().format('YYYYMMDD')
-  // return strftime(`%Y%m%d`)
 }
 
 export function getJSDateStartOfToday(): Date {
@@ -653,6 +652,24 @@ export function getNPWeekStr(inDate: Date): string {
   // Using 'moment' library, with Monday first day of week
   const dateMoment = moment(inDate)
   return dateMoment.format('YYYY-[W]ww')
+}
+
+export function getNPMonthStr(inDate: Date): string {
+  // Using 'moment' library
+  const dateMoment = moment(inDate)
+  return dateMoment.format('YYYY-MM')
+}
+
+export function getNPQuarterStr(inDate: Date): string {
+  // Using 'moment' library
+  const dateMoment = moment(inDate)
+  return dateMoment.format('YYYY-[Q]Q')
+}
+
+export function getNPYearStr(inDate: Date): string {
+  // Using 'moment' library
+  const dateMoment = moment(inDate)
+  return dateMoment.format('YYYY')
 }
 
 /**
