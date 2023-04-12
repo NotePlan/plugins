@@ -1,3 +1,5 @@
+/* global NP_THEME */
+
 import chroma from 'chroma-js'
 import { createTheme as createDataTableTheme } from 'react-data-table-component'
 import { ThemedSelect } from './ThemedSelect.jsx'
@@ -33,7 +35,22 @@ const getAltColor = (bgColor, strength = 0.2) => {
   const calcAltFromBGColor = isLight(bgColor) ? chroma(bgColor).darken(strength).css() : chroma(bgColor).brighten(strength).css()
   // if (!altColor || chroma.deltaE(bgColor,altColor) < ) return calcAltFromBGColor
   return calcAltFromBGColor
-  return altColor
+}
+
+const menuStyles = {
+  base: {
+    backgroundColor: getAltColor(NP_THEME.base.backgroundColor),
+    color: getAltColor(NP_THEME.base.textColor),
+  },
+  hover: {
+    backgroundColor: getAltColor(NP_THEME.base.backgroundColor, 0.75),
+    color: getAltColor(NP_THEME.base.textColor, 0.75),
+    border: '1px solid',
+    borderColor: NP_THEME.base.textColor,
+  },
+  icon: {
+    color: getAltColor(NP_THEME.base.textColor, 0.75),
+  },
 }
 
 /**
@@ -52,11 +69,9 @@ const columnsWithFallback = ({ handleTaskStatusChange, hideRow }) => [
   {
     name: '',
     selectorName: 'type',
-    /* omit: true for now, lets not show the status column */
-    // selector: (row) => row.type,
     sortable: true,
     width: '50px',
-    cell: (row) => <StatusButton rowID={row.id} initialState={row.type} onStatusChange={handleTaskStatusChange} className={'todo'} />,
+    cell: (row) => <StatusButton rowID={row.id} initialState={row.type} onStatusChange={handleTaskStatusChange} className={'todo'} menuStyles={menuStyles} />,
   },
   {
     name: 'Content',

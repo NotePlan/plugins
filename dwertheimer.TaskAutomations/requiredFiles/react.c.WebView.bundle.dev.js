@@ -43237,6 +43237,33 @@ var WebViewBundle = (function (exports, React$1) {
 	  });
 	}
 
+	function _extends() {
+	  _extends = Object.assign ? Object.assign.bind() : function (target) {
+	    for (var i = 1; i < arguments.length; i++) {
+	      var source = arguments[i];
+	      for (var key in source) {
+	        if (Object.prototype.hasOwnProperty.call(source, key)) {
+	          target[key] = source[key];
+	        }
+	      }
+	    }
+	    return target;
+	  };
+	  return _extends.apply(this, arguments);
+	}
+
+	/**
+	 * Basic button using w3.css
+	 * @param {*} props
+	 * @returns a simple w3 styled button
+	 */
+	function Button(props) {
+	  const className = props.className ?? 'w3-btn w3-white w3-border w3-border-blue w3-round';
+	  return /*#__PURE__*/React.createElement("button", _extends({
+	    className: className
+	  }, props), props.children);
+	}
+
 	function TypeFilter(props) {
 	  const {
 	    options,
@@ -43288,33 +43315,6 @@ var WebViewBundle = (function (exports, React$1) {
 	  // console.log(`WebView: EditableElement elements=`, elements)
 	  return elements;
 	};
-
-	function _extends() {
-	  _extends = Object.assign ? Object.assign.bind() : function (target) {
-	    for (var i = 1; i < arguments.length; i++) {
-	      var source = arguments[i];
-	      for (var key in source) {
-	        if (Object.prototype.hasOwnProperty.call(source, key)) {
-	          target[key] = source[key];
-	        }
-	      }
-	    }
-	    return target;
-	  };
-	  return _extends.apply(this, arguments);
-	}
-
-	/**
-	 * Basic button using w3.css
-	 * @param {*} props
-	 * @returns a simple w3 styled button
-	 */
-	function Button(props) {
-	  const className = props.className ?? 'w3-btn w3-white w3-border w3-border-blue w3-round';
-	  return /*#__PURE__*/React.createElement("button", _extends({
-	    className: className
-	  }, props), props.children);
-	}
 
 	/**
 	 * Context menu bar with buttons and a reschedule component
@@ -43426,7 +43426,7 @@ var WebViewBundle = (function (exports, React$1) {
 	  initialState,
 	  onStatusChange,
 	  rowID,
-	  style,
+	  menuStyles /* base, hover, icon props */,
 	  showText,
 	  dropdown = true,
 	  showScheduledOptions = false,
@@ -43458,33 +43458,33 @@ var WebViewBundle = (function (exports, React$1) {
 	  };
 
 	  const withHover = /*#__PURE__*/React.createElement("div", {
-	    className: "w3-dropdown-hover statusbutton-displayed pointer",
-	    style: style
+	    className: "statusbutton-hoverable w3-dropdown-hover pointer",
+	    style: menuStyles.base
 	  }, /*#__PURE__*/React.createElement("div", {
-	    className: `${currentState.class} statusbutton-collapsed todo pointer`,
-	    style: style,
+	    className: `${currentState.class} statusbutton-data-row-icon pointer`,
+	    style: menuStyles.base,
 	    onClick: e => handleClick(e)
 	  }, currentState.icon), /*#__PURE__*/React.createElement("div", {
-	    className: "w3-dropdown-content w3-bar-block w3-border pointer",
-	    style: style
+	    className: "statusbutton-dropdown-container w3-dropdown-content w3-bar-block w3-border pointer",
+	    style: menuStyles.base
 	  }, states.filter(o => o.type !== currentState.type).filter(o => showScheduledOptions || !o.type.includes('cheduled')).map((s, i) => /*#__PURE__*/React.createElement("div", {
 	    onClick: e => handleClick(e, rowID, s.type),
-	    className: "w3-bar-item statusbutton-bar pointer",
+	    className: "statusbutton-option-row w3-bar-item pointer",
 	    key: i,
 	    style: {
-	      cursor: 'pointer'
+	      cursor: 'pointer',
+	      ':hover': menuStyles.hover
 	    }
 	  }, /*#__PURE__*/React.createElement("span", {
-	    className: `${currentState.class} statusbutton-icon todo pointer`,
-	    style: style
+	    className: `statusbutton-option-icon ${currentState.class} pointer`,
+	    style: menuStyles.icon
 	  }, s.icon), /*#__PURE__*/React.createElement("span", {
-	    className: "statusbutton-text pointer todo",
-	    style: style
+	    className: "statusbutton-option-text pointer"
 	  }, s.type)))));
 	  const withoutHover = /*#__PURE__*/React.createElement("div", {
-	    className: "statusbutton w3-cell-middle",
+	    className: "statusbutton-collapsed w3-cell-middle",
 	    onClick: e => handleClick(e),
-	    style: style
+	    style: menuStyles.base
 	  }, /*#__PURE__*/React.createElement("div", {
 	    className: currentState.class
 	  }, currentState.icon), showText && /*#__PURE__*/React.createElement("div", {
@@ -43492,6 +43492,8 @@ var WebViewBundle = (function (exports, React$1) {
 	  }, currentState.type));
 	  return dropdown ? withHover : withoutHover;
 	};
+
+	/* global NP_THEME */
 
 	// Data Table Styles:
 	// USE THIS REF:  https://github.com/jbetancur/react-data-table-component/blob/master/src/DataTable/styles.ts
@@ -43524,6 +43526,21 @@ var WebViewBundle = (function (exports, React$1) {
 	  // if (!altColor || chroma.deltaE(bgColor,altColor) < ) return calcAltFromBGColor
 	  return calcAltFromBGColor;
 	};
+	const menuStyles = {
+	  base: {
+	    backgroundColor: getAltColor(NP_THEME.base.backgroundColor),
+	    color: getAltColor(NP_THEME.base.textColor)
+	  },
+	  hover: {
+	    backgroundColor: getAltColor(NP_THEME.base.backgroundColor, 0.75),
+	    color: getAltColor(NP_THEME.base.textColor, 0.75),
+	    border: '1px solid',
+	    borderColor: NP_THEME.base.textColor
+	  },
+	  icon: {
+	    color: getAltColor(NP_THEME.base.textColor, 0.75)
+	  }
+	};
 
 	/**
 	 * Column Definitions
@@ -43544,15 +43561,14 @@ var WebViewBundle = (function (exports, React$1) {
 	}, {
 	  name: '',
 	  selectorName: 'type',
-	  /* omit: true for now, lets not show the status column */
-	  // selector: (row) => row.type,
 	  sortable: true,
 	  width: '50px',
 	  cell: row => /*#__PURE__*/React.createElement(StatusButton, {
 	    rowID: row.id,
 	    initialState: row.type,
 	    onStatusChange: handleTaskStatusChange,
-	    className: 'todo'
+	    className: 'todo',
+	    menuStyles: menuStyles
 	  })
 	}, {
 	  name: 'Content',

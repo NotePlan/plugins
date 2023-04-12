@@ -2,30 +2,20 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekendOfInterval } from 'date-fns'
-import plugin from '@babel/core/lib/config/plugin.js'
 import pluginJson from '../plugin.json'
 import { sortListBy } from '../../helpers/sorting'
 import { getTodaysDateAsArrowDate, getTodaysDateHyphenated } from '../../helpers/dateTime'
 import { getWeekOptions } from '../../helpers/NPdateTime'
-import { getGlobalSharedData, sendToHTMLWindow, updateGlobalSharedData } from '../../helpers/HTMLView'
+import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { convertAllLinksToHTMLLinks, stripAllMarkersFromString } from '../../helpers/stringTransforms'
 import { getOrMakeNote } from '../../helpers/note'
 import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCapture'
-import { followUpInFuture, followUpSaveHere } from './NPFollowUp'
-import {
-  getNotesAndTasksToReview,
-  reviewTasksInNotes,
-  createArrayOfNotesAndTasks,
-  getReferencesForReview,
-  getSharedOptions,
-  prepareUserAction,
-  getNotesWithOpenTasks,
-  getWeeklyOpenTasks,
-} from './NPTaskScanAndProcess'
-import { log, logError, logDebug, timer, clo, JSP, getFilteredProps } from '@helpers/dev'
-import { paragraphMatches, findParagraph, getParagraphFromStaticObject, createStaticObject, createStaticParagraphsArray, noteHasContent } from '@helpers/NPParagraph'
-import { sendBannerMessage, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { chooseFolder } from '../../helpers/userInput'
+import { findOpenTodosInNote } from '../../helpers/NPnote'
+import { followUpInFuture, followUpSaveHere } from './NPFollowUp'
+import { getNotesAndTasksToReview, getReferencesForReview, getSharedOptions, prepareUserAction, getNotesWithOpenTasks, getWeeklyOpenTasks } from './NPTaskScanAndProcess'
+import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { getParagraphFromStaticObject, createStaticObject, createStaticParagraphsArray, noteHasContent } from '@helpers/NPParagraph'
 
 /* Finalize the actions taken by the user (save/update the results)
  * @param {*} resultObj - the result of the user's action { action:string, changed:TParagraph }
@@ -169,7 +159,7 @@ export function paragraphUpdateReceived(data: { rows: Array<any>, field: string 
       if (para) {
         // $FlowFixMe
         para[field] = row[field]
-        const val = { action: 'set', changed: para }
+        // const val = { action: 'set', changed: para }
         if (para && para.filename) {
           // writing one at a time will not work in the same note, so we need to save them and write them all at once
           if (!updatesByNote[para.filename]) updatesByNote[para.filename] = []
@@ -195,12 +185,13 @@ export function paragraphUpdateReceived(data: { rows: Array<any>, field: string 
  * @param {any} data - the updated rows object
  */
 export async function updateRowDataAndSend(updateInfo: any, updateText: string = '') {
+  // clo(updateInfo, `updateRowDataAndSend updateText=${updateText} updateInfo=`)
   const updatedRows = updateInfo.updatedRows
   const currentJSData = await getGlobalSharedData()
   const overdueParas = currentJSData.overdueParas
   updatedRows.forEach((row) => {
     overdueParas[row.id] = { ...overdueParas[row.id], ...row }
-    clo(currentJSData[row.id], `updateRowDataAndSend updated row=`)
+    clo(overdueParas[row.id], `updateRowDataAndSend updated row=`)
   })
   sendToHTMLWindow('SET_DATA', currentJSData, updateText)
   // await updateGlobalSharedData(currentJSData, false)
@@ -395,18 +386,20 @@ export const createCleanContent = (statics: Array<any>): Array<any> =>
  *  Find all tasks in today's references (either marked for today or in weekly note)
  * @param {boolean} weeklyNote - if true, use weekly note instead of today's note
  */
-export async function getTodayReferencedTasks(weeklyNote: boolean = false): Promise<void> {
+export async function getTodayReferencedTasks(weeklyNote: boolean = false): Promise<Array<Array<TParagraph>>> {
   try {
     await Editor.openNoteByDate(new Date())
     if (Editor.note?.type !== 'Calendar') {
       throw `You must be in a Calendar Note to run this command.`
     }
     // clo(getTodaysReferences(Editor.note), `reviewEditorReferencedTasks todayReferences`)
-    const arrayOfOpenNotesAndTasks = getReferencesForReview(Editor.note, weeklyNote)
+    const todosInNote = Editor.note ? findOpenTodosInNote(Editor.note, true) : []
+    const arrayOfOpenNotesAndTasks = Editor.note ? getReferencesForReview(Editor.note, weeklyNote) : [[]]
     logDebug(pluginJson, `getTodayReferencedTasks: arrayOfOpenNotesAndTasks.length=${arrayOfOpenNotesAndTasks.length}`)
-    return arrayOfOpenNotesAndTasks
+    return [...arrayOfOpenNotesAndTasks, [...todosInNote]]
   } catch (error) {
     logError(pluginJson, JSP(error))
+    return [[]]
   }
 }
 
@@ -420,8 +413,8 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
     askToReviewForgottenTasks,
     ignoreScheduledInForgottenReview,
     searchForgottenTasksOldestToNewest,
-    overdueFoldersToIgnore,
-    ignoreScheduledTasks,
+    /* overdueFoldersToIgnore,
+    ignoreScheduledTasks, */
     forgottenFoldersToIgnore,
   } = DataStore.settings
 
@@ -439,7 +432,7 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
       ? getNotesWithOpenTasks(
           'both',
           { num: 30, unit: 'day' },
-          { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore: forgottenFoldersToIgnore, ignoreScheduledInForgottenReview, restrictToFolder: noteFolder },
+          { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore: forgottenFoldersToIgnore, ignoreScheduledInForgottenReview, restrictToFolder: noteFolder || false },
         )
       : []
     logDebug(`>>> getDataForReactView getNotesWithOpenTasks() (forgotten) took: ${timer(start)}`)
@@ -447,7 +440,7 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
     // clo(notesWithOpenTasks, `processOverdueReact: notesWithOpenTasks length=${notesWithOpenTasks.length}`)
     const openTasksGoneBy = notesWithOpenTasks.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
     const forgottenTasks = getStaticTaskList(openTasksGoneBy, 'LeftOpen')
-    const todayTaskParas = ((await getTodayReferencedTasks()) || []).reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
+    const todayTaskParas = ((await getTodayReferencedTasks()) || []).reduce((acc, noteTasks) => [...acc, ...noteTasks], []).filter((t) => t.content !== '')
     logDebug(`>>> getDataForReactView todayReferenced took: ${timer(start)}`)
     start = new Date()
     // clo(todayTaskParas, `processOverdueReact: todayTaskParas length=${todayTaskParas.length}`)
@@ -457,10 +450,12 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
     staticParasToReview = [...overdueStaticTasks, ...openWeeklyTasks, ...forgottenTasks, ...todayTasks]
     staticParasToReview = createCleanContent(staticParasToReview)
     logDebug(`>>> getDataForReactView cleaning conten took: ${timer(start)}`)
+    // const lod = await DataStore.listOverdueTasks()
+    // logDebug(pluginJson, `getDataForReactView listOverdueTasks:${lod.length} staticParasToReview:${staticParasToReview.length}`)
   }
   const startReactDataPackaging = new Date()
   // clo(staticParasToReview, `processOverdueReact: staticParasToReview length=${staticParasToReview.length}`)
-  const ENV_MODE = 'production'
+  const ENV_MODE = 'development'
   const data = {
     overdueParas: staticParasToReview,
     title: `Overdue Tasks`,
@@ -502,7 +497,8 @@ export async function startReactReview(filterSetting?: string | null, folderToSe
     const data = await getDataForReactView(false, folderToSearch)
     logDebug(pluginJson, `startReactReview: getting data for review, took ${timer(starter)}`)
 
-    if (data && filterSetting) data.startingFilter = filterSetting
+    data.startingFilter = filterSetting // might be empty which is ok
+
     /*
        export type HtmlWindowOptions = {
          headerTags?: string, 
@@ -545,7 +541,7 @@ export async function startReactReview(filterSetting?: string | null, folderToSe
  */
 export async function processOverdueReact(filterSetting?: string | null) {
   try {
-    await startReactReview(filterSetting)
+    await startReactReview(filterSetting || 'Overdue')
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -561,7 +557,7 @@ export async function processFolderReact(folderToSearch?: string | false, filter
   try {
     logDebug(pluginJson, `processFolderReact running with filterSetting:${String(filterSetting)} folderToSearch:${String(folderToSearch)}`)
     const folder = folderToSearch || (await chooseFolder('Choose a folder to search for tasks'))
-    await startReactReview(filterSetting, folder)
+    await startReactReview(filterSetting || 'Overdue', folder)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

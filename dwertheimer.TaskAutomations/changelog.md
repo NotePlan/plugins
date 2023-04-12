@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.13.1] @dwertheimer 2023-04-12
+
+- Fix regression bug that was always returning you to Overdue view
+
 ## [2.13.0] @dwertheimer 2023-03-10
 
 - Add Overdue Popup Window for a Specific Folder
