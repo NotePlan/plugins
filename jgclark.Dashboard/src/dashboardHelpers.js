@@ -325,7 +325,7 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('fake','showNoteInEditorFromTitle','${encodeURIComponent(noteTitle)}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
   }
   catch (error) {
-    logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
+    logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
 }
