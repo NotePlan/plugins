@@ -75,7 +75,7 @@ export const StatusButton = ({
               onClick={(e) => handleClick(e, rowID, s.type)}
               className="statusbutton-option-row w3-bar-item pointer"
               key={i}
-              style={{ cursor: 'pointer', ':hover': menuStyles.hover }}
+              style={{ cursor: 'pointer', '--hover-color': menuStyles.hover.backgroundColor }}
             >
               <span className={`statusbutton-option-icon ${currentState.class} pointer`} style={menuStyles.icon}>
                 {s.icon}

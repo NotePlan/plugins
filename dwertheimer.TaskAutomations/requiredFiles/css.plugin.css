@@ -64,10 +64,17 @@ body { padding-left: 15px; padding-right: 15px; }
     width: 180px !important;
   }
 
+  /*
   .statusbutton-option-row:hover {
     background-color: #ccc;
     color: #222;
     width: 180px;
+  }
+  */
+
+  .statusbutton-option-row:hover {
+    /* dynamically set hover color in the code since you can't directly code :hover in JS */
+    background-color: var(--hover-color);
   }
 
   .statusbutton-option-text {
