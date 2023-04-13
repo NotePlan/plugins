@@ -24,7 +24,7 @@ export async function askToReviewWeeklyTasks(byTask: boolean = false) {
       const answer = await showMessageYesNo(`Want to review tasks scheduled for this week?`, ['Yes', 'No'], 'Review Weekly Note Tasks', true)
 
       if (answer === 'Yes') {
-        logDebug(pluginJson, `askToReviewTodaysTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
+        logDebug(pluginJson, `askToReviewWeeklyTasks: now launching review of week's tasks; byTask=${String(byTask)}`)
         await reviewEditorReferencedTasks(null, byTask, true)
       }
     }

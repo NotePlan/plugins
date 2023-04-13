@@ -28,7 +28,7 @@ export const StatusButton = ({
   initialState,
   onStatusChange,
   rowID,
-  style,
+  menuStyles /* base, hover, icon props */,
   showText,
   dropdown = true,
   showScheduledOptions = false,
@@ -62,22 +62,25 @@ export const StatusButton = ({
   }
 
   const withHover = (
-    <div className="w3-dropdown-hover statusbutton-displayed pointer" style={style}>
-      <div className={`${currentState.class} statusbutton-collapsed todo pointer`} style={style} onClick={(e) => handleClick(e, rowID)}>
+    <div className="statusbutton-hoverable w3-dropdown-hover pointer" style={menuStyles.base}>
+      <div className={`${currentState.class} statusbutton-data-row-icon pointer`} style={menuStyles.base} onClick={(e) => handleClick(e, rowID)}>
         {currentState.icon}
       </div>
-      <div className="w3-dropdown-content w3-bar-block w3-border pointer" style={style}>
+      <div className="statusbutton-dropdown-container w3-dropdown-content w3-bar-block w3-border pointer" style={menuStyles.base}>
         {states
           .filter((o) => o.type !== currentState.type)
           .filter((o) => showScheduledOptions || !o.type.includes('cheduled'))
           .map((s, i) => (
-            <div onClick={(e) => handleClick(e, rowID, s.type)} className="w3-bar-item statusbutton-bar pointer" key={i} style={{ cursor: 'pointer' }}>
-              <span className={`${currentState.class} statusbutton-icon todo pointer`} style={style}>
+            <div
+              onClick={(e) => handleClick(e, rowID, s.type)}
+              className="statusbutton-option-row w3-bar-item pointer"
+              key={i}
+              style={{ cursor: 'pointer', '--hover-color': menuStyles.hover.backgroundColor }}
+            >
+              <span className={`statusbutton-option-icon ${currentState.class} pointer`} style={menuStyles.icon}>
                 {s.icon}
               </span>
-              <span className="statusbutton-text pointer todo" style={style}>
-                {s.type}
-              </span>
+              <span className="statusbutton-option-text pointer">{s.type}</span>
             </div>
           ))}
       </div>
@@ -85,7 +88,7 @@ export const StatusButton = ({
   )
 
   const withoutHover = (
-    <div className="statusbutton w3-cell-middle" onClick={(e) => handleClick(e, rowID)} style={style}>
+    <div className="statusbutton-collapsed w3-cell-middle" onClick={(e) => handleClick(e, rowID)} style={menuStyles.base}>
       <div className={currentState.class}>{currentState.icon}</div>
       {showText && <div className="statusbutton-text">{currentState.type}</div>}
     </div>

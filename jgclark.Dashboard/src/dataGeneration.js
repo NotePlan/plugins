@@ -109,7 +109,7 @@ function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriod
  */
 export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Array<SectionItem>]> {
   try {
-    // Get any settings
+    // Get settings
     const config: dashboardConfigType = await getSettings()
 
     // Set up data structure to receive sections and their items
@@ -139,7 +139,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         // clo(combinedSortedParas, "daily sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-        sections.push({ ID: sectionCount, name: 'Today', description: `from ${toLocaleDateString(today)} daily note`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'Today', description: `from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
         sectionCount++
 
         // clo(sortedRefParas, "sortedRefParas")
@@ -154,8 +154,9 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           sections.push({ ID: sectionCount, name: 'Today', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
           sectionCount++
         }
-      } else {
-        // make a sectionItem for each item, and then make a section too.
+      }
+      else {
+        // write one combined section
         let itemCount = 0
         combinedSortedParas.map((p) => {
           const thisID = `${sectionCount}-${itemCount}`
@@ -163,11 +164,15 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           itemCount++
         })
         // clo(sortedRefParas, "sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'Today', description: `from daily note or scheduled to today`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: '' })
+        sections.push({
+          ID: sectionCount, name: 'Today', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: ''
+        })
         sectionCount++
       }
       // Get count of tasks/checklists done today
       doneCount += currentDailyNote.paragraphs.filter(isDone).length
+
+      // TODO: add completed count for today from referenced notes as well
     } else {
       logDebug('getDataForDashboard', `No daily note found for filename '${currentDailyNote?.filename ?? 'error'}'`)
     }
@@ -175,19 +180,13 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     // TODO: Include context for sub-tasks/checklist?
     // config.includeTaskContext
 
-    // TODO: add back in?
-    // // Get completed count for today (in either >today or >YYYY-MM-DD style or >YYYY-Www) from reviewing notes changed in last 24 hours
-    // const notesChangedInLastDay = [currentDailyNote] // TODO
-    // for (const ncild of notesChangedInLastDay) {
-    //   doneCount += ncild?.paragraphs.filter((p) => ["done", "checklistDone"].includes(p.type)).length ?? 0
-    // }
-
     //-----------------------------------------------------------
     // Get list of open tasks/checklists from weekly note (if it exists)
 
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     if (currentWeeklyNote) {
-      const thisFilename = currentDailyNote?.filename ?? '(error)'
+      const thisFilename = currentWeeklyNote?.filename ?? '(error)'
+      const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
 
       // Get list of open tasks/checklists from this calendar note
       const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentWeeklyNote, config.separateSectionForReferencedNotes, config)
@@ -203,7 +202,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         // clo(combinedSortedParas, "weekly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} weekly items`)
-        sections.push({ ID: sectionCount, name: 'This week', description: `from ${toLocaleDateString(today)} weekly note`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
         sectionCount++
 
         // clo(sortedRefParas, "weekly sortedRefParas")
@@ -226,7 +225,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           itemCount++
         })
         // clo(sortedRefParas, "weekly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note or scheduled to it`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: '' })
+        sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: '' })
         sectionCount++
       }
       // Get count of tasks/checklists done this week
@@ -281,7 +280,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           itemCount++
         })
         // clo(sortedRefParas, "monthly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This month', description: `from monthly note or scheduled to it`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: '' })
+        sections.push({ ID: sectionCount, name: 'This month', description: `from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: '' })
         sectionCount++
       }
 
@@ -296,6 +295,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     const currentQuarterlyNote = DataStore.calendarNoteByDate(today, 'quarter')
     if (currentQuarterlyNote) {
       const thisFilename = currentDailyNote?.filename ?? '(error)'
+      const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
 
       // Get list of open tasks/checklists from this calendar note
       const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentQuarterlyNote, config.separateSectionForReferencedNotes, config)
@@ -311,7 +311,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         // clo(combinedSortedParas, "quarterly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} quarterly items`)
-        sections.push({ ID: sectionCount, name: 'This quarter', description: `from ${toLocaleDateString(today)} quarterly note`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This quarter', description: `from quarterly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
         sectionCount++
 
         // clo(sortedRefParas, "quarterly sortedRefParas")
@@ -334,7 +334,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           itemCount++
         })
         // clo(sortedRefParas, "quarterly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This quarter', description: `from quarterly note or scheduled to it`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: '' })
+        sections.push({ ID: sectionCount, name: 'This quarter', description: `from quarterly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: '' })
         sectionCount++
       }
       // Get count of tasks/checklists done this quarter
@@ -359,9 +359,6 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     if (DataStore.fileExists(fullReviewListFilename)) {
       const nextNotesToReview: Array<TNote> = await getNextNotesToReview(4)
       if (nextNotesToReview) {
-        // for (const n of nextNotesToReview) {          
-        //   sectionItems.push({ ID: sectionCount, content: '', rawContent: '', filename: n.filename, type: 'review-note' })
-        // }
         let itemCount = 0
         nextNotesToReview.map((n) => {
           const thisID = `${sectionCount}-${itemCount}`

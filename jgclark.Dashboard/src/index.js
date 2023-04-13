@@ -15,7 +15,7 @@ import { showMessage } from '@helpers/userInput'
 
 export { logWindowsList } from '@helpers/NPWindows'
 
-export { getDemoDashboardData } from './demoDashboard'
+export { getDemoDataForDashboard } from './demoDashboard'
 export { showDashboardHTML, showDemoDashboardHTML } from './dashboardHTML'
 export { decideWhetherToUpdateDashboard } from './dashboardTriggers'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge'
