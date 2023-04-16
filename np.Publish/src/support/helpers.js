@@ -1,12 +1,12 @@
 // @flow
 
-export function getPreviewUrl(url, config)
+export function getPreviewUrl(apiResponse, config)
 {
-  url = url.split('?')[0];
   if (config.appendSecret) {
-    url += '?password=' + config.secret;
+    return apiResponse.viewUrl;
+  } else {
+    return apiResponse.promptUrl;
   }
-  return url;
 }
 
 function generateRandomKey(length)

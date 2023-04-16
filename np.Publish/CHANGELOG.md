@@ -1,8 +1,13 @@
-# NotePlan Online Plugin Changelog
+# NotePlan Publish Changelog
 
-## About NotePlan Online Plugin
+## About NotePlan Publish Plugin
 
-See Plugin [README](https://github.com/NotePlan/plugins/blob/main/asktru.NoteplanOnline/README.md) for details on available commands and use case.
+See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Publish/README.md) for details on available commands and use case.
+
+## [0.2.0] - 2023-04-15 (antony-sklyar)
+
+### Changed
+- switch to a new backend
 
 ## [0.1.0] - 2023-04-02 (antony-sklyar)
 

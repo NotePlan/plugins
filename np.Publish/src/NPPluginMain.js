@@ -9,9 +9,9 @@ import { createRunPluginCallbackUrl } from '@helpers/general'
 
 function processNPOnlineResponse(response)
 {
-    let url = JSON.parse(response).url;
+    response = JSON.parse(response);
     let config = helpers.getOrSetupSettings();
-    let openUrl = helpers.getPreviewUrl(url, config);
+    let url = helpers.getPreviewUrl(response, config);
     
     let content = Editor.content;
     let frontmatter = parser.getFrontmatter(content);
@@ -22,7 +22,7 @@ function processNPOnlineResponse(response)
     content = parser.setFrontmatter(content, frontmatter);
     
     Editor.content = content;
-    NotePlan.openURL(openUrl);
+    NotePlan.openURL(url);
 }
 
 // eslint-disable-next-line require-await
@@ -45,8 +45,10 @@ export async function publish(): Promise<void> {
                 logWarn(pluginJson, 'Updating request failed: ' + error);
             });
     } else {
+        logDebug(pluginJson, 'calling publish API');
         api.doPublish(noteTitle, publishedContent, secret, accessKey)
             .then(function(response) {
+                logDebug(pluginJson, 'publish API response: ' + response);
                 processNPOnlineResponse(response);
             })
             .catch(function(error) {

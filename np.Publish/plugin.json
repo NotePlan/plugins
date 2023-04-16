@@ -1,21 +1,21 @@
 {
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.4.0",
-  "plugin.id": "asktru.NoteplanOnline",
-  "plugin.name": "🌐 NotePlan Online",
-  "plugin.version": "0.1.0",
-  "plugin.lastUpdateInfo": "First working prototype of the plugin.",
-  "plugin.description": "This is aimed to be the improved version of NotePlan Publish built-in feature. It should allow you to refresh published version of the page manually, password-protect your shared note and also support advanced NP-specific markup like tasks, priorities, inline comments and etc. In the future it will also support recursive sharing of the linked notes.",
+  "plugin.id": "np.Publish",
+  "plugin.name": "🌐 NotePlan Publish",
+  "plugin.version": "0.2.0",
+  "plugin.lastUpdateInfo": "Switched to a new plugin backend.",
+  "plugin.description": "This is aimed to be the improved version of NotePlan Publish built-in feature (secure sharing, recursive sharing and other improvements)",
   "plugin.author": "Anton Skliar",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/asktru.NoteplanOnline/README.md",
-  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/asktru.NoteplanOnline/CHANGELOG.md",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Publish/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Publish/CHANGELOG.md",
   "plugin.commands": [
     {
       "name": "publish", 
       "alias": ["pub"],
-      "description": "Publishes current note to NotePlan Online and inserts the secret link into the note",
+      "description": "Publishes (or updates) current note and inserts the secret link into the note front matter",
       "jsFunction": "publish",
       "arguments": [ ]
     },
@@ -47,13 +47,13 @@
     {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "onMessageFromHTMLView",
-      "description": "asktru.NoteplanOnline: Callback function to receive messages from HTML view",
+      "description": "np.Publish: Callback function to receive messages from HTML view",
       "jsFunction": "onMessageFromHTMLView",
       "hidden": true
     },
     {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
-      "name": "NotePlan Online: Update Plugin Settings",
+      "name": "np.Publish: Update Plugin Settings",
       "description": "Preferences",
       "jsFunction": "editSettings"
     }
@@ -62,12 +62,12 @@
     {
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
-      "title": "NotePlan Online Settings"
+      "title": "NotePlan Publish Settings"
     },
     {
       "type": "hidden",
       "key": "pluginID",
-      "default": "asktru.NoteplanOnline",
+      "default": "np.Publish",
       "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
     },
 
@@ -77,8 +77,8 @@
     },
     {
       "key": "secret",
-      "title": "Password for published notes (32 characters long)",
-      "description": "Your password is used to encrypt your notes before publishing as well as to open those notes at noteplan.online (can be generated automatically or updated manually)",
+      "title": "Password for published notes",
+      "description": "Your password is used to encrypt your notes before storing them on the server, as well as to open those notes on the web (can be generated automatically or updated manually)",
       "type": "string",
       "required": false
     },
@@ -91,8 +91,8 @@
     },
     {
       "key": "accessKey",
-      "title": "Access key for updating and unpublishing notes",
-      "description": "Automatically generated secret key that is used under the hood so that only you will be able to securely update or delete published notes from noteplan.online",
+      "title": "API key for managing your published notes",
+      "description": "Secret API key that is used under the hood so that only you will be able to securely update or delete published notes from the server",
       "type": "string",
       "required": false
     },
@@ -104,10 +104,10 @@
     {
       "key": "linkText",
       "title": "Text of the link",
-      "description": "Text of the NotePlan Online public URL that will be inserted into the note after publishing",
+      "description": "Text of the published URL that will be inserted into the note after publishing",
       "type": "string",
       "required": true,
-      "default": "NotePlan Online 🌐"
+      "default": "NotePlan Publish 🌐"
     },
     {
       "key": "frontmatterLink",
@@ -161,7 +161,7 @@
         "ERROR",
         "none"
       ],
-      "description": "Set how much logging output will be displayed when executing NotePlan Online commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "description": "Set how much logging output will be displayed when executing NotePlan Publish commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
       "default": "INFO",
       "required": true
     }
