@@ -426,13 +426,7 @@ declare class DataStore {
    * Note: Available from v3.6.0
    * @type {Array<string>}
    */
-  static +filters: $ReadOnlyArray<string>;
-  /**
-  * Get list of all overdue tasks as paragraphs
-  * Note: Available from v3.8.1
-  * @type {Array<TParagraph>}
-  */
-  static listOverdueTasks(): $ReadOnlyArray < TParagraph >;
+static + filters: $ReadOnlyArray < string >;
 
   /**
    * Get or set settings for the current plugin (as a JavaScript object).

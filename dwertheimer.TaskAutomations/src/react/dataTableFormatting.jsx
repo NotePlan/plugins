@@ -1,6 +1,7 @@
+/* global NP_THEME */
+
 import chroma from 'chroma-js'
 import { createTheme as createDataTableTheme } from 'react-data-table-component'
-import { ThemedSelect } from './ThemedSelect.jsx'
 import { StatusButton } from './StatusButton.jsx'
 
 // Data Table Styles:
@@ -33,8 +34,27 @@ const getAltColor = (bgColor, strength = 0.2) => {
   const calcAltFromBGColor = isLight(bgColor) ? chroma(bgColor).darken(strength).css() : chroma(bgColor).brighten(strength).css()
   // if (!altColor || chroma.deltaE(bgColor,altColor) < ) return calcAltFromBGColor
   return calcAltFromBGColor
-  return altColor
 }
+
+const getMenuStyles = () => {
+  return {
+    base: {
+      backgroundColor: getAltColor(NP_THEME.base.backgroundColor),
+      color: getAltColor(NP_THEME.base.textColor),
+    },
+    hover: {
+      backgroundColor: getAltColor(NP_THEME.base.backgroundColor, 0.75),
+      color: getAltColor(NP_THEME.base.textColor, 0.75),
+      border: '1px solid',
+      borderColor: NP_THEME.base.textColor,
+    },
+    icon: {
+      color: getAltColor(NP_THEME.base.textColor, 0.75),
+    },
+  }
+}
+
+const menuStyles = getMenuStyles()
 
 /**
  * Column Definitions
@@ -52,11 +72,9 @@ const columnsWithFallback = ({ handleTaskStatusChange, hideRow }) => [
   {
     name: '',
     selectorName: 'type',
-    /* omit: true for now, lets not show the status column */
-    // selector: (row) => row.type,
     sortable: true,
     width: '50px',
-    cell: (row) => <StatusButton rowID={row.id} initialState={row.type} onStatusChange={handleTaskStatusChange} className={'todo'} />,
+    cell: (row) => <StatusButton rowID={row.id} initialState={row.type} onStatusChange={handleTaskStatusChange} className={'todo'} menuStyles={menuStyles} />,
   },
   {
     name: 'Content',
@@ -93,13 +111,13 @@ const columnsWithFallback = ({ handleTaskStatusChange, hideRow }) => [
   },
 ]
 // if we pass in column names, we can't pass through the selector function, so we need to calculate it here
-export const columnSpec = (props) => columnsWithFallback(props).map((c) => ({ ...c, selector: c.selector ?? ((row) => row[c.selectorName || c.name]), grow: c.grow ?? 1 }))
+const columnSpec = (props) => columnsWithFallback(props).map((c) => ({ ...c, selector: c.selector ?? ((row) => row[c.selectorName || c.name]), grow: c.grow ?? 1 }))
 
 /**
  * Conditional Row Styling/Formatting
  */
 
-export const conditionalRowStyles = [
+const conditionalRowStyles = [
   {
     when: (row) => row.isSelected,
     style: {
@@ -158,7 +176,7 @@ const theme = createDataTableTheme(
   'dark',
 )
 
-export const customTableStyles = {
+const customTableStyles = {
   table: {
     style: {
       maxWidth: '97vw',
@@ -237,4 +255,4 @@ export const customTableStyles = {
   },
 }
 
-exports = { columnSpec, conditionalRowStyles, customTableStyles }
+export { columnSpec, conditionalRowStyles, customTableStyles, menuStyles }

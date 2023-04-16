@@ -59,15 +59,29 @@ body { padding-left: 15px; padding-right: 15px; }
     font-family: "FontAwesome6Pro-Regular";
   }
 
-  .statusbutton-bar {
+  .statusbutton-option-row {
     background-color: transparent;
-    width: 1000px;
+    width: 180px !important;
   }
 
-  .statusbutton-text {
+  /*
+  .statusbutton-option-row:hover {
+    background-color: #ccc;
+    color: #222;
+    width: 180px;
+  }
+  */
+
+  .statusbutton-option-row:hover {
+    /* dynamically set hover color in the code since you can't directly code :hover in JS */
+    background-color: var(--hover-color);
+  }
+
+  .statusbutton-option-text {
     font-size: 12px;
     font-weight: bold;
     padding-left: 5px;
+    background-color: transparent;
   }
 
   .statusbutton-collapsed {

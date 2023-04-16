@@ -2,6 +2,8 @@
 import React from 'react'
 import Select from 'react-select'
 import chroma from 'chroma-js'
+import { menuStyles } from './dataTableFormatting.jsx'
+
 declare var NP_THEME: any
 
 export type OptionType = { label: string, value: string, id?: number }
@@ -188,7 +190,7 @@ const colourStyles = {
   placeholder: (styles) => ({ ...styles, color: NP_THEME.base.textColor, fontSize: '0.8rem', backgroundColor: NP_THEME.base.backgroundColor }),
   /* singleValue is the selected value */
   // singleValue: (styles, { data }) => ({ ...styles, color: NP_THEME.base.textColor, ...dot(NP_THEME.base.tintColor) }),
-  singleValue: (styles) => ({ ...styles, color: NP_THEME.base.textColor, ...dot(NP_THEME.base.tintColor), backgroundColor: NP_THEME.base.backgroundColor }),
+  singleValue: (styles) => ({ ...styles, ...menuStyles.base, ...dot(NP_THEME.base.tintColor) }),
   // tester: (styles) => ({ ...styles, backgroundColor: 'green', color: 'red' }),
   /* the options in the dropdown, background and text color */
   // option: (styles) => ({ ...styles, backgroundColor: NP_THEME.base.backgroundColor, color: NP_THEME.base.textColor ?? 'black' }),
@@ -198,14 +200,14 @@ const colourStyles = {
     return {
       ...styles,
       // backgroundColor: isDisabled ? undefined : isSelected ? bgColor.css() : isFocused ? bgColor.alpha(0.1).css() : bgColor.css(),
-      backgroundColor: lighterBG,
-      borderTop: `1px solid ${mixedBG}`,
+      ...menuStyles.base,
+      // borderTop: `1px solid ${mixedBG}`,
       fontSize: '0.8rem',
-      color: isDisabled ? '#ccc' : isSelected ? (chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black') : NP_THEME.base.textColor,
+      // color: isDisabled ? '#ccc' : isSelected ? (chroma.contrast(bgColor, 'white') > 2 ? 'white' : 'black') : NP_THEME.base.textColor,
       cursor: isDisabled ? 'not-allowed' : 'default',
       ':hover': {
         ...styles[':hover'],
-        backgroundColor: NP_THEME.base.altColor,
+        ...menuStyles.hover,
         // backgroundColor: !isDisabled ? (isSelected ? bgColor.lighten().css() : bgColor.alpha(0.3).css()) : undefined,
       },
       ':active': {
