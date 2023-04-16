@@ -6,7 +6,7 @@ import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCa
 import { noteHasContent, moveParagraphToNote, getOverdueParagraphs } from '../../helpers/NPParagraph'
 import { getNPWeekData, getWeekOptions } from '../../helpers/NPdateTime'
 import { filterNotesAgainstExcludeFolders, noteType } from '../../helpers/note'
-import { getReferencedParagraphs } from '../../helpers/NPnote'
+import { getReferencedParagraphs, getTodaysReferences } from '../../helpers/NPnote'
 import { followUpSaveHere, followUpInFuture } from './NPFollowUp'
 import { filenameDateString } from './dateHelpers'
 import { isOpen } from '@helpers/utils'
@@ -189,6 +189,7 @@ export async function prepareUserAction(origPara: TParagraph, updatedPara: TPara
           await Editor.openNoteByFilename(origPara.note.filename, false, origPara.contentRange?.start || 0, origPara.contentRange?.end || 0)
           return { action: 'skip', changed: origPara }
         }
+        break
       }
       case `__no__`: {
         return { action: 'set', changed: origPara }
@@ -483,13 +484,18 @@ export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Arra
  * @author @dwertheimer
  */
 export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<Array<TParagraph>> {
-  const { foldersToIgnore = [], /* openOnly = true, datePlusOnly = true, replaceDate = true, */ replaceDate = false, noteTaskList = null, noteFolder = false } = options
+  const { foldersToIgnore = [], /* openOnly = true, datePlusOnly = true, replaceDate = true, */ noteTaskList = null, noteFolder = false } = options
   // if (replaceDate) logDebug('getNotesAndTasksToReview: replaceDate is legacy and no longer supported. David u need to fix this')
-  logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || 'undefined'}`)
+  logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || 'undefined'} Looking in: ${noteFolder || 'all notes'}`)
   let notesWithDates = []
   if (!noteTaskList) {
     logDebug(`NPNote::getNotesAndTasksToReview`, `no noteTaskList, so searching for notes`)
     if (noteFolder) {
+      // if noteFolder is in foldersToIgnore then we need to call showMessage and return
+      if (foldersToIgnore.includes(noteFolder)) {
+        const msg = `The folder "${noteFolder}" is in the list of folders to ignore in the plugin settings. Please remove it from the ignore list or select another folder.`
+        throw msg
+      }
       notesWithDates = [...DataStore.projectNotes, ...DataStore.calendarNotes]
         .filter((n) => (n?.filename ? n.filename.includes(`${noteFolder}/`) : false))
         .filter((n) => (n?.datedTodos ? n.datedTodos?.length > 0 : false))
@@ -511,7 +517,7 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
     for (const n of notesWithDates) {
       if (n) {
         // const updates = getOverdueParagraphs(n, replaceDate ? '' : null)
-        const updates = getOverdueParagraphs(n.paragraphs)
+        const updates = getOverdueParagraphs(n.paragraphs).filter((p) => p.type === 'open') // do not want open checklist items
         if (updates.length > 0) {
           notesToUpdate.push(updates)
         }
@@ -562,9 +568,9 @@ export async function reviewTasksInNotes(notesToUpdate: Array<Array<TParagraph>>
 export function getNotesWithOpenTasks(
   noteType: NoteType | 'both',
   timePeriod: { num: number, unit: CalendarDateUnit },
-  options: { searchForgottenTasksOldestToNewest: boolean, overdueFoldersToIgnore: Array<string>, ignoreScheduledInForgottenReview: boolean },
+  options: { searchForgottenTasksOldestToNewest: boolean, overdueFoldersToIgnore: Array<string>, ignoreScheduledInForgottenReview: boolean, restrictToFolder: string | null },
 ): Array<Array<TParagraph>> {
-  const { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore, ignoreScheduledInForgottenReview } = options
+  const { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore, ignoreScheduledInForgottenReview, restrictToFolder } = options
   const lookInCalendar = noteType === 'Calendar' || noteType === 'both'
   const lookInNotes = noteType === 'Notes' || noteType === 'both'
   const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
@@ -576,7 +582,7 @@ export function getNotesWithOpenTasks(
   logDebug(`getNotesWithOpenTasks`, `afterdate=${afterDate.toString()}`)
 
   let recentCalNotes: Array<TNote> = []
-  if (lookInCalendar) {
+  if (lookInCalendar && !restrictToFolder) {
     const afterDateFileName = filenameDateString(Calendar.addUnitToDate(new Date(), unit, -num))
     logDebug(`getNotesWithOpenTasks`, `afterDateFileName=${afterDateFileName}`)
     logDebug(`getNotesWithOpenTasks`, `todayFileName=${todayFileName}`)
@@ -593,10 +599,12 @@ export function getNotesWithOpenTasks(
     logDebug(`getNotesWithOpenTasks`, `Calendar Notes after exclude folder filter: ${recentCalNotes.length}`)
   }
 
+  const isInFolder = (note: TNote) => (restrictToFolder ? note.filename.startsWith(`${restrictToFolder}/`) : true)
+
   // Project Notes
   let recentProjNotes: Array<TNote> = []
   if (lookInNotes) {
-    recentProjNotes = DataStore.projectNotes.filter((note) => note.changedDate >= afterDate)
+    recentProjNotes = DataStore.projectNotes.filter(isInFolder).filter((note) => note.changedDate >= afterDate)
     logDebug(`getNotesWithOpenTasks`, `Total Project Notes in date range: ${recentProjNotes.length}`)
     recentProjNotes = filterNotesAgainstExcludeFolders(recentProjNotes, overdueFoldersToIgnore, true)
     logDebug(`getNotesWithOpenTasks`, `Project Notes after exclude folder filter: ${recentProjNotes.length}`)
@@ -671,4 +679,25 @@ export function getWeeklyOpenTasks(): Array<TParagraph> {
   // clo(weeklyNote, 'weeklyNote')
   logDebug(pluginJson, `getWeeklyOpenTasks ${weeklyNote?.filename || 0}: refs:${refs.length} paras:${weeklyNote?.paragraphs.length || 0} combined:${combined.length}`)
   return combined.filter(isOpen) || []
+}
+
+/**
+ * Get all today-referenced tasks (called by reviewEditorReferencedTasks and in React review also)
+ * @param {CoreNoteFields} note - the note to search
+ * @param {any} settings - the DataStore.settings for the plugin
+ * @param {boolean} confirmResults - whether to show a confirmation message (default: false)
+ * @returns {Array<any>} Array of tasks to review
+ */
+export function getReferencesForReview(note: CoreNoteFields, weeklyNote: boolean = false): Array<Array<TParagraph>> {
+  const refs = getTodaysReferences(note)
+  logDebug(pluginJson, `reviewEditorReferencedTasks refs.length=${refs.length}`)
+  const openTasks = weeklyNote ? [] : refs.filter((p) => isOpen(p) && p.content !== '')
+  const thisWeeksTasks = weeklyNote ? getWeeklyOpenTasks() : []
+  logDebug(pluginJson, `reviewEditorReferencedTasks openTasks.length=${openTasks.length} thisWeeksTasks=${thisWeeksTasks.length}`)
+  // gather references by note
+  const arrayOfOpenNotesAndTasks = createArrayOfNotesAndTasks([...thisWeeksTasks, ...openTasks])
+  // clo(arrayOfOpenNotesAndTasks, `reviewEditorReferencedTasks arrayOfOpenNotesAndTasks`)
+  // clo(arrayOfNotesAndTasks, `NPOverdue::reviewEditorReferencedTasks arrayOfNotesAndTasks`)
+  logDebug(pluginJson, `reviewEditorReferencedTasks arrayOfNotesAndTasks.length=${arrayOfOpenNotesAndTasks.length}`)
+  return arrayOfOpenNotesAndTasks || []
 }

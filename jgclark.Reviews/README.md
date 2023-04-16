@@ -60,6 +60,7 @@ The first hashtag on the line defines its type, so as well as `#project`, `#area
 Other notes:
 - If you also add the `#paused` tag to the metadata line, then that stops that note from being included in active reviews, but will show up in the lists.
 - From v0.9 these 'metadata fields' can appear anywhere in the note, not just on the second line. If there are multiple copies of a field, only the first one is used.
+- I'm sometimes asked why I use `@reviewed(2021-06-25)` rather than `@reviewed/2021-06-25`. The answer is that while the latter form is displayed in a neater way in the sidebar, the date part isn't available in the NotePlan API as the part after the slash is not a valid @tag as it doesn't contain an alphabetic character.
 
 ## Reviewing Projects and/or Areas
 Use the 'Hashtags to review' setting to control which notes are included in the review lists:

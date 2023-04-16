@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.3.6",
-  "plugin.lastUpdateInfo": "v0.3.6: small bits of polish.\nv0.3.5: adds months to output.\nv0.3.4: adds width/height settings; equalises font size with NP.\nv0.3.2: improved trigger's detection of relevant changes.\nv0.3.0: will auto-update if trigger set on daily/weekly notes.",
+  "plugin.version": "0.4.1",
+  "plugin.lastUpdateInfo": "v0.4.0: first public release.\nv0.3.6: small bits of polish.\nv0.3.5: adds months to output.\nv0.3.4: adds width/height settings; equalises font size with NP.\nv0.3.2: improved trigger's detection of relevant changes.\nv0.3.0: will auto-update if trigger set on daily/weekly notes.",
   "plugin.requiredFiles": [
     "commsSwitchboard.js",
     "dashboard.css"
@@ -28,11 +28,11 @@
   "plugin.isRemote": "false",
   "plugin.commands": [
     {
-      "name": "show dashboard (HTML)",
+      "name": "show dashboard",
       "alias": [
         "dbh"
       ],
-      "description": "Show Dashboard (HTML method)",
+      "description": "Show Dashboard (in HTML view)",
       "jsFunction": "showDashboardHTML"
     },
     {
@@ -47,14 +47,14 @@
         "ldb"
       ],
       "description": "Show Demo Dashboard",
-      "jsFunction": "showDemoDashboardHTML"
+      "jsFunction": "showDemoDashboardHTML",
+      "hidden": true
     },
     {
       "name": "decideWhetherToUpdateDashboard",
       "description": "onEditorWillSave",
       "jsFunction": "decideWhetherToUpdateDashboard",
-      "hidden": false,
-      "comment": "@@@ hide me again"
+      "hidden": true
     }
   ],
   "plugin.disabledCommands": [
@@ -79,6 +79,14 @@
     {
       "type": "heading",
       "title": "Dashboard settings"
+    },
+    {
+      "key": "separateSectionForReferencedNotes",
+      "title": "Show referenced items in separate section?",
+      "description": "Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes.\nThe same also goes for Weekly/Monthly/Quarterly notes.",
+      "type": "bool",
+      "default": false,
+      "required": true
     },
     {
       "key": "ignoreTasksWithPhrase",
@@ -115,7 +123,7 @@
     {
       "key": "windowHeight",
       "title": "Default window height",
-      "description": "Default window height (in pixels) when the dashboard is first displayed",
+      "description": "Default window height (in pixels) when the dashboard is displayed",
       "type": "number",
       "default": 500,
       "required": false
@@ -123,7 +131,7 @@
     {
       "key": "windowWidth",
       "title": "Default window width",
-      "description": "Default window width (in pixels) when the dashboard is first displayed",
+      "description": "Default window width (in pixels) when the dashboard is displayed",
       "type": "number",
       "default": 1000,
       "required": false

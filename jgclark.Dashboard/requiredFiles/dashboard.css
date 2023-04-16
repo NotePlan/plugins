@@ -27,9 +27,13 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 .sectionName { /* column 2's title */
 	font-size: 1.0rem; 
 	font-weight: 700; /* make noteTitles bold */
+	margin: unset;
+	padding-block-start: 0.1rem;
+	padding-block-end: 0.3rem;
 }
 .sectionDescription { /* column 2's description */
 	font-size: 0.85rem; /* smaller */
+	margin: unset;
 }
 .sectionIcon {
 	font-size: 1.0rem; 
@@ -40,6 +44,12 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	font-weight: 400;
 	padding: 2px 4px; 
 	border-bottom: 0px;
+}
+.pad-right {	/* add space after icon */
+	padding-right: 0.4em;
+}
+.space-under {	/* add space after icon */
+	padding-bottom: 0.1em;
 }
 .scheduledDate { color: var(--tint-color); }
 a, a:visited, a:active { /* all links turn off text color and underlining by default */
@@ -76,7 +86,7 @@ a:hover {
 	transition: visibility 0s 2s, opacity 2s linear;
 }
 /* Some headings specified from measuring the colour of NP sidebar elements */
-.sidebarDaily { font-size: 1.0rem; color: #d0703c; }
+.sidebarDaily { font-size: 1.0rem; color: #d0703c;  }
 .sidebarWeekly { font-size: 1.0rem; color: #be23b6; }
 .sidebarMonthly { font-size: 1.0rem; color: #f5528b; }
 .sidebarQuarterly { font-size: 1.0rem; color: #e08008; }

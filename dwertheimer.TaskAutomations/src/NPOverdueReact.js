@@ -4,26 +4,18 @@ import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekendOfInterval } from 'date-fns'
 import pluginJson from '../plugin.json'
 import { sortListBy } from '../../helpers/sorting'
-import { sendBannerMessage, type HtmlWindowOptions } from '@helpers/HTMLView'
 import { getTodaysDateAsArrowDate, getTodaysDateHyphenated } from '../../helpers/dateTime'
 import { getWeekOptions } from '../../helpers/NPdateTime'
-import { paragraphMatches, findParagraph, getParagraphFromStaticObject, createStaticObject, createStaticParagraphsArray, noteHasContent } from '@helpers/NPParagraph'
-import {
-  getNotesAndTasksToReview,
-  reviewTasksInNotes,
-  createArrayOfNotesAndTasks,
-  getSharedOptions,
-  prepareUserAction,
-  getNotesWithOpenTasks,
-  getWeeklyOpenTasks,
-} from './NPTaskScanAndProcess'
-import { log, logError, logDebug, timer, clo, JSP, getFilteredProps } from '@helpers/dev'
-import { getGlobalSharedData, sendToHTMLWindow, updateGlobalSharedData } from '../../helpers/HTMLView'
+import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { convertAllLinksToHTMLLinks, stripAllMarkersFromString } from '../../helpers/stringTransforms'
 import { getOrMakeNote } from '../../helpers/note'
-import { followUpInFuture, followUpSaveHere } from './NPFollowUp'
 import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCapture'
-import plugin from '@babel/core/lib/config/plugin.js'
+import { chooseFolder } from '../../helpers/userInput'
+import { findOpenTodosInNote } from '../../helpers/NPnote'
+import { followUpInFuture, followUpSaveHere } from './NPFollowUp'
+import { getNotesAndTasksToReview, getReferencesForReview, getSharedOptions, prepareUserAction, getNotesWithOpenTasks, getWeeklyOpenTasks } from './NPTaskScanAndProcess'
+import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { getParagraphFromStaticObject, createStaticObject, createStaticParagraphsArray, noteHasContent } from '@helpers/NPParagraph'
 
 /* Finalize the actions taken by the user (save/update the results)
  * @param {*} resultObj - the result of the user's action { action:string, changed:TParagraph }
@@ -167,7 +159,7 @@ export function paragraphUpdateReceived(data: { rows: Array<any>, field: string 
       if (para) {
         // $FlowFixMe
         para[field] = row[field]
-        const val = { action: 'set', changed: para }
+        // const val = { action: 'set', changed: para }
         if (para && para.filename) {
           // writing one at a time will not work in the same note, so we need to save them and write them all at once
           if (!updatesByNote[para.filename]) updatesByNote[para.filename] = []
@@ -193,12 +185,13 @@ export function paragraphUpdateReceived(data: { rows: Array<any>, field: string 
  * @param {any} data - the updated rows object
  */
 export async function updateRowDataAndSend(updateInfo: any, updateText: string = '') {
+  // clo(updateInfo, `updateRowDataAndSend updateText=${updateText} updateInfo=`)
   const updatedRows = updateInfo.updatedRows
   const currentJSData = await getGlobalSharedData()
   const overdueParas = currentJSData.overdueParas
   updatedRows.forEach((row) => {
     overdueParas[row.id] = { ...overdueParas[row.id], ...row }
-    clo(currentJSData[row.id], `updateRowDataAndSend updated row=`)
+    clo(overdueParas[row.id], `updateRowDataAndSend updated row=`)
   })
   sendToHTMLWindow('SET_DATA', currentJSData, updateText)
   // await updateGlobalSharedData(currentJSData, false)
@@ -276,7 +269,7 @@ export async function onUserModifiedParagraphs(actionType: string, data: any): P
     }
     if (returnValue?.updatedRows?.length) {
       returnValue.updatedRows = createCleanContent(returnValue.updatedRows)
-      updateRowDataAndSend({ updatedRows: returnValue.updatedRows }, `Plugin Changed: ${JSON.stringify(returnValue.updatedRows)}`)
+      await updateRowDataAndSend({ updatedRows: returnValue.updatedRows }, `Plugin Changed: ${JSON.stringify(returnValue.updatedRows)}`)
       // sendToHTMLWindow('RETURN_VALUE', { type: actionType, dataSent: data, returnValue: returnValue })
     }
     return {} // this return value is ignored but needs to exist or we get an error
@@ -287,9 +280,10 @@ export async function onUserModifiedParagraphs(actionType: string, data: any): P
 
 /**
  * Get all overdue tasks
+ * @param {string | false} noteFolder - if false, get all tasks. If a string, get tasks only from that folder
  * @returns
  */
-export function getOverdueTasks(): Array<TParagraph> {
+export function getOverdueTasks(noteFolder?: string | false = false): Array<TParagraph> {
   const start = new Date()
   const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
   const options = {
@@ -299,7 +293,7 @@ export function getOverdueTasks(): Array<TParagraph> {
     confirm: false,
     showUpdatedTask,
     showNote: false,
-    noteFolder: false,
+    noteFolder,
     noteTaskList: null,
     replaceDate,
     overdueOnly: true,
@@ -349,7 +343,7 @@ export function getButtons(): Array<{ text: string, action: string }> {
   ]
 }
 
-const KEY_PARA_PROPS = ['filename', 'lineIndex', 'content', 'rawContent', 'type', 'prefix', 'noteType', 'daysOverdue']
+const KEY_PARA_PROPS = ['filename', 'title', 'lineIndex', 'content', 'rawContent', 'type', 'prefix', 'noteType', 'daysOverdue']
 
 /**
  * Take in an array of paragraphs and return a static array of objects for the HTML view
@@ -388,7 +382,28 @@ export const createCleanContent = (statics: Array<any>): Array<any> =>
     cleanContent: convertAllLinksToHTMLLinks(stripAllMarkersFromString(item.content || '', false, false)),
   }))
 
-export function getDataForReactView(testData: boolean = false): any {
+/**
+ *  Find all tasks in today's references (either marked for today or in weekly note)
+ * @param {boolean} weeklyNote - if true, use weekly note instead of today's note
+ */
+export async function getTodayReferencedTasks(weeklyNote: boolean = false): Promise<Array<Array<TParagraph>>> {
+  try {
+    await Editor.openNoteByDate(new Date())
+    if (Editor.note?.type !== 'Calendar') {
+      throw `You must be in a Calendar Note to run this command.`
+    }
+    // clo(getTodaysReferences(Editor.note), `reviewEditorReferencedTasks todayReferences`)
+    const todosInNote = Editor.note ? findOpenTodosInNote(Editor.note, true) : []
+    const arrayOfOpenNotesAndTasks = Editor.note ? getReferencesForReview(Editor.note, weeklyNote) : [[]]
+    logDebug(pluginJson, `getTodayReferencedTasks: arrayOfOpenNotesAndTasks.length=${arrayOfOpenNotesAndTasks.length}`)
+    return [...arrayOfOpenNotesAndTasks, [...todosInNote]]
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+    return [[]]
+  }
+}
+
+export async function getDataForReactView(testData?: boolean = false, noteFolder?: string | false = false): any {
   const startTime = new Date()
   let staticParasToReview = []
 
@@ -398,34 +413,49 @@ export function getDataForReactView(testData: boolean = false): any {
     askToReviewForgottenTasks,
     ignoreScheduledInForgottenReview,
     searchForgottenTasksOldestToNewest,
-    overdueFoldersToIgnore,
-    ignoreScheduledTasks,
+    /* overdueFoldersToIgnore,
+    ignoreScheduledTasks, */
     forgottenFoldersToIgnore,
   } = DataStore.settings
 
   if (!testData) {
     // const confirmResults = incoming ? false : true
-    const overdueStaticTasks = getStaticTaskList(getOverdueTasks(), 'Overdue')
+    let start = new Date()
+    const overdueStaticTasks = getStaticTaskList(getOverdueTasks(noteFolder), 'Overdue')
+    logDebug(`>>> getDataForReactView getOverdueTasks(${noteFolder || ''}) took: ${timer(start)}`)
+    start = new Date()
     const openWeeklyTasks = askToReviewWeeklyTasks ? getStaticTaskList(getWeeklyOpenTasks(), 'ThisWeek') : []
+    logDebug(`>>> getDataForReactView openWeeklyTasks() took: ${timer(start)}`)
+    start = new Date()
     //FIMXE: I am here. need to add settings for wherre to look and for how long
     const notesWithOpenTasks = askToReviewForgottenTasks
       ? getNotesWithOpenTasks(
           'both',
           { num: 30, unit: 'day' },
-          { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore: forgottenFoldersToIgnore, ignoreScheduledInForgottenReview },
+          { searchForgottenTasksOldestToNewest, overdueFoldersToIgnore: forgottenFoldersToIgnore, ignoreScheduledInForgottenReview, restrictToFolder: noteFolder || false },
         )
       : []
+    logDebug(`>>> getDataForReactView getNotesWithOpenTasks() (forgotten) took: ${timer(start)}`)
+    start = new Date()
     // clo(notesWithOpenTasks, `processOverdueReact: notesWithOpenTasks length=${notesWithOpenTasks.length}`)
     const openTasksGoneBy = notesWithOpenTasks.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
     const forgottenTasks = getStaticTaskList(openTasksGoneBy, 'LeftOpen')
+    const todayTaskParas = ((await getTodayReferencedTasks()) || []).reduce((acc, noteTasks) => [...acc, ...noteTasks], []).filter((t) => t.content !== '')
+    logDebug(`>>> getDataForReactView todayReferenced took: ${timer(start)}`)
+    start = new Date()
+    // clo(todayTaskParas, `processOverdueReact: todayTaskParas length=${todayTaskParas.length}`)
+    const todayTasks = askToReviewTodaysTasks && todayTaskParas.length ? getStaticTaskList(todayTaskParas, 'Today') : []
     // clo(forgottenTasks, `processOverdueReact: forgottenTasks length=${forgottenTasks.length}`)
     logDebug(pluginJson, `processOverdueReact: forgottenTasks length=${forgottenTasks.length}`)
-    staticParasToReview = [...overdueStaticTasks, ...openWeeklyTasks, ...forgottenTasks]
+    staticParasToReview = [...overdueStaticTasks, ...openWeeklyTasks, ...forgottenTasks, ...todayTasks]
     staticParasToReview = createCleanContent(staticParasToReview)
-  } else {
+    logDebug(`>>> getDataForReactView cleaning conten took: ${timer(start)}`)
+    // const lod = await DataStore.listOverdueTasks()
+    // logDebug(pluginJson, `getDataForReactView listOverdueTasks:${lod.length} staticParasToReview:${staticParasToReview.length}`)
   }
+  const startReactDataPackaging = new Date()
   // clo(staticParasToReview, `processOverdueReact: staticParasToReview length=${staticParasToReview.length}`)
-  const ENV_MODE = 'production'
+  const ENV_MODE = 'development'
   const data = {
     overdueParas: staticParasToReview,
     title: `Overdue Tasks`,
@@ -439,45 +469,50 @@ export function getDataForReactView(testData: boolean = false): any {
     contextButtons: getButtons(),
     startTime,
   }
-  logDebug(pluginJson, `getDataForReactView overdueParas:${data.overdueParas.length}`)
+  logDebug(`>>> getDataForReactView overdueParas:${data.overdueParas.length} took: ${timer(startReactDataPackaging)}`)
   return data
 }
 
 /**
- * Process overdue items using React HTML View
- * Plugin entrypoint for "/Process Overdue Items in Separate Window"
- * Intended for users to invoke from Command Bar
+ * Worker function called by processOverdueReact and processFolderReact
  * @author @dwertheimer
+ * @param {string} filterSetting - the intial filter setting to use in the HTML view
+ * @param {string} folderToSearch - the folder to search for tasks (if any)
  */
-export async function processOverdueReact(incoming: string) {
+export async function startReactReview(filterSetting?: string | null, folderToSearch?: string | false) {
   try {
-    logDebug(pluginJson, `reviewOverdueTasksByTask: incoming="${incoming}" typeof="${typeof incoming}" Starting Timer`)
+    logDebug(pluginJson, `startReactReview running with: folderToSearch="${filterSetting || ''}" typeof="${typeof filterSetting}" Starting Timer`)
 
-    // TODO: when the react plugin is released, uncomment these lines
-    // await installPlugin('dwertheimer.React')
-    // logDebug(pluginJson, `reviewOverdueTasksByTask: installed/verified dwertheimer.React`)
+    let starter = new Date()
+    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, true, true)
+    logDebug(pluginJson, `startReactReview: installed/verified np.Shared, took ${timer(starter)}`)
+    starter = new Date()
 
     // NOTE: Relative paths are relative to the plugin folder of dwertheimer.React
     // So ALWAYS go out and back in, like this: `../dwertheimer.TaskAutomations/xxx`
     // because you can't guarantee what folder you are in at any given time
     const cssTagsString = `		<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.w3.css">
-		<link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.plugin.css">\n`
+     <link rel="stylesheet" href="../dwertheimer.TaskAutomations/css.plugin.css">\n`
 
-    const data = getDataForReactView()
+    const data = await getDataForReactView(false, folderToSearch)
+    logDebug(pluginJson, `startReactReview: getting data for review, took ${timer(starter)}`)
+
+    data.startingFilter = filterSetting // might be empty which is ok
+
     /*
-      export type HtmlWindowOptions = {
-        headerTags?: string, 
-        generalCSSIn?: string, 
-        specificCSS?: string,
-        makeModal?: boolean,
-        preBodyScript?: string | ScriptObj | Array<string | ScriptObj>, -- send array or string
-        postBodyScript?: string | ScriptObj | Array<string | ScriptObj> -- send array or string
-        savedFilename?: string,
-        width?: number,
-        height?: number,
-        includeCSSAsJS?: boolean,
-      }
-    */
+       export type HtmlWindowOptions = {
+         headerTags?: string, 
+         generalCSSIn?: string, 
+         specificCSS?: string,
+         makeModal?: boolean,
+         preBodyScript?: string | ScriptObj | Array<string | ScriptObj>, -- send array or string
+         postBodyScript?: string | ScriptObj | Array<string | ScriptObj> -- send array or string
+         savedFilename?: string,
+         width?: number,
+         height?: number,
+         includeCSSAsJS?: boolean,
+       }
+     */
     // most of these ^^^ should work but I haven't tested them all yet
     // we should generalize this so you can pass anything
     const windowOptions = {
@@ -499,6 +534,36 @@ export async function processOverdueReact(incoming: string) {
 }
 
 /**
+ * Process overdue items using React HTML View
+ * Plugin entrypoint for "/Process Overdue Items in Separate Window"
+ * Intended for users to invoke from Command Bar
+ * @author @dwertheimer
+ */
+export async function processOverdueReact(filterSetting?: string | null) {
+  try {
+    await startReactReview(filterSetting || 'Overdue')
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * DESC
+ * Plugin entrypoint for command: "/COMMAND"
+ * @author @dwertheimer
+ * @param {*} incoming
+ */
+export async function processFolderReact(folderToSearch?: string | false, filterSetting?: string | null) {
+  try {
+    logDebug(pluginJson, `processFolderReact running with filterSetting:${String(filterSetting)} folderToSearch:${String(folderToSearch)}`)
+    const folder = folderToSearch || (await chooseFolder('Choose a folder to search for tasks'))
+    await startReactReview(filterSetting || 'Overdue', folder)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
  * Static test data for React view
  * Hidden from command bar
  * fire it by xcallback: N2 -- noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=testOverdueReact
@@ -512,10 +577,10 @@ export async function testOverdueReact() {
     // await installPlugin('dwertheimer.React')
     // logDebug(pluginJson, `reviewOverdueTasksByTask: installed/verified dwertheimer.React`)
 
-    const data = getDataForReactView(true)
+    const data = await getDataForReactView(true)
     const note = await getOrMakeNote('Overdue Tasks TEST NOTE', '_TEST')
     await Editor.openNoteByFilename(note?.filename || '')
-    if (note)
+    if (note) {
       note.content = `# Overdue Tasks TEST NOTE
 * overdue >2022-02-01
 * overdue2 >2022-03-01    
@@ -539,6 +604,7 @@ export async function testOverdueReact() {
 * overdue19 >2022-05-01
 * overdue20 >2022-05-01
 `
+    }
     data.debug = true
     const paras = note?.paragraphs.slice(1).filter((para) => para.content?.includes('overdue'))
     data.overdueParas = createCleanContent(getStaticTaskList(paras || []))

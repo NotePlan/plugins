@@ -21,15 +21,16 @@ type Props = {
  *                             IMPORTS
  ****************************************************************************************************************************/
 
-import chroma from 'chroma-js'
 import debounce from 'lodash/debounce'
-import React, { Component, useEffect, useRef, useMemo, useLayoutEffect, type Node } from 'react'
-import DataTable, { createTheme as createDataTableTheme } from 'react-data-table-component'
-import StatusButton from './StatusButton.jsx'
+import React, { useEffect, type Node } from 'react'
+import DataTable from 'react-data-table-component'
 import ThemedSelect from './ThemedSelect.jsx'
+import Button from './Button.jsx'
+import TypeFilter from './TypeFilter.jsx'
 import EditableElement from './EditableElement.jsx'
 import MultiActionBar from './MultiActionBar.jsx'
-import Button from './Button.jsx'
+// import StatusButton from './StatusButton.jsx'
+// import Button from './Button.jsx'
 import { columnSpec, conditionalRowStyles, customTableStyles } from './dataTableFormatting.jsx'
 
 // color this component's output differently in the console
@@ -55,7 +56,10 @@ export function WebView({ data, dispatch }: Props): Node {
    *                             HOOKS
    ****************************************************************************************************************************/
   const justSelectedRows = React.useRef(false) // used to prevent the selection from being cleared when the user clicks on a row
-  logDebug(`Webview: justSelectedRows:${String(justSelectedRows.current)}`)
+  logDebug(`Webview: top of render. justSelectedRows:${String(justSelectedRows.current)} data.startingFilter=${data.startingFilter} `)
+  const filterValue = React.useRef(data.startingFilter || 'All') // used to maintain value of filter when user makes changes
+  const [, setFilter] = React.useState(filterValue.current) // used to cause re-render and hide
+  logDebug(`Webview: top of render. filterValue.current:${String(filterValue.current)}`)
 
   // const scrollTopRef = React.useRef(-1) // used to scroll to the last scrolled position before the table was re-rendered (e.g. for an ExpandedComponent display)
   // logDebug(`Webview: scrollTopRef:${scrollTopRef.current}`)
@@ -68,8 +72,10 @@ export function WebView({ data, dispatch }: Props): Node {
 
   // destructure all the startup data we expect from the plugin
   const { columns, overdueParas, title, dropdownOptionsAll, dropdownOptionsLine, contextButtons, returnPluginCommand, debug, autoSelectNext = true } = data
-  const nonOmittedRows = data.overdueParas.filter((row) => !row.omit)
-  const displayRows = [...nonOmittedRows.filter((row) => !Boolean(row.highlight)), ...nonOmittedRows.filter((row) => row.highlight)]
+  const nonOmittedRows = data.overdueParas.filter((row) => !row.omit).filter(rowFilter)
+  // const displayRows = [...nonOmittedRows.filter((row) => !row.highlight), ...nonOmittedRows.filter((row) => row.highlight)]
+  const displayRows = nonOmittedRows // don't highlight rows for now (we will move them to 'Processed' status instead)
+
   debug && logDebug(`Webview top level code running with data:`, data)
 
   logDebug(`WebView top level code running with data:`, 'data')
@@ -120,7 +126,7 @@ export function WebView({ data, dispatch }: Props): Node {
       logDebug(`Webview: updateTableData: change:${JSON.stringify(change, null, 2)}`, change, data.overdueParas)
       tableData[change.id] = { ...tableData[change.id], ...change }
     })
-    newData = addWindowPositionToData(newData)
+    newData = addPassthroughVars(newData)
     dispatch('UPDATE_DATA', newData, historyMsg)
   }
 
@@ -130,7 +136,8 @@ export function WebView({ data, dispatch }: Props): Node {
   const highlightRow = React.useCallback(
     (rowID) => {
       logDebug(`Webview: highlightRow ${rowID}`)
-      updateTableData({ id: rowID, highlight: true })
+      updateTableData({ id: rowID, overdueStatus: 'Processed' })
+      // updateTableData({ id: rowID, highlight: true })
     },
     [data],
   )
@@ -139,10 +146,17 @@ export function WebView({ data, dispatch }: Props): Node {
   //   element.current.getScrollableNode().children[0].scrollTop = top
   // }
 
-  const addWindowPositionToData = (data) => {
+  /**
+   * Add the passthrough variables to the data object that will roundtrip to the plugin and come back in the data object
+   * (e.g. lastWindowScrollTop, startingFilter)
+   * @param {*} data
+   * @returns
+   */
+  const addPassthroughVars = (data) => {
     const newData = { ...data }
     newData.lastWindowScrollTop = window.scrollY
-    logDebug(`Webview: addWindowPositionToData: lastWindowScrollTop:${newData.lastWindowScrollTop}`)
+    newData.startingFilter = filterValue.current
+    logDebug(`Webview: addPassthroughVars: lastWindowScrollTop:${newData.lastWindowScrollTop} newData.startingFilter=${newData.startingFilter}`)
     return newData
   }
 
@@ -164,7 +178,7 @@ export function WebView({ data, dispatch }: Props): Node {
     })
     if (changes) {
       let newData = { ...data, overdueParas: tableData }
-      newData = addWindowPositionToData(newData)
+      newData = addPassthroughVars(newData)
       dispatch('UPDATE_DATA', newData, 'WebView: add id to data')
     }
   }, [])
@@ -358,7 +372,7 @@ export function WebView({ data, dispatch }: Props): Node {
     (rowID, newStatus, highlight = false, delay = 500) => {
       if (typeof rowID === 'number' && newStatus && data.overdueParas[rowID].type !== newStatus) {
         logDebug(`Webview: WebView::handleTaskStatusChange rowID=${rowID}, newStatus=${newStatus} highlight=${String(highlight)} delay=${delay}`, newStatus)
-        const dataWithOmittedRow = data.overdueParas.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus, omit: true, highlight: false }))
+        // const dataWithOmittedRow = data.overdueParas.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus, omit: true, highlight: false }))
         // setDataTableData((prev) => prev.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus }))) // change the status immediately
         if (highlight) {
           highlightRow(rowID)
@@ -427,7 +441,7 @@ export function WebView({ data, dispatch }: Props): Node {
 
   // Wnen the user clicks the down arrow, this component is rendered
   const ExpandedComponent = ({ data: row, handler }) => {
-    logDebug(`Webview: ExpandedComponent row=${JSON.stringify(row)}`)
+    logDebug(`Webview: ExpandedComponent row=${JSON.stringify(row, null, 2)}`)
     return (
       <div className="expanded-row">
         <div className="w3-cell-row">
@@ -444,7 +458,6 @@ export function WebView({ data, dispatch }: Props): Node {
             <EditableElement onChange={handleEditableWrapperChange}>
               <p
                 key={row.id}
-                field={'content'}
                 /* contentEditable={true} */
                 onInput={(e) => handleEditableContentChange({ id: row.id, field: 'content', value: e.currentTarget.innerHTML })}
                 style={{ maxWidth: '100vw', paddingLeft: 30, paddingRight: 50 }}
@@ -455,9 +468,40 @@ export function WebView({ data, dispatch }: Props): Node {
             </EditableElement>
           </div>
         </div>
+        <div className="w3-cell-row expanded-note-details">
+          <div className="w3-cell w3-right-align">
+            Note: {row.title} (file: {row.filename})
+          </div>
+        </div>
       </div>
     )
   }
+  /****************************************************************************************************************************
+   *                             TYPE FILTER
+   ****************************************************************************************************************************/
+  const handleTypeFilterChange = React.useCallback(({ value }) => {
+    filterValue.current = value
+    setFilter(value)
+    logDebug(`WebView:handleTypeFilterChange: ${value}`)
+  }, [])
+  // Filter callback for filtering items based on current filterValue
+  function rowFilter(row) {
+    if (filterValue.current === 'All') {
+      return true
+    }
+    return filterValue.current === row.overdueStatus
+  }
+  const filterTypes = ['All', 'Overdue', 'LeftOpen', 'Today', 'Processed']
+  // use a reducer to count the number of items in each type
+  const typeCounts = data.overdueParas.reduce((counts, item) => {
+    const type = item.overdueStatus
+    counts[type] = counts[type] ? counts[type] + 1 : 1
+    return counts
+  }, {})
+  typeCounts['All'] = data.overdueParas.length
+  const filterOptions = filterTypes.map((item) => ({ label: `${item}  (${typeCounts[item] || 0})`, value: item }))
+  const selectedOption = filterOptions.find((option) => option.value === filterValue.current)
+  const ThisTypeFilter = <TypeFilter options={filterOptions} onChange={handleTypeFilterChange} defaultValue={selectedOption} />
 
   /**
    * (state-setting helper function) for onSelectionCheck and the multi-select checkboxes
@@ -472,7 +516,7 @@ export function WebView({ data, dispatch }: Props): Node {
         // check if this has already been done (to avoid infinite loop in React Render)
         let madeChanges = false
         const isSelectedMap = data.overdueParas.map((item) => selectedRows.find((r) => r.id === item.id) !== undefined)
-        logDebug(`Webview: updateSelectedItems isSelectedMap = ${JSON.stringify(isSelectedMap)}`, isSelectedMap)
+        // logDebug(`Webview: updateSelectedItems isSelectedMap = ${JSON.stringify(isSelectedMap)}`, isSelectedMap)
         const newData = { ...data }
         const newTableData = newData.overdueParas.map((item) => {
           if (Boolean(item.isSelected) !== Boolean(isSelectedMap[item.id])) {
@@ -531,7 +575,7 @@ export function WebView({ data, dispatch }: Props): Node {
       let newTableData = newData.overdueParas
       newTableData = newTableData.map((item) => ({ ...item, isExpanded: row.id === item.id ? !item.isExpanded : false }))
       newData.overdueParas = newTableData
-      newData = addWindowPositionToData(newData)
+      newData = addPassthroughVars(newData)
       dispatch('UPDATE_DATA', newData, `onRowSingleClick: Expanded row ${row.id}`)
     },
     [data],
@@ -630,7 +674,12 @@ export function WebView({ data, dispatch }: Props): Node {
       {/* {SelectedItemComponent} */}
       <div style={{ maxWidth: '100vw', width: '100vw' }}>
         <DataTable
-          title={title}
+          title={
+            <div className="w3-row">
+              <div className="titleSpan w3-threequarter">{title}</div>
+              <div className="w3-quarter">{ThisTypeFilter}</div>
+            </div>
+          }
           striped
           highlightOnHover
           overflowY={false}

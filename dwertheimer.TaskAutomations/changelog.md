@@ -5,6 +5,35 @@
 
 ## What's Changed in this Plugin?
 
+## [2.13.1] @dwertheimer 2023-04-12
+
+- Fix regression bug that was always returning you to Overdue view
+
+## [2.13.0] @dwertheimer 2023-03-10
+
+- Add Overdue Popup Window for a Specific Folder
+- Add Today's Tasks to React Popup
+
+## [2.12.5] @dwertheimer 2023-04-08
+
+- Add counts to filter
+
+## [2.12.4] @dwertheimer
+
+- Fix filter dropdown bug 2023-04-08
+
+## [2.12.2] @dwertheimer 
+
+- Document xcallbacks for React view
+
+## [2.12.1] @dwertheimer 2023-04-07
+
+- Remove checklists from search which crept in when `isOpen`func was expanded to include them
+
+## [2.12.0] @dwertheimer 2023-04-07
+
+- Add type filter to React View
+
 ## [2.11.4] (@dwertheimer) 2023-03-26
 
 - roll back scheduled types per https://discord.com/channels/763107030223290449/1015086466663202856/1089721078957473813

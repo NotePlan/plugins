@@ -104,7 +104,7 @@ You can now develop and test your plugin locally,
 
 **Step 4: Create Pull Request (if you wish to make your plugin public)**
 
-At this point, if you would like to make your plugin available publicly, you can proceed to [creating Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to the NotePlan Plugin Repository (see information below)
+At this point, if you would like to make your plugin available publicly, you can proceed to [creating a Pull Request](https://github.com/NotePlan/plugins/blob/main/GithubFlow.md#submitting-a-pull-request-to-noteplan) to have your code included in the NotePlan Plugin Repository
 
 ### Common Development Actions
 
@@ -298,4 +298,4 @@ This is a great resource to request assistance, either in the form of a bug repo
 
 ## Contributing
 
-If you would like to contribute to the NotePlan Plugin repository, feel free to submit a [Pull Request](https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) for any existing NotePlan Plugin, or any of the support materials.
+If you would like to contribute to the NotePlan Plugin repository, feel free to submit a [Pull Request](https://github.com/NotePlan/plugins/blob/main/GithubFlow.md#submitting-a-pull-request-to-noteplan) for any existing NotePlan Plugin, or any of the support materials.

@@ -135,79 +135,6 @@ describe('paragraph.js', () => {
     })
   })
 
-  describe('findStartOfActivePartOfNote()', () => {
-    // Note: needs to be created this way to trigger the mock required for the appendParagraph() function
-    let paras = [new Paragraph()]
-    const noteA = new Note({ paras })
-    test('should return 0 (empty note A)', () => {
-      const result = p.findStartOfActivePartOfNote(noteA)
-      expect(result).toEqual(0)
-    })
-
-    // Note: needs to be created this way to trigger the mock required for the appendParagraph() function
-    // TODO(@dwertheimer):, I don't understand why lineIndex needs to be set, for it looks like the note mock covers the setting of these?
-    paras = [new Paragraph({ type: 'title', lineIndex: 0, content: 'NoteB Title', headingLevel: 1 })]
-    const noteB = new Note({ paras })
-    test('should find at line 0 (note B)', () => {
-      const result = p.findStartOfActivePartOfNote(noteB)
-      expect(result).toEqual(0)
-    })
-
-    const noteC = {
-      paragraphs: [
-        { type: 'title', lineIndex: 0, content: 'NoteC Title', headingLevel: 1 },
-        { type: 'empty', lineIndex: 1 },
-        { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
-      ],
-    }
-    test('should find at line 1 (note C)', () => {
-      const result = p.findStartOfActivePartOfNote(noteC)
-      expect(result).toEqual(1)
-    })
-
-    const noteD = {
-      paragraphs: [
-        { type: 'separator', lineIndex: 0, content: '---', headingLevel: 0 },
-        { type: 'text', lineIndex: 1, content: 'title: NoteD', headingLevel: 0 },
-        { type: 'text', lineIndex: 2, content: 'field: value here', headingLevel: 0 },
-        { type: 'separator', lineIndex: 3, content: '---', headingLevel: 0 },
-        { type: 'title', lineIndex: 4, content: 'Section A heading level 2 ', headingLevel: 2 },
-        { type: 'text', lineIndex: 5, content: 'A note line', headingLevel: 2 },
-      ],
-    }
-    test('should find at line 4 (note D)', () => {
-      const result = p.findStartOfActivePartOfNote(noteD)
-      expect(result).toEqual(4)
-    })
-    const noteE = {
-      paragraphs: [
-        { type: 'separator', lineIndex: 0, content: '---', headingLevel: 0 },
-        { type: 'text', lineIndex: 1, content: 'title: NoteD', headingLevel: 0 },
-        { type: 'text', lineIndex: 2, content: 'field: value here', headingLevel: 0 },
-        { type: 'separator', lineIndex: 3, content: '---', headingLevel: 0 },
-        { type: 'text', lineIndex: 4, content: '#metadata line', headingLevel: 2 },
-        { type: 'empty', lineIndex: 5 },
-        { type: 'text', lineIndex: 6, content: 'A note line', headingLevel: 2 },
-      ],
-    }
-    test('should find at line 5 after metadata line (note E)', () => {
-      const result = p.findStartOfActivePartOfNote(noteE)
-      expect(result).toEqual(5)
-    })
-
-    const noteF = {
-      paragraphs: [
-        { type: 'title', lineIndex: 0, content: 'NoteC Title', headingLevel: 1 },
-        { type: 'text', lineIndex: 1, content: '#metadata line', headingLevel: 2 },
-        { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
-      ],
-    }
-    test('should find at line 2 after metadata line (note F)', () => {
-      const result = p.findStartOfActivePartOfNote(noteF)
-      expect(result).toEqual(2)
-    })
-  })
-
   // describe('calcSmartPrependPoint()', () => {
   //   const noteA = {
   //     type: 'notes',
@@ -319,10 +246,11 @@ describe('paragraph.js', () => {
       const result = p.findStartOfActivePartOfNote(noteD)
       expect(result).toEqual(4)
     })
+
     const noteE = {
       paragraphs: [
         { type: 'separator', lineIndex: 0, content: '---', headingLevel: 0 },
-        { type: 'text', lineIndex: 1, content: 'title: NoteD', headingLevel: 0 },
+        { type: 'text', lineIndex: 1, content: 'title: NoteE', headingLevel: 0 },
         { type: 'text', lineIndex: 2, content: 'field: value here', headingLevel: 0 },
         { type: 'separator', lineIndex: 3, content: '---', headingLevel: 0 },
         { type: 'text', lineIndex: 4, content: '#metadata line', headingLevel: 2 },
@@ -332,12 +260,12 @@ describe('paragraph.js', () => {
     }
     test('should find at line 5 after metadata line (note E)', () => {
       const result = p.findStartOfActivePartOfNote(noteE)
-      expect(result).toEqual(5)
+      expect(result).toEqual(6)
     })
 
     const noteF = {
       paragraphs: [
-        { type: 'title', lineIndex: 0, content: 'NoteC Title', headingLevel: 1 },
+        { type: 'title', lineIndex: 0, content: 'NoteF Title', headingLevel: 1 },
         { type: 'text', lineIndex: 1, content: '#metadata line', headingLevel: 2 },
         { type: 'title', lineIndex: 2, content: 'Section 1', headingLevel: 2 },
       ],
@@ -345,6 +273,76 @@ describe('paragraph.js', () => {
     test('should find at line 2 after metadata line (note F)', () => {
       const result = p.findStartOfActivePartOfNote(noteF)
       expect(result).toEqual(2)
+    })
+
+    const noteG = {
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'NoteG Title', headingLevel: 1 },
+        { type: 'text', lineIndex: 1, content: 'first line of preamble' },
+        { type: 'text', lineIndex: 2, content: 'next preamble followed by blank line' },
+        { type: 'empty', lineIndex: 3 },
+        { type: 'title', lineIndex: 4, content: 'Section 1', headingLevel: 2 },
+        { type: 'open', lineIndex: 5, content: 'task 1' },
+        { type: 'text', lineIndex: 6, content: 'some ordinary text' },
+        { type: 'empty', lineIndex: 7 },
+        { type: 'title', lineIndex: 8, content: 'Section 2', headingLevel: 3 },
+        { type: 'quote', lineIndex: 9, content: 'quotation' },
+        { type: 'done', lineIndex: 10, content: 'task 3 done' },
+      ],
+    }
+    test('note G: with allowPreamble true, find at lineIndex 4', () => {
+      const result = p.findStartOfActivePartOfNote(noteG, true)
+      expect(result).toEqual(4)
+    })
+    test('note G: with allowPreamble false, find at lineIndex 1', () => {
+      const result = p.findStartOfActivePartOfNote(noteG, false)
+      expect(result).toEqual(1)
+    })
+
+    const noteH = {
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'NoteH Title', headingLevel: 1 },
+        { type: 'text', lineIndex: 1, content: 'first line of preamble' },
+        { type: 'text', lineIndex: 2, content: 'next preamble followed by blank line' },
+        { type: 'separator', lineIndex: 3, content: '---' },
+        { type: 'title', lineIndex: 4, content: 'Section 1', headingLevel: 2 },
+        { type: 'open', lineIndex: 5, content: 'task 1' },
+        { type: 'text', lineIndex: 6, content: 'some ordinary text' },
+        { type: 'empty', lineIndex: 7 },
+        { type: 'title', lineIndex: 8, content: 'Section 2', headingLevel: 3 },
+        { type: 'quote', lineIndex: 9, content: 'quotation' },
+        { type: 'done', lineIndex: 10, content: 'task 3 done' },
+      ],
+    }
+    test('note H: with allowPreamble true, find at lineIndex 4', () => {
+      const result = p.findStartOfActivePartOfNote(noteH, true)
+      expect(result).toEqual(4)
+    })
+    test('note H: with allowPreamble false, find at lineIndex 1', () => {
+      const result = p.findStartOfActivePartOfNote(noteH, false)
+      expect(result).toEqual(1)
+    })
+    const noteI = {
+      paragraphs: [
+        { type: 'title', lineIndex: 0, content: 'NoteI Title', headingLevel: 1 },
+        { type: 'text', lineIndex: 1, content: 'first line of preamble' },
+        { type: 'text', lineIndex: 2, content: 'next preamble followed by blank line' },
+        { type: 'title', lineIndex: 3, content: 'Section 1', headingLevel: 2 },
+        { type: 'open', lineIndex: 4, content: 'task 1' },
+        { type: 'text', lineIndex: 5, content: 'some ordinary text' },
+        { type: 'empty', lineIndex: 6 },
+        { type: 'title', lineIndex: 7, content: 'Section 2', headingLevel: 3 },
+        { type: 'quote', lineIndex: 8, content: 'quotation' },
+        { type: 'done', lineIndex: 9, content: 'task 3 done' },
+      ],
+    }
+    test('note H: with allowPreamble true, find at lineIndex 4', () => {
+      const result = p.findStartOfActivePartOfNote(noteI, true)
+      expect(result).toEqual(3)
+    })
+    test('note H: with allowPreamble false, find at lineIndex 1', () => {
+      const result = p.findStartOfActivePartOfNote(noteI, false)
+      expect(result).toEqual(1)
     })
   })
 

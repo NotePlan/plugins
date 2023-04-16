@@ -1,4 +1,8 @@
 # What's Changed in 🔢 Statistics plugin?
+## [0.6.1] - 2022-12-30
+### New
+- added new stat 'Notes with open tasks' to "/task stats for all notes" command
+
 ## [0.6.0] - 2022-12-30
 ### New
 - "/task stats ..." command now includes counts for Checklist items (ready for NotePlan v3.8)

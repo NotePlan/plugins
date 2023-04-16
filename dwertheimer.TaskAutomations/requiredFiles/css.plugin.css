@@ -59,15 +59,29 @@ body { padding-left: 15px; padding-right: 15px; }
     font-family: "FontAwesome6Pro-Regular";
   }
 
-  .statusbutton-bar {
+  .statusbutton-option-row {
     background-color: transparent;
-    width: 1000px;
+    width: 180px !important;
   }
 
-  .statusbutton-text {
+  /*
+  .statusbutton-option-row:hover {
+    background-color: #ccc;
+    color: #222;
+    width: 180px;
+  }
+  */
+
+  .statusbutton-option-row:hover {
+    /* dynamically set hover color in the code since you can't directly code :hover in JS */
+    background-color: var(--hover-color);
+  }
+
+  .statusbutton-option-text {
     font-size: 12px;
     font-weight: bold;
     padding-left: 5px;
+    background-color: transparent;
   }
 
   .statusbutton-collapsed {
@@ -87,4 +101,28 @@ body { padding-left: 15px; padding-right: 15px; }
     cursor:'pointer';
     pointer-events: auto;
     text-decoration: none;
+  }
+
+  .typeFilter {
+    position: absolute;
+    right: 0px;
+    font-size: 12px;
+    font-weight: regular;
+    padding-right: 10px;
+    width: 150px;
+  }
+
+  table.greyed, th.greyed, td.greyed {
+    border: 1px solid;
+  }
+
+  th.greyed, td.greyed {
+    padding: 15px;
+    text-align: left;
+    color: '#696969'
+  }
+
+  .expanded-note-details {
+    padding-right: 10px;
+    opacity: 0.5;
   }

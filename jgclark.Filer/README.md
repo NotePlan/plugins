@@ -1,7 +1,7 @@
 # 🗃 Filer plugin
 This plugin provides commands to help move or copy things around in NotePlan.
 
-It has some settings, which you review and change by clicking on the ⚙️ gear button on the 'Filer' line in the Plugin Preferences panel (on macOS) or by running the 
+It has some settings, which you review and change by clicking on the ⚙️ gear button on the 'Filer' line in the Plugin Preferences panel (on macOS) or by running the '/Filer: update plugin settings' command (on iOS).
 
 ## /move paragraph or selection
 The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files** (moves) lines to different notes in NotePlan, _without having to lose your flow by switching to the other note_. It works on any sort of lines, not just tasks.
@@ -36,13 +36,19 @@ This command (alias **/asc**) adds a sync'd copy of the current line to a sectio
 NB: This feature only works on single lines, not whole blocks, at the moment.)
 
 ## various /note link commands
-There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to the project note with that title:
+There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to regular notes with that title:
 - **/move note links**
 - **/move note links (recently changed)**
 - **/copy note links**
 - **/copy note links (recently changed)**
 
-![note link demo](note-link-example1.gif)
+For example, if you collect tasks and notes on 3 different main areas in your daily note, you might want to copy or move those to different 'progress log' notes at the end of each day:
+
+![project log overview](project-log-jordon-view.jpg)
+_(Thanks to @jord8on for the graphic which inspired this set of commands.)_
+
+In practice running /copy note links command on a daily note can implement:
+![note link demo using /copy note links command](note-link-example1.gif)
 
 There are a number of settings to make it useful for a variety of ways of organising your notes:
 
@@ -53,17 +59,34 @@ There are a number of settings to make it useful for a variety of ways of organi
   - only non-task/checklist items
 - File the wider block the note link is in? If set, this command will include the rest of the following block this line is in: any indented lines, or (if this line is a heading) all lines following until a blank line, or heading of the same level or higher. Default is not to use blocks, which only files this line.
 - Where to add in the note: If the [[note link]] doesn't include a heading, then this controls whether filed lines get inserted at the start or end of the note.
+- Allow preamble before first heading? If set, some 'preamble' lines are allowed directly after the title. When filing/moving/inserting items with these commands, this preamble will be left in place, up to and including the first blank line, heading or separator. Otherwise the first heading will be directly after the note's title line (or frontmatter if used).
 - Tag that indicates a [[note link]] should be ignored: If this tag (e.g. "#ignore") is included in a line with a [[note link]] then it (and where relevant the rest of its block) will not be moved or copied.
+
+In the demo above, the daily note includes the date ("Tues 21/3") as part of the (sub)heading. As this is copied into the project log, it serves as an automatic index in that note. To add today's date in whatever style you wish is relatively simple using the [date commands in the Templating plugin](https://nptemplating-docs.netlify.app/docs/templating-examples/date-time).
 
 The **/... (recently changed)** versions of these commands operate on recently-changed calendar notes, not just the currently open one. To contol this there's an additional setting:
 - How many days to include in 'recent' changes to calendar notes? This sets how many days' worth of changes to calendar notes to include? To include all days, set to 0.
 
-For example, this can be used to copy at the end of each day from the daily note a section with any completed tasks, and any notes that it contains, to a 'progress log' note. This can be run on demand.
-<!-- , or could be automated through the following method ...
+For example, this can be used to copy at the end of each day from the daily note a section with any completed tasks, and any notes that it contains, to a 'progress log' note. This can be run on demand, or could be automated through the following method ...
 
-### Running through a Template
+### Running '/... note links ...' through a Template
+When you've set the settings as you wish, then you can run either of the "/... (recently changed)" commands from a Template using command "/np:execute" (or "/np:invoke" etc.):
+```
+<% await DataStore.invokePluginCommandByName("copy note links (recently changed)","jgclark.Filer",['{}']) %>
+```
+or, for the 'move' variant:
+```
+<% await DataStore.invokePluginCommandByName("move note links (recently changed)","jgclark.Filer",['{}']) %>
+```
 
-??? parameters from Templates -->
+You can then have this run as part of your Daily Template processing. I suggest you set the 'recent days' setting to 3 or more, to cover periods where you don't or can't run the Template.
+
+You can override your usual settings by passing extra parameters in the `[...]` above. Please see this plugin's `plugin.json` file to know what the settings are called.
+
+You can also run from an x-callback call. At simplest this is:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Filer&command=move%20note%20links%20%28recently%20changed%29&arg0=
+```
 
 ## /new note from clipboard
 This command (alias **/nnc**) takes the current text in the clipboard to form the basis of a new note. The command asks for the note title and folder location.

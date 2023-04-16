@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 2.4.2023 for v0.3.x by @jgclark
+// Last updated 7.4.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -9,10 +9,11 @@ import moment from 'moment/min/moment-with-locales'
 import fm from 'front-matter' // For reviewList functionality
 import {
   getSettings,
+  type dashboardConfigType,
   type SectionDetails, type SectionItem
 } from './dashboardHelpers'
 import { toLocaleDateString, getDateStringFromCalendarFilename } from '@helpers/dateTime'
-import { clo, logDebug, logError, logInfo, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { filterParasAgainstExcludeFolders } from '@helpers/note'
@@ -37,10 +38,79 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 
 //-----------------------------------------------------------------
 
+/**
+ * Return list(s) of open task/checklist paragraphs from the current calendar note of type 'timePeriodName'. Optionally if 'includeReferencedItems' is true, then include references to this period as well.
+ * Other config.* items are used:
+ * - ignoreFolders? for folders to ignore for referenced notes
+ * - separateSectionForReferencedNotes? if true, then two arrays will be returned: first from the calendar note; the second from references to that calendar note. If false, then both are included in a combined list (with the second being an empty array).
+ * - ignoreTasksWithPhrase
+ * @param {string} timePeriodName 
+ * @param {TNote} timePeriodNote base calendar note to process
+ * @param {boolean} includeReferencedItems?
+ * @param {dashboardConfigType} dashboardConfig 
+ * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
+ */
+function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, includeReferencedItems: boolean, dashboardConfig: dashboardConfigType): [Array<TParagraph>, Array<TParagraph>] {
+  logDebug('getDataForDashboard/gOIPFCTP', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
+
+  let parasToUse: $ReadOnlyArray<any> = []
+  // TODO: un-comment when makeBasicParasFromContent() is ready
+  // if (Editor && timePeriodNote.filename === Editor.filename) {
+  //   // timePeriodNote = Editor.note // Note: produces content, but not the most recent change. FIXME: switch to Editor not Editor.note?
+  //   logDebug('getDataForDashboard', `Starting for Editor version of '${timePeriodNote?.filename ?? 'error'}' with ${String(Editor.note?.versions?.length ?? NaN)} versions`)
+  //   console.log(`Editor.content latest version: <${Editor.content ?? 'no content'}>`)
+  //   parasToUse = makeBasicParasFromContent(Editor.content ?? '')
+  // } else {
+  logDebug('getDataForDashboard', `Starting for '${timePeriodNote.filename ?? 'error'}'`)
+  parasToUse = timePeriodNote.paragraphs
+  // }
+
+  // Need to filter out non-open task types for following function, and any blank tasks
+  let openParas = parasToUse.filter(isOpen).filter((p) => p.content !== '')
+  // Filter out anything from 'ignoreTasksWithPhrase' setting
+  if (dashboardConfig.ignoreTasksWithPhrase) {
+    logDebug('getDataForDashboard', `Before 'ignore' filter: ${openParas.length} paras`)
+    openParas = openParas.filter((p) => !p.content.includes(dashboardConfig.ignoreTasksWithPhrase))
+  }
+  logDebug('getDataForDashboard', `After 'ignore' filter: ${openParas.length} paras`)
+  // openParas.map((p) => console.log(`\t<${p.content}>`))
+  // Temporarily extend TParagraph with the task's priority
+  openParas = addPriorityToParagraphs(openParas)
+
+  // -------------------------------------------------------------
+  // Get list of open tasks/checklists scheduled to today from other notes, and of the right paragraph type
+  let refParas = timePeriodNote ? getReferencedParagraphs(timePeriodNote, false).filter(isOpen).filter((p) => p.content !== '') : []
+  // Remove items referenced from items in 'ignoreFolders'
+  refParas = filterParasAgainstExcludeFolders(refParas, dashboardConfig.ignoreFolders, true)
+  // Remove possible dupes from sync'd lines
+  refParas = eliminateDuplicateSyncedParagraphs(refParas)
+  // Temporarily extend TParagraph with the task's priority
+  refParas = addPriorityToParagraphs(refParas)
+  logDebug('', `found ${String(refParas.length ?? 0)} references to today`)
+  // sort the list only by priority, otherwise leaving order the same
+
+  // Decide whether to return two separate arrays, or one combined one
+  if (dashboardConfig.separateSectionForReferencedNotes) {
+    const sortedOpenParas = sortListBy(openParas, ['-priority'])
+    const sortedRefParas = sortListBy(refParas, ['-priority'])
+    return [sortedRefParas, sortedRefParas]
+  } else {
+    const combinedParas = sortListBy(openParas.concat(refParas), ['-priority'])
+    const combinedSortedParas = sortListBy(combinedParas, ['-priority'])
+    return [combinedSortedParas, []]
+  }
+}
+
+/**
+ * Work out the data for the dashboard, ready to pass to a renderer.
+ * Will instead use demo data if useDemoData is true.
+ * @param {boolean} useDemoData 
+ * @returns {[Array<SectionDetails>, Array<SectionItem>]}
+ */
 export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Array<SectionItem>]> {
   try {
-    // Get any settings
-    const config = await getSettings()
+    // Get settings
+    const config: dashboardConfigType = await getSettings()
 
     // Set up data structure to receive sections and their items
     const sections: Array<SectionDetails> = []
@@ -49,234 +119,231 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     let doneCount = 0
     const today = new Date()
 
-    // Get list of open tasks/checklists from daily note
-    // First check to see whether this note is open in Editor. If so use that version, otherwise if this was triggered from it, it will be out of date.
+    // -------------------------------------------------------------
+    // Get list of open tasks/checklists from daily note (if it exists)
     let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
     if (currentDailyNote) {
-      const thisFilename = currentDailyNote.filename
+      const thisFilename = currentDailyNote?.filename ?? '(error)'
 
-      logDebug('getDataForDashboard', `Processing ${thisFilename} which has ${String(currentDailyNote.paragraphs.length)} paras`)
+      // Get list of open tasks/checklists from this calendar note
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config.separateSectionForReferencedNotes, config)
 
-      let parasToUse: $ReadOnlyArray<any> = []
-      // TODO: un-comment when makeBasicParasFromContent() is ready
-      // if (Editor && currentDailyNote.filename === Editor.filename) {
-      //   // currentDailyNote = Editor.note // Note: produces content, but not the most recent change
-      //   logDebug('getDataForDashboard', `Starting for Editor version of '${currentDailyNote?.filename ?? 'error'}' with ${String(Editor.note?.versions?.length ?? NaN)} versions`)
-      //   console.log(`Editor.content latest version: <${Editor.content ?? 'no content'}>`)
-      //   parasToUse = makeBasicParasFromContent(Editor.content ?? '')
-      // } else {
-      logDebug('getDataForDashboard', `Starting for '${currentDailyNote.filename ?? 'error'}'`)
-      parasToUse = currentDailyNote.paragraphs
-      // }
-
-      // Need to filter out non-open task types for following function, and any blank tasks
-      let openParas = parasToUse.filter(isOpen).filter((p) => p.content !== '')
-      // Filter out anything from 'ignoreTasksWithPhrase' setting
-      if (config.ignoreTasksWithPhrase) {
-        logDebug('getDataForDashboard', `Before 'ignore' filter: ${openParas.length} paras`)
-        openParas = openParas.filter((p) => !p.content.includes(config.ignoreTasksWithPhrase))
-      }
-
-      logDebug('getDataForDashboard', `After 'ignore' filter: ${openParas.length} paras:`)
-      openParas.map((p) => console.log(`\t<${p.content}>`))
-
-      // Temporarily extend TParagraph with the task's priority
-      openParas = addPriorityToParagraphs(openParas)
-      // sort the list only by priority, otherwise leaving order the same
-      const sortedOpenParas = sortListBy(openParas, ['-priority'])
-      // make a sectionItem for each item, and then make a section too.
-      let itemCount = 0
-      sortedOpenParas.map((p) => {
-        const thisID = `${sectionCount}-${itemCount}`
-        sectionItems.push({
-          ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type
+      // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
+      if (config.separateSectionForReferencedNotes) {
+        // make a sectionItem for each item, and then make a section too.
+        let itemCount = 0
+        combinedSortedParas.map((p) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
+          itemCount++
         })
-        itemCount++
-      })
-      // clo(sortedOpenParas, "daily sortedOpenParas")
-      logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-      sections.push({ ID: sectionCount, name: 'Today', description: `from ${toLocaleDateString(today)} daily note`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
-      sectionCount++
+        // clo(combinedSortedParas, "daily sortedOpenParas")
+        logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
+        sections.push({ ID: sectionCount, name: 'Today', description: `from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+        sectionCount++
 
-      // TODO: Include context for sub-tasks/checklist?
-      // config.includeTaskContext
+        // clo(sortedRefParas, "sortedRefParas")
+        if (sortedRefParas.length > 0) {
 
+          itemCount = 0
+          sortedRefParas.map((p) => {
+            const thisID = `${sectionCount}-${itemCount}`
+            sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
+            itemCount++
+          })
+          sections.push({ ID: sectionCount, name: 'Today', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+          sectionCount++
+        }
+      }
+      else {
+        // write one combined section
+        let itemCount = 0
+        combinedSortedParas.map((p) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
+          itemCount++
+        })
+        // clo(sortedRefParas, "sortedRefParas")
+        sections.push({
+          ID: sectionCount, name: 'Today', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: ''
+        })
+        sectionCount++
+      }
       // Get count of tasks/checklists done today
       doneCount += currentDailyNote.paragraphs.filter(isDone).length
 
-      //-----------------------------------------------------------
-      // Get list of open tasks/checklists scheduled to today from other notes, and of the right paragraph type
-      let refParas = currentDailyNote ? getReferencedParagraphs(currentDailyNote, false).filter(isOpen).filter((p) => p.content !== '') : []
-      // Remove items referenced from items in 'ignoreFolders'
-      refParas = filterParasAgainstExcludeFolders(refParas, config.includeFolders, true)
-      // Remove possible dupes from sync'd lines
-      refParas = eliminateDuplicateSyncedParagraphs(refParas)
-
-      // Temporarily extend TParagraph with the task's priority
-      refParas = addPriorityToParagraphs(refParas)
-
-      // logDebug('', `found ${String(refParas.length ?? 0)} references to today`)
-      if (refParas) {
-        // sort the list only by priority, otherwise leaving order the same
-        const sortedRefParas = sortListBy(refParas, ['-priority'])
-        // make a sectionItem for each item, and then make a section too.
-        let itemCount = 0
-        sortedRefParas.map((p) => {
-          const thisID = `${sectionCount}-${itemCount}`
-          sectionItems.push({
-            ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note.filename, type: p.type
-          })
-          itemCount++
-        })
-        // clo(sortedRefParas, "sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'Today', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily" })
-        sectionCount++
-      }
-
-      // // Get completed count for today (in either >today or >YYYY-MM-DD style or >YYYY-Www) from reviewing notes changed in last 24 hours
-      // const notesChangedInLastDay = [currentDailyNote] // TODO
-      // for (const ncild of notesChangedInLastDay) {
-      //   doneCount += ncild?.paragraphs.filter((p) => ["done", "checklistDone"].includes(p.type)).length ?? 0
-      // }
+      // TODO: add completed count for today from referenced notes as well
+    } else {
+      logDebug('getDataForDashboard', `No daily note found for filename '${currentDailyNote?.filename ?? 'error'}'`)
     }
-    // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
+
+    // TODO: Include context for sub-tasks/checklist?
+    // config.includeTaskContext
 
     //-----------------------------------------------------------
     // Get list of open tasks/checklists from weekly note (if it exists)
+
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     if (currentWeeklyNote) {
-      const thisFilename = currentWeeklyNote.filename
+      const thisFilename = currentWeeklyNote?.filename ?? '(error)'
       const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
-      logDebug('getDataForDashboard', `Processing ${thisFilename} (${dateStr}) which has ${String(currentWeeklyNote.paragraphs.length)} paras`)
-      // Need to filter out non-task types for following function
-      let openParas = currentWeeklyNote.paragraphs.filter(isOpen).filter((p) => p.content !== '')
-      // clo(openParas, `${(String(openParas.length))} openParas:`)
-      // Temporarily extend TParagraph with the task's priority
-      openParas = addPriorityToParagraphs(openParas)
-      // sort the list only by priority, otherwise leaving order the same
-      const sortedParas = sortListBy(openParas, ['-priority'])
-      // make a sectionItem for each item, and then make a section too.
-      // sortedParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type }))
-      let itemCount = 0
-      sortedParas.map((p) => {
-        const thisID = `${sectionCount}-${itemCount}`
-        sectionItems.push({
-          ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type
-        })
-        itemCount++
-      })
-      // clo(sortedParas, "weekly sortedParas")
-      sections.push({ ID: sectionCount, name: 'This Week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
-      sectionCount++
-      logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} weekly items`)
 
-      // Get completed count too
-      doneCount += currentWeeklyNote.paragraphs.filter(isDone).length
+      // Get list of open tasks/checklists from this calendar note
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentWeeklyNote, config.separateSectionForReferencedNotes, config)
 
-      //-----------------------------------------------------------
-      // Get list of open tasks/checklists scheduled to this week from other notes, and of the right paragraph types
-      let refParas = currentWeeklyNote
-        ? getReferencedParagraphs(currentWeeklyNote, false).filter(isOpen).filter((p) => p.content !== '')
-        : []
-      // Remove items referenced from items in 'ignoreFolders'
-      refParas = filterParasAgainstExcludeFolders(refParas, config.includeFolders, true)
-      // Remove possible dupes from sync'd lines
-      refParas = eliminateDuplicateSyncedParagraphs(refParas)
-      if (refParas) {
-        // Temporarily extend TParagraph with the task's priority
-        refParas = addPriorityToParagraphs(refParas)
-        // sort the list only by priority, otherwise leaving order the same
-        const sortedRefParas = sortListBy(refParas, ['-priority'])
-        // sortedRefParas.map((p) => sectionItems.push({ ID: sectionCount, content: p.content, rawContent: p.rawContent, filename: p.note.filename, type: p.type }))
+      // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
+      if (config.separateSectionForReferencedNotes) {
+        // make a sectionItem for each item, and then make a section too.
         let itemCount = 0
-        sortedRefParas.map((p) => {
+        combinedSortedParas.map((p) => {
           const thisID = `${sectionCount}-${itemCount}`
-          sectionItems.push({
-            ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note.filename, type: p.type
-          })
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
           itemCount++
         })
-        // clo(sortedRefParas, "sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This week', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly" })
+        // clo(combinedSortedParas, "weekly sortedOpenParas")
+        logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} weekly items`)
+        sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+        sectionCount++
+
+        // clo(sortedRefParas, "weekly sortedRefParas")
+        if (sortedRefParas.length > 0) {
+          itemCount = 0
+          sortedRefParas.map((p) => {
+            const thisID = `${sectionCount}-${itemCount}`
+            sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
+            itemCount++
+          })
+          sections.push({ ID: sectionCount, name: 'This week', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly", filename: '' })
+          sectionCount++
+        }
+      } else {
+        // make a sectionItem for each item, and then make a section too.
+        let itemCount = 0
+        combinedSortedParas.map((p) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
+          itemCount++
+        })
+        // clo(sortedRefParas, "weekly sortedRefParas")
+        sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: '' })
         sectionCount++
       }
+      // Get count of tasks/checklists done this week
+      doneCount += currentWeeklyNote.paragraphs.filter(isDone).length
+    } else {
+      logDebug('getDataForDashboard', `No weekly note found for filename '${currentWeeklyNote?.filename ?? 'error'}'`)
     }
 
     //-----------------------------------------------------------
     // Get list of open tasks/checklists from monthly note (if it exists)
-    let currentMonthlyNote = DataStore.calendarNoteByDate(today, 'month')
-    const thisFilename = currentMonthlyNote?.filename ?? '<error>'
-    const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
-    logDebug('getDataForDashboard', `Processing ${thisFilename} (${dateStr}) which has ${String(currentMonthlyNote?.paragraphs?.length ?? NaN)} paras`)
-    if (currentMonthlyNote) {
+    let currentCalendarNote = DataStore.calendarNoteByDate(today, 'month')
+    if (currentCalendarNote) {
+      const thisFilename = currentCalendarNote?.filename ?? '(error)'
+      const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
+      logDebug('getDataForDashboard', `Processing ${thisFilename} (${dateStr}) which has ${String(currentCalendarNote?.paragraphs?.length ?? NaN)} paras`)
       let parasToUse: $ReadOnlyArray<any> = []
-      // TODO: un-comment when makeBasicParasFromContent() is ready
-      // if (Editor && currentMonthlyNote?.filename === Editor.filename) {
-      //   currentMonthlyNote = Editor.note // Note: produces content, but not the most recent change
-      //   logDebug('getDataForDashboard', `Starting for Editor version of '${currentMonthlyNote?.filename ?? 'error'}' with ${String(Editor.note?.versions?.length ?? NaN)} versions`)
-      //   console.log(`Editor.content latest version: <${Editor.content ?? 'no content'}>`)
-      //   parasToUse = makeBasicParasFromContent(Editor.content ?? '')
-      // } else {
-      logDebug('getDataForDashboard', `Starting for '${currentMonthlyNote?.filename ?? 'error'}'`)
-      parasToUse = currentMonthlyNote?.paragraphs
-      // }
 
-      // Need to filter out non-task types for following function
-      let openParas = parasToUse.filter(isOpen).filter((p) => p.content !== '') ?? []
-      // clo(openParas, `${(String(openParas.length))} openParas:`)
-      // Temporarily extend TParagraph with the task's priority
-      openParas = addPriorityToParagraphs(openParas)
-      // sort the list only by priority, otherwise leaving order the same
-      const sortedParas = sortListBy(openParas, ['-priority'])
-      // make a sectionItem for each item, and then make a section too.
-      let itemCount = 0
-      sortedParas.map((p) => {
-        const thisID = `${sectionCount}-${itemCount}`
-        sectionItems.push({
-          ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type
-        })
-        itemCount++
-      })
-      // clo(sortedParas, "monthly sortedParas")
-      sections.push({ ID: sectionCount, name: 'This Month', description: `from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
-      sectionCount++
-      logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} monthly items`)
+      // Get list of open tasks/checklists from this calendar note
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("month", currentCalendarNote, config.separateSectionForReferencedNotes, config)
 
-      // Get completed count too
-      // $FlowFixMe(incompatible-use)
-      doneCount += currentMonthlyNote.paragraphs.filter(isDone).length
-
-      //-----------------------------------------------------------
-      // Get list of open tasks/checklists scheduled to this month from other notes, and of the right paragraph types
-      let refParas = currentMonthlyNote
-        ? getReferencedParagraphs(currentMonthlyNote, false).filter(isOpen).filter((p) => p.content !== '')
-        : []
-      // Remove items referenced from items in 'ignoreFolders'
-      refParas = filterParasAgainstExcludeFolders(refParas, config.includeFolders, true)
-      // Remove possible dupes from sync'd lines
-      refParas = eliminateDuplicateSyncedParagraphs(refParas)
-      if (refParas) {
-        // Temporarily extend TParagraph with the task's priority
-        refParas = addPriorityToParagraphs(refParas)
-        // sort the list only by priority, otherwise leaving order the same
-        const sortedRefParas = sortListBy(refParas, ['-priority'])
+      // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
+      if (config.separateSectionForReferencedNotes) {
+        // make a sectionItem for each item, and then make a section too.
         let itemCount = 0
-        sortedRefParas.map((p) => {
+        combinedSortedParas.map((p) => {
           const thisID = `${sectionCount}-${itemCount}`
-          sectionItems.push({
-            ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note.filename, type: p.type
-          })
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type })
           itemCount++
         })
-        // clo(sortedRefParas, "sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This month', description: `scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly" })
+        // clo(combinedSortedParas, "monthly sortedOpenParas")
+        logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} monthly items`)
+        sections.push({ ID: sectionCount, name: 'This Month', description: `from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+        sectionCount++
+
+        // clo(sortedRefParas, "monthly sortedRefParas")
+        if (sortedRefParas.length > 0) {
+          itemCount = 0
+          sortedRefParas.map((p) => {
+            const thisID = `${sectionCount}-${itemCount}`
+            sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type })
+            itemCount++
+          })
+          sections.push({ ID: sectionCount, name: 'This month', description: `scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly", filename: '' })
+          sectionCount++
+        }
+      } else {
+        // make a sectionItem for each item, and then make a section too.
+        let itemCount = 0
+        combinedSortedParas.map((p) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
+          itemCount++
+        })
+        // clo(sortedRefParas, "monthly sortedRefParas")
+        sections.push({ ID: sectionCount, name: 'This month', description: `from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: '' })
         sectionCount++
       }
+
+      // Get completed count too
+      doneCount += currentCalendarNote.paragraphs.filter(isDone).length
+    } else {
+      logDebug('getDataForDashboard', `No monthly note found for filename '${currentCalendarNote?.filename ?? 'error'}'`)
     }
 
-    // Note: If we want to do quarterly or yearly then the icon is fa-calendar-days
+    //-----------------------------------------------------------
+    // Get list of open tasks/checklists from quarterly note (if it exists)
+    const currentQuarterlyNote = DataStore.calendarNoteByDate(today, 'quarter')
+    if (currentQuarterlyNote) {
+      const thisFilename = currentDailyNote?.filename ?? '(error)'
+      const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
 
-    // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
+      // Get list of open tasks/checklists from this calendar note
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentQuarterlyNote, config.separateSectionForReferencedNotes, config)
+
+      // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
+      if (config.separateSectionForReferencedNotes) {
+        // make a sectionItem for each item, and then make a section too.
+        let itemCount = 0
+        combinedSortedParas.map((p) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
+          itemCount++
+        })
+        // clo(combinedSortedParas, "quarterly sortedOpenParas")
+        logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} quarterly items`)
+        sections.push({ ID: sectionCount, name: 'This quarter', description: `from quarterly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
+        sectionCount++
+
+        // clo(sortedRefParas, "quarterly sortedRefParas")
+        if (sortedRefParas.length > 0) {
+          itemCount = 0
+          sortedRefParas.map((p) => {
+            const thisID = `${sectionCount}-${itemCount}`
+            sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
+            itemCount++
+          })
+          sections.push({ ID: sectionCount, name: 'This quarter', description: `scheduled to this quarter`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarQuarterly", filename: '' })
+          sectionCount++
+        }
+      } else {
+        // make a sectionItem for each item, and then make a section too.
+        let itemCount = 0
+        combinedSortedParas.map((p) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
+          itemCount++
+        })
+        // clo(sortedRefParas, "quarterly sortedRefParas")
+        sections.push({ ID: sectionCount, name: 'This quarter', description: `from quarterly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: '' })
+        sectionCount++
+      }
+      // Get count of tasks/checklists done this quarter
+      doneCount += currentQuarterlyNote.paragraphs.filter(isDone).length
+    } else {
+      logDebug('getDataForDashboard', `No quarterly note found for filename '${currentQuarterlyNote?.filename ?? 'error'}'`)
+    }
+
+    // Note: If we want to do yearly then the icon is fa-calendar-days (same as quarter)
 
     // Send doneCount through as a special type item:
     sections.push({
@@ -285,15 +352,13 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       description: ``,
       FAIconClass: '',
       sectionTitleClass: '',
+      filename: ''
     })
 
     // If Reviews plugin has produced a review list file, then show up to 4 of the most overdue things from it
     if (DataStore.fileExists(fullReviewListFilename)) {
       const nextNotesToReview: Array<TNote> = await getNextNotesToReview(4)
       if (nextNotesToReview) {
-        // for (const n of nextNotesToReview) {          
-        //   sectionItems.push({ ID: sectionCount, content: '', rawContent: '', filename: n.filename, type: 'review-note' })
-        // }
         let itemCount = 0
         nextNotesToReview.map((n) => {
           const thisID = `${sectionCount}-${itemCount}`
@@ -309,6 +374,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           description: `next projects to review`,
           FAIconClass: 'fa-regular fa-calendar-check',
           sectionTitleClass: 'sidebarYearly',
+          filename: ''
         }) // or "fa-solid fa-calendar-arrow-down" ?
         sectionCount++
       } else {
@@ -320,7 +386,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     logDebug('getDataForDashboard', `getDataForDashboard finished, with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
     return [sections, sectionItems]
   } catch (error) {
-    logError(pluginJson, error.message)
+    logError(pluginJson, JSP(error))
     return [[], []] // for completeness
   }
 }

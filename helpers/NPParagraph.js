@@ -1071,6 +1071,8 @@ export function createStaticObject(obj: any, fields: Array<string>, additionalFi
   for (const field of fields) {
     if (field === 'daysOverdue') {
       staticObj.daysOverdue = getDaysTilDue(obj)
+    } else if (field === 'title' && !obj.title) {
+      staticObj.title = obj.note.title || ''
     } else {
       staticObj[field] = obj[field] || null
     }

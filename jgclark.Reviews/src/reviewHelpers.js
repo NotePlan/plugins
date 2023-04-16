@@ -29,6 +29,7 @@ import {
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import { showMessage } from '@helpers/userInput'
+import { isDone, isOpen } from '@helpers/utils'
 
 //------------------------------
 // Config setup
@@ -265,9 +266,12 @@ export class Project {
       this.calcDurations()
 
       // count tasks
-      this.openTasks = paras.filter((p) => p.type === 'open').length
-      this.completedTasks = paras.filter((p) => p.type === 'done').length
-      this.waitingTasks = paras.filter((p) => p.type === 'open').filter((p) => p.content.match('#waiting')).length
+      this.openTasks = paras.filter(isOpen).length // TEST: me replacing line below
+      // this.openTasks = paras.filter((p) => p.type === 'open').length
+      this.completedTasks = paras.filter(isDone).length
+      this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length // TEST: me replacing line below
+      // this.waitingTasks = paras.filter((p) => p.type === 'open').filter((p) => p.content.match('#waiting')).length
+      this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length // TEST: me replacing line below
       this.futureTasks = paras.filter((p) => p.type === 'open').filter((p) => includesScheduledFutureDate(p.content)).length
 
       if (this.folder.startsWith('TEST') || this.title.startsWith('Annual') || this.title.includes('Test')) {

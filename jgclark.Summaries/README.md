@@ -9,6 +9,7 @@ This Plugin lets you do the following sorts of things:
 - count every time you've noted you've visited  `#family` or watched `#tv` this month
 - count the times you've met with staff member `@alice` this year so far
 - sum the length of your `@run`s in the last quarter
+- get a breakdown of how you're spending your week by tracking minutes across various areas (e.g. in a daily note - `@email(30)`; `@email(10)`; `@coding(45)`; `@writing(30)`; `@coding(90)`)
 - show a heatmap chart of how many tasks you've completed recently
 
   ![Heatmap example](heatmap-0140.jpg)

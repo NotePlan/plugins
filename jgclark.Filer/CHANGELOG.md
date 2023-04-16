@@ -1,6 +1,17 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.1.0-beta4] - 2023-04-10???
+### Added
+- can now run the copy/move recent notelink commands via x-callback or as template functions
+### Changed
+- turned off feedback dialogs for each note, instead having a single feedback dialog at the end
+
+## [1.1.0-beta3] - 2023-04-09
+### Added
+- command to edit settings, even on iOS
+- setting "Allow preamble before first heading?" If set, some 'preamble' lines are allowed directly after the title. When filing/moving/inserting items with these commands, this preamble will be left in place, up to and including the first blank line, heading or separator. Otherwise the first heading will be directly after the note's title line (or frontmatter if used).
+
 ## [1.1.0-beta2] - 2023-03-19
 ### Added
 - new setting "Types of lines to file" for the **/...note link...** commands to choose what sorts of lines to move/copy:

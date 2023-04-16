@@ -2,14 +2,13 @@
 // ----------------------------------------------------------------------------
 // Helper functions for Filer plugin.
 // Jonathan Clark
-// last updated 18.3.2023, for v1.1.0
+// last updated 29.4.2023, for v1.1.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
 import { clo, JSP, logDebug, logError } from '@helpers/dev'
 import { getSetting } from '@helpers/NPConfiguration'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -20,6 +19,7 @@ export type FilerConfig = {
   addDateBacklink: boolean,
   dateRefStyle: string,
   includeFromStartOfSection: boolean,
+  allowNotePreambleBeforeHeading: boolean,
   useTightBlockDefinition: boolean,
   whereToAddInSection: string, // 'start' (default) or 'end'
   // justCompletedItems: boolean, // migrating to the next item
@@ -67,18 +67,20 @@ export async function getFilerSettings(): Promise<any> {
  * @param {string} selectedParasAsText 
  * @param {string} headingToFind if empty, means 'end of note'. Can also be the special string '(top of note)'
  * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
+ * @param {boolean} allowNotePreambleBeforeHeading?
  */
 export function addParasAsText(
   destinationNote: TNote,
   selectedParasAsText: string,
   headingToFind: string,
-  whereToAddInSection: string
+  whereToAddInSection: string,
+  allowNotePreambleBeforeHeading: boolean
 ): void {
   const destinationNoteParas = destinationNote.paragraphs
   let insertionIndex: number
   if (headingToFind === destinationNote.title || headingToFind.includes('(top of note)')) {
     // i.e. the first line in project or calendar note
-    insertionIndex = findStartOfActivePartOfNote(destinationNote)
+    insertionIndex = findStartOfActivePartOfNote(destinationNote, allowNotePreambleBeforeHeading)
     logDebug(pluginJson, `-> top of note, line ${insertionIndex}`)
     destinationNote.insertParagraph(selectedParasAsText, insertionIndex, 'text')
 
@@ -99,19 +101,5 @@ export function addParasAsText(
   } else {
     // Shouldn't get here
     logError(pluginJson, `Can't find heading '${headingToFind}'. Stopping.`)
-  }
-}
-
-/**
- * Update Settings/Preferences (for iOS etc)
- * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
- * @author @dwertheimer
- */
-export async function updateSettings() {
-  try {
-    logDebug(pluginJson, `updateSettings running`)
-    await editSettings(pluginJson)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
   }
 }

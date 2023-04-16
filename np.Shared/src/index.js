@@ -53,7 +53,7 @@ export async function logAvailableSharedResources(pluginID: string): Promise<voi
  */
 export async function checkForWantedResources(pluginID: string, filesToCheck?: Array<string>): Promise<boolean | number> {
   try {
-    logDebug('checkForWantedResources', `Starting with buildVersion ${Number(NotePlan.environment.buildVersion)}`)
+    // logDebug('checkForWantedResources', `Starting with buildVersion ${Number(NotePlan.environment.buildVersion)}`)
     // First test to see if np.Shared is installed
     if (!DataStore.isPluginInstalledByID(sharedPluginID)) {
       logInfo('checkForWantedResources', `${sharedPluginID} is not installed.`)

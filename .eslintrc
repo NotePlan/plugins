@@ -25,7 +25,8 @@
     },
     "babelOptions": {
       "presets": [
-        "@babel/flow"
+        "@babel/flow",
+        "@babel/preset-react"
       ]
     }
   },
@@ -76,11 +77,12 @@
     "unused-imports/no-unused-imports": "off",
     "unused-imports/no-unused-vars": "off",
     "react/react-in-jsx-scope": 0,
-    "no-console": 1
+    "no-console": "off"
   },
   "env": {
     "node": true,
-    "es6": true
+    "es6": true,
+    "browser": true
   },
   "globals": {
     "Paragraph": true,

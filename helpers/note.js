@@ -657,8 +657,8 @@ export function filterParasAgainstExcludeFolders(paras: Array<TParagraph>, exclu
   // const ignoreThisFolder = excludedFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
 
   if (!excludedFolders) {
-    logWarn('note/filterParasAgainstExcludeFolders', `excludedFolders list is empty`)
-    return []
+    logDebug('note/filterParasAgainstExcludeFolders', `excludedFolders list is empty, so will return all paras`)
+    return paras
   }
   // $FlowIgnore(incompatible-type)
   const noteList: Array<CoreNoteFields> = paras.map((p) => p.note)

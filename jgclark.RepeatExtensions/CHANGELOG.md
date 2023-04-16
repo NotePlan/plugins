@@ -1,12 +1,12 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
-## [0.5.2] - 2023-03-???
+## [0.5.2] - 2023-03-15
 ### Changed
 <!-- - Now internally running from Editor only -->
 - Now will write the new repeat date as a week-style date (e.g. `>2023-W11`) where either the task is in a weekly note, or the scheduling of the repeat is for a weekly date.
 ### Fixed
-- ??? Fixed error when running from calendar notes (thanks to @DHERRADOR and @dbcoyer for the report)
+- Fixed error when running from calendar notes (thanks to @DHERRADOR and @dbcoyer for the report)
 
 ## [0.5.1] - 2023-01-17
 ### Changed
