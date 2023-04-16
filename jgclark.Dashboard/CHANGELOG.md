@@ -1,9 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [0.4.1] - 2023-04-12 (not publicly released)
-- get /demo version of this up to date with new "Show referenced items in separate section?" setting.
+## [0.4.1] - 2023-04-16
+- fixed bug reported by @csdlajolle
 - minor tweaks to column 1 display
+- get /demo version of this up to date with new "Show referenced items in separate section?" setting.
 
 ## [0.4.0] - 2023-04-08 (first public release)
 ### Added
