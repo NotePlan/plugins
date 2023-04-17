@@ -7,7 +7,7 @@ import * as parser from './support/parser'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 
-function processNPOnlineResponse(response)
+function processApiResponse(response)
 {
     response = JSON.parse(response);
     let config = helpers.getOrSetupSettings();
@@ -37,10 +37,10 @@ export async function publish(): Promise<void> {
     let publishedContent = parser.withoutFrontmatter(noteContent);
     
     if (guid) {
-        logDebug(pluginJson, 'Calling update API...');
+        logDebug(pluginJson, 'Calling update API for a note ' + guid + '...');
         api.doUpdatePublished(guid, noteTitle, publishedContent, secret, accessKey)
             .then(function(response) {
-                processNPOnlineResponse(response);
+                processApiResponse(response);
             })
             .catch(function(error) {
                 logWarn(pluginJson, 'Updating request failed: ' + error);
@@ -49,7 +49,7 @@ export async function publish(): Promise<void> {
         logDebug(pluginJson, 'Calling publish API...');
         api.doPublish(noteTitle, publishedContent, secret, accessKey)
             .then(function(response) {
-                processNPOnlineResponse(response);
+                processApiResponse(response);
             })
             .catch(function(error) {
                 logWarn(pluginJson, 'Publishing request failed: ' + error);
@@ -70,7 +70,7 @@ export async function unpublish(): Promise<void> {
 
     api.doUnpublish(guid, accessKey)
         .then(function(response) {
-            logDebug(pluginJson, 'Unpublished');
+            logDebug(pluginJson, 'Unpublished successfully');
             
             let config = helpers.getOrSetupSettings();
             let noteContent = Editor.content;

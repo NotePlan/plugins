@@ -32,7 +32,10 @@ export function getPublishedPageGuid(noteContent)
   let end = frontmatter.indexOf(')', start);
   if (end == -1) return '';
   
-  return frontmatter.substring(start, end);
+  let slash = frontmatter.indexOf('/', start + baseUrl.length);
+  if (slash != -1 && slash < end) end = slash;
+  
+  return frontmatter.substring(start + baseUrl.length, end);
 }
 
 function getTitle(noteContent)
