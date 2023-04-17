@@ -37,6 +37,7 @@ export async function publish(): Promise<void> {
     let publishedContent = parser.withoutFrontmatter(noteContent);
     
     if (guid) {
+        logDebug(pluginJson, 'Calling update API...');
         api.doUpdatePublished(guid, noteTitle, publishedContent, secret, accessKey)
             .then(function(response) {
                 processNPOnlineResponse(response);
@@ -45,10 +46,9 @@ export async function publish(): Promise<void> {
                 logWarn(pluginJson, 'Updating request failed: ' + error);
             });
     } else {
-        logDebug(pluginJson, 'calling publish API');
+        logDebug(pluginJson, 'Calling publish API...');
         api.doPublish(noteTitle, publishedContent, secret, accessKey)
             .then(function(response) {
-                logDebug(pluginJson, 'publish API response: ' + response);
                 processNPOnlineResponse(response);
             })
             .catch(function(error) {

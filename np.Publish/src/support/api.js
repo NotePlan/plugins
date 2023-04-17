@@ -1,8 +1,10 @@
 // @flow
 
+import * as helpers from './helpers'
+
 export function doPublish(title, content, secret, accessKey)
 {
-    return fetch('https://noteplan-publish.test/api/notes', {
+    return fetch(helpers.apiUrl('notes'), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -19,7 +21,7 @@ export function doPublish(title, content, secret, accessKey)
 
 export function doUpdatePublished(guid, title, content, secret, accessKey)
 {
-    return fetch('https://noteplan-publish.test/api/notes/' + guid, {
+    return fetch(helpers.apiUrl('notes/' + guid), {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -37,7 +39,7 @@ export function doUpdatePublished(guid, title, content, secret, accessKey)
 
 export function doUnpublish(guid, accessKey)
 {
-    return fetch('https://noteplan-publish.test/api/notes/' + guid, {
+    return fetch(helpers.apiUrl('notes/' + guid), {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',

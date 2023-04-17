@@ -1,5 +1,20 @@
 // @flow
 
+export function getBaseDomain()
+{
+  return 'https://noteplan-publish.test';
+}
+
+export function apiUrl(path)
+{
+  return getBaseDomain() + '/api/' + path;
+}
+
+export function noteBaseUrl()
+{
+  return getBaseDomain() + '/n/';
+}
+
 export function getPreviewUrl(apiResponse, config)
 {
   if (config.appendSecret) {
