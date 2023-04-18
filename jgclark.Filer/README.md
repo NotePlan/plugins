@@ -35,6 +35,9 @@ This command (alias **/asc**) adds a sync'd copy of the current line to a sectio
 <!-- NB: This only works with the "synced blocks" feature available in the NotePlan Lab from v3.5.2. -->
 NB: This feature only works on single lines, not whole blocks, at the moment.)
 
+## /archive note keeping folder structure
+Moves the current note to NotePlan's Archive, but keep the same folder structure for it inside the special @Archive folder.
+
 ## various /note link commands
 There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to regular notes with that title:
 - **/move note links**
