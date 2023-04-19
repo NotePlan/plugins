@@ -724,12 +724,13 @@ export const isOverdue = (t: TParagraph): boolean => {
 /**
  * Take in an array of paragraphs and return the subset that are open and overdue (scheduled or on dated notes in the past)
  * @param {Array<TParagraph>} paras - the paragraphs to check
+ * @param {string} asOfDayString - the date to check against, in YYYY-MM-DD format
  * @returns {Array<TParagraph>} - the overdue paragraphs
  */
-export const getOverdueParagraphs = (paras: $ReadOnlyArray<TParagraph>): Array<TParagraph> => {
+export const getOverdueParagraphs = (paras: $ReadOnlyArray<TParagraph>, asOfDayString?: string = ''): Array<TParagraph> => {
   const openTasks = paras?.filter(isOpen) || []
   const effectivelyOverdues = openTasks.filter(paragraphIsEffectivelyOverdue)
-  const datedOverdues = openTasks.filter((p) => hasOverdueTag(p, false))
+  const datedOverdues = openTasks.filter((p) => hasOverdueTag(p, false, asOfDayString))
   // FIXME: david you can't merge these because one fails and one succeeds every time? maybe?
   return [...datedOverdues, ...effectivelyOverdues].filter((t) => t.content !== '')
 }
@@ -808,14 +809,15 @@ export function testForOverdue(
 }
 
 /**
- * Test whether a paragraph has an overdue week note link
+ * Test whether a paragraph has an date link (>YYYY-MM-DD) that is overdue
  * @param {TParagraph} para - input paragraph
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @param {string} asOfDayString? - the date to use for testing (e.g. for future dates), if not provided, will use today's date
  * see OverdueDetails type for details
  * @returns
  */
-export function hasOverdueDayTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
-  const today = getTodaysDateHyphenated()
+export function hasOverdueDayTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
+  const today = asOfDayString.length ? asOfDayString : getTodaysDateHyphenated()
   if (today) {
     return testForOverdue(para, RE_SCHEDULED_ISO_DATE, today, returnDetails, 'Daily')
   } else {
@@ -824,14 +826,15 @@ export function hasOverdueDayTag(para: TParagraph, returnDetails: boolean = fals
 }
 
 /**
- * Test whether a paragraph has an overdue week note link
+ * Test whether a paragraph has an overdue week note link (>YYYY-WW) that is overdue
  * @param {TParagraph} para - input paragraph
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @param {string} asOfDayString? - the date to use for testing (e.g. for future dates), if not provided, will use today's date
  * @returns {boolean | OverdueDetails}
  * @returns
  */
-export function hasOverdueWeekTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
-  const thisWeek = getNPWeekData(moment().toDate())?.weekString
+export function hasOverdueWeekTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
+  const thisWeek = getNPWeekData(moment(asOfDayString.length ? asOfDayString : undefined).toDate())?.weekString
   if (thisWeek) {
     return testForOverdue(para, SCHEDULED_WEEK_NOTE_LINK, thisWeek, returnDetails, 'Weekly')
   } else {
@@ -840,13 +843,14 @@ export function hasOverdueWeekTag(para: TParagraph, returnDetails: boolean = fal
 }
 
 /**
- * Test whether a paragraph has an overdue month note link
+ * Test whether a paragraph has an overdue month note link (>YYYY-MM) that is overdue
  * @param {TParagraph} para - input paragraph
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @param {string} asOfDayString? - the date to use for testing (e.g. for future dates), if not provided, will use today's date
  * @returns {boolean | OverdueDetails}
  */
-export function hasOverdueMonthTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
-  const thieMonth = getTodaysDateHyphenated().slice(0, 7)
+export function hasOverdueMonthTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
+  const thieMonth = (asOfDayString.length ? asOfDayString : getTodaysDateHyphenated()).slice(0, 7)
   if (thieMonth) {
     return testForOverdue(para, SCHEDULED_MONTH_NOTE_LINK, thieMonth, returnDetails, 'Monthly')
   } else {
@@ -855,13 +859,14 @@ export function hasOverdueMonthTag(para: TParagraph, returnDetails: boolean = fa
 }
 
 /**
- * Test whether a paragraph has an overdue quarter note link
+ * Test whether a paragraph has an overdue quarter note link (>YYYY-QQ) that is overdue
  * @param {TParagraph} para - input paragraph
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @param {string} asOfDayString? - the date to use for testing (e.g. for future dates), if not provided, will use today's date
  * @returns {boolean | OverdueDetails}
  */
-export function hasOverdueQuarterTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
-  const thisQuarter = moment().format('YYYY-[Q]Q')
+export function hasOverdueQuarterTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
+  const thisQuarter = moment(asOfDayString.length ? asOfDayString : undefined).format('YYYY-[Q]Q')
   if (thisQuarter) {
     return testForOverdue(para, SCHEDULED_QUARTERLY_NOTE_LINK, thisQuarter, returnDetails, 'Quarterly')
   } else {
@@ -870,13 +875,14 @@ export function hasOverdueQuarterTag(para: TParagraph, returnDetails: boolean = 
 }
 
 /**
- * Test whether a paragraph has an overdue year note link
+ * Test whether a paragraph has an overdue year note link (>YYYY) that is overdue
  * @param {TParagraph} para - input paragraph
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @param {string} asOfDayString? - the date to use for testing (e.g. for future dates), if not provided, will use today's date
  * @returns {boolean | OverdueDetails}
  */
-export function hasOverdueYearTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
-  const thisYear = moment().format('YYYY')
+export function hasOverdueYearTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
+  const thisYear = moment(asOfDayString.length ? asOfDayString : undefined).format('YYYY')
   if (thisYear) {
     return testForOverdue(para, SCHEDULED_YEARLY_NOTE_LINK, thisYear, returnDetails, 'Yearly')
   } else {
@@ -889,25 +895,32 @@ export function hasOverdueYearTag(para: TParagraph, returnDetails: boolean = fal
  * (e.g. a task marked with yesterday's daily note date (e.g. >2022-12-31 would now be "overdue")
  * @param {TParagraph} para - the paragraph to test
  * @param {boolean} returnDetails - whether to return the details of the overdue status or just true/false
+ * @param {string} asOfDayString? - the date to use for testing (e.g. for future dates), if not provided, will use today's date
  * @returns {boolean|OverdueDetails} - true if any of the tags are overdue. if returnDetails is true, returns an object with details about the overdue status
  * Note that if returnDetails is true, the return type is OverdueDetails, not boolean
  * Precedence is Daily, Weekly, Monthly, Quarterly, Yearly
  * see OverdueDetails type for details
  */
-export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false): boolean | OverdueDetails {
+export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
   if (returnDetails) {
     const typeNames = ['Daily', `Weekly`, `Monthly`, `Quarterly`, `Yearly`]
     const typeFuncs = [hasOverdueDayTag, hasOverdueWeekTag, hasOverdueMonthTag, hasOverdueQuarterTag, hasOverdueYearTag]
     for (let i = 0; i < typeNames.length; i++) {
       // const type = typeNames[i]
-      const result = typeFuncs[i](para, true)
+      const result = typeFuncs[i](para, true, asOfDayString)
       if (result && result.isOverdue) {
         return result
       }
     }
     return false
   } else {
-    return Boolean(hasOverdueDayTag(para) || hasOverdueWeekTag(para) || hasOverdueMonthTag(para) || hasOverdueQuarterTag(para) || hasOverdueYearTag(para))
+    return Boolean(
+      hasOverdueDayTag(para, false, asOfDayString) ||
+        hasOverdueWeekTag(para, false, asOfDayString) ||
+        hasOverdueMonthTag(para, false, asOfDayString) ||
+        hasOverdueQuarterTag(para, false, asOfDayString) ||
+        hasOverdueYearTag(para, false, asOfDayString),
+    )
   }
 }
 
@@ -918,13 +931,14 @@ export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false):
  * If overdue tags are found, they are returned in the following order: Day, Week, Month, Quarter, Year
  * @author @dwertheimer
  * @param {TParagraph} para - the paragraph to test
+ * @param {string} asOfDayString? - the date to use for testing (e.g. for future dates), if not provided, will use today's date
  * @returns {Array<string>} - array of strings that are overdue (e.g. [">2022-12-31"]) or an empty array
  */
-export function getOverdueTags(para: TParagraph): string[] {
+export function getOverdueTags(para: TParagraph, asOfDayString?: string = ''): string[] {
   const funcs = [hasOverdueDayTag, hasOverdueWeekTag, hasOverdueMonthTag, hasOverdueQuarterTag, hasOverdueYearTag]
   return funcs.reduce((acc, func) => {
     // $FlowIgnore - flow doesn't know what the signature of the functions is
-    const tagList = func(para, true)?.overdueLinks || []
+    const tagList = func(para, true, asOfDayString)?.overdueLinks || []
     // $FlowIgnore - see above
     return [...acc, ...tagList]
   }, [])
@@ -996,7 +1010,8 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
 }
 
 /**
- * Calculate the number of days overdue for a paragraph to today
+ * Calculate the number of days until due (or overdue) for a paragraph to today
+ * TODO: Need to implement the days til due part (overdue works now)
  * The tricky part is that we have to start counting with the end of the period (e.g. the end of the week, month, etc.)
  * @author @dwertheimer
  * @param {TParagraph} paragraph
@@ -1008,7 +1023,7 @@ export function getDaysTilDue(paragraph: TParagraph, toISODate: string = getToda
     data = null
   if (paragraph && paragraph.date) {
     const paraDate = paragraph.date
-    const overdueDetails = hasOverdueTag(paragraph, true)
+    const overdueDetails = hasOverdueTag(paragraph, true, toISODate)
     if (overdueDetails && overdueDetails.linkType) {
       const overdueLinkType = overdueDetails.linkType
       if (overdueLinkType) {

@@ -5,8 +5,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.13.1",
-  "plugin.lastUpdateInfo": "2.13.1: Fix regression bug that was always returning you to Overdue view.\n2.13.0:\n- Add Overdue Popup Window for a Specific Folder\n- Add Today's Tasks to React Popup\n2.12.5: Add counts to filter.\n2.12.4: Fix filter dropdown bug.\n2.12.2: Document xcallback links.\n2.12.1: Checklist bugfix.\n2.12.0: Add type filter to React View\n2.11.4: roll back scheduled types.\n2.11.3: bug fix, 2.11.2: Add scheduled tasks to overdue types.\n2.11.0: Task Sorting: Skip Done/Cancelled; Include Checklist in Sorting.\nOverdue: change open task to checklist item\nReact/HTML view v1",
+  "plugin.version": "2.13.2",
+  "plugin.lastUpdateInfo": "2.13.2: Fix sorting edge case where scheduled type was being calculated and impacting sort\n2.13.1: Fix regression bug that was always returning you to Overdue view.\n2.13.0:\n- Add Overdue Popup Window for a Specific Folder\n- Add Today's Tasks to React Popup\n2.12.5: Add counts to filter.\n2.12.4: Fix filter dropdown bug.\n2.12.2: Document xcallback links.\n2.12.1: Checklist bugfix.\n2.12.0: Add type filter to React View\n2.11.4: roll back scheduled types.\n2.11.3: bug fix, 2.11.2: Add scheduled tasks to overdue types.\n2.11.0: Task Sorting: Skip Done/Cancelled; Include Checklist in Sorting.\nOverdue: change open task to checklist item\nReact/HTML view v1",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "css.plugin.css",

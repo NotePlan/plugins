@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.13.2] @dwertheimer 2023-04-19
+
+- Fix @jgclark sorting edge case where scheduled type was being calculated and impacting sort
+
 ## [2.13.1] @dwertheimer 2023-04-12
 
 - Fix regression bug that was always returning you to Overdue view

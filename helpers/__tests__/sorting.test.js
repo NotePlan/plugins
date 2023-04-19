@@ -332,7 +332,55 @@ describe('sorting.js', () => {
       expect(taskList['checklistCancelled'].length).toEqual(0)
       expect(taskList['open'][0].content).toEqual(paragraphs[0].content)
     })
-    test('Should include checklists by type', () => {
+    test('Should calculate open+checklist that are implicitly scheduled when useCalculatedScheduled is true', () => {
+      const paragraphs = [
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content',
+          rawContent: '* test content',
+        },
+        {
+          type: 'open',
+          indents: 0,
+          content: 'test content >2022-01-01',
+          rawContent: '* test content',
+        },
+        {
+          type: 'checklistDone',
+          indents: 0,
+          content: 'test content',
+          rawContent: '+ [x] test content',
+        },
+        {
+          type: 'checklist',
+          indents: 0,
+          content: 'test content',
+          rawContent: '+ [>] test content',
+        },
+        {
+          type: 'checklistCancelled',
+          indents: 0,
+          content: 'test content',
+          rawContent: '+ [-] test content',
+        },
+        {
+          type: 'checklist',
+          indents: 0,
+          content: 'test content >2022-01',
+          rawContent: '+ test content',
+        },
+      ]
+      const taskList = s.getTasksByType(paragraphs, false, true)
+      expect(taskList['open'].length).toEqual(1)
+      expect(taskList['scheduled'].length).toEqual(1)
+      expect(taskList['checklist'].length).toEqual(1)
+      expect(taskList['checklistDone'].length).toEqual(1)
+      expect(taskList['checklistScheduled'].length).toEqual(1)
+      expect(taskList['checklistCancelled'].length).toEqual(1)
+      expect(taskList['done']).toEqual([])
+    })
+    test('Should include checklists as their API-stated type when useCalculatedScheduled is off', () => {
       const paragraphs = [
         {
           type: 'open',
@@ -372,11 +420,11 @@ describe('sorting.js', () => {
         },
       ]
       const taskList = s.getTasksByType(paragraphs)
-      expect(taskList['open'].length).toEqual(1)
-      expect(taskList['scheduled'].length).toEqual(1)
-      expect(taskList['checklist'].length).toEqual(1)
+      expect(taskList['open'].length).toEqual(2)
+      expect(taskList['scheduled'].length).toEqual(0)
+      expect(taskList['checklist'].length).toEqual(2)
       expect(taskList['checklistDone'].length).toEqual(1)
-      expect(taskList['checklistScheduled'].length).toEqual(1)
+      expect(taskList['checklistScheduled'].length).toEqual(0)
       expect(taskList['checklistCancelled'].length).toEqual(1)
       expect(taskList['done']).toEqual([])
     })

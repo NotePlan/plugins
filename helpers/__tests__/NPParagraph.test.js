@@ -1,4 +1,5 @@
 /* global describe, expect, test, beforeAll, beforeEach, afterAll */
+import moment from 'moment'
 import { CustomConsole } from '@jest/console' // see note below
 import * as p from '../NPParagraph'
 import { clo, logDebug, logInfo } from '../dev'
@@ -896,27 +897,52 @@ describe('NPParagraphs()', () => {
         const result = p.getDaysTilDue(para, '2001-01-05')
         expect(result).toEqual(-5)
       })
-      test.skip('should count from the end of the period -- EOW', () => {
-        const para = new Paragraph({ content: '* foo bar? >2000-W1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
-        const result = p.getDaysTilDue(para, '2001-01-10') //1st was a saturday, but we don't know what user setting is
+      test('should count from the end of the period -- EOW', () => {
+        const paraStartDate = new moment('2023-01-01').toDate()
+        const para = new Paragraph({ content: '* foo bar? >2023-W01', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
+        const result = p.getDaysTilDue(para, '2023-01-08') //1st was a sunday, week was Jan1-Jan7 if you start on Sundays, but we don't know what user setting is
         expect(result).toEqual(-1)
       })
     })
-    describe('not overdue tests', () => {
-      test.skip('due today', () => {
-        const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+    describe('not overdue tests - zero days til due', () => {
+      test('due today', () => {
+        const paraStartDate = new moment('2000-01-01').toDate()
+        const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
         const result = p.getDaysTilDue(para, '2000-01-01')
         expect(result).toEqual(0)
       })
       test('should not be overdue if we are still in the period (on last day of month)', () => {
-        const para = new Paragraph({ content: '* foo bar? >2000-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+        const paraStartDate = new moment('2000-01-01').toDate()
+        const para = new Paragraph({ content: '* foo bar? >2000-01', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
         const result = p.getDaysTilDue(para, '2000-01-31')
-        expect(result).toEqual(1)
+        expect(result).toEqual(0)
       })
-      test('should not be overdue if we are still in the period', () => {
-        const para = new Paragraph({ content: '* foo bar? >2000-Q1', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
+      test('should not be overdue if we are still in the period (qtr)', () => {
+        const paraStartDate = new moment('2000-01-01').toDate()
+        const para = new Paragraph({ content: '* foo bar? >2000-Q1', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
         const result = p.getDaysTilDue(para, '2000-03-31')
-        expect(result).toEqual(1)
+        expect(result).toEqual(0)
+      })
+    })
+    //TODO: need to implement the positive days til due
+    describe.skip('not overdue tests - positive days til due', () => {
+      test('due tomorrow', () => {
+        const paraStartDate = new moment('2000-01-01').toDate()
+        const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
+        const result = p.getDaysTilDue(para, '1999-12-31')
+        expect(result).toEqual(0)
+      })
+      test('should not be overdue if we are still in the period (on last day of month)', () => {
+        const paraStartDate = new moment('2000-01-01').toDate()
+        const para = new Paragraph({ content: '* foo bar? >2000-01', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
+        const result = p.getDaysTilDue(para, '2000-01-31')
+        expect(result).toEqual(0)
+      })
+      test('should not be overdue if we are still in the period (qtr)', () => {
+        const paraStartDate = new moment('2000-01-01').toDate()
+        const para = new Paragraph({ content: '* foo bar? >2000-Q1', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
+        const result = p.getDaysTilDue(para, '2000-03-31')
+        expect(result).toEqual(0)
       })
     })
   })
