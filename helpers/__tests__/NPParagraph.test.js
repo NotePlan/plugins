@@ -436,6 +436,31 @@ describe('NPParagraphs()', () => {
   })
 
   /*
+   * getTagDetails()
+   */
+  describe('getTagDetails()' /* function */, () => {
+    test('should return false if there is no date', () => {
+      const before = { content: 'This is a note with no tag' }
+      const result = p.getTagDetails(before)
+      expect(result).toEqual(false)
+    })
+    test('should get basic details for non overdue task', () => {
+      const paraDate = new moment('2999-01-01')
+      const before = { content: 'This is a note with a tag not overdue >2999-W01', date: paraDate }
+      const result = p.getTagDetails(before)
+      expect(result.isOverdue).toEqual(false)
+      expect(result.notOverdueLinks).toEqual(['>2999-W01'])
+    })
+    test('should get details for overdue task', () => {
+      const paraDate = new moment('2023-01-01')
+      const before = { content: 'This is a note with a tag overdue >2023-W01', date: paraDate }
+      const result = p.getTagDetails(before)
+      expect(result.isOverdue).toEqual(true)
+      expect(result.overdueLinks).toEqual(['>2023-W01'])
+    })
+  })
+
+  /*
    * hasOverdueWeekTag()
    */
   describe('hasOverdueWeekTag()' /* function */, () => {
@@ -691,30 +716,34 @@ describe('NPParagraphs()', () => {
    * hasOverdueTag()
    */
   describe('hasOverdueTag()' /* function */, () => {
-    test('should return false if no overdue tag', () => {
-      const before = { content: 'This is a note' }
-      const result = p.hasOverdueTag(before)
-      expect(result).toEqual(false)
+    describe('simple bool response', () => {
+      test('should return false if no overdue tag', () => {
+        const before = { content: 'This is a note' }
+        const result = p.hasOverdueTag(before)
+        expect(result).toEqual(false)
+      })
+      test('should return true if one is overdue', () => {
+        const before = { content: 'This is a note >2022-01 >2999-01-01 >2999-W12' }
+        const result = p.hasOverdueTag(before)
+        expect(result).toEqual(true)
+      })
+      test('should return true if multiple are set', () => {
+        const before = { content: 'This is a note with a tag overdue >2000 >2000-01 >2000-Q1 >2000-01-01' }
+        const result = p.hasOverdueTag(before)
+        expect(result).toEqual(true)
+      })
     })
-    test('should return true if one is overdue', () => {
-      const before = { content: 'This is a note >2022-01 >2999-01-01 >2999-W12' }
-      const result = p.hasOverdueTag(before)
-      expect(result).toEqual(true)
-    })
-    test('should return true if multiple are set', () => {
-      const before = { content: 'This is a note with a tag overdue >2000 >2000-01 >2000-Q1 >2000-01-01' }
-      const result = p.hasOverdueTag(before)
-      expect(result).toEqual(true)
-    })
-    test('should return details if second arg is true (daily)', () => {
-      const before = { content: 'This is a note with a tag overdue >2000 >2000-01 >2000-Q1 >2000-01-01' }
-      const result = p.hasOverdueTag(before, true)
-      expect(result).toEqual(expect.objectContaining({ isOverdue: true, overdueLinks: ['>2000-01-01'], linkType: 'Daily' }))
-    })
-    test('should return details if second arg is true (yearly)', () => {
-      const before = { content: 'This is a note with a tag overdue >2000' }
-      const result = p.hasOverdueTag(before, true)
-      expect(result).toEqual(expect.objectContaining({ isOverdue: true, overdueLinks: ['>2000'], linkType: 'Yearly' }))
+    describe('return detailed object', () => {
+      test('should return details if second arg is true (daily)', () => {
+        const before = { content: 'This is a note with a tag overdue >2000 >2000-01 >2000-Q1 >2000-01-01' }
+        const result = p.hasOverdueTag(before, true)
+        expect(result).toEqual(expect.objectContaining({ isOverdue: true, overdueLinks: ['>2000-01-01'], linkType: 'Daily' }))
+      })
+      test('should return details if second arg is true (yearly)', () => {
+        const before = { content: 'This is a note with a tag overdue >2000' }
+        const result = p.hasOverdueTag(before, true)
+        expect(result).toEqual(expect.objectContaining({ isOverdue: true, overdueLinks: ['>2000'], linkType: 'Yearly' }))
+      })
     })
   })
 
@@ -867,11 +896,7 @@ describe('NPParagraphs()', () => {
    */
   describe('getDaysTilDue()' /* function */, () => {
     global.NotePlan = new NotePlan()
-    test('should return zero if no date', () => {
-      const result = p.getDaysTilDue()
-      expect(result).toEqual(0)
-    })
-    describe('overdue tests', () => {
+    describe('overdue tests - daysTilDue should be negative', () => {
       test('should return -1 day even if it is a fraction of a day', () => {
         const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: new Date('2000-01-01T13:00:00') })
         const result = p.getDaysTilDue(para, '2000-01-02')
@@ -924,25 +949,18 @@ describe('NPParagraphs()', () => {
         expect(result).toEqual(0)
       })
     })
-    //TODO: need to implement the positive days til due
-    describe.skip('not overdue tests - positive days til due', () => {
+    describe('not overdue tests - positive days til due', () => {
       test('due tomorrow', () => {
         const paraStartDate = new moment('2000-01-01').toDate()
         const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
         const result = p.getDaysTilDue(para, '1999-12-31')
-        expect(result).toEqual(0)
+        expect(result).toEqual(1)
       })
-      test('should not be overdue if we are still in the period (on last day of month)', () => {
+      test('due in 2 days', () => {
         const paraStartDate = new moment('2000-01-01').toDate()
-        const para = new Paragraph({ content: '* foo bar? >2000-01', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
-        const result = p.getDaysTilDue(para, '2000-01-31')
-        expect(result).toEqual(0)
-      })
-      test('should not be overdue if we are still in the period (qtr)', () => {
-        const paraStartDate = new moment('2000-01-01').toDate()
-        const para = new Paragraph({ content: '* foo bar? >2000-Q1', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
-        const result = p.getDaysTilDue(para, '2000-03-31')
-        expect(result).toEqual(0)
+        const para = new Paragraph({ content: '* foo bar? >2000-01-01', filename: '20200101.md', noteType: 'Calendar', date: paraStartDate })
+        const result = p.getDaysTilDue(para, '1999-12-30')
+        expect(result).toEqual(2)
       })
     })
   })

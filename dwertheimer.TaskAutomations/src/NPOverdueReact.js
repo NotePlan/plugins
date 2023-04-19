@@ -416,6 +416,7 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
     /* overdueFoldersToIgnore,
     ignoreScheduledTasks, */
     forgottenFoldersToIgnore,
+    reactShowDueInColumn,
   } = DataStore.settings
 
   if (!testData) {
@@ -467,6 +468,7 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
     dropdownOptionsAll: getSpecializedOptions(false),
     dropdownOptionsLine: getSpecializedOptions(true),
     contextButtons: getButtons(),
+    showDaysTilDueColumn: reactShowDueInColumn,
     startTime,
   }
   logDebug(`>>> getDataForReactView overdueParas:${data.overdueParas.length} took: ${timer(startReactDataPackaging)}`)

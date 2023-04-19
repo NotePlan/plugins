@@ -587,6 +587,22 @@
     },
     {
       "type": "heading",
+      "title": "Overdue Processing Pop-Up Window Settings"
+    },
+    {
+      "key": "reactShowDueInColumn",
+      "title": "Show 'Due in X Days’ column in popup window",
+      "description": "Show due in X days (negative for overdue) column in output.",
+      "type": "bool",
+      "default": true,
+      "required": true,
+      "OTHER:": "choices: [array of options], boxHeight: set size of input box"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
       "title": "Task Sync Output Settings"
     },
     {
