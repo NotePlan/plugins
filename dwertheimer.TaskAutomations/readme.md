@@ -28,13 +28,23 @@ In NotePlan, you can create tasks in any document and tag them with a `>date`, e
 The `>date` in a task line is a ***due date*** (some people call it a "***do*** date")
 If you open up your daily note (Calendar Note) on that particular day, you will see a reference to that task in your "References" section at the top of the Daily Note. But once that day is gone, you'll not see any references to that item again. @EduardMe designed the product this way, [stating](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders):
 > Tasks do not automatically "roll over" in NotePlan, and this is intentional. The added bit of manual work forces you to reconsider each open point and prevents building up a massive list of tasks.
-If you remember to do that work every day and check those items, then bully for you. :) But for the rest of us, we need a little help making sure things don't get lost in the abyss of days gone by. That's where
+If you remember to do that work every day and check those items, then bully for you. :) But for the rest of us, we need a little help making sure things don't get lost in the abyss of days gone by. That's where the following commands can be helpful.
 
 ## Overdue Tasks: Commands
 
 ### Command `/Review overdue tasks (by Task)`
 
-Find all overdue tasks (tasks which have a >date earlier than yesterday, and will ask you how you want to deal with that task. After that tag is applied, the task will show up in References of your Daily Note until the task is marked complete). By default, the task will stay where it is but the new date you choose will be appended to it (so it will show up in that day's references). However, if you are on the desktop app, you also have the option of holding down the CMD key when you choose the new date, and the task in question will be moved to the daily or weekly note chosen.
+Find all overdue tasks (tasks which have a >date of yesterday or earlier), and will ask you how you want to deal with that task. By default, the task will stay where it is but the new date you choose will be appended to it (so it will show up in that day's references). However, if you are on the desktop app, you also have the option of holding down the CMD key when you choose the new date, and the task in question will be moved to the daily or weekly note chosen. 
+
+> X-Callback link to call this command: `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Review%20overdue%20tasks%20%28by%20Task%29`
+
+>**NOTE**: This and the following command both will scan daily notes and also weekly notes for tasks that are overdue. Monthly, Quarterly, and Yearly notes are not currently processed.
+
+### Command `/Review Overdue Tasks as of <Date>`
+
+This is a more general-purpose version of the previous command. The aforementioned command assumes you are invoking the command at the start of the day and you want to scan backwards for tasks dated yesterday and beyond. On the other hand, if you want to search for tasks that **will be** overdue on some day in the future, use the command: `/Review Overdue Tasks as of <Date>`, and you can select a date. This is especially useful for people who want to review tasks at night and prepare for tomorrow. But this can also run for other future dates (e.g. you could run it Friday AM to plan for Monday).
+
+> X-Callback link to call this command: `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Review%20Overdue%20Tasks%20as%20of%20%3CDate%3E` (runs the default command, where you can choose a date), or `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Review%20Overdue%20Tasks%20as%20of%20%3CDate%3E&arg0=tomorrow` to run specifically for tomorrow.
 
 ### Command `/Review overdue tasks (in Active Note)`
 

@@ -35,6 +35,7 @@ export {
   searchForOpenTasks,
   askToReviewForgottenTasks,
   reviewWeeklyTasks,
+  reviewOverdueTasksAsOfDate,
 } from './NPOverdue'
 export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
 export { followUpSaveHere, followUpInFuture } from './NPFollowUp'
