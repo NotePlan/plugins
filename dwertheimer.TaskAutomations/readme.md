@@ -6,10 +6,6 @@ The Task Automation plugin brings NotePlan task management to the next level. In
 
 Automations for handling Tasks:
 
-- Overdue/Forgotten task scanning
-- Task sorting within a note\n- Copying #tags/@mentions from one task to another
-- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines
-
 ## Major Task Automation functions
 
 - Find and change overdue tasks (and change their status/reschedule them to a date in the future)
@@ -18,8 +14,6 @@ Automations for handling Tasks:
 - Marking a task (or multiple) done and creating a follow-up/related task with a link to the done one
 - Marking all tasks complete (or incomplete)
 - Copying tags/mentions from previous lines when doing multiple task entry
-- Task Sync - create a page of synced tasks matching a text search criteria (e.g. search for all open todos marked "@bob" and put them in one document)
-- Process ">date+" tags (e.g. if you entered >2020-01-01+ on a task somewhere in your notes, and today is that day or greater, the task gets converted to a >today and shows up in your daily references, and /autotimeblocking if you use it)
 
 ## Overdue Tasks: Overview
 
