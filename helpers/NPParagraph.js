@@ -817,7 +817,7 @@ export function testForOverdue(
  * @returns
  */
 export function hasOverdueDayTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
-  const today = asOfDayString.length ? asOfDayString : getTodaysDateHyphenated()
+  const today = asOfDayString?.length ? asOfDayString : getTodaysDateHyphenated()
   if (today) {
     return testForOverdue(para, RE_SCHEDULED_ISO_DATE, today, returnDetails, 'Daily')
   } else {
@@ -834,7 +834,7 @@ export function hasOverdueDayTag(para: TParagraph, returnDetails: boolean = fals
  * @returns
  */
 export function hasOverdueWeekTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
-  const thisWeek = getNPWeekData(moment(asOfDayString.length ? asOfDayString : undefined).toDate())?.weekString
+  const thisWeek = getNPWeekData(moment(asOfDayString?.length ? asOfDayString : undefined).toDate())?.weekString
   if (thisWeek) {
     return testForOverdue(para, SCHEDULED_WEEK_NOTE_LINK, thisWeek, returnDetails, 'Weekly')
   } else {
@@ -850,7 +850,7 @@ export function hasOverdueWeekTag(para: TParagraph, returnDetails: boolean = fal
  * @returns {boolean | OverdueDetails}
  */
 export function hasOverdueMonthTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
-  const thieMonth = (asOfDayString.length ? asOfDayString : getTodaysDateHyphenated()).slice(0, 7)
+  const thieMonth = (asOfDayString?.length ? asOfDayString : getTodaysDateHyphenated()).slice(0, 7)
   if (thieMonth) {
     return testForOverdue(para, SCHEDULED_MONTH_NOTE_LINK, thieMonth, returnDetails, 'Monthly')
   } else {
@@ -866,7 +866,7 @@ export function hasOverdueMonthTag(para: TParagraph, returnDetails: boolean = fa
  * @returns {boolean | OverdueDetails}
  */
 export function hasOverdueQuarterTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
-  const thisQuarter = moment(asOfDayString.length ? asOfDayString : undefined).format('YYYY-[Q]Q')
+  const thisQuarter = moment(asOfDayString?.length ? asOfDayString : undefined).format('YYYY-[Q]Q')
   if (thisQuarter) {
     return testForOverdue(para, SCHEDULED_QUARTERLY_NOTE_LINK, thisQuarter, returnDetails, 'Quarterly')
   } else {
@@ -882,7 +882,7 @@ export function hasOverdueQuarterTag(para: TParagraph, returnDetails: boolean = 
  * @returns {boolean | OverdueDetails}
  */
 export function hasOverdueYearTag(para: TParagraph, returnDetails: boolean = false, asOfDayString?: string = ''): boolean | OverdueDetails {
-  const thisYear = moment(asOfDayString.length ? asOfDayString : undefined).format('YYYY')
+  const thisYear = moment(asOfDayString?.length ? asOfDayString : undefined).format('YYYY')
   if (thisYear) {
     return testForOverdue(para, SCHEDULED_YEARLY_NOTE_LINK, thisYear, returnDetails, 'Yearly')
   } else {

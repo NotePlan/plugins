@@ -15,6 +15,7 @@ import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { showMessage } from '@helpers/userInput'
 import { setFrontMatterVars } from './NPFrontMatter'
+import { isScheduled } from './dateTime'
 
 const pluginJson = 'NPnote.js'
 
@@ -94,6 +95,7 @@ export function selectFirstNonTitleLineInEditor(): void {
 
 /**
  * Find paragraphs in note which are open and (maybe) tagged for today (either >today or hyphenated date)
+ * If includeAllTodos is true, then all open todos are returned except for ones scheduled for a different day
  * @author @dwertheimer
  * @param {TNote} note
  * @param {boolean} includeAllTodos - whether to include all open todos, or just those tagged for today
@@ -105,7 +107,7 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
   const isTodayItem = (text: string) => [`>${hyphDate}`, '>today'].filter((a) => text.indexOf(a) > -1).length > 0
   // const todos:Array<TParagraph>  = []
   if (note.paragraphs) {
-    return note.paragraphs.filter((p) => isOpen(p) && (includeAllTodos || isTodayItem(p.content)))
+    return note.paragraphs.filter((p) => isOpen(p) && (isTodayItem(p.content) || (includeAllTodos && !isScheduled(p.content))))
   }
   logDebug(`findOpenTodosInNote could not find note.paragraphs. returning empty array`)
   return []

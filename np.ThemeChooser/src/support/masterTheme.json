@@ -240,8 +240,7 @@
       "color": "#B74746",
       "color_info": {
         "description": "Color of the circle in front of a todo, bullet item or numbered item.",
-        "type": "color",
-        "example": "\t- [ ] This is a todo item (look at the circle color)\n\t- here's a bullet"
+        "type": "color"
       },
       "headIndent": 33,
       "headIndent_info": {
@@ -253,7 +252,8 @@
       "paragraphSpacing": 4
     },
     "todo_info": {
-      "description": "Tasks and bullets are both styled by the 'todo' key. There is no separation because the preferences determine what a task is and what a bullet is. For example, * task is by default a task, but if you turn it off in the preferences, it becomes a bullet and - task can be a task or the standard markdown: - [ ] task"
+      "description": "Tasks, bullets and checklists are all styled by the 'todo' key. There is no separation because the preferences determine what a task is and what a bullet is. For example, * task is by default a task, but if you turn it off in the preferences, it becomes a bullet and - task can be a task or the standard markdown: - [ ] task",
+      "example": "\t- [ ] This is a todo item (look at the circle color)\n\t- here's a bullet\n\t+ this is a checklist"
     },
     "checked": {
       "regex": "(^\\h*[\\*\\-]{1} |^\\h*[0-9]+[\\.\\)] )(\\[x\\]).*",
@@ -804,7 +804,7 @@
       "regex": ">(([^<]+(?=<))|[\\S]+)"
     },
     "arrow-link_info": {
-      "description": "An alternative note link syntax that doesn't create copious backlinks. Surrounding a note name with > and < will create a link to that note. Source: @gracius. If you want to hide the two arrows on either side, use the two following rules.",
+      "description": "An alternative note link syntax that doesn't create copious backlinks. Surrounding a note name with > and < will create a link to that note. Source: @gracius. If you want to hide the two arrows on either side, use this and the two following rules.",
       "example": "\t>>This would be a link to a note called foo >foo< (e.g. `>foo<`)"
     },
     "arrow-right-delimiter": {

@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.14.2]
+
+- XCallback bug fix
+
 ## [2.14.1]  @dwertheimer 2023-04-20
 
 - Processing overdues as of a date in the future. Useful for planning the night before.

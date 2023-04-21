@@ -5,8 +5,8 @@
   "plugin.name": "🗓 Event Automations",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for >today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.15.0",
-  "plugin.lastUpdateInfo": "1.15.0: Checklists for AutoTimeBlocks, and checking a checklist timeblock will check the undelying task.",
+  "plugin.version": "1.15.1",
+  "plugin.lastUpdateInfo": "1.15.1: Fix bug in tasks open in today's note.\n1.15.0: Checklists for AutoTimeBlocks, and checking a checklist timeblock will check the undelying task.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -95,7 +95,7 @@
       "jsFunction": "removePreviousDaysParagraphNamed",
       "arguments": [
         "Name of the paragraph to remove",
-        "Run silently with no pop-up messages (e.g. running from a Template) - (yes/no) -- defaults to no, and you should probably run it this way so you get one chance to decide whether you actually want to remove the paragraphs"  
+        "Run silently with no pop-up messages (e.g. running from a Template) - (yes/no) -- defaults to no, and you should probably run it this way so you get one chance to decide whether you actually want to remove the paragraphs"
       ]
     },
     {
@@ -108,7 +108,7 @@
       "arguments": [
         "Run silently with no pop-up messages (e.g. running from a Template) - (yes/no) - yes to run silently"
       ]
-    }, 
+    },
     {
       "name": "cevt - Create Events From Text",
       "description": "Create calendar events by writing (natural language) text under a heading",
@@ -126,8 +126,7 @@
       "name": "onEditorWillSave",
       "description": "onEditorWillSave",
       "jsFunction": "onEditorWillSave",
-      "alias": [
-      ],
+      "alias": [],
       "arguments": []
     }
   ],
@@ -198,7 +197,7 @@
     {
       "key": "checkedItemChecksOriginal",
       "title": "Checking a checklist item marks the original item done",
-      "description": "Checking off a checklist AutoTimeBlocked line item will find and check the original task. To make this work, the onEditorWillSave trigger/frontmatter will be automatically added by the plugin.\nIMPORTANT NOTE: Only applies if:\n(1) you use the “+” for your Time Block Leading Character and\n s(2) the 'Include links to task location in time blocks' is set to 'Pretty Links'",
+      "description": "Checking off a checklist AutoTimeBlocked line item will find and check the original task. To make this work, the onEditorWillSave trigger/frontmatter will be automatically added by the plugin.\nIMPORTANT NOTE: Only applies if:\n(1) you use the “+” for your Time Block Leading Character and\n(2) the 'Include links to task location in time blocks' is set to 'Pretty Links'",
       "type": "bool",
       "default": false,
       "required": true

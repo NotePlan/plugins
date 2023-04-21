@@ -1,7 +1,7 @@
 /* eslint-disable import/order */
 // @flow
 
-import { getPluginJson } from './NPConfiguration'
+import { getPluginJson, saveSettings } from './NPConfiguration'
 import { getInput, showMessage, showMessageYesNo, chooseOption } from './userInput'
 
 import moment from 'moment'
@@ -42,7 +42,7 @@ export function getSettingsOptions(settingsArray: any, includeHidden: boolean = 
  * @param {*} setting object
  * @param {*} currentValue
  * @returns {string}
-*/
+ */
 // eslint-disable-next-line no-unused-vars
 export function updateSettingType_hidden(setting: any, currentValue: any): Promise<string> {
   return currentValue
@@ -265,7 +265,7 @@ export async function editSettings(_pluginJson?: any): Promise<number> {
  * @param {string} newItem to append
  * @returns {boolean} success?
  */
-export function appendStringToSettingArray(key: string, newItem: string): boolean {
+export async function appendStringToSettingArray(key: string, newItem: string): Promise<boolean> {
   const currentSettings = DataStore.settings
   // clo(currentSettings, 'before')
   const currentSettingForKey = currentSettings[key]
@@ -274,13 +274,14 @@ export function appendStringToSettingArray(key: string, newItem: string): boolea
     logDebug(pluginJson, `- appending '${newItem}'`)
     try {
       // call the specific updater function for the setting type
-      let newValArray: Array<string> = (typeof currentSettingForKey === 'string') ? [currentSettingForKey] : currentSettingForKey
+      let newValArray: Array<string> = typeof currentSettingForKey === 'string' ? [currentSettingForKey] : currentSettingForKey
       // logDebug(pluginJson, `- newValArray '${String(newValArray)}' (${typeof newValArray})`)
       newValArray.push(newItem.trim())
       // logDebug(pluginJson, `-> '${String(newValArray)}' (${typeof newValArray})`)
       if (newValArray != null) {
         currentSettings[key] = newValArray
-        DataStore.settings = currentSettings
+        // DataStore.settings = currentSettings
+        await saveSettings('np.Tidy', currentSettings)
         return true
       } else {
         logDebug(pluginJson, `-> nothing to update`)

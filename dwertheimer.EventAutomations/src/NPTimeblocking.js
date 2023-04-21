@@ -123,7 +123,7 @@ export async function insertItemsIntoNote(
     }
   } else {
     if (config && !config.passBackResults) {
-      await showMessage('No items to insert or work hours left. Check config/presents. Also look for calendar events which may have blocked off the rest of the day.')
+      await showMessage('No items to insert or work hours left. Check config/presets. Also look for calendar events which may have blocked off the rest of the day.')
     }
   }
 }
