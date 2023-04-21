@@ -6,8 +6,8 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "0.3.0",
-  "plugin.lastUpdateInfo": "First release",
+  "plugin.version": "0.4.0",
+  "plugin.lastUpdateInfo": "v0.4.0: adds command to tidy up triggers in older calendar notes",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -93,6 +93,18 @@
       ]
     },
     {
+      "name": "Remove triggers from recent calendar notes",
+      "description": "Remove one or more triggers from recent (but past) calendar notes.\nCan be used with parameters from Template or x-callback.",
+      "jsFunction": "removeTriggersFromRecentCalendarNotes",
+      "alias": [
+        "tidy",
+        "rtcn"
+      ],
+      "arguments": [
+        "Parameters"
+      ]
+    },
+    {
       "name": "Log notes changed in interval (Tidy)",
       "description": "Write a list of Log notes changed in the last interval of days to the plugin log. It will default to the 'Default Recent Time Interval' setting unless passed as a parameter.",
       "jsFunction": "logNotesChangedInInterval",
@@ -122,7 +134,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "'/Remove ...' command settings"
+      "title": "'/Remove ... from recent ...' command settings"
     },
     {
       "title": "How many days count as recent?",
@@ -191,7 +203,7 @@
     {
       "title": "Run commands silently?",
       "key": "runSilently",
-      "description": "When running commands silently, they will run entirely in the background and not pop up dialogs to check or report success. Only turn this on when you're comfortable that the commands are doing what you expect.\nNote: If you run in this mode, then this information will be written to the Plugin Console at level 'INFO' instead.",
+      "description": "When running commands silently, they will run entirely in the background and not pop up dialogs to check or report success. Only turn this on when you're comfortable that the commands are doing what you expect.\nNote: If you run in this mode, then details will be written to the Plugin Console at level 'INFO' instead.",
       "type": "bool",
       "default": false,
       "required": true
@@ -215,6 +227,14 @@
     {
       "title": "Run '/Remove time parts from @done() dates' command?",
       "key": "runRemoveDoneTimePartsCommand",
+      "ddescription": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Run '/Remove triggers from recent calendar notes?",
+      "key": "removeTriggersFromRecentCalendarNotes",
       "ddescription": "",
       "type": "bool",
       "default": false,
