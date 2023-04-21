@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 23.12.2022 for v1.1.0-beta, @jgclark
+// Last updated 23.12.2022 for v1.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -14,6 +14,7 @@ import pluginJson from '../plugin.json'
 import {
   createFormattedResultLines,
   getSearchSettings,
+  getSearchTermsRep,
   makeAnySyncs,
   type noteAndLine,
   numberOfUniqueFilenames,
@@ -36,7 +37,6 @@ import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import { clo, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
 import { displayTitle, titleAsLink } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
-import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 
@@ -183,8 +183,14 @@ export async function searchPeriod(
     //---------------------------------------------------------
     // End of main work started above
 
-    let resultSet = await resultsProm
+    let resultSet = await resultsProm // here's where we resolve the promise
     CommandBar.showLoading(false)
+
+    if (resultSet.resultCount === 0) {
+      logDebug(pluginJson, `No results found for search ${getSearchTermsRep(validatedSearchTerms)}`)
+      await showMessage(`No results found for search ${getSearchTermsRep(validatedSearchTerms)}`)
+      return
+    }
 
     //---------------------------------------------------------
     // Filter out the results that aren't within the specified period

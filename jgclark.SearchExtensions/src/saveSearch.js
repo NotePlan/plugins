@@ -3,13 +3,14 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 25.1.2023 for v1.1.0-beta, @jgclark
+// Last updated 23.2.2023 for v1.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import {
   createFormattedResultLines,
   getSearchSettings,
+  getSearchTermsRep,
   makeAnySyncs,
   OPEN_PARA_TYPES,
   resultCounts,
@@ -171,7 +172,7 @@ export async function saveSearch(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact]
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude) // Note: no await; resolved later
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude) // Note: deliberately no await: this is resolved later
 
     await CommandBar.onMainThread()
 
@@ -206,8 +207,14 @@ export async function saveSearch(
     //---------------------------------------------------------
     // End of main work started above
 
-    let resultSet = await resultsProm
+    let resultSet = await resultsProm // here's where we resolve the promise
     CommandBar.showLoading(false)
+
+    if (resultSet.resultCount === 0) {
+      logDebug(pluginJson, `No results found for search ${getSearchTermsRep(validatedSearchTerms)}`)
+      await showMessage(`No results found for search ${getSearchTermsRep(validatedSearchTerms)}`)
+      return
+    }
 
     //---------------------------------------------------------
     // Do output
