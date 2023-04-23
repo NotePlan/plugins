@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 25.1.2023 for v1.1.0-beta, @jgclark
+// Last updated 23.2.2023 for v1.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -25,7 +25,6 @@ import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 import { isOpen } from '@helpers/utils'
-
 
 //------------------------------------------------------------------------------
 // Data types
@@ -384,7 +383,7 @@ export function noteAndLineIntersection(arrA: Array<noteAndLine>, arrB: Array<no
  * @param {typedSearchTerm[]} searchTerms
  * @returns {string}
  */
-function getSearchTermsRep(typedSearchTerms: Array<typedSearchTerm>): string {
+export function getSearchTermsRep(typedSearchTerms: Array<typedSearchTerm>): string {
   return `[${typedSearchTerms.map((t) => t.termRep).join(', ')}]`
 }
 
@@ -656,6 +655,11 @@ export async function runSearchesV2(
 
     logDebug('runSearchesV2', `- ${termsToMatchArr.length} searches completed in ${timer(outerStartTime)}s -> ${resultCount} results`)
 
+    // // If we have no results, then return early
+    // clo(termsResults, 'resultsProm in top level')
+    // if (resultCount === 0) {
+    //   return []
+    // }
 
     //------------------------------------------------------------------
     // Work out what subset of results to return, taking into the must/may/not terms
@@ -675,8 +679,7 @@ export async function runSearchesV2(
   }
   catch (err) {
     logError('runSearchesV2', err.message)
-    // $FlowFixMe
-    return [] // for completeness
+    return { searchTermsRepArr: [], resultNoteAndLineArr: [], resultCount: 0, resultNoteCount: 0, fullResultCount: 0 } // for completeness
   }
 }
 
@@ -803,7 +806,7 @@ export async function runSearchV2(
 
     const noteAndLineArr: Array<noteAndLine> = []
 
-    // TODO: If we want to dedupe identical synced lines
+    // Dedupe identical synced lines (if wanted)
     logDebug('runSearchV2', `- Before dedupe, ${resultParas.length} results for '${searchTerm}'`)
     resultParas = eliminateDuplicateSyncedParagraphs(resultParas, 'most-recent')
     logDebug('runSearchV2', `- After dedupe, ${resultParas.length} results for '${searchTerm}'`)
@@ -842,8 +845,12 @@ export async function runSearchV2(
       }
 
       // Drop out search results found only in a URL or the path of a [!][link](path)
-      resultFieldSets = filteredParas.filter((f) => !isTermInURL(searchTerm, f.content)).filter((f) => !isTermInMarkdownPath(searchTerm, f.content))
-      logDebug('runSearchV2', `  - after URL filter, ${resultFieldSets.length} results`)
+      resultFieldSets = filteredParas
+        .filter((f) => !isTermInURL(searchTerm, f.content))
+        .filter((f) => !isTermInMarkdownPath(searchTerm, f.content))
+      if (resultFieldSets.length !== filteredParas.length) {
+        logDebug('runSearchV2', `  - URL/path filtering removed ${String(filteredParas.length - resultFieldSets.length)} results`)
+      }
 
       // Look-up table for sort details
       const sortMap = new Map([

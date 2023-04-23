@@ -6,6 +6,7 @@
  * For functions: check whether async or not & add params & return value
  *
  */
+import moment from 'moment'
 
 const Calendar = {
   // async add() { return null },
@@ -38,13 +39,13 @@ const Calendar = {
   // async unitsUntilNow() { return null },
   // async update() { return null },
   endOfWeek(date) {
-    return new Date('2022-01-07 23:59')
+    return moment(date).endOf('week').toDate() // new Date('2022-01-07 23:59')
   },
   startOfWeek(date) {
-    return new Date('2022-01-01 00:00')
+    return moment(date).startOf('week').toDate() // new Date('2022-01-01 00:00')
   },
   weekNumber(date) {
-    return 20
+    return moment(date).week()
   },
 }
 

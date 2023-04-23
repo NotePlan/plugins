@@ -14,6 +14,7 @@ export interface SortableParagraphSubset {
   due: ?Date;
   heading: ?string;
   priority?: number;
+  type?: string;
   filename: string;
   indents: number;
   children: Array<SortableParagraphSubset>;
@@ -238,6 +239,7 @@ export function getSortableTask(para: TParagraph): SortableParagraphSubset {
     children: [],
     due: para.date ?? new Date('2999-12-31'),
     paragraph: para,
+    type: para.type,
     calculatedType: calculateParagraphType(para),
   }
   // console.log(`new: ${index}: indents:${para.indents} ${para.rawContent}`)
@@ -252,7 +254,7 @@ export function getSortableTask(para: TParagraph): SortableParagraphSubset {
  * @param {boolean} ignoreIndents - whether to pay attention to child/indented paragraphs
  * @returns {GroupedTasks} - object of tasks by type {'open':[], 'scheduled'[], 'done':[], 'cancelled':[], etc.}
  */
-export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreIndents: boolean = false): GroupedTasks {
+export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreIndents: boolean = false, useCalculatedScheduled: boolean = false): GroupedTasks {
   const tasks = TASK_TYPES.reduce((acc, t) => ({ ...acc, ...{ [t]: [] } }), {})
   let lastParent = { indents: 999, children: [] }
   // clo(paragraphs, 'getTasksByType')
@@ -263,11 +265,11 @@ export function getTasksByType(paragraphs: $ReadOnlyArray<TParagraph>, ignoreInd
       // const content = para.content // Not used
       // console.log(`found: ${index}: ${para.type}: ${para.content}`)
       try {
-        const task = getSortableTask(para)
+        const task: SortableParagraphSubset = getSortableTask(para)
         if (!ignoreIndents && para.indents > lastParent.indents) {
           lastParent.children.push(task)
         } else {
-          const ct = task.calculatedType // will always be the same as para.type except in case of scheduled
+          const ct = useCalculatedScheduled ? task.calculatedType : task.type // will always be the same as para.type except in case of scheduled
           if (ct && tasks[ct]) {
             const len = tasks[ct].push(task)
             lastParent = tasks[ct][len - 1]

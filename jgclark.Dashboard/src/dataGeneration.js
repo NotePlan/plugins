@@ -93,7 +93,7 @@ function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriod
   if (dashboardConfig.separateSectionForReferencedNotes) {
     const sortedOpenParas = sortListBy(openParas, ['-priority'])
     const sortedRefParas = sortListBy(refParas, ['-priority'])
-    return [sortedRefParas, sortedRefParas]
+    return [sortedOpenParas, sortedRefParas]
   } else {
     const combinedParas = sortListBy(openParas.concat(refParas), ['-priority'])
     const combinedSortedParas = sortListBy(combinedParas, ['-priority'])

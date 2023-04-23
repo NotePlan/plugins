@@ -16,6 +16,7 @@ const pluginID = 'np.Tidy'
  */
 
 /**
+ * Note: not written or used
  * onOpen
  * Plugin entrypoint for command: "/onOpen"
  * Called when a note is opened and that note
@@ -44,6 +45,7 @@ export async function onOpen(note: TNote): Promise<void> {
 }
 
 /**
+ * Note: not written or used
  * onEditorWillSave
  * Plugin entrypoint for command: "/onEditorWillSave"
  */

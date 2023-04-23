@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Filer",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Filer/CHANGELOG.md",
-  "plugin.version": "1.1.0-beta4",
-  "plugin.lastUpdateInfo": "1.1.0: new '/... note links...' commands.\n1.0.0: existing command '/move paragraphs' renamed to '/move paragraph or selection'. This moves this paragraph (or selected paragraphs) to a different note. Added command '/move paragraph block' moves all paragraphs in the current block to a different note.",
+  "plugin.version": "1.1.0-beta5",
+  "plugin.lastUpdateInfo": "1.1.0-beta5: new /archive command.\n1.1.0: new '/... note links...' commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -23,6 +23,15 @@
       ],
       "description": "Add a sync'd copy of the current line to a section in another note",
       "jsFunction": "addIDAndAddToOtherNote"
+    },
+    {
+      "name": "archive note keeping folder structure",
+      "alias": [
+        "an",
+        "archive"
+      ],
+      "description": "Move the current note to NotePlan's Archive, but keep the same folder structure for it inside the special @Archive folder",
+      "jsFunction": "archiveNoteUsingFolder"
     },
     {
       "name": "copy note links",

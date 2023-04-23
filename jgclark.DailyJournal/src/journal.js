@@ -206,6 +206,7 @@ export async function dayStart(workToday: boolean = false): Promise<void> {
         Editor.insertTextAtCharacterIndex(result, pos)
         break
       }
+      // TODO: change this (if needed), to suit @DW changes 25.2.2023 to 'cursor: <current>'?
       case 'cursor': {
         logDebug(pluginJson, `- Will insert to Editor at cursor position`)
         Editor.insertTextAtCursor(result)

@@ -2,18 +2,27 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 27.1.2023 for v0.3.0+code tidy!, @jgclark
+// Last updated 16.3.2023 for v0.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import * as helpers from './helpers'
+import { getSettings, type TidyConfig } from './tidyHelpers'
 import pluginJson from '../plugin.json'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
-import { allNotesSortedByChanged, getProjectNotesInFolder, removeSection } from '@helpers/note'
+import {
+  allNotesSortedByChanged,
+  getProjectNotesInFolder,
+  pastCalendarNotes,
+  removeSection
+} from '@helpers/note'
+import { removeFrontMatterField } from '@helpers/NPFrontMatter'
+import { getNotesChangedInInterval, getNotesChangedInIntervalFromList } from '@helpers/NPnote'
+import { hasFrontMatter, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
+import { appendStringToSettingArray } from '@helpers/NPSettings'
 import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -22,7 +31,7 @@ export async function tidyUpAll(): Promise<void> {
   try {
     logDebug(pluginJson, `tidyUpAll: Starting`)
     // Get plugin settings (config)
-    const config: helpers.TidyConfig = await helpers.getSettings()
+    const config: TidyConfig = await getSettings()
 
     if (config.runRemoveOrphansCommand) {
       logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
@@ -50,6 +59,11 @@ export async function tidyUpAll(): Promise<void> {
     //   logDebug('tidyUpAll', `Starting removeSectionFromRecentNotes...`)
     //   await removeSectionFromRecentNotes()
     // }
+
+    if (config.removeTriggersFromRecentCalendarNotes) {
+      logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
+      await removeTriggersFromRecentCalendarNotes(param)
+    }
   } catch (error) {
     logError('tidyUpAll', JSP(error))
   }
@@ -65,7 +79,7 @@ export async function tidyUpAll(): Promise<void> {
 export async function removeDoneMarkers(params: string = ''): Promise<void> {
   try {
     // Get plugin settings (config)
-    let config: helpers.TidyConfig = await helpers.getSettings()
+    let config: TidyConfig = await getSettings()
     // Setup main variables
     if (params) {
       logDebug(pluginJson, `removeDoneMarkers: Starting with params '${params}'`)
@@ -169,7 +183,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
 export async function removeDoneTimeParts(params: string = ''): Promise<void> {
   try {
     // Get plugin settings (config)
-    let config: helpers.TidyConfig = await helpers.getSettings()
+    let config: TidyConfig = await getSettings()
     // Setup main variables
     if (params) {
       logDebug(pluginJson, `removeDoneTimeParts: Starting with params '${params}'`)
@@ -271,7 +285,7 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
 export async function removeSectionFromRecentNotes(params: string = ''): Promise<void> {
   try {
     // Get plugin settings (config)
-    let config: helpers.TidyConfig = await helpers.getSettings()
+    let config: TidyConfig = await getSettings()
     // Setup main variables
     if (params) {
       logDebug(pluginJson, `removeSectionFromRecentNotes: Starting with params '${params}'`)
@@ -328,7 +342,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
 
     // Now keep only those changed recently (or all if numDays === 0)
     // $FlowFixMe[incompatible-type]
-    const notesToProcess: Array<TNote> = numDays > 0 ? helpers.getNotesChangedInIntervalFromList(allMatchedNotes, numDays) : allMatchedNotes
+    const notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(allMatchedNotes, numDays) : allMatchedNotes
     numToRemove = notesToProcess.length
 
     if (numToRemove > 0) {
@@ -371,7 +385,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
 export async function removeSectionFromAllNotes(params: string = ''): Promise<void> {
   try {
     // Get plugin settings (config)
-    let config: helpers.TidyConfig = await helpers.getSettings()
+    let config: TidyConfig = await getSettings()
     // Setup main variables
     if (params) {
       logDebug(pluginJson, `removeSectionFromAllNotes: Starting with params '${params}'`)
@@ -434,13 +448,86 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
 }
 
 /**
+ * Remove Remove one or more triggers from recent (but past) calendar notes.
+ * Can be passed parameters to override default time interval through an x-callback call
+ * @author @jgclark
+ * @param {string?} params optional JSON string
+ */
+export async function removeTriggersFromRecentCalendarNotes(params: string = ''): Promise<void> {
+  try {
+    // Get plugin settings (config)
+    let config: TidyConfig = await getSettings()
+    // Setup main variables
+    if (params) {
+      logDebug(pluginJson, `removeTriggersFromRecentCalendarNotes: Starting with params '${params}'`)
+      config = overrideSettingsWithEncodedTypedArgs(config, params)
+      clo(config, `config after overriding with params '${params}'`)
+    } else {
+      // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
+      logDebug(pluginJson, `removeTriggersFromRecentCalendarNotes: Starting with no params`)
+    }
+
+    // Get num days to process from param, or by asking user if necessary
+    const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays)
+    logDebug('removeTriggersFromRecentCalendarNotes', `numDays = ${String(numDays)}`)
+    // Note: can be 0 at this point, which implies process all days
+
+    // Decide whether to run silently
+    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
+    // logDebug('removeTriggersFromRecentCalendarNotes', `runSilently = ${String(runSilently)}`)
+
+    // Find past calendar notes changed recently (or all if numDays === 0)
+    const calendarParasWithTrigger = DataStore.searchCalendarNotes('triggers:', false)
+    // TODO: use this instead?
+    const thePastCalendarNotes = pastCalendarNotes()
+    logDebug('removeTriggersFromRecentCalendarNotes', `thePastCalendarNotes.length = ${String(thePastCalendarNotes.length)}`)
+    const notesToProcess: Array<TNote> = numDays > 0
+      ? getNotesChangedInIntervalFromList(thePastCalendarNotes, numDays)
+      : thePastCalendarNotes
+    const numToProcess = notesToProcess.length
+
+    // TODO: remove me after TEST:
+    logInfo('removeTriggersFromRecentCalendarNotes', `Special Test: noteHasFrontMatter(20230402) -> ${String(noteHasFrontMatter(DataStore.calendarNoteByDateString('20230402')))}`)
+    logInfo('removeTriggersFromRecentCalendarNotes', `Special Test: hasFrontMatter(20230402.contents) -> ${String(hasFrontMatter(DataStore.calendarNoteByDateString('20230402').content))}`)
+
+    if (numToProcess > 0) {
+      let countRemoved = 0
+      // logDebug('removeTriggersFromRecentCalendarNotes', `checking ${String(numToProcess)} notes in the right date interval:`)
+      // For each note, try the removal
+      for (const note of notesToProcess) {
+        // Only proceed if the note actually has frontmatter
+        if (noteHasFrontMatter(note)) {
+          // FIXME: somehow 20230402 gets through here, but has no FM.
+          const result = removeFrontMatterField(note, 'triggers', 'onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard', true)
+          if (result) {
+            logDebug('removeTriggersFromRecentCalendarNotes', `removed frontmatter trigger field from ${displayTitle(note)}`)
+            countRemoved++
+          } else {
+            logWarn('removeTriggersFromRecentCalendarNotes', `failed to remove frontmatter trigger field from ${displayTitle(note)} for some reason`)
+          }
+        }
+        else {
+          // logDebug('removeTriggersFromRecentCalendarNotes', `no frontmatter in ${displayTitle(note)}`)
+        }
+      }
+      if (!runSilently) await showMessage(`Removed ${countRemoved} triggers from recent ${numToProcess} calendar notes`)
+    }
+
+    return
+  } catch (err) {
+    logError('removeTriggersFromRecentCalendarNotes', err.message)
+    return // for completeness
+  }
+}
+
+/**
  * Write a list of Log notes changed in the last interval of days to the plugin log. It will default to the 'Default Recent Time Interval' setting unless passed as a JSON parameter.
  * @param {string} params as JSON
  */
 export async function logNotesChangedInInterval(params: string = ''): Promise<void> {
   try {
     // Get plugin settings (config)
-    let config: helpers.TidyConfig = await helpers.getSettings()
+    let config: TidyConfig = await getSettings()
     if (params) {
       logDebug(pluginJson, `logNotesChangedInInterval: Starting with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
@@ -451,7 +538,7 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
     }
 
     const numDays = config.numDays
-    const notesList = helpers.getNotesChangedInInterval(numDays)
+    const notesList = getNotesChangedInInterval(numDays)
     const titlesList = notesList.map((m) => displayTitle(m))
     logInfo(pluginJson, `${String(titlesList.length)} Notes have changed in last ${String(numDays)} days:\n${String(titlesList)}`)
   } catch (err) {
@@ -467,7 +554,7 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
 export async function fileRootNotes(): Promise<void> {
   try {
     // Get plugin settings (config)
-    let config: helpers.TidyConfig = await helpers.getSettings()
+    let config: TidyConfig = await getSettings()
 
     // Probably not needed
     // if (params) {
@@ -481,13 +568,10 @@ export async function fileRootNotes(): Promise<void> {
 
     // Get all root notes
     const rootNotes = getProjectNotesInFolder('/')
-    logDebug(
-      'rootNotes',
-      rootNotes.map((n) => n.title),
-    )
+    // logDebug('rootNotes', rootNotes.map((n) => n.title))
 
     // Remove any listed in config.rootNotesToIgnore
-    const excludedNotes = config.rootNotesToIgnore
+    const excludedNotes = config.rootNotesToIgnore ?? []
     logDebug('excludedNotes', String(excludedNotes))
     const rootNotesToUse = rootNotes.filter((n) => !excludedNotes.includes(n.title))
     logDebug(
@@ -501,8 +585,8 @@ export async function fileRootNotes(): Promise<void> {
     // Pre-pend some special items
     allFolders.unshift(`🗑️ Delete this note`)
     allFolders.unshift(`❌ Stop processing`)
+    allFolders.unshift(`➡️ Ignore this note from now on`)
     allFolders.unshift(`➡️ Leave this note in root`)
-    // TODO: pre-pend a special one meaning 'ignore me from now on'
     logDebug('allFolders', String(allFolders))
     const options = allFolders.map((f) => ({
       label: f,
@@ -524,42 +608,51 @@ export async function fileRootNotes(): Promise<void> {
         const chosenFolder = await chooseOption(`Move '${thisTitle}' to which folder?`, options)
         switch (chosenFolder) {
           case '❌ Stop processing': {
-            logInfo('rootNotesToUse', `User cancelled operation.`)
+            logInfo('fileRootNotes', `User cancelled operation.`)
             return
           }
+          case '➡️ Ignore this note from now on': {
+            const ignoreRes = appendStringToSettingArray("rootNotesToIgnore", thisTitle)
+            if (ignoreRes) {
+              logInfo('fileRootNotes', `Ignoring '${thisTitle}' from now on; this note has been appended it to the plugin's settings`)
+            } else {
+              logError('fileRootNotes', `Error when trying to add '${thisTitle}' to the plugin setting "rootNotesToIgnore"`)
+            }
+            break
+          }
           case '➡️ Leave this note in root': {
-            logDebug('rootNotesToUse', `Leaving '${thisTitle}' note in root`)
+            logDebug('fileRootNotes', `Leaving '${thisTitle}' note in root`)
             break
           }
           case '🗑️ Delete this note': {
-            logInfo('rootNotesToUse', `User has asked for '${thisTitle}' to be deleted ...`)
+            logInfo('fileRootNotes', `User has asked for '${thisTitle}' to be deleted ...`)
             const res = DataStore.moveNote(n.filename, '@Trash')
             if (res && res !== '') {
-              logDebug('rootNotesToUse', '... done')
+              logDebug('fileRootNotes', '... done')
               numMoved++
             } else {
-              logError('rootNotesToUse', `Couldn't delete it for some reason`)
+              logError('fileRootNotes', `Couldn't delete it for some reason`)
             }
             break
           }
           default: {
-            logDebug('rootNotesToUse', `Moving '${thisTitle}' note to folder '${chosenFolder}' ...`)
+            logDebug('fileRootNotes', `Moving '${thisTitle}' note to folder '${chosenFolder}' ...`)
             const res = DataStore.moveNote(n.filename, chosenFolder)
             if (res && res !== '') {
-              logDebug('rootNotesToUse', `... filename now '${res}'`)
+              logDebug('fileRootNotes', `... filename now '${res}'`)
               numMoved++
             } else {
-              logError('rootNotesToUse', `... Failed to move it for some reason`)
+              logError('fileRootNotes', `... Failed to move it for some reason`)
             }
           }
         }
       } else {
-        logError('rootNotesToUse', `Failed to get note for some reason`)
+        logError('fileRootNotes', `Failed to get note for some reason`)
       }
     }
 
     // Show a completion message
-    logDebug('rootNotesToUse', `${String(numMoved)} notes moved from the root folder`)
+    logDebug('fileRootNotes', `${String(numMoved)} notes moved from the root folder`)
     const res = await showMessage(`${String(numMoved)} notes moved from the root folder`, 'OK', 'File root-level notes', false)
 
     // Restore original note (if it was open)
@@ -567,7 +660,7 @@ export async function fileRootNotes(): Promise<void> {
       Editor.openNoteByFilename(openEditorNote.filename)
     }
   } catch (err) {
-    logError('logNotesChangedInInterval', JSP(err))
+    logError('fileRootNotes', JSP(err))
     return // for completeness
   }
 }
@@ -578,7 +671,7 @@ export async function fileRootNotes(): Promise<void> {
 export async function removeOrphanedBlockIDs(runSilently: boolean = false): Promise<void> {
   try {
     // Get plugin settings (config)
-    const config: helpers.TidyConfig = await helpers.getSettings()
+    const config: TidyConfig = await getSettings()
 
     // Find blockIDs in all notes, and save the details of it in a data structure that tracks the first found copy only, and the number of copies.
     let parasWithBlockID = DataStore.referencedBlocks()
@@ -590,7 +683,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
       // $FlowFixMe[incompatible-call]
       const allMatchedNotes = parasWithBlockID.map((p) => p.note)
       // logDebug('allMatchedNotes', String(allMatchedNotes.length))
-      const recentMatchedNotes = helpers.getNotesChangedInIntervalFromList(allMatchedNotes, config.numDays)
+      const recentMatchedNotes = getNotesChangedInIntervalFromList(allMatchedNotes, config.numDays)
       const recentMatchedNoteFilenames = recentMatchedNotes.map((n) => n.filename)
       // logDebug('recentMatchedNotes', String(recentMatchedNotes.length))
       parasWithBlockID = parasWithBlockID.filter((p) => recentMatchedNoteFilenames.includes(p.note?.filename))

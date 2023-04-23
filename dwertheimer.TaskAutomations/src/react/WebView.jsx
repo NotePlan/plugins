@@ -71,7 +71,18 @@ export function WebView({ data, dispatch }: Props): Node {
    ****************************************************************************************************************************/
 
   // destructure all the startup data we expect from the plugin
-  const { columns, overdueParas, title, dropdownOptionsAll, dropdownOptionsLine, contextButtons, returnPluginCommand, debug, autoSelectNext = true } = data
+  const {
+    columns,
+    overdueParas,
+    title,
+    dropdownOptionsAll,
+    dropdownOptionsLine,
+    contextButtons,
+    returnPluginCommand,
+    debug,
+    autoSelectNext = true,
+    showDaysTilDueColumn = false,
+  } = data
   const nonOmittedRows = data.overdueParas.filter((row) => !row.omit).filter(rowFilter)
   // const displayRows = [...nonOmittedRows.filter((row) => !row.highlight), ...nonOmittedRows.filter((row) => row.highlight)]
   const displayRows = nonOmittedRows // don't highlight rows for now (we will move them to 'Processed' status instead)
@@ -632,7 +643,7 @@ export function WebView({ data, dispatch }: Props): Node {
   }, [])
 
   const mainTableColumns = [
-    ...columnSpec({ handleTaskStatusChange, hideRow }),
+    ...columnSpec({ handleTaskStatusChange, hideRow, showDaysTilDueColumn }),
     {
       name: 'Action',
       cell: (row) =>

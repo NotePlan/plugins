@@ -2,12 +2,12 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 20.1.2023 for v0.3.0, @jgclark
+// Last updated 26.3.2023 for v0.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import moment from 'moment/min/moment-with-locales'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 
 //------------------------------------------------------------------------------
@@ -26,6 +26,7 @@ export type TidyConfig = {
   runRemoveDoneMarkersCommand: boolean,
   runRemoveDoneTimePartsCommand: boolean,
   runRemoveSectionFromNotesCommand: boolean,
+  removeTriggersFromRecentCalendarNotes: boolean,
   runSilently: boolean,
   _logLevel: string,
 }
@@ -49,59 +50,6 @@ export async function getSettings(): Promise<any> {
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     return null // for completeness
-  }
-}
-
-/**
- * Return list of all notes changed in the last 'numDays'.
- * Edge case: if numDays === 0 return all Calendar and Project notes
- * @author @jgclark
- * @param {number} numDays
- * @returns {Array<TNote>}
- */
-export function getNotesChangedInInterval(numDays: number): Array<TNote> {
-  try {
-    const projectNotes = DataStore.projectNotes.slice()
-    const calendarNotes = DataStore.calendarNotes.slice()
-    const allNotes = projectNotes.concat(calendarNotes)
-    let matchingNotes: Array<TNote> = []
-    if (numDays > 0) {
-      const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-      const momentToStartLooking = todayStart.subtract(numDays, 'days')
-      const jsdateToStartLooking = momentToStartLooking.toDate()
-
-      matchingNotes = allNotes.filter((f) => f.changedDate >= jsdateToStartLooking)
-      logDebug('getNotesChangedInInterval', `from ${allNotes.length} notes found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`)
-    } else {
-      matchingNotes = allNotes
-      logDebug('getNotesChangedInInterval', `returning all ${allNotes.length} notes`)
-    }
-    return matchingNotes
-  } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
-    return [] // for completeness
-  }
-}
-
-/**
- * Return array of notes changed in the last 'numDays' from provided array of 'notesToCheck'
- * @author @jgclark
- * @param {Array<TNote>} notesToCheck
- * @param {number} numDays
- * @returns {Array<TNote>}
- */
-export function getNotesChangedInIntervalFromList(notesToCheck: $ReadOnlyArray<TNote>, numDays: number): Array<TNote> {
-  try {
-    const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
-    const momentToStartLooking = todayStart.subtract(numDays, 'days')
-    const jsdateToStartLooking = momentToStartLooking.toDate()
-
-    let matchingNotes: Array<TNote> = notesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
-    // logDebug('getNotesChangedInInterval', `from ${notesToCheck.length} notes found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`)
-    return matchingNotes
-  } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
-    return [] // for completeness
   }
 }
 

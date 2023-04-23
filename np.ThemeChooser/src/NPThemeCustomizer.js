@@ -265,7 +265,8 @@ export async function createThemeSamples(idToScrollTo: string = '', autoRefreshR
   try {
     // CommandBar.showLoading(true, 'Loading Theme Data')
     logDebug(pluginJson, `createThemeSamples (aka Customize Themes) running; autoRefreshRunning:${String(autoRefreshRunning)}`)
-    const frontmatter = `---\ntriggers:	onOpen => np.ThemeChooser.onOpenRefreshPage\n---`
+    const { addAutoRefreshFM } = DataStore.settings
+    const frontmatter = addAutoRefreshFM ? `---\ntriggers:	onOpen => np.ThemeChooser.onOpenRefreshPage\n---\n` : ''
     addDefaultTheme()
     const activeThemeName = Editor.currentTheme.name
     const viewingMasterTheme = activeThemeName === 'ThemeChooserMasterTheme'
@@ -367,7 +368,7 @@ export async function createThemeSamples(idToScrollTo: string = '', autoRefreshR
       // Don't reload the file if we are already in it
       note = Editor
     } else {
-      note = openNoteByFilename(filepath, { createIfNeeded: true, content: `${frontmatter}\n${content}` })
+      note = openNoteByFilename(filepath, { createIfNeeded: true, content: `${frontmatter}${content}` })
       if (note) {
         contentWritten = true
         logDebug(pluginJson, `createThemeSamples new note created successfully using openNoteByFilename`)

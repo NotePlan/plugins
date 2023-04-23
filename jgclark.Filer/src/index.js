@@ -30,6 +30,7 @@ export {
   moveRecentNoteLinks,
 } from './noteLinks'
 export { addIDAndAddToOtherNote } from './IDs'
+export { archiveNoteUsingFolder } from './archive'
 export { newNoteFromClipboard, newNoteFromSelection } from './newNote'
 
 const pluginID = "jgclark.Filer"
