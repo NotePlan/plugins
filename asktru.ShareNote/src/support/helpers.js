@@ -2,7 +2,7 @@
 
 export function getBaseDomain()
 {
-  return 'https://noteplan-publish.test';
+  return 'https://sharednote.space';
 }
 
 export function apiUrl(path)

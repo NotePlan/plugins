@@ -1,8 +1,8 @@
-# NotePlan Publish 2.0
+# Share Note
 
 ## Latest Updates
 
-See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/np.Publish/CHANGELOG.md) for latest updates/changes to this plugin.
+See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/asktru.ShareNote/CHANGELOG.md) for latest updates/changes to this plugin.
 
 ## About This Plugin 
 
@@ -26,9 +26,8 @@ Plugin settings do not need to be set up manually, but you may customize various
 
 ## Future Features Roadmap
 
-- *(backend)* Improvements to markdown notes display in various cases
-- Integrate with NotePlan hooks to perform an alternative mechanics for publishing and unpublishing the note
-- Detect published linked notes and replace wiki-links in the current note with Publish links in the related notes (without touching the original note content)
-- Support recursive note sharing (publish current note and all the wiki-linked notes)
+- Improvements to markdown notes display in various cases
+- Check wiki-links in the shared note and replace them with shared URLs in the related notes (without touching the original note content)
+- Support recursive note sharing (publish current note and all the wiki-linked notes, including multiple levels of linkage)
 - Limit access to the note content for specific list of emails or a specific email domain
 - Support overriding the password from the plugin settings with a password specific to a current note

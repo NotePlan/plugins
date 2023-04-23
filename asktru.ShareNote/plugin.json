@@ -1,16 +1,16 @@
 {
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.4.0",
-  "plugin.id": "np.Publish",
-  "plugin.name": "🌐 NotePlan Publish",
-  "plugin.version": "0.2.0",
-  "plugin.lastUpdateInfo": "Switched to a new plugin backend.",
+  "plugin.id": "asktru.ShareNote",
+  "plugin.name": "🌐 Share Note",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "First release of the plugin.",
   "plugin.description": "This is aimed to be the improved version of NotePlan Publish built-in feature (secure sharing, recursive sharing and other improvements)",
   "plugin.author": "Anton Skliar",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
-  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Publish/README.md",
-  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Publish/CHANGELOG.md",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/asktru.ShareNote/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/asktru.ShareNote/CHANGELOG.md",
   "plugin.commands": [
     {
       "name": "publish", 
@@ -28,7 +28,7 @@
     },
     {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
-      "name": "NotePlan Online: Version",
+      "name": "Share Note: Version",
       "description": "Update + Check Version",
       "jsFunction": "versionCheck"
     },
@@ -47,13 +47,13 @@
     {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "onMessageFromHTMLView",
-      "description": "np.Publish: Callback function to receive messages from HTML view",
+      "description": "asktru.ShareNote: Callback function to receive messages from HTML view",
       "jsFunction": "onMessageFromHTMLView",
       "hidden": true
     },
     {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
-      "name": "np.Publish: Update Plugin Settings",
+      "name": "asktru.ShareNote: Update Plugin Settings",
       "description": "Preferences",
       "jsFunction": "editSettings"
     }
@@ -67,7 +67,7 @@
     {
       "type": "hidden",
       "key": "pluginID",
-      "default": "np.Publish",
+      "default": "asktru.ShareNote",
       "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
     },
 
@@ -107,11 +107,11 @@
       "description": "Text of the published URL that will be inserted into the note after publishing",
       "type": "string",
       "required": true,
-      "default": "NotePlan Publish 🌐"
+      "default": "Shared Note 🌐"
     },
     {
       "key": "frontmatterLink",
-      "title": "Publish Link Line",
+      "title": "Shared URL Line",
       "type": "string",
       "required": true,
       "default": "Shared URL"
