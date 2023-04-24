@@ -1,15 +1,18 @@
 // @flow
 
+import * as helpers from './helpers'
+
 export function doPublish(title, content, secret, accessKey)
 {
-    return fetch('https://noteplan.online/api/publishedNote', {
+    return fetch(helpers.apiUrl('notes'), {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + accessKey
         },
         body: JSON.stringify({
             'password': secret,
-            'accessKey': accessKey,
             'title': title,
             'content': content
         })
@@ -18,15 +21,16 @@ export function doPublish(title, content, secret, accessKey)
 
 export function doUpdatePublished(guid, title, content, secret, accessKey)
 {
-    return fetch('https://noteplan.online/api/publishedNote', {
+    return fetch(helpers.apiUrl('notes/' + guid), {
         method: 'PUT',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + accessKey
         },
         body: JSON.stringify({
             'guid': guid,
             'password': secret,
-            'accessKey': accessKey,
             'title': title,
             'content': content
         })
@@ -35,14 +39,12 @@ export function doUpdatePublished(guid, title, content, secret, accessKey)
 
 export function doUnpublish(guid, accessKey)
 {
-    return fetch('https://noteplan.online/api/publishedNote', {
+    return fetch(helpers.apiUrl('notes/' + guid), {
         method: 'DELETE',
         headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            'guid': guid,
-            'accessKey': accessKey
-        })
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + accessKey
+        }
     });
 }

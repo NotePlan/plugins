@@ -1,8 +1,18 @@
-# NotePlan Online Plugin Changelog
+# Share Note Changelog
 
-## About NotePlan Online Plugin
+## About NotePlan Publish Plugin
 
-See Plugin [README](https://github.com/NotePlan/plugins/blob/main/asktru.NoteplanOnline/README.md) for details on available commands and use case.
+See Plugin [README](https://github.com/NotePlan/plugins/blob/main/asktru.ShareNote/README.md) for details on available commands and use case.
+
+## [1.0.0] - 2023-04-23 (antony-sklyar)
+
+### Changed
+- switched to the new backend domain name, `sharednote.space`
+
+## [0.2.0] - 2023-04-15 (antony-sklyar)
+
+### Changed
+- switch to a new backend
 
 ## [0.1.0] - 2023-04-02 (antony-sklyar)
 

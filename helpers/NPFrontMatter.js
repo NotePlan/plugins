@@ -16,7 +16,7 @@ import { displayTitle } from '@helpers/general'
 import { getAttributes } from '@templating/support/modules/FrontmatterModule'
 const pluginJson = 'helpers/NPFrontMatter.js'
 
-// TODO: update these for each new trigger that gets added
+// Note: update these for each new trigger that gets added
 export type TriggerTypes = 'onEditorWillSave' | 'onOpen'
 export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
 
@@ -32,7 +32,8 @@ export function quoteText(text: string): string {
 }
 
 /**
- * Test whether a string contains front matter
+ * Test whether a string contains front matter.
+ * Note: underlying library doesn't actually check whether the YAML comes at the start of the string. @jgclark has raised an issue to fix that.
  * @param {string} text - the text to test (typically the content of a note -- note.content)
  * @returns {boolean} true if it has front matter
  */
@@ -40,10 +41,12 @@ export const hasFrontMatter = (text: string): boolean => fm.test(text)
 
 /**
  * Test whether a Note contains front matter
+ * Note: the underlying library doesn't actually check whether the YAML comes at the start of the string.
+ * So @jgclark has added an (imperfect, simple) test to see if it comes at the start, until such a time as the library is updated.
  * @param {CoreNoteFields} note - the note to test
  * @returns {boolean} true if the note has front matter
  */
-export const noteHasFrontMatter = (note: CoreNoteFields): boolean => hasFrontMatter(note.content || '')
+export const noteHasFrontMatter = (note: CoreNoteFields): boolean => note && hasFrontMatter(note.content || '') && note.paragraphs[0].type === 'separator'
 
 /**
  * get the front matter attributes from a note

@@ -1,12 +1,27 @@
 // @flow
 
-export function getPreviewUrl(url, config)
+export function getBaseDomain()
 {
-  url = url.split('?')[0];
+  return 'https://sharednote.space';
+}
+
+export function apiUrl(path)
+{
+  return getBaseDomain() + '/api/' + path;
+}
+
+export function noteBaseUrl()
+{
+  return getBaseDomain() + '/n/';
+}
+
+export function getPreviewUrl(apiResponse, config)
+{
   if (config.appendSecret) {
-    url += '?password=' + config.secret;
+    return apiResponse.viewUrl;
+  } else {
+    return apiResponse.promptUrl;
   }
-  return url;
 }
 
 function generateRandomKey(length)

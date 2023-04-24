@@ -60,56 +60,70 @@ const menuStyles = getMenuStyles()
  * Column Definitions
  */
 
-const columnsWithFallback = ({ handleTaskStatusChange, hideRow }) => [
-  {
-    name: 'Type',
-    selectorName: 'overdueStatus',
-    // selector: (row) => row.type,
-    style: { color: chroma(NP_THEME.editor.textColor).alpha(0.4).css() },
-    sortable: true,
-    width: '80px',
-  },
-  {
-    name: '',
-    selectorName: 'type',
-    sortable: true,
-    width: '50px',
-    cell: (row) => <StatusButton rowID={row.id} initialState={row.type} onStatusChange={handleTaskStatusChange} className={'todo'} menuStyles={menuStyles} />,
-  },
-  {
-    name: 'Content',
-    selector: (row) => row.cleanContent,
-    sortable: true,
-    grow: 3,
-    classNames: 'todo',
-    wrap: true,
-    cell: (row, index, column, id) => (
-      <div style={{ fontSize: NP_THEME.base.baseFontSize - 2 }} dangerouslySetInnerHTML={{ __html: row.cleanContent }} data-tag="allowRowEvents" />
-    ) /* allow links to be clickable */,
-  },
-  {
-    name: 'Note Title',
-    omit: true /* for now, lets not show the column */,
-    selectorName: 'title',
-    // selector: (row) => row.title,
-    sortable: true,
-  },
-  {
-    name: 'Filename',
-    omit: true /* for now, lets not show the column */,
-    selectorName: 'filename',
-    // selector: (row) => row.title,
-    sortable: true,
-  },
-  {
-    name: 'Hide',
-    selectorName: 'hide',
-    width: '40px',
-    center: true,
-    omit: true,
-    cell: (row) => <span onClick={() => hideRow(row)}>X</span>,
-  },
-]
+const columnsWithFallback = ({ handleTaskStatusChange, hideRow, showDaysTilDueColumn }) => {
+  const base = [
+    {
+      name: 'Type',
+      selectorName: 'overdueStatus',
+      // selector: (row) => row.type,
+      style: { color: chroma(NP_THEME.editor.textColor).alpha(0.4).css() },
+      sortable: true,
+      width: '80px',
+    },
+    {
+      name: '',
+      selectorName: 'type',
+      sortable: true,
+      width: '50px',
+      cell: (row) => <StatusButton rowID={row.id} initialState={row.type} onStatusChange={handleTaskStatusChange} className={'todo'} menuStyles={menuStyles} />,
+    },
+    {
+      name: 'Content',
+      selector: (row) => row.cleanContent,
+      sortable: true,
+      grow: 3,
+      classNames: 'todo',
+      wrap: true,
+      cell: (row, index, column, id) => (
+        <div style={{ fontSize: NP_THEME.base.baseFontSize - 2 }} dangerouslySetInnerHTML={{ __html: row.cleanContent }} data-tag="allowRowEvents" />
+      ) /* allow links to be clickable */,
+    },
+    {
+      name: 'Note Title',
+      omit: true /* for now, lets not show the column */,
+      selectorName: 'title',
+      // selector: (row) => row.title,
+      sortable: true,
+    },
+    {
+      name: 'Filename',
+      omit: true /* for now, lets not show the column */,
+      selectorName: 'filename',
+      // selector: (row) => row.title,
+      sortable: true,
+    },
+    {
+      name: 'Hide',
+      selectorName: 'hide',
+      width: '40px',
+      center: true,
+      omit: true,
+      cell: (row) => <span onClick={() => hideRow(row)}>X</span>,
+    },
+  ]
+
+  if (showDaysTilDueColumn) {
+    base.push({
+      name: 'Due in',
+      selectorName: 'daysOverdue',
+      selector: (row) => `${row.daysOverdue.toLocaleString()}d`,
+      sortable: true,
+    })
+  }
+
+  return base
+}
+
 // if we pass in column names, we can't pass through the selector function, so we need to calculate it here
 const columnSpec = (props) => columnsWithFallback(props).map((c) => ({ ...c, selector: c.selector ?? ((row) => row[c.selectorName || c.name]), grow: c.grow ?? 1 }))
 

@@ -1,5 +1,8 @@
 // @flow
 
+import pluginJson from '../../plugin.json'
+import * as helpers from './helpers'
+
 export function getFrontmatter(noteContent)
 {
   let matches = noteContent.match(/^(#[^\n]+\n)?(\-{3,}\n(\-?[^\-]+)*\-{3,})/);
@@ -22,10 +25,17 @@ export function getPublishedPageGuid(noteContent)
   let frontmatter = getFrontmatter(noteContent);
   if (!frontmatter) return '';
   
-  let matches = frontmatter.match(/https:\/\/noteplan.online\/([0-9a-zA-Z]+)/);
-  if (!matches) return '';
+  let baseUrl = helpers.noteBaseUrl();
+  let start = frontmatter.indexOf(baseUrl);
+  if (start == -1) return '';
   
-  return matches[1];
+  let end = frontmatter.indexOf(')', start);
+  if (end == -1) return '';
+  
+  let slash = frontmatter.indexOf('/', start + baseUrl.length);
+  if (slash != -1 && slash < end) end = slash;
+  
+  return frontmatter.substring(start + baseUrl.length, end);
 }
 
 function getTitle(noteContent)
@@ -97,8 +107,9 @@ export function insertPublishUrl(frontmatter, config, url)
 
 export function insertXCallback(frontmatter, config)
 {
-  let republishCommand = '[Republish](noteplan://x-callback-url/runPlugin?pluginID=asktru.NoteplanOnline&command=publish)';
-  let unpublishCommand = '[Unpublish](noteplan://x-callback-url/runPlugin?pluginID=asktru.NoteplanOnline&command=unpublish)';
+  let pluginID = pluginJson['plugin.id'];
+  let republishCommand = '[Republish](noteplan://x-callback-url/runPlugin?pluginID=' + pluginID + '&command=publish)';
+  let unpublishCommand = '[Unpublish](noteplan://x-callback-url/runPlugin?pluginID=' + pluginID + '&command=unpublish)';
   
   let key = config.frontmatterXCallback;
   if (!key) return frontmatter;

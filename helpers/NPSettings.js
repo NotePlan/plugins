@@ -1,7 +1,7 @@
 /* eslint-disable import/order */
 // @flow
 
-import { getPluginJson } from './NPConfiguration'
+import { getPluginJson, saveSettings } from './NPConfiguration'
 import { getInput, showMessage, showMessageYesNo, chooseOption } from './userInput'
 
 import moment from 'moment'
@@ -15,8 +15,9 @@ function getSettingsFromPluginJson(pluginJson: any) {
 
 /**
  * Get options array (label/value pairs for popup) for settings
- * @param {} settingsArray - the [plugin.settings] array from plugin.json
+ * @param {*} settingsArray - the [plugin.settings] array from plugin.json
  * @param {boolean} includeHidden - whether to include hidden settings (default is false)
+ * @returns {*} settings array
  */
 export function getSettingsOptions(settingsArray: any, includeHidden: boolean = false): any {
   let settings = settingsArray.filter((setting) => Boolean(setting.type))
@@ -38,7 +39,9 @@ export function getSettingsOptions(settingsArray: any, includeHidden: boolean = 
 
 /**
  * hidden type - this should not ever be called because of the filter
- * @param {*} setting
+ * @param {*} setting object
+ * @param {*} currentValue
+ * @returns {string}
  */
 // eslint-disable-next-line no-unused-vars
 export function updateSettingType_hidden(setting: any, currentValue: any): Promise<string> {
@@ -47,7 +50,9 @@ export function updateSettingType_hidden(setting: any, currentValue: any): Promi
 
 /**
  * bool type
- * @param {*} setting
+ * @param {*} setting object
+ * @param {*} currentValue
+ * @returns {boolean}
  */
 export async function updateSettingType_bool(setting: any, currentValue: any): Promise<boolean> {
   const newVal = await showMessageYesNo(`"${setting.title}" is currently: '${currentValue}'. Set '${setting.title}' to:`, ['False', 'True'])
@@ -56,7 +61,9 @@ export async function updateSettingType_bool(setting: any, currentValue: any): P
 
 /**
  * number type
- * @param {*} setting
+ * @param {*} setting object
+ * @param {*} currentValue
+ * @returns {number}
  */
 export async function updateSettingType_number(setting: any, currentValue: any): Promise<number> {
   const newVal = await getInput(`${setting.title} is currently: '${currentValue}'. Set '${setting.title}' to:`, 'OK', setting.title, currentValue)
@@ -65,33 +72,41 @@ export async function updateSettingType_number(setting: any, currentValue: any):
 
 /**
  * single string type
- * @param {string} setting
+ * @param {*} setting object
+ * @param {*} currentValue
+ * @returns {string}
  */
 export async function updateSettingType_string(setting: any, currentValue: any): Promise<string> {
   const newVal = await getInput(`Enter a value for '${setting.title}'`, 'OK', `${setting.title}`, currentValue)
   if (newVal !== false) {
     logDebug(pluginJson, `updateSettingType_string: newValue: ${newVal}`)
     return newVal
+  } else {
+    return currentValue
   }
-  return currentValue
 }
 
 /**
  * [string] type
- * @param {*} setting
+ * @param {*} setting object
+ * @param {*} currentValue
+ * @returns {Array<string>}
  */
 export async function updateSettingType__string_(setting: any, currentValue: any): Promise<Array<string>> {
   const newVal = await getInput(`Enter a value for '${setting.title}' as an array of strings separated by commas`, 'OK', `${setting.title}`, currentValue)
   if (newVal !== false) {
     logDebug(pluginJson, `updateSettingType_[string]: newValue: ${newVal}`)
     return newVal.split(',').map((item) => item.trim())
+  } else {
+    return currentValue
   }
-  return currentValue
 }
 
 /**
  * string CHOICES type
- * @param {string} setting
+ * @param {*} setting object
+ * @param {*} currentValue
+ * @returns {string}
  */
 export async function updateSettingType_stringChoices(setting: any, currentValue: any): Promise<string> {
   const choices = setting.choices.map((choice) => ({ label: choice, value: choice.trim() }))
@@ -99,8 +114,9 @@ export async function updateSettingType_stringChoices(setting: any, currentValue
   if (newVal !== false) {
     logDebug(pluginJson, `updateSettingType_string: newValue: ${newVal}`)
     return newVal
+  } else {
+    return currentValue
   }
-  return currentValue
 }
 
 /**
@@ -112,8 +128,9 @@ export async function updateSettingType_date(setting: any, currentValue: any): P
   if (newVal !== false) {
     logDebug(pluginJson, `updateSettingType_date: newValue: ${newVal}`)
     return moment(newVal).toDate()
+  } else {
+    return null
   }
-  return null
 }
 
 /**
@@ -130,12 +147,13 @@ export async function updateSettingType_json(setting: any, currentValue: any): P
   if (newVal !== false) {
     logDebug(pluginJson, `updateSettingType_string: newValue: ${newVal}`)
     return JSON.parse(newVal)
+  } else {
+    return currentValue
   }
-  return currentValue
 }
 
 /**
- * string type
+ * all types
  */
 const getNewValue = {
   updateSettingType_string,
@@ -151,8 +169,8 @@ const getNewValue = {
 /**
  * After a user has selected a key to update, call the appropriate update function based on key name
  * @param {string} key - the key of the setting to update
- * @param {any} pluginJson
- * @returns
+ * @param {*} pluginJson - the current settings for this plugin (JSON)
+ * @returns {boolean} success?
  */
 export async function updateSetting(key: string, pluginJson: any): any {
   const settings = getSettingsFromPluginJson(pluginJson)
@@ -188,11 +206,11 @@ export async function updateSetting(key: string, pluginJson: any): any {
 }
 
 /**
- * Choose from all commands in plugin.json to edit a setting (for plugin settings changes on iOS)
- * Can be run directly as a jsFunction or called from another function
- * @param {any} pluginJson - the whole plugin json object (optional. if not provided, will be fetched from pluginID in DataStore.settings)
+ * Choose from all commands in plugin.json to interactively edit a setting (for plugin settings changes on iOS)
+ * Can be run directly as a jsFunction or called from another function.
+ * @param {any} _pluginJson - the whole plugin json object (optional. if not provided, will be fetched from pluginID in DataStore.settings)
  * @returns {number} - number of edits made
- * @example: 3 steps below. Change <plugin_name> and <plugin_id>:
+ * @example 3 steps below. Change <plugin_name> and <plugin_id>:
  * Put in index.js: export { editSettings } from '@helpers/NPSettings'
  * Put in plugin.json/commands:     {
       "name": "<plugin_name>: Update Plugin Settings",
@@ -205,7 +223,6 @@ export async function updateSetting(key: string, pluginJson: any): any {
       "key": "plugin_ID",
       "default": "<pluginid>"
     },
- * 
  */
 export async function editSettings(_pluginJson?: any): Promise<number> {
   const { pluginID } = DataStore.settings
@@ -240,4 +257,43 @@ export async function editSettings(_pluginJson?: any): Promise<number> {
     logError(pluginJson, 'No settings array found')
   }
   return editsMade
+}
+
+/**
+ * Append a new string to end of an existing [string] setting
+ * @param {string} key to append to
+ * @param {string} newItem to append
+ * @returns {boolean} success?
+ */
+export async function appendStringToSettingArray(key: string, newItem: string): Promise<boolean> {
+  const currentSettings = DataStore.settings
+  // clo(currentSettings, 'before')
+  const currentSettingForKey = currentSettings[key]
+  logDebug(pluginJson, `appendStringToSettingArray: '${key}' currently '${String(currentSettingForKey)}'`)
+  if (currentSettingForKey) {
+    logDebug(pluginJson, `- appending '${newItem}'`)
+    try {
+      // call the specific updater function for the setting type
+      let newValArray: Array<string> = typeof currentSettingForKey === 'string' ? [currentSettingForKey] : currentSettingForKey
+      // logDebug(pluginJson, `- newValArray '${String(newValArray)}' (${typeof newValArray})`)
+      newValArray.push(newItem.trim())
+      // logDebug(pluginJson, `-> '${String(newValArray)}' (${typeof newValArray})`)
+      if (newValArray != null) {
+        currentSettings[key] = newValArray
+        // DataStore.settings = currentSettings
+        await saveSettings('np.Tidy', currentSettings)
+        return true
+      } else {
+        logDebug(pluginJson, `-> nothing to update`)
+      }
+    } catch (error) {
+      logError(pluginJson, `appendStringToSettingArray: ${key} ${JSP(error)}`)
+    }
+  } else {
+    logDebug(pluginJson, `No setting found with key ${key}: will create it`)
+    currentSettings[key] = [newItem.trim()]
+    DataStore.settings = currentSettings
+    return true
+  }
+  return false
 }

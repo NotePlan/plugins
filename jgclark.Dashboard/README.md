@@ -1,5 +1,5 @@
 # 🎛 Dashboard plugin
-![](dashboard-demo-v0.4@2x.jpg)
+![](dashboard-v0.4.1@2x.jpg)
 
 This plugin provides a **dashboard window** that in one place shows a compact list of just the:
 - open tasks and checklists from today's note
@@ -11,7 +11,7 @@ This plugin provides a **dashboard window** that in one place shows a compact li
 
 To open this run the **/show dashboard** command.
 
-All tasks and checklists can be marked as completed by clicking in its usual open circle or square. The item is then completed in NotePlan, and removed from view in this list.
+<img width="500px" src="checking-off.gif" align="right" border="1pt solid" margin="8px"/>All tasks and checklists shown in the Dashboard view can be marked as completed by clicking in its usual open circle or square. The item is then completed in NotePlan, and removed from view in this list.
 
 Note: _It provides this in a view that doesn't use NotePlan's normal editor, but a more flexible HTML-based display. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)_
 

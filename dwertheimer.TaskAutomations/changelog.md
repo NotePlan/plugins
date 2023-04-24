@@ -5,6 +5,22 @@
 
 ## What's Changed in this Plugin?
 
+## [2.14.2]
+
+- XCallback bug fix
+
+## [2.14.1]  @dwertheimer 2023-04-20
+
+- Processing overdues as of a date in the future. Useful for planning the night before.
+
+## [2.14.0]
+
+- Beta test of processing overdue-tomorrow feature
+
+## [2.13.2] @dwertheimer 2023-04-19
+
+- Fix @jgclark sorting edge case where scheduled type was being calculated and impacting sort
+
 ## [2.13.1] @dwertheimer 2023-04-12
 
 - Fix regression bug that was always returning you to Overdue view
