@@ -17,17 +17,30 @@ Main improvements are:
 
 ## Usage
 
+After installing this plugin you should obtain your API key that the plugin will use for publishing the notes for you:
+
+1. Visit https://sharednote.space/register and register an account for yourself (it does not matter whether you use your iCloud account email or any other email address).
+2. Sign in to your account and visit https://sharednote.space/user/api-tokens
+3. Create your first API token by giving it a name and pressing "Create". You will see your token. Copy it to the clipboard.
+4. Open plugin settings in your NotePlan installation and paste your token into the "API key for managing your published notes".
+
+You may also set a password for your published notes in the plugin settings dialog.
+
+> Please be aware that when you *change* the password the notes that you've already shared before are not affected. This means that they will still be accessible using the old password. Only when you call `/publish` again will the note be uploaded with the new password.
+
+If you do not want your viewers to enter the password every time they want to view the published note, you may check "Append the password to the URL" setting.
+
 The plugin has only two commands:
 
-- `/publish` to publish your note securely (this command is also used to update the note that has already been published)
-- `/unpublish` to delete your published note
+- `/publish` to share your note securely (this command is also used to update the note that has already been shared via this plugin before)
+- `/unpublish` to delete your published note from the server
 
-Plugin settings do not need to be set up manually, but you may customize various things, like the text that is being inserted into the note front matter or the password.
+As soon as the note is uploaded to the server, the plugin opens it for you in your default browser.
 
 ## Future Features Roadmap
 
-- Improvements to markdown notes display in various cases
-- Check wiki-links in the shared note and replace them with shared URLs in the related notes (without touching the original note content)
+- Check wiki-links in the shared note and replace them with shared URLs in the related notes, for the links to work correctly in the web version of the note
 - Support recursive note sharing (publish current note and all the wiki-linked notes, including multiple levels of linkage)
 - Limit access to the note content for specific list of emails or a specific email domain
 - Support overriding the password from the plugin settings with a password specific to a current note
+- Improvements on the backend: dashboard of your shared notes, sharing the notes within your team, displaying table of contents, filtering content by hashtag or mention, code blocks syntax highlighting, etc.
