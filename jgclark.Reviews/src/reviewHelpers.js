@@ -214,7 +214,7 @@ export class Project {
   lastProgressComment: string = '' // e.g. "Progress: 60@20220809: comment
   ID: string // required when making HTML views
 
-  constructor(note: TNote) {
+  constructor(note: TNote, tag?: string) {
     try {
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
       this.ID = String(Math.round((Math.random()) * 99999))
@@ -234,10 +234,16 @@ export class Project {
       const hashtags: $ReadOnlyArray<string> = note.hashtags
       const altHashtags = (paras[metadataLineIndex].content + ' ').split(' ').filter((f) => f[0] === '#')
 
-      // work out noteType -- first or second hashtag in note
-      // const firstHashtag = hashtags[0]
-      this.noteType = (hashtags[0] !== '#paused') ? hashtags[0] :
-        (hashtags[1]) ? hashtags[1] : ''
+      // work out noteType:
+      // - if tag given, then use that
+      // - else first or second hashtag in note
+      this.noteType = (tag)
+        ? tag
+        : (hashtags[0] !== '#paused')
+          ? hashtags[0]
+          : (hashtags[1])
+            ? hashtags[1]
+            : ''
       if (this.noteType === '') {
         logInfo('Project constructor', `- found no noteType for '${this.title}' in folder ${this.folder}`)
       }

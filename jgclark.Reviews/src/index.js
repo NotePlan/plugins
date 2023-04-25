@@ -32,7 +32,9 @@ export {
   generateCSSFromTheme
 } from '@helpers/HTMLView'
 
-// NB: There are other possible exports, including:
+// An earlier version had some functions in projectLists.js, but they had to be moved because of dependency issues.
+
+// Note: There are other possible exports, including:
 export { testFonts } from '../experiments/fontTests.js'
 
 export {

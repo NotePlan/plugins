@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 4.3.2023 for v0.9.3, @jgclark
+// Last updated 25.4.2023 for v0.9.5, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -25,31 +25,22 @@ import {
   getTodaysDateHyphenated,
   hyphenatedDateString,
   RE_DATE,
-  // toLocaleDateTimeString,
 } from '@helpers/dateTime'
-import {
-  // nowLocaleDateTime,
-  nowLocaleShortDateTime,
-} from '@helpers/NPdateTime'
+import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import {
   clo, JSP, logDebug, logError, logInfo, logWarn,
   overrideSettingsWithStringArgs,
   timer
 } from '@helpers/dev'
-import {
-  getFilteredFolderList,
-} from '@helpers/folders'
+import { getFilteredFolderList } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import {
   makeSVGPercentRing,
   redToGreenInterpolation,
   showHTML
 } from '@helpers/HTMLView'
-import {
-  findNotesMatchingHashtag,
-  findNotesMatchingHashtags,
-  getOrMakeNote,
-} from '@helpers/note'
+import { getOrMakeNote } from '@helpers/note'
+import { findNotesMatchingHashtag } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import { fieldSorter, sortListBy } from '@helpers/sorting'
@@ -137,7 +128,7 @@ function makeCommandCall(commandCallJSON: string): string {
   const callCommand = () => {
     window.webkit.messageHandlers.jsBridge.postMessage({
       code: ${commandCallJSON},
-      onHandle: "onHandleUpdateLabel", // TODO: remove in time
+      // onHandle: "onHandleUpdateLabel", // TODO: remove in time
       id: "1"
     });
   };
@@ -588,24 +579,21 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
     // ... but ignoring any in the config.foldersToIgnore list
     const projectInstances = []
     for (const folder of filteredFolderList) {
-      // Either we have defined tag(s) to filter and group by, or just use ''
+      // Either we have defined tag(s) to filter and group by, or just use []
       const tags = (config.noteTypeTags != null && config.noteTypeTags.length > 0)
         ? config.noteTypeTags
         : []
 
       // Get notes that include noteTag in this folder, ignoring subfolders
-      const projectNotesArrArr = findNotesMatchingHashtags(tags, folder, false)
-      for (const pnarr of projectNotesArrArr) {
-        if (pnarr.length > 0) {
+      // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
+      for (const tag of tags) {
+        const projectNotesArr = findNotesMatchingHashtag(tag, folder, false)
+        if (projectNotesArr.length > 0) {
           // Get Project class representation of each note.
           // Save those which are ready for review in projectsReadyToReview array
-          for (const n of pnarr) {
-            const np = new Project(n)
-            // Further check to see whether to exclude archived projects
-            // TODO: This will need thought -- does it still make sense?
-            // if (config.displayArchivedProjects) {
-              projectInstances.push(np)
-            // }
+          for (const n of projectNotesArr) {
+            const np = new Project(n, tag)
+            projectInstances.push(np)
           }
         }
       }

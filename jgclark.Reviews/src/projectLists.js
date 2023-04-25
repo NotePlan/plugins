@@ -3,7 +3,7 @@
 // Commands for producing Project lists
 // WARNING: Have the contents -> reviews.js?
 // by @jgclark
-// Last updated 12.2.2023 for v0.9.0-betas, @jgclark
+// Last updated 25.4.2023 (to deal with moved helpers), @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -38,8 +38,8 @@ import {
 import {
   findNotesMatchingHashtag,
   findNotesMatchingHashtags,
-  getOrMakeNote,
-} from '@helpers/note'
+} from '@helpers/NPnote'
+import { getOrMakeNote } from '@helpers/note'
 import {
   showMessage,
   showMessageYesNo,

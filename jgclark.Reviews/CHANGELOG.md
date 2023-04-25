@@ -5,6 +5,12 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - ??? Fixed the race condition on (un)pausing a project
 - ??? ability to pause/unpause a project, by calling new **/pause project toggle** command or adding/removing `#paused` to a project's metadata. When paused this stops the note from being included in reviews, but keeps it visible in the project lists.
 -->
+## [0.9.5] - 2023-03-25
+### Changed
+- when making the Project Review list, the matches to 'Hashtags to review' are now case insensitive
+### Fixed
+- fixed display when a note had more than one matching 'Hashtags to review'
+
 ## [0.9.4] - 2023-03-04
 ### Fixed
 - 'start reviews' button not working
