@@ -5,17 +5,17 @@
 
 import moment from 'moment/min/moment-with-locales'
 import { getBlockUnderHeading } from './NPParagraph'
-import { isOpen } from '@helpers/utils'
-import { getTodaysDateHyphenated } from '@helpers/dateTime'
+import { getTodaysDateHyphenated, isScheduled } from '@helpers/dateTime'
 // import { getNPWeekData } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
+import { displayTitle } from '@helpers/general'
 import { ensureFrontmatter } from '@helpers/NPFrontMatter'
-// import { displayTitle } from '@helpers/general'
+import { noteType } from '@helpers/note'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { caseInsensitiveIncludes } from '@helpers/search'
 import { showMessage } from '@helpers/userInput'
-import { setFrontMatterVars } from './NPFrontMatter'
-import { isScheduled } from './dateTime'
+import { isOpen } from '@helpers/utils'
 
 const pluginJson = 'NPnote.js'
 
@@ -302,11 +302,130 @@ export function getNotesChangedInIntervalFromList(notesToCheck: $ReadOnlyArray<T
     const momentToStartLooking = todayStart.subtract(numDays, 'days')
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
-    let matchingNotes: Array<TNote> = notesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
+    const matchingNotes: Array<TNote> = notesToCheck.filter((f) => f.changedDate >= jsdateToStartLooking)
     // logDebug('getNotesChangedInInterval', `from ${notesToCheck.length} notes found ${matchingNotes.length} changed after ${String(momentToStartLooking)}`)
     return matchingNotes
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     return [] // for completeness
   }
+}
+
+/**
+ * Get a note's display title from its filename.
+ * Handles both Notes and Calendar, matching the latter by regex matches. (Not foolproof though.)
+ * @author @jgclark
+ * @param {string} filename
+ * @returns {string} title of note
+ */
+export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = false): string {
+  const thisNoteType: NoteType = noteType(filename)
+  const note = DataStore.noteByFilename(filename, thisNoteType)
+  if (note) {
+    return makeLink ? `[[${displayTitle(note) ?? ''}]]` : displayTitle(note)
+  } else {
+    logError('note/getNoteTitleFromFilename', `Couldn't get valid title for note filename '${filename}'`)
+    return '(error)'
+  }
+}
+
+/**
+ * Return list of notes with a particular hashtag (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
+ * @author @jgclark
+ *
+ * @param {string} tag - tag name to look for
+ * @param {string?} folder - optional folder to limit to
+ * @param {boolean?} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
+ * @param {string?} tagToExclude - optional tag that if found in the note, excludes the note
+ * @param {boolean?} caseInsensitiveMatch - whether to ignore case when matching (default true)
+ * @return {Array<TNote>}
+ */
+export function findNotesMatchingHashtag(tag: string, folder: ?string, includeSubfolders: ?boolean = false, tagToExclude: string = '', caseInsensitiveMatch: boolean = true): Array<TNote> {
+  let projectNotesInFolder: Array<TNote>
+  // If folder given (not empty) then filter using it
+  if (folder != null) {
+    if (includeSubfolders) {
+      // use startsWith as filter to include subfolders
+      // FIXME: not working for root-level notes
+      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => n.filename.startsWith(`${folder}/`))
+    } else {
+      // use match as filter to exclude subfolders
+      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
+    }
+  } else {
+    // no folder specified, so grab all notes from DataStore
+    projectNotesInFolder = DataStore.projectNotes.slice()
+  }
+
+  // Check for special conditions first
+  if (tag === '') {
+    logError('notes / findNotesMatchingHashtag', `No hashtag given. Stopping`)
+    return [] // for completeness
+  }
+  // Filter by tag
+  let projectNotesWithTag: Array<TNote>
+  if (caseInsensitiveMatch) {
+    projectNotesWithTag = projectNotesInFolder
+      .filter((n) => {
+        // $FlowIgnore[incompatible-call]
+        return caseInsensitiveIncludes(tag, n.hashtags)
+      })
+  } else {
+    projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
+  }
+  logDebug('note/findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+
+  // If we care about the excluded tag, then further filter out notes where it is found
+  if (tagToExclude !== '') {
+    const projectNotesWithTagWithoutExclusion = projectNotesWithTag.filter((n) => !n.hashtags.includes(tagToExclude))
+    const removedItems = projectNotesWithTag.length - projectNotesWithTagWithoutExclusion.length
+    if (removedItems > 0) {
+      // logDebug('notes / findNotesMatchingHashtag', `- but removed ${removedItems} excluded notes:`)
+      // logDebug('notes / findNotesMatchingHashtag', `= ${String(projectNotesWithTag.filter((n) => n.hashtags.includes(tagToExclude)).map((m) => m.title))}`)
+    }
+    return projectNotesWithTagWithoutExclusion
+  } else {
+    return projectNotesWithTag
+  }
+}
+
+/**
+ * Return array of array of notes with particular hashtags (plural), optionally from the given folder.
+ * @author @jgclark
+ *
+ * @param {Array<string>} tag - tags to look for
+ * @param {?string} folder - optional folder to limit to
+ * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
+ * @return {Array<Array<TNote>>} array of list of notes
+ */
+export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, includeSubfolders: ?boolean = false): Array<Array<TNote>> {
+  if (tags.length === 0) {
+    logError('note/findNotesMatchingHashtags', `No hashtags supplied. Stopping`)
+    return []
+  }
+
+  let projectNotesInFolder: Array<TNote>
+  // If folder given (not empty) then filter using it
+  if (folder != null) {
+    if (includeSubfolders) {
+      // use startsWith as filter to include subfolders
+      // FIXME: not working for root-level notes
+      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => n.filename.startsWith(`${folder}/`))
+    } else {
+      // use match as filter to exclude subfolders
+      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
+    }
+  } else {
+    // no folder specified, so grab all notes from DataStore
+    projectNotesInFolder = DataStore.projectNotes.slice()
+  }
+
+  // Filter by tags
+  const projectNotesWithTags = [[]]
+  for (const tag of tags) {
+    const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
+    logDebug('note/findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+    projectNotesWithTags.push(projectNotesWithTag)
+  }
+  return projectNotesWithTags
 }

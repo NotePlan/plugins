@@ -17,13 +17,13 @@ import {
   isMonthlyNote,
   isQuarterlyNote,
   isYearlyNote,
-} from './dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logWarn } from './dev'
-import { getFolderFromFilename } from './folders'
-import { displayTitle, type headingLevelType } from './general'
-import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from './paragraph'
-import { sortListBy } from './sorting'
-import { showMessage } from './userInput'
+} from '@helpers/dateTime'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { getFolderFromFilename } from '@helpers/folders'
+import { displayTitle, type headingLevelType } from '@helpers/general'
+import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { sortListBy } from '@helpers/sorting'
+import { showMessage } from '@helpers/userInput'
 import { isOpen } from '@helpers/utils'
 
 // const pluginJson = 'helpers/note.js'
@@ -183,115 +183,6 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string, parti
       return
     }
   }
-}
-
-/**
- * Get a note's display title from its filename.
- * Handles both Notes and Calendar, matching the latter by regex matches. (Not foolproof though.)
- * @author @jgclark
- * @param {string} filename
- * @returns {string} title of note
- */
-export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = false): string {
-  const thisNoteType: NoteType = noteType(filename)
-  const note = DataStore.noteByFilename(filename, thisNoteType)
-  if (note) {
-    return makeLink ? `[[${displayTitle(note) ?? ''}]]` : displayTitle(note)
-  } else {
-    logError('note/getNoteTitleFromFilename', `Couldn't get valid title for note filename '${filename}'`)
-    return '(error)'
-  }
-}
-
-/**
- * Return list of notes with a particular hashtag (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
- * @author @jgclark
- *
- * @param {string} tag - tag name to look for
- * @param {string?} folder - optional folder to limit to
- * @param {boolean?} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @param {string?} tagToExclude - optional tag that if found in the note, excludes the note
- * @return {Array<TNote>}
- */
-export function findNotesMatchingHashtag(tag: string, folder: ?string, includeSubfolders: ?boolean = false, tagToExclude: string = ''): Array<TNote> {
-  let projectNotesInFolder: Array<TNote>
-  // If folder given (not empty) then filter using it
-  if (folder != null) {
-    if (includeSubfolders) {
-      // use startsWith as filter to include subfolders
-      // FIXME: not working for root-level notes
-      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => n.filename.startsWith(`${folder}/`))
-    } else {
-      // use match as filter to exclude subfolders
-      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
-    }
-  } else {
-    // no folder specified, so grab all notes from DataStore
-    projectNotesInFolder = DataStore.projectNotes.slice()
-  }
-
-  // Check for special conditions first
-  if (tag === '') {
-    logError('notes / findNotesMatchingHashtag', `No hashtag given. Stopping`)
-    return [] // for completeness
-  }
-  // Filter by tag
-  const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
-  // logDebug('notes / findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
-
-  // If we care about the excluded tag, then further filter out notes where it is found
-  if (tagToExclude !== '') {
-    const projectNotesWithTagWithoutExclusion = projectNotesWithTag.filter((n) => !n.hashtags.includes(tagToExclude))
-    const removedItems = projectNotesWithTag.length - projectNotesWithTagWithoutExclusion.length
-    if (removedItems > 0) {
-      // logDebug('notes / findNotesMatchingHashtag', `- but removed ${removedItems} excluded notes:`)
-      // logDebug('notes / findNotesMatchingHashtag', `= ${String(projectNotesWithTag.filter((n) => n.hashtags.includes(tagToExclude)).map((m) => m.title))}`)
-    }
-    return projectNotesWithTagWithoutExclusion
-  } else {
-    return projectNotesWithTag
-  }
-}
-
-/**
- * Return array of array of notes with particular hashtags (plural), optionally from the given folder.
- * @author @jgclark
- *
- * @param {Array<string>} tag - tags to look for
- * @param {?string} folder - optional folder to limit to
- * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @return {Array<Array<TNote>>} array of list of notes
- */
-export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, includeSubfolders: ?boolean = false): Array<Array<TNote>> {
-  if (tags.length === 0) {
-    logError('note/findNotesMatchingHashtags', `No hashtags supplied. Stopping`)
-    return []
-  }
-
-  let projectNotesInFolder: Array<TNote>
-  // If folder given (not empty) then filter using it
-  if (folder != null) {
-    if (includeSubfolders) {
-      // use startsWith as filter to include subfolders
-      // FIXME: not working for root-level notes
-      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => n.filename.startsWith(`${folder}/`))
-    } else {
-      // use match as filter to exclude subfolders
-      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
-    }
-  } else {
-    // no folder specified, so grab all notes from DataStore
-    projectNotesInFolder = DataStore.projectNotes.slice()
-  }
-
-  // Filter by tags
-  const projectNotesWithTags = [[]]
-  for (const tag of tags) {
-    const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
-    logDebug('note/findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
-    projectNotesWithTags.push(projectNotesWithTag)
-  }
-  return projectNotesWithTags
 }
 
 /**
