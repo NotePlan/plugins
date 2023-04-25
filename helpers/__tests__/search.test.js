@@ -11,6 +11,37 @@ beforeAll(() => {
 })
 
 describe('search.js tests', () => {
+  describe('caseInsensitiveIncludes', () => {
+    test('should not match empty searchTerm to empty array', () => {
+      const result = s.caseInsensitiveIncludes('', [])
+      expect(result).toEqual(false)
+    })
+    test('should not match empty searchTerm to array', () => {
+      const result = s.caseInsensitiveIncludes('', ['ABC', 'DEF'])
+      expect(result).toEqual(false)
+    })
+    test('should match "AbC" to array ["abc"]', () => {
+      const result = s.caseInsensitiveIncludes('AbC', ['one', 'abc', 'two'])
+      expect(result).toEqual(true)
+    })
+    test('should match "AbC" to array ["ABC"]', () => {
+      const result = s.caseInsensitiveIncludes('AbC', ['one', 'ABC', 'two'])
+      expect(result).toEqual(true)
+    })
+    test('should match "AbC" to array ["aBc"]', () => {
+      const result = s.caseInsensitiveIncludes('AbC', ['one', 'aBc', 'two'])
+      expect(result).toEqual(true)
+    })
+    test('should not match ABC to <blank>', () => {
+      const result = s.caseInsensitiveIncludes('ABC', [''])
+      expect(result).toEqual(false)
+    })
+    test('should not match ABC to "oneABCtwo"', () => {
+      const result = s.caseInsensitiveIncludes('ABC', ["oneABCtwo"])
+      expect(result).toEqual(false)
+    })
+  })
+
   describe('caseInsensitiveMatch', () => {
     test('should not match ABC to ABCDEFG', () => {
       const result = s.caseInsensitiveMatch('ABC', 'ABCDEFG')

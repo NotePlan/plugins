@@ -9,6 +9,27 @@ import { clo, logDebug, logError } from '@helpers/dev'
 import { RE_SYNC_MARKER } from '@helpers/regex'
 
 /**
+ * Case insensitive array.includes() match
+ * @author @jgclark
+ * @param {string} searchTerm
+ * @param {Array<string>} arrayToSearch 
+ * @returns {boolean}
+ * TODO: @tests available in jest file
+ */
+export function caseInsensitiveIncludes(searchTerm: string, arrayToSearch: Array<string>): boolean {
+  try {
+    const matches = arrayToSearch.filter((h) => {
+      return h.toLowerCase() === searchTerm.toLowerCase()
+    })
+    return matches.length > 0
+  }
+  catch (error) {
+    logError('search/caseInsensitiveIncludes', `Error matching '${searchTerm}' to array '${String(arrayToSearch)}': ${error.message}`)
+    return false
+  }
+}
+
+/**
  * Perform string exact match, ignoring case
  * @author @jgclark
  * @param {string} searchTerm 
