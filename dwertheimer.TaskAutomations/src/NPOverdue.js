@@ -7,7 +7,7 @@ import { getOverdueParagraphs } from '../../helpers/NPParagraph'
 import { reviewTasksInNotes, getNotesAndTasksToReview, getNotesWithOpenTasks, getReferencesForReview } from './NPTaskScanAndProcess'
 import { isOpen } from '@helpers/utils'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
-import { filenameDateString, getTodaysDateHyphenated, getDateOptions } from '@helpers/dateTime'
+import { filenameDateString, getTodaysDateHyphenated, getDateOptions, RE_DATE } from '@helpers/dateTime'
 
 const todayFileName = `${filenameDateString(new Date())}.${DataStore.defaultFileExtension}`
 
@@ -71,8 +71,13 @@ export async function askToReviewForgottenTasks(byTask: boolean = false, endingD
         // Commented out this ask about ignoring scheduled tasks. It works cand can be uncommented, but it felt like too many questions
         // added a user preference for it instead
         // answer = await showMessageYesNo('Ignore items which have dates/are scheduled?', ['Yes', 'No'], "Ignore Scheduled Tasks", true)
-        logDebug(pluginJson, `askToReviewForgottenTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
-        await searchForOpenTasks(null, byTask, ignoreScheduledInForgottenReview, endingDateString)
+        logDebug(
+          pluginJson,
+          `askToReviewForgottenTasks: now launching review of today's tasks; byTask=${String(
+            byTask,
+          )} ignoreScheduledInForgottenReview=${ignoreScheduledInForgottenReview} endingDateString=${endingDateString}`,
+        )
+        await searchForOpenTasks(byTask, ignoreScheduledInForgottenReview, endingDateString)
       }
     }
   } catch (error) {
@@ -181,7 +186,9 @@ export async function runInteractiveReviewForDate(asOfDateString?: string = getT
  */
 export async function reviewOverdueTasksByTask(asOfDateString: string): Promise<void> {
   try {
-    await runInteractiveReviewForDate(asOfDateString)
+    const aods = new RegExp(RE_DATE).test(asOfDateString) ? asOfDateString : getTodaysDateHyphenated()
+    logDebug(pluginJson, `reviewOverdueTasksByTask asOfDateString=${asOfDateString}; will use: ${aods}`)
+    await runInteractiveReviewForDate(aods)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -289,7 +296,8 @@ export async function reviewWeeklyTasks(forDateString?: string = getTodaysDateHy
  */
 export async function reviewEditorReferencedTasks(byTask: boolean = true, weeklyNote: boolean = false, forDateString?: string = getTodaysDateHyphenated()): Promise<void> {
   try {
-    await Editor.openNoteByDate(new moment(forDateString).toDate())
+    // $FlowFixMe
+    await Editor.openNoteByDate(new moment(forDateString || undefined).toDate())
     logDebug(pluginJson, `reviewEditorReferencedTasks: ${String(byTask)}, ${String(weeklyNote)}`)
     if (Editor.note?.type !== 'Calendar') {
       await showMessage(`You must be in a Calendar Note to run this command.`)
@@ -401,15 +409,13 @@ export async function getNotesToReviewForOpenTasks(
  * Plugin entrypoint for command: "/Search Forgotten Tasks Oldest to Newest"
  * @param {*} incoming
  */
-export async function searchForOpenTasks(
-  incoming: string | null = null,
-  byTask: boolean = false,
-  ignoreScheduledInForgottenReview: boolean = true,
-  endingDateString: string = getTodaysDateHyphenated(),
-) {
+export async function searchForOpenTasks(byTask: boolean = false, ignoreScheduledInForgottenReview: boolean = true, endingDateString: string = getTodaysDateHyphenated()) {
   try {
     const { overdueOpenOnly, forgottenFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
-    logDebug(pluginJson, `searchForOpenTasks incoming:${incoming || ''} byTask:${String(byTask)} ignoreScheduledInForgottenReview:${String(ignoreScheduledInForgottenReview)}`)
+    logDebug(
+      pluginJson,
+      `searchForOpenTasks byTask:${String(byTask)} ignoreScheduledInForgottenReview:${String(ignoreScheduledInForgottenReview)} endingDateString=${endingDateString}`,
+    )
     const notes = await getNotesToReviewForOpenTasks(ignoreScheduledInForgottenReview, endingDateString)
 
     if (!notes || !notes.length) {
