@@ -7,7 +7,7 @@
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
   "plugin.version": "0.4.0",
-  "plugin.lastUpdateInfo": "v0.4.0: adds command to tidy up triggers in older calendar notes",
+  "plugin.lastUpdateInfo": "v0.4.0: adds command to tidy up triggers in older calendar notes, and way to change settings on iOS.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -115,6 +115,11 @@
       "arguments": [
         "Parameters"
       ]
+    },
+    {
+      "name": "Tidy: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
     }
   ],
   "plugin.commands_disabled": [
