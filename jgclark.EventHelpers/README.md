@@ -1,15 +1,15 @@
 # 🕓 Event Helpers plugin
 This plugin provides commands to help you do useful things with Events and Calendars that can't (yet) be done by NotePlan itself:
 
-- **/insert day's events as list**: insert a list of this day's calendar events into the current note
-- **/insert matching events**: insert a  list of this day's calendar events that match certain patterns into the current note
-- **/time blocks to calendar**: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to them to full Calendar events in your current default calendar, as set by iCal. If you have set a Time Block 'text must contain' string in NotePlan's 'Todo' preferences pane, then this is honoured when finding potential time blocks.
-- **/process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.)
-- **/shift dates**: takes dates _in the selected lines_ and shifts them forwards or backwards by a given date interval. It works on both `>YYYY-MM-DD` and `>YYYY-Wnn` style dates.  (User George Crump (@george65) has created a [video showing how this command works](https://storone.zoom.us/rec/play/tzI6AreYeKvoyHRw11HX93IGVf2OI-U7WgKXYn2rmGJvbFHXZp8PSr6ajmOrtWymOU5jFIItScSJnL9U.tboBQEXjdw1uRTqu).)
+- **insert day's events as list**: insert a list of this day's calendar events into the current note
+- **insert matching events**: insert a  list of this day's calendar events that match certain patterns into the current note
+- **time blocks to calendar**: takes [NotePlan-defined time blocks](https://help.noteplan.co/article/52-part-2-tasks-events-and-reminders#timeblocking) and converts to them to full Calendar events in your current default calendar, as set by iCal. (See also [Display of Time Blocks](#display-of-time-blocks) below.)
+- **process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.)
+- **shift dates**: takes dates _in the selected lines_ and shifts them forwards or backwards by a given date interval. It works on both `>YYYY-MM-DD` and `>YYYY-Wnn` style dates.  (User George Crump (@george65) has created a [video showing how this command works](https://storone.zoom.us/rec/play/tzI6AreYeKvoyHRw11HX93IGVf2OI-U7WgKXYn2rmGJvbFHXZp8PSr6ajmOrtWymOU5jFIItScSJnL9U.tboBQEXjdw1uRTqu).)
 
 Most of these commands require configuration, described in the sections below. Click the gear button on the 'Event Helpers' line in the Plugin Preferences panel to access the settings.  Also see [Theme customisation](#theme-customisation) below for more on how to customise display of time blocks and events.
 
-## /insert day's events as list  and  /insert matching events
+## "insert day's events as list"  and "insert matching events" commands
 Settings:
 - **Events heading**: in `/insert today's events as list` command (or `events()` template call), the heading to put before the list of the day's events. Optional.
 - **Events List display format**: the format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'LOCATION', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'.  (Default is `- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*`.)
@@ -107,7 +107,11 @@ In more detail:
 | \* Bob's birthday on 2021-09-05<br />&nbsp;&nbsp;\* Find present {^+6d}<br />&nbsp;&nbsp;\* Wrap & post present {^+3d} <br />&nbsp;&nbsp;\* Call Bob {0d}   | \* Bob's birthday on 2021-09-05 to 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14 |
 | \#\#\# Easter Preparations >2022-03-01<br />\* Use up sweet treats (Shrove Tuesday) {0d}<br />\* Start Lent (Ash Wednesday) {^+1d}<br />\* End of Lent {^+-6w}<br />\* Remember Last Supper {^+1d} <br />\* Good Friday {^+1d} <br />\* Easter Sunday {^+2d} | \#\#\# Easter Preparations >2022-03-01 to >2022-04-17<br />\* Use up sweet treats (Shrove Tuesday) >2022-03-01<br />\* Start Lent (Ash Wednesday) >2022-03-02<br />\* End of Lent >2022-04-13<br />\* Remember Last Supper >2022-04-14<br />\* Good Friday >2022-04-15<br />\* Easter Sunday >2022-04-17 |
 
-## Theme Customisation
+## Display of Time Blocks
+If you're using the **time blocks to calendar** command with a format that includes the START and END times, then it's likely that the NotePlan will still see a time block for the text of the event, and so in the calendar area show the event _and_ a time block for it. To avoid this you can either
+- put brackets around the START and END times
+- or use set something in the 'text must contain' string in NotePlan's 'Todo' preferences pane.
+
 NotePlan allows extensive [customisation of fonts and colours through its Themes](https://help.noteplan.co/article/44-customize-themes). It also supports doing more advanced highlighting using regex. To add **colour highlighting for time blocks**, add the following to your favourite theme's .json file:
 ```jsonc
 "timeblocks": {
@@ -116,6 +120,8 @@ NotePlan allows extensive [customisation of fonts and colours through its Themes
   "color": "#CC4999"
 }
 ```
+
+<!-- TODO: figure out what NP is automatically finding, since about v3.8 -->
 
 <!-- If you're adding event IDs through the `/time blocks to calendar` command, then you might want to **hide the long `event:ID` string until you move the cursor to the ⏰ marker**. To do this add the following:
 ```jsonc

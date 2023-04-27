@@ -3,11 +3,15 @@ Unlike many task or project management apps, NotePlan has very little enforced s
 
 This plugin provides commands to help **review** Project-based notes, and it helps me manage over 50 such projects. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. (It probably won't have much applicability to people who just use NotePlan as a Zettelkasten-style knowledge base.)
 
+The main review screen looks like this, showing the projects due for review from various different NotePlan folders:
+
+![Example of Rich style of "/project lists"](review-list4-rich.jpg)
+
 If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 50 of these.
 
-User George Crump (@george65) has created a video showing how the plugin works: (Note: it was created back at v0.7, so it looks rather different now.)
+User George Crump (@george65) has created a video showing most of what the plugin does:
 
-[![video thumbnail](georgec-video-thumbnail.png)](https://storone.zoom.us/rec/play/Pgo9gL24JcZeLJfMW23GWVMGgYGMIN9NZgK5eJwhec8Xg0kyqTZG-uxJjjQh3tK2CvIAYAK5QheSTKis.0Qf5Lu0zvNIIIra3)
+[![video thumbnail](georgec-video2-thumbnail.jpg)](https://youtu.be/R-3qn6wdDLk)
 
 ## Using NotePlan for Project-like work
 Each **Project** is described by a separate note, and has a lifecycle something like this:
@@ -63,7 +67,7 @@ Other notes:
 - I'm sometimes asked why I use `@reviewed(2021-06-25)` rather than `@reviewed/2021-06-25`. The answer is that while the latter form is displayed in a neater way in the sidebar, the date part isn't available in the NotePlan API as the part after the slash is not a valid @tag as it doesn't contain an alphabetic character.
 
 ## Reviewing Projects and/or Areas
-Use the 'Hashtags to review' setting to control which notes are included in the review lists:
+Use the '**Hashtags to review**' setting to control which notes are included in the review lists:
 - If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
 - if it is set (e.g. `#project, #area, #goal`), then it will include just those notes which also have one or more of those tags.
 - You can specify folders to ignore using the 'Folders to Ignore' setting; I have this set to `Summaries, Reviews, Saved Searches`. (Note that the special Templates, Archive and Trash are always excluded.)
@@ -73,10 +77,9 @@ When you have [configured the plugin](#configuration), and added suitable metada
 ### "/project lists" command
 This shows a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. **Tip**: Place this list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.
 
-From v0.8 you can set the '**Output style to use**'. This is either a '**Rich**' (HTML) or original '**Markdown**' (normal NotePlan) output style:
+You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, shown above) or original '**Markdown**' (normal NotePlan) output style:
 
 <!-- FIXME: update screenshot -->
-![Example of Rich style of "/project lists"](review-list4-rich.jpg)
 ![Example of Markdown style of "/project lists"](review-list4-md.jpg)
 
 Notes about the displays:
@@ -90,7 +93,7 @@ Notes about the displays:
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 Other settings:
-- Specify folders to ignore using the 'Folders to ignore' shared setting (as above).
+- Folders to ignore: Specify folders to ignore using this shared setting (as above).
 - Display project dates?  Whether to display the project's review and due dates (where set).
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.

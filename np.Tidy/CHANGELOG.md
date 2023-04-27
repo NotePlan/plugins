@@ -1,10 +1,11 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [0.4.0] - 2023-04-21
+## [0.4.0] - 2023-04-21???
 ### New
 - new **Remove triggers from recent calendar notes** command which removes one or more triggers from recent (but past) calendar notes. (This could be used as part of a daily or weekly Template.)
-- new option "➡️ Ignore this note from now on" in the **File root-level notes** command, which populates the 'Root notes to ignore' setting for you. (For @dwertheimer.)
+- new option "➡️ Ignore this note from now on" in the **File root-level notes** command, which populates the 'Root notes to ignore' setting for you. (For @dwertheimer.) @@@ currently hits a NP bug, so not released yet.
+- new **update plugin settings** command that can be run on iOS devices
 - new setting "Run commands silently?". When running commands silently, they will run entirely in the background and not pop up dialogs to check or report success. Only turn this on when you're comfortable that the commands are doing what you expect. If you run in this mode, then details will be written to the Plugin Console at level 'INFO' instead.
 
 ## [0.3.0] - 2023-01-22

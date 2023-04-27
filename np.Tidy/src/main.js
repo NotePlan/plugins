@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 16.3.2023 for v0.4.0, @jgclark
+// Last updated 21.4.2023 for v0.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -30,13 +30,19 @@ import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageY
 export async function tidyUpAll(): Promise<void> {
   try {
     logDebug(pluginJson, `tidyUpAll: Starting`)
+
+    // Show dialog to show its working
+    CommandBar.showLoading(true, `Tidy Up ...`, 0)
+
     // Get plugin settings (config)
     const config: TidyConfig = await getSettings()
+    CommandBar.showLoading(true, `Tidy Up ...`, 0.1)
 
     if (config.runRemoveOrphansCommand) {
       logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
       await removeOrphanedBlockIDs(config.runSilently)
     }
+    CommandBar.showLoading(true, `Tidy Up ...`, 0.4)
 
     // Following functions take params; so send runSilently as a param
     const param = config.runSilently ? '{"runSilently": true}' : ''
@@ -44,10 +50,12 @@ export async function tidyUpAll(): Promise<void> {
       logDebug('tidyUpAll', `Starting removeDoneMarkers...`)
       await removeDoneMarkers(param)
     }
+    CommandBar.showLoading(true, `Tidy Up ...`, 0.5)
     if (config.runRemoveDoneTimePartsCommand) {
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeDoneTimeParts(param)
     }
+    CommandBar.showLoading(true, `Tidy Up ...`, 0.6)
 
     // Note: Disabling this one as it can't be run silently
     // if (config.runFileRootNotesCommand) {
@@ -64,6 +72,10 @@ export async function tidyUpAll(): Promise<void> {
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeTriggersFromRecentCalendarNotes(param)
     }
+    CommandBar.showLoading(true, `Tidy Up ...`, 0.9)
+
+    // stop spinner
+    CommandBar.showLoading(false)
   } catch (error) {
     logError('tidyUpAll', JSP(error))
   }
@@ -477,18 +489,15 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
     // logDebug('removeTriggersFromRecentCalendarNotes', `runSilently = ${String(runSilently)}`)
 
     // Find past calendar notes changed recently (or all if numDays === 0)
-    const calendarParasWithTrigger = DataStore.searchCalendarNotes('triggers:', false)
-    // TODO: use this instead?
+    // Earlier method:
+    // const calendarParasWithTrigger = DataStore.searchCalendarNotes('triggers:', false)
+    // v2 method:
     const thePastCalendarNotes = pastCalendarNotes()
     logDebug('removeTriggersFromRecentCalendarNotes', `thePastCalendarNotes.length = ${String(thePastCalendarNotes.length)}`)
     const notesToProcess: Array<TNote> = numDays > 0
       ? getNotesChangedInIntervalFromList(thePastCalendarNotes, numDays)
       : thePastCalendarNotes
     const numToProcess = notesToProcess.length
-
-    // TODO: remove me after TEST:
-    logInfo('removeTriggersFromRecentCalendarNotes', `Special Test: noteHasFrontMatter(20230402) -> ${String(noteHasFrontMatter(DataStore.calendarNoteByDateString('20230402')))}`)
-    logInfo('removeTriggersFromRecentCalendarNotes', `Special Test: hasFrontMatter(20230402.contents) -> ${String(hasFrontMatter(DataStore.calendarNoteByDateString('20230402').content))}`)
 
     if (numToProcess > 0) {
       let countRemoved = 0
@@ -497,7 +506,6 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
       for (const note of notesToProcess) {
         // Only proceed if the note actually has frontmatter
         if (noteHasFrontMatter(note)) {
-          // FIXME: somehow 20230402 gets through here, but has no FM.
           const result = removeFrontMatterField(note, 'triggers', 'onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard', true)
           if (result) {
             logDebug('removeTriggersFromRecentCalendarNotes', `removed frontmatter trigger field from ${displayTitle(note)}`)
@@ -675,8 +683,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
 
     // Find blockIDs in all notes, and save the details of it in a data structure that tracks the first found copy only, and the number of copies.
     let parasWithBlockID = DataStore.referencedBlocks()
-    logDebug('removeOrphanedBlockIDs', `Current total: ${String(parasWithBlockID.length)} blockIDs`)
-    logDebug('runSilently?', String(runSilently))
+    logDebug('removeOrphanedBlockIDs', `Starting with ${String(parasWithBlockID.length)} total blockIDs. runSilently? ${String(runSilently)}`)
 
     // Use numDays to limit to recent notes, if > 0
     if (config.numDays > 0) {
@@ -707,6 +714,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
     }
     if (numToRemove === 0) {
       if (!runSilently) {
+        logDebug('removeOrphanedBlockIDs', `No orphaned blockIDs were found in syncd lines`)
         await showMessage(`No orphaned blockIDs were found in syncd lines.`, 'OK, great!', 'Remove Orphaned blockIDs')
       } else {
         logInfo('removeOrphanedBlockIDs', `No orphaned blockIDs were found in syncd lines`)
@@ -714,10 +722,6 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
       return
     }
     logDebug('removeOrphanedBlockIDs', `Found ${String(numToRemove)} orphaned blockIDs`)
-
-    // Decided this check is not needed, as it has been testeed enough
-    // res = await showMessageYesNo(`Found ${String(numToRemove)} orphaned blockIDs out of ${String(parasWithBlockID.length)} sync'd lines.\nPlease open your Plugin Console log, so that I can list them for you now.`, ["I'm Ready", "Cancel"], "Remove Orphaned blockIDs", false)
-    // if (res === "Cancel") { return }
 
     // // Log the singleton blockIDs
     // logDebug('removeOrphanedBlockIDs', `\nFound these '${String(numToRemove)} orphaned blockIDs:`)
@@ -727,7 +731,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
     // }
 
     if (!runSilently) {
-      res = await showMessageYesNo(`Shall I proceed to remove these  orphaned blockIDs?`, ['Yes please', 'No'], 'Remove Orphaned blockIDs', false)
+      res = await showMessageYesNo(`Shall I proceed to remove ${String(numToRemove)} orphaned blockIDs?`, ['Yes please', 'No'], 'Remove Orphaned blockIDs', false)
       if (res === 'No') {
         return
       }

@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.14.3] @dwertheimer 2023-04-25
+
+- Fix bug that was overlooking forgotten tasks without dates.
+
 ## [2.14.2]
 
 - XCallback bug fix
@@ -38,7 +42,7 @@
 
 - Fix filter dropdown bug 2023-04-08
 
-## [2.12.2] @dwertheimer 
+## [2.12.2] @dwertheimer
 
 - Document xcallbacks for React view
 
@@ -52,7 +56,7 @@
 
 ## [2.11.4] (@dwertheimer) 2023-03-26
 
-- roll back scheduled types per https://discord.com/channels/763107030223290449/1015086466663202856/1089721078957473813
+- roll back scheduled types per <https://discord.com/channels/763107030223290449/1015086466663202856/1089721078957473813>
 
 ## [2.11.3] (@dwertheimer) 2023-03-26
 
