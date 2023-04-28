@@ -4,8 +4,17 @@
 // See also HTMLView for specifics of working in HTML
 // ----------------------------------------------------------------------------
 
-import { logDebug, logError, logInfo } from '@helpers/dev'
-import { caseInsensitiveStartsWith } from '@helpers/search'
+import { clo, logDebug, logError, logInfo } from '@helpers/dev'
+import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
+
+/**
+ * Return string version of Rect's x/y/width/height attributes
+ * @param {Rect} rect 
+ * @returns {string}
+ */
+export function rectToString(rect: Rect): string {
+  return `X${String(rect.x)},Y${String(rect.x)},w${String(rect.width)},h${String(rect.height)}`
+}
 
 /**
  * List all open windows to the plugin console log.
@@ -17,12 +26,12 @@ export function logWindowsList(): void {
   if (NotePlan.environment.buildVersion >= 973) {
     let c = 0
     for (const win of NotePlan.editors) {
-      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id}`)
+      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
       c++
     }
     c = 0
     for (const win of NotePlan.htmlWindows) {
-      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id}`)
+      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id} Rect:${rectToString(win.windowRect)}`)
       c++
     }
     outputLines.unshift(`${outputLines.length} Windows:`)
@@ -54,19 +63,21 @@ export function setHTMLWindowID(customID: string): void {
 }
 
 /**
- * Is a given HTML window open? Tests by doing a case-insensitive-starts-with match using the supplied customID string.
+ * Is a given HTML window open? Tests by doing a case-insensitive-starts-with-match or case-insensitive-match using the supplied customID string.
  * @author @jgclark
  * @param {string} customID to look for
  * @returns {boolean}
  */
 export function isHTMLWindowOpen(customID: string): boolean {
   if (NotePlan.environment.buildVersion >= 973) {
-    // const allHTMLWindows = NotePlan.htmlWindows // unused
-    for (const thisWin of NotePlan.editors) {
-      if (caseInsensitiveStartsWith(customID, thisWin.customId)) {
+    const allHTMLWindows = NotePlan.htmlWindows
+    for (const thisWin of allHTMLWindows) {
+      if (caseInsensitiveMatch(customID, thisWin.customId) || caseInsensitiveStartsWith(customID, thisWin.customId)) {
         thisWin.customId = customID
-        logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customID}'`)
+        // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customID}'`)
         return true
+      } else {
+        // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customID}'`)
       }
     }
   } else {
@@ -142,25 +153,55 @@ export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | f
 
 /**
  * If the customId matches an open HTML window, then simply focus it, and return true.
- * FIXME(EduardMe): currently (b983) not working as expected, as HTML entities appear not to be deleted when they should be.
  * @param {string} customID
  * @returns {boolean} true if we have given focus to an existing window
  */
 export function focusHTMLWindowIfAvailable(customId: string): boolean {
   if (NotePlan.environment.buildVersion >= 973) {
-    // TODO: until Eduard fixes this, always return false
-    // logInfo('focusHTMLWindowIfAvailable', `(Currently no check run as there's an API bug.)`)
-    // const allHTMLWindows = NotePlan.htmlWindows
-    // for (const thisWindow of allHTMLWindows) {
-    //   if (thisWindow.customId === customId) {
-    //     thisWindow.focus()
-    //     logInfo('focusHTMLWindowIfAvailable', `Focused HTML window '${thisWindow.customId}'`)
-    //     return true
-    //   }
-    // }
-    // logInfo('focusHTMLWindowIfAvailable', `No HTML window with '${customId}' is open`)
+    logInfo('focusHTMLWindowIfAvailable', `(Currently no check run as there's an API bug.)`)
+    const allHTMLWindows = NotePlan.htmlWindows
+    for (const thisWindow of allHTMLWindows) {
+      if (thisWindow.customId === customId) {
+        thisWindow.focus()
+        logInfo('focusHTMLWindowIfAvailable', `Focused HTML window '${thisWindow.customId}'`)
+        return true
+      }
+    }
+    logInfo('focusHTMLWindowIfAvailable', `No HTML window with '${customId}' is open`)
   } else {
     logInfo('focusHTMLWindowIfAvailable', `(Cannot find window Ids as not running v3.8.1 or later)`)
   }
   return false
+}
+
+/**
+ * Save the Rect (x/y/w/h) of the given window, given by its ID, to the local device's NP preferences store.
+ * @param {string} windowID
+ */
+export function storeWindowRect(windowID: string): void {
+  if (NotePlan.environment.buildVersion < 1019) {
+    logDebug('storeWindowRect', `Cannot save window rect as not running v3.9.1 or later.`)
+    return
+  }
+  // TODO: ...
+  const windowRect: Rect = win.windowRect
+  const prefName = `HTMLWinRect_${windowID}`
+  DataStore.setPreference(prefName, windowRect)
+  logDebug('storeWindowRect', `Saved Rect to ${prefName}`)
+}
+
+/**
+ * Get the Rect (x/y/w/h) of the given window, given by its ID, from the local device's NP preferences store.
+ * @param {string} windowID
+ * @returns {Rect} the Rect (x/y/w/h)
+ */
+export function getWindowRect(windowID: string): Rect | false {
+  if (NotePlan.environment.buildVersion < 1019) {
+    logDebug('getWindowRect', `Cannot save window rect as not running v3.9.1 or later.`)
+    return false
+  }
+  const prefName = `HTMLWinRect_${windowID}`
+  const windowRect: Rect = DataStore.preference(prefName)
+  clo(windowRect, `Retrieved Rect for ${prefName}`)
+  return windowRect
 }
