@@ -167,3 +167,18 @@ export const RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*(\[[ \>
 export const RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp = /[\n^]\s*(\[[ \>]\]|[\*\-\+]\s[^\[])/g
 export const RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*[\*\-\+]\s*(\[[x\-]\]|s[^\[])/
 export const RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp = /[\n^]\s*[\*\-\+]\s*(\[[x\-]\]|s[^\[])/g
+
+/**
+ * Make regex to find open tasks or checklist items in a multi-line string, that takes account of the user's preference for what counts as a todo.
+ * @returns {RegExp}
+ */
+export function formRegExForUsersOpenTasks(): RegExp {
+  // read the user's prefs for what counts as a todo
+  const CHECKLIST_TODO = "+"
+  const ASTERISK_TODO = DataStore.preference("isAsteriskTodo") ? "*" : ""
+  const DASH_TODO = DataStore.preference("isDashTodo") ? "-" : ""
+  const NUMBER_TODO = DataStore.preference("isNumbersTodo") ? "|\\d+\\." : ""
+  // form the regex to find open items for these type(s) of todos
+  const RE: RegExp = new RegExp(`[\\n^]\\s*(([${CHECKLIST_TODO}${ASTERISK_TODO}${DASH_TODO}]${NUMBER_TODO})\\s(?!\\[[x\-]))`, 'g')
+  return RE
+}
