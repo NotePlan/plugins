@@ -1205,9 +1205,7 @@ export default class NPTemplating {
         // if (!check) {
         //   check = tag.includes('prompt')
         // }
-
-        let check = tag.includes('prompt(')
-
+        let check = /prompt(Date|Interval)*\(/.test(tag)
         return check
       }
 

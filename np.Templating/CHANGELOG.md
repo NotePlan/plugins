@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.9.7] (aka 2.0.0-beta.10) - 2023-05-01 @dwertheimer
+
+- Fix bug in promptDate / promptInterval
+
 ## [1.9.6] (aka 2.0.0-beta.09) - 2023-04-02 @dwertheimer
 
 - Fix bug in template importing
