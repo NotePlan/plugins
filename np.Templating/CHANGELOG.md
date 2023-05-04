@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.9.7] (aka 2.0.0-beta.10) - 2023-05-01 @dwertheimer
+
+- Fix bug in promptDate / promptDateInterval
+
 ## [1.9.6] (aka 2.0.0-beta.09) - 2023-04-02 @dwertheimer
 
 - Fix bug in template importing
@@ -284,7 +288,7 @@ Also, it should be encouraged to rename "📋 Templates" to another name "📋 T
 > `*<%- web.weather() %>*` would be rendered as a todo item
 
 - added `promptDate` which should be used instead of `pickDate` so `placeholder` value can be used in same template in different location
-- added `promptInterval` which should be used instead of `pickInterval` so `placeholder` value can be used in same template in different location
+- added `promptDateInterval` which should be used instead of `pickInterval` so `placeholder` value can be used in same template in different location
 - fixed issues with `templateLocale` not be used properly in some methods in `DateModule`
 - implemented workaround issue with `date.dayNumber()` when running in locales not `en` or `en-US`
 - removed hard coded `discuss` variable in template rendering, would have collided if there was a variable in the rendering process which was `dicsuss`
