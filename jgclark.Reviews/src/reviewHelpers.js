@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 27.2.2023 for v0.9.2, @jgclark
+// Last updated 4.5.2023 for v0.10.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -37,6 +37,7 @@ import { isDone, isOpen } from '@helpers/utils'
 export type ReviewConfig = {
   outputStyle: string,
   folderToStore: string,
+  foldersToInclude: Array<string>,
   foldersToIgnore: Array<string>,
   noteTypeTags: Array<string>,
   displayDates: boolean,
@@ -179,7 +180,7 @@ function mostRecentProgressLine(progressLines: Array<string>): string {
  * Define 'Project' class to use in GTD.
  * Holds title, last reviewed date, due date, review interval, completion date,
  * number of closed, open & waiting for tasks.
- * 
+ *
  * @example To create a project instance for a note call 'const x = new Project(note)'
  * @author @jgclark
  */
@@ -227,24 +228,26 @@ export class Project {
       const paras = note.paragraphs
       const metadataLineIndex = getOrMakeMetadataLine(note)
       this.metadataPara = paras[metadataLineIndex]
-      const mentions: $ReadOnlyArray<string> = note.mentions
+      const mentions: $ReadOnlyArray<string> = note.mentions ?? []
       // This line returns some items out of date. TEST: EM says this has now  been fixed
       // Note: Here's an alternate that just gets mentions from the metadataline
       const altMentions = (paras[metadataLineIndex].content + ' ').split(' ').filter((f) => f[0] === '@')
-      const hashtags: $ReadOnlyArray<string> = note.hashtags
+      const hashtags: $ReadOnlyArray<string> = note.hashtags ?? []
       const altHashtags = (paras[metadataLineIndex].content + ' ').split(' ').filter((f) => f[0] === '#')
 
       // work out noteType:
       // - if tag given, then use that
       // - else first or second hashtag in note
-      this.noteType = (tag)
-        ? tag
-        : (hashtags[0] !== '#paused')
-          ? hashtags[0]
-          : (hashtags[1])
-            ? hashtags[1]
-            : ''
-      if (this.noteType === '') {
+      try {
+        this.noteType = (tag)
+          ? tag
+          : (hashtags[0] !== '#paused')
+            ? hashtags[0]
+            : (hashtags[1])
+              ? hashtags[1]
+              : ''
+      } catch (e) {
+        this.noteType = ''
         logInfo('Project constructor', `- found no noteType for '${this.title}' in folder ${this.folder}`)
       }
 
@@ -272,12 +275,12 @@ export class Project {
       this.calcDurations()
 
       // count tasks
-      this.openTasks = paras.filter(isOpen).length // TEST: me replacing line below
+      this.openTasks = paras.filter(isOpen).length // TEST: replacing line below
       // this.openTasks = paras.filter((p) => p.type === 'open').length
       this.completedTasks = paras.filter(isDone).length
-      this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length // TEST: me replacing line below
+      this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length // TEST: replacing line below
       // this.waitingTasks = paras.filter((p) => p.type === 'open').filter((p) => p.content.match('#waiting')).length
-      this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length // TEST: me replacing line below
+      this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length // TEST: replacing line below
       this.futureTasks = paras.filter((p) => p.type === 'open').filter((p) => includesScheduledFutureDate(p.content)).length
 
       if (this.folder.startsWith('TEST') || this.title.startsWith('Annual') || this.title.includes('Test')) {
@@ -310,7 +313,7 @@ export class Project {
         const progressLine = mostRecentProgressLine(progressLines)
 
         // Get the first part of the value of the Progress field: nn@YYYYMMDD ...
-        const progressLineParts = progressLine.split(/[:@]/)
+        const progressLineParts = progressLine.split(/[:@\s]/, 3)
         if (progressLineParts.length >= 3) {
           this.percentComplete = Number(progressLineParts[0])
           const datePart = unhyphenateString(progressLineParts[1])
@@ -319,6 +322,7 @@ export class Project {
           // logDebug('Project constructor', `- progress field -> ${this.percentComplete} / '${this.lastProgressComment}' from <${progressLine}>`)
         } else {
           logWarn('Project constructor', `- cannot properly parse progress field <${progressLine}> in project '${this.title}'`)
+          clo(progressLineParts, 'progressLineParts')
         }
       }
 
@@ -443,7 +447,7 @@ export class Project {
       // TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // Now need to update the Cache 
+      // Now need to update the Cache
       const updatedNote = DataStore.updateCache(Editor.note, true)
       logDebug('completeProject', `- called updateCache(Editor.note, true) -> ???`)
       // and now reload the note into this Project instance
@@ -463,7 +467,7 @@ export class Project {
    * Cancel a Project/Area note by updating the metadata and saving it:
    * - adding @cancelled(<today's date>)
    * @author @jgclark
-   * @returns {boolean} success or not 
+   * @returns {boolean} success or not
    */
   cancelProject(): boolean {
     try {
@@ -483,7 +487,7 @@ export class Project {
       // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // Now need to update the Cache 
+      // Now need to update the Cache
       const updatedNote = DataStore.updateCache(Editor.note, true)
       logDebug('cancelProject', `- called updateCache(Editor.note, true) -> ???`)
       // and now reload the note into this Project instance
@@ -519,7 +523,7 @@ export class Project {
       // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // Now need to update the Cache 
+      // Now need to update the Cache
       const updatedNote = DataStore.updateCache(Editor.note, true)
       logDebug('togglePauseProject', `- called updateCache(Editor.note, true) -> ???`)
       // and now reload the note into this Project instance
@@ -536,7 +540,7 @@ export class Project {
   }
 
   /**
-   * Generate a one-line tab-sep summary line ready for Markdown note 
+   * Generate a one-line tab-sep summary line ready for Markdown note
    */
   generateMetadataLine(): string {
     let output = this.noteType
@@ -577,7 +581,7 @@ export class Project {
       logError('machineSummaryLine', error.message)
       return '<error>' // for completeness
     }
-  } 
+  }
 
   /**
    * Returns title of note as folder name + link, also showing complete or cancelled where relevant.
@@ -789,7 +793,7 @@ export class Project {
    * Insert one of NP's state icons in given color.
    * Other styling comes from CSS for 'circle-char-text'
    * @param {string} char to display (normally just 1 character)
-   * @param {string} colorStr 
+   * @param {string} colorStr
    * @returns HTML string to insert
    */
   // addNPStateIcon(char: string, colorStr: string = ''): string {

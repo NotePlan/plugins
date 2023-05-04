@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.9.5",
-  "plugin.lastUpdateInfo": "0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.\n0.9.1: Fixed projects due today not being offered for review.\n0.9.0: Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time. Lots of other layout improvements too.",
+  "plugin.version": "0.10.0",
+  "plugin.lastUpdateInfo": "0.10.0: new setting 'Folders to use in reviews' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.\n0.9.1: Fixed projects due today not being offered for review.\n0.9.0: Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time. Lots of other layout improvements too.",
   "plugin.requiredFiles": [],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -192,7 +192,15 @@
         "#area",
         "#project"
       ],
-      "required": true
+      "required": false
+    },
+    {
+      "key": "foldersToInclude",
+      "title": "Folders to use in reviews",
+      "description": "A comma-separated list of folders to process in the reviews. Any sub-folders will also be included.\nIf empty, all folders will be processed (apart from the special @Trash, @Templates and @Archive foldeers which are always excluded.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
     },
     {
       "key": "foldersToIgnore",

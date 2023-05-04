@@ -1,10 +1,16 @@
-# What's changed in 🔬 Reviews plugin?
+# What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
 <!--
 - ??? Fixed the race condition on (un)pausing a project
 - ??? ability to pause/unpause a project, by calling new **/pause project toggle** command or adding/removing `#paused` to a project's metadata. When paused this stops the note from being included in reviews, but keeps it visible in the project lists.
 -->
+## [0.10.0] - 2023-05-04
+### New
+- big speed up possible on large collections by specifying new 'Folders to Include' setting. (addresses [#442](https://github.com/NotePlan/plugins/issues/442) for @dwertheimer)
+### Fixed
+- it was possible for `@reviewed(...)` tags to get repeated when a review was finished (thanks for reports by @Denrael and @george65)
+
 ## [0.9.5] - 2023-03-25
 ### Changed
 - when making the Project Review list, the matches to 'Hashtags to review' are now case insensitive

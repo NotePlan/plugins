@@ -2,17 +2,17 @@
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
 // by @jgclark
-// Last updated 25.4.2023 for v0.9.5, @jgclark
+// Last updated 4.5.2023 for v0.10.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
+import moment from 'moment/min/moment-with-locales'
+import fm from 'front-matter'
 import {
   checkForWantedResources,
   logAvailableSharedResources,
   logProvidedSharedResources
 } from "../../np.Shared/src/index.js"
-import fm from 'front-matter'
-import moment from 'moment/min/moment-with-locales'
 import {
   getReviewSettings,
   logPreference,
@@ -33,7 +33,7 @@ import {
   timer
 } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
-import { displayTitle } from '@helpers/general'
+import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import {
   makeSVGPercentRing,
   redToGreenInterpolation,
@@ -158,7 +158,7 @@ export const setPercentRingJSFunc: string = `<script>
   `
 
 /**
- * Generate human-readable lists of project notes for each tag of interest using HTML output. 
+ * Generate human-readable lists of project notes for each tag of interest using HTML output.
  * Note: Requires NP 3.7.0 (build 844) or greater.
  * @author @jgclark
  * @param {any} config - from settings (and any passed args)
@@ -168,12 +168,6 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
   try {
     if (config.noteTypeTags.length === 0) {
       throw new Error('No noteTypeTags passed to display')
-    }
-
-    // Check to see if we're running v3.6.2, build 844) or later
-    if (NotePlan.environment.buildVersion <= 844) {
-      await showMessage('Sorry: need to be running NP 3.6.2 or later', 'Shame', "Sorry, Dave, I can't do that.")
-      return
     }
 
     const funcTimer = new Date()
@@ -192,18 +186,19 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
       }
     }
 
-    logDebug('renderProjectListsHTML', `- after checkForWantedResources and before possible makeFullReviewList: ${timer(funcTimer)}s`)
+    logDebug('renderProjectListsHTML', `>> after checkForWantedResources and before possible makeFullReviewList: ${timer(funcTimer)}`)
 
-    // Calculate the Full Review List, unless we're in renderOnly mode
-    if (!renderOnly) {
-      await makeFullReviewList()
-      logDebug('renderProjectListsHTML', `- after makeFullReviewList: ${timer(funcTimer)}s`)
-    }
+    // Now never trigger makeFullReviewList(), as this is done before this function (if required)
+    // // Calculate the Full Review List, unless we're in renderOnly mode
+    // if (!renderOnly) {
+    //   await makeFullReviewList()
+    //   logDebug('renderProjectListsHTML', `>> after makeFullReviewList: ${timer(funcTimer)}`)
+    // }
 
     // Need to change a single string (1 tag) to an array (multiple tags)
     if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
 
-    // Currently we can only display 1 HTML Window at a time, so need to include all tags in a single view. TODO: in time this can hopefully change.
+    // Note: Currently we can only display 1 HTML Window at a time, so need to include all tags in a single view. In time this can hopefully change.
     const windowTitle = `Review List`
     // Set filename for HTML copy if _logLevel set to DEBUG
     const filenameHTMLCopy = (config._logLevel === 'DEBUG') ? 'review_list.html' : ''
@@ -212,7 +207,7 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
 
     // Add (pseduo-)buttons for various commands
     // Note: this is not a real button, bcause at the time I started this real < button > wouldn't work in NP HTML views, and Eduard didn't know why.
-    // TODO: Version 3: using proper link to the internal function using HTMLView::getCallbackCodeString() instead
+    // Version 3: using proper link to the internal function using HTMLView::getCallbackCodeString() instead
     // Useful fontawesome icons include:
     // https://fontawesome.com/icons/play
     // https://fontawesome.com/icons/forward
@@ -238,7 +233,7 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
 
     outputArray.push(`<div class="multi-cols">`)
 
-    logDebug('renderProjectListsHTML', `- before main loop: ${timer(funcTimer)}s`)
+    logDebug('renderProjectListsHTML', `>> before main loop: ${timer(funcTimer)}`)
 
     // Make the Summary list, for each noteTag in turn
     let tagCount = 0
@@ -288,13 +283,14 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
         outputArray.push('</table>')
       }
       tagCount++
+      logDebug('renderProjectListsHTML', `>> end of loop for ${thisTag}: ${timer(funcTimer)}`)
     }
     outputArray.push(`</div>`)
 
     // TODO: in time make a 'timeago' relative display, e.g. using MOMENT moment.duration(-1, "minutes").humanize(true); // a minute ago
     // or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html or https://theprogrammingexpert.com/javascript-count-up-timer/
 
-    logDebug('renderProjectListsHTML', `- before showHTML call: ${timer(funcTimer)}s`)
+    logDebug('renderProjectListsHTML', `>> end of main loop: ${timer(funcTimer)}`)
     logWindowsList()
 
     // Show the list as HTML, and save a copy as file
@@ -310,7 +306,6 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
       filenameHTMLCopy,
       812, 1200)  // set width; max height
     logDebug('renderProjectListsHTML', `- written results to HTML window and file`)
-    logDebug('renderProjectListsHTML', `- end at ${timer(funcTimer)}s`)
     // }
   }
   catch (error) {
@@ -327,26 +322,27 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
  */
 export async function renderProjectListsMarkdown(config: any, renderOnly: boolean = false): Promise<void> {
   try {
-    const funcTimer = new Date()
     logDebug('renderProjectListsMarkdown', `Starting for ${config.noteTypeTags.toString()} tags and redisplayOnly: ${String(renderOnly)}`)
+    const funcTimer = new Date()
 
-    // Calculate the Full Review List, unless we're in renderOnly mode
-    if (!renderOnly) {
-      await makeFullReviewList()
-      logDebug('renderProjectListsMarkdown', `- after makeFullReviewList: ${timer(funcTimer)}s`)
-    }
+    // Now never trigger makeFullReviewList(), as this is done before this function (if required)
+    // // Calculate the Full Review List, unless we're in renderOnly mode
+    // if (!renderOnly) {
+    //   await makeFullReviewList()
+    //   logDebug('renderProjectListsMarkdown', `>> after makeFullReviewList: ${timer(funcTimer)}`)
+    // }
 
     // Set up x-callback URLs for various commands, to be styled into pseudo-buttons
-    // TODO: could switch to using DW's getCallbackCodeString() here
-    const startReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review"
-    const reviewedXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=finish%20project%20review&arg0="
-    const nextReviewXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
-    const pauseXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
-    const completeXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
-    const cancelXCallbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
+    // Note: some of these currently aren't used
+    const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'start reviews', '') // "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=start%20reviews"
+    const reviewedXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'finish project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=finish%20project%20review&arg0="
+    const nextReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
+    const pauseXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'pause project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
+    const completeXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'complete project', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
+    const cancelXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'cancel project', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
     const reviewedXCallbackButton = `[Mark as Reviewed](${reviewedXCallbackURL})`
     const nextReviewXCallbackButton = `[Finish + Next Review](${nextReviewXCallbackURL})`
-    const pauseXCallbackButton = `[Toggle Pausing Project](${pauseXCallbackURL})` // Note: not currently used
+    const pauseXCallbackButton = `[Toggle Pausing Project](${pauseXCallbackURL})`
     const completeXCallbackButton = `[Complete Project](${completeXCallbackURL})`
     const cancelXCallbackButton = `[Cancel Project](${cancelXCallbackURL})`
     const nowDateTime = nowLocaleShortDateTime()
@@ -363,36 +359,37 @@ export async function renderProjectListsMarkdown(config: any, renderOnly: boolea
         // Do the main work
         const note: ?TNote = await getOrMakeNote(noteTitleWithoutHash, config.folderToStore)
         if (note != null) {
-          // TODO: switch to using DW's getCallbackCodeString() here
-          const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`noteTypeTags=${tag}`)
+          const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`noteTypeTags=${tag}`)) //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`noteTypeTags=${tag}`)
 
           // Calculate the Summary list(s)
           const [outputArray, noteCount, overdue] = await generateReviewSummaryLines(tag, 'Markdown', config)
-          logDebug('renderProjectListsHTML', `- after generateReviewSummaryLines(${tag}): ${timer(funcTimer)}s`)
+          logDebug('renderProjectListsHTML', `>> after generateReviewSummaryLines(${tag}) for ${String(overdue)} projects: ${timer(funcTimer)}`)
 
+          // print header just the once (if any notes)
           const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
           const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
-          if (noteCount > 0) { // print header just the once (if any notes)
-            // Note: can't put reviewed/complete/cancel buttons here yet, because there's no way to be clear about which project they refer to.
 
-            outputArray.unshift(`Total ${noteCount} active notes${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
-            if (!config.displayGroupedByFolder) {
-              outputArray.unshift(`### All folders (${noteCount} notes)`)
-            }
-            outputArray.unshift(`# ${noteTitle}`)
+          if (overdue > 0) {
+            outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+          }
+          outputArray.unshift(`Total ${noteCount} active projects${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
 
-            // Save the list(s) to this note
-            note.content = outputArray.join('\n')
-            logDebug('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
-            // Open the note in a window
-            // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
-            if (!noteOpenInEditor(note.filename)) {
-              logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)
-              await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
-              setEditorWindowID(note.filename, noteTitle)
-            } else {
-              logDebug('renderProjectListsMarkdown', `- note '${noteTitle}' already open in the editor.`)
-            }
+          if (!config.displayGroupedByFolder) {
+            outputArray.unshift(`### All folders (${noteCount} notes)`)
+          }
+          outputArray.unshift(`# ${noteTitle}`)
+
+          // Save the list(s) to this note
+          note.content = outputArray.join('\n')
+          logDebug('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
+          // Open the note in a window
+          // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
+          if (!noteOpenInEditor(note.filename)) {
+            logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)
+            await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
+            setEditorWindowID(note.filename, noteTitle)
+          } else {
+            logDebug('renderProjectListsMarkdown', `- note '${noteTitle}' already open in the editor.`)
           }
         } else {
           await showMessage('Oops: failed to find or make project summary note', 'OK')
@@ -401,27 +398,25 @@ export async function renderProjectListsMarkdown(config: any, renderOnly: boolea
         }
       }
     } else {
-      // We will just use all notes with a @review() string, in one go     
+      // We will just use all notes with a @review() string, in one go
       const noteTitle = `Review List`
       const note: ?TNote = await getOrMakeNote(noteTitle, config.folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
         const [outputArray, noteCount, overdue] = await generateReviewSummaryLines('', 'Markdown', config)
         const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
-        logDebug('renderProjectListsHTML', `- after generateReviewSummaryLines: ${timer(funcTimer)}s`)
+        logDebug('renderProjectListsHTML', `>> after generateReviewSummaryLines: ${timer(funcTimer)}`)
 
-        // TODO: switch to using DW's getCallbackCodeString() here
-        const refreshXCallbackURL = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
+        const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', '') //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
         const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
 
-        if (noteCount > 0) { // print header just the once (if any notes)
-          // Note: can't put reviewed/complete/cancel buttons here yet, because there's no way to be clear about which project they refer to. TODO: find a way round this in time.
-          // TODO: should there be something here?
-        }
         if (!config.displayGroupedByFolder) {
           outputArray.unshift(`### All folders (${noteCount} notes)`)
         }
-        outputArray.unshift(`Total ${noteCount} active notes${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
+        if (overdue > 0) {
+          outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+        }
+        outputArray.unshift(`Total ${noteCount} active projects${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
         outputArray.unshift(`# ${noteTitle}`)
 
         // Save the list(s) to this note
@@ -430,7 +425,7 @@ export async function renderProjectListsMarkdown(config: any, renderOnly: boolea
         // Open the note in a new window
         // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
         if (!noteOpenInEditor(note.filename)) {
-          logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)   
+          logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)
           await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
           setEditorWindowID(note.filename, noteTitle)
         } else {
@@ -442,7 +437,7 @@ export async function renderProjectListsMarkdown(config: any, renderOnly: boolea
         return
       }
     }
-    logDebug('renderProjectListsMarkdown', `- end at ${timer(funcTimer)}s`)
+    logDebug('renderProjectListsMarkdown', `>> end at ${timer(funcTimer)}`)
   }
   catch (error) {
     logError('renderProjectListsMarkdown', error.message)
@@ -450,12 +445,12 @@ export async function renderProjectListsMarkdown(config: any, renderOnly: boolea
 }
 
 //-------------------------------------------------------------------------------
-/** 
+/**
  * Return summary of notes that contain a specified tag, for all relevant folders, in 'Markdown' or 'Rich' style.
  * V2: Changed to read from the TSV file 'data/full-review-list.md' folder rather than calcuate from scratch.
  * V3: Now doesn't handle output before the main list(s) start. That is now done in the calling function.
  * @author @jgclark
- * 
+ *
  * @param {string} noteTag - hashtag to look for
  * @param {string} style - 'Markdown' or 'Rich'
  * @param {any} config - from settings (and any passed args)
@@ -467,20 +462,18 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
   try {
     logDebug('generateReviewSummaryLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
 
-    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore)
-    logDebug('generateReviewSummaryLines', `- for ${filteredFolderList.length} folders: '${String(filteredFolderList)}'`)
+    // Not sure why this was here now...
+    // const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude)
+    // logDebug('generateReviewSummaryLines', `- for ${filteredFolderList.length} folders: '${String(filteredFolderList)}'`)
 
     let noteCount = 0
     let overdue = 0
     const outputArray: Array<string> = []
 
-    // V2 Approach  (V1 now deleted)
-
     // Read each line in full-review-list
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // Try to make the full-review-list
-      // TODO: Currently needed to comment this out, to avoid circular dependency
       await makeFullReviewList(true)
       reviewListContents = DataStore.loadData(fullReviewListFilename, true)
       if (!reviewListContents) {
@@ -566,17 +559,17 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
   try {
     const config = await getReviewSettings()
     logDebug('makeFullReviewList', `Starting for ${config.noteTypeTags.toString()} tags:`)
+    let startTime = new Date()
 
     // Get list of folders, excluding @specials and our foldersToIgnore setting
-    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true)
+    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude)
 
     if (runInForeground) {
-      CommandBar.showLoading(true, `Generating full Project Review list`)
+      CommandBar.showLoading(true, `Generating Project Review list`)
       await CommandBar.onAsyncThread()
     }
 
-    // Iterate over the folders ...
-    // ... but ignoring any in the config.foldersToIgnore list
+    // Iterate over the folders, using settings from config.foldersToProcess and config.foldersToIgnore list
     const projectInstances = []
     for (const folder of filteredFolderList) {
       // Either we have defined tag(s) to filter and group by, or just use []
@@ -587,7 +580,9 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
       // Get notes that include noteTag in this folder, ignoring subfolders
       // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
       for (const tag of tags) {
+        let funcTimer = new Date()
         const projectNotesArr = findNotesMatchingHashtag(tag, folder, false)
+        logDebug('makeFullReviewList', `>> findNotesMatchingHashtag(${tag}, ${folder}): ${timer(funcTimer)}`)
         if (projectNotesArr.length > 0) {
           // Get Project class representation of each note.
           // Save those which are ready for review in projectsReadyToReview array
@@ -598,12 +593,14 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
         }
       }
     }
+    logDebug('makeFullReviewList', `>> Finding notes: ${timer(startTime)}`)
     if (runInForeground) {
       await CommandBar.onMainThread()
       CommandBar.showLoading(false)
     }
 
     // Get machineSummaryLine for each of the projectInstances
+    startTime = new Date()
     let reviewLines = []
     let lineArrayObjs = []
     logDebug('makeFullReviewList', `- Starting loop for ${projectInstances.length} projectInstances`)
@@ -619,9 +616,12 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
         'tags': mSLFields[4],
       })
     }
+    logDebug('makeFullReviewList', `>> Generating summary lines: ${timer(startTime)}`)
 
     // sort the output list by the fields we want, and add frontmatter
+    startTime = new Date()
     const outputArray = sortAndFormFullReviewList(reviewLines, config)
+    logDebug('makeFullReviewList', `>> sortAndFormFullReviewList: ${timer(startTime)}`)
 
     // write summary to full-review-list file
     DataStore.saveData(outputArray.join('\n'), fullReviewListFilename, true)
@@ -635,8 +635,8 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
 
 /**
  * Take a set of machineSummaryLines, sort them according to config, and then add frontmatter
- * @param {Array<string>} linesIn 
- * @param {any} config 
+ * @param {Array<string>} linesIn
+ * @param {any} config
  * @returns {Array<string>} outputArray
  */
 function sortAndFormFullReviewList(linesIn: Array<string>, config: any): Array<string> {
@@ -881,7 +881,7 @@ export async function updateReviewListAfterChange(reviewedTitle: string, simplyD
 }
 
 //-------------------------------------------------------------------------------
-/** 
+/**
  * Work out the next note to review (if any).
  * It assumes the full-review-list is sorted by nextReviewDate (earliest to latest).
  * Note: there is now a multi-note variant of this in jgclark.Dashboard/src/dataGeneration.js
@@ -932,7 +932,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
 }
 
 //-------------------------------------------------------------------------------
-/** 
+/**
  * Update the @reviewed(date) in the note in the Editor to today's date, and update the full-review-list too
  * @author @jgclark
  * @return { ?TNote } current note
@@ -940,9 +940,9 @@ async function getNextNoteToReview(): Promise<?TNote> {
 export async function finishReview(): Promise<?TNote> {
   try {
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-    const RE_REVIEWED_MENTION_STR = `${reviewedMentionStr}\\(${RE_DATE}\\)`
+    const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, "gi")
     const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
-    logDebug('finishReview', reviewedTodayString)
+    logDebug('finishReview', String(RE_REVIEWED_MENTION))
 
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
@@ -963,25 +963,15 @@ export async function finishReview(): Promise<?TNote> {
     const origMetadataLineContent: string = metadataPara.content
     logDebug(pluginJson, `finishReview: starting with for '${displayTitle(thisNote)}' with metadataLineIndex ${metadataLineIndex} ('${origMetadataLineContent}')`)
 
-    // get first '@reviewed()' on metadata line
-    const firstReviewedMention = thisNote.mentions?.find((m) =>
-      m.match(RE_REVIEWED_MENTION_STR),
-    ) ?? null
-    if (firstReviewedMention != null) {
-      logDebug('finishReview', `- Found existing ${firstReviewedMention} in line ${metadataLineIndex}`)
+    // remove all '@reviewed()' on metadata line
+    let updatedMetadataLineContent = origMetadataLineContent.replace(RE_REVIEWED_MENTION, '')
 
-      // replace with today's date
-      const older = origMetadataLineContent
-      const newer = older.replace(firstReviewedMention, reviewedTodayString)
-      metadataPara.content = newer
-      logDebug('finishReview', `- Updating metadata para to '${newer} and updating reviewedDate in Project()`)
-      thisNoteAsProject.reviewedDate = getJSDateStartOfToday()
-      thisNoteAsProject.calcDurations()
-    } else {
-      // no existing @reviewed(date), so append to note's default metadata line
-      logDebug('finishReview', `- No matching ${reviewedMentionStr}(date) string found. Will append to line ${metadataLineIndex}.`)
-      metadataPara.content = `${origMetadataLineContent} ${reviewedTodayString}`.trimRight()
-    }
+    // append new @reviewed(date) to note's default metadata line
+    metadataPara.content = `${updatedMetadataLineContent} ${reviewedTodayString}`.trimRight().replace(/\s{2,}/g, ' ')
+    logDebug('finishReview', `- Updated metadata in its Project instance`)
+    thisNoteAsProject.reviewedDate = getJSDateStartOfToday()
+    thisNoteAsProject.calcDurations()
+
     // send update to Editor
     thisNote.updateParagraph(metadataPara)
     DataStore.updateCache(Editor.note, true)
@@ -1021,25 +1011,15 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
       // clo(config, 'Review settings with no args:')
     }
 
-    // If more than a day old re-calculate the full-review-list
-    // Note: now updated to always run
-    // Using frontmatter library: https://github.com/jxson/front-matter
-    // const fileContent = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
-    // const fmObj = fm(fileContent)
-    // const listUpdatedDate = fmObj.attributes.date
-    // const bodyBegin = fmObj.bodyBegin
-    // const listUpdatedMoment = new moment(listUpdatedDate)
-    // const timeDiff = moment().diff(listUpdatedMoment, 'hours')
-    // if (timeDiff >= 24) {
-      await makeFullReviewList(true)
-    // }
+    // Re-calculate the full-review-list
+    await makeFullReviewList(true)
 
     // Call the relevant function with the updated config
-    if (config.outputStyle.match(/rich/i) && NotePlan.environment.buildVersion >= 845) {
-      await renderProjectListsHTML(config, true)
+    if (config.outputStyle.match(/rich/i)) {
+      await renderProjectListsHTML(config, false)
     }
     if (config.outputStyle.match(/markdown/i)) {
-      await renderProjectListsMarkdown(config, true)
+      await renderProjectListsMarkdown(config, false)
     }
   } catch (error) {
     logError(pluginJson, JSP(error))

@@ -70,7 +70,8 @@ Other notes:
 Use the '**Hashtags to review**' setting to control which notes are included in the review lists:
 - If this setting is empty, then it will include all notes for review that include a `@review(...)` string.
 - if it is set (e.g. `#project, #area, #goal`), then it will include just those notes which also have one or more of those tags.
-- You can specify folders to ignore using the 'Folders to Ignore' setting; I have this set to `Summaries, Reviews, Saved Searches`. (Note that the special Templates, Archive and Trash are always excluded.)
+- You can specify folders to ignore using the 'Folders to Ignore' setting; I have this set to `Summaries, Reviews, Saved Searches`. Any sub-folders of these will also be ignored. (Note that the special Templates, Archive and Trash are always excluded.)
+- Particularly if you have a large collection of notes in NP, you can also specify a 'Folders to Include' setting (which includes any sub-folders).
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
@@ -83,7 +84,7 @@ You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, sh
 ![Example of Markdown style of "/project lists"](review-list4-md.jpg)
 
 Notes about the displays:
-- the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use. 
+- the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use.
 - in the 'Rich' style this heading row deliberately 'sticks' to the top of the window as you scroll the list.
 ![Example of buttons in Rich style of "/project lists"](review-list-buttons3.jpg)
 - due to limits on the API for 'Rich' style output, all #tags to review get shown one after the other in a single window.
@@ -93,7 +94,8 @@ Notes about the displays:
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 Other settings:
-- Folders to ignore: Specify folders to ignore using this shared setting (as above).
+- Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders).
+- Folders to Ignore (optional): Specify folders to ignore (which includes any of their sub-folders too).
 - Display project dates?  Whether to display the project's review and due dates (where set).
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
