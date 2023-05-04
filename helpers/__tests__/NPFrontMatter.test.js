@@ -4,7 +4,8 @@
 import { CustomConsole } from '@jest/console' // see note below
 import * as f from '../NPFrontMatter'
 import {
-  Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Note, Paragraph,
+  // Calendar,
+  Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Note, Paragraph,
   // mockWasCalledWithString,
 } from '@mocks/index'
 
@@ -12,7 +13,7 @@ const PLUGIN_NAME = `helpers`
 const FILENAME = `NPFrontMatter`
 
 beforeAll(() => {
-  global.Calendar = Calendar
+  // global.Calendar = Calendar
   global.Clipboard = Clipboard
   global.CommandBar = CommandBar
   global.DataStore = DataStore
@@ -61,7 +62,7 @@ describe(`${PLUGIN_NAME}`, () => {
      */
     describe('noteHasFrontMatter()' /* function */, () => {
       test('should return true if there is frontmatter', () => {
-        const note = new Note({ paragraphs: [new Paragraph({ content: '---' }), new Paragraph({ content: 'bar' }), new Paragraph({ content: '---' })] })
+        const note = new Note({ paragraphs: [new Paragraph({ type: 'separator', content: '---' }), new Paragraph({ content: 'bar' }), new Paragraph({ type: "separator", content: '---' })] })
         const result = f.noteHasFrontMatter(note)
         expect(result).toEqual(true)
       })
@@ -188,7 +189,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(false)
       })
       test('should return true if frontmatter is written', () => {
-        const note = new Note({ paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { content: '---' }], content: '---\ntitle: foo\n---\n' })
+        const note = new Note({ paragraphs: [{ type: 'separator', content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { type: 'separator', content: '---' }], content: '---\ntitle: foo\n---\n' })
         const vars = { foo: 'bar' }
         const result = f.writeFrontMatter(note, vars)
         expect(result).toEqual(true)
@@ -290,7 +291,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(result).toEqual(false)
       })
       test('should remove matching field from frontmatter but leave separators', () => {
-        const allParas = [{ content: '---' }, { content: 'title: note title' }, { content: 'fieldName: value' }, { content: '---' }, { content: '+ checklist 1' }]
+        const allParas = [{ type: 'separator', content: '---' }, { content: 'title: note title' }, { content: 'fieldName: value' }, { type: 'separator', content: '---' }, { content: '+ checklist 1' }]
         const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', 'value', false)
         expect(result).toEqual(true)
@@ -301,7 +302,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(note.paragraphs[3].content).toEqual(allParas[4].content)
       })
       test('should remove single matching field from frontmatter and also separators', () => {
-        const allParas = [{ content: '---' }, { content: 'fieldName: value' }, { content: '---' }, { content: '+ checklist 1' }]
+        const allParas = [{ type: 'separator', content: '---' }, { content: 'fieldName: value' }, { type: 'separator', content: '---' }, { content: '+ checklist 1' }]
         const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', 'value', true)
         expect(result).toEqual(true)
@@ -309,7 +310,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(note.paragraphs[0].content).toEqual(allParas[3].content)
       })
       test('should remove matching field from frontmatter but not separators, converting to Markdown type title', () => {
-        const allParas = [{ content: '---' }, { content: 'fieldName: value' }, { content: 'title: note title' }, { content: '---' }, { content: '+ checklist 1' }]
+        const allParas = [{ type: 'separator', content: '---' }, { content: 'fieldName: value' }, { content: 'title: note title' }, { type: 'separator', content: '---' }, { content: '+ checklist 1' }]
         const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', 'value', true)
         expect(result).toEqual(true)
@@ -320,7 +321,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(note.paragraphs[3].content).toEqual(allParas[4].content)
       })
       test('should remove matching field with no value, but leave other field, and therefore also separators', () => {
-        const allParas = [{ content: '---' }, { content: 'field_other: value1' }, { content: 'fieldName:' }, { content: '---' }]
+        const allParas = [{ type: 'separator', content: '---' }, { content: 'field_other: value1' }, { content: 'fieldName:' }, { type: 'separator', content: '---' }]
         const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', null, true)
         expect(result).toEqual(true)
@@ -330,7 +331,7 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(note.paragraphs[2].content).toEqual(allParas[3].content)
       })
       test('should remove matching field (with no value test) with different values from frontmatter but leave other field, and therefore also separators', () => {
-        const allParas = [{ content: '---' }, { content: 'field_other: value1' }, { content: 'fieldName: this is, a, longer "value 1"' }, { content: '---' }]
+        const allParas = [{ type: 'separator', content: '---' }, { content: 'field_other: value1' }, { content: 'fieldName: this is, a, longer "value 1"' }, { type: 'separator', content: '---' }]
         const note = new Note({ paragraphs: allParas, content: '' })
         const result = f.removeFrontMatterField(note, 'fieldName', null, true)
         expect(result).toEqual(true)
@@ -430,7 +431,7 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should set a frontmatter field that existed before', () => {
         const note = new Note({
           content: '---\ntitle: foo\nbar: baz\n---\n',
-          paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { content: '---' }],
+          paragraphs: [{ type: 'separator', content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { type: 'separator', content: '---' }],
           title: 'foo',
         })
         const result = f.setFrontMatterVars(note, { bar: 'foo' })
@@ -440,7 +441,7 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should set a frontmatter field that did not exist before', () => {
         const note = new Note({
           content: '---\ntitle: foo\nbar: baz\n---\n',
-          paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { content: '---' }],
+          paragraphs: [{ type: 'separator', content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { type: 'separator', content: '---' }],
           title: 'foo',
         })
         const result = f.setFrontMatterVars(note, { sam: 'boy' })
@@ -488,7 +489,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const note = new Note({
           type: 'Calendar',
           content: '* task on first line\n+ checklist on line two',
-          paragraphs: [{ content: '* task on first line' }, { content: '+ checklist on line two' }],
+          paragraphs: [{ type: 'todo', content: '* task on first line' }, { type: 'checklist', content: '+ checklist on line two' }],
           title: '',
         })
         const result = f.addTrigger(note, 'onEditorWillSave', 'jgclark.Dashboard', 'decideWhetherToUpdateDashboard')
@@ -500,7 +501,7 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should add a single trigger to existing FM', () => {
         const note = new Note({
           content: '---\ntitle: foo\nbar: baz\n---\n',
-          paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { content: '---' }],
+          paragraphs: [{ type: 'separator', content: '---' }, { content: 'title: foo' }, { content: 'bar: baz' }, { type: 'separator', content: '---' }],
           title: 'foo',
         })
         const result = f.addTrigger(note, 'onOpen', 'foo', 'bar')
@@ -510,7 +511,7 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should not add a trigger where it already exists in FM', () => {
         const note = new Note({
           content: '---\ntitle: foo\ntriggers: onOpen => foo.bar\nauthor: baz\n---\n',
-          paragraphs: [{ content: '---' }, { content: 'title: foo' }, { content: 'triggers: onOpen => foo.bar' }, { content: 'author: baz' }, { content: '---' }],
+          paragraphs: [{ type: 'separator', content: '---' }, { content: 'title: foo' }, { content: 'triggers: onOpen => foo.bar' }, { content: 'author: baz' }, { type: 'separator', content: '---' }],
           title: 'foo',
         })
         const result = f.addTrigger(note, 'onOpen', 'foo', 'bar')

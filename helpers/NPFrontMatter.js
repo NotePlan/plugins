@@ -37,7 +37,8 @@ export function quoteText(text: string): string {
  * @param {string} text - the text to test (typically the content of a note -- note.content)
  * @returns {boolean} true if it has front matter
  */
-export const hasFrontMatter = (text: string): boolean => fm.test(text)
+// export const hasFrontMatter = (text: string): boolean => fm.test(text)
+export const hasFrontMatter = (text: string): boolean => fm.test(text) && text.split("\n", 1)[0] === "---"
 
 /**
  * Test whether a Note contains front matter
@@ -46,7 +47,7 @@ export const hasFrontMatter = (text: string): boolean => fm.test(text)
  * @param {CoreNoteFields} note - the note to test
  * @returns {boolean} true if the note has front matter
  */
-export const noteHasFrontMatter = (note: CoreNoteFields): boolean => note && hasFrontMatter(note.content || '') && note.paragraphs[0].type === 'separator'
+export const noteHasFrontMatter = (note: CoreNoteFields): boolean => note && hasFrontMatter(note.content || '') && (note.paragraphs[0].type === 'separator' || note.paragraphs[0].content === '---')
 
 /**
  * get the front matter attributes from a note
@@ -188,12 +189,12 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
 }
 
 /**
- * Set/update the front matter attributes for a note
- * Whatever key:value pairs you pass in will be set in the front matter
- * If the key already exists, it will be set to the new value you passed
- * If the key does not exist, it will be added
- * All existing fields you do not explicitly mention in varObj will keep their previous values (including note title)
- * If the value of a key is set to null, the key will be removed from the front matter
+ * Set/update the front matter attributes for a note.
+ * Whatever key:value pairs you pass in will be set in the front matter.
+ * If the key already exists, it will be set to the new value you passed;
+ * If the key does not exist, it will be added.
+ * All existing fields you do not explicitly mention in varObj will keep their previous values (including note title).
+ * If the value of a key is set to null, the key will be removed from the front matter.
  * @param {CoreNoteFields} note
  * @param {{[string]:string}} varObj - an object with the key:value pairs to set in the front matter (all strings). If the value of a key is set to null, the key will be removed from the front matter.
  * @returns {boolean} - whether the front matter was set or not
@@ -203,7 +204,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
   try {
     const title = varObj.title || null
     const hasFM = ensureFrontmatter(note, true, title)
-    logDebug('setFrontMatterVars', `after ensureFrontMatter with ${note.paragraphs.length} lines`)
+    clo(note.paragraphs, `setFrontMatterVars: after ensureFrontMatter with ${note.paragraphs.length} lines`)
     if (!hasFM) {
       logError(`setFrontMatterVars: Could not add front matter to note which has no title. Note should have a title, or you should pass in a title in the varObj.`)
       return false
