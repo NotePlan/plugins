@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Window Sets commands
 // Jonathan Clark
-// Last updated 11.3.22 for v0.1.0 by @jgclark
+// Last updated 29.4.22 for v0.1.x by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -18,6 +18,8 @@ export {
   logWindowSets,
   saveWindowSet,
   openWindowSet,
+  deleteWindowSet,
+  deleteAllSavedWindowSets
 } from './windowSets'
 
 export {

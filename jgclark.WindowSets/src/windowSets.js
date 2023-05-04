@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Journalling plugin for NotePlan
 // Jonathan Clark
-// last update 5.2.2022 for v0.1.0 by @jgclark
+// last update 27.4.2022 for v0.1.1 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -17,6 +17,7 @@ import {
   setEditorWindowID
 } from "@helpers/NPWindows";
 import { chooseOption, getInputTrimmed, showMessage, showMessageYesNoCancel } from '@helpers/userInput'
+import { showMessageYesNo } from "../../helpers/userInput";
 
 //-----------------------------------------------------------------
 // Data types
@@ -50,6 +51,16 @@ type WindowSet = {
   htmlWindows: Array<HTMLWinDetails>,
   action: string
 }
+
+/**
+ * Note: from v3.9.1 we also use
+ * type Rect = {
+ *   x: Integer,
+ *   y: Integer,
+ *   width: Integer,
+ *   height: integer
+ * }
+ */
 
 //---------------------------------------------------------------
 // Settings
@@ -139,26 +150,35 @@ export function logWindowSets(): void {
     const outputLines = []
     const windowSetsObject = DataStore.preference('windowSets')
     if (!windowSetsObject) {
-      logInfo('logWindowSets', `No saved windowSets object found. Stopping.`)
+      logInfo('logWindowSets', `No saved windowSets object found.`)
       return
     }
-    clo(windowSetsObject)
-    logDebug('logWindowSets', typeof windowSetsObject)
+    // clo(windowSetsObject)
     const windowSets = Array(windowSetsObject)
     let c = 0
     outputLines.push(`Window Sets:`)
     for (const set of windowSets) {
+      clo(set, 'WS #' + String(c))
       outputLines.push(`${set.name}:`)
-      for (const win of set.editorWindows) {
-        outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' title:'${win.title ?? ''}' filename:${win.filename ?? ''} ID:${win.id}`)
-        c++
+      if (set.editorWindows) {
+        for (const win of set.editorWindows) { // FIXME: undefined
+          outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' title:'${win.title ?? ''}' filename:${win.filename ?? ''} ID:${win.id} x:${win.x} y:${win.y} w:${win.width} h:${win.height}`)
+          c++
+        }
+      } else {
+        logWarn('logWindowSets', `WindowSet #${String(c)} has no editorWindows array`)
       }
-      for (const win of set.htmlWindows) {
-        outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' title:'${win.title ?? ''}' filename:${win.filename ?? ''} ID:${win.id}`)
-        c++
+      if (set.htmlWindows) {
+        for (const win of set.htmlWindows) {
+          outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' title:'${win.title ?? ''}' filename:${win.filename ?? ''} ID:${win.id} x:${win.x} y:${win.y} w:${win.width} h:${win.height}`)
+          c++
+        }
+      } else {
+        logWarn('logWindowSets', `WindowSet #${String(c)} has no htmlWindows array`)
       }
     }
-    logInfo('logWindowSets', outputLines.join('\n'))
+    logDebug('', String(outputLines))
+    logInfo('logWindowSets', (outputLines.length > 0) ? outputLines.join('\n') : '**none**')
   }
   catch (error) {
     logError('logWindowSets', JSP(error))
@@ -172,75 +192,253 @@ export function logWindowSets(): void {
  */
 export async function saveWindowSet(): Promise<void> {
   try {
-    if (NotePlan.environment.buildVersion < 983 || NotePlan.environment.platform !== 'macOS') { // TODO: check v
-      logInfo('saveWindowSet', `Window Sets needs NotePlan v3.8.1 or later on macOS. Stopping.`)
+    const config = await getWindowSetsSettings()
+
+    if (NotePlan.environment.buildVersion < 1020 || NotePlan.environment.platform !== 'macOS') {
+      logInfo('saveWindowSet', `Window Sets needs NotePlan v3.9.1 or later on macOS. Stopping.`)
       return
     }
     // Form this set.
     // Note: needs to use a cut-down set of attributes available in the window objects
     const editorWinDetails: Array<EditorWinDetails> = NotePlan.editors.map((win) => {
+      const winRect = win.windowRect
       return {
         id: win.id,
         customId: win.customId,
         // title: win.title,
         type: win.type,
-        filename: win.filename
-        // x: win.x,
-        // y: win.y,
-        // width: win.width,
-        // height: win.height,
+        filename: win.filename,
+        x: winRect.x,
+        y: winRect.y,
+        width: winRect.width,
+        height: winRect.height,
       }
     })
+    if (editorWinDetails.length < 2) {
+      const answer = await showMessageYesNo("There's only 1 open window. Are you sure you want to continue to make a Window Set?")
+      if (answer === 'No') {
+        return
+      }
+    }
     const htmlWinDetails: Array<HTMLWinDetails> = NotePlan.htmlWindows.map((win) => {
+      const winRect = win.windowRect
       return {
         id: win.id,
         customId: win.customId,
         // title: win.title,
         type: win.type,
         // filename: win.filename
-        // x: win.x,
-        // y: win.y,
-        // width: win.width,
-        // height: win.height,
+        x: winRect.x,
+        y: winRect.y,
+        width: winRect.width,
+        height: winRect.height,
       }
     })
-    // TODO: Offer current set names (+ offer to create new one)
-    const res = await getInputTrimmed('Enter window set name', 'OK', 'Save Window Set Details')
-    if (!res) {
-      logInfo('saveWindowSet', `User canceled operation.`)
-      return
+
+    // Get current saved set names
+    const savedWindowSets = DataStore.preference('windowSets')
+    let choice = 0
+    let setName = ''
+    let isNewSet = false
+    let windowSets: Array<WindowSet> = []
+
+    // Offer current set names and/or offer to create new one
+    if (savedWindowSets) {
+      clo(savedWindowSets, 'savedWindowSets')
+      windowSets = Array(savedWindowSets ?? [])
+      logDebug('saveWindowSet', `found ${String(windowSets.length)} windowSets`)
+
+      const nameOptions: Array<Object> = []
+      nameOptions.push({ value: 0, label: "+ New window set" })
+      for (let i = 0; i < windowSets.length; i++) {
+        const thisWindowSet = windowSets[i]
+        nameOptions.push({ value: i + 1, label: thisWindowSet.name })
+      }
+      const res = await chooseOption('Enter new window set name, or which one to update', nameOptions, 0)
+      if (!res) {
+        logInfo('saveWindowSet', `User cancelled operation.`)
+        return
+      }
+      choice = res
+      if (choice === 0) {
+        const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
+        if (!newName) {
+          logInfo('saveWindowSet', `User cancelled operation.`)
+          return
+        }
+        setName = String(newName) // to satisfy flow
+        isNewSet = true
+      } else {
+        setName = nameOptions[res]
+      }
+    } else {
+      // No current saved window sets
+      const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
+      if (!newName) {
+        logInfo('saveWindowSet', `User cancelled operation.`)
+        return
+      }
+      setName = String(newName) // to satisfy flow
+      isNewSet = true
     }
-    const setName = String(res)
+
+    // TODO: Check to see if any editor windows are calendar dates
+
+    // TODO: If so, offer to make them a relative date to today/this week etc.
+
+    // TODO: Make relative calcs
+
+    // Get type of window by looking at the second open window (the first always being 'main')
     const actionType = (editorWinDetails[1].type === 'split') ? 'split' : 'floating'
     const thisWS: WindowSet = { name: setName, editorWindows: editorWinDetails, htmlWindows: htmlWinDetails, action: actionType }
     clo(thisWS, 'thisWS')
 
-    // Get all current saved windowSets objects
-    const savedWindowSets = DataStore.preference('windowSets')
-    clo(savedWindowSets, 'savedWindowSets')
-    const windowSets = Array(savedWindowSets) ?? []
-    logDebug('saveWindowSet', `found ${String(windowSets.length)} windowSets`)
-    // Add or update this one
-    let c = 0
-    let found = false
-    for (const set of windowSets) {
-      clo(set, 'set')
-      if (set.name === setName) {
-        // Update this one
-        windowSets[c] = thisWS
-        found = true
-        break
-      }
-      c++
-    }
-    if (!found) {
+    // Add or update this WS
+    if (isNewSet) {
       // Add this one
       windowSets.push(thisWS)
+    } else {
+      let c = 0
+      let found = false
+      for (const set of windowSets) {
+        clo(set, 'set')
+        if (set.name === setName) {
+          // Update this one
+          windowSets[c] = thisWS
+          found = true
+          break
+        }
+        c++
+      }
     }
     clo(windowSets)
     // Save to preferences store
-    // DataStore.setPreference('windowSets', windowSets)
-    // logDebug('saveWindowSet', `Saved window set '${setName}'`)
+    DataStore.setPreference('windowSets', windowSets)
+    logDebug('saveWindowSet', `Saved window set '${setName}'`)
+    logWindowSets()
+  } catch (error) {
+    logError('saveWindowSet', JSP(error))
+  }
+}
+
+export async function saveWindowSetV1(): Promise<void> {
+  try {
+    const config = await getWindowSetsSettings()
+
+    if (NotePlan.environment.buildVersion < 1020 || NotePlan.environment.platform !== 'macOS') {
+      logInfo('saveWindowSet', `Window Sets needs NotePlan v3.9.1 or later on macOS. Stopping.`)
+      return
+    }
+    // Form this set.
+    // Note: needs to use a cut-down set of attributes available in the window objects
+    const editorWinDetails: Array<EditorWinDetails> = NotePlan.editors.map((win) => {
+      const winRect = win.windowRect
+      return {
+        id: win.id,
+        customId: win.customId,
+        // title: win.title,
+        type: win.type,
+        filename: win.filename,
+        x: winRect.x,
+        y: winRect.y,
+        width: winRect.width,
+        height: winRect.height,
+      }
+    })
+    if (editorWinDetails.length < 2) {
+      const answer = await showMessageYesNo("There's only 1 open window. Are you sure you want to continue to make a Window Set?")
+      if (answer === 'No') {
+        return
+      }
+    }
+    const htmlWinDetails: Array<HTMLWinDetails> = NotePlan.htmlWindows.map((win) => {
+      const winRect = win.windowRect
+      return {
+        id: win.id,
+        customId: win.customId,
+        // title: win.title,
+        type: win.type,
+        // filename: win.filename
+        x: winRect.x,
+        y: winRect.y,
+        width: winRect.width,
+        height: winRect.height,
+      }
+    })
+
+    // Get current saved set names
+    const savedWindowSets = DataStore.preference('windowSets')
+    let choice = 0
+    let setName = ''
+    let isNewSet = false
+    let windowSets: Array<WindowSet> = []
+    if (savedWindowSets) {
+      clo(savedWindowSets, 'savedWindowSets')
+      windowSets = Array(savedWindowSets ?? [])
+      logDebug('saveWindowSet', `found ${String(windowSets.length)} windowSets`)
+
+      // Offer current set names + offer to create new one
+      const nameOptions: Array<Object> = []
+      nameOptions.push({ value: 0, label: "+ New window set" })
+      for (let i = 0; i < windowSets.length; i++) {
+        const thisWindowSet = windowSets[i]
+        nameOptions.push({ value: i + 1, label: thisWindowSet.name })
+      }
+      const res = await chooseOption('Enter new window set name, or which one to update', nameOptions, 0)
+      if (!res) {
+        logInfo('saveWindowSet', `User cancelled operation.`)
+        return
+      }
+      choice = res
+      if (choice === 0) {
+        const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
+        if (!newName) {
+          logInfo('saveWindowSet', `User cancelled operation.`)
+          return
+        }
+        setName = String(newName) // to satisfy flow
+        isNewSet = true
+      } else {
+        setName = nameOptions[res]
+      }
+    } else {
+      // No current saved window sets
+      const newName = await getInputTrimmed('Enter name for new Window Set', 'OK', 'New Window Set name')
+      if (!newName) {
+        logInfo('saveWindowSet', `User cancelled operation.`)
+        return
+      }
+      setName = String(newName) // to satisfy flow
+      isNewSet = true
+    }
+
+    // Get type of window by looking at the second open window (the first always being 'main')
+    const actionType = (editorWinDetails[1].type === 'split') ? 'split' : 'floating'
+    const thisWS: WindowSet = { name: setName, editorWindows: editorWinDetails, htmlWindows: htmlWinDetails, action: actionType }
+    clo(thisWS, 'thisWS')
+
+    // Add or update this WS
+    if (isNewSet) {
+      // Add this one
+      windowSets.push(thisWS)
+    } else {
+      let c = 0
+      let found = false
+      for (const set of windowSets) {
+        clo(set, 'set')
+        if (set.name === setName) {
+          // Update this one
+          windowSets[c] = thisWS
+          found = true
+          break
+        }
+        c++
+      }
+    }
+    clo(windowSets)
+    // Save to preferences store
+    DataStore.setPreference('windowSets', windowSets)
+    logDebug('saveWindowSet', `Saved window set '${setName}'`)
     logWindowSets()
   } catch (error) {
     logError('saveWindowSet', JSP(error))
@@ -255,8 +453,8 @@ export async function saveWindowSet(): Promise<void> {
  */
 export async function openWindowSet(setName: string): Promise<boolean> {
   try {
-    if (NotePlan.environment.buildVersion < 983 || NotePlan.environment.platform !== 'macOS') { // TODO: check v
-      throw new Error(`Window Sets needs NotePlan v3.8.1 or later on macOS. Stopping.`)
+    if (NotePlan.environment.buildVersion < 1020 || NotePlan.environment.platform !== 'macOS') {
+      throw new Error(`Window Sets needs NotePlan v3.9.1 or later on macOS. Stopping.`)
     }
     let success = false
     const config = await getWindowSetsSettings()
@@ -390,11 +588,12 @@ export async function openWindowSet(setName: string): Promise<boolean> {
     }
 
     clo(savedWindowSets, 'savedWindowSets')
+
     // Form list of window sets to choose from
     let c = -1
     const setChoices = savedWindowSets.map((sws) => {
       c++
-      return { label: `${sws.name} (with ${String(sws.editorWindows.length)} windows)`, value: c }
+      return { label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} ${sws.action} windows)`, value: c }
     })
     if (setChoices.length === 0) {
       throw new Error(`No window sets found.`)
@@ -443,5 +642,65 @@ export async function openWindowSet(setName: string): Promise<boolean> {
   catch (error) {
     logError('openWindowSet', JSP(error))
     return false
+  }
+}
+
+/**
+ * Delete a saved window set
+ * @author @jgclark
+ * @param {string} setName to open
+ * @returns {boolean} success?
+ */
+export async function deleteWindowSet(setName: string): Promise<boolean> {
+  try {
+    if (NotePlan.environment.buildVersion < 1020 || NotePlan.environment.platform !== 'macOS') {
+      throw new Error(`Window Sets needs NotePlan v3.9.1 or later on macOS. Stopping.`)
+    }
+    let success = false
+
+    // Form list of window sets to choose from
+    let c = -1
+    const savedWindowSets = DataStore.preference('windowSets')
+    clo(savedWindowSets, 'all savedWindowSets')
+    const windowSets = Array(savedWindowSets ?? [])
+    if (windowSets.length === 0) {
+      logWarn(pluginJson, `deleteWindowSet: No window sets found. Stopping.`)
+      return false
+    }
+    logDebug(pluginJson, `deleteWindowSet: Found ${windowSets.length} window sets`)
+
+    const setChoices = windowSets.map((sws) => {
+      c++
+      return { label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} ${sws.action} windows)`, value: c }
+    })
+    const num = await chooseOption("Which Window Set to delete?", setChoices)
+    if (isNaN(num)) {
+      logInfo(pluginJson, `No valid set chosen, so stopping.`)
+      return false
+    }
+    logInfo('deleteWindowSet', `You have asked to delete window set #${num}`)
+
+    // Delete this window set, and save back to preferences store
+    windowSets.splice(num, 1)
+    DataStore.setPreference('windowSets', windowSets)
+    // logDebug('deleteWindowSet', `Window set '${setName}'`)
+    logWindowSets()
+
+    return true
+  }
+  catch (error) {
+    logError('deleteWindowSet', JSP(error))
+    return false
+  }
+}
+
+export function deleteAllSavedWindowSets(): void {
+  try {
+    // TEST: waiting for next Alpha after 1020 to test if this now works. Currently it's blocked, says EM.  See https://discord.com/channels/763107030223290449/1101882756436328578/1101924555922079805
+    DataStore.setPreference('windowSets', null)
+    logWarn('deleteAllSavedWindowSets', `Deleted all Window Sets`)
+  }
+  catch (error) {
+    logError('deleteAllSavedWindowSets', JSP(error))
   }
 }

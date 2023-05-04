@@ -3,12 +3,12 @@
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.WindowSets",
   "plugin.name": "🖥️ Window Sets",
-  "plugin.description": "Allows you to easily save and restore particular sets of windows on macOS.",
+  "plugin.description": "Allows you to easily save and restore particular sets of NotePlan windows on macOS.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/CHANGELOG.md",
-  "plugin.version": "0.1.0",
+  "plugin.version": "0.1.1",
   "plugin.lastUpdateInfo": "v0.1: First release, with basic save and restore functions.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -33,6 +33,21 @@
       ],
       "description": "Save the current windows/panes as a named set",
       "jsFunction": "saveWindowSet"
+    },
+    {
+      "name": "delete window set",
+      "alias": [
+        "dws",
+        "window",
+        "set"
+      ],
+      "description": "Delete a saved set of windows/panes",
+      "jsFunction": "deleteWindowSet"
+    },
+    {
+      "name": "test:deleteAllSavedWindowSets",
+      "description": "Delete all saved window sets",
+      "jsFunction": "deleteAllSavedWindowSets"
     },
     {
       "name": "Log current window sets",
