@@ -6,10 +6,10 @@ import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
 
 /**
  * Return a subset of folders:
- * - including only those on the inclusions list (and their sub-folders) if given
+ * - including only those that contain one of the strings on the inclusions list (so will include any sub-folders) if given
  * - excluding those on the given list, and any of their sub-folders (other than root which would then exclude everything).
  * - optionally exclude all special @... folders as well.
- * @author @jgclark
+ * @author @jgclark, improved by @dwertheimer
  * @param {Array<string>} exclusions
  * @param {boolean} excludeSpecialFolders?
  * @param {Array<string>} inclusions?
@@ -18,48 +18,36 @@ import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
 export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialFolders: boolean = true, inclusions: Array<string> = []): Array<string> {
   try {
     // Get all folders as array of strings (other than @Trash).
-    const folderList = DataStore.folders
-    const reducedList: Array<string> = []
-    logDebug('folders / filteredFolderList', `Starting to filter the ${folderList.length} DataStore.folders with inclusions [${inclusions.toString()}] exclusions [${exclusions.toString()}]`)
+    const fullFolderList = DataStore.folders
+    let reducedList: Array<string> = fullFolderList.slice() // to avoid read-only flow error
+    logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions [${inclusions.toString()}] exclusions [${exclusions.toString()}]`)
 
+    // const inclusionsTerminatedWithSlash: Array<string> = []
+    // for (const e of inclusions) {
+    //   inclusionsTerminatedWithSlash.push(e.endsWith('/') ? e : `${e}/`)
+    // }
     const exclusionsTerminatedWithSlash: Array<string> = []
     for (const e of exclusions) {
       exclusionsTerminatedWithSlash.push(e.endsWith('/') ? e : `${e}/`)
     }
-    const inclusionsTerminatedWithSlash: Array<string> = []
-    for (const e of inclusions) {
-      inclusionsTerminatedWithSlash.push(e.endsWith('/') ? e : `${e}/`)
-    }
-    const folderListTerminatedWithSlash: Array<string> = []
-    for (const f of folderList) {
-      folderListTerminatedWithSlash.push(f.endsWith('/') ? f : `${f}/`)
-    }
-    for (const thisFolder of folderListTerminatedWithSlash) {
-      let matchedAnExcludedFolder = false
-      for (const ee of exclusionsTerminatedWithSlash) {
-        if (thisFolder.startsWith(ee)) {
-          matchedAnExcludedFolder = true
-          logDebug('folders / filteredFolderList', `  Excluded folder: ${ee} starts with ${thisFolder}`)
-          break // exit loop early
-        }
-      }
-      let matchedAnIncludedFolder = true
-      if (inclusions.length > 0) {
-        matchedAnIncludedFolder = false
-        for (const ff of inclusionsTerminatedWithSlash) {
-          if (thisFolder.startsWith(ff)) {
-            matchedAnIncludedFolder = true
-            logDebug('folders / filteredFolderList', `  Included folder: ${ff} starts with ${thisFolder}`)
-            break // exit loop early
-          }
-        }
-      }
-      if (matchedAnIncludedFolder && !matchedAnExcludedFolder && !(excludeSpecialFolders && thisFolder.startsWith('@'))) {
-        reducedList.push(thisFolder.substr(0, thisFolder.length - 1))
-        // logDebug('folders / filteredFolderList', `  ${thisFolder} didn't match`)
-      }
-    }
-    logDebug('folders / filteredFolderList', `-> filteredList ${reducedList.length}: ${reducedList.toString()}`)
+    // const folderListTerminatedWithSlash: Array<string> = []
+    // for (const f of fullFolderList) {
+    //   folderListTerminatedWithSlash.push(f.endsWith('/') ? f : `${f}/`)
+    // }
+
+    // filter reducedList to only folders that (string) contains an item in the inclusions list
+    reducedList = inclusions.length ? reducedList.filter((folder) => inclusions.some((ff) => folder.includes(ff))) : reducedList
+    // logDebug('after inclusions', reducedList.toString())
+
+    // filter reducedList to only folders that don't start with an item in the exclusionsTerminatedWithSlash list
+    reducedList = exclusionsTerminatedWithSlash.length ? reducedList.filter((folder) => !exclusionsTerminatedWithSlash.some((ee) => folder.startsWith(ee))) : reducedList
+    // logDebug('after exclusions', reducedList.toString())
+
+    // filter reducedList to only folders that don't start with the character '@' (special folders)
+    reducedList = excludeSpecialFolders ? reducedList.filter((folder) => !folder.startsWith('@')) : reducedList
+    // logDebug('after @', reducedList.toString())
+
+    logDebug('folders / filteredFolderList', `-> filteredList ${reducedList.length}: [${reducedList.toString()}]`)
     return reducedList
   } catch (error) {
     logError('folders/getFilteredFolderList', JSP(error))

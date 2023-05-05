@@ -820,6 +820,7 @@ export function generateScriptTags(scripts: string | ScriptObj | Array<string | 
  * @param {number?} width
  * @param {number?} height
  * @param {string?} customID
+ * @param {boolean?} shouldFocus
  */
 export function showHTML(
   windowTitle: string,
@@ -834,6 +835,7 @@ export function showHTML(
   width?: number,
   height?: number,
   customID: string = '',
+  shouldFocus: boolean = false,
 ): void {
   try {
     const fullHTML = []
@@ -848,7 +850,8 @@ export function showHTML(
     }
     fullHTML.push(headerTags)
     fullHTML.push('<style type="text/css">')
-    // If CSS is empty, then generate it from the current theme
+    // If generalCSSIn is empty, then generate it from the current theme
+    // TODO: ideally extend to save CSS from theme, and then check if it can be reused.
     const generalCSS = generalCSSIn && generalCSSIn !== '' ? generalCSSIn : generateCSSFromTheme('')
     fullHTML.push(generalCSS)
     fullHTML.push(specificCSS)
@@ -880,7 +883,7 @@ export function showHTML(
         logDebug('showHTML', `Using modal view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
         HTMLView.showSheet(fullHTMLStr, width, height)
       } else {
-        HTMLView.showWindow(fullHTMLStr, windowTitle, width, height)
+        HTMLView.showWindow(fullHTMLStr, windowTitle, width, height, shouldFocus)
       }
     }
 

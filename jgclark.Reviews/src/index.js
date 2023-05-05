@@ -67,9 +67,10 @@ export async function testUpdated(): Promise<void> {
 }
 
 export async function onSettingsUpdated(): Promise<void> {
-  // Update the full-review-list in case there's a change in a relevant setting
-  await makeFullReviewList(false)
-  await renderProjectLists()
+  // Placeholder now
+  // Update the full - review - list in case there's a change in a relevant setting
+  // await makeFullReviewList(false)
+  // await renderProjectLists()
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {

@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.10.0",
-  "plugin.lastUpdateInfo": "0.10.0: new setting 'Folders to use in reviews' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.\n0.9.1: Fixed projects due today not being offered for review.\n0.9.0: Major speed up of most '/project list' calls, and can now write both Rich and Markdown outputs at the same time. Lots of other layout improvements too.",
+  "plugin.version": "0.10.1",
+  "plugin.lastUpdateInfo": "0.10.1: bugfix\n0.10.0: new setting 'Folders to use in reviews' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.",
   "plugin.requiredFiles": [],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -197,7 +197,7 @@
     {
       "key": "foldersToInclude",
       "title": "Folders to use in reviews",
-      "description": "A comma-separated list of folders to process in the reviews. Any sub-folders will also be included.\nIf empty, all folders will be processed (apart from the special @Trash, @Templates and @Archive foldeers which are always excluded.)",
+      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nIf empty, all folders will be processed (apart from the special @Trash, @Templates and @Archive foldeers which are always excluded.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -205,7 +205,7 @@
     {
       "key": "foldersToIgnore",
       "title": "Folders to ignore in reviews",
-      "description": "A comma-separated list of folders to ignore in reviews. Can be empty. Where an ignored folder has a sub-folder these will also be ignored. (Note that @Trash, @Templates and @Archive are always excluded.)",
+      "description": "Specify folders to ignore (which includes any of their sub-folders too) as a comma-separated list. Can be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
       "type": "[string]",
       "default": [
         "Reviews",

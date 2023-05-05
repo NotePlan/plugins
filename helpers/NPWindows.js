@@ -9,7 +9,7 @@ import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search
 
 /**
  * Return string version of Rect's x/y/width/height attributes
- * @param {Rect} rect 
+ * @param {Rect} rect
  * @returns {string}
  */
 export function rectToString(rect: Rect): string {
@@ -18,12 +18,12 @@ export function rectToString(rect: Rect): string {
 
 /**
  * List all open windows to the plugin console log.
- * Uses API introduced in NP 3.8.1
+ * Uses API introduced in NP 3.8.1, and extended in 3.9.1 to add .rect.
  * @author @jgclark
  */
 export function logWindowsList(): void {
   const outputLines = []
-  if (NotePlan.environment.buildVersion >= 973) {
+  if (NotePlan.environment.buildVersion >= 1020) {
     let c = 0
     for (const win of NotePlan.editors) {
       outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
@@ -32,6 +32,19 @@ export function logWindowsList(): void {
     c = 0
     for (const win of NotePlan.htmlWindows) {
       outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+      c++
+    }
+    outputLines.unshift(`${outputLines.length} Windows:`)
+    logInfo('logWindowsList', outputLines.join('\n'))
+  } else if (NotePlan.environment.buildVersion >= 973) {
+    let c = 0
+    for (const win of NotePlan.editors) {
+      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id}`)
+      c++
+    }
+    c = 0
+    for (const win of NotePlan.htmlWindows) {
+      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id}`)
       c++
     }
     outputLines.unshift(`${outputLines.length} Windows:`)
@@ -91,7 +104,7 @@ export function isHTMLWindowOpen(customID: string): boolean {
  * Note: Hopefully in time, this will be removed, when @EduardMe rolls it into an API call
  * @author @jgclark
  * @param {string} openNoteFilename, i.e. note that is open in an Editor that we're trying to set customID for
- * @param {string} customID 
+ * @param {string} customID
  */
 export function setEditorWindowID(openNoteFilename: string, customID: string): void {
   if (NotePlan.environment.buildVersion >= 973) {
@@ -113,7 +126,7 @@ export function setEditorWindowID(openNoteFilename: string, customID: string): v
 /**
  * Tests whether the provided filename is open in an Editor window.
  * @author @jgclark
- * @param {string} openNoteFilename 
+ * @param {string} openNoteFilename
  * @returns {boolean}
  */
 export function noteOpenInEditor(openNoteFilename: string): boolean {

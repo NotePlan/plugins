@@ -94,7 +94,7 @@ Notes about the displays:
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 Other settings:
-- Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders).
+- Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders). This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.
 - Folders to Ignore (optional): Specify folders to ignore (which includes any of their sub-folders too).
 - Display project dates?  Whether to display the project's review and due dates (where set).
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.
