@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.10.1",
-  "plugin.lastUpdateInfo": "0.10.1: bugfix\n0.10.0: new setting 'Folders to use in reviews' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.",
+  "plugin.version": "0.10.2",
+  "plugin.lastUpdateInfo": "0.11.0: introduce optional @nextReview() date, and skip next review function.\n0.10.2: further speed improvements.\n0.10.1: bugfix and more flexible 'Folders to Include' setting.\n0.10.0: new setting 'Folders to Include' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.",
   "plugin.requiredFiles": [],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -290,7 +290,7 @@
     {
       "key": "startMentionStr",
       "title": "Project start string",
-      "description": "@string indicating date a project/area was started (default: @start)",
+      "description": "@string indicating date a project/area was started (default: '@start')",
       "type": "string",
       "default": "@start",
       "required": true
@@ -298,7 +298,7 @@
     {
       "key": "completedMentionStr",
       "title": "Project completed string",
-      "description": "@string indicating date a project/area was completed (default: @completed)",
+      "description": "@string indicating date a project/area was completed (default: '@completed')",
       "type": "string",
       "default": "@completed",
       "required": true
@@ -306,7 +306,7 @@
     {
       "key": "cancelledMentionStr",
       "title": "Project cancelled string",
-      "description": "@string indicating date a project/area was cancelled (default: @cancelled)",
+      "description": "@string indicating date a project/area was cancelled (default: '@cancelled')",
       "type": "string",
       "default": "@cancelled",
       "required": true
@@ -314,7 +314,7 @@
     {
       "key": "dueMentionStr",
       "title": "Project due string",
-      "description": "@string indicating date a project/area is due to be finished (default: @due)",
+      "description": "@string indicating date a project/area is due to be finished (default: '@due')",
       "type": "string",
       "default": "@due",
       "required": true
@@ -322,7 +322,7 @@
     {
       "key": "reviewIntervalMentionStr",
       "title": "Project review interval string",
-      "description": "@string indicating review interval for project/area (default: @review)",
+      "description": "@string indicating review interval for project/area (default: '@review')",
       "type": "string",
       "default": "@review",
       "required": true
@@ -330,9 +330,17 @@
     {
       "key": "reviewedMentionStr",
       "title": "Project reviewed string",
-      "description": "@string indicating date a project/area was last reviewed (default: @reviewed)",
+      "description": "@string indicating date a project/area was last reviewed (default: '@reviewed')",
       "type": "string",
       "default": "@reviewed",
+      "required": true
+    },
+    {
+      "key": "nextReviewMentionStr",
+      "title": "Project next review string",
+      "description": "@string indicating date you next want a project/area to be reviewed (default: '@nextReview')",
+      "type": "string",
+      "default": "@nextReview",
       "required": true
     },
     {
