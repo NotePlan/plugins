@@ -51,7 +51,7 @@ describe('helpers/folders', () => {
       expect(folders.length).toBe(7)
     })
     test('Subfolder exclusion not matching -> 9 left', () => {
-      const exclusions = ['TEST/TEST LEVEL 3']
+      const exclusions = ['TEST/NOT IN LIST']
       const folders = Object.keys(f.getFilteredFolderList(exclusions))
       expect(folders.length).toBe(9)
     })

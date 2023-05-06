@@ -340,12 +340,25 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
  * @param {boolean?} caseInsensitiveMatch - whether to ignore case when matching (default true)
  * @return {Array<TNote>}
  */
-export function findNotesMatchingHashtag(tag: string, folder: ?string, includeSubfolders: ?boolean = false, tagToExclude: string = '', caseInsensitiveMatch: boolean = true): Array<TNote> {
+export function findNotesMatchingHashtag(
+  tag: string,
+  folder: ?string,
+  includeSubfolders: ?boolean = false,
+  tagToExclude: string = '',
+  caseInsensitiveMatch: boolean = true,
+  notesToSearchIn?: Array<TNote>,
+): Array<TNote> {
+  // logDebug(
+  //   `NPNote::findNotesMatchingHashtag`,
+  //   `tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagToExclude:${tagToExclude} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
+  // )
   // Check for special conditions first
   if (tag === '') {
     logError('NPnote/findNotesMatchingHashtag', `No hashtag given. Stopping`)
     return [] // for completeness
   }
+  const notesToSearch = notesToSearchIn ?? DataStore.projectNotes
+  // logDebug(pluginJson, `findNotesMatchingHashtag ${notesToSearchIn ? ' limited to ' : ''} ${notesToSearch.length} Notes`)
 
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
@@ -353,26 +366,31 @@ export function findNotesMatchingHashtag(tag: string, folder: ?string, includeSu
     if (includeSubfolders) {
       // use startsWith as filter to include subfolders
       // FIXME: not working for root-level notes
-      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => n.filename.startsWith(`${folder}/`))
+      projectNotesInFolder = notesToSearch.slice().filter((n) => n.filename.startsWith(`${folder}/`))
     } else {
+      const t = new Date()
       // use match as filter to exclude subfolders
-      projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
+      projectNotesInFolder = notesToSearch.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
+      // logDebug(pluginJson, `findNotesMatchingHashtag DataStore.projectNotes.filtering took: ${timer(t)}`)
     }
   } else {
     // no folder specified, so grab all notes from DataStore
-    projectNotesInFolder = DataStore.projectNotes.slice()
+    projectNotesInFolder = notesToSearch.slice()
   }
 
   // Filter by tag
   let projectNotesWithTag: Array<TNote>
   if (caseInsensitiveMatch) {
-    projectNotesWithTag = projectNotesInFolder
-      .filter((n) => {
-        // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-        return caseInsensitiveIncludes(tag, n.hashtags)
-      })
+    projectNotesWithTag = projectNotesInFolder.filter((n) => {
+      logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
+      // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+      return caseInsensitiveIncludes(tag, n.hashtags)
+    })
   } else {
-    projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
+    projectNotesWithTag = projectNotesInFolder.filter((n) => {
+      logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
+      return n.hashtags.includes(tag)
+    })
   }
   logDebug('NPnote/findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
 
@@ -425,7 +443,7 @@ export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, 
   const projectNotesWithTags = [[]]
   for (const tag of tags) {
     const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
-    logDebug('NPnote/findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
+    // logDebug('NPnote/findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
     projectNotesWithTags.push(projectNotesWithTag)
   }
   return projectNotesWithTags
