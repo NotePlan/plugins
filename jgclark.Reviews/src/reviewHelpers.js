@@ -47,13 +47,14 @@ export type ReviewConfig = {
   hideTopLevelFolder: boolean,
   displayArchivedProjects: boolean,
   finishedListHeading: string,
+  confirmNextReview: boolean,
   startMentionStr: string,
   completedMentionStr: string,
   cancelledMentionStr: string,
   dueMentionStr: string,
   reviewIntervalMentionStr: string,
   reviewedMentionStr: string,
-  confirmNextReview: boolean,
+  nextReviewMentionStr: string,
   _logLevel: string
 }
 
@@ -72,7 +73,7 @@ export async function getReviewSettings(): Promise<any> {
       await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     }
-    // clo(config, `Review settings:`)
+    clo(config, `Review settings`)
 
     // Need to store some things in the Preferences API mechanism, in order to pass things to the Project class
     DataStore.setPreference('startMentionStr', config.startMentionStr)
@@ -81,6 +82,10 @@ export async function getReviewSettings(): Promise<any> {
     DataStore.setPreference('dueMentionStr', config.dueMentionStr)
     DataStore.setPreference('reviewIntervalMentionStr', config.reviewIntervalMentionStr)
     DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr)
+    DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
+
+    console.log(config.nextReviewMentionStr) // OK
+    console.log(DataStore.preference('nextReviewMentionStr')) // FIXME: undefined. Not it seems to do with case :-(
 
     return config
   } catch (err) {
@@ -122,9 +127,9 @@ export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date
  * From an array of strings, return the first string that matches the
  * wanted parameterised @mention, or empty String.
  * @author @jgclark
- * @param {Array<string>} mentionList - list of strings to search
+ * @param {Array<string>} mentionList - list of @mentions to search
  * @param {string} mention - string to match (with a following '(' to indicate start of parameter)
- * @return {?Date} - JS Date version, if valid date found
+ * @return {string} - JS Date version, if valid date found
  */
 export function getParamMentionFromList(mentionList: $ReadOnlyArray<string>, mention: string): string {
   // logDebug(pluginJson, `getMentionFromList for: ${mention}`)
@@ -253,7 +258,6 @@ export class Project {
 
       // read in various metadata fields (if present)
       // FIXME: doesn't pick up reviewed() if not in metadata line
-      // (now uses DataStore.preference mechanism to pick up current terms for @start, @due, @reviewed etc.)
       let tempDateStr = getParamMentionFromList(mentions, checkString(DataStore.preference('startMentionStr')))
       this.startDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
       // read in due date (if found)
@@ -271,6 +275,22 @@ export class Project {
       // read in review interval (if found)
       const tempIntervalStr = getParamMentionFromList(mentions, checkString(DataStore.preference('reviewIntervalMentionStr')))
       this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : undefined
+
+      // read in nextReview date (if found)
+      // FIXME: preference is 'undefined'
+      // tempDateStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
+      // TODO: remove this workaround when possible:
+      let tempPref = "@nextReview"
+      tempDateStr = getParamMentionFromList(mentions, tempPref)
+      if (tempDateStr !== '') {
+        this.nextReviewDate = tempDateStr !== '' ? getDateObjFromDateString(tempDateStr) : undefined
+        // this.nextReviewDate = getDateObjFromDateString(tempDateStr)
+        this.nextReviewDateStr = tempDateStr.replace(tempPref, '').replace('(', '').replace(')', '')
+        logDebug('Project constructor', `found nextReviewMentionStr '${tempDateStr}' = ${this.nextReviewDateStr}`)
+      } else {
+        this.nextReviewDate = undefined
+      }
+
       // calculate the durations from these dates
       this.calcDurations()
 
@@ -283,7 +303,7 @@ export class Project {
       this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length // TEST: replacing line below
       this.futureTasks = paras.filter((p) => p.type === 'open').filter((p) => includesScheduledFutureDate(p.content)).length
 
-      if (this.folder.startsWith('TEST') || this.title.startsWith('Annual') || this.title.includes('Test')) {
+      if (this.folder.startsWith('TEST') || this.title.includes('Project') || this.title.includes('Test')) {
         logDebug('Project constructor', `- for '${this.title}'`)
         logDebug('Project constructor', `  - metadataLine = ${paras[metadataLineIndex].content}`)
         logDebug('Project constructor', `  - noteType: ${this.noteType}`)
@@ -293,6 +313,7 @@ export class Project {
         logDebug('Project constructor', `  - altHashtags: ${String(altHashtags)}`)
         logDebug('Project constructor', `  - reviewedDate: ${this.reviewedDate ? String(this.reviewedDate) : '-'}`)
         logDebug('Project constructor', `  - reviewInterval: ${this.reviewInterval ?? '-'}`)
+        logDebug('Project constructor', `  - nextReviewDate: ${this.nextReviewDate ? String(this.nextReviewDate) : '-'}`)
         logDebug('Project constructor', `  - open: ${String(this.openTasks)} / completed: ${String(this.completedTasks)} / waiting: ${String(this.waitingTasks)} / future: ${String(this.futureTasks)}`)
       }
 
@@ -368,8 +389,8 @@ export class Project {
       const now = new Date()
       this.dueDays =
         this.dueDate != null
-          ? // NB: Written while there was an error in EM's Calendar.unitsBetween() function
-          daysBetween(now, this.dueDate)
+        // NB: Written while there was an error in EM's Calendar.unitsBetween() function
+        ? daysBetween(now, this.dueDate)
         : NaN
 
       // Calculate durations or time since cancel/complete
@@ -399,8 +420,13 @@ export class Project {
         }
       }
 
-      // Calculate next review due date
-      if (this.reviewInterval != null) {
+      // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
+      if (this.nextReviewDateStr) {
+        // $FlowFixMe[incompatible-call]
+        this.nextReviewDays = daysBetween(now, this.nextReviewDate)
+        logDebug('calcDurations', `already had a nextReviewDateStr ${this.nextReviewDateStr ?? '?'} -> ${String(this.nextReviewDays)} interval`)
+      }
+      else if (this.reviewInterval != null) {
         if (this.reviewedDate != null) {
           this.nextReviewDate = calcNextReviewDate(this.reviewedDate, this.reviewInterval)
           if (this.nextReviewDate != null) {
@@ -599,7 +625,7 @@ export class Project {
         // Method 1: make [[notelinks]] via x-callbacks
         const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(this.title, "title", "", "splitView", false)
         const noteTitleWithOpenAction = `<span class="noteTitle"><a href=${noteOpenActionURL}"><i class="fa-regular fa-file-lines"></i> ${folderNamePart}${titlePart}</a></span>`
-        // TODO: change to use Method 2: internal links
+        // TODO: change to use internal links: see method in Dashboard.
         // see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
         // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
 
@@ -700,11 +726,11 @@ export class Project {
           if (this.completedDate != null) {
             // "completed after X" or "cancelled X ago", depending
             const completionRef = (this.completedDuration) ? this.completedDuration : relativeDateFromDate(this.completedDate)
-            output += `<td colspan=2 class="checked">Completed ${completionRef}</td><td></td>`
+            output += `<td colspan=2 class="checked">Completed ${completionRef}</td>`
           } else if (this.cancelledDate != null) {
             // 'cancelled after X' or 'cancelled X ago', depending
             const cancellationRef = (this.cancelledDuration) ? this.cancelledDuration : relativeDateFromDate(this.cancelledDate)
-            output += `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td><td></td>`
+            output += `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td>`
           }
           if (!this.isCompleted && !this.isCancelled) {
             output = (this.nextReviewDays != null && !isNaN(this.nextReviewDays))
@@ -730,14 +756,13 @@ export class Project {
         // logDebug('', `${this.decoratedProjectTitle(style, includeFolderName)}`)
         if (displayDates) {
           if (this.completedDate != null) {
-            // TODO: completed after X or cancelled X ago, depending
-            // Drop finishedDays, but create mini funcs to return ^^^ text instead
-            // output += `\t(Completed ${relativeDateFromNumber(this.finishedDays)})`
-            output += `\t(Completed ${this.completedDuration ?? ''})`
+            // completed after X or cancelled X ago, depending
+            const completionRef = (this.completedDuration) ? this.completedDuration : relativeDateFromDate(this.completedDate)
+            output += `\t(Completed ${completionRef})`
           } else if (this.cancelledDate != null) {
-            // TODO: completed after X or cancelled X ago, depending
-            // output += `\t(Cancelled ${relativeDateFromNumber(this.finishedDays)})`
-            output += `\t(Cancelled ${this.cancelledDuration ?? ''})`
+            // completed after X or cancelled X ago, depending
+            const cancellationRef = (this.cancelledDuration) ? this.cancelledDuration : relativeDateFromDate(this.cancelledDate)
+            output += `\t(Cancelled ${cancellationRef})`
           }
         }
         if (displayProgress && !this.isCompleted && !this.isCancelled) {

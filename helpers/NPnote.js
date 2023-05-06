@@ -338,6 +338,7 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
  * @param {boolean?} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @param {string?} tagToExclude - optional tag that if found in the note, excludes the note
  * @param {boolean?} caseInsensitiveMatch - whether to ignore case when matching (default true)
+ * @param {Array<TNote>?} notesToSearchIn - optional array of notes to search in
  * @return {Array<TNote>}
  */
 export function findNotesMatchingHashtag(
