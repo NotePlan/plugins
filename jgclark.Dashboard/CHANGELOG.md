@@ -1,6 +1,13 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.4.2] - 2023-04-???
+### Changes
+- ??? windowing things
+- when the dashboard window is refreshed in the background by a trigger, it will no longer 'steal focus' by bringing the window to the front.
+- ??? save last window position?
+- it now takes into account user's preferences for whether `*`, `-` and/or `1.` counts as the indicator for todos
+
 ## [0.4.1] - 2023-04-16
 - fixed bug reported by @csdlajolle
 - minor tweaks to column 1 display

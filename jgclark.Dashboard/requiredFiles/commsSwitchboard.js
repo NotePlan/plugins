@@ -155,7 +155,7 @@ function deleteHTMLItem(ID) {
   console.log(`deleteHTMLItem: ID: ${ID}`)
   const div = document.getElementById(ID)
   if (div) {
-    console.log(`innerHTML was: ${div.innerHTML}`)
+    // console.log(`innerHTML was: ${div.innerHTML}`)
     div.innerHTML = ''
   } else {
     console.log(`Couldn't find item with ID ${ID}`)

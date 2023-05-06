@@ -73,18 +73,10 @@ export async function showDemoDashboardHTML(): Promise<void> {
  * - x-yI = icon for section x item y, used in 'col 3' <td> tags
  * 
  * @author @jgclark
- * @param {boolean?} forceRefresh - if true, refresh the window even if the window is already open
  * @param {boolean?} showDemoData - if true, show the demo data, otherwise show the real data
  */
-export async function showDashboardHTML(forceRefresh: boolean = false, demoMode: boolean = false): Promise<void> {
+export async function showDashboardHTML(demoMode: boolean = false): Promise<void> {
   try {
-
-    // First try just focussing the existing dashboard window if it's open
-    // FIXME: Commented out for now as API bug on focusing window
-    // if (!forceRefresh && focusHTMLWindowIfAvailable(windowCustomID)) {
-    //   return
-    // }
-
     const config = await getSettings()
     await checkForRequiredSharedFiles(pluginJson)
     let sections: Array<SectionDetails> = []
@@ -291,7 +283,8 @@ export async function showDashboardHTML(forceRefresh: boolean = false, demoMode:
       filenameHTMLCopy,
       config.windowWidth > 0 ? config.windowWidth : 1000, // = width of window
       config.windowHeight > 0 ? config.windowHeight : 500, // = height of window
-      windowCustomID
+      windowCustomID,
+      false // shouuld not focus, if Window already exists
     ) // set width; max height
     logDebug(`makeDashboard`, `written to HTML window`)
   } catch (error) {

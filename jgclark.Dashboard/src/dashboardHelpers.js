@@ -82,6 +82,8 @@ export async function getSettings(): Promise<any> {
       return
     } else {
       // clo(config, `settings`)
+      // Set special pref to avoid async promises in decideWhetherToUpdateDashboard()
+      DataStore.setPreference('Dashboard-Trigger-Log', config.triggerLogging ?? false)
       return config
     }
   } catch (err) {

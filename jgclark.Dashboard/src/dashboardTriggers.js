@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggering
-// Last updated 30.3.2023 for v0.3.x by @jgclark
+// Last updated 27.4.2023 for v0.4.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,18 +10,16 @@ import { clo, JSP, /*logDebug,*/ logError, logInfo, logWarn } from '@helpers/dev
 import { rangeToString } from '@helpers/general'
 import { selectedLinesIndex } from '@helpers/NPparagraph'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
-import {
-  RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER_MULTI_LINE
-} from '@helpers/regex'
+import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import plugin from "@babel/core/lib/config/plugin";
 
 /**
- * Local version of log, turned on only if we want it
+ * Local version of log, turned on only if we have a special local pref set
  * @param {any} pluginJson 
  * @param {string} message 
  */
 function logDebug(pluginJson: any, message: string): void {
-  const doLog = true
+  const doLog: boolean = !!DataStore.preference('Dashboard-Trigger-Log')
   if (doLog) {
     console.log(message)
   }
@@ -46,10 +44,9 @@ function changeToNumberOfOpenItems(previousContent: string, currentContent: stri
  * @returns {number}
  */
 function numberOfOpenItems(content: string): number {
-  // FIXME: this needs to take account of user pref on dashes
-  // using DataStore.preference("isAsteriskTodo"), isDashTodo, isNumbersTodo
-  const RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp = /[\n^]\s*(\[[ \>]\]|[\*\+]\s[^\[])/g
-  const res = Array.from(content.matchAll(RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
+  const RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE = formRegExForUsersOpenTasks()
+  // logDebug(pluginJson, String(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
+  const res = Array.from(content.matchAll(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
   return res ? res.length : 0
 }
 
@@ -60,19 +57,18 @@ function numberOfOpenItems(content: string): number {
 export function decideWhetherToUpdateDashboard(): void {
   try {
     // Only proceed if the dashboard window is open
-    // FIXME: Eduard needs to fix something
-    // if (!isHTMLWindowOpen('Dashboard')) {
-    //   logDebug(pluginJson, `Not updating dashboard because the change hasn't added or completed or removed a task or checklist.`)
-    //   return
-    // }
-    // FIXME: Temporary check to stop it running on iOS
+    if (!isHTMLWindowOpen('Dashboard')) {
+      logDebug(pluginJson, `Dashboard window not open, so stopping.`)
+      return
+    }
+    // TODO: Temporary check to stop it running on iOS
     if (NotePlan.environment.platform !== 'macOS') {
       logDebug(pluginJson, `Designed only to run on macOS. Stopping.`)
       return
     }
 
     if (!(Editor.content && Editor.note)) {
-      logWarn(pluginJson, `Cannot get Editor details. Is there a note open in the Editor?`)
+      logWarn(pluginJson, `Cannot get Editor details. Please open a note.`)
       return
     }
 
@@ -82,8 +78,8 @@ export function decideWhetherToUpdateDashboard(): void {
     const previousContent = noteReadOnly.versions[0].content
     const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
     logDebug(pluginJson, `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`)
-    // logDebug(pluginJson, `- previous version: ${String(noteReadOnly.versions[0].date)} [${previousContent}]`)
-    // logDebug(pluginJson, `- new version: ${String(Date.now())} [${latestContent}]`)
+    logDebug(pluginJson, `- previous version: ${String(noteReadOnly.versions[0].date)} [${previousContent}]`)
+    logDebug(pluginJson, `- new version: ${String(Date.now())} [${latestContent}]`)
 
     // first check to see if this has been called in the last 1000ms: if so don't proceed, as this could be a double call.
     if (timeSinceLastEdit <= 2000) {
@@ -92,35 +88,8 @@ export function decideWhetherToUpdateDashboard(): void {
     }
 
     // Decide if there are relevant changes
-
-    // for v1 + v2: Get changed ranges
-    // const ranges = NotePlan.stringDiff(previousContent, latestContent)
-    // if (!ranges || ranges.length === 0) {
-    //   logDebug(pluginJson, `No ranges returned, so stopping.`)
-    //   return
-    // }
-    // const earliestStart = ranges[0].start
-    // let latestEnd = ranges[ranges.length - 1].end
-    // const overallRange: TRange = Range.create(earliestStart, latestEnd)
-    // logDebug('dashboard/decideWhetherToUpdateDashboard', `- overall changed content from ${rangeToString(overallRange)}`)
-
-    // v1: for changedExtent based on character region, which didn't seem to always include all the changed parts.
-    // let changedExtent = latestContent?.slice(earliestStart, latestEnd)
-    // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
-    // logDebug('dashboard/decideWhetherToUpdateDashboard', `Changed content  (method 1): <${changedExtent}>`)
-
-    // v2: Newer method uses changed paragraphs: this will include more than necessary, but that's more useful in this case
-    // changedExtent = ''
-    // const [startParaIndex, endParaIndex] = selectedLinesIndex(overallRange, Editor.paragraphs)
-    // logDebug('dashboard/decideWhetherToUpdateDashboard', `- changed lines ${startParaIndex}-${endParaIndex}`)
-    // // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
-    // for (let i = startParaIndex; i <= endParaIndex; i++) {
-    //   changedExtent += Editor.paragraphs[i].content
-    // }
-    // logDebug('dashboard/decideWhetherToUpdateDashboard', `Changed content (method 2): <${changedExtent}>`)
-
     // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
-    // (This avoids firing when simply moving task/checklist items around.)
+    // (This avoids firing when simply moving task/checklist items around, or updating the text.)
     const isThisChangeSignificant = changeToNumberOfOpenItems(previousContent, latestContent)
 
     if (isThisChangeSignificant) {
