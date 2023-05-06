@@ -5,54 +5,25 @@
 // Last updated 4.5.2023 for v0.10.0, @jgclark
 //-----------------------------------------------------------------------------
 
-import pluginJson from "../plugin.json"
+import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import fm from 'front-matter'
-import {
-  checkForWantedResources,
-  logAvailableSharedResources,
-  logProvidedSharedResources
-} from "../../np.Shared/src/index.js"
-import {
-  getReviewSettings,
-  logPreference,
-  makeFakeButton,
-  Project,
-} from './reviewHelpers'
+import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
+import { getReviewSettings, logPreference, makeFakeButton, Project } from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
-import {
-  getJSDateStartOfToday,
-  getTodaysDateHyphenated,
-  hyphenatedDateString,
-  RE_DATE,
-} from '@helpers/dateTime'
+import { getJSDateStartOfToday, getTodaysDateHyphenated, hyphenatedDateString, RE_DATE } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import {
-  clo, JSP, logDebug, logError, logInfo, logWarn,
-  overrideSettingsWithStringArgs,
-  timer
-} from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithStringArgs, timer } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
-import {
-  makeSVGPercentRing,
-  redToGreenInterpolation,
-  showHTML
-} from '@helpers/HTMLView'
+import { makeSVGPercentRing, redToGreenInterpolation, showHTML } from '@helpers/HTMLView'
 import { getOrMakeNote } from '@helpers/note'
 import { findNotesMatchingHashtag } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import { fieldSorter, sortListBy } from '@helpers/sorting'
-import {
-  showMessage,
-  showMessageYesNo,
-} from '@helpers/userInput'
-import {
-  logWindowsList,
-  noteOpenInEditor,
-  setEditorWindowID
-} from '@helpers/NPWindows'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
+import { logWindowsList, noteOpenInEditor, setEditorWindowID } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------------------
 
@@ -110,18 +81,16 @@ export const reviewListCSS: string = [
   /* Make an arrow under tooltip */
   .tooltip .tooltiptext::after { content: ""; position: absolute; top: 100%; /* At the bottom of the tooltip */ left: 50%; margin-left: -5px; border: 8px solid; border-color: var(--tint-color) transparent transparent transparent; }
   /* Show the tooltip text when you mouse over the tooltip container */
-  .tooltip:hover .tooltiptext { visibility: visible; }`
+  .tooltip:hover .tooltiptext { visibility: visible; }`,
 ].join('\n\t')
 
-const startReviewsCommandCall = (`(function() {
+const startReviewsCommandCall = `(function() {
     DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
   })()`
-)
 
-const makeProjectListsCommandCall = (`(function() {
+const makeProjectListsCommandCall = `(function() {
     DataStore.invokePluginCommandByName("project lists", "jgclark.Reviews");
   })()`
-)
 
 function makeCommandCall(commandCallJSON: string): string {
   return `<script>
@@ -179,7 +148,7 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
       await showMessage(`Sorry, I can't find the font resources I need to continue. Please check you have installed the 'Shared Resources' plugin, and then try again.`)
       return
     } else {
-      const wantedFilenames = ["fontawesome.css", "regular.min.flat4NP.css", "solid.min.flat4NP.css", "fa-regular-400.woff2", "fa-solid-900.woff2"]
+      const wantedFilenames = ['fontawesome.css', 'regular.min.flat4NP.css', 'solid.min.flat4NP.css', 'fa-regular-400.woff2', 'fa-solid-900.woff2']
       const numFoundFilenames = await checkForWantedResources(pluginID, wantedFilenames)
       if (Number(numFoundFilenames) < wantedFilenames.length) {
         logWarn(pluginJson, `Sorry, I can only find ${String(numFoundFilenames)} of the ${String(wantedFilenames.length)} wanted shared resource files`)
@@ -201,7 +170,7 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
     // Note: Currently we can only display 1 HTML Window at a time, so need to include all tags in a single view. In time this can hopefully change.
     const windowTitle = `Review List`
     // Set filename for HTML copy if _logLevel set to DEBUG
-    const filenameHTMLCopy = (config._logLevel === 'DEBUG') ? 'review_list.html' : ''
+    const filenameHTMLCopy = config._logLevel === 'DEBUG' ? 'review_list.html' : ''
     // String array to save all output
     let outputArray = []
 
@@ -216,12 +185,42 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
     // https://fontawesome.com/icons/calendar-pen
     // https://fontawesome.com/icons/check
     // https://fontawesome.com/icons/xmark
-    const refreshXCallbackButton = makeFakeButton(`<i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh`, 'project lists', '', 'Recalculate project lists and update this window') //`<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh</a></span>`
-    const startReviewButton = makeFakeButton(`<i class="fa-solid fa-forward"></i>\u00A0Start\u00A0reviews`, 'start reviews', '', 'Opens the next project to review in the NP editor') // `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-forward"></i>\u00A0Start reviews</a></span>`
-    const reviewedXCallbackButton = makeFakeButton(`<i class="fa-regular fa-calendar-check"></i>\u00A0Mark\u00A0as\u00A0Reviewed`, 'finish project review', '', `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`) //`<span class="fake-button"><a class="button" href="${reviewedXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>\u00A0Mark\u00A0as\u00A0Reviewed</a></span>`
-    const nextReviewXCallbackButton = makeFakeButton(`<i class="fa-regular fa-calendar-check"></i>\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review`, 'next project review', '', `Finish review of currently open Project and start the next review`) // `<span class="fake-button tooltip"><a class="button" href="${nextReviewXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review</a><span class="tooltiptext">Mark open project note as reviewed, and start next review</span></span>`
-    const pauseXCallbackButton = makeFakeButton(`Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause`, 'pause project toggle', '', 'Pause the currently open Project note') // `<span class="fake-button"><a class="button" href="${pauseXCallbackURL}">Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause</a></span>`
-    const completeXCallbackButton = makeFakeButton(`Toggle\u00A0<i class="fa-solid fa-check"></i>\u00A0Complete`, 'complete project', '', 'Complete the currently open Project note') // `<span class="fake-button tooltip"><a class="button" href="${completeXCallbackURL}"><i class="fa-solid fa-check"></i>\u00A0Complete</a><span class="tooltiptext">Complete the currently open Project note</span></span>`  // previously used NP complete 'a' glyph <span class="np-task-state">a</span>
+    const refreshXCallbackButton = makeFakeButton(
+      `<i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh`,
+      'project lists',
+      '',
+      'Recalculate project lists and update this window',
+    ) //`<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh</a></span>`
+    const startReviewButton = makeFakeButton(
+      `<i class="fa-solid fa-forward"></i>\u00A0Start\u00A0reviews`,
+      'start reviews',
+      '',
+      'Opens the next project to review in the NP editor',
+    ) // `<span class="fake-button"><a class="button" href="${startReviewXCallbackURL}"><i class="fa-solid fa-forward"></i>\u00A0Start reviews</a></span>`
+    const reviewedXCallbackButton = makeFakeButton(
+      `<i class="fa-regular fa-calendar-check"></i>\u00A0Mark\u00A0as\u00A0Reviewed`,
+      'finish project review',
+      '',
+      `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`,
+    ) //`<span class="fake-button"><a class="button" href="${reviewedXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>\u00A0Mark\u00A0as\u00A0Reviewed</a></span>`
+    const nextReviewXCallbackButton = makeFakeButton(
+      `<i class="fa-regular fa-calendar-check"></i>\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review`,
+      'next project review',
+      '',
+      `Finish review of currently open Project and start the next review`,
+    ) // `<span class="fake-button tooltip"><a class="button" href="${nextReviewXCallbackURL}"><i class="fa-regular fa-calendar-check"></i>\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review</a><span class="tooltiptext">Mark open project note as reviewed, and start next review</span></span>`
+    const pauseXCallbackButton = makeFakeButton(
+      `Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause`,
+      'pause project toggle',
+      '',
+      'Pause the currently open Project note',
+    ) // `<span class="fake-button"><a class="button" href="${pauseXCallbackURL}">Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause</a></span>`
+    const completeXCallbackButton = makeFakeButton(
+      `Toggle\u00A0<i class="fa-solid fa-check"></i>\u00A0Complete`,
+      'complete project',
+      '',
+      'Complete the currently open Project note',
+    ) // `<span class="fake-button tooltip"><a class="button" href="${completeXCallbackURL}"><i class="fa-solid fa-check"></i>\u00A0Complete</a><span class="tooltiptext">Complete the currently open Project note</span></span>`  // previously used NP complete 'a' glyph <span class="np-task-state">a</span>
     const cancelXCallbackButton = makeFakeButton(`Toggle\u00A0<i class="fa-solid fa-xmark"></i>\u00A0Cancel`, 'cancel project', '', 'Cancel the currently open Project note') // `<span class="fake-button tooltip"><a class="button" href="${cancelXCallbackURL}"><i class="fa-regular fa-xmark"></i>\u00A0Cancel</a><span class="tooltiptext">Cancel the currently open Project note</span></span>` // previously used NP cancel 'c' glyph <span class="np-task-state">c</span>
 
     // write lines before first table
@@ -261,8 +260,7 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
 \t<col style="width: 6em">
 </colgroup>
 `)
-        }
-        else if (config.displayProgress) {
+        } else if (config.displayProgress) {
           outputArray.push(`<thead>
 <colgroup>
 \t<col style="width: 3rem">
@@ -298,17 +296,18 @@ export async function renderProjectListsHTML(config: any, renderOnly: boolean = 
       windowTitle,
       faLinksInHeader,
       outputArray.join('\n'),
-      '',         // = get general CSS set automatically
+      '', // = get general CSS set automatically
       reviewListCSS,
-      false,      // = not modal window
+      false, // = not modal window
       setPercentRingJSFunc,
       makeCommandCall(startReviewsCommandCall),
       filenameHTMLCopy,
-      812, 1200)  // set width; max height
+      812,
+      1200,
+    ) // set width; max height
     logDebug('renderProjectListsHTML', `- written results to HTML window and file`)
     // }
-  }
-  catch (error) {
+  } catch (error) {
     logError('renderProjectListsHTML', error.message)
   }
 }
@@ -372,7 +371,7 @@ export async function renderProjectListsMarkdown(config: any, renderOnly: boolea
           if (overdue > 0) {
             outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
-          outputArray.unshift(`Total ${noteCount} active projects${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
+          outputArray.unshift(`Total ${noteCount} active projects${overdue > 0 ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
 
           if (!config.displayGroupedByFolder) {
             outputArray.unshift(`### All folders (${noteCount} notes)`)
@@ -416,7 +415,7 @@ export async function renderProjectListsMarkdown(config: any, renderOnly: boolea
         if (overdue > 0) {
           outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
         }
-        outputArray.unshift(`Total ${noteCount} active projects${(overdue > 0) ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
+        outputArray.unshift(`Total ${noteCount} active projects${overdue > 0 ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
         outputArray.unshift(`# ${noteTitle}`)
 
         // Save the list(s) to this note
@@ -438,8 +437,7 @@ export async function renderProjectListsMarkdown(config: any, renderOnly: boolea
       }
     }
     logDebug('renderProjectListsMarkdown', `>> end at ${timer(funcTimer)}`)
-  }
-  catch (error) {
+  } catch (error) {
     logError('renderProjectListsMarkdown', error.message)
   }
 }
@@ -492,7 +490,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
       // Split each TSV line into its parts
       const fields = thisLine.split('\t')
       const title = fields[2]
-      const folder = (fields[3] !== '' ? fields[3] : '(root folder)') // root is a special case
+      const folder = fields[3] !== '' ? fields[3] : '(root folder)' // root is a special case
       const notes = DataStore.projectNoteByTitle(title)
       if (notes == null || notes.length === 0) {
         logWarn('generateReviewSummaryLines', `No note found matching title '${title}'; skipping.`)
@@ -508,21 +506,19 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
       }
 
       // Write new folder header (if change of folder)
-      if (config.displayGroupedByFolder && (lastFolder !== folder)) {
-        const folderPart = (config.hideTopLevelFolder)
+      if (config.displayGroupedByFolder && lastFolder !== folder) {
+        const folderPart = config.hideTopLevelFolder
           ? String(folder.split('/').slice(-1)) // just last part. String(...) to satisfy flow
           : folder
         if (style.match(/rich/i)) {
           outputArray.push(`<thead>\n <tr class="section-header-row">  <td colspan=2 class="h3 section-header">${folderPart}</td>`)
           if (config.displayDates) {
             outputArray.push(`  <td>Next Review</td><td>Due Date</td>`)
-          }
-          else if (config.displayProgress) {
+          } else if (config.displayProgress) {
             outputArray.push(`  <td>Progress</td>`)
           }
           outputArray.push(` </tr>\n</thead>\n`)
-        }
-        else if (style.match(/markdown/i)) {
+        } else if (style.match(/markdown/i)) {
           outputArray.push(`### ${folderPart}`)
         }
       }
@@ -533,8 +529,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
       lastFolder = folder
     }
     return [outputArray, noteCount, overdue]
-  }
-  catch (error) {
+  } catch (error) {
     logError('generateReviewSummaryLines', `${error.message}`)
     return [[], NaN, NaN] // for completeness
   }
@@ -562,7 +557,25 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
     let startTime = new Date()
 
     // Get list of folders, excluding @specials and our foldersToIgnore setting
-    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude)
+    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude).sort()
+    // For filtering DataStore, no need to look at folders which are in other folders on the list already
+    const filteredFolderListWithoutSubdirs = filteredFolderList.reduce((acc, f) => {
+      const exists = acc.some((s) => f.startsWith(s))
+      if (!exists) acc.push(f)
+      return acc
+    }, [])
+    clo(filteredFolderListWithoutSubdirs, `makeFullReviewList: filteredFolderListWithoutSubdirs`)
+
+    // filter DataStore one time, searching each item to see if it startsWith an item in filterFolderList
+    // but need to deal with ignores here because of this optimization (in case an ignore folder is inside an included folder)
+    const m = new Date()
+    const filteredDataStore = DataStore.projectNotes.filter(
+      (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/'))),
+    )
+
+    logDebug(`makeFullReviewList filteredDataStore ${filteredDataStore.length} potential project notes | took: ${timer(m)}`)
+    filteredDataStore.map((n, i) => logDebug(`makeFullReviewList filteredDataStore[${i}]: ${n.filename}`))
+    logDebug(pluginJson, `<filteredDataStore/> \n`)
 
     if (runInForeground) {
       CommandBar.showLoading(true, `Generating Project Review list`)
@@ -573,16 +586,14 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
     const projectInstances = []
     for (const folder of filteredFolderList) {
       // Either we have defined tag(s) to filter and group by, or just use []
-      const tags = (config.noteTypeTags != null && config.noteTypeTags.length > 0)
-        ? config.noteTypeTags
-        : []
+      const tags = config.noteTypeTags != null && config.noteTypeTags.length > 0 ? config.noteTypeTags : []
 
       // Get notes that include noteTag in this folder, ignoring subfolders
       // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
       for (const tag of tags) {
         let funcTimer = new Date()
-        const projectNotesArr = findNotesMatchingHashtag(tag, folder, false)
-        logDebug('makeFullReviewList', `>> findNotesMatchingHashtag(${tag}, ${folder}): ${timer(funcTimer)}`)
+        const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, '', true, filteredDataStore)
+        // logDebug('makeFullReviewList', `>> findNotesMatchingHashtag(${tag}, ${folder}): ${timer(funcTimer)}`)
         if (projectNotesArr.length > 0) {
           // Get Project class representation of each note.
           // Save those which are ready for review in projectsReadyToReview array
@@ -609,11 +620,11 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
       reviewLines.push(mSL)
       const mSLFields = mSL.split('\t')
       lineArrayObjs.push({
-        'reviewDays': mSLFields[0],
-        'dueDays': mSLFields[1],
-        'title': mSLFields[2],
-        'folder': mSLFields[3],
-        'tags': mSLFields[4],
+        reviewDays: mSLFields[0],
+        dueDays: mSLFields[1],
+        title: mSLFields[2],
+        folder: mSLFields[3],
+        tags: mSLFields[4],
       })
     }
     logDebug('makeFullReviewList', `>> Generating summary lines: ${timer(startTime)}`)
@@ -627,8 +638,7 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
     DataStore.saveData(outputArray.join('\n'), fullReviewListFilename, true)
     logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
     // logFullReviewList()
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, `makeFullReviewList: ${error.message}`)
   }
 }
@@ -670,11 +680,11 @@ function sortAndFormFullReviewList(linesIn: Array<string>, config: any): Array<s
     for (const line of linesIn) {
       const fields = line.split('\t')
       lineArrayObjs.push({
-        'reviewDays': fields[0],
-        'dueDays': fields[1],
-        'title': fields[2],
-        'folder': fields[3],
-        'tags': fields[4],
+        reviewDays: fields[0],
+        dueDays: fields[1],
+        title: fields[2],
+        folder: fields[3],
+        tags: fields[4],
       })
     }
 
@@ -701,15 +711,14 @@ function sortAndFormFullReviewList(linesIn: Array<string>, config: any): Array<s
     }
 
     // Write some metadata to start
-    outputArray.unshift("---")
+    outputArray.unshift('---')
     outputArray.unshift(`key: reviewDays\tdueDays\ttitle\tfolder\ttags`)
     outputArray.unshift(`date: ${moment().format()}`)
-    outputArray.unshift("title: full-review-list")
-    outputArray.unshift("---")
+    outputArray.unshift('title: full-review-list')
+    outputArray.unshift('---')
 
     return outputArray
-  }
-  catch (error) {
+  } catch (error) {
     logError('sortAndFormFullReviewList', error.message)
     return [] // for completeness
   }
@@ -747,8 +756,7 @@ export async function startReviews(): Promise<void> {
       logInfo('startReviews', '🎉 No notes to review!')
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError('startReviews', error.message)
   }
 }
@@ -757,7 +765,7 @@ export async function startReviews(): Promise<void> {
 /**
  * Complete current review, then open the next one to review in the Editor.
  * @author @jgclark
-*/
+ */
 export async function nextReview(): Promise<void> {
   try {
     const config = await getReviewSettings()
@@ -788,8 +796,7 @@ export async function nextReview(): Promise<void> {
       logInfo('nextReview', `- 🎉 No more notes to review!`)
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError('nextReview', error.message)
   }
 }
@@ -804,8 +811,14 @@ export async function nextReview(): Promise<void> {
  * @param {any} config
  * @param {string?} updatedMachineSummaryLine to write to full-review-list (optional)
  * @param {boolean?} updateDisplay? (default true)
-*/
-export async function updateReviewListAfterChange(reviewedTitle: string, simplyDelete: boolean, configIn: any, updatedMachineSummaryLine: string = '', updateDisplay: boolean = true): Promise<void> {
+ */
+export async function updateReviewListAfterChange(
+  reviewedTitle: string,
+  simplyDelete: boolean,
+  configIn: any,
+  updatedMachineSummaryLine: string = '',
+  updateDisplay: boolean = true,
+): Promise<void> {
   try {
     if (reviewedTitle === '') {
       throw new Error('Empty title passed')
@@ -874,8 +887,7 @@ export async function updateReviewListAfterChange(reviewedTitle: string, simplyD
     if (updateDisplay) {
       await renderProjectLists()
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError('updateReviewListAfterChange', error.message)
   }
 }
@@ -924,8 +936,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
     // If we get here then there are no projects needed for review
     logInfo('getNextNoteToReview', `- No notes left due for review 🎉`)
     return
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, `getNextNoteToReview: ${error.message}`)
     return
   }
@@ -940,7 +951,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
 export async function finishReview(): Promise<?TNote> {
   try {
     const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-    const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, "gi")
+    const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, 'gi')
     const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
     logDebug('finishReview', String(RE_REVIEWED_MENTION))
 
@@ -983,8 +994,7 @@ export async function finishReview(): Promise<?TNote> {
     logDebug('finishReview', `- updatedMachineSummaryLine = '${updatedMachineSummaryLine}'`)
     await updateReviewListAfterChange(thisNote.title ?? '', false, config, updatedMachineSummaryLine, true)
     return thisNote
-  }
-  catch (error) {
+  } catch (error) {
     logError('finishReview', `${error.message}`)
     return null
   }
@@ -1043,8 +1053,7 @@ export async function renderProjectLists(): Promise<void> {
     if (config.outputStyle.match(/rich/i)) {
       await renderProjectListsHTML(config, true)
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError('renderProjectLists', error.message)
   }
 }
@@ -1066,7 +1075,8 @@ export async function redisplayProjectListHTML(): Promise<void> {
       const filenameHTMLCopy = 'review_list.html'
       const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
       if (savedHTML !== '') {
-        await showHTML(windowTitle,
+        await showHTML(
+          windowTitle,
           '', // no extra header tags
           savedHTML,
           '', // get general CSS set automatically
@@ -1075,15 +1085,16 @@ export async function redisplayProjectListHTML(): Promise<void> {
           '',
           '',
           '',
-          812, 1200) // set width; max height
+          812,
+          1200,
+        ) // set width; max height
         logDebug('redisplayProjectListHTML', `Displayed HTML from saved file ${filenameHTMLCopy}`)
         return
       }
       logDebug('redisplayProjectListHTML', `Couldn't read HTML from saved file ${filenameHTMLCopy}, so will render afresh`)
       await renderProjectListsHTML()
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError('redisplayProjectListHTML', error.message)
   }
 }
