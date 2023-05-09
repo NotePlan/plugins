@@ -34,13 +34,13 @@ Add any other context about the problem here.
 
 **Plugin Console Log**
 To provide us with more clues about where the bug/error is occurring...
-1. Open the Plugin's Preferences by going to `NotePlan's menu > Preferences` and clicking the "cog" next to the plugin in question. <img width="40" alt="Screen Cap 2023-05-09 at 08 57 31@2x" src="https://github.com/NotePlan/plugins/assets/8949588/ee75d31a-f503-47ea-b6fd-5ec29147c1d0">
-Scroll to the bottom and set the logging level to "DEBUG" 
-<img width="119" alt="Screen Cap 2023-05-09 at 08 57 59@2x" src="https://github.com/NotePlan/plugins/assets/8949588/7248a004-0df7-4e9f-853f-88848355775c"> and click "Save & Close"
-1. Now open the Plugin Console by going to `Noteplan > Help > Plugin Console`
-1. Run the plugin command you're reporting
-1. Copy the output from the Plugin Console and paste it below
-1. Delete any output that has personal information you don't want in there
+1. Open the Plugin's Preferences by going to `NotePlan's menu > Preferences` and clicking the "cog" next to the plugin in question. Scroll to the bottom and set the logging level to "DEBUG"
+<img width="119" alt="Screen Cap 2023-05-09 at 08 57 59@2x" src="https://github.com/NotePlan/plugins/assets/8949588/7248a004-0df7-4e9f-853f-88848355775c">
+and click "Save & Close"
+3. Now open the Plugin Console by going to `Noteplan > Help > Plugin Console`
+4. Run the plugin command you're reporting
+5. Copy the output from the Plugin Console and paste it below
+6. Delete any output that has personal information you don't want in there
 ```javascript
     PASTE_PLUGIN_CONSOLE_OUTPUT_HERE
 ```
