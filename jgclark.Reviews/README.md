@@ -9,7 +9,7 @@ The main review screen looks like this, showing the projects due for review from
 
 If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 50 of these.
 
-User George Crump (@george65) has created a video showing most of what the plugin does:
+User George Crump (@george65) has created a video showing most of what the plugin does (from v0.10; the buttons have changed a little since then):
 
 [![video thumbnail](georgec-video2-thumbnail.jpg)](https://youtu.be/R-3qn6wdDLk)
 
@@ -39,6 +39,7 @@ The fields I use are:
 - `@review(...)`: interval to use between reviews, of form [number][bdwmqy]:
     - After the [number] is a character, which is one of: **b**usiness days (ignore weekends, but doesn't ignore public holidays, as they're different for each country), **d**ays, **w**eeks, **m**onths, **q**uarters, **y**ears.
 - `@reviewed(YYYY-MM-DD)`: last time this project was reviewed, using this plugin
+- `@nextReview(YYY-MM-DD)`: specific date for next review (if wanted)
 - `@start(YYY-MM-DD)`: project's start date
 - `@due(YYY-MM-DD)`: project's due date
 - `@completed(YYY-MM-DD)`: date project was completed (if relevant)
@@ -75,18 +76,18 @@ Use the '**Hashtags to review**' setting to control which notes are included in 
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
-### "/project lists" command
+### "project lists" command
 This shows a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. **Tip**: Place this list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.
 
 You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, shown above) or original '**Markdown**' (normal NotePlan) output style:
 
 <!-- FIXME: update screenshot -->
-![Example of Markdown style of "/project lists"](review-list4-md.jpg)
+![Example of Markdown style of "project lists"](review-list4-md.jpg)
 
 Notes about the displays:
 - the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use.
 - in the 'Rich' style this heading row deliberately 'sticks' to the top of the window as you scroll the list.
-![Example of buttons in Rich style of "/project lists"](review-list-buttons3.jpg)
+![Example of buttons in Rich style of "project lists"](review-list-buttons3.jpg)
 - due to limits on the API for 'Rich' style output, all #tags to review get shown one after the other in a single window.
 - if you can make the window wide enough it will display in 2 or even 3 columns!
 - the **Markdown style** list _is_ stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
@@ -103,23 +104,17 @@ Other settings:
 - Hide top level folder? Whether to suppress higher-level folder names in project list headings.
 - Display archived projects? Whether to display project notes marked as `#archive`.
 
-#### Running from x-callback call
-From v0.8 this command can be run from an x-callback call:
+### "start reviews" command
+This kicks off the most overdue review by opening that project's note in the editor. When you have finished the review run one of the next two commands ...
 
-`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists`
-
-If you wish to override your current settings for this call, add `&arg0=` followed by a URL encoded version of keys and values e.g. `arg0=displayDates%3Dtrue%2CdisplayProgress%3Dfalse%2CdisplayGroupedByFolder%3Dfalse`.
-
-The name of the settings are taken from the `key`s from the plugin's `plugin.json` file, which are mostly the names shown in the settings dialog without spaces.
-
-### "/start reviews" command
-This creates a hidden list of notes ready for review, and then kicks off the most overdue review by opening that note in the editor. When you have finished the review run one of the next two commands ...
-
-### "/finish review" command
+### "finish project review" command
 This updates the current open project's `@reviewed(date)`, and if a Rich style project list is open, it is refreshed.
 
-### "/next review" command
+### "next project review" command
 This updates this project's `@reviewed(date)`, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
+
+### "skip project review" command
+This adds a `@nextReview(...)` date of your choosing to the current project note, that overrides the normal review interval for it, and jumps to the next project to review.  The next time "finish review" command is used on the project note, the `@nextReview(date)` is removed.
 
 ## Creating a new Project/Area note
 A good way to quickly create a new Project or Area note is to use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the Templating plugin. Here is what I use as my New Project Template:
@@ -136,17 +131,29 @@ Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
 ```
 
-## "/complete project" command
-This adds a `@completed(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+## "complete project" command
+This adds a `@completed(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), <!-- ??? --> and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
 
-## "/cancel project" command
-This adds a `@cancelled(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+## "cancel project" command
+This adds a `@cancelled(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), <!-- ??? --> and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
 
-## "/pause project toggle" command
+## "pause project toggle" command
 This is a toggle that adds or removes a `#paused` tag to the metadata line of the open project note. When paused it stops the note being offered with '/next review'. However, it keeps showing it in the review list, so you don't forget about it entirely.
 
 ## Configuration
 These commands require configuration, which is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel.
+
+## Running from x-callback calls
+Most of these commands can be run from an x-callback call:
+
+`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists`
+
+The `command` parameter is the command name, but needs to be 'percent encoded' (i.e. with any spaces changed to `%20`).
+
+If you wish to override your current settings for this call, add `&arg0=` followed by a URL encoded version of keys and values e.g. `arg0=displayDates%3Dtrue%2CdisplayProgress%3Dfalse%2CdisplayGroupedByFolder%3Dfalse`.
+
+The name of the settings are taken from the `key`s from the plugin's `plugin.json` file, which are mostly the names shown in the settings dialog without spaces.
+
 
 ## Thanks
 Thanks to George Crump and 'John1' for their suggestions and beta testing.

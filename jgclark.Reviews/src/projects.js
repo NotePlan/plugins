@@ -9,7 +9,10 @@
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import pluginJson from "../plugin.json"
-import { updateReviewListAfterChange } from './reviews'
+import {
+  renderProjectListsHTML,
+  updateReviewListAfterChange
+} from './reviews'
 import {
   getReviewSettings,
   Project,
@@ -54,12 +57,18 @@ export async function completeProject(): Promise<void> {
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
-    const res = projectNote.completeProject()
+    const newMSL = projectNote.completeProject()
 
     // If this has worked, then ...
-    if (res !== '') {
-      const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
+    if (newMSL) {
+      // delete the project line from the full-review-list
+      await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+
+      // re-render the main window
+      await renderProjectListsHTML()
+
       // Now add to the Yearly note for this year (if present)
+      const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
       const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
       if (yearlyNote != null) {
         logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
@@ -68,7 +77,7 @@ export async function completeProject(): Promise<void> {
           'text', // bullet character gets included in the passed in string
           config.finishedListHeading,
           true, // append
-          true  // do create heading if not found already
+          true // do create heading if not found already
         )
       }
 
@@ -76,14 +85,12 @@ export async function completeProject(): Promise<void> {
       if (filename != null) {
         if (await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No']) === 'Yes') {
           const newFilename = DataStore.moveNote(filename, '@Archive')
-          // delete the project line from the full-review-list
-          await updateReviewListAfterChange(note.title ?? '', false, config, res)
-        } else {
-          // update the full-review-list, using the machineSummaryLine
-          // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-          await updateReviewListAfterChange(note.title ?? '', false, config, res)
         }
       }
+
+      logInfo('completeProject', 'Project completed, review list updated, and window updated.')
+    } else {
+      logError('completeProject', 'Error completing project.')
     }
   }
   catch (error) {
@@ -120,8 +127,14 @@ export async function cancelProject(): Promise<void> {
 
     // If this has worked, then ...
     if (res) {
-      const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
+      // delete the project line from the full-review-list
+      await updateReviewListAfterChange(note.title ?? '<error>', true, config)
+
+      // re-render the main window
+      await renderProjectListsHTML()
+
       // Now add to the Yearly note for this year (if present)
+      const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
       const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
       if (yearlyNote != null) {
         logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
@@ -138,13 +151,9 @@ export async function cancelProject(): Promise<void> {
       if (filename != null &&
         (await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No'])) === 'Yes') {
         const newFilename = DataStore.moveNote(filename, '@Archive')
-        // delete the project line from the full-review-list
-        await updateReviewListAfterChange(note.title ?? '', true, config)
-      } else {
-        // update the full-review-list, using the machineSummaryLine
-        // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-        await updateReviewListAfterChange(note.title ?? '', true, config)
       }
+
+      logInfo('cancelProject', 'Project cancelled, review list updated, and window updated.')
     }
   }
   catch (error) {
@@ -181,6 +190,10 @@ export async function togglePauseProject(): Promise<void> {
       // update the full-review-list, using the machineSummaryLine
       // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
       await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+
+      // re-render the main window
+      await renderProjectListsHTML()
+      logInfo('togglePauseProject', 'Project pause now toggled, review list updated, and window updated.')
     }
   }
   catch (error) {

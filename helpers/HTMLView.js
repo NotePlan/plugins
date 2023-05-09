@@ -2,15 +2,38 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark
-// Last updated 1.3.2023 by @jgclark
+// Last updated 9.5.2023 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn, JSP } from '@helpers/dev'
 import { setHTMLWindowID } from '@helpers/NPWindows'
 
+// ---------------------------------------------------------
+// Constants and Types
+
 const pluginJson = 'helpers/HTMLView'
 
 let baseFontSize = 14
+
+export type HtmlWindowOptions = {
+  windowTitle: string,
+  headerTags?: string,
+  generalCSSIn?: string,
+  specificCSS?: string,
+  makeModal?: boolean,
+  preBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
+  postBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
+  savedFilename?: string,
+  width?: number,
+  height?: number,
+  x?: number,
+  y?: number,
+  includeCSSAsJS?: boolean,
+  customID?: string,
+  shouldFocus?: boolean,
+}
+
+// ---------------------------------------------------------
 
 /**
  * Generate CSS instructions from the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
@@ -43,7 +66,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (themeName === '') {
       themeName = Editor.currentTheme.name ?? ''
       themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
-      logDebug('generateCSSFromTheme', `Reading your current theme '${themeName}'`)
+      logDebug('generateCSSFromTheme', `Translating your current theme '${themeName}'`)
       if (themeName !== '') {
         themeJSON = Editor.currentTheme.values
         // let currentThemeMode = Editor.currentTheme.mode ?? 'dark'
@@ -567,20 +590,6 @@ function makeCSSSelector(selector: string, settingsArray: Array<string>): string
   return outputArray.join('\n')
 }
 
-export type HtmlWindowOptions = {
-  headerTags?: string,
-  generalCSSIn?: string,
-  specificCSS?: string,
-  makeModal?: boolean,
-  preBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
-  postBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
-  savedFilename?: string,
-  width?: number,
-  height?: number,
-  includeCSSAsJS?: boolean,
-  customID?: string,
-}
-
 /**
  * This function creates the webkit message handler for an action in HTML sending data back to the plugin. Generally passed through to showHTMLWindow as part of the pre or post body script.
  * @param {string} commandName - the *name* of the plugin command to be called (not the jsFunction) -- THIS NAME MUST BE ONE WORD, NO SPACES - generally a good idea for name/jsFunction to be the same for callbacks
@@ -634,7 +643,7 @@ export const getErrorBridgeCodeString = (): string => `
         column: column,
         error: JSON.stringify(error)
       }
-  
+
       if (window.webkit) {
         window.webkit.messageHandlers.error.postMessage(message);
       } else {
@@ -756,7 +765,6 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
     opts.savedFilename ?? '',
     opts.width,
     opts.height,
-    opts.customID ?? '',
   )
 }
 
@@ -804,10 +812,49 @@ export function generateScriptTags(scripts: string | ScriptObj | Array<string | 
   return output.join('\n')
 }
 
+function collateHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
+  try {
+    const fullHTML = []
+    fullHTML.push('<!DOCTYPE html>') // needed to let emojis work without special coding
+    fullHTML.push('<html>')
+    fullHTML.push('<head>')
+    fullHTML.push(`<title>${winOpts.windowTitle}</title>`)
+    fullHTML.push(`<meta charset="utf-8">`)
+    const preScript = generateScriptTags(winOpts.preBodyScript ?? '')
+    if (preScript !== '') {
+      fullHTML.push(preScript) // dbw moved to top because we need the logging bridge to be loaded before any content which could have errors
+    }
+    fullHTML.push(winOpts.headerTags)
+    fullHTML.push('<style type="text/css">')
+    // If generalCSSIn is empty, then generate it from the current theme
+    // TODO: ideally extend to save CSS from theme, and then check if it can be reused.
+    const generalCSS = winOpts.generalCSSIn && winOpts.generalCSSIn !== '' ? winOpts.generalCSSIn : generateCSSFromTheme('')
+    fullHTML.push(generalCSS)
+    fullHTML.push(winOpts.specificCSS)
+    fullHTML.push('</style>')
+    fullHTML.push('</head>')
+    fullHTML.push('\n<body>')
+    fullHTML.push(body)
+    fullHTML.push('\n</body>')
+    const postScript = generateScriptTags(winOpts.postBodyScript ?? '')
+    if (postScript !== '') {
+      fullHTML.push(postScript)
+    }
+    fullHTML.push('</html>')
+    const fullHTMLStr = fullHTML.join('\n')
+    return fullHTMLStr
+  } catch (err) {
+    logError(pluginJson, err.message)
+    return ''
+  }
+}
+
 /**
- * Helper function to construct HTML to show in a new window
+ * Helper function to construct HTML to show in a new window.
+ * Note: used up to v3.9.2 before more advanced window handling possible.
  * Note: if customID not passed, it will fall back to using windowTitle
  * TODO: Allow for style file when we can save arbitrary data files (and have it triggered on theme change), not just read them.
+ *
  * @param {string} windowTitle
  * @param {string} headerTags
  * @param {string} body
@@ -820,7 +867,6 @@ export function generateScriptTags(scripts: string | ScriptObj | Array<string | 
  * @param {number?} width
  * @param {number?} height
  * @param {string?} customID
- * @param {boolean?} shouldFocus
  */
 export function showHTML(
   windowTitle: string,
@@ -835,61 +881,44 @@ export function showHTML(
   width?: number,
   height?: number,
   customID: string = '',
-  shouldFocus: boolean = false,
 ): void {
   try {
-    const fullHTML = []
-    fullHTML.push('<!DOCTYPE html>') // needed to let emojis work without special coding
-    fullHTML.push('<html>')
-    fullHTML.push('<head>')
-    fullHTML.push(`<title>${windowTitle}</title>`)
-    fullHTML.push(`<meta charset="utf-8">`)
-    const preScript = generateScriptTags(preBodyScript)
-    if (preScript !== '') {
-      fullHTML.push(preScript) // dbw moved to top because we need the logging bridge to be loaded before any content which could have errors
+    const opts: HtmlWindowOptions = {
+      windowTitle: windowTitle,
+      headerTags: headerTags,
+      generalCSSIn: generalCSSIn,
+      specificCSS: specificCSS,
+      preBodyScript: preBodyScript,
+      postBodyScript: postBodyScript,
     }
-    fullHTML.push(headerTags)
-    fullHTML.push('<style type="text/css">')
-    // If generalCSSIn is empty, then generate it from the current theme
-    // TODO: ideally extend to save CSS from theme, and then check if it can be reused.
-    const generalCSS = generalCSSIn && generalCSSIn !== '' ? generalCSSIn : generateCSSFromTheme('')
-    fullHTML.push(generalCSS)
-    fullHTML.push(specificCSS)
-    fullHTML.push('</style>')
-    fullHTML.push('</head>')
-    fullHTML.push('\n<body>')
-    fullHTML.push(body)
-    fullHTML.push('\n</body>')
-    const postScript = generateScriptTags(postBodyScript)
-    if (postScript !== '') {
-      fullHTML.push(postScript)
-    }
-    fullHTML.push('</html>')
-    const fullHTMLStr = fullHTML.join('\n')
-
-    logDebug(pluginJson, `showHTML filenameForSavedFileVersion="${filenameForSavedFileVersion}"`)
+    // clo(opts)
+    const fullHTMLStr = collateHTMLParts(body, opts)
 
     // Call the appropriate function, with or without h/w params.
     // Currently non-modal windows only available on macOS and from 3.7 (build 864)
     if (width === undefined || height === undefined) {
-      if (makeModal || NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 863) {
-        logDebug('showHTML', `Using modal view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
+      if (makeModal || NotePlan.environment.platform !== 'macOS') {
+        logDebug('showHTML', `Using showSheet modal view for b${NotePlan.environment.buildVersion}`)
         HTMLView.showSheet(fullHTMLStr) // available from 3.6.2
       } else {
+        logDebug('showHTML', `Using showWindow non-modal view for b${NotePlan.environment.buildVersion}`)
         HTMLView.showWindow(fullHTMLStr, windowTitle) // available from 3.7.0
       }
     } else {
       if (makeModal || NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 863) {
-        logDebug('showHTML', `Using modal view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
+        logDebug('showHTML', `Using showSheet modal view for b${NotePlan.environment.buildVersion}`)
         HTMLView.showSheet(fullHTMLStr, width, height)
       } else {
-        HTMLView.showWindow(fullHTMLStr, windowTitle, width, height, shouldFocus)
+        logDebug('showHTML', `Using showWindow non-modal view with w+h for b${NotePlan.environment.buildVersion}`)
+        HTMLView.showWindow(fullHTMLStr, windowTitle, width, height) // available from 3.7.0
       }
     }
 
-    // Set customID for this window to be the same as windowTitle
+    // Set customID for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
     // TODO(Eduard): has said he will roll this into .showWindow()
-    setHTMLWindowID(customID ?? windowTitle) // Note: requires NP v3.8.1+ -- this is checked for in the function below
+    if (NotePlan.environment.buildVersion >= 976) {
+      setHTMLWindowID(customID ?? windowTitle)
+    }
 
     // If wanted, also write this HTML to a file so we can work on it offline.
     // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
@@ -898,13 +927,88 @@ export function showHTML(
       // Write to specified file in NP sandbox
       const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
       if (res) {
-        logDebug('showHTML', `Saved resulting HTML '${windowTitle}' to ${filenameForSavedFileVersion} as well.`)
+        logDebug('showHTML', `Saved copy of HTML to '${windowTitle}' to ${filenameForSavedFileVersion}`)
       } else {
         logError('showHTML', `Couldn't save resulting HTML '${windowTitle}' to ${filenameForSavedFileVersion}.`)
       }
     }
   } catch (error) {
     logError('HTMLView / showHTML', error.message)
+  }
+}
+
+/**
+ * V2 helper function to construct HTML to show in a new window.
+ * TODO: Also helps deal automatically with saving window positions/sizes.
+ * Note: requires NP v3.9.2
+ * Note: if customID not passed, it will fall back to using windowTitle
+ * @param {string} body
+ * @param {HtmlWindowOptions} opts
+ */
+export async function showHTMLV2(
+  body: string,
+  opts: HtmlWindowOptions,
+): Promise<HTMLView | boolean> {
+  try {
+    if (NotePlan.environment.buildVersion < 1030) {
+      logError('HTMLView / showHTMLV2', 'showHTMLV2 is only available on 3.9.1+')
+      return false
+    }
+
+    clo(opts, 'showHTMLV2 starting with options:')
+    const fullHTMLStr = collateHTMLParts(body, opts)
+
+    // Call the appropriate function, with or without h/w params.
+    if (opts.makeModal || NotePlan.environment.platform !== 'macOS') {
+      logDebug('showHTMLV2', `Using modal 'sheet' view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
+      if (opts.width === undefined || opts.height === undefined) {
+        HTMLView.showSheet(fullHTMLStr)
+      } else {
+        HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
+      }
+    } else {
+      const winOptions = {
+        x: opts.x,
+        y: opts.y,
+        width: opts.width,
+        height: opts.height,
+        shouldFocus: opts.shouldFocus
+      }
+      clo(winOptions, 'subset of options for API call:')
+      const win: HTMLView = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1
+      clo(win, '-> win:')
+
+      // If wanted, also write this HTML to a file so we can work on it offline.
+      // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
+      if (opts.savedFilename !== '') {
+        const thisFilename = opts.savedFilename ?? ''
+        const filenameWithoutSpaces = thisFilename.split(' ').join('') ?? ''
+        // Write to specified file in NP sandbox
+        const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
+        if (res) {
+          logDebug('showHTMLV2', `- Saved copy of HTML to '${opts.windowTitle}' to ${thisFilename}`)
+        } else {
+          logError('showHTMLV2', `- Couldn't save resulting HTML '${opts.windowTitle}' to ${thisFilename}.`)
+        }
+      }
+
+      // Set customID for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
+      // TODO(Eduard): has said he will roll this into .showWindow()
+      const customIdToUse = opts.customID ?? opts.windowTitle
+      setHTMLWindowID(customIdToUse)
+      win.customId = customIdToUse
+      // TEST: read this back from the window itself
+      logDebug('showHTMLV2', `- Set window customId to '${win.customId}'`)
+
+      // Save window details to its unique local preference
+      // TEST:
+      DataStore.setPreference(customIdToUse, win)
+      clo(DataStore.preference(customIdToUse), `- saved pref ${customIdToUse}: `)
+      return win
+    }
+  } catch (error) {
+    logError('HTMLView / showHTMLV2', error.message)
+    return false
   }
 }
 
@@ -999,10 +1103,10 @@ export async function sendToHTMLWindow(actionType: string, data: any = {}, updat
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
     logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}"`)
     const result = await HTMLView.runJavaScript(`window.postMessage(
-        { 
-          type: '${actionType}', 
-          payload: ${JSON.stringify(dataWithUpdated)} 
-        }, 
+        {
+          type: '${actionType}',
+          payload: ${JSON.stringify(dataWithUpdated)}
+        },
         '*'
       );`)
     // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)

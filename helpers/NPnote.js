@@ -383,13 +383,13 @@ export function findNotesMatchingHashtag(
   let projectNotesWithTag: Array<TNote>
   if (caseInsensitiveMatch) {
     projectNotesWithTag = projectNotesInFolder.filter((n) => {
-      logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
+      // logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
       // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
       return caseInsensitiveIncludes(tag, n.hashtags)
     })
   } else {
     projectNotesWithTag = projectNotesInFolder.filter((n) => {
-      logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
+      // logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
       return n.hashtags.includes(tag)
     })
   }

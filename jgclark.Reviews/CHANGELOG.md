@@ -5,6 +5,14 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - ??? Fixed the race condition on (un)pausing a project
 - ??? ability to pause/unpause a project, by calling new **/pause project toggle** command or adding/removing `#paused` to a project's metadata. When paused this stops the note from being included in reviews, but keeps it visible in the project lists.
 -->
+## [0.11.0] - 2023-05-09???
+### Added
+- New "skip review" command. This adds a `@nextReview(date)` of your choosing to the current project note, that overrides the normal review interval for it, and jumps to the next project to review.
+
+## [0.10.2] - 2023-05-06
+### Changed
+- further speed up when calculating set of notes to show (thanks to @dwertheimer)
+
 ## [0.10.1] - 2023-05-05
 ### Changed
 - the 'Folders to Include' setting now matches anywhere in the folder name (for @dwertheimer)

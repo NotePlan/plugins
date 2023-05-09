@@ -58,17 +58,17 @@ export function logWindowsList(): void {
  * Set customID for the (single) HTML window
  * Note: In time, this will be removed, when @EduardMe rolls it into .showWindow() API
  * @author @jgclark
- * @param {string} customID
+ * @param {string} customId
  */
-export function setHTMLWindowID(customID: string): void {
+export function setHTMLWindowID(customId: string): void {
   if (NotePlan.environment.buildVersion >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
     const thisWindow = allHTMLWindows[0]
     if (thisWindow) {
-      thisWindow.customId = customID
+      thisWindow.customId = customId
       logWindowsList()
     } else {
-      logError('setHTMLWindowID', `Couldn't set customID '${customID}' for HTML window`)
+      logError('setHTMLWindowID', `Couldn't set customId '${customId}' for HTML window`)
     }
   } else {
     logInfo('setHTMLWindowID', `(Cannot set window title as not running v3.8.1 or later)`)
@@ -76,17 +76,17 @@ export function setHTMLWindowID(customID: string): void {
 }
 
 /**
- * Is a given HTML window open? Tests by doing a case-insensitive-starts-with-match or case-insensitive-match using the supplied customID string.
+ * Is a given HTML window open? Tests by doing a case-insensitive-starts-with-match or case-insensitive-match using the supplied customId string.
  * @author @jgclark
- * @param {string} customID to look for
+ * @param {string} customId to look for
  * @returns {boolean}
  */
-export function isHTMLWindowOpen(customID: string): boolean {
+export function isHTMLWindowOpen(customId: string): boolean {
   if (NotePlan.environment.buildVersion >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
     for (const thisWin of allHTMLWindows) {
-      if (caseInsensitiveMatch(customID, thisWin.customId) || caseInsensitiveStartsWith(customID, thisWin.customId)) {
-        thisWin.customId = customID
+      if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
+        thisWin.customId = customId
         // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customID}'`)
         return true
       } else {
@@ -217,4 +217,16 @@ export function getWindowRect(windowID: string): Rect | false {
   const windowRect: Rect = DataStore.preference(prefName)
   clo(windowRect, `Retrieved Rect for ${prefName}`)
   return windowRect
+}
+
+/**
+ * Sets the height of the first HTML window in NotePlan to the given height value.
+ * @param {number} [height=700] - The height value to set the window to. Defaults to 700.
+ */
+export function setHTMLWinHeight(height: number = 700): void {
+  const thisWin = NotePlan.htmlWindows[0]
+  const thisWinRect = thisWin.windowRect
+  logDebug('setHTMLWinHeight', `Try to set height to ${String(height)} for HTML window '${thisWin.customId ?? ''}'`)
+  thisWinRect.height = height
+  logDebug('setHTMLWinHeight ->', rectToString(thisWinRect))
 }

@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.10.2",
-  "plugin.lastUpdateInfo": "0.11.0: introduce optional @nextReview() date, and skip next review function.\n0.10.2: further speed improvements.\n0.10.1: bugfix and more flexible 'Folders to Include' setting.\n0.10.0: new setting 'Folders to Include' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.",
+  "plugin.version": "0.11.0",
+  "plugin.lastUpdateInfo": "0.11.0: new 'skip project review' command, and its optional @nextReview() date.\n0.10.1: bugfix and more flexible 'Folders to Include' setting.\n0.10.0: new setting 'Folders to Include' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.",
   "plugin.requiredFiles": [],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -60,6 +60,15 @@
       "jsFunction": "nextReview"
     },
     {
+      "name": "skip project review",
+      "alias": [
+        "gtd",
+        "review"
+      ],
+      "description": "skip this review, add a @nextReview() date, and jump to next project to review",
+      "jsFunction": "skipReview"
+    },
+    {
       "name": "pause project toggle",
       "alias": [
         "gtd",
@@ -108,6 +117,11 @@
       "name": "test:renderProjectLists",
       "description": "Render project lists (without recalc)",
       "jsFunction": "renderProjectLists"
+    },
+    {
+      "name": "test:setWindowHeight",
+      "description": "set height of HTML Window",
+      "jsFunction": "setHTMLWinHeight"
     }
   ],
   "plugin.inactiveCommands": [
@@ -336,6 +350,8 @@
       "required": true
     },
     {
+      "comment": "FIXME: after Eduard has solved whatever is going wrong here, unhide this.",
+      "hidden": true,
       "key": "nextReviewMentionStr",
       "title": "Project next review string",
       "description": "@string indicating date you next want a project/area to be reviewed (default: '@nextReview')",

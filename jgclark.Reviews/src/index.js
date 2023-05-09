@@ -19,6 +19,7 @@ export {
   startReviews,
   nextReview,
   finishReview,
+  skipReview,
   makeProjectLists,
   redisplayProjectListHTML,
   renderProjectLists,
@@ -31,6 +32,9 @@ export {
 export {
   generateCSSFromTheme
 } from '@helpers/HTMLView'
+export {
+  setHTMLWinHeight,
+} from '@helpers/NPWindows'
 
 // An earlier version had some functions in projectLists.js, but they had to be moved because of dependency issues.
 
