@@ -11,6 +11,7 @@ import { logDebug, logError, logInfo, logWarn, clo } from './dev'
 
 //-----------------------------------------------------------
 // CONSTANTS
+export const MOMENT_FORMAT_NP_ISO = 'YYYY-MM-DD'
 export const MOMENT_FORMAT_NP_DAY = 'YYYYMMDD'
 export const MOMENT_FORMAT_NP_WEEK = 'YYYY-[W]WW'
 export const MOMENT_FORMAT_NP_MONTH = 'YYYY-MM'
@@ -847,7 +848,7 @@ export function calcOffsetDateStr(baseDateIn: string, interval: string): string 
     }
     let momentDateFormat = ''
     if (baseDateIn.match(RE_ISO_DATE)) {
-      momentDateFormat = MOMENT_FORMAT_NP_DAY
+      momentDateFormat = MOMENT_FORMAT_NP_ISO
     } else if (baseDateIn.match(RE_NP_WEEK_SPEC)) {
       momentDateFormat = MOMENT_FORMAT_NP_WEEK
     } else {
@@ -973,11 +974,11 @@ export function getISOWeekAndYear(date: string | Date, offsetIncrement: number =
 /**
  * Determine if a parseDateText return object is meant to be an all-day calendar item
  * For using with DataStore.parseDateText() results
- * Chrono returns 12:00 (midday) for any day you give it without a time, 
+ * Chrono returns 12:00 (midday) for any day you give it without a time,
  * (e.g. "Jan 19" comes back with a date of Jan 19 at 12:00:00 GMT)
- * so we need to disambiguate noon-ish text which will look the same in 
+ * so we need to disambiguate noon-ish text which will look the same in
  * parseDateText()'s return. For example:
- *   - on Friday 
+ *   - on Friday
  *   - on Friday at 12
  * (two very different things which will look the same in parseDateText's return)
  * Here will assume that this is an all-day thing
@@ -986,7 +987,7 @@ export function getISOWeekAndYear(date: string | Date, offsetIncrement: number =
  * if (!isAllDay(range) && range.start === range.end) {
     // if it's not an all day event, and the start and end are the same, then it's probably "at 12" or something, so we add time to the end to make it an event
     range.end = addMinutes(range.start, config.eventLength || '30')
-  } 
+  }
  * @param {DateRange} parseDateReturnObj - one DateRange object returned by parseDateText()
   @return {boolean} true if this is likely meant to be an all day event; false if it was probably an "at noon" event
  */
