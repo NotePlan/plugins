@@ -1,9 +1,9 @@
 // @flow
 
-import { clo, log } from './dev'
+import { clo, logDebug, logError, logWarn } from '@helpers/dev'
+import { createRunPluginCallbackUrl } from '@helpers/general'
+import { chooseOption, getInput, getInputTrimmed, showMessageYesNo } from '@helpers/userInput'
 
-import { createRunPluginCallbackUrl } from './general'
-import { chooseOption, getInput, showMessageYesNo } from './userInput'
 /**
  * Print to the console log all contents of the environment variable, introduced in v3.3.2
  * @author @dwertheimer
@@ -15,7 +15,7 @@ export function logAllEnvironmentSettings(): void {
     // TODO: when the following simple case *is* working:
     // console.log(NotePlan.environment.platform)
   } else {
-    console.log(`  NotePlan.environment not defined; it isn't available in NP until v3.3.2.`)
+    logWarn('logAllEnvironmentSettings', `NotePlan.environment not available until NP 3.3.2.`)
   }
 }
 
@@ -43,7 +43,7 @@ export async function chooseRunPluginXCallbackURL(
   })
   commandMap = commandMap.sort((a, b) => a.label.localeCompare(b.label))
   const chosenID = await chooseOption('Which command?', commandMap, '__NONE__')
-  log(`NPdev::chooseRunPluginXCallbackURL`, `chosen: ${chosenID}`)
+  logDebug(`NPdev::chooseRunPluginXCallbackURL`, `chosen: ${chosenID}`)
   const chosenCommand = commandMap.find((command) => command.value === chosenID)
   const command = chosenCommand?.command?.name
   const pluginID = chosenCommand?.plugin.id
@@ -60,7 +60,7 @@ export async function chooseRunPluginXCallbackURL(
         ['Yes', 'No'],
         'Open Documentation?',
       )
-      // log(`NPdev::getArgumentText`, `getYesNo: ${getYesNo} Opening ${url}`)
+      // logDebug(`NPdev::getArgumentText`, `getYesNo: ${getYesNo} Opening ${url}`)
       if (getYesNo === 'Yes') {
         NotePlan.openURL(url)
       }
@@ -100,4 +100,70 @@ async function getArgumentText(command: any, i: number): Promise<string | false>
       ? `\n\n"arg${i}" description:\n"${argDescriptions[i]}"`
       : `\n\nWhat should arg${i}'s value be?`
   return await getInput(`${message}${addlInfo}${stopMessage}`, 'OK', `Plugin Arguments for \n"${command.label}"`)
+}
+
+/**
+ * Write the local preference 'key' to console, along with its type
+ * @param {string} key
+ */
+export function logPreference(key: string): void {
+  try {
+    const value = DataStore.preference(key) ?? undefined
+    if (value === 'undefined') {
+      logDebug(`preference`, `"${key}" not found`)
+    } else if (typeof value === 'object') {
+      clo(value, `preference "${key}" [object]:`)
+    } else if (typeof value === 'string') {
+      logDebug('preference', `"${key}" [string]: "${value}"`)
+    } else if (typeof value === 'number') {
+      logDebug('preference', `"${key}" [number]: "${String(value)}"`)
+    } else if (typeof value === 'boolean') {
+      logDebug('preference', `"${key}" [boolean]: "${String(value)}"`)
+    }
+  } catch (error) {
+    logError('logPreference', error.message)
+  }
+}
+
+/**
+ * Write the local preference 'key' to console, requested by asking user
+ * @param {string} key
+ */
+export async function logPreferenceAskUser(): Promise<void> {
+  try {
+    const res = await getInputTrimmed('Enter key/name to display to log', 'OK', 'Log Preference')
+    if (typeof res !== 'boolean') {
+      logPreference(res)
+    }
+  } catch (error) {
+    logError('logPreferenceAskUser', error.message)
+  }
+}
+
+/**
+ * Unset a local preference using passed parameter, or by asking user
+ * @param {string} prefName
+ */
+export function unsetPreference(prefName: string): void {
+  try {
+    DataStore.setPreference(prefName, null)
+    logDebug('unsetPreference', `Unset local pref ${prefName}`)
+  } catch (error) {
+    logError('unsetPreference', error.message)
+  }
+}
+
+/**
+ * Unset a local preference, requested by asking user
+ * @param {string?} prefName?
+ */
+export async function unsetPreferenceAskUser(): Promise<void> {
+  try {
+    const res = await getInputTrimmed('Enter key/name to unset', 'OK', 'Unset Preference')
+    if (typeof res !== 'boolean') {
+      unsetPreference(res)
+    }
+  } catch (error) {
+    logError('unsetPreferenceAskUser', error.message)
+  }
 }
