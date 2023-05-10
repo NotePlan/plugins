@@ -96,7 +96,7 @@ export function stripLinksFromString(original: string, leaveLinkText: boolean = 
  */
 export function stripDateRefsFromString(original: string): string {
   let output = original
-  const REGEX = new RegExp(`(>|<)(${RE_NP_DAY_SPEC}|today|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`, 'g')
+  const REGEX = new RegExp(`(>|<)(${RE_ISO_DATE}|today|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`, 'g')
   const captures = output.match(REGEX) ?? []
   if (captures.length > 0) {
     // clo(captures, `results from >(${todaysDateISOString}|today) match:`)
@@ -293,7 +293,7 @@ export function stripAllTagssFromString(original: string): string {
  * @param {string} original
  * @param {boolean} stripTags - also strip hashtags and mentions
  * @param {boolean} stripLinks - also strip links
- * @returns
+ * @returns {string}
  */
 export function stripAllMarkersFromString(original: string, stripTags: false, stripLinks: false): string {
   /* cleanse clean the string */

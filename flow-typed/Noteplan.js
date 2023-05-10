@@ -75,268 +75,268 @@ insertTextAtCharacterIndex(text: string, index: number): void;
  */
 +selectedText: ?string;
 
-/**
- * Inserts the given text at the current cursor position
- * @param text - Text to insert
- */
-insertTextAtCursor(text: string): void;
-/**
- * Inserts a plain paragraph before the selected paragraph (or the paragraph the cursor is currently positioned)
- * @param name - Text of the paragraph
- * @param type - paragraph type
- * @param indents - How much it should be indented
- */
-insertParagraphAtCursor(name: string, type: ParagraphType, indents: number): void;
-/**
- * Replaces the current cursor selection with the given text
- * @param text - Text to insert
- */
-replaceSelectionWithText(text: string): void;
-/**
- * Opens a note using the given filename.
- * Note: some parameters introduced in v3.4 and v3.5.2
- * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
- * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
- * @param {number} highlightStart - (optional) Start position of text highlighting
- * @param {number} highlightEnd - (optional) End position of text highlighting
- * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
- * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
- * @param {string} content - (optional) Content to fill the note (replaces contents if the note already existed) (from v3.7.2)
- * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
- */
-openNoteByFilename(
-  filename: string,
-  newWindow ?: boolean,
-  highlightStart ?: number,
-  highlightEnd ?: number,
-  splitView ?: boolean,
-  createIfNeeded ?: boolean,
-  content ?: string,
-): Promise < TNote | void>;
-openNoteByFilename(
-  filename: string,
-  newWindow ?: boolean,
-  highlightStart ?: number,
-  highlightEnd ?: number,
-  splitView ?: boolean,
-  createIfNeeded: true,
-  content ?: string,
-): Promise < TNote >;
-/**
- * Opens a note by searching for the give title (first line of the note)
- * Note: 'splitView' parameter available for macOS from v3.4
- * @param {string} title - Title (case sensitive) of the note (first line)
- * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
- * @param {number} highlightStart - (optional) Start position of text highlighting
- * @param {number} highlightEnd - (optional) End position of text highlighting
- * @param {boolean} splitView - (optional) Open note in a new split view
- * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
- */
-openNoteByTitle(title: string, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean): Promise < TNote | void>;
-/**
- * Opens a note by searching for the give title (first line of the note)
- * Note: 'splitView' parameter available for macOS from v3.4
- * @param {string} title - Title (case sensitive) of the note (first line)
- * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
- * @param {number} highlightStart - (optional) Start position of text highlighting
- * @param {number} highlightEnd - (optional) End position of text highlighting
- * @param {boolean} splitView - (optional) Open note in a new split view
- * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
- */
-openNoteByTitleCaseInsensitive(
-  title: string,
-  newWindow ?: boolean,
-  caseSensitive ?: boolean,
-  highlightStart ?: number,
-  highlightEnd ?: number,
-  splitView ?: boolean,
-): Promise < TNote | void>;
-/**
- * Opens a calendar note by the given date
- * Note: 'splitView' parameter available for macOS from v3.4
- * Note: 'timeframe' parameter available for macOS from v3.6
- * @param {Date} date - The date that should be opened, this is a normal JavaScript date object
- * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
- * @param {number} highlightStart - (optional) Start position of text highlighting
- * @param {number} highlightEnd - (optional) End position of text highlighting
- * @param {boolean} splitView - (optional) Open note in a new split view
- * @param {string} timeframe - (optional) Use "week", "month", "quarter" or "year" to open a calendar note other than a daily one
- * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
- */
-openNoteByDate(date: Date, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean, timeframe ?: string): Promise < TNote | void>;
-/**
- * Opens a calendar note by the given date string
- * Note: from v3.6 also accepts weeks in the main parameter
- * @param {string} dateString - The date string that should be opened, in ISO format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
- * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
- * @param {number} highlightStart - (optional) Start position of text highlighting
- * @param {number} highlightEnd - (optional) End position of text highlighting
- * @param {boolean} splitView - (optional) Open note in a new split view
- * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
- */
-openNoteByDateString(filename: string, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean): Promise < TNote | void>;
-/**
- * Opens a weekly calendar note by the given year and week number
- * Note: available from v3.6
- * @param {number} year           - The year of the week
- * @param {number} weeknumber     - The number of the week (0-52/53)
- * @param {boolean} newWindow     - (optional) Open note in new window (default = false)?
- * @param {number} highlightStart - (optional) Start position of text highlighting
- * @param {number} highlightEnd   - (optional) End position of text highlighting
- * @param {boolean} splitView     - (optional) Open note in a new split view
- * @return {Promise<void>}        - When the note has been opened, a promise will be returned
- */
-openWeeklyNote(year: number, weeknumber: number, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean): Promise < TNote | void>;
-/**
- * Selects the full text in the editor.
- * Note: Available from v3.2
- */
-selectAll(): void;
-/**
- * (Raw) select text in the editor (like select 10 characters = length from position 2 = start)
- * Raw means here that the position is calculated with the Markdown revealed,
- * including Markdown links and folded text.
- * @param {number} start - Character start position
- * @param {number} length - Character length
- */
-select(start: number, length: number): void;
-/**
- * (Rendered) select text in the editor (like select 10 characters = length from position 2 = start)
- * Rendered means here that the position is calculated with the Markdown hidden,
- * including Markdown links and folded text.
- * @param {number} start - Character start position
- * @param {number} length - Character length
- */
-renderedSelect(start: number, length: number): void;
-/**
- * Copies the currently selected text in the editor to the system clipboard.
- * See also Clipboard object.
- * Note: Available from v3.2
- */
-copySelection(): void;
-/**
- * Pastes the current content in the system clipboard into the current selection in the editor.
- * See also Clipboard object.
- * Note: Available from v3.2
- */
-pasteClipboard(): void;
-/**
- * Scrolls to and highlights the given paragraph.
- * If the paragraph is folded, it will be unfolded.
- * @param {TParagraph} paragraph to highlight
- */
-highlight(paragraph: TParagraph): void;
-/**
- * Scrolls to and highlights the given character range.
- * If the range exists in a folded heading, it will be unfolded.
- * @param {Range} range
- */
-highlightByRange(range: Range): void;
-/**
- * Scrolls to and highlights the given range defined by the character index and the character length it should cover.
- * If the paragraph is folded, it will be unfolded.
- * Note: Available from v3.0.23
- * @param {number} index
- * @param {number} length
- */
-highlightByIndex(index: number, length: number): void;
-/**
- * Folds the given paragraph or unfolds it if its already folded. If the paragraph is not a heading, it will look for the heading this paragraph exists under.
- * Note: Available from v3.6.0
- * @param {TParagraph}
- */
-toggleFolding(paragraph: TParagraph): void;
-/**
- * Checks if the given paragraph is folded or not. If it's not a heading, it will look for the heading this paragraph exists under.
- * Note: Available from v3.6.0
- * @param {TParagraph}
- * @return {boolean}
- */
-isFolded(paragraph: TParagraph): boolean;
-/**
- * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
- * `text` is optional, if you define it, it will be shown below the loading indicator.
- * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
- * When you are done, call `showLoading(false)` to hide the window.
- * Note: Available from v3.0.26
- * @param {boolean}
- * @param {string?}
- * @param {Float?}
- */
-showLoading(visible: boolean, text ?: ? string, progress ?: number): void;
-/**
- * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
- * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
- * Otherwise the loading window will be also blocked.
- *
- * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
- * You need to return to the main thread before you change anything in the window (such as Editor functions do).
- * Use `onMainThread()` to return to the main thread.
- * Note: Available from v3.0.26
- * @return {Promise}
- */
-onAsyncThread(): Promise < void>;
-/**
- * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
- * Call this after `onAsyncThread`, once your background work is done.
- * It is safe to call Editor and other user interface functions on the main thread.
- * Note: Available from v3.0.26
- * @return {Promise}
- */
-onMainThread(): Promise < void>;
-/**
- * Get the names of all supported themes (including custom themes imported into the Theme folder).
- * Use together with `.setTheme(name)`
- * Note: available from v3.6.2, returning array of these objects:
- * {
-    "name": String, // name as in the JSON
-    "mode": String, // "dark", or "light" = reported value in the json
-    "filename": String, // filename.json in the folder
-    "values": Object // fully parsed JSON theme file
-  }
- * (Originally available from v3.1, returning a read-only array of strings)
- * @return {$ReadOnlyArray<Object>}
- */
-+availableThemes: $ReadOnlyArray < Object >;
-/**
- * Get the current theme name and mode as an object with these keys:
- *  - "name" in the JSON theme
- *  - "filename" of the JSON theme file
- *  - "mode" ("dark" or "light")
- *  - "values" -- all the JSON in the theme
- * Note: Available from NotePlan v3.6.2 (build >847)
- * @return {Object}
- */
-+currentTheme: Object;
-/**
- * Change the current theme.
- * Get all available theme names using `.availableThemes`. Custom themes are also supported.
- * Note: Available from NotePlan v3.1
- * @param {string} name of theme to change to.
- */
-setTheme(name: string): void;
-/**
- * Save theme as the default for the specified mode.
- * @param {string} theme_name (already-installed; not filename)
- * @param {string} mode "dark" | "light" | "auto"
- */
-saveDefaultTheme(name: string, mode: string): void;
-/**
- * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
- * It returns true if adding was successful and false if not. An error will be also printed into the console.
- * Adding a theme might fail, if the given json text was invalid.
- * Note: Available from v3.1
- * @param {string} json
- * @param {string} filename
- * @return {boolean}
- */
-addTheme(json: string, filename: string): boolean;
-/**
- * Get the current system mode, either "dark" or "light.
- * Note: Available from NotePlan v3.6.2+
- * @return {string}
- */
-+currentSystemMode: string;
+  /**
+   * Inserts the given text at the current cursor position
+   * @param text - Text to insert
+   */
+  insertTextAtCursor(text: string): void;
+  /**
+   * Inserts a plain paragraph before the selected paragraph (or the paragraph the cursor is currently positioned)
+   * @param name - Text of the paragraph
+   * @param type - paragraph type
+   * @param indents - How much it should be indented
+   */
+  insertParagraphAtCursor(name: string, type: ParagraphType, indents: number): void;
+  /**
+   * Replaces the current cursor selection with the given text
+   * @param text - Text to insert
+   */
+  replaceSelectionWithText(text: string): void;
+  /**
+   * Opens a note using the given filename.
+   * Note: some parameters introduced in v3.4 and v3.5.2
+   * @param {string} filename - Filename of the note file (can be without extension), but has to include the relative folder such as `folder/filename.txt`.
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view (Note: Available from v3.4)
+   * @param {boolean} createIfNeeded - (optional) Create the note with the given filename if it doesn't exist (only project notes, v3.5.2+)
+   * @param {string} content - (optional) Content to fill the note (replaces contents if the note already existed) (from v3.7.2)
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned (use with await ... or .then())
+   */
+  openNoteByFilename(
+    filename: string,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+    createIfNeeded ?: boolean,
+    content?: string,
+  ): Promise<TNote | void>;
+  openNoteByFilename(
+    filename: string,
+    newWindow?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+    createIfNeeded: true,
+    content?: string,
+  ): Promise<TNote>;
+  /**
+   * Opens a note by searching for the give title (first line of the note)
+   * Note: 'splitView' parameter available for macOS from v3.4
+   * @param {string} title - Title (case sensitive) of the note (first line)
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   */
+  openNoteByTitle(title: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
+  /**
+   * Opens a note by searching for the give title (first line of the note)
+   * Note: 'splitView' parameter available for macOS from v3.4
+   * @param {string} title - Title (case sensitive) of the note (first line)
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   */
+  openNoteByTitleCaseInsensitive(
+    title: string,
+    newWindow?: boolean,
+    caseSensitive?: boolean,
+    highlightStart?: number,
+    highlightEnd?: number,
+    splitView?: boolean,
+  ): Promise<TNote | void>;
+  /**
+   * Opens a calendar note by the given date
+   * Note: 'splitView' parameter available for macOS from v3.4
+   * Note: 'timeframe' parameter available for macOS from v3.6
+   * @param {Date} date - The date that should be opened, this is a normal JavaScript date object
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view
+   * @param {string} timeframe - (optional) Use "week", "month", "quarter" or "year" to open a calendar note other than a daily one
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   */
+  openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote | void>;
+  /**
+   * Opens a calendar note by the given date string
+   * Note: from v3.6 also accepts weeks in the main parameter
+   * @param {string} dateString - The date string that should be opened, in ISO format for days ("YYYYMMDD") or (from v3.6) in "YYYY-Wnn" format for weeks
+   * @param {boolean} newWindow - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd - (optional) End position of text highlighting
+   * @param {boolean} splitView - (optional) Open note in a new split view
+   * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
+   */
+  openNoteByDateString(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
+  /**
+   * Opens a weekly calendar note by the given year and week number
+   * Note: available from v3.6
+   * @param {number} year           - The year of the week
+   * @param {number} weeknumber     - The number of the week (0-52/53)
+   * @param {boolean} newWindow     - (optional) Open note in new window (default = false)?
+   * @param {number} highlightStart - (optional) Start position of text highlighting
+   * @param {number} highlightEnd   - (optional) End position of text highlighting
+   * @param {boolean} splitView     - (optional) Open note in a new split view
+   * @return {Promise<void>}        - When the note has been opened, a promise will be returned
+   */
+  openWeeklyNote(year: number, weeknumber: number, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
+  /**
+   * Selects the full text in the editor.
+   * Note: Available from v3.2
+   */
+  selectAll(): void;
+  /**
+   * (Raw) select text in the editor (like select 10 characters = length from position 2 = start)
+   * Raw means here that the position is calculated with the Markdown revealed,
+   * including Markdown links and folded text.
+   * @param {number} start - Character start position
+   * @param {number} length - Character length
+   */
+  select(start: number, length: number): void;
+  /**
+   * (Rendered) select text in the editor (like select 10 characters = length from position 2 = start)
+   * Rendered means here that the position is calculated with the Markdown hidden,
+   * including Markdown links and folded text.
+   * @param {number} start - Character start position
+   * @param {number} length - Character length
+   */
+  renderedSelect(start: number, length: number): void;
+  /**
+   * Copies the currently selected text in the editor to the system clipboard.
+   * See also Clipboard object.
+   * Note: Available from v3.2
+   */
+  copySelection(): void;
+  /**
+   * Pastes the current content in the system clipboard into the current selection in the editor.
+   * See also Clipboard object.
+   * Note: Available from v3.2
+   */
+  pasteClipboard(): void;
+  /**
+   * Scrolls to and highlights the given paragraph.
+   * If the paragraph is folded, it will be unfolded.
+   * @param {TParagraph} paragraph to highlight
+   */
+  highlight(paragraph: TParagraph): void;
+  /**
+   * Scrolls to and highlights the given character range.
+   * If the range exists in a folded heading, it will be unfolded.
+   * @param {Range} range
+   */
+  highlightByRange(range: Range): void;
+  /**
+   * Scrolls to and highlights the given range defined by the character index and the character length it should cover.
+   * If the paragraph is folded, it will be unfolded.
+   * Note: Available from v3.0.23
+   * @param {number} index
+   * @param {number} length
+   */
+  highlightByIndex(index: number, length: number): void;
+  /**
+   * Folds the given paragraph or unfolds it if its already folded. If the paragraph is not a heading, it will look for the heading this paragraph exists under.
+   * Note: Available from v3.6.0
+   * @param {TParagraph}
+   */
+  toggleFolding(paragraph: TParagraph): void;
+  /**
+   * Checks if the given paragraph is folded or not. If it's not a heading, it will look for the heading this paragraph exists under.
+   * Note: Available from v3.6.0
+   * @param {TParagraph}
+   * @return {boolean}
+   */
+  isFolded(paragraph: TParagraph): boolean;
+  /**
+   * Shows or hides a window with a loading indicator or a progress ring (if progress is defined) and an info text (optional).
+   * `text` is optional, if you define it, it will be shown below the loading indicator.
+   * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
+   * When you are done, call `showLoading(false)` to hide the window.
+   * Note: Available from v3.0.26
+   * @param {boolean}
+   * @param {string?}
+   * @param {Float?}
+   */
+  showLoading(visible: boolean, text?: ?string, progress?: number): void;
+  /**
+   * If you call this, anything after `await CommandBar.onAsyncThread()` will run on an asynchronous thread.
+   * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
+   * Otherwise the loading window will be also blocked.
+   *
+   * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
+   * You need to return to the main thread before you change anything in the window (such as Editor functions do).
+   * Use `onMainThread()` to return to the main thread.
+   * Note: Available from v3.0.26
+   * @return {Promise}
+   */
+  onAsyncThread(): Promise<void>;
+  /**
+   * If you call this, anything after `await CommandBar.onMainThread()` will run on the main thread.
+   * Call this after `onAsyncThread`, once your background work is done.
+   * It is safe to call Editor and other user interface functions on the main thread.
+   * Note: Available from v3.0.26
+   * @return {Promise}
+   */
+  onMainThread(): Promise<void>;
+  /**
+   * Get the names of all supported themes (including custom themes imported into the Theme folder).
+   * Use together with `.setTheme(name)`
+   * Note: available from v3.6.2, returning array of these objects:
+   * {
+      "name": String, // name as in the JSON
+      "mode": String, // "dark", or "light" = reported value in the json
+      "filename": String, // filename.json in the folder
+      "values": Object // fully parsed JSON theme file
+    }
+   * (Originally available from v3.1, returning a read-only array of strings)
+   * @return {$ReadOnlyArray<Object>}
+   */
+  +availableThemes: $ReadOnlyArray<Object>;
+  /**
+   * Get the current theme name and mode as an object with these keys:
+   *  - "name" in the JSON theme
+   *  - "filename" of the JSON theme file
+   *  - "mode" ("dark" or "light")
+   *  - "values" -- all the JSON in the theme
+   * Note: Available from NotePlan v3.6.2 (build >847)
+   * @return {Object}
+   */
+  +currentTheme: Object;
+  /**
+   * Change the current theme.
+   * Get all available theme names using `.availableThemes`. Custom themes are also supported.
+   * Note: Available from NotePlan v3.1
+   * @param {string} name of theme to change to.
+   */
+  setTheme(name: string): void;
+  /**
+   * Save theme as the default for the specified mode.
+   * @param {string} theme_name (already-installed; not filename)
+   * @param {string} mode "dark" | "light" | "auto"
+   */
+  saveDefaultTheme(name: string, mode: string): void;
+  /**
+   * Add a new theme using the raw json string. It will be added as a custom theme and you can load it right away with `.setTheme(name)` using the filename defined as second parameter. Use ".json" as file extension.
+   * It returns true if adding was successful and false if not. An error will be also printed into the console.
+   * Adding a theme might fail, if the given json text was invalid.
+   * Note: Available from v3.1
+   * @param {string} json
+   * @param {string} filename
+   * @return {boolean}
+   */
+  addTheme(json: string, filename: string): boolean;
+  /**
+   * Get the current system mode, either "dark" or "light.
+   * Note: Available from NotePlan v3.6.2+
+   * @return {string}
+   */
+  +currentSystemMode: string;
 
 /**
  * Get a unique ID for the editor to make it easier to identify it later
@@ -377,7 +377,8 @@ close(): void;
  *   rect.height -= 50
  *   Editor.windowRect = rect
  *
- * Note: Available with v3.9.1 build 1018?
+ * Note: for split windows, or any others in the 'main' window, this returns the position and size of the whole window, including any sidebars that are showing.
+ * Note: Available with v3.9.1 build 1020
  */
 windowRect: Rect;
 }
@@ -791,18 +792,18 @@ type PluginCommandObject = {
    * ID of the plugin this command belongs to (getter)
    */
   +pluginID: string,
-    /**
-     * Name of the plugin this command belongs to (getter)
-     */
-    +pluginName: string,
-      /**
-       * Whether this is marked as a hidden command (getter)
-       */
-      +isHidden: boolean,
-        +hidden: boolean,
+  /**
+   * Name of the plugin this command belongs to (getter)
+   */
+  +pluginName: string,
+  /**
+   * Whether this is marked as a hidden command (getter)
+   */
+  +isHidden: boolean,
+    +hidden: boolean,
             /**
- * List of optional argument descriptions for the specific command (getter). Use this if you want to invoke this command from another plugin to inform the user what he nees to enter for example.
- */
+* List of optional argument descriptions for the specific command (getter). Use this if you want to invoke this command from another plugin to inform the user what he nees to enter for example.
+*/
   +arguments: $ReadOnlyArray < string >,
 }
 
@@ -822,43 +823,43 @@ type PluginObject = {
    * Description of the plugin (getter)
    */
   +desc: string,
+  /**
+   * Author of the plugin (getter)
+   */
+  +author: string,
+  /**
+   * RepoUrl of the plugin (getter)
+   */
+  +repoUrl: ?string,
     /**
-     * Author of the plugin (getter)
+     * Release page URL of the plugin (on GitHub) (getter)
      */
-    +author: string,
+    +releaseUrl: ?string,
       /**
-       * RepoUrl of the plugin (getter)
+       * Version of the plugin (getter)
        */
-      +repoUrl: ?string,
+      +version: string,
         /**
-         * Release page URL of the plugin (on GitHub) (getter)
+         * This is the online data of the plugin. It might not be installed locally. (getter)
          */
-        +releaseUrl: ?string,
+        +isOnline: boolean,
           /**
-           * Version of the plugin (getter)
+           * Whether this plugin is marked as hidden (getter)
            */
-          +version: string,
-            /**
-             * This is the online data of the plugin. It might not be installed locally. (getter)
-             */
-            +isOnline: boolean,
+          +isHidden: boolean,
+            +hidden: boolean,
               /**
-               * Whether this plugin is marked as hidden (getter)
+               * Script filename that contains the code for this plugin (like script.js) (getter)
                */
-              +isHidden: boolean,
-                +hidden: boolean,
-                  /**
-                   * Script filename that contains the code for this plugin (like script.js) (getter)
-                   */
-                  +script: string,
-                    /**
-                     * If this is a locally installed plugin, you can use this variable to check if an updated version is available online. (getter)
-                     */
-                    +availableUpdate: PluginObject,
+              +script: string,
+                /**
+                 * If this is a locally installed plugin, you can use this variable to check if an updated version is available online. (getter)
+                 */
+                +availableUpdate: PluginObject,
                         /**
- * A list of available commands for this plugin. (getter)
- * @type {PluginCommandObject}
- */
+* A list of available commands for this plugin. (getter)
+* @type {PluginCommandObject}
+*/
   +commands: $ReadOnlyArray < PluginCommandObject >,
 }
 
@@ -1001,10 +1002,10 @@ type ParsedTextDateRange = {
    * The detected date string (e.g. the specific words that parseDate used to create a date/time)
    */
   +text: string,
-    /**
-     *  The character index of the start of the detected date string
-     */
-    +index: number,
+  /**
+   *  The character index of the start of the detected date string
+   */
+  +index: number,
 }
 
 type TCalendar = Class<Calendar>
@@ -2033,6 +2034,18 @@ close(): void;
    * @return { Promise | void }
    */
   static runJavaScript(code: string): Promise | void;
+/**
+ * Set / get the position and size of an HTMLView window. Returns an object with x, y, width, height values.
+ * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
+ * The position of the window might not be very intuitive, because the coordinate system of the screen works differently (starts at the bottom left for example). Recommended is to adjust the size and position of the window relatively to it's values or other windows.
+ * Example:
+ *   const rect = HTMLView.windowRect
+ *   rect.height -= 50
+ *   Editor.windowRect = rect
+ *
+ * Note: Available with v3.9.1 build 1020
+ */
+windowRect: Rect;
 }
 
 type FetchOptions = {

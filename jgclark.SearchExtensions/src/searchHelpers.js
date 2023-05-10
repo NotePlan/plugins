@@ -19,7 +19,8 @@ import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { clo, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
 import { displayTitle, type headingLevelType, titleAsLink } from '@helpers/general'
-import { getNoteByFilename, getNoteContextAsSuffix, getNoteTitleFromFilename, getOrMakeNote, getProjectNotesInFolder, replaceSection } from '@helpers/note'
+import { getNoteByFilename, getNoteContextAsSuffix, getOrMakeNote, getProjectNotesInFolder, replaceSection } from '@helpers/note'
+import { getNoteTitleFromFilename } from '@helpers/NPnote'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
@@ -123,7 +124,7 @@ export async function getSearchSettings(): Promise<any> {
 * Quoted multi-word search terms (e.g. ["Bob Smith"]) are by default treated as [+Bob +Smith] as I now discover the API doesn't support quoted multi-word search phrases.
 * @author @jgclark
 * @param {string | Array<string>} searchArg string containing search term(s) or array of search terms
-* @param {boolean?} modifyQuotedTermsToAndedTerms 
+* @param {boolean?} modifyQuotedTermsToAndedTerms
 * @returns {Array<string>} normalised search term(s)
 * @tests in jest file
 */
@@ -234,7 +235,7 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
 
   const normalisedTerms = normaliseSearchTerms(searchArg)
 
-  // Don't allow 0 terms, apart from 
+  // Don't allow 0 terms, apart from
   // Special case for @JPR1972: allow negative or empty only
   if (normalisedTerms.length === 0 && !allowEmptyOrOnlyNegative) {
     logError(pluginJson, `No search terms submitted. Stopping.`)
@@ -315,8 +316,8 @@ export function differenceByPropVal<P: string, T: { +[P]: mixed, ... }> (
 /**
  * Simple Object equality test, working for ONE-LEVEL only objects.
  * from https://stackoverflow.com/a/5859028/3238281
- * @param {Object} o1 
- * @param {Object} o2 
+ * @param {Object} o1
+ * @param {Object} o2
  * @returns {boolean} does o1 = o2?
  * @test in jest file
  */
@@ -358,12 +359,12 @@ export function differenceByObjectEquality<P: string, T: { +[P]: mixed, ... }> (
 
 /**
  * Returns array of intersection of arrA + arrB (only for noteAndLine types)
- * TODO: Make a more generic version of this, possibly using help from 
+ * TODO: Make a more generic version of this, possibly using help from
  * https://stackoverflow.com/questions/1885557/simplest-code-for-array-intersection-in-javascript
  * @author @jgclark
- * 
- * @param {Array<noteAndLine>} arrA 
- * @param {Array<noteAndLine>} arrB 
+ *
+ * @param {Array<noteAndLine>} arrA
+ * @param {Array<noteAndLine>} arrB
  * @returns {Array<noteAndLine>} array of intersection of arrA + arrB
  */
 export function noteAndLineIntersection(arrA: Array<noteAndLine>, arrB: Array<noteAndLine>):
@@ -579,7 +580,7 @@ export function applySearchOperators(
  * but I can't make it work, so I'm going to hack it by joining the two object parts together,
  * then deduping, and then splitting out again
  * @author @jgclark
- * @param {Array<noteAndLine>} inArray 
+ * @param {Array<noteAndLine>} inArray
  * @returns {Array<noteAndLine>} outArray
  * @tests in jest file
  */
@@ -597,7 +598,7 @@ export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteA
 
 /**
  * Count unique filenames present in array
- * @param {Array<noteAndLine>} inArray 
+ * @param {Array<noteAndLine>} inArray
  * @returns {number} of unique filenames present
  * @test in jest file
  */
@@ -611,7 +612,7 @@ export function numberOfUniqueFilenames(inArray: Array<noteAndLine>): number {
  * Run a search over all search terms in 'termsToMatchArr' over the set of notes determined by the parameters.
  * V2 of this function
  * Has an optional 'paraTypesToInclude' parameter of paragraph type(s) to include (e.g. ['open'] to include only open tasks). If not given, then no paragraph types will be excluded.
- * 
+ *
  * @param {Array<string>} termsToMatchArr
  * @param {Array<string>} noteTypesToInclude (['notes'] or ['calendar'] or both)
  * @param {Array<string>} foldersToInclude (can be empty list)
@@ -903,7 +904,7 @@ export function resultCounts(resultSet: resultOutputTypeV3): string {
  * The data is in the first parameter; the rest are various settings.
  * Note: It's now possible to give a 'heading' parameter: if it's given then just that section will be replaced, otherwise the whole contents will be deleted first.
  * @author @jgclark
- * 
+ *
  * @param {resultOutputTypeV3} resultSet object
  * @param {string} requestedTitle requested note title to use/make
  * @param {string} titleToMatch partial title to match against existing note titles
@@ -980,7 +981,7 @@ export async function writeSearchResultsToNote(
  * Create nicely-formatted lines to display 'resultSet', using settings from 'config'
  * @author @jgclark
  * @param {resultOutputTypeV2} resultSet
- * @param {SearchConfig} config 
+ * @param {SearchConfig} config
  * @returns {Array<string>} formatted search reuslts
  */
 export function createFormattedResultLines(resultSet: resultOutputTypeV3, config: SearchConfig): Array<string> {

@@ -4,7 +4,7 @@
 // See also HTMLView for specifics of working in HTML
 // ----------------------------------------------------------------------------
 
-import { clo, logDebug, logError, logInfo } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search'
 
 /**
@@ -13,7 +13,7 @@ import { caseInsensitiveMatch, caseInsensitiveStartsWith } from '@helpers/search
  * @returns {string}
  */
 export function rectToString(rect: Rect): string {
-  return `X${String(rect.x)},Y${String(rect.x)},w${String(rect.width)},h${String(rect.height)}`
+  return `X${String(rect.x)},Y${String(rect.y)},w${String(rect.width)},h${String(rect.height)}`
 }
 
 /**
@@ -55,9 +55,10 @@ export function logWindowsList(): void {
 }
 
 /**
- * Set customID for the (single) HTML window
+ * Set customId for the (single) HTML window
  * Note: In time, this will be removed, when @EduardMe rolls it into .showWindow() API
  * @author @jgclark
+ * @param {string} customId
  * @param {string} customId
  */
 export function setHTMLWindowId(customId: string): void {
@@ -65,6 +66,7 @@ export function setHTMLWindowId(customId: string): void {
     const allHTMLWindows = NotePlan.htmlWindows
     const thisWindow = allHTMLWindows[0]
     if (thisWindow) {
+      thisWindow.customId = customId
       thisWindow.customId = customId
       logWindowsList()
     } else {
@@ -100,7 +102,7 @@ export function isHTMLWindowOpen(customId: string): boolean {
 }
 
 /**
- * Set customID for the given Editor window
+ * Set customId for the given Editor window
  * Note: Hopefully in time, this will be removed, when @EduardMe rolls it into an API call
  * @author @jgclark
  * @param {string} openNoteFilename, i.e. note that is open in an Editor that we're trying to set customID for
@@ -187,35 +189,80 @@ export function focusHTMLWindowIfAvailable(customId: string): boolean {
   return false
 }
 
+export async function openNoteInNewWindowIfNeeded(filename: string): Promise<boolean> {
+  const res = await Editor.openNoteByFilename(filename, true, 0, 0, false, true) // create new floating (and the note if needed)
+  if (res) {
+    logDebug('openWindowSet', `Opened floating window pane '${filename}'`)
+  } else {
+    logWarn('openWindowSet', `Failed to open floating window '${filename}'`)
+  }
+  return !!res
+}
+
+export async function openNoteInNewSplitIfNeeded(filename: string): Promise<boolean> {
+  const res = await Editor.openNoteByFilename(filename, false, 0, 0, true, true) // create new split (and the note if needed) // TODO(@EduardMe): this doesn't create an empty note if needed for Calendar notes
+  if (res) {
+    logDebug('openWindowSet', `Opened split window '${filename}'`)
+  } else {
+    logWarn('openWindowSet', `Failed to open split window '${filename}'`)
+  }
+  return !!res
+}
+
+export function getWindowFromId(windowId: string): TEditor | HTMLView | false {
+  // First loop over all Editor windows
+  const allEditorWindows = NotePlan.editors
+  for (const thisWindow of allEditorWindows) {
+    if (thisWindow.customId === windowId) {
+      return thisWindow
+    }
+  }
+  // And if not found so far, then all HTML windows
+  const allHTMLWindows = NotePlan.htmlWindows
+  for (const thisWindow of allHTMLWindows) {
+    if (thisWindow.customId === windowId) {
+      return thisWindow
+    }
+  }
+  logWarn('getWindowFromId', `Couldn't find window matching '${windowId}'`)
+  return false
+}
+
 /**
  * Save the Rect (x/y/w/h) of the given window, given by its ID, to the local device's NP preferences store.
- * @param {string} windowID
+ * @param {string} windowId
  */
-export function storeWindowRect(windowID: string): void {
-  if (NotePlan.environment.buildVersion < 1019) {
+export function storeWindowRect(windowId: string): void {
+  if (NotePlan.environment.buildVersion < 1020) {
     logDebug('storeWindowRect', `Cannot save window rect as not running v3.9.1 or later.`)
     return
   }
-  // TODO: ...
-  const windowRect: Rect = win.windowRect
-  const prefName = `HTMLWinRect_${windowID}`
-  DataStore.setPreference(prefName, windowRect)
-  logDebug('storeWindowRect', `Saved Rect to ${prefName}`)
+  // Find the window by its windowId
+  const thisWindow = getWindowFromId(windowId)
+  if (thisWindow) {
+    // Get its Rect
+    const windowRect: Rect = thisWindow.windowRect
+    const prefName = `HTMLWinRect_${windowId}`
+    DataStore.setPreference(prefName, windowRect)
+    logDebug('storeWindowRect', `Saved Rect ${rectToString(windowRect)} to ${prefName}`)
+  } else {
+    logWarn('storeWindowRect', `Couldn't save Rect for '${windowId}'`)
+  }
 }
 
 /**
  * Get the Rect (x/y/w/h) of the given window, given by its ID, from the local device's NP preferences store.
- * @param {string} windowID
+ * @param {string} windowId
  * @returns {Rect} the Rect (x/y/w/h)
  */
-export function getWindowRect(windowID: string): Rect | false {
-  if (NotePlan.environment.buildVersion < 1019) {
+export function getWindowRect(windowId: string): Rect | false {
+  if (NotePlan.environment.buildVersion < 1020) {
     logDebug('getWindowRect', `Cannot save window rect as not running v3.9.1 or later.`)
     return false
   }
-  const prefName = `HTMLWinRect_${windowID}`
+  const prefName = `HTMLWinRect_${windowId}`
   const windowRect: Rect = DataStore.preference(prefName)
-  clo(windowRect, `Retrieved Rect for ${prefName}`)
+  clo(windowRect, `Retrieved Rect ${rectToString(windowRect)} from ${prefName}`)
   return windowRect
 }
 

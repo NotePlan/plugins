@@ -5,6 +5,12 @@
 
 ## What's Changed in this Plugin?
 
+## [2.14.4] @dwertheimer 2023-05-10
+
+- Improve handling of scheduling overdue tasks for future (e.g. tomorrow):
+  - "Review tasks for Today?" was still using *today*, changed it to correctly use whatever day you have been reviewing
+  - Same for review for this week
+
 ## [2.14.3] @dwertheimer 2023-04-25
 
 - Fix bug that was overlooking forgotten tasks without dates.
