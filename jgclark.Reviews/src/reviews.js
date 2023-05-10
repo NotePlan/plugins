@@ -583,9 +583,8 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
     // but need to deal with ignores here because of this optimization (in case an ignore folder is inside an included folder)
     // TODO: make the excludes an includes not startsWith
     const m = new Date()
-    const ZZZfilter = (s) => f.filename.includes(`${s}/`.replace('//', '/'))
     const filteredDataStore = DataStore.projectNotes.filter(
-      (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some(ZZZfilter)
+      (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/')))
     )
 
     logDebug(`makeFullReviewList`, `>> filteredDataStore ${filteredDataStore.length} potential project notes in ${timer(m)}`)
