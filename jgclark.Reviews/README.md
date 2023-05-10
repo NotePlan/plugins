@@ -5,7 +5,7 @@ This plugin provides commands to help **review** Project-based notes, and it hel
 
 The main review screen looks like this, showing the projects due for review from various different NotePlan folders:
 
-![Example of Rich style of "/project lists"](review-list4-rich.jpg)
+![Project Lists: example in 'Rich' style](review-list-rich-0.11@2x.png)
 
 If, like me, you're using the helpful [PARA Approach](https://fortelabs.co/blog/series/para/), then your **Areas** are also a form of Project, at least as far as Reviewing them goes.  I have another 50 of these.
 
@@ -81,13 +81,12 @@ This shows a list of project notes, including basic tasks statistics and time un
 
 You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, shown above) or original '**Markdown**' (normal NotePlan) output style:
 
-<!-- FIXME: update screenshot -->
-![Example of Markdown style of "project lists"](review-list4-md.jpg)
+![Example of 'Markdown' style of Project Lists](review-list-markdown-0.11@2x.png)
 
 Notes about the displays:
 - the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use.
 - in the 'Rich' style this heading row deliberately 'sticks' to the top of the window as you scroll the list.
-![Example of buttons in Rich style of "project lists"](review-list-buttons3.jpg)
+![Buttons in 'Rich' style](review-list-buttons-0.11.png)
 - due to limits on the API for 'Rich' style output, all #tags to review get shown one after the other in a single window.
 - if you can make the window wide enough it will display in 2 or even 3 columns!
 - the **Markdown style** list _is_ stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
