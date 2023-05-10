@@ -11,7 +11,7 @@ import fm from 'front-matter'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import { getReviewSettings, makeFakeButton, Project } from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
-import { calcOffsetDateStr, getDateObjFromDateString, getJSDateStartOfToday, getTodaysDateHyphenated, hyphenatedDateString, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
+import { calcOffsetDate, calcOffsetDateStr, getDateObjFromDateString, getJSDateStartOfToday, getTodaysDateHyphenated, hyphenatedDateString, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithStringArgs, timer } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
@@ -23,8 +23,7 @@ import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import { fieldSorter, sortListBy } from '@helpers/sorting'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
-import { logWindowsList, noteOpenInEditor, setEditorWindowID, setHTMLWindowID } from '@helpers/NPWindows'
-import { calcOffsetDate } from "../../helpers/dateTime";
+import { focusHTMLWindowIfAvailable, logWindowsList, noteOpenInEditor, setEditorWindowId, setHTMLWindowId } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------------------
 
@@ -33,7 +32,8 @@ const pluginID = 'jgclark.Reviews'
 const fullReviewListFilename = 'full-review-list.md'
 const windowTitle = `Review List`
 const filenameHTMLCopy = 'review_list.html'
-const customWinId = `${pluginID}.review-list`
+const customRichWinId = `${pluginID}.rich-review-list`
+const customMarkdownWinId = `${pluginID}.markdown-review-list`
 // const reviewListPref = 'jgclark.Reviews.reviewList'
 // const fullReviewJSONFilename = 'full-review-list.json'
 
@@ -88,15 +88,15 @@ export const reviewListCSS: string = [
   .tooltip:hover .tooltiptext { visibility: visible; }`,
 ].join('\n\t')
 
-const startReviewsCommandCall = `(function() {
-    DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
-  })()`
+// Not currently used
+// const startReviewsCommandCall = `(function() {
+//     DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
+//   })()`
 
-const makeProjectListsCommandCall = `(function() {
-    DataStore.invokePluginCommandByName("project lists", "jgclark.Reviews");
-  })()`
+// const makeProjectListsCommandCall = `(function() {
+//     DataStore.invokePluginCommandByName("project lists", "jgclark.Reviews");
+//   })()`
 
-// TEST: No longer used?
 // function makeCommandCall(commandCallJSON: string): string {
 //   return `<script>
 //   const callCommand = () => {
@@ -130,15 +130,125 @@ export const setPercentRingJSFunc: string = `<script>
   </script>
   `
 
+//---------------------------------------------------------------------
+// Moved following from projectLists.js to avoid circular dependency
+//---------------------------------------------------------------------
+
 /**
- * Generate human-readable list of project notes for each tag of interest using HTML output, using the pre-built full-review-list.
+ * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
+ * Now includes support for calling from x-callback, using simple "a=b;x=y" version of settings and values that will override ones in the user's settings.
+ * @param {string | null} arguments list of form "a=b;x=y"
+ */
+export async function makeProjectLists(argsIn?: string | null = null): Promise<void> {
+  try {
+    let args = argsIn?.toString() || ''
+    logDebug(pluginJson, `makeProjectLists: starting with args <${args}>`)
+    let config = await getReviewSettings()
+    if (args !== '') {
+      config = overrideSettingsWithStringArgs(config, args)
+      // clo(config, 'Review settings updated with args:')
+    } else {
+      // clo(config, 'Review settings with no args:')
+    }
+
+    // Re-calculate the full-review-list (in foreground)
+    await makeFullReviewList(true)
+
+    // Call the relevant rendering function with the updated config
+    await renderProjectLists(true)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Render the project list, according to the chosen output style.
+ * Note: this does not re-calculate the data.
+ * @author @jgclark
+ * @param {Boolean} shouldOpen window/note if not already open?
+ */
+export async function renderProjectLists(shouldOpen: boolean = true): Promise<void> {
+  try {
+    logDebug('renderProjectLists', `Started with shouldOpen ${String(shouldOpen)}`)
+    const config = await getReviewSettings()
+
+    // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
+    if (config.outputStyle.match(/markdown/i)) {
+      await renderProjectListsMarkdown(config, shouldOpen)
+    }
+    if (config.outputStyle.match(/rich/i)) {
+      await renderProjectListsHTML(config, shouldOpen)
+    }
+  } catch (error) {
+    logError('renderProjectLists', error.message)
+  }
+}
+
+/**
+ * Re-display the project list from saved HTML file, if available, or if not then render the project list.
+ * Note: this is a test function that does not re-calculate the data.
+ * @author @jgclark
+ */
+export async function redisplayProjectListHTML(): Promise<void> {
+  try {
+    // Re-load the saved HTML if it's available.
+    const config = await getReviewSettings()
+    // Try loading HTML saved copy
+    const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
+    if (savedHTML !== '') {
+      // original method
+      await showHTML(
+        windowTitle,
+        '', // no extra header tags
+        savedHTML,
+        '', // get general CSS set automatically
+        '', // CSS in HTML
+        false, // = not modal window
+        '',
+        '',
+        '',
+        config.width, // width (e.g. 800)
+        config.height, // max height (e.g. 1200)
+      )
+      // TODO: towards newer method
+      // const winOptions = {
+      //   // x: x,
+      //   // y: y,
+      //   // width: width,
+      //   // height: height,
+      //   shouldFocus: false
+      // }
+      // clo(winOptions, 'winOptions')
+      // const win = await HTMLView.showWindowWithOptions(savedHTML, windowTitle, winOptions)
+
+      // Set customID for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
+      // TODO(Eduard): has said he will roll this into .showWindow()
+      if (NotePlan.environment.buildVersion < 976) {
+        setHTMLWindowID(customRichWinId ?? windowTitle)
+      }
+      // clo(win, 'created window')
+      logDebug('redisplayProjectListHTML', `Displayed HTML from saved file ${filenameHTMLCopy}`)
+      return
+    } else {
+      logWarn('redisplayProjectListHTML', `Couldn't read HTML from saved file ${filenameHTMLCopy}, so will render afresh`)
+    }
+  } catch (error) {
+    logError('redisplayProjectListHTML', error.message)
+  }
+}
+
+//---------------------------------------------------------------------
+
+/**
+ * Generate 'Rich' HTML view of project notes for each tag of interest, using the pre-built full-review-list.
  * Note: Requires NP 3.7.0 (build 844) or greater.
  * Note: Currently we can only display 1 HTML Window at a time, so need to include all tags in a single view. In time this can hopefully change.
  * @author @jgclark
+ * @param {any} config - from the main entry function, which can include overrides from passed args
+ * @param {boolean} shouldOpen note if not already open?
  */
-export async function renderProjectListsHTML(): Promise<void> {
+export async function renderProjectListsHTML(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
-    const config = await getReviewSettings()
     if (config.noteTypeTags.length === 0) {
       throw new Error('No noteTypeTags configured to display')
     }
@@ -161,7 +271,7 @@ export async function renderProjectListsHTML(): Promise<void> {
 
     logDebug('renderProjectListsHTML', `>> after checkForWantedResources and before possible makeFullReviewList: ${timer(funcTimer)}`)
 
-    // Need to change a single string (1 tag) to an array (multiple tags)
+    // Ensure noteTypeTags is an array before proceeding
     if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
 
     // String array to save all output
@@ -228,10 +338,9 @@ export async function renderProjectListsHTML(): Promise<void> {
     // write lines before first table
     outputArray.push(`<h1>${windowTitle}</h1>`)
     // Add a sticky area for buttons
-    // TODO: when possible remove comment to bring Pause back into use
     const controlButtons = `<b>Reviews</b>: ${startReviewButton} \n${reviewedXCallbackButton} \n${nextReviewXCallbackButton}\n${skipReviewXCallbackButton}\n<br /><b>List</b>: \n${refreshXCallbackButton} \n<b>Projects</b>: ${pauseXCallbackButton} \n${completeXCallbackButton} \n${cancelXCallbackButton}`
     outputArray.push(`<div class="sticky-box-top-middle">\n${controlButtons}\n</div>\n`)
-
+    // Allow multi-col working
     outputArray.push(`<div class="multi-cols">`)
 
     logDebug('renderProjectListsHTML', `>> before main loop: ${timer(funcTimer)}`)
@@ -239,7 +348,7 @@ export async function renderProjectListsHTML(): Promise<void> {
     // Make the Summary list, for each noteTag in turn
     let tagCount = 0
     for (const thisTag of config.noteTypeTags) {
-      // Get main summary lines
+      // Get the summary line for each revelant project
       const [thisSummaryLines, noteCount, overdue] = await generateReviewSummaryLines(thisTag, 'Rich', config)
 
       // Write out all relevant HTML
@@ -294,7 +403,7 @@ export async function renderProjectListsHTML(): Promise<void> {
 
     logDebug('renderProjectListsHTML', `>> end of main loop: ${timer(funcTimer)}`)
 
-    // Older version
+    // Original version
     await showHTML(
       windowTitle,
       faLinksInHeader,
@@ -302,12 +411,15 @@ export async function renderProjectListsHTML(): Promise<void> {
       '', // = get general CSS set automatically
       reviewListCSS,
       false, // = not modal window
-      setPercentRingJSFunc,
-      '', // TEST: makeCommandCall(startReviewsCommandCall),
+      setPercentRingJSFunc, // pre-body script
+      '', // post-body script
       filenameHTMLCopy,
-      812,
-      1200,
-    ) // set width; max height
+      config.width, // was 800
+      config.height, // was 1200 (max height)
+    )
+    if (shouldOpen) {
+      focusHTMLWindowIfAvailable(customRichWinId)
+    }
 
     // Getting ready for newer version
     // // Show the list as HTML, and save a copy as file
@@ -322,7 +434,7 @@ export async function renderProjectListsHTML(): Promise<void> {
     //   savedFilename: filenameHTMLCopy,
     //   width: 812,
     //   height: 1200,
-    //   customID: customWinId,
+    //   customID: customRichWinId,
     //   shouldFocus: true,
     // }
     // await showHTMLV2(body, opts)
@@ -341,26 +453,28 @@ export async function renderProjectListsHTML(): Promise<void> {
  * Generate human-readable lists of project notes in markdown for each tag of interest
  * and write out to note(s) in the config.folderToStore folder.
  * @author @jgclark
- * @param {any} config - from settings (and any passed args)
+ * @param {any} config - from the main entry function, which can include overrides from passed args
+ * @param {boolean} shouldOpen note if not already open?
  */
-export async function renderProjectListsMarkdown(config: any): Promise<void> {
+export async function renderProjectListsMarkdown(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
     logDebug('renderProjectListsMarkdown', `Starting for ${config.noteTypeTags.toString()} tags`)
     const funcTimer = new Date()
 
-    // Set up x-callback URLs for various commands, to be styled into pseudo-buttons
-    // Note: some of these currently aren't used
+    // Set up x-callback URLs for various commands
     const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'start reviews', '') // "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=start%20reviews"
     const reviewedXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'finish project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=finish%20project%20review&arg0="
     const nextReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
-    const pauseXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'pause project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
+    const pauseXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'pause project toggle', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
     const completeXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'complete project', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
     const cancelXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'cancel project', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
-    const reviewedXCallbackButton = `[Finish Review](${reviewedXCallbackURL})`
-    const nextReviewXCallbackButton = `[Finish + Next Review](${nextReviewXCallbackURL})`
-    const pauseXCallbackButton = `[toggle Pause Project](${pauseXCallbackURL})`
-    const completeXCallbackButton = `[Complete Project](${completeXCallbackURL})`
-    const cancelXCallbackButton = `[Cancel Project](${cancelXCallbackURL})`
+
+    // style the x-callback URLs into markdown 'button' links
+    const reviewedXCallbackButton = `[Finish](${reviewedXCallbackURL})`
+    const nextReviewXCallbackButton = `[Finish + Next](${nextReviewXCallbackURL})`
+    const pauseXCallbackButton = `[toggle Pause](${pauseXCallbackURL})`
+    const completeXCallbackButton = `[Complete](${completeXCallbackURL})`
+    const cancelXCallbackButton = `[Cancel](${cancelXCallbackURL})`
     const nowDateTime = nowLocaleShortDateTime()
 
     if (config.noteTypeTags.length > 0) {
@@ -377,7 +491,7 @@ export async function renderProjectListsMarkdown(config: any): Promise<void> {
         if (note != null) {
           const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`noteTypeTags=${tag}`)) //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`noteTypeTags=${tag}`)
 
-          // Calculate the Summary list(s)
+          // Get the summary line for each revelant project
           const [outputArray, noteCount, overdue] = await generateReviewSummaryLines(tag, 'Markdown', config)
           logDebug('renderProjectListsHTML', `>> after generateReviewSummaryLines(${tag}) for ${String(overdue)} projects: ${timer(funcTimer)}`)
 
@@ -386,7 +500,7 @@ export async function renderProjectListsMarkdown(config: any): Promise<void> {
           const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
 
           if (overdue > 0) {
-            outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+            outputArray.unshift(`Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} Current open project note: ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
           outputArray.unshift(`Total ${noteCount} active projects${overdue > 0 ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
 
@@ -400,12 +514,10 @@ export async function renderProjectListsMarkdown(config: any): Promise<void> {
           logDebug('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
           // Open the note in a window
           // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
-          if (!noteOpenInEditor(note.filename)) {
+          if (shouldOpen && !noteOpenInEditor(note.filename)) {
             logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)
             await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
-            setEditorWindowID(note.filename, noteTitle)
-          } else {
-            logDebug('renderProjectListsMarkdown', `- note '${noteTitle}' already open in the editor.`)
+            setEditorWindowId(note.filename, customMarkdownWinId)
           }
         } else {
           await showMessage('Oops: failed to find or make project summary note', 'OK')
@@ -443,7 +555,7 @@ export async function renderProjectListsMarkdown(config: any): Promise<void> {
         if (!noteOpenInEditor(note.filename)) {
           logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)
           await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
-          setEditorWindowID(note.filename, noteTitle)
+          setEditorWindowId(note.filename, noteTitle)
         } else {
           logDebug('renderProjectListsMarkdown', `- note '${noteTitle}' already open in the editor.`)
         }
@@ -485,12 +597,12 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // Try to make the full-review-list
-      await makeFullReviewList(true)
-      reviewListContents = DataStore.loadData(fullReviewListFilename, true)
-      if (!reviewListContents) {
+      // await makeFullReviewList(true)
+      // reviewListContents = DataStore.loadData(fullReviewListFilename, true)
+      // if (!reviewListContents) {
         // If still no luck, throw an error
-        throw new Error('full-review-list note empty or missing')
-      }
+      throw new Error('full-review-list note empty or missing. Please try running "Project Lists" command again.')
+      // }
     }
 
     // Ignore its frontmatter and sort rest by days before next review (first column), ignoring those for a different noteTag than we're after.
@@ -791,15 +903,15 @@ export async function finishReview(): Promise<void> {
 
       // First update @review(date) on current open note
       const openNote: ?TNote = await updateMetadataInEditor([reviewedTodayString])
+      // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
+      await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
 
       // Also update the full-review-list
       const thisNoteAsProject = new Project(currentNote)
-      updateReviewListAfterChange(currentNote.title ?? '', false, config, thisNoteAsProject.machineSummaryLine(), true)
+      await updateReviewListAfterChange(currentNote.title ?? '', false, config, thisNoteAsProject.machineSummaryLine())
 
-      // And finally, remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      // TODO: put the proper config in the following when possible
-      await deleteMetadataMentionInEditor(['@nextReview'])
-
+      // Update list for user
+      await renderProjectLists()
     } else {
       logWarn('finishReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
     }
@@ -891,7 +1003,9 @@ export async function skipReview(): Promise<void> {
     thisNoteAsProject.calcDurations()
     const newMSL = thisNoteAsProject.machineSummaryLine()
     logDebug('skipReview', `- updatedMachineSummaryLine => '${newMSL}'`)
-    updateReviewListAfterChange(currentNote.title ?? '', false, config, newMSL, true)
+    await updateReviewListAfterChange(currentNote.title ?? '', false, config, newMSL)
+    // Update list for user
+    await renderProjectLists()
 
     // Then move to nextReview
     // Read review list to work out what's the next one to review
@@ -918,21 +1032,19 @@ export async function skipReview(): Promise<void> {
 //-------------------------------------------------------------------------------
 /**
  * Update the full-review-list after completing a review or completing/cancelling a whole project.
- * Various options allow what happens next
+ * ~~Various options allow what happens next~~
  * Note: Called by nextReview, skipReview, completeProject, cancelProject, pauseProject.
  * @author @jgclark
  * @param {string} title of note that has been reviewed
  * @param {boolean} simplyDelete the project line?
  * @param {any} config
  * @param {string?} updatedMachineSummaryLine to write to full-review-list (optional)
- * @param {boolean?} updateDisplay? (default true)
  */
 export async function updateReviewListAfterChange(
   reviewedTitle: string,
   simplyDelete: boolean,
   configIn: any,
   updatedMachineSummaryLine: string = '',
-  updateDisplay: boolean = true,
 ): Promise<void> {
   try {
     if (reviewedTitle === '') {
@@ -977,8 +1089,8 @@ export async function updateReviewListAfterChange(
 
     // update (or delete) the note's summary in the full-review-list
     if (isNaN(thisLineNum)) {
-      logInfo('updateReviewListAfterChange', `- Can't find '${reviewedTitle}' to update in full-review-list.`)
-      // await makeFullReviewList(false) // TEST: does this make better sense now?
+      logWarn('updateReviewListAfterChange', `- Can't find '${reviewedTitle}' to update in full-review-list, so will regenerate whole list.`)
+      await makeFullReviewList(false)
       return
     } else {
       if (simplyDelete) {
@@ -997,10 +1109,6 @@ export async function updateReviewListAfterChange(
       }
     }
 
-    // Now we can refresh the rendered views as well
-    if (updateDisplay) {
-      await renderProjectLists()
-    }
   } catch (error) {
     logError('updateReviewListAfterChange', error.message)
   }
@@ -1073,7 +1181,7 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
     const thisNote = Editor
     // TEST: line above change from Editor.note to Editor to try and solve problem on next line. Test me!
     // TODO: To try to work around a problem with updateParagraph() seeming not to flush before the following call, will not try creating the Project equivalent of the note straight away.
-    const thisNoteAsProject = new Project(Editor)
+    // const thisNoteAsProject = new Project(Editor)
 
     const metadataLineIndex: number = getOrMakeMetadataLine(Editor, `<placeholder metadata line>`)
     // Re-read paragraphs, as they might have changed
@@ -1083,7 +1191,7 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
     }
 
     const origLine: string = metadataPara.content
-    let newLine = origLine
+    let updatedLine = origLine
 
     logDebug('updateMetadataInEditor', `starting for '${displayTitle(Editor)}' with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
 
@@ -1092,10 +1200,10 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
       const mentionName = item.split('(', 1)[0]
       // Start by removing all instances of this @mention
       const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
-      newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
+      updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
       // Then append this @mention
-      newLine += ' ' + item
-      logDebug('updateMetadataInEditor', `-> ${newLine}`)
+      updatedLine += ' ' + item
+      logDebug('updateMetadataInEditor', `-> ${updatedLine}`)
     }
 
     // // remove all '@reviewed()' on metadata line
@@ -1107,7 +1215,7 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
     // thisNoteAsProject.calcDurations()
 
     // send update to Editor (removing multiple and trailing spaces)
-    metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
+    metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
     Editor.updateParagraph(metadataPara)
     logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
 
@@ -1171,115 +1279,3 @@ export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<s
   }
 }
 
-//---------------------------------------------------------------------
-// Moved following from projectLists.js to avoid circular dependency
-//---------------------------------------------------------------------
-
-/**
- * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
- * Now includes support for calling from x-callback, using simple "a=b;x=y" version of settings and values that will override ones in the user's settings.
- * @param {string | null} arguments list of form "a=b;x=y"
- */
-export async function makeProjectLists(argsIn?: string | null = null): Promise<void> {
-  try {
-    let args = argsIn?.toString() || ''
-    logDebug(pluginJson, `makeProjectLists: starting with args <${args}>`)
-    let config = await getReviewSettings()
-    if (args !== '') {
-      config = overrideSettingsWithStringArgs(config, args)
-      // clo(config, 'Review settings updated with args:')
-    } else {
-      // clo(config, 'Review settings with no args:')
-    }
-
-    // Re-calculate the full-review-list
-    await makeFullReviewList(true)
-
-    // Call the relevant function with the updated config
-    if (config.outputStyle.match(/rich/i)) {
-      await renderProjectListsHTML()
-    }
-    if (config.outputStyle.match(/markdown/i)) {
-      await renderProjectListsMarkdown(config)
-    }
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
-
-/**
- * Render the project list, according to the chosen output style.
- * Note: this does not re-calculate the data.
- * @author @jgclark
- */
-export async function renderProjectLists(): Promise<void> {
-  try {
-    logDebug('renderProjectLists', `Started`)
-    const config = await getReviewSettings()
-
-    // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
-    if (config.outputStyle.match(/markdown/i)) {
-      await renderProjectListsMarkdown(config)
-    }
-    if (config.outputStyle.match(/rich/i)) {
-      await renderProjectListsHTML()
-    }
-  } catch (error) {
-    logError('renderProjectLists', error.message)
-  }
-}
-
-/**
- * Re-display the project list from saved HTML file, if available, or if not then render the project list.
- * Note: this does not re-calculate the data.
- * @author @jgclark
- */
-export async function redisplayProjectListHTML(): Promise<void> {
-  try {
-    // Currently only 1 HTML window is allowed
-    // logWindowsList()
-    // Re-load the saved HTML if it's available.
-    const config = await getReviewSettings()
-    // Try loading HTML saved copy
-    const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
-    if (savedHTML !== '') {
-      // older method
-      await showHTML(
-        windowTitle,
-        '', // no extra header tags
-        savedHTML,
-        '', // get general CSS set automatically
-        '', // CSS in HTML
-        false, // = not modal window
-        '',
-        '',
-        '',
-        812, // width
-        1200, // max height
-      )
-      // TODO: towards newer method
-      // const winOptions = {
-      //   // x: x,
-      //   // y: y,
-      //   // width: width,
-      //   // height: height,
-      //   shouldFocus: false
-      // }
-      // clo(winOptions, 'winOptions')
-      // const win = await HTMLView.showWindowWithOptions(savedHTML, windowTitle, winOptions)
-
-      // Set customID for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
-      // TODO(Eduard): has said he will roll this into .showWindow()
-      if (NotePlan.environment.buildVersion < 976) {
-        setHTMLWindowID(customWinId ?? windowTitle)
-      }
-      // clo(win, 'created window')
-      logDebug('redisplayProjectListHTML', `Displayed HTML from saved file ${filenameHTMLCopy}`)
-      return
-    } else {
-      logWarn('redisplayProjectListHTML', `Couldn't read HTML from saved file ${filenameHTMLCopy}, so will render afresh`)
-    }
-  } catch (error) {
-    logError('redisplayProjectListHTML', error.message)
-  }
-}

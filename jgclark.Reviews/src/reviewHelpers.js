@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 4.5.2023 for v0.10.0, @jgclark
+// Last updated 10.5.2023 for v0.11.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -56,6 +56,8 @@ export type ReviewConfig = {
   reviewIntervalMentionStr: string,
   reviewedMentionStr: string,
   nextReviewMentionStr: string,
+  width: number,
+  height: number,
   _logLevel: string
 }
 
@@ -181,6 +183,7 @@ function mostRecentProgressLine(progressLines: Array<string>): string {
 export class Project {
   // Types for the class instance properties
   note: TNote
+  filename: string
   metadataPara: TParagraph
   noteType: string // #project, #area, etc.
   title: string
@@ -218,6 +221,7 @@ export class Project {
       }
       this.note = note
       this.title = note.title
+      this.filename = note.filename
       this.folder = getFolderFromFilename(note.filename)
       const paras = note.paragraphs
       const metadataLineIndex = getOrMakeMetadataLine(note)
@@ -271,24 +275,19 @@ export class Project {
       // calculate the durations from these dates
       this.calcDurations()
 
-      // count tasks
+      // count tasks (includes both tasks and checklists)
       this.openTasks = paras.filter(isOpen).length
       this.completedTasks = paras.filter(isDone).length
       this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length
       this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length
 
-      if (this.folder.startsWith('TEST') || this.title.includes('Project') || this.title.includes('Test')) {
-        logDebug('Project constructor', `- for '${this.title}'`)
+      if (this.title.includes('(TEST)')) {
+        logDebug('Project constructor', `- for '${this.title}' (${this.filename})`)
         logDebug('Project constructor', `  - metadataLine = ${paras[metadataLineIndex].content}`)
-        logDebug('Project constructor', `  - noteType: ${this.noteType}`)
         logDebug('Project constructor', `  - mentions: ${String(mentions)}`)
         // logDebug('Project constructor', `  - altMentions: ${String(altMentions)}`)
         logDebug('Project constructor', `  - hashtags: ${String(hashtags)}`)
         // logDebug('Project constructor', `  - altHashtags: ${String(altHashtags)}`)
-        logDebug('Project constructor', `  - reviewedDate: ${this.reviewedDate ? String(this.reviewedDate) : '-'}`)
-        logDebug('Project constructor', `  - reviewInterval: ${this.reviewInterval ?? '-'}`)
-        logDebug('Project constructor', `  - nextReviewDate: ${this.nextReviewDate ? String(this.nextReviewDate) : '-'}`)
-        logDebug('Project constructor', `  - open: ${String(this.openTasks)} / completed: ${String(this.completedTasks)} / waiting: ${String(this.waitingTasks)} / future: ${String(this.futureTasks)}`)
       }
 
       // Track percentComplete: either through calculation from counts ...
@@ -448,10 +447,7 @@ export class Project {
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
       // Now need to update the Cache
-      const updatedNote = DataStore.updateCache(Editor.note, true)
-      logDebug('completeProject', `- called updateCache(Editor.note, true) -> ???`)
-      // and now reload the note into this Project instance
-      // TODO: somehow!
+      DataStore.updateCache(Editor.note, true)
 
       const newMSL = this.machineSummaryLine()
       logDebug('completeProject', `- returning mSL '${newMSL}'`)
@@ -467,9 +463,9 @@ export class Project {
    * Cancel a Project/Area note by updating the metadata and saving it:
    * - adding @cancelled(<today's date>)
    * @author @jgclark
-   * @returns {boolean} success or not
+   * @returns {string} new machineSummaryLine or empty on failure
    */
-  cancelProject(): boolean {
+  cancelProject(): string {
     try {
       // update the metadata fields
       // this.isActive = false
@@ -484,21 +480,20 @@ export class Project {
       const newMetadataLine = this.generateMetadataLine()
       logDebug('cancelProject', `- metadata now '${newMetadataLine}'`)
 
-      // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
+      // send update to Editor
+      // TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // Now need to update the Cache
-      const updatedNote = DataStore.updateCache(Editor.note, true)
-      logDebug('cancelProject', `- called updateCache(Editor.note, true) -> ???`)
-      // and now reload the note into this Project instance
-      // TODO: somehow!
+      // Need to update the Cache
+      DataStore.updateCache(Editor.note, true)
 
-      logDebug('cancelProject', `- mSL should -> ${this.machineSummaryLine()}`)
-      return true
+      const newMSL = this.machineSummaryLine()
+      logDebug('cancelProject', `- returning mSL '${newMSL}'`)
+      return newMSL
     }
     catch (error) {
       logError(pluginJson, `Error cancelling project for ${this.title}: ${error.message}`)
-      return false
+      return ''
     }
   }
 
@@ -520,12 +515,12 @@ export class Project {
       const newMetadataLine = this.generateMetadataLine()
       logDebug('togglePauseProject', `- metadata now '${newMetadataLine}'`)
 
-      // send update to Editor TODO: Will need updating when supporting frontmatter for metadata
+      // send update to Editor
+      // TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
       // Now need to update the Cache: TODO: still?
-      // const updatedNote = DataStore.updateCache(Editor.note, true)
-      // logDebug('togglePauseProject', `- called updateCache(Editor.note, true) -> ???`)
+      DataStore.updateCache(Editor.note, true)
       const newMSL = this.machineSummaryLine()
       logDebug('togglePauseProject', `- returning mSL '${newMSL}'`)
       return newMSL
@@ -585,7 +580,7 @@ export class Project {
 
   /**
    * Returns title of note as folder name + link, also showing complete or cancelled where relevant.
-   * Now also supports 'Markdown' or 'HTML' styling.
+   * Supports 'Markdown' or 'HTML' styling.
    * @param {string} style 'Markdown' or 'HTML'
    * @param {boolean} includeFolderName whether to include folder name at the start of the entry.
    * @return {string} - title as wikilink
@@ -597,9 +592,12 @@ export class Project {
     switch (style) {
       case 'Rich':
         // Method 1: make [[notelinks]] via x-callbacks
-        const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(this.title, "title", "", "splitView", false)
-        const noteTitleWithOpenAction = `<span class="noteTitle"><a href=${noteOpenActionURL}"><i class="fa-regular fa-file-lines"></i> ${folderNamePart}${titlePart}</a></span>`
-        // TODO: change to use internal links: see method in Dashboard.
+        // Method 1a: x-callback using note title
+        // const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(this.title, "title", "", "splitView", false)
+        // Method 1b: x-callback using filename
+        const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(this.filename, "filename", "", null, false)
+        const noteTitleWithOpenAction = `<span class="noteTitle"><a href="${noteOpenActionURL}"><i class="fa-regular fa-file-lines"></i> ${folderNamePart}${titlePart}</a></span>`
+        // TODO: change to use internal links: see method in Dashboard
         // see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
         // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
 
@@ -662,15 +660,15 @@ export class Project {
           output += '<td>' + this.addFAIcon("fa-solid fa-circle-pause", "#888888") + '</td>'
           output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
-        else if (isNaN(this.percentComplete)) { // NaN
-          // output += '<td>' + this.addSVGPercentRing(100, 'grey', '0') + '</td>'
-          output += '<td>' + this.addFAIcon("fa-solid fa-circle-question", "#888888") + '</td>'
-          output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}`
-        }
-        else if (this.percentComplete === 0) {
+        else if (this.percentComplete === 0 || isNaN(this.percentComplete)) {
           output += '<td>' + this.addSVGPercentRing(100, '#FF000088', '0') + '</td>'
           output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
+        // else if (isNaN(this.percentComplete)) { // NaN
+        //   // output += '<td>' + this.addSVGPercentRing(100, 'grey', '0') + '</td>'
+        //   output += '<td>' + this.addFAIcon("fa-solid fa-circle-question", "#888888") + '</td>'
+        //   output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}`
+        // }
         else {
           output += '<td>' + this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete)) + '</td>'
           output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}`

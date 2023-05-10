@@ -10,7 +10,7 @@
 // Import Helper functions
 import pluginJson from "../plugin.json"
 import {
-  renderProjectListsHTML,
+  renderProjectLists,
   updateReviewListAfterChange
 } from './reviews'
 import {
@@ -61,11 +61,17 @@ export async function completeProject(): Promise<void> {
 
     // If this has worked, then ...
     if (newMSL) {
+      // update cache for this Note, including .hashtags and .mentions
+      DataStore.updateCache(note, true)
+      // and we need to re-load the note according to @Eduard
+      await Editor.openNoteByFilename(filename)
+      // logDebug('completeProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
+
       // delete the project line from the full-review-list
       await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
 
-      // re-render the main window
-      await renderProjectListsHTML()
+      // re-render the outputs (but don't focus)
+      await renderProjectLists(false)
 
       // Now add to the Yearly note for this year (if present)
       const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
@@ -110,7 +116,7 @@ export async function completeProject(): Promise<void> {
 export async function cancelProject(): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
-    const { note, filename } = Editor
+    const { note, filename, } = Editor
     if (note == null || note.type === 'Calendar' || Editor.paragraphs.length < 2) {
       logWarn(pluginJson, `Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
       return
@@ -123,15 +129,21 @@ export async function cancelProject(): Promise<void> {
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
-    const res = projectNote.cancelProject()
+    const newMSL = projectNote.cancelProject()
 
     // If this has worked, then ...
-    if (res) {
-      // delete the project line from the full-review-list
-      await updateReviewListAfterChange(note.title ?? '<error>', true, config)
+    if (newMSL) {
+      // update cache for this Note, including .hashtags and .mentions
+      DataStore.updateCache(note, true)
+      // and we need to re-load the note according to EM
+      await Editor.openNoteByFilename(filename)
+      // logDebug('cancelProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
-      // re-render the main window
-      await renderProjectListsHTML()
+      // update the full-review-list, using the machineSummaryLine
+      await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+
+      // re-render the outputs (but don't focus)
+      await renderProjectLists(false)
 
       // Now add to the Yearly note for this year (if present)
       const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
@@ -154,6 +166,8 @@ export async function cancelProject(): Promise<void> {
       }
 
       logInfo('cancelProject', 'Project cancelled, review list updated, and window updated.')
+    } else {
+      logError('cancelProject', 'Error cancelling project.')
     }
   }
   catch (error) {
@@ -187,13 +201,21 @@ export async function togglePauseProject(): Promise<void> {
 
     // If this has worked, then ...
     if (newMSL !== '') {
+      // update cache for this Note, including .hashtags and .mentions
+      DataStore.updateCache(note, true)
+      // and we need to re-load the note according to EM
+      await Editor.openNoteByFilename(filename)
+      // logDebug('pauseProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
+
       // update the full-review-list, using the machineSummaryLine
       // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
       await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
 
-      // re-render the main window
-      await renderProjectListsHTML()
+      // re-render the outputs (but don't focus)
+      await renderProjectLists(false)
       logInfo('togglePauseProject', 'Project pause now toggled, review list updated, and window updated.')
+    } else {
+      logError('togglePauseProject', 'Error toggling pause.')
     }
   }
   catch (error) {

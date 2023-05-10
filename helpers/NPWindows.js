@@ -50,7 +50,7 @@ export function logWindowsList(): void {
     outputLines.unshift(`${outputLines.length} Windows:`)
     logInfo('logWindowsList', outputLines.join('\n'))
   } else {
-    logInfo('logWindowsList', `(Cannot list windows as not running v3.8.1 or later)`)
+    logInfo('logWindowsList', `(Cannot list windows: needs NP v3.8.1+)`)
   }
 }
 
@@ -60,7 +60,7 @@ export function logWindowsList(): void {
  * @author @jgclark
  * @param {string} customId
  */
-export function setHTMLWindowID(customId: string): void {
+export function setHTMLWindowId(customId: string): void {
   if (NotePlan.environment.buildVersion >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
     const thisWindow = allHTMLWindows[0]
@@ -68,10 +68,10 @@ export function setHTMLWindowID(customId: string): void {
       thisWindow.customId = customId
       logWindowsList()
     } else {
-      logError('setHTMLWindowID', `Couldn't set customId '${customId}' for HTML window`)
+      logError('setHTMLWindowId', `Couldn't set customId '${customId}' for HTML window`)
     }
   } else {
-    logInfo('setHTMLWindowID', `(Cannot set window title as not running v3.8.1 or later)`)
+    logInfo('setHTMLWindowId', `(Cannot set window title: needs NP v3.8.1+)`)
   }
 }
 
@@ -87,14 +87,14 @@ export function isHTMLWindowOpen(customId: string): boolean {
     for (const thisWin of allHTMLWindows) {
       if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
         thisWin.customId = customId
-        // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customID}'`)
+        // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)
         return true
       } else {
-        // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customID}'`)
+        // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
       }
     }
   } else {
-    logDebug('isHTMLWindowOpen', `Could not run test as not running v3.8.1 or later`)
+    logDebug('isHTMLWindowOpen', `Could not run: needs NP v3.8.1+`)
   }
   return false
 }
@@ -104,22 +104,22 @@ export function isHTMLWindowOpen(customId: string): boolean {
  * Note: Hopefully in time, this will be removed, when @EduardMe rolls it into an API call
  * @author @jgclark
  * @param {string} openNoteFilename, i.e. note that is open in an Editor that we're trying to set customID for
- * @param {string} customID
+ * @param {string} customId
  */
-export function setEditorWindowID(openNoteFilename: string, customID: string): void {
+export function setEditorWindowId(openNoteFilename: string, customId: string): void {
   if (NotePlan.environment.buildVersion >= 973) {
     const allEditorWindows = NotePlan.editors
     for (const thisEditorWindow of allEditorWindows) {
       if (thisEditorWindow.filename === openNoteFilename) {
-        thisEditorWindow.customId = customID
-        logDebug('setEditorWindowID', `Set customID '${customID}' for filename ${openNoteFilename}`)
+        thisEditorWindow.customId = customId
+        logDebug('setEditorWindowId', `Set customId '${customId}' for filename ${openNoteFilename}`)
         // logWindowsList()
         return
       }
     }
-    logError('setEditorWindowID', `Couldn't match '${openNoteFilename}' to an Editor window, so can't set customID '${customID}' for Editor`)
+    logError('setEditorWindowId', `Couldn't match '${openNoteFilename}' to an Editor window, so can't set customId '${customId}' for Editor`)
   } else {
-    logInfo('setEditorWindowID', `Cannot set window title as not running v3.8.1 or later`)
+    logInfo('setEditorWindowId', `Cannot set window title: needs NP v3.8.1+`)
   }
 }
 
