@@ -19,6 +19,7 @@ export {
   startReviews,
   nextReview,
   finishReview,
+  skipReview,
   makeProjectLists,
   redisplayProjectListHTML,
   renderProjectLists,
@@ -31,6 +32,9 @@ export {
 export {
   generateCSSFromTheme
 } from '@helpers/HTMLView'
+export {
+  setHTMLWinHeight,
+} from '@helpers/NPWindows'
 
 // An earlier version had some functions in projectLists.js, but they had to be moved because of dependency issues.
 
@@ -67,10 +71,9 @@ export async function testUpdated(): Promise<void> {
 }
 
 export async function onSettingsUpdated(): Promise<void> {
-  // Placeholder now
   // Update the full - review - list in case there's a change in a relevant setting
-  // await makeFullReviewList(false)
-  // await renderProjectLists()
+  await makeFullReviewList(false)
+  await renderProjectLists()
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {

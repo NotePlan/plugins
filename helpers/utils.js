@@ -3,7 +3,7 @@
 import { RE_IS_SCHEDULED } from './dateTime'
 
 /**
- * Test whether a task is open or not (type: 'open') TODO(@dwertheimer): or 'checklist' surely?
+ * Test whether a task is open or not (type: 'open' or 'checklist')
  * @param {Paragraph} t - the paragraph/task to check
  * @returns {boolean} true if open, false if any other status/type
  */

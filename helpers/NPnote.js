@@ -384,7 +384,7 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
  * @param {string} tag - tag name to look for
  * @param {string?} folder - optional folder to limit to
  * @param {boolean?} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
- * @param {string?} tagToExclude - optional tag that if found in the note, excludes the note
+ * @param {Array<string>?} tagsToExclude - optional list of tags that if found in the note, excludes the note
  * @param {boolean?} caseInsensitiveMatch - whether to ignore case when matching (default true)
  * @param {Array<TNote>?} notesToSearchIn - optional array of notes to search in
  * @return {Array<TNote>}
@@ -392,14 +392,14 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
 export function findNotesMatchingHashtag(
   tag: string,
   folder: ?string,
-  includeSubfolders: ?boolean = false,
-  tagToExclude: string = '',
+  includeSubfolders: boolean = false,
+  tagsToExclude: Array<string> = [],
   caseInsensitiveMatch: boolean = true,
   notesToSearchIn?: Array<TNote>,
 ): Array<TNote> {
   // logDebug(
   //   `NPNote::findNotesMatchingHashtag`,
-  //   `tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagToExclude:${tagToExclude} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
+  //   `tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
   // )
   // Check for special conditions first
   if (tag === '') {
@@ -417,10 +417,10 @@ export function findNotesMatchingHashtag(
       // FIXME: not working for root-level notes
       projectNotesInFolder = notesToSearch.slice().filter((n) => n.filename.startsWith(`${folder}/`))
     } else {
-      const t = new Date()
+      // const t = new Date()
       // use match as filter to exclude subfolders
       projectNotesInFolder = notesToSearch.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
-      // logDebug(pluginJson, `findNotesMatchingHashtag DataStore.projectNotes.filtering took: ${timer(t)}`)
+      // logDebug('findNotesMatchingHashtag', `>> DataStore.projectNotes.filtering took: ${timer(t)}`)
     }
   } else {
     // no folder specified, so grab all notes from DataStore
@@ -431,21 +431,22 @@ export function findNotesMatchingHashtag(
   let projectNotesWithTag: Array<TNote>
   if (caseInsensitiveMatch) {
     projectNotesWithTag = projectNotesInFolder.filter((n) => {
-      logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
+      // logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
       // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
       return caseInsensitiveIncludes(tag, n.hashtags)
     })
   } else {
     projectNotesWithTag = projectNotesInFolder.filter((n) => {
-      logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
+      // logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
       return n.hashtags.includes(tag)
     })
   }
   logDebug('NPnote/findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
 
   // If we care about the excluded tag, then further filter out notes where it is found
-  if (tagToExclude !== '') {
-    const projectNotesWithTagWithoutExclusion = projectNotesWithTag.filter((n) => !n.hashtags.includes(tagToExclude))
+  if (tagsToExclude.length > 0) {
+    const doesNotMatchTagsToExclude = (e) => !tagsToExclude.includes(e)
+    const projectNotesWithTagWithoutExclusion = projectNotesWithTag.filter((n) => n.hashtags.some(doesNotMatchTagsToExclude))
     const removedItems = projectNotesWithTag.length - projectNotesWithTagWithoutExclusion.length
     if (removedItems > 0) {
       // logDebug('NPnote/findNotesMatchingHashtag', `- but removed ${removedItems} excluded notes:`)

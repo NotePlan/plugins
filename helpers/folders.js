@@ -19,7 +19,6 @@ export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialF
   try {
     // Get all folders as array of strings (other than @Trash).
     const fullFolderList = DataStore.folders
-    // let reducedList: Array<string> = fullFolderList.slice() // to avoid read-only flow error
     // logDebug(
     //   'folders / filteredFolderList',
     //   `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions [${inclusions.toString()}] exclusions [${exclusions.toString()}]`,
@@ -38,17 +37,25 @@ export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialF
       reducedList.push(f.endsWith('/') ? f : `${f}/`)
     }
 
-    // filter reducedList to only folders that (string) contains an item in the inclusions list
-    reducedList = inclusions.length ? reducedList.filter((folder) => inclusions.some((ff) => folder.includes(ff))) : reducedList
-    // logDebug(`after inclusions: ${reducedList.length} folders: `, `${reducedList.toString()}\n`)
+    // filter reducedList to only folders that (string) matches an item in the inclusions list
+    reducedList = inclusions.length > 0
+      ? reducedList.filter((folder) => inclusions.some((ff) => folder.includes(ff)))
+      : reducedList
+    logDebug(`after inclusions: ${reducedList.length} folders: `, `${reducedList.toString()}\n`)
 
     // filter reducedList to only folders that don't start with an item in the exclusionsTerminatedWithSlash list
-    reducedList = exclusionsTerminatedWithSlash.length ? reducedList.filter((folder) => !exclusionsTerminatedWithSlash.some((ee) => folder.startsWith(ee))) : reducedList
-    // logDebug(`after exclusions: ${reducedList.length} folders: `, `${reducedList.toString()}\n`)
+    reducedList = exclusions.length > 0
+      ? reducedList.filter((folder) => !exclusions.some((ff) => folder.includes(ff)))
+      : reducedList
+    // reducedList = exclusionsTerminatedWithSlash.length > 0
+    // ? reducedList.filter((folder) => !exclusionsTerminatedWithSlash.some((ee) => folder.startsWith(ee)))
+    // : reducedList
+    logDebug(`after exclusions: ${reducedList.length} folders: `, `${reducedList.toString()}\n`)
 
     // filter reducedList to only folders that don't start with the character '@' (special folders)
-    reducedList = excludeSpecialFolders ? reducedList.filter((folder) => !folder.startsWith('@')) : reducedList
-    // logDebug('after @', reducedList.toString())
+    reducedList = excludeSpecialFolders
+      ? reducedList.filter((folder) => !folder.startsWith('@'))
+      : reducedList
 
     // logDebug('folders / filteredFolderList', `-> filteredList: ${reducedList.length} items: [${reducedList.toString()}]`)
     // return the array of folders, but if the last character is a slash, remove it

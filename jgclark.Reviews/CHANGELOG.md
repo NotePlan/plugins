@@ -1,10 +1,21 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 
-<!--
-- ??? Fixed the race condition on (un)pausing a project
-- ??? ability to pause/unpause a project, by calling new **/pause project toggle** command or adding/removing `#paused` to a project's metadata. When paused this stops the note from being included in reviews, but keeps it visible in the project lists.
--->
+## [0.11.0] - 2023-05-10
+### Added
+- New "skip review" command. This adds a `@nextReview(date)` of your choosing to the current project note, that overrides the normal review interval for it, and jumps to the next project to review. (for @dbludeau, #417)
+- New "How to show completed/cancelled projects?" setting, with options 'display at end', 'display' or 'hide' (for @dwertheimer).
+### Changed
+- the 'Folders to Ignore' setting now matches anywhere in the folder name (for @dwertheimer)
+- Switch note links to using x-callback based on filename, not note title, which avoids problems with duplicate note titles (thanks to @dwertheimer, #447)
+- Lots of code tidying, with some further tune ups, preparing for future features.
+### Fixes
+- hopefully finally found the way to make the displayed lists update properly after most review or project actions 🥳
+
+## [0.10.2] - 2023-05-06
+### Changed
+- further speed up when calculating set of notes to show (thanks to @dwertheimer)
+
 ## [0.10.1] - 2023-05-05
 ### Changed
 - the 'Folders to Include' setting now matches anywhere in the folder name (for @dwertheimer)
@@ -52,7 +63,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 ## [0.9.0] - 2023-02-23
 ### Added
-- to speed up reviewing projects when you have the 'Rich' Project List view open, there's now a row of buttons above the table that trigger the following commands: **/finish project review**, **/next project review**, **/complete project**, **/cancel project**, **/pause project toggle**. They work on whatever is the project note that's in NotePlan's main editor window (suggested by @John1).
+- to speed up reviewing projects when you have the 'Rich' Project List view open, there's now a row of buttons above the table that trigger the following commands: **finish project review**, **next project review**, **complete project**, **cancel project**, **pause project toggle**. They work on whatever is the project note that's in NotePlan's main editor window (suggested by @John1).
 - the Project list view(s) now automatically update after finishing a review, or completing or cancelling a project.
 - can now show more than one review #type in the HTML view.
 

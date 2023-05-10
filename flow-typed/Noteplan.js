@@ -351,7 +351,7 @@ insertTextAtCharacterIndex(text: string, index: number): void;
  */
 customId: string;
 /**
- * Type of window where the editor is embedded in. 
+ * Type of window where the editor is embedded in.
  * Possible values: main|split|floating|unsupported
  * It's unsupported on iOS at the moment.
  * Note: Available from NotePlan v3.8.1 build 973
@@ -370,14 +370,14 @@ focus(): void;
 close(): void;
 /**
  * Set / get the position and size of the window that contains the editor. Returns an object with x, y, width, height values.
- * Note: for split windows, or any others in the 'main' window, this returns the position and size of the whole window, including any sidebars that are showing.
- * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect. 
+ * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
  * The position of the window might not be very intuitive, because the coordinate system of the screen works differently (starts at the bottom left for example). Recommended is to adjust the size and position of the window relatively to it's values or other windows.
  * Example:
  *   const rect = Editor.windowRect
  *   rect.height -= 50
  *   Editor.windowRect = rect
  *
+ * Note: for split windows, or any others in the 'main' window, this returns the position and size of the whole window, including any sidebars that are showing.
  * Note: Available with v3.9.1 build 1020
  */
 windowRect: Rect;
@@ -476,6 +476,7 @@ static + filters: $ReadOnlyArray < string >;
  *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line
  * Others can be set by plugins.
  * Note: these keys and values do not sync across a user's devices; they are only local.
+ * The keys are case-sensitive (it uses the Apple UserDefaults mechanism).
  */
 static + preference: (key: string) => mixed;
   /**
@@ -598,7 +599,7 @@ static + preference: (key: string) => mixed;
    * Use "/" for the root folder.
    * It will write the given title as "# title" into the new file.
    * Returns the final filename; if the there is a duplicate, it will add a number.
-   * Note: @jgclark finds that if 'folder' has different capitalisation than an existing folder, NP gets confused, in a way that reset caches doesn't solve. It needs a restart. 
+   * Note: @jgclark finds that if 'folder' has different capitalisation than an existing folder, NP gets confused, in a way that reset caches doesn't solve. It needs a restart.
    */
   static newNote(noteTitle: string, folder: string): ?string;
   /**
@@ -1981,7 +1982,7 @@ declare class HTMLView {
    */
   static showWindow(html: string, title: string, width?: number, height?: number, shouldFocus?: boolean): Window;
   /**
-  * Open a non-modal window above the main window with the given html code and window title. 
+  * Open a non-modal window above the main window with the given html code and window title.
   * It returns a promise with the created window object.
   * Optionally, supply an object as the 3rd parameter to set window options: { width, height, x, y, shouldFocus }
   * By default, it will focus and bring to front the window on first launch.
@@ -1990,10 +1991,10 @@ declare class HTMLView {
   * Note: Available from v3.9.1 (build 1020)
   * @param {string} HTML to show
   * @param {string} title for HTML window
-  * @param {Object} options
-  * @return {Window} promise to window
+  * @param {Object} options { x: integer, y: integer, width: integer, height: integer, shouldFocus: boolean }
+  * @returns {Window} promise to window
   */
-  static showWindowWithOptions(html: string, title: string, options: Object): Window;
+  static showWindowWithOptions(html: string, title: string, options: Object): HTMLView;
   /**
    * Get a unique ID for the window to make it easier to identify it later
    * Note: Available from NotePlan v3.8.1 build 973
@@ -2008,7 +2009,7 @@ declare class HTMLView {
  */
 customId: string;
 /**
- * Get type of window where the window is embedded in. 
+ * Get type of window where the window is embedded in.
  * Possible values: main|split|floating|unsupported
  * It's unsupported on iOS at the moment.
  * Note: Available from NotePlan v3.8.1 build 973
@@ -2035,7 +2036,7 @@ close(): void;
   static runJavaScript(code: string): Promise | void;
 /**
  * Set / get the position and size of an HTMLView window. Returns an object with x, y, width, height values.
- * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect. 
+ * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
  * The position of the window might not be very intuitive, because the coordinate system of the screen works differently (starts at the bottom left for example). Recommended is to adjust the size and position of the window relatively to it's values or other windows.
  * Example:
  *   const rect = HTMLView.windowRect

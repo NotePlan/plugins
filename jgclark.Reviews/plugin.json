@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.10.2",
-  "plugin.lastUpdateInfo": "0.11.0: introduce optional @nextReview() date, and skip next review function.\n0.10.2: further speed improvements.\n0.10.1: bugfix and more flexible 'Folders to Include' setting.\n0.10.0: new setting 'Folders to Include' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.",
+  "plugin.version": "0.11.0",
+  "plugin.lastUpdateInfo": "0.11.0: new 'skip project review' command, and its optional @nextReview() date. New 'How to show completed/cancelled projects?' setting.\n0.10.1: bugfix and more flexible 'Folders to Include' setting.\n0.10.0: new setting 'Folders to Include' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.",
   "plugin.requiredFiles": [],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -60,6 +60,15 @@
       "jsFunction": "nextReview"
     },
     {
+      "name": "skip project review",
+      "alias": [
+        "gtd",
+        "review"
+      ],
+      "description": "skip this review, add a @nextReview() date, and jump to next project to review",
+      "jsFunction": "skipReview"
+    },
+    {
       "name": "pause project toggle",
       "alias": [
         "gtd",
@@ -108,6 +117,11 @@
       "name": "test:renderProjectLists",
       "description": "Render project lists (without recalc)",
       "jsFunction": "renderProjectLists"
+    },
+    {
+      "name": "test:setWindowHeight",
+      "description": "set height of HTML Window",
+      "jsFunction": "setHTMLWinHeight"
     }
   ],
   "plugin.inactiveCommands": [
@@ -160,7 +174,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Review Plugin settings"
+      "title": "Project + Reviews main settings"
     },
     {
       "key": "outputStyle",
@@ -199,13 +213,15 @@
       "title": "Folders to use in reviews",
       "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nIf empty, all folders will be processed (apart from the special @Trash, @Templates and @Archive foldeers which are always excluded.)",
       "type": "[string]",
-      "default": [],
+      "default": [
+        "Projects"
+      ],
       "required": false
     },
     {
       "key": "foldersToIgnore",
       "title": "Folders to ignore in reviews",
-      "description": "Specify folders to ignore (which includes any of their sub-folders too) as a comma-separated list. Can be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
+      "description": "Specify folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is also done anywhere in the folder name. Can be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
       "type": "[string]",
       "default": [
         "Reviews",
@@ -224,23 +240,7 @@
     },
     {
       "type": "heading",
-      "title": "Settings for '/project lists' command"
-    },
-    {
-      "key": "displayDates",
-      "title": "Display project dates?",
-      "description": "Whether to display the project's review and due dates (where set)",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
-      "key": "displayProgress",
-      "title": "Display project's latest progress?",
-      "description": "Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.",
-      "type": "bool",
-      "default": true,
-      "required": true
+      "title": "Display settings for 'project lists' command"
     },
     {
       "key": "displayOrder",
@@ -264,6 +264,35 @@
       "required": true
     },
     {
+      "key": "displayFinished",
+      "title": "How to show completed/cancelled projects?",
+      "description": "If you do not want to see completed/cancelled projects in your Rich dashboard, change this setting to something other than Displayed.",
+      "type": "string",
+      "default": "display at end",
+      "required": true,
+      "choices": [
+        "display at end",
+        "display",
+        "hide"
+      ]
+    },
+    {
+      "key": "displayDates",
+      "title": "Display project dates?",
+      "description": "Whether to display the project's review and due dates (where set)",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "displayProgress",
+      "title": "Display project's latest progress?",
+      "description": "Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
       "key": "hideTopLevelFolder",
       "title": "Hide top-level folder in output?",
       "description": "If 'Display projects grouped by folder?' above is set, this hides all but the lowest-level subfolder name in output.",
@@ -272,13 +301,29 @@
       "required": true
     },
     {
+      "key": "width",
+      "title": "Window width",
+      "description": "Width of the Review List window (pixels)",
+      "type": "hidden",
+      "default": 800,
+      "required": true
+    },
+    {
+      "key": "height",
+      "title": "Window height",
+      "description": "Height of the Review List window (pixels)",
+      "type": "hidden",
+      "default": 1200,
+      "required": true
+    },
+    {
       "type": "heading",
-      "title": "Setting for /completeProject and /cancelProject"
+      "title": "Settings for 'completeProject' and 'cancelProject' commands"
     },
     {
       "key": "finishedListHeading",
       "title": "Finished List Heading",
-      "description": "Heading of list of completed or cancelled projects/areas",
+      "description": "Heading of list of completed or cancelled projects/areas in the yearly note",
       "type": "string",
       "default": "Finished Projects/Areas",
       "required": true

@@ -9,8 +9,8 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging,
-  DataStore.folders = ['/', 'CCC Areas', 'CCC Areas/Staff', 'CCC Projects', 'Home Areas', '📋 Templates', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3']
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging,
+  DataStore.folders = ['@Templates', '/', 'CCC Areas', 'CCC Areas/Staff', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3']
 })
 
 afterAll(() => {
@@ -21,41 +21,65 @@ afterAll(() => {
  * Tests for filteredFolderList:
  * Parameters:
  * - {Array<string>} exclusions
- * - {boolean} excludeSpecialFolders?
+ * - {boolean} excludeSpecialFolders? [default true]
+ * - {Array<string>} inclusions? [default empty array]
  */
 describe('helpers/folders', () => {
-  describe('filteredFolderList tests', () => {
-    test('empty exclusions -> should return same list', () => {
+  describe('getFilteredFolderList tests', () => {
+    test('no exclusions; specials false -> should return same list', () => {
       const exclusions = []
-      const folders = Object.keys(f.getFilteredFolderList(exclusions))
+      const folders = Object.keys(f.getFilteredFolderList(exclusions, false))
       expect(folders.length).toBe(9)
     })
-    test('TEST exclusions -> 6 left', () => {
+    test('no exclusions; specials false -> 8 left', () => {
+      const exclusions = []
+      const folders = Object.keys(f.getFilteredFolderList(exclusions, true))
+      expect(folders.length).toBe(8)
+    })
+    test('TEST exclusions -> 5 left', () => {
       const exclusions = ['TEST']
+      const folders = Object.keys(f.getFilteredFolderList(exclusions))
+      expect(folders.length).toBe(5)
+    })
+    test('TEST+CCC Areas exclusions -> 3 left', () => {
+      const exclusions = ['TEST', 'CCC Areas']
+      const folders = Object.keys(f.getFilteredFolderList(exclusions))
+      expect(folders.length).toBe(3)
+    })
+    test('Subfolder exclusion -> 6 left', () => {
+      const exclusions = ['TEST/TEST LEVEL 2']
       const folders = Object.keys(f.getFilteredFolderList(exclusions))
       expect(folders.length).toBe(6)
     })
-    test('TEST+CCC Areas exclusions -> 4 left', () => {
-      const exclusions = ['TEST', 'CCC Areas']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions))
-      expect(folders.length).toBe(4)
-    })
-    test('📋 Templates exclusions -> 8 left', () => {
-      const exclusions = ['📋 Templates']
+    test('Subfolder exclusion not matching -> 8 left', () => {
+      const exclusions = ['TEST/NOT IN LIST']
       const folders = Object.keys(f.getFilteredFolderList(exclusions))
       expect(folders.length).toBe(8)
     })
-    test('Subfolder exclusion -> 7 left', () => {
-      const exclusions = ['TEST/TEST LEVEL 2']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions))
-      expect(folders.length).toBe(7)
+    test('no exclusions; CCC inclusion -> 3 left', () => {
+      const exclusions = []
+      const inclusions = ['CCC']
+      const folders = Object.keys(f.getFilteredFolderList(exclusions, true, inclusions))
+      expect(folders.length).toBe(3)
     })
-    test('Subfolder exclusion not matching -> 9 left', () => {
-      const exclusions = ['TEST/NOT IN LIST']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions))
-      expect(folders.length).toBe(9)
+    test('no exclusions; CCC, LEVEL 2 inclusion -> 5 left', () => {
+      const exclusions = []
+      const inclusions = ['CCC', 'LEVEL 2']
+      const folders = Object.keys(f.getFilteredFolderList(exclusions, true, inclusions))
+      expect(folders.length).toBe(5)
     })
-    // TODO: Ideally add tests for (new) second boolean parameter
+    test("'CCC Projects' exclusion; 'CCC', 'LEVEL 2' inclusion -> 4 left", () => {
+      const exclusions = ['CCC Projects']
+      const inclusions = ['CCC', 'LEVEL 2']
+      const folders = Object.keys(f.getFilteredFolderList(exclusions, true, inclusions))
+      expect(folders.length).toBe(4)
+    })
+    test("'LEVEL 3' exclusion; 'CCC', 'LEVEL 2' inclusion -> 4 left", () => {
+      const exclusions = ['LEVEL 3']
+      const inclusions = ['CCC', 'LEVEL 2']
+      const folders = Object.keys(f.getFilteredFolderList(exclusions, true, inclusions))
+      expect(folders.length).toBe(4)
+    })
   })
 
   describe('getFolderFromFilename tests', () => {

@@ -9,7 +9,10 @@
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import pluginJson from "../plugin.json"
-import { updateReviewListAfterChange } from './reviews'
+import {
+  renderProjectLists,
+  updateReviewListAfterChange
+} from './reviews'
 import {
   getReviewSettings,
   Project,
@@ -54,12 +57,24 @@ export async function completeProject(): Promise<void> {
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
-    const res = projectNote.completeProject()
+    const newMSL = projectNote.completeProject()
 
     // If this has worked, then ...
-    if (res !== '') {
-      const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
+    if (newMSL) {
+      // update cache for this Note, including .hashtags and .mentions
+      DataStore.updateCache(note, true)
+      // and we need to re-load the note according to @Eduard
+      await Editor.openNoteByFilename(filename)
+      // logDebug('completeProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
+
+      // delete the project line from the full-review-list
+      await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+
+      // re-render the outputs (but don't focus)
+      await renderProjectLists(false)
+
       // Now add to the Yearly note for this year (if present)
+      const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
       const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
       if (yearlyNote != null) {
         logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
@@ -68,7 +83,7 @@ export async function completeProject(): Promise<void> {
           'text', // bullet character gets included in the passed in string
           config.finishedListHeading,
           true, // append
-          true  // do create heading if not found already
+          true // do create heading if not found already
         )
       }
 
@@ -76,14 +91,12 @@ export async function completeProject(): Promise<void> {
       if (filename != null) {
         if (await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No']) === 'Yes') {
           const newFilename = DataStore.moveNote(filename, '@Archive')
-          // delete the project line from the full-review-list
-          await updateReviewListAfterChange(note.title ?? '', false, config, res)
-        } else {
-          // update the full-review-list, using the machineSummaryLine
-          // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-          await updateReviewListAfterChange(note.title ?? '', false, config, res)
         }
       }
+
+      logInfo('completeProject', 'Project completed, review list updated, and window updated.')
+    } else {
+      logError('completeProject', 'Error completing project.')
     }
   }
   catch (error) {
@@ -103,7 +116,7 @@ export async function completeProject(): Promise<void> {
 export async function cancelProject(): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
-    const { note, filename } = Editor
+    const { note, filename, } = Editor
     if (note == null || note.type === 'Calendar' || Editor.paragraphs.length < 2) {
       logWarn(pluginJson, `Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
       return
@@ -116,12 +129,24 @@ export async function cancelProject(): Promise<void> {
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
-    const res = projectNote.cancelProject()
+    const newMSL = projectNote.cancelProject()
 
     // If this has worked, then ...
-    if (res) {
-      const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
+    if (newMSL) {
+      // update cache for this Note, including .hashtags and .mentions
+      DataStore.updateCache(note, true)
+      // and we need to re-load the note according to EM
+      await Editor.openNoteByFilename(filename)
+      // logDebug('cancelProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
+
+      // update the full-review-list, using the machineSummaryLine
+      await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+
+      // re-render the outputs (but don't focus)
+      await renderProjectLists(false)
+
       // Now add to the Yearly note for this year (if present)
+      const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
       const yearlyNote = DataStore.calendarNoteByDateString(thisYearStr)
       if (yearlyNote != null) {
         logInfo(pluginJson, `Will add '${lineToAdd}' to note '${yearlyNote.filename}'`)
@@ -138,13 +163,11 @@ export async function cancelProject(): Promise<void> {
       if (filename != null &&
         (await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No'])) === 'Yes') {
         const newFilename = DataStore.moveNote(filename, '@Archive')
-        // delete the project line from the full-review-list
-        await updateReviewListAfterChange(note.title ?? '', true, config)
-      } else {
-        // update the full-review-list, using the machineSummaryLine
-        // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
-        await updateReviewListAfterChange(note.title ?? '', true, config)
       }
+
+      logInfo('cancelProject', 'Project cancelled, review list updated, and window updated.')
+    } else {
+      logError('cancelProject', 'Error cancelling project.')
     }
   }
   catch (error) {
@@ -178,9 +201,21 @@ export async function togglePauseProject(): Promise<void> {
 
     // If this has worked, then ...
     if (newMSL !== '') {
+      // update cache for this Note, including .hashtags and .mentions
+      DataStore.updateCache(note, true)
+      // and we need to re-load the note according to EM
+      await Editor.openNoteByFilename(filename)
+      // logDebug('pauseProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
+
       // update the full-review-list, using the machineSummaryLine
       // Note: doing it this way to attempt to avoid a likely race condition that fails to have the updated version of projectNote available outside this function. Hopefully this tighter-than-ideal linkage could be de-coupled in time.
       await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+
+      // re-render the outputs (but don't focus)
+      await renderProjectLists(false)
+      logInfo('togglePauseProject', 'Project pause now toggled, review list updated, and window updated.')
+    } else {
+      logError('togglePauseProject', 'Error toggling pause.')
     }
   }
   catch (error) {
