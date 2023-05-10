@@ -22,7 +22,7 @@ export async function askToReviewWeeklyTasks(byTask: boolean = false, forDateStr
     const { askToReviewWeeklyTasks } = DataStore.settings
     if (askToReviewWeeklyTasks) {
       // await Editor.openNoteByDate(new Date())
-      const answer = await showMessageYesNo(`Want to review tasks scheduled for this week?`, ['Yes', 'No'], 'Review Weekly Note Tasks', true)
+      const answer = await showMessageYesNo(`Want to review tasks scheduled for the week?`, ['Yes', 'No'], 'Review Weekly Note Tasks', true)
 
       if (answer === 'Yes') {
         logDebug(pluginJson, `askToReviewWeeklyTasks: now launching review of week's tasks; byTask=${String(byTask)}`)
@@ -44,7 +44,8 @@ export async function askToReviewTodaysTasks(byTask?: boolean = false, forDateSt
     const { askToReviewTodaysTasks } = DataStore.settings
     if (askToReviewTodaysTasks) {
       await Editor.openNoteByDate(new Date())
-      const answer = await showMessageYesNo(`Want to review tasks scheduled for today?`, ['Yes', 'No'], 'Review Current Tasks', true)
+      const isToday = forDateString === getTodaysDateHyphenated()
+      const answer = await showMessageYesNo(`Want to review tasks scheduled for ${isToday ? 'today' : forDateString}?`, ['Yes', 'No'], 'Review Current Tasks', true)
       if (answer === 'Yes') {
         logDebug(pluginJson, `askToReviewTodaysTasks: now launching review of today's tasks; byTask=${String(byTask)}`)
         await reviewEditorReferencedTasks(byTask, false, forDateString)
@@ -140,9 +141,9 @@ export async function reviewOverdueTasksByNote(asOfDateString?: string = getToda
     }
     const notesToReview = getNotesAndTasksToReview(options)
     await reviewTasksInNotes(notesToReview, options)
-    await askToReviewWeeklyTasks(false)
-    await askToReviewTodaysTasks(false)
-    await askToReviewForgottenTasks(false)
+    await askToReviewWeeklyTasks(false, asOfDateString)
+    await askToReviewTodaysTasks(false, asOfDateString)
+    await askToReviewForgottenTasks(false, asOfDateString)
     await showMessage(`Review Complete!`, 'OK', 'Task Review', true)
   } catch (error) {
     logError(pluginJson, JSP(error))
