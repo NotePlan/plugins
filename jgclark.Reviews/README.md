@@ -101,6 +101,7 @@ Other settings:
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
 - Display grouped by folder? Whether to group the projects by their folder.
+- How to show completed/cancelled projects?: The options are 'display at end', 'display' or 'hide'.
 - Hide top level folder? Whether to suppress higher-level folder names in project list headings.
 - Display archived projects? Whether to display project notes marked as `#archive`.
 

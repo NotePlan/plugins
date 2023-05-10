@@ -44,6 +44,7 @@ export type ReviewConfig = {
   displayProgress: boolean,
   displayOrder: string,
   displayGroupedByFolder: boolean,
+  displayFinished: string,
   hideTopLevelFolder: boolean,
   displayArchivedProjects: boolean,
   finishedListHeading: string,
@@ -571,7 +572,9 @@ export class Project {
       output += `\t${this.title}\t`
       output += this.folder && this.folder !== undefined ? `${this.folder}\t` : '\t'
       output += (this.noteType) ? `${this.noteType} ` : ''
-      output += this.isPaused ? '#paused ' : ''
+      output += this.isPaused ? '#paused' : ''
+      output += '\t'
+      output += (this.isCompleted || this.isCancelled) ? 'finished ' : 'active'
       return output
     }
     catch (error) {

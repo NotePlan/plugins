@@ -477,10 +477,6 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
   try {
     logDebug('generateReviewSummaryLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
 
-    // Not sure why this was here now...
-    // const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude)
-    // logDebug('generateReviewSummaryLines', `- for ${filteredFolderList.length} folders: '${String(filteredFolderList)}'`)
-
     let noteCount = 0
     let overdue = 0
     const outputArray: Array<string> = []
@@ -585,12 +581,14 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
 
     // filter DataStore one time, searching each item to see if it startsWith an item in filterFolderList
     // but need to deal with ignores here because of this optimization (in case an ignore folder is inside an included folder)
+    // TODO: make the excludes an includes not startsWith
     const m = new Date()
+    const ZZZfilter = (s) => f.filename.includes(`${s}/`.replace('//', '/'))
     const filteredDataStore = DataStore.projectNotes.filter(
-      (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/'))),
+      (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some(ZZZfilter)
     )
 
-    logDebug(`makeFullReviewList filteredDataStore ${filteredDataStore.length} potential project notes | took: ${timer(m)}`)
+    logDebug(`makeFullReviewList`, `>> filteredDataStore ${filteredDataStore.length} potential project notes in ${timer(m)}`)
     // filteredDataStore.map((n, i) => logDebug(`makeFullReviewList filteredDataStore[${i}]: ${n.filename}`))
     // logDebug(pluginJson, `<filteredDataStore/> \n`)
 
@@ -609,8 +607,8 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
       // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
       for (const tag of tags) {
         let funcTimer = new Date()
-        const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, '', true, filteredDataStore)
-        // logDebug('makeFullReviewList', `>> findNotesMatchingHashtag(${tag}, ${folder}): ${timer(funcTimer)}`)
+        const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, [], true, filteredDataStore)
+        logDebug('makeFullReviewList', `>> findNotesMatchingHashtag(${tag}, ${folder}): ${timer(funcTimer)}`)
         if (projectNotesArr.length > 0) {
           // Get Project class representation of each note.
           // Save those which are ready for review in projectsReadyToReview array
@@ -628,32 +626,20 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
     }
 
     // Get machineSummaryLine for each of the projectInstances
-    startTime = new Date()
     let reviewLines = []
     let lineArrayObjs = []
-    logDebug('makeFullReviewList', `- Starting loop for ${projectInstances.length} projectInstances`)
     for (const p of projectInstances) {
       const mSL = p.machineSummaryLine()
       reviewLines.push(mSL)
-      const mSLFields = mSL.split('\t')
-      lineArrayObjs.push({
-        reviewDays: mSLFields[0],
-        dueDays: mSLFields[1],
-        title: mSLFields[2],
-        folder: mSLFields[3],
-        tags: mSLFields[4],
-      })
     }
-    logDebug('makeFullReviewList', `>> Generating summary lines: ${timer(startTime)}`)
 
     // sort the output list by the fields we want, and add frontmatter
     startTime = new Date()
-    const outputArray = sortAndFormFullReviewList(reviewLines, config)
-    logDebug('makeFullReviewList', `>> sortAndFormFullReviewList: ${timer(startTime)}`)
+    const outputArray = filterAndSortReviewList(reviewLines, config)
 
     // write summary to full-review-list file
     DataStore.saveData(outputArray.join('\n'), fullReviewListFilename, true)
-    logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
+    // logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
     // logFullReviewList()
   } catch (error) {
     logError(pluginJson, `makeFullReviewList: ${error.message}`)
@@ -661,17 +647,36 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
 }
 
 /**
- * Take a set of machineSummaryLines, sort them according to config, and then add frontmatter
+ * Take a set of machineSummaryLines, filter if required by 'displayFinished' setting, sort them according to config, and then add frontmatter
  * @param {Array<string>} linesIn
  * @param {any} config
  * @returns {Array<string>} outputArray
  */
-function sortAndFormFullReviewList(linesIn: Array<string>, config: any): Array<string> {
+function filterAndSortReviewList(linesIn: Array<string>, config: any): Array<string> {
   try {
-    logDebug('sortAndFormFullReviewList', `Starting with ${linesIn.length} lines`)
+    logDebug('filterAndSortReviewList', `Starting with ${linesIn.length} lines`)
     const outputArray = []
-    const lineArrayObjs = []
+    let lineArrayObjs = []
 
+    // turn each TSV string into an object
+    for (const line of linesIn) {
+      const fields = line.split('\t')
+      lineArrayObjs.push({
+        reviewDays: fields[0],
+        dueDays: fields[1],
+        title: fields[2],
+        folder: fields[3],
+        tags: fields[4],
+        state: fields[5],
+      })
+    }
+
+    // Filter out finished projects if required
+    if (config.displayFinished === 'hide') {
+      lineArrayObjs = lineArrayObjs.filter((lineObj) => !lineObj.state.match('finished'))
+    }
+
+    // Sort projects
     // Method 3: use DW fieldSorter() function
     // Requires turning each TSV line into an Object (above)
     const sortingSpecification = []
@@ -692,17 +697,8 @@ function sortAndFormFullReviewList(linesIn: Array<string>, config: any): Array<s
         break
       }
     }
-
-    // turn each TSV string into an object
-    for (const line of linesIn) {
-      const fields = line.split('\t')
-      lineArrayObjs.push({
-        reviewDays: fields[0],
-        dueDays: fields[1],
-        title: fields[2],
-        folder: fields[3],
-        tags: fields[4],
-      })
+    if (config.displayFinished === 'display at end') {
+      sortingSpecification.push('state') // i.e. 'active' before 'finished'
     }
 
     // Method 2: use lodash _.orderBy() function
@@ -718,8 +714,7 @@ function sortAndFormFullReviewList(linesIn: Array<string>, config: any): Array<s
     //   outputArray.push(lineObj.reviewDays + '\t' + lineObj.dueDays + '\t' + lineObj.title + '\t' + lineObj.folder + '\t' + lineObj.tags)
     // }
 
-    logDebug('sortAndFormFullReviewList', `- sorting by ${String(sortingSpecification)} ...`)
-    // FIXME: not working somewhere round here.
+    // logDebug('filterAndSortReviewList', `- sorting by ${String(sortingSpecification)} ...`)
     const sortedlineArrayObjs = sortListBy(lineArrayObjs, sortingSpecification)
 
     // turn each lineArrayObj back to a TSV string
@@ -736,7 +731,7 @@ function sortAndFormFullReviewList(linesIn: Array<string>, config: any): Array<s
 
     return outputArray
   } catch (error) {
-    logError('sortAndFormFullReviewList', error.message)
+    logError('filterAndSortReviewList', error.message)
     return [] // for completeness
   }
 }
@@ -990,14 +985,14 @@ export async function updateReviewListAfterChange(
       if (simplyDelete) {
         // delete line 'thisLineNum'
         reviewLines.splice(thisLineNum, 1)
-        const outputLines = sortAndFormFullReviewList(reviewLines, configIn)
+        const outputLines = filterAndSortReviewList(reviewLines, configIn)
         DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true) // OK to here
         logDebug('updateReviewListAfterChange', `- Deleted '${reviewedTitle}' from line number ${thisLineNum}`)
       } else {
         // update this line in the full-review-list
         reviewLines[thisLineNum] = updatedMachineSummaryLine
         // re-form the file
-        const outputLines = sortAndFormFullReviewList(reviewLines, configIn)
+        const outputLines = filterAndSortReviewList(reviewLines, configIn)
         DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
         logDebug('updateReviewListAfterChange', `- Updated '${reviewedTitle}'  line number ${thisLineNum}`)
       }

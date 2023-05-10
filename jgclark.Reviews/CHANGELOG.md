@@ -8,6 +8,10 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ## [0.11.0] - 2023-05-09???
 ### Added
 - New "skip review" command. This adds a `@nextReview(date)` of your choosing to the current project note, that overrides the normal review interval for it, and jumps to the next project to review.
+- New "How to show completed/cancelled projects?" setting, with options 'display at end', 'display' or 'hide' (for @dwertheimer).
+### Changed
+- the 'Folders to Ignore' setting now matches anywhere in the folder name (for @dwertheimer)
+- Lots of code tidying, with some further tune ups, ready for future features.
 
 ## [0.10.2] - 2023-05-06
 ### Changed
