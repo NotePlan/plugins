@@ -139,8 +139,16 @@ export async function cancelProject(): Promise<void> {
       await Editor.openNoteByFilename(filename)
       // logDebug('cancelProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
-      // update the full-review-list, using the machineSummaryLine
-      await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+      // Ask whether to move it to the @Archive
+      const willArchive = await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No']) === 'Yes'
+
+      if (willArchive) {
+        // delete the line from the full-review-list, as we don't show project notes in the archive
+        await updateReviewListAfterChange(note.title ?? '<error>', true, config)
+      } else {
+        // update the full-review-list, using the machineSummaryLine
+        await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+      }
 
       // re-render the outputs (but don't focus)
       await renderProjectLists(false)
@@ -160,12 +168,12 @@ export async function cancelProject(): Promise<void> {
       }
 
       // Ask whether to move it to the @Archive
-      if (filename != null &&
-        (await showMessageYesNo('Shall I move this cancelled note to the Archive?', ['Yes', 'No'])) === 'Yes') {
+      if (willArchive) {
         const newFilename = DataStore.moveNote(filename, '@Archive')
+        logInfo('cancelProject', 'Project cancelled and moved to @Archive, review list updated, and window updated.')
+      } else {
+        logInfo('cancelProject', 'Project cancelled, review list updated, and window updated.')
       }
-
-      logInfo('cancelProject', 'Project cancelled, review list updated, and window updated.')
     } else {
       logError('cancelProject', 'Error cancelling project.')
     }

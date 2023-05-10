@@ -6,7 +6,7 @@
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn, JSP } from '@helpers/dev'
-// import { setHTMLWindowId } from '@helpers/NPWindows'
+import { setHTMLWindowId } from '@helpers/NPWindows'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -917,7 +917,7 @@ export function showHTML(
     // Set customID for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
     // TODO(Eduard): has said he will roll this into .showWindow()
     if (NotePlan.environment.buildVersion >= 976) {
-      setHTMLWindowID(customID ?? windowTitle)
+      setHTMLWindowId(customID ?? windowTitle)
     }
 
     // If wanted, also write this HTML to a file so we can work on it offline.
@@ -995,7 +995,7 @@ export async function showHTMLV2(
       // Set customID for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
       // TODO(Eduard): has said he will roll this into .showWindow()
       const customIdToUse = opts.customID ?? opts.windowTitle
-      setHTMLWindowID(customIdToUse)
+      setHTMLWindowId(customIdToUse)
       win.customId = customIdToUse
       // TEST: read this back from the window itself
       logDebug('showHTMLV2', `- Set window customId to '${win.customId}'`)

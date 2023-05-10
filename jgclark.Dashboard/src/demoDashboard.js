@@ -35,7 +35,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
     let sectionCount = 0
     let doneCount = 0
     let itemCount = 0
-    const today = new Date()
+    const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     //-----------------------------------------------------------
     // Demo data for Today

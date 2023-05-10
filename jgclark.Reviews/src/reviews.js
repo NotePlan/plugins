@@ -253,7 +253,7 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
       throw new Error('No noteTypeTags configured to display')
     }
 
-    const funcTimer = new Date()
+    const funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     logDebug('renderProjectListsHTML', `starting for ${config.noteTypeTags.toString()} tags`)
 
     // Test to see if we have the font resources we want
@@ -459,7 +459,7 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
 export async function renderProjectListsMarkdown(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
     logDebug('renderProjectListsMarkdown', `Starting for ${config.noteTypeTags.toString()} tags`)
-    const funcTimer = new Date()
+    const funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // Set up x-callback URLs for various commands
     const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'start reviews', '') // "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=start%20reviews"
@@ -679,7 +679,7 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
   try {
     const config = await getReviewSettings()
     logDebug('makeFullReviewList', `Starting for ${config.noteTypeTags.toString()} tags:`)
-    let startTime = new Date()
+    let startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // Get list of folders, excluding @specials and our foldersToIgnore setting
     const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude).sort()
@@ -694,7 +694,7 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
     // filter DataStore one time, searching each item to see if it startsWith an item in filterFolderList
     // but need to deal with ignores here because of this optimization (in case an ignore folder is inside an included folder)
     // TODO: make the excludes an includes not startsWith
-    const m = new Date()
+    const m = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const filteredDataStore = DataStore.projectNotes.filter(
       (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/')))
     )
@@ -717,7 +717,7 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
       // Get notes that include noteTag in this folder, ignoring subfolders
       // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
       for (const tag of tags) {
-        let funcTimer = new Date()
+        let funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
         const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, [], true, filteredDataStore)
         logDebug('makeFullReviewList', `>> findNotesMatchingHashtag(${tag}, ${folder}): ${timer(funcTimer)}`)
         if (projectNotesArr.length > 0) {
@@ -745,7 +745,7 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
     }
 
     // sort the output list by the fields we want, and add frontmatter
-    startTime = new Date()
+    startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
     const outputArray = filterAndSortReviewList(reviewLines, config)
 
     // write summary to full-review-list file
@@ -962,9 +962,6 @@ export async function nextReview(): Promise<void> {
 export async function skipReview(): Promise<void> {
   try {
     const config = await getReviewSettings()
-    const temp = DataStore.preference('nextReviewMentionStr')
-    console.log(temp)
-
     const currentNote = Editor
     if (!currentNote || currentNote.type !== 'Notes') {
       logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
@@ -989,18 +986,20 @@ export async function skipReview(): Promise<void> {
       logWarn('skipReview', `No valid date entered, so will stop.`)
       return
     }
-    // logDebug('skipReview', `- newDateStr: ${newDateStr}`)
     const nextReviewDate = getDateObjFromDateString(newDateStr)
-    const extraMetadata = `@nextReview(${newDateStr})`
-    // logDebug('skipReview', `- nextReviewDate: ${String(nextReviewDate)} / extraMetadata: ${extraMetadata}`)
+    const extraMetadata = `${config.nextReviewMentionStr}(${newDateStr})`
+    logDebug('skipReview', `- nextReviewDate: ${String(nextReviewDate)} / extraMetadata: ${extraMetadata}`)
 
     // Update metadata in the current open note
-    const result = updateMetadataInEditor([extraMetadata])
+    const result = await updateMetadataInEditor([extraMetadata])
 
     // Update the full-review-list too
     thisNoteAsProject.nextReviewDateStr = newDateStr
     thisNoteAsProject.nextReviewDate = nextReviewDate
     thisNoteAsProject.calcDurations()
+    thisNoteAsProject.calcNextReviewDate()
+    logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+
     const newMSL = thisNoteAsProject.machineSummaryLine()
     logDebug('skipReview', `- updatedMachineSummaryLine => '${newMSL}'`)
     await updateReviewListAfterChange(currentNote.title ?? '', false, config, newMSL)
@@ -1213,6 +1212,7 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
     // metadataPara.content = `${updatedMetadataLineContent} ${reviewedTodayString}`.trimRight().replace(/\s{2,}/g, ' ')
     // thisNoteAsProject.reviewedDate = getJSDateStartOfToday()
     // thisNoteAsProject.calcDurations()
+    // thisNoteAsProject.calcNextReviewDate()
 
     // send update to Editor (removing multiple and trailing spaces)
     metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()

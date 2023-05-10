@@ -44,10 +44,10 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
  * - ignoreFolders? for folders to ignore for referenced notes
  * - separateSectionForReferencedNotes? if true, then two arrays will be returned: first from the calendar note; the second from references to that calendar note. If false, then both are included in a combined list (with the second being an empty array).
  * - ignoreTasksWithPhrase
- * @param {string} timePeriodName 
+ * @param {string} timePeriodName
  * @param {TNote} timePeriodNote base calendar note to process
  * @param {boolean} includeReferencedItems?
- * @param {dashboardConfigType} dashboardConfig 
+ * @param {dashboardConfigType} dashboardConfig
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
 function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, includeReferencedItems: boolean, dashboardConfig: dashboardConfigType): [Array<TParagraph>, Array<TParagraph>] {
@@ -104,7 +104,7 @@ function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriod
 /**
  * Work out the data for the dashboard, ready to pass to a renderer.
  * Will instead use demo data if useDemoData is true.
- * @param {boolean} useDemoData 
+ * @param {boolean} useDemoData
  * @returns {[Array<SectionDetails>, Array<SectionItem>]}
  */
 export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Array<SectionItem>]> {
@@ -117,7 +117,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     const sectionItems: Array<SectionItem> = []
     let sectionCount = 0
     let doneCount = 0
-    const today = new Date()
+    const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists from daily note (if it exists)

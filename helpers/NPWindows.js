@@ -173,7 +173,6 @@ export function getOpenEditorFromFilename(openNoteFilename: string): TEditor | f
  */
 export function focusHTMLWindowIfAvailable(customId: string): boolean {
   if (NotePlan.environment.buildVersion >= 973) {
-    logInfo('focusHTMLWindowIfAvailable', `(Currently no check run as there's an API bug.)`)
     const allHTMLWindows = NotePlan.htmlWindows
     for (const thisWindow of allHTMLWindows) {
       if (thisWindow.customId === customId) {

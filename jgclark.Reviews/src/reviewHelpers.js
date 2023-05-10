@@ -151,6 +151,11 @@ export function getFieldsFromNote(note: TNote, fieldName: string): Array<string>
   return matchArr
 }
 
+/**
+ * Return the most recent progress line from the array (normally the first one)
+ * @param {Array<string>} progressLines
+ * @returns
+ */
 function mostRecentProgressLine(progressLines: Array<string>): string {
   // Default to returning first line
   let outputLine = progressLines[0]
@@ -274,6 +279,7 @@ export class Project {
 
       // calculate the durations from these dates
       this.calcDurations()
+      this.calcNextReviewDate() // not sure if this is needed
 
       // count tasks (includes both tasks and checklists)
       this.openTasks = paras.filter(isOpen).length
@@ -307,7 +313,7 @@ export class Project {
         const progressLine = mostRecentProgressLine(progressLines)
 
         // Get the first part of the value of the Progress field: nn@YYYYMMDD ...
-        const progressLineParts = progressLine.split(/[:@\s]/, 3)
+        const progressLineParts = progressLine.split(/[:@]/, 3)
         if (progressLineParts.length >= 3) {
           this.percentComplete = Number(progressLineParts[0])
           const datePart = unhyphenateString(progressLineParts[1])
@@ -354,12 +360,11 @@ export class Project {
   }
 
   /**
-   * From the metadata read in, calculate due/review/finished durations
+   * From the metadata read in, calculate due/finished durations
    */
   calcDurations(): void {
     try {
-      // TODO: change from new Date()
-      const now = new Date()
+      const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
       this.dueDays =
         this.dueDate != null
         // NB: Written while there was an error in EM's Calendar.unitsBetween() function
@@ -392,12 +397,18 @@ export class Project {
           // logDebug('calcDurations', `No completed or cancelled dates.`)
         }
       }
+    } catch (error) {
+      logError('calcDurations', error.message)
+    }
+  }
 
+  calcNextReviewDate(): void {
+    try {
       // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
-      if (this.nextReviewDateStr) {
-        // $FlowFixMe[incompatible-call]
+      const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+      if (this.nextReviewDate) {
         this.nextReviewDays = daysBetween(now, this.nextReviewDate)
-        logDebug('calcDurations', `already had a nextReviewDateStr ${this.nextReviewDateStr ?? '?'} -> ${String(this.nextReviewDays)} interval`)
+        logDebug('calcNextReviewDate', `already had a nextReviewDateStr ${this.nextReviewDateStr ?? '?'} -> ${String(this.nextReviewDays)} interval`)
       }
       else if (this.reviewInterval != null) {
         if (this.reviewedDate != null) {
@@ -405,7 +416,7 @@ export class Project {
           if (this.nextReviewDate != null) {
             // this now uses moment and truncated (not rounded) date diffs in number of days
             this.nextReviewDays = daysBetween(now, this.nextReviewDate)
-            // logDebug('calcDurations', `${String(this.reviewedDate)} + ${this.reviewInterval} -> nextReviewDate: ${this.nextReviewDateStr} = ${String(this.nextReviewDays) ?? '-'}`)
+            // logDebug('calcNextReviewDate', `${String(this.reviewedDate)} + ${this.reviewInterval ?? ''} -> nextReviewDate: ${this.nextReviewDateStr ?? ''} = ${String(this.nextReviewDays) ?? '-'}`)
           } else {
             throw new Error(`nextReviewDate is null; reviewedDate = ${String(this.reviewedDate)}`)
           }
@@ -415,9 +426,9 @@ export class Project {
           this.nextReviewDays = 0
         }
       }
-      // logDebug('calcDurations', `-> reviewedDate = ${String(this.reviewedDate)} / dueDays = ${String(this.dueDays)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
+      // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / dueDays = ${String(this.dueDays)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
     } catch (error) {
-      logError('calcDurations', error.message)
+      logError('calcNextReviewDate', error.message)
     }
   }
 
@@ -434,7 +445,7 @@ export class Project {
       this.isCompleted = true
       this.isCancelled = false
       this.isPaused = false
-      this.completedDate = new Date() // TODO: change from new Date()
+      this.completedDate = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone // TODO: change from new Date()
       this.calcDurations()
 
       // re-write the note's metadata line
@@ -472,7 +483,7 @@ export class Project {
       this.isCompleted = false
       this.isCancelled = true
       this.isPaused = false
-      this.cancelledDate = new Date() // TODO: change from new Date()
+      this.cancelledDate = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone // TODO: change from new Date()
       this.calcDurations()
 
       // re-write the note's metadata line
@@ -519,7 +530,7 @@ export class Project {
       // TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // Now need to update the Cache: TODO: still?
+      // Now need to update the Cache
       DataStore.updateCache(Editor.note, true)
       const newMSL = this.machineSummaryLine()
       logDebug('togglePauseProject', `- returning mSL '${newMSL}'`)
@@ -533,7 +544,6 @@ export class Project {
 
   /**
    * Generate a one-line tab-sep summary line ready for Markdown note
-   * TODO: In time, use the new update
    */
   generateMetadataLine(): string {
     let output = this.noteType
@@ -569,7 +579,7 @@ export class Project {
       output += (this.noteType) ? `${this.noteType} ` : ''
       output += this.isPaused ? '#paused' : ''
       output += '\t'
-      output += (this.isCompleted || this.isCancelled) ? 'finished ' : 'active'
+      output += (this.isCompleted) ? 'finished' : (this.isCancelled) ? 'finished-cancelled' : 'active'
       return output
     }
     catch (error) {
@@ -676,6 +686,7 @@ export class Project {
 
         // Column 2b: progress information
         if (displayProgress && !this.isCompleted && !this.isCancelled) {
+          // logDebug('Project::detailedSummaryLine', `'${this.lastProgressComment}' / ${statsProgress} for ${this.title}`)
           // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
           if (displayDates) {
             if (this.lastProgressComment !== '') {
