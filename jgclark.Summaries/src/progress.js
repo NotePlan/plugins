@@ -85,11 +85,19 @@ export async function makeProgressUpdate(params: string = '', source: string = '
     // Now deal with any parameters passed that are mentions/hashtags to work on
     // If we have any, then they override what the main settings say.
     const paramProgressYesNo = await getTagParamsFromString(params ?? '', 'progressYesNo', '')
+    const paramProgressHashtags = await getTagParamsFromString(params ?? '', 'progressHashtags', '')
+    const paramProgressHashtagsAverage = await getTagParamsFromString(params ?? '', 'progressHashtagsAverage', '')
+    const paramProgressHashtagsTotal = await getTagParamsFromString(params ?? '', 'progressHashtagsTotal', '')
     const paramProgressMentions = await getTagParamsFromString(params ?? '', 'progressMentions', '')
-    const paramProgressMentionsAverage = await getTagParamsFromString(params ?? '', 'progressMentionsAverage', '')
     const paramProgressMentionsTotal = await getTagParamsFromString(params ?? '', 'progressMentionsTotal', '')
-    const useParamTerms = (paramProgressYesNo || paramProgressMentions || paramProgressMentionsTotal || paramProgressMentionsAverage)
+    const paramProgressMentionsAverage = await getTagParamsFromString(params ?? '', 'progressMentionsAverage', '')
+
+    const useParamTerms = (paramProgressYesNo || paramProgressHashtags || paramProgressHashtagsTotal || paramProgressHashtagsAverage || paramProgressMentions || paramProgressMentionsTotal || paramProgressMentionsAverage)
+
     let progressYesNo = useParamTerms ? paramProgressYesNo : config.progressYesNo
+    let progressHashtags = useParamTerms ? paramProgressHashtags : config.progressHashtags
+    let progressHashtagsTotal = useParamTerms ? paramProgressHashtagsTotal : config.progressHashtagsTotal
+    let progressHashtagsAverage = useParamTerms ? paramProgressHashtagsAverage : config.progressHashtagsAverage
     let progressMentions = useParamTerms ? paramProgressMentions : config.progressMentions
     let progressMentionsTotal = useParamTerms ? paramProgressMentionsTotal : config.progressMentionsTotal
     let progressMentionsAverage = useParamTerms ? paramProgressMentionsAverage : config.progressMentionsAverage
@@ -124,9 +132,12 @@ export async function makeProgressUpdate(params: string = '', source: string = '
       config.progressMentions,
       [],
       progressYesNo,
+      progressHashtags,
+      progressHashtagsTotal,
+      progressHashtagsAverage,
       progressMentions,
-      progressMentionsAverage,
       progressMentionsTotal,
+      progressMentionsAverage,
     )
 
     const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, false).join('\n')

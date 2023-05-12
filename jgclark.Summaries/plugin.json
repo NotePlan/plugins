@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.18.0",
-  "plugin.lastUpdateInfo": "0.18.0: offers full set of summary types in /periodStats as well as /progressUpdate. Bug fixes.\n0.17.3: fix edge case of malformed @mentions.\n0.17.2: fix edge cases in /periodStats\n0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.\n0.17.0 Will write /periodStats summaries to the new monthly/quarterly/yearly notes available from NP 3.7.2.\n0.16.1: Minor bug fix. 0.16.0: Adds ability to run since a specific date (e.g. 2022-02-15). Adds ability to run from x-callbacks. When run from Template or x-callback, can now specify any settings to override whats in the main settings.",
+  "plugin.version": "0.18.1",
+  "plugin.lastUpdateInfo": "0.18.1: adds totals and averages for hashtags as well.\n0.18.0: offers full set of summary types in /periodStats as well as /progressUpdate. Bug fixes.\n0.17.3: fix edge case of malformed @mentions.\n0.17.2: fix edge cases in /periodStats\n0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.\n0.17.0 Will write /periodStats summaries to the new monthly/quarterly/yearly notes available from NP 3.7.2.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -33,7 +33,7 @@
     {
       "hidden": true,
       "name": "progressUpdate",
-      "description": "x-callback entry point to /insertProgressUpdate",
+      "description": "x-callback entry point to appendProgressUpdate command",
       "jsFunction": "progressUpdate",
       "arguments": [
         "JSON-formatted parameter list"
@@ -67,7 +67,7 @@
       "jsFunction": "weeklyStats2"
     },
     {
-      "hidden": true,
+      "hidden": false,
       "name": "test:GenStats",
       "description": "test daily gen stats",
       "jsFunction": "testGenStats"
@@ -148,7 +148,7 @@
     },
     {
       "type": "heading",
-      "title": "/insertProgressUpdate command settings"
+      "title": "appendProgressUpdate command settings"
     },
     {
       "key": "progressPeriod",
@@ -169,7 +169,7 @@
     {
       "key": "progressDestination",
       "title": "Where to write the progress update?",
-      "description": "Write to 'current' note, or to the current 'daily' or 'weekly' note.\n(If the progress update section already exists, it will be updated, rather than be repeated.)",
+      "description": "Append to 'current' note, or to the current 'daily' or 'weekly' note.\n(If the progress update section already exists, it will be updated, rather than be repeated.)",
       "type": "string",
       "choices": [
         "current",
@@ -190,7 +190,23 @@
     {
       "key": "progressHashtags",
       "title": "#hashtags to count",
-      "description": "List of #hashtags to include in Progress updates. If this list is empty, no hashtags will be included.\n(Note: you need to include the # of the #hashtag.)",
+      "description": "List of simple #hashtags to include in Progress updates. If this list is empty, no hashtags will be included.\n(Note: you need to include the # of the #hashtag.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "progressHashtagsAverage",
+      "title": "#hashtags to average",
+      "description": "Optional list of #hashtag/<number> to include in Progress updates, presented as an average.\n(Note: you need to include the # of the #hashtag.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "key": "progressHashtagsTotal",
+      "title": "#hashtags to total",
+      "description": "Optional list of #hashtag/<number> to include in Progress updates, presented as a total.\n(Note: you need to include the # of the #hashtag.)",
       "type": "[string]",
       "default": [],
       "required": false
@@ -206,7 +222,7 @@
     {
       "key": "progressMentionsAverage",
       "title": "@mentions to average",
-      "description": "Optional list of @mention(number)s to include in Progress updates, presented as an average.\n(Note: you need to include the @ of the @mention.)",
+      "description": "Optional list of @mention(number) to include in Progress updates, presented as an average.\n(Note: you need to include the @ of the @mention.)",
       "type": "[string]",
       "default": [],
       "required": false

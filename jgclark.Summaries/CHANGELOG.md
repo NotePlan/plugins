@@ -1,11 +1,17 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.18.1] - 2023-05-12???
+### Added
+- new settings '#hashtags to average' and '#hashtags to total' alongside existing '#hashtags to count' setting for **appendProgressUpdate** command.
+### Changed
+- increased the number of significant figures shown in Progress Summary 'average' outputs (for @chrismalek, #443)
+
 ## [0.18.0] - 2023-03-21
 ### New
-- Added new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting for /periodStats. These tailor the output to focus on just the average or total, rather than all the currently-presented statistics (count, total and average). (These now match what is already possible with /insertProgressUpdate.)
+- Added new '@mentions to average' and '@mentions to total' alongside existing '@mentions to count' setting for **periodStats** command. These tailor the output to focus on just the average or total, rather than all the currently-presented statistics (count, total and average). (These now match what is already possible with /insertProgressUpdate.)
 ### Changed
-- changed name of user command /insertProgressUpdate to /appendProgressUpdate to better reflect how it works. (The earlier name still works, and it also doesn't require changing any existing templates or x-callback calls.)
+- changed name of user command **insertProgressUpdate** to **appendProgressUpdate** to better reflect how it works. (The earlier name still works, and it also doesn't require changing any existing templates or x-callback calls.)
 
 ### Fixed
 - 'Exclude today?' setting being ignored
@@ -13,11 +19,11 @@
 
 ## [0.17.3] - 2023-01-19
 ### Fixed
-- fix edge case of malformed @mentions in /insertProgressUpdate calls
+- fix edge case of malformed @mentions in "insertProgressUpdate" calls
 
 ## [0.17.2] - 2023-01-03
 ### Fixed
-- end-of-year bug in dates for /periodStats for "last month" option.
+- end-of-year bug in dates for "periodStats" for "last month" option.
 
 ## [0.17.1] - 2022-11-27
 ### Fixed
@@ -25,7 +31,7 @@
 
 ## [0.17.0] - 2022-11-25
 ### Added
-- will write **/periodStats** summaries to the new monthly/quarterly/yearly notes (available from NP v3.7.2) as well as the existing folder you can set in the settings.
+- will write **periodStats** summaries to the new monthly/quarterly/yearly notes (available from NP v3.7.2) as well as the existing folder you can set in the settings.
 
 ## [0.16.1] - 2022-11-17
 ### Fixed
@@ -80,7 +86,7 @@
 - the **/insertProgressUpdate** command, and its template equivalent, now also supports 'last7d', 'last2w', 'last4w' as options for the 'period' parameter (for @george65)
 - the **/periodStats** command now includes sparklines for periods up to a month, if you request them.
 ### Changed
-- in the /periodStats command the '@mentions to exclude' and '#hashtags to exclude' settings have now been removed, as I don't think they're useful any more, and make the code much harder to extend. If you're affected by this please get in touch -- the details at the end of the README. 
+- in the /periodStats command the '@mentions to exclude' and '#hashtags to exclude' settings have now been removed, as I don't think they're useful any more, and make the code much harder to extend. If you're affected by this please get in touch -- the details at the end of the README.
 
 ## [0.12.0] - 2022-08-14
 ### Added
