@@ -34,11 +34,11 @@ import { showMessage } from "../../helpers/userInput";
  */
 export async function progressUpdate(params: string = ''): Promise<string> {
   try {
-    logDebug(pluginJson, `progressUpdate for scb: Starting with params '${params}'`)
+    logDebug(pluginJson, `progressUpdate for xcb: Starting with params '${params}'`)
     return await makeProgressUpdate(params, 'xcb') ?? '<error>'
   }
   catch (err) {
-    logError('progressUpdate (for xcb)', err.message)
+    logError(pluginJson, 'progressUpdate (for xcb)' + err.message)
     return '<error>' // for completeness
   }
 }
@@ -56,59 +56,53 @@ export async function progressUpdate(params: string = ''): Promise<string> {
 export async function makeProgressUpdate(params: string = '', source: string = 'command'): Promise<string | void> {
   try {
     // Get config setting
-    let config = await getSummariesSettings()
+    let config: SummariesConfig = await getSummariesSettings()
     // If there are params passed, then we've been called by a template command (and so use those).
     if (params) {
-      logDebug(pluginJson, `makeProgressUpdate: Starting with params '${params}'`)
+      logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      clo(config, `config after overriding with params '${params}'`)
+      // clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-      logDebug(pluginJson, `makeProgressUpdate: Starting with no params`)
+      logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with no params`)
     }
-    // const progressHeading = await getTagParamsFromString(params ?? '', 'progressHeading', config.progressHeading)
-    // const showSparklines = await getTagParamsFromString(params ?? '', 'showSparklines', config.showSparklines)
-    const excludeToday = await getTagParamsFromString(params ?? '', 'excludeToday', true)
+
     // Use configuration setting as default for time period
     // (And allow 'period' instead of 'interval')
     let period = config.progressPeriod
-    const intervalParam = await getTagParamsFromString(params ?? '', 'interval', '')
+    const intervalParam = await getTagParamsFromString(params, 'interval', '')
     if (intervalParam !== '') {
       period = intervalParam
     }
-    const periodParam = await getTagParamsFromString(params ?? '', 'period', '')
+    const periodParam = await getTagParamsFromString(params, 'period', '')
     if (periodParam !== '') {
       period = periodParam
     }
-    logDebug('makeProgressUpdate', `Starting for period '${period}' titled '${config.progressHeading}' with params '${params ?? ''}'`)
+    logDebug('makeProgressUpdate', `Starting for period '${period}' titled '${config.progressHeading}' with params '${params}'`)
 
     // Now deal with any parameters passed that are mentions/hashtags to work on
-    // If we have any, then they override what the main settings say.
-    const paramProgressYesNo = await getTagParamsFromString(params ?? '', 'progressYesNo', '')
-    const paramProgressHashtags = await getTagParamsFromString(params ?? '', 'progressHashtags', '')
-    const paramProgressHashtagsAverage = await getTagParamsFromString(params ?? '', 'progressHashtagsAverage', '')
-    const paramProgressHashtagsTotal = await getTagParamsFromString(params ?? '', 'progressHashtagsTotal', '')
-    const paramProgressMentions = await getTagParamsFromString(params ?? '', 'progressMentions', '')
-    const paramProgressMentionsTotal = await getTagParamsFromString(params ?? '', 'progressMentionsTotal', '')
-    const paramProgressMentionsAverage = await getTagParamsFromString(params ?? '', 'progressMentionsAverage', '')
+    const paramProgressYesNo = await getTagParamsFromString(params, 'progressYesNo', '')
+    const paramProgressHashtags = await getTagParamsFromString(params, 'progressHashtags', '')
+    const paramProgressHashtagsAverage = await getTagParamsFromString(params, 'progressHashtagsAverage', '')
+    const paramProgressHashtagsTotal = await getTagParamsFromString(params, 'progressHashtagsTotal', '')
+    const paramProgressMentions = await getTagParamsFromString(params, 'progressMentions', '')
+    const paramProgressMentionsTotal = await getTagParamsFromString(params, 'progressMentionsTotal', '')
+    const paramProgressMentionsAverage = await getTagParamsFromString(params, 'progressMentionsAverage', '')
 
+    // If we have any of these params, then override all the mentions/hashtags settings
     const useParamTerms = (paramProgressYesNo || paramProgressHashtags || paramProgressHashtagsTotal || paramProgressHashtagsAverage || paramProgressMentions || paramProgressMentionsTotal || paramProgressMentionsAverage)
-
-    let progressYesNo = useParamTerms ? paramProgressYesNo : config.progressYesNo
-    let progressHashtags = useParamTerms ? paramProgressHashtags : config.progressHashtags
-    let progressHashtagsTotal = useParamTerms ? paramProgressHashtagsTotal : config.progressHashtagsTotal
-    let progressHashtagsAverage = useParamTerms ? paramProgressHashtagsAverage : config.progressHashtagsAverage
-    let progressMentions = useParamTerms ? paramProgressMentions : config.progressMentions
-    let progressMentionsTotal = useParamTerms ? paramProgressMentionsTotal : config.progressMentionsTotal
-    let progressMentionsAverage = useParamTerms ? paramProgressMentionsAverage : config.progressMentionsAverage
     if (useParamTerms) {
-      config.progressHashtags = []
-      config.progressMentions = []
+      config.progressYesNo = paramProgressYesNo
+      config.progressHashtags = paramProgressHashtags
+      config.progressHashtagsTotal = paramProgressHashtagsTotal
+      config.progressHashtagsAverage = paramProgressHashtagsAverage
+      config.progressMentions = paramProgressMentions
+      config.progressMentionsTotal = paramProgressMentionsTotal
+      config.progressMentionsAverage = paramProgressMentionsAverage
     }
 
-    // Get time period of interest
+    // Get more detailed items for the chosen time period
     const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('', config.excludeToday, period)
-    logDebug('', `${periodType} / ${periodString} / ${periodAndPartStr}`)
     if (fromDate == null || toDate == null) {
       throw new Error(`Error: failed to calculate period start and end dates`)
     }
@@ -127,37 +121,26 @@ export async function makeProgressUpdate(params: string = '', source: string = '
       periodString,
       fromDateStr,
       toDateStr,
-      config.progressHashtags,
-      [],
-      config.progressMentions,
-      [],
-      progressYesNo,
-      progressHashtags,
-      progressHashtagsTotal,
-      progressHashtagsAverage,
-      progressMentions,
-      progressMentionsTotal,
-      progressMentionsAverage,
+      config
     )
 
     const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, false).join('\n')
 
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-    logDebug(pluginJson, `- created progress update in${timer(startTime)}`)
+    logDebug('makeProgressUpdate', `- created progress update in${timer(startTime)}`)
 
     // Create x-callback of form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=...` with 'Refresh' pseudo-button
     const xCallbackMD = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'progressUpdate', params)
 
     const thisHeading = formatWithFields(config.progressHeading, { PERIOD: periodAndPartStr ? periodAndPartStr : periodString })
     const headingAndXCBStr = `${thisHeading} ${xCallbackMD}`
-    logDebug(pluginJson, headingAndXCBStr)
 
     // Send output to chosen required destination
     // Now complicated because if we have params it could be either from x-callback or template call.
     if (params && source !== 'xcb') {
       // this was a template command call, so simply return the output text
-      logDebug(pluginJson, `-> returning text to template for '${thisHeading}: ${periodAndPartStr} for ${periodString}'`)
+      logDebug('makeProgressUpdate', `-> returning text to template for '${thisHeading}: ${periodAndPartStr} for ${periodString}'`)
       return `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}\n${output}`
     }
 
@@ -167,12 +150,12 @@ export async function makeProgressUpdate(params: string = '', source: string = '
       case 'daily': {
         const destNote = DataStore.calendarNoteByDate(new Date(), 'day')
         if (destNote) {
-          logDebug(pluginJson, `- about to update section '${thisHeading}' in daily note '${destNote.filename}' for ${periodAndPartStr}`)
+          logDebug('makeProgressUpdate', `- about to update section '${thisHeading}' in daily note '${destNote.filename}' for ${periodAndPartStr}`)
           // Replace or add Section
           replaceSection(destNote, thisHeading, headingAndXCBStr, config.headingLevel, output)
-          logInfo(pluginJson, `Updated section '${thisHeading}' in daily note '${destNote.filename}' for ${periodAndPartStr}`)
+          logInfo('makeProgressUpdate', `Updated section '${thisHeading}' in daily note '${destNote.filename}' for ${periodAndPartStr}`)
         } else {
-          logError(pluginJson, `Cannot find weekly note to write to`)
+          logError('makeProgressUpdate', `Cannot find weekly note to write to`)
         }
         break
       }
@@ -180,32 +163,32 @@ export async function makeProgressUpdate(params: string = '', source: string = '
         // get weekly
         const destNote = DataStore.calendarNoteByDate(new Date(), 'week')
         if (destNote) {
-          logDebug(pluginJson, `- about to update section '${thisHeading}' in weekly note '${destNote.filename}' for ${periodAndPartStr}`)
+          logDebug('makeProgressUpdate', `- about to update section '${thisHeading}' in weekly note '${destNote.filename}' for ${periodAndPartStr}`)
           // Replace or add Section
           replaceSection(destNote, thisHeading, headingAndXCBStr, config.headingLevel, output)
-          logInfo(pluginJson, `Updated section '${thisHeading}' in weekly note '${destNote.filename}' for ${periodAndPartStr}`)
+          logInfo('makeProgressUpdate', `Updated section '${thisHeading}' in weekly note '${destNote.filename}' for ${periodAndPartStr}`)
         } else {
-          logError(pluginJson, `Cannot find weekly note to write to`)
+          logError('makeProgressUpdate', `Cannot find weekly note to write to`)
         }
         break
       }
 
       default: {
-        // = 'current'
+        // = 'current' = append to current note
         const currentNote = Editor
         if (currentNote == null) {
-          logWarn(pluginJson, `No note is open in the Editor, so I can't write to it.`)
+          logWarn('makeProgressUpdate', `No note is open in the Editor, so I can't write to it.`)
           await showMessage(`No note is open in the Editor, so I can't write to it.`)
         } else {
           // Now insert the summary to the current note: replace or append Section
           replaceSection(currentNote, thisHeading, headingAndXCBStr, config.headingLevel, output)
-          logInfo(pluginJson, `Appended progress update for ${periodString} to current note`)
+          logInfo('makeProgressUpdate', `Appended progress update for ${periodString} to current note`)
         }
         break
       }
     }
     return
   } catch (error) {
-    logError(pluginJson, error.message)
+    logError('makeProgressUpdate', error.message)
   }
 }

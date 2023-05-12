@@ -374,23 +374,13 @@ export class TMOccurrences {
  * @param {string} periodString
  * @param {string} fromDateStr (YYYY-MM-DD)
  * @param {string} toDateStr (YYYY-MM-DD)
- * @param {Array<string>} includedHashtags
- * @param {Array<string>} excludedHashtags
- * @param {Array<string>} includedMentions
- * @param {Array<string>} excludedMentions
- * @param {Array<string> | string} progressYesNo
- * @param {Array<string> | string} progressHashtags
- * @param {Array<string> | string} progressHashtagsTotal
- * @param {Array<string> | string} progressHashtagsAverage
- * @param {Array<string> | string} progressMentions
- * @param {Array<string> | string} progressMentionsTotal
- * @param {Array<string> | string} progressMentionsAverage
+ * @param {any} config containing the various settings of which occurrences to gather
  * @returns {Array<TMOccurrences>}
  */
-export function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, includedHashtags: Array<string>, excludedHashtags: Array<string>, includedMentions: Array<string>, excludedMentions: Array<string>, progressYesNo: Array<string> | string, progressHashtags: Array<string> | string, progressHashtagsTotal: Array<string> | string, progressHashtagsAverage: Array<string> | string | string, progressMentions: Array<string> | string, progressMentionsTotal: Array<string> | string, progressMentionsAverage: Array<string> | string): Array<TMOccurrences> {
+export function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, config: SummariesConfig): Array<TMOccurrences> {
   try {
-    logDebug('gatherOccurrences', `starting for '${periodString}' (${fromDateStr} - ${toDateStr}), with [${String(includedHashtags)}] and [${String(includedMentions)}]`)
-
+    // clo(config, `gatherOccurrences() starting for '${periodString}' (${fromDateStr} - ${toDateStr}) with config:`)
+    logDebug(config, `gatherOccurrences() starting for '${periodString}' (${fromDateStr} - ${toDateStr})`)
     const periodDailyNotes = DataStore.calendarNotes.filter(
       (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), unhyphenateString(fromDateStr), unhyphenateString(toDateStr)))
     if (periodDailyNotes.length === 0) {
@@ -406,7 +396,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
     //------------------------------
     // Review each wanted YesNo type
-    const YesNoListArr = (typeof progressYesNo === 'string') ? progressYesNo.split(',') : progressYesNo // make sure this is an array first
+    const YesNoListArr = (typeof config.progressYesNo === 'string') ? config.progressYesNo.split(',') : config.progressYesNo // make sure this is an array first
     for (let wantedItem of YesNoListArr) {
       // initialise a new TMOccurence for this YesNo item
       const thisOcc = new TMOccurrences(wantedItem, 'yesno', fromDateStr, toDateStr)
@@ -464,20 +454,20 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
     // There are now 3 kinds of @mentions to process: make a superset of them to sort and then process in one go
     // Make sure they are arrays first.
-    const allHashtagsArr = stringListOrArrayToArray(progressHashtags, ',')
-    const averageHashtagsArr = stringListOrArrayToArray(progressHashtagsAverage, ',')
-    const totalHashtagsArr = stringListOrArrayToArray(progressHashtagsTotal, ',')
+    const allHashtagsArr = stringListOrArrayToArray(config.progressHashtags, ',')
+    const averageHashtagsArr = stringListOrArrayToArray(config.progressHashtagsAverage, ',')
+    const totalHashtagsArr = stringListOrArrayToArray(config.progressHashtagsTotal, ',')
     const combinedHashtags = []
     allHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'all']) })
     averageHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'average']) })
     totalHashtagsArr.forEach((m) => { combinedHashtags.push([m, 'total']) })
     combinedHashtags.sort()
 
-    for (let thisTag of combinedHashtags) {
+    for (const thisTag of combinedHashtags) {
       // initialise a new TMOccurence for this mention
       const [thisName, thisType] = thisTag
       const thisOcc = new TMOccurrences(thisName, thisType, fromDateStr, toDateStr)
-      logDebug('gatherOccurrences', `thisTag=${thisTag}: ${thisName} / ${thisType}`)
+      logDebug('gatherOccurrences', `thisTag=${thisName} / ${thisType}`)
 
       // For each daily note in the period, look at each tag in reverse order to make subset checking work
       for (const n of periodDailyNotes) {
@@ -494,13 +484,13 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
           // logDebug('gatherOccurrences', `  ... this:${tagWithoutClosingNumber} last:${lastTag} `)
           // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
           if (caseInsensitiveStartsWith(tagWithoutClosingNumber, lastTag)) {
-            logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
+            // logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
             continue // skip this tag
           }
           else {
             // check this is one of the ones we're after, then add
             if (caseInsensitiveMatch(tagWithoutClosingNumber, thisName)) {
-              logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
+              // logDebug('gatherOccurrences', `- Found matching occurrence ${tag} on date ${n.filename}`)
               thisOcc.addOccurrence(tag, thisDateStr)
             } else {
               // logDebug('gatherOccurrences', `- x ${tag} not wanted`)
@@ -518,9 +508,9 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
     // There are now 3 kinds of @mentions to process: make a superset of them to sort and then process in one go
     // Make sure they are arrays first.
-    const allMentionsArr = stringListOrArrayToArray(progressMentions, ',')
-    const averageMentionsArr = stringListOrArrayToArray(progressMentionsAverage, ',')
-    const totalMentionsArr = stringListOrArrayToArray(progressMentionsTotal, ',')
+    const allMentionsArr = stringListOrArrayToArray(config.progressMentions, ',')
+    const averageMentionsArr = stringListOrArrayToArray(config.progressMentionsAverage, ',')
+    const totalMentionsArr = stringListOrArrayToArray(config.progressMentionsTotal, ',')
     const combinedMentions = []
     allMentionsArr.forEach((m) => { combinedMentions.push([m, 'all']) })
     averageMentionsArr.forEach((m) => { combinedMentions.push([m, 'average']) })
@@ -569,11 +559,9 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
     }
 
     logDebug('gatherOccurrences', `Finished with ${tmOccurrencesArr.length} occObjects`)
-    clo(tmOccurrencesArr)
     return tmOccurrencesArr
   }
   catch (error) {
-    logError('gatherOccurrences', JSP(error))
     logError('gatherOccurrences', error.message)
     return [] // for completness
   }
@@ -600,6 +588,8 @@ export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodStri
     const daysBetween = toDateMom.diff(fromDateMom, 'days')
     // Include sparklines only if this period is a month or less
     const showSparklines = (requestToShowSparklines && daysBetween <= 31)
+    logDebug('generateProgressUpdate', String(requestToShowSparklines))
+    logDebug('generateProgressUpdate', String(showSparklines))
     // Get length of longest progress term (to use with sparklines)
     const maxTermLen = Math.max(...occObjs.map((m) => m.term.length))
 
@@ -610,6 +600,7 @@ export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodStri
       switch (style) {
         case 'markdown': {
           if (showSparklines) {
+            console.log('**SPARKLINE CALL**')
             thisOutput = "`" + occObj.getTerm(maxTermLen) + " " + occObj.getSparkline('ascii') + "`"
           } else {
             thisOutput = "**" + occObj.getTerm() + "**: "
@@ -637,7 +628,7 @@ export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodStri
     return outputArray
   }
   catch (error) {
-    logError('gatherOccurrences', error.message)
+    logError('generateProgressUpdate', error.message)
     return [] // for completeness
   }
 }

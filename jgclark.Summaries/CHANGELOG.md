@@ -1,11 +1,12 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [0.18.1] - 2023-05-12???
+## [0.19.0] - 2023-05-12
 ### Added
 - new settings '#hashtags to average' and '#hashtags to total' alongside existing '#hashtags to count' setting for **appendProgressUpdate** command.
 ### Changed
 - increased the number of significant figures shown in Progress Summary 'average' outputs (for @chrismalek, #443)
+- code tidy up
 
 ## [0.18.0] - 2023-03-21
 ### New

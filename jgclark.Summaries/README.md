@@ -25,9 +25,8 @@ Remember: #visit to new CFL premises in K18, Festival Place #prayer #win #filmvi
 
 **When to use the command**: It's up to you! I run  /appendProgressUpdate as part of my daily note (see [Calling from a Template](#calling-from-a-template) below), but you might want to do it at the end of a day/week/month in those notes.
 
-In each of these commands note that:
-- all notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be exluded too using the `foldersToExclude` setting.
-- these commands require **some setup**, so it knows what you want to summarise. Do this in the Plugin Preferences panel by clicking the gear button on the 'Summaries' line. Each setting has an explanation, and they are grouped into relevant sections.
+All these commands require **some setup**, so it knows what you want to summarise. Do this in the Plugin Preferences panel by clicking the gear button on the 'Summaries' line. Each setting has an explanation (below), and they are grouped into relevant sections.
+
 
 The command output can include little **"sparkline" graphs**, as a simple in-line visualisation of the recorded activity for each item you're tracking, where the time period is a month or less. A dot `.` indicates there's no data for that day; the height of the bar indicates the value of that day, relative to the maximum in that time period. The mimimum is always 0, not the lowest value, and that is always shown as an empty space.
 
@@ -43,6 +42,10 @@ In particular it uses the `code` attribute of the theme (if set). Here's an exam
 ```
 
 Note: According to [several](https://wiki.mobileread.com/wiki/List_of_fonts_included_with_each_device) [sources](http://iosfonts.com/) the only monospace fonts on iPhone/iPad are forms of Courier (e.g. `Courier-Bold`) and Menlo (e.g. `Menlo-Regular`).
+
+All notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be exluded too using the `foldersToExclude` setting.
+
+Note: **Why use `@run(...)` (mentions) rather than `#run(...)` (hashtags)**? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a decimal number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside for `@run(5.3)`.  _However, you can use a `#hashtag/value` if you don't mind this limitation._
 
 ## 'heatmap for complete tasks' command
 This displays a 'heatmap' chart of many tasks you've completed on each day (see example above). It uses the `@done(...)` dates in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you don't set it, the plugin will generate a sensible period up to 12 months.  It also counts completed tasks without `@done(...)` dates on Calendar notes, assuming the tasks were completed on the day or start of week in question.
@@ -87,7 +90,7 @@ The many **settings** for this command are set in the Plugin Prererence pane:
 - 'Include sparkline graphs?' true or false
 
 ### Calling from a Template
-This command can be used in any Template, but is particularly designed to be used from a "Daily Note Template" by including a command tag in a template such as:
+This command can be used in any Template, but is particularly designed to be used from a "Daily Note Template" by including a '**progressUpdate()**' command tag in a template such as:
 ```
 <%- progressUpdate({period: 'wtd', progressHeading: 'Habits', showSparklines: true}) %>
 ```
@@ -95,7 +98,7 @@ or
 ```
 <%- progressUpdate({period: '2022-02-15', excludeToday: true, progressHeading: 'Post-Birthday Habits', showSparklines: true}) %>
 ```
-You can add many parameters, _which if present override the main settings described above_. The main ones are:
+You can add many parameters, _which if present override all the main settings described above_. The main ones are:
 1. `period` (alias `interval`): time period to run report for, e.g. 'wtd' or 'userwtd' (week to date), 'mtd' (month to date), 'last7d', 'last2w', or 'last4w' or give a specific ISO8601 date to report since (e.g. '2022-10-25')
 2. `progressHeading` to use before the results.
 3. `showSparklines`: true (default) or false.
@@ -106,7 +109,7 @@ Each must be a`key:value` pair, with following pairs separated by commas, and al
 Note: if you specifiy any of the settings that take hashtags or mentions, then _only those ones will be used_. E.g. `{... "progressYesNo":"#read,#pray,#exercise", ...}` will not use any of the usual '#hashtags or count' or '@mentions to count', but only show Yes/No for each of those 3 tags.
 
 ### Calling by x-callback
-This is similar to the method above: create a JSON version of "key":"value" pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=`
+This is similar to the Template above: create a JSON version of "key":"value" pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=`
 
 For example:
 ```
@@ -115,7 +118,7 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressU
 
 Note: The 'key' part and any string-based value part must be enclosed in **double quote marks** ("like this"), to make it valid JSON.
 
-Note: The JSON parts needs to be **urlencoded** before it can be used. (For help with this, see the /Get-X-Callback-URL command from the "Link Creator" Plugin.)
+Note: The JSON parts needs to be **urlencoded** before it can be used. (For help with this, see the **Get-X-Callback-URL command** from the "Link Creator" Plugin. Select RUN a Plugin command > progressUpdate ...)
 
 ## periodStats command (aliases: statsPeriod, stp)
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify, and saves them into notes in a special 'Summaries' folder. For example:
