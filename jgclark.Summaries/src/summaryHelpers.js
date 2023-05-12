@@ -600,7 +600,6 @@ export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodStri
       switch (style) {
         case 'markdown': {
           if (showSparklines) {
-            console.log('**SPARKLINE CALL**')
             thisOutput = "`" + occObj.getTerm(maxTermLen) + " " + occObj.getSparkline('ascii') + "`"
           } else {
             thisOutput = "**" + occObj.getTerm() + "**: "
