@@ -11,8 +11,9 @@ import {
   generateProgressUpdate,
   getSummariesSettings,
   TMOccurrences,
+  type SummariesConfig,
 } from './summaryHelpers'
-import { getDateStringFromCalendarFilename, hyphenatedDate, toISODateString, toLocaleDateString, unhyphenatedDate, withinDateRange } from '@helpers/dateTime'
+import { hyphenatedDate, toISODateString, toLocaleDateString, unhyphenatedDate, withinDateRange } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import {
   clo, logDebug, logError, logInfo, logWarn, timer,

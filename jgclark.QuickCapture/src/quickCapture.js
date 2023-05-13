@@ -234,7 +234,7 @@ export async function addTaskToNoteHeading(
 /** /qalh
  * FIXME(@EduardMe): adding a line after an earlier non-heading line with same text as the heading line? Raised as bug https://github.com/NotePlan/plugins/issues/429.
  * TODO: When fixed check using index.js::tempAddParaTest()
- * 
+ *
  * Add general text to a regular note's heading the user picks.
  * Extended in v0.9 to allow use from x-callback with three passed arguments.
  * Extended in v0.10 to allow use from x-callback with some empty arguments: now asks users to supply missing arguments.
@@ -293,7 +293,7 @@ export async function addTextToNoteHeading(
     const heading = (headingArg != null && headingArg !== '')
       ? headingArg
       : await chooseHeading(note, true, true, false)
-    // Add todo to the heading in the note, or if blank heading, 
+    // Add todo to the heading in the note, or if blank heading,
     // then then user has chosen to append to end of note, without a heading
     if (heading !== '') {
       const matchedHeading = findHeadingStartsWith(note, heading)
@@ -324,8 +324,8 @@ export async function addTextToNoteHeading(
  * @param {string?} textArg text to prepend
  */
 export async function prependTaskToCalendarNote(
-  dateArg?: string = '',
-  textArg?: string = ''
+  dateArg: string = '',
+  textArg: string = ''
 ): Promise<void> {
   logDebug(pluginJson, `starting /qpc`)
   try {
@@ -346,7 +346,7 @@ export async function prependTaskToCalendarNote(
       note = DataStore.calendarNoteByDateString(dateArgToMatch)
     }
     if (note != null) {
-      logDebug(pluginJson, `- from dateArg, daily note = '${displayTitle(note)}'`)
+      logDebug('prependTaskToCalendarNote', `- from dateArg, daily note = '${displayTitle(note)}'`)
     } else {
       // Get details interactively from user
       const calendarNoteTitles = calendarNotesSortedByChanged().map((f) => f.filename) ?? ['error: no calendar notes found']
@@ -357,14 +357,14 @@ export async function prependTaskToCalendarNote(
 
     if (note != null) {
       const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
-      logDebug(pluginJson, `- Prepending task '${text}' to '${displayTitle(note)}'`)
+      logDebug('prependTaskToCalendarNote', `- Prepending task '${text}' to '${displayTitle(note)}'`)
       smartPrependPara(note, text, 'open')
       // note.prependTodo(text)
     } else {
-      logError(pluginJson, `- Can't get calendar note ${dateArg}`)
+      logError('prependTaskToCalendarNote', `- Can't get calendar note ${dateArg}`)
     }
   } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
+    logError('prependTaskToCalendarNote', `${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
 }

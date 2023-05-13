@@ -9,7 +9,6 @@ import moment from 'moment/min/moment-with-locales'
 import { getSummariesSettings } from './summaryHelpers'
 import {
   getDateObjFromDateString,
-  getDateStringFromCalendarFilename,
   getWeek,
   withinDateRange
 } from '@helpers/dateTime'
@@ -98,23 +97,23 @@ export function testHeatMapGeneration1(): void {
     <script>
       anychart.onDocumentReady(function () {
         ${dataAsStr}
-        
+
         // create the chart and set the data
         chart = anychart.heatMap(data);
-        
+
         // set the chart title
         chart.title("${chartTitle}");
-        
+
         // create and configure the color scale.
         var customColorScale = anychart.scales.linearColor();
         customColorScale.colors(["#FFF0FF", "#20F220"]);
-        
+
         // set the color scale as the color scale of the chart
         chart.colorScale(customColorScale);
-        
+
         // set the container id
         chart.container("container");
-        
+
         // Add a legend and then draw
         chart.legend(true);
         chart.draw();
@@ -180,21 +179,21 @@ export async function testHeatMapGeneration2(): Promise<void> {
       anychart.onDocumentReady(function () {
         // create the chart and set the data
         chart = anychart.heatMap(${dataToPassAsString});
-        
+
         // set the chart title
         // chart.title("${chartTitle}");
-        
+
         // create and configure the color scale.
         var customColorScale = anychart.scales.linearColor();
         customColorScale.colors(["#F4FFF4", "#00E400"]);
-        
+
         // set the color scale as the color scale of the chart
         chart.colorScale(customColorScale);
-        
+
         // set the container id
         chart.container("container");
-        
-        // set the label off 
+
+        // set the label off
         chart.labels().enabled(false);
 
         // Add a legend and then draw
@@ -271,20 +270,20 @@ export async function testHeatMapGeneration3(): Promise<void> {
     anychart.onDocumentReady(function () {
       // create the chart and set the data
       chart = anychart.heatMap(${dataToPassAsString});
-      
+
       // set the chart title
       chart.title("${chartTitle}");
-      
+
       // create and configure the color scale.
       var customColorScale = anychart.scales.linearColor();
       customColorScale.colors(["#F4FFF4", "#00E400"]);
-      
+
       // set the color scale as the color scale of the chart
       chart.colorScale(customColorScale);
-      
+
       // set the container id
       chart.container("container");
-      
+
       // set the labels off
       chart.labels().enabled(false);
 
@@ -296,7 +295,7 @@ export async function testHeatMapGeneration3(): Promise<void> {
       tooltip.format(function () {
         return this.heat + '\\nDate: ' + this.getData("isoDate");
       });
-      
+
       chart.xScroller().enabled(true);
       chart.xZoom().setToPointsCount(36);
 
