@@ -712,7 +712,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     test('should return valid date for weekly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-W52.md')
-      expect(result).toEqual('20221226')
+      expect(result).toEqual('2022-W52')
     })
     test('should return valid date for monthly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-12.md')
