@@ -43,12 +43,12 @@ export function onMessageFromHTMLView(type: string, data: MessageDataObject): an
 /**
  * Somebody clicked on a something in the HTML view
  * @param {MessageDataObject} data - details of the item clicked
- * onClickDashboardItem: invalid data: 
+ * onClickDashboardItem: invalid data:
  */
 export async function onClickDashboardItem(data: MessageDataObject) {
   try {
     const { itemID, type, filename, rawContent } = data
-    logDebug(pluginJson, `pluginToHTMLBridge/onClickDashboardItem starting with type: ${type}, itemID: ${itemID}, filename: ${filename}, rawContent: '${rawContent}'`)
+    logDebug(pluginJson, `pluginToHTMLBridge/onClickDashboardItem starting with type: ${type}, itemID: ${itemID}, filename: ${filename}, rawContent: <${rawContent}>`)
     if (type === 'open') {
       const res = completeItem(filename, rawContent)
       if (res) {
@@ -56,6 +56,16 @@ export async function onClickDashboardItem(data: MessageDataObject) {
         sendToHTMLWindow('completeTask', data)
       } else {
         logWarn(pluginJson, `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+        await showDashboardHTML()
+      }
+    }
+    else if (type === 'todoCancel') {
+      const res = cancelItem(filename, rawContent)
+      if (res) {
+        logDebug(pluginJson, `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
+        sendToHTMLWindow('todoChecklist', data)
+      } else {
+        logWarn(pluginJson, `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
         await showDashboardHTML()
       }
     }
@@ -69,6 +79,16 @@ export async function onClickDashboardItem(data: MessageDataObject) {
         await showDashboardHTML()
       }
     }
+    else if (type === 'checklistCancel') {
+      const res = cancelItem(filename, rawContent)
+      if (res) {
+        logDebug(pluginJson, `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
+        sendToHTMLWindow('cancelChecklist', data)
+      } else {
+        logWarn(pluginJson, `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
+        await showDashboardHTML()
+      }
+    }
     else if (type === 'review') {
       // Handle a review call simply by opening the note in the main Editor. Later it might get more interesting!
       const note = await Editor.openNoteByFilename(filename)
@@ -77,6 +97,10 @@ export async function onClickDashboardItem(data: MessageDataObject) {
       } else {
         logWarn(pluginJson, `-> unsuccessful call to open filename ${filename} in Editor`)
       }
+    }
+    else if (type === 'windowResized') {
+      logDebug(pluginJson, `windowResized triggered on plugin side`)
+      // TODO: something more useful
     }
     else if (type === 'showNoteInEditorFromFilename') {
       // Handle a show note call simply by opening the note in the main Editor.

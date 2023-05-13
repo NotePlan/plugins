@@ -7,6 +7,8 @@
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_EVENT_ID } from '@helpers/calendar'
+import { getDateStringFromCalendarFilename, toLocaleTime } from '@helpers/dateTime'
+import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import {
   RE_EVENT_LINK,
   RE_MARKDOWN_LINKS_CAPTURE_G,
@@ -25,6 +27,7 @@ import {
 } from '@helpers/stringTransforms'
 import { showMessage } from '@helpers/userInput'
 import { showMessageYesNo } from '@helpers/userInput'
+import { toLocaleDateTimeString } from "../../helpers/NPdateTime";
 
 //-----------------------------------------------------------------
 // Data types
@@ -188,7 +191,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
     // TODO: add basic ***bolditalic*** styling
 
     // TODO: add basic **bold** styling
-    
+
     // TODO: add basic _italic_ styling
 
     // Add suitable colouring to remaining >date items
@@ -293,7 +296,7 @@ export function addNoteOpenLinkToString(item: SectionItem | SectionDetails, disp
  * v2: Wrap string with href onClick event to show note in editor
  * v1: Used to use x-callback method to open a Note (via ite 'noteTitle')
  * @param {SectionItem} item's details
- * @param {string} noteTitle 
+ * @param {string} noteTitle
  * @returns {string} output
  */
 export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteTitle: string): string {
@@ -316,7 +319,7 @@ export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteT
 /**
  * Wrap string with href onClick event to show note in editor
  * Note: based only on 'noteTitle', not a filename
- * @param {string} noteTitle 
+ * @param {string} noteTitle
  * @returns {string} output
  */
 export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string {

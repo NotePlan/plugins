@@ -55,6 +55,18 @@
       "description": "onEditorWillSave",
       "jsFunction": "decideWhetherToUpdateDashboard",
       "hidden": true
+    },
+    {
+      "name": "addTask",
+      "description": "HTML window entry point to interactively add a new task",
+      "jsFunction": "addTask",
+      "hidden": true
+    },
+    {
+      "name": "addChecklist",
+      "description": "HTML window entry point to interactively add a new checklist",
+      "jsFunction": "addChecklist",
+      "hidden": true
     }
   ],
   "plugin.disabledCommands": [

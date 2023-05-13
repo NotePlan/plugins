@@ -4,6 +4,7 @@
 // Last updated 12.4.2023 for v0.4.1 by @jgclark
 //-----------------------------------------------------------------------------
 
+import moment from 'moment/min/moment-with-locales'
 import {
   getSettings,
   type dashboardConfigType,
@@ -12,7 +13,6 @@ import {
 import {
   getNPMonthStr,
   getNPWeekStr,
-  getDateStringFromCalendarFilename,
   getTodaysDateUnhyphenated,
   todaysDateISOString,
   toLocaleDateString,

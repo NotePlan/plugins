@@ -3,29 +3,30 @@
 table { font-size: 1.0rem; /* used to make text a little smaller at 0.9rem */
 	border-collapse: collapse; /* always! */
 	border: 0px none;
-	empty-cells: show; }
+	empty-cells: show;
+}
 th {
-	text-align: left; 
-	vertical-align: bottom; 
-	padding: 8px; 
+	text-align: left;
+	vertical-align: bottom;
+	padding: 8px;
 	border: 0px none; /* no borders */
 }
 td {
-	text-align: left; 
-	vertical-align: top; 
-	padding: 6px 4px; 
+	text-align: left;
+	vertical-align: top;
+	padding: 6px 4px;
 	border: 0px none; /* no borders */
 }
 table tr { /* turn on top and bottom border (from theme CSS) */
-	border-top: solid 1px var(--tint-color); 
+	border-top: solid 1px var(--tint-color);
 	border-bottom: solid 1px var(--tint-color); /* line between rows, not columns */
 }
 .no-borders { /* turn off all borders */
-	border-top: none 0px; 
+	border-top: none 0px;
 	border-bottom: none 0px;
 }
 .sectionName { /* column 2's title */
-	font-size: 1.0rem; 
+	font-size: 1.0rem;
 	font-weight: 700; /* make noteTitles bold */
 	margin: unset;
 	padding-block-start: 0.1rem;
@@ -36,14 +37,17 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	margin: unset;
 }
 .sectionIcon {
-	font-size: 1.0rem; 
+	font-size: 1.0rem;
 	font-weight: 400;
 }
 .sectionItem { /* reduce vertical spacing and line below */
-	font-size: 1.0rem; 
+	font-size: 1.0rem;
 	font-weight: 400;
-	padding: 2px 4px; 
+	padding: 2px 4px;
 	border-bottom: 0px;
+}
+.clickTarget { /* change cursor for icons which can be clicked on */
+	cursor: pointer;
 }
 .pad-right {	/* add space after icon */
 	padding-right: 0.4em;
@@ -53,12 +57,12 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 }
 .scheduledDate { color: var(--tint-color); }
 a, a:visited, a:active { /* all links turn off text color and underlining by default */
-	color: inherit; 
+	color: inherit;
 	text-decoration: none;
 	cursor: pointer;
 }
 a:hover {
-	text-decoration: underline; 
+	text-decoration: underline;
 	text-decoration-color: var(--tint-color); }
 .externalLink a, a:hover {
 	text-decoration: underline;
@@ -81,8 +85,8 @@ a:hover {
 	column-gap: 1rem;
 	column-rule: 1px dotted var(--tint-color); }
 .fadeOutAndHide { /* Class to fade out an item, from https://stackoverflow.com/a/20910008 */
-	visibility: hidden; 
-	opacity: 0; 
+	visibility: hidden;
+	opacity: 0;
 	transition: visibility 0s 2s, opacity 2s linear;
 }
 /* Some headings specified from measuring the colour of NP sidebar elements */

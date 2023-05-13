@@ -13,8 +13,9 @@ import {
   makeParaContentToLookLikeNPDisplayInHTML,
   type SectionDetails, type SectionItem
 } from './dashboardHelpers'
-import { toLocaleTime, getDateStringFromCalendarFilename } from '@helpers/dateTime'
+import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { getDateStringFromCalendarFilename, toLocaleTime } from '@helpers/dateTime'
 import { getFolderFromFilename } from '@helpers/folders'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
@@ -58,11 +59,32 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
 <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
 `
 
+const postLoadScripts = `
+<script type="text/javascript">
+document.getElementById("mainTable").addEventListener("load", addEventHandlersFunc);
+
+function addEventHandlersFunc() {
+  let allTasksChecklists = document.getElementsByClassName("todo");
+  for (let i=0; i<allTasksChecklists.length; i++) {
+    allTasksChecklists[i].addEventListener('click', function() {
+      console.log('shiftKey held? '+String(event.shiftKey))
+    }, false);
+  }
+  console.log('ELs added');
+}
+
+window.addEventListener("resize", function(){
+  console.log("resize event triggered in window: inner dimensions now w"+String(window.innerWidth)+":h"+String(window.innerHeight));
+  onClickDashboardItem('dummy', 'windowResized', 'dummy', 'dummy');
+})
+</script>
+`
+
 /**
  * Show the dashboard HTML window, _but with some pre-configured demo data_.
  */
 export async function showDemoDashboardHTML(): Promise<void> {
-  await showDashboardHTML(true, true)
+  await showDashboardHTML(true)
 }
 
 /**
@@ -71,7 +93,7 @@ export async function showDemoDashboardHTML(): Promise<void> {
  * - x-y = section x item y, used in <tr> tags and onClick references
  * - x-yA = href link for section x item y, used in 'col 3' <td> tags
  * - x-yI = icon for section x item y, used in 'col 3' <td> tags
- * 
+ *
  * @author @jgclark
  * @param {boolean?} showDemoData - if true, show the demo data, otherwise show the real data
  */
@@ -102,12 +124,12 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
     // Main table loop
     let totalOpenItems = 0
     let totalDoneItems = 0
-    outputArray.push(`\n<table style="table-layout: auto; word-wrap: break-word;">`)
+    outputArray.push(`\n<table id="mainTable" style="table-layout: auto; word-wrap: break-word;">`)
     let sectionNumber = 0
     for (const section of sections) {
+      logDebug('showDashboardHTML', `Section ${section.name} ID:${String(section.ID)} filename:${section.filename}`)
       // Special case to handle count of done items
       if (section.name === 'Done') {
-        logDebug('showDashboardHTML', `Section ${section.name} has ID ${String(section.ID)}`)
         totalDoneItems = section.ID
         continue // to next loop item
       }
@@ -132,11 +154,19 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       outputArray.push(` <tr>\n  <td style="min-width:7rem; max-width: 9rem;"><p class="${section.sectionTitleClass} sectionName"><i class="${section.FAIconClass} pad-right"></i>${sectionNameWithPossibleLink}</p>`)
 
       if (items.length > 0) {
-        outputArray.push(`   <p class="sectionDescription">${sectionCountPrefix} ${section.description}</p></td>`)
-      } else {
-        // add a simpler version of the line
-        outputArray.push(`   </td>`)
+        outputArray.push(`   <p class="sectionDescription">${sectionCountPrefix} ${section.description}`)
+
+        if (section.filename !== '') {
+          // Add 'add task' and 'add checklist' icons
+          // TODO: add tooltip
+          const xcbAddTask = createRunPluginCallbackUrl('jgclark.Dashboard', 'addTask', [section.filename])
+          outputArray.push(`     <span><a href="${xcbAddTask}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a></span>`)
+          const xcbAddChecklist = createRunPluginCallbackUrl('jgclark.Dashboard', 'addChecklist', [section.filename])
+          outputArray.push(`     <span><a href="${xcbAddChecklist}"><i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i></a></span>`)
+        }
       }
+      // close col1
+      outputArray.push(`</p>\n   </td>`)
 
       // // Prepare col 1 (section icon)
       // outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
@@ -148,7 +178,6 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       // const sectionNameWithPossibleLink = (section.filename)
       //   ? addNoteOpenLinkToString(section, section.name)
       //   : section.name
-      // // FIXME: add to the generator for s1 and s3 and s5
       // if (items.length > 0) {
       //   outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${sectionNameWithPossibleLink}</span><br /><span class="sectionDescription">${sectionCountPrefix} ${section.description}</span></td>`)
       // } else {
@@ -180,7 +209,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
           case 'open': {
             // do icon col (was col3)
             outputArray.push(
-              `     <td id="${item.ID}A" class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`,
+              `     <td id="${item.ID}A" class="todo clickTarget sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`,
             )
 
             // do col 4: whole note link is clickable.
@@ -202,7 +231,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
           }
           case 'checklist': {
             // do icon col (was col3)
-            outputArray.push(`     <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
+            outputArray.push(`     <td class="todo clickTarget sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${false ? 'checklistCancel' : 'checklist'}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
 
             // do item details col (was col4): whole note link is clickable
             // If context is wanted, and linked note title
@@ -265,7 +294,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
     let summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; `
     summaryStatStr += `<span id="totalDoneCount">${String(totalDoneItems)}</span> closed`
     outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}</p>`)
-    outputArray.unshift(`<p id="error"></p>`)
+    // outputArray.unshift(`<p id="error"></p>`) // TEST: is this needed?
 
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
@@ -279,15 +308,31 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       '',
       false, // = not modal window
       '', // no extra JS
-      commsBridge,
+      commsBridge + postLoadScripts,
       filenameHTMLCopy,
       config.windowWidth > 0 ? config.windowWidth : 1000, // = width of window
       config.windowHeight > 0 ? config.windowHeight : 500, // = height of window
-      windowCustomID,
-      false // shouuld not focus, if Window already exists
+      // windowCustomID,
+      // false // shouuld not focus, if Window already exists
     ) // set width; max height
     logDebug(`makeDashboard`, `written to HTML window`)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+}
+
+export async function addTask(calNoteFilename: string): Promise<void> {
+  const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+  logDebug('addTask', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`)
+  await prependTodoToCalendarNote('open', calNoteDateStr)
+  // trigger window refresh
+  await showDashboardHTML()
+}
+
+export async function addChecklist(calNoteFilename: string): Promise<void> {
+  const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+  logDebug('addChecklist', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`)
+  await prependTodoToCalendarNote('checklist', calNoteDateStr)
+  // trigger window refresh
+  await showDashboardHTML()
 }

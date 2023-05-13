@@ -229,7 +229,7 @@ function showError(message) {
  * Note: copy of function in helpers/stringTransforms.js, but without type information
  * @author @jgclark
  * @tests in jest file
- * @param {string} input 
+ * @param {string} input
  * @returns {string}
  */
 function decodeRFC3986URIComponent(input) {

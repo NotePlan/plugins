@@ -1,9 +1,9 @@
 // @flow
 
 import moment from 'moment/min/moment-with-locales'
-import { trimString } from './dataManipulation'
+import { trimString } from '@helpers/dataManipulation'
 import {
-  daysBetween,
+  // daysBetween,
   getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
@@ -17,12 +17,13 @@ import {
   SCHEDULED_MONTH_NOTE_LINK,
   SCHEDULED_YEARLY_NOTE_LINK,
   WEEK_NOTE_LINK,
-} from './dateTime'
-import { isOpen } from './utils'
-import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateTimeString } from './NPdateTime'
-import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from './dev'
-import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL } from './paragraph'
+} from '@helpers/dateTime'
+import { displayTitle } from '@helpers/general'
+import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateTimeString } from '@helpers/NPdateTime'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
+import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
+import { isOpen } from '@helpers/utils'
 
 const pluginJson = 'NPParagraph'
 
@@ -1297,19 +1298,46 @@ export function markComplete(para: TParagraph): boolean {
       para.type = 'done'
       para.content += doneString
       para.note?.updateParagraph(para)
-      logDebug('completeItem', `updated para ${para.content}`)
+      logDebug('markComplete', `updated para ${para.content}`)
       return true
     } else if (para.type === 'checklist') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
-      logDebug('completeItem', `updated para ${para.content}`)
+      logDebug('markComplete', `updated para ${para.content}`)
       return true
     } else {
-      logWarn('completeItem', `unexpected para type ${para.type}, so won't continue`)
+      logWarn('markComplete', `unexpected para type ${para.type}, so won't continue`)
       return false
     }
   } else {
     logError(pluginJson, `markComplete: para is null`)
+    return false
+  }
+}
+
+/**
+ * Change para type of the given paragraph to cancelled
+ * @param {TParagraph} para
+ * @returns
+ */
+export function markCancelled(para: TParagraph): boolean {
+  if (para) {
+    if (para.type === 'open') {
+      para.type = 'cancelled'
+      para.note?.updateParagraph(para)
+      logDebug('markCancelled', `updated para ${para.content}`)
+      return true
+    } else if (para.type === 'checklist') {
+      para.type = 'checklistCancelled'
+      para.note?.updateParagraph(para)
+      logDebug('markCancelled', `updated para ${para.content}`)
+      return true
+    } else {
+      logWarn('markCancelled', `unexpected para type ${para.type}, so won't continue`)
+      return false
+    }
+  } else {
+    logError(pluginJson, `markCancelled: para is null`)
     return false
   }
 }
@@ -1357,7 +1385,86 @@ export function completeItem(filenameIn: string, rawContent: string): boolean {
       return false
     }
   } catch (error) {
-    logError('completeItem', `${error.message} for note '${filenameIn}'`)
+    logError(pluginJson, `completeItem: ${error.message} for note '${filenameIn}'`)
     return false
+  }
+}
+
+/**
+ * Cancel a task/checklist item (given by 'rawContent') in note (given by 'filenameIn').
+ * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * @param {string} filenameIn to look in
+ * @param {string} rawContent to find
+ * @returns {boolean} true if succesful, false if unsuccesful
+ */
+export function cancelItem(filenameIn: string, rawContent: string): boolean {
+  try {
+    logDebug('completeItem', `starting with filename: ${filenameIn}, rawContent: ${rawContent}`)
+    let filename = filenameIn
+    if (filenameIn === 'today') {
+      filename = getTodaysDateUnhyphenated()
+    } else if (filenameIn === 'thisweek') {
+      filename = getNPWeekStr(new Date())
+    }
+    // Long-winded way to get note title, as we don't have TNote, but do have note's filename
+    // $FlowIgnore[incompatible-type]
+    const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
+
+    if (thisNote) {
+      if (thisNote.paragraphs.length > 0) {
+        let c = 0
+        for (const para of thisNote.paragraphs) {
+          if (para.rawContent === rawContent) {
+            logDebug('completeItem', `found matching para ${c} of type ${para.type}: ${rawContent}`)
+            // Append @done(...) string (if user preference wishes this)
+            return markCancelled(para)
+          }
+          c++
+        }
+        logWarn('completeItem', `Couldn't find paragraph '${rawContent}' to complete`)
+        return false
+      } else {
+        logInfo('completeItem', `Note '${filename}' appears to be empty?`)
+        return false
+      }
+    } else {
+      logWarn('completeItem', `Can't find note '${filename}'`)
+      return false
+    }
+  } catch (error) {
+    logError(pluginJson, `completeItem: ${error.message} for note '${filenameIn}'`)
+    return false
+  }
+}
+
+/**
+ * Prepend a todo (task or checklist) to a calendar note
+ * @author @jgclark
+ * @param {"open" | "checklist"} todoType
+ * @param {string} NPDateStr the usual calendar titles, plus YYYYMMDD
+ * @param {string} todoTextArg text to prepend. If empty or missing, then will ask user for it
+ */
+export async function prependTodoToCalendarNote(
+  todoType: "open" | "checklist",
+  NPDateStr: string,
+  todoTextArg: string = '',
+): Promise<void> {
+  logDebug(pluginJson, `starting prependTodoToCalendarNote`)
+  try {
+    // Get calendar note to use
+    const note = DataStore.calendarNoteByDateString(NPDateStr)
+    if (note != null) {
+      // Get input either from passed argument or ask user
+      const todoText = (todoTextArg != null && todoTextArg !== '')
+        ? todoTextArg
+        : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${NPDateStr}`)
+      logDebug('prependTodoToCalendarNote', `- Prepending type ${todoType} '${todoText}' to '${displayTitle(note)}'`)
+      smartPrependPara(note, todoText, todoType)
+    } else {
+      logError('prependTodoToCalendarNote', `- Can't get calendar note for ${NPDateStr}`)
+    }
+  } catch (err) {
+    logError('prependTodoToCalendarNote', `${err.name}: ${err.message}`)
+    await showMessage(err.message)
   }
 }

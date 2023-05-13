@@ -165,7 +165,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         // clo(sortedRefParas, "sortedRefParas")
         sections.push({
-          ID: sectionCount, name: 'Today', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: ''
+          ID: sectionCount, name: 'Today', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename
         })
         sectionCount++
       }
@@ -186,7 +186,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     if (currentWeeklyNote) {
       const thisFilename = currentWeeklyNote?.filename ?? '(error)'
-      const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
+      const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) FIXME: fix whether this function or its description should be changed
 
       // Get list of open tasks/checklists from this calendar note
       const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentWeeklyNote, config.separateSectionForReferencedNotes, config)
@@ -225,7 +225,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           itemCount++
         })
         // clo(sortedRefParas, "weekly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: '' })
+        sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
         sectionCount++
       }
       // Get count of tasks/checklists done this week
@@ -239,7 +239,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     let currentCalendarNote = DataStore.calendarNoteByDate(today, 'month')
     if (currentCalendarNote) {
       const thisFilename = currentCalendarNote?.filename ?? '(error)'
-      const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
+      const dateStr = getDateStringFromCalendarFilename(thisFilename)
       logDebug('getDataForDashboard', `Processing ${thisFilename} (${dateStr}) which has ${String(currentCalendarNote?.paragraphs?.length ?? NaN)} paras`)
       let parasToUse: $ReadOnlyArray<any> = []
 
@@ -280,7 +280,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           itemCount++
         })
         // clo(sortedRefParas, "monthly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This month', description: `from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: '' })
+        sections.push({ ID: sectionCount, name: 'This month', description: `from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
         sectionCount++
       }
 
@@ -295,7 +295,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     const currentQuarterlyNote = DataStore.calendarNoteByDate(today, 'quarter')
     if (currentQuarterlyNote) {
       const thisFilename = currentDailyNote?.filename ?? '(error)'
-      const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) TODO: fix whether this function or its description should be changed
+      const dateStr = getDateStringFromCalendarFilename(thisFilename)
 
       // Get list of open tasks/checklists from this calendar note
       const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentQuarterlyNote, config.separateSectionForReferencedNotes, config)
@@ -334,7 +334,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           itemCount++
         })
         // clo(sortedRefParas, "quarterly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This quarter', description: `from quarterly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: '' })
+        sections.push({ ID: sectionCount, name: 'This quarter', description: `from quarterly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
         sectionCount++
       }
       // Get count of tasks/checklists done this quarter
