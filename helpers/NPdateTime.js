@@ -7,7 +7,7 @@ import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
 import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, todaysDateISOString, toISOShortDateTimeString, weekStartEndDates, RE_DATE } from './dateTime'
-import { logDebug, logError, clo, JSP } from './dev'
+import { logDebug, logError, logWarn, clo, JSP } from './dev'
 // import { getSetting } from './NPConfiguration'
 import { chooseOption, getInput } from './userInput'
 
@@ -572,11 +572,11 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
 /**
  * Get all the month details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
  * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
- * @param {string | Date} dateIn 
+ * @param {string | Date} dateIn
  * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
  * @returns {
-    monthIndex: number; /* 0-indexed 
+    monthIndex: number; /* 0-indexed
     monthString: number; e.g. 2022-01 (1-indexed)
     startDate: Date; // start of month (date object in your local timezone -- could be another day in GMT)
     endDate: Date; // end of month (date object in your local timezone -- could be another day in GMT)
@@ -606,7 +606,7 @@ export function getMonthData(dateIn: string | Date = new Date(), offsetIncrement
 /**
  * Get all the year details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
  * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
- * @param {string | Date} dateIn 
+ * @param {string | Date} dateIn
  * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
  * @returns {
@@ -639,7 +639,7 @@ export function getYearData(dateIn: string | Date = new Date(), offsetIncrement:
 /**
  * Get all the month details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
  * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
- * @param {string | Date} dateIn 
+ * @param {string | Date} dateIn
  * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
  * @returns {
@@ -727,7 +727,6 @@ export function getWeekOptions(): $ReadOnlyArray<{ label: string, value: string 
  * @returns {string} - relative date string in locale picked up from NP environment (e.g. today, 3w ago, 2m, 4y ago.)
  */
 export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: boolean = false): string {
-  let diff = diffIn
   if (diffIn == null || diffIn === undefined || isNaN(diffIn)) {
     logWarn('NPdateTime / localeRelativeDateFromNumber', `diffIn param is undefined`)
     return 'unknown date'

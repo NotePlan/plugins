@@ -298,12 +298,12 @@ export function getTimeStringFromDate(date: Date): string {
  */
 export function getDateStringFromCalendarFilename(filename: string): string {
   try {
-    logDebug('gDSFCF', `for ${filename} ...`)
+    // logDebug('gDSFCF', `for ${filename} ...`)
     if (filename.match(RE_DAILY_NOTE_FILENAME)) {
-      logDebug('gDSFCF', `= daily`)
+      // logDebug('gDSFCF', `= daily`)
       return filename.slice(0, 8)
     } else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {//TEST:
-      logDebug('gDSFCF', `${filename} = weekly`)
+      // logDebug('gDSFCF', `${filename} = weekly`)
       return filename.slice(0, 8)
     } else if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
       // logDebug('gDSFCF', `${filename} = monthly`)

@@ -1440,24 +1440,25 @@ export function cancelItem(filenameIn: string, rawContent: string): boolean {
 /**
  * Prepend a todo (task or checklist) to a calendar note
  * @author @jgclark
- * @param {"open" | "checklist"} todoType
+ * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
  * @param {string} NPDateStr the usual calendar titles, plus YYYYMMDD
  * @param {string} todoTextArg text to prepend. If empty or missing, then will ask user for it
  */
 export async function prependTodoToCalendarNote(
-  todoType: "open" | "checklist",
+  todoTypeName: "task" | "checklist",
   NPDateStr: string,
   todoTextArg: string = '',
 ): Promise<void> {
   logDebug(pluginJson, `starting prependTodoToCalendarNote`)
   try {
+    const todoType = (todoTypeName === 'task') ? 'open' : 'checklist'
     // Get calendar note to use
     const note = DataStore.calendarNoteByDateString(NPDateStr)
     if (note != null) {
       // Get input either from passed argument or ask user
       const todoText = (todoTextArg != null && todoTextArg !== '')
         ? todoTextArg
-        : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${NPDateStr}`)
+        : await CommandBar.showInput(`Type the ${todoTypeName} text to add`, `Add ${todoTypeName} '%@' to ${NPDateStr}`)
       logDebug('prependTodoToCalendarNote', `- Prepending type ${todoType} '${todoText}' to '${displayTitle(note)}'`)
       smartPrependPara(note, todoText, todoType)
     } else {
