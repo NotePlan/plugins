@@ -58,6 +58,8 @@ export async function makeProgressUpdate(params: string = '', source: string = '
   try {
     // Get config setting
     let config: SummariesConfig = await getSummariesSettings()
+    let settingsForGO: OccurrencesConfig = {}
+
     // If there are params passed, then we've been called by a template command (and so use those).
     if (params) {
       logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with params '${params}'`)
@@ -93,13 +95,25 @@ export async function makeProgressUpdate(params: string = '', source: string = '
     // If we have any of these params, then override all the mentions/hashtags settings
     const useParamTerms = (paramProgressYesNo || paramProgressHashtags || paramProgressHashtagsTotal || paramProgressHashtagsAverage || paramProgressMentions || paramProgressMentionsTotal || paramProgressMentionsAverage)
     if (useParamTerms) {
-      config.progressYesNo = paramProgressYesNo
-      config.progressHashtags = paramProgressHashtags
-      config.progressHashtagsTotal = paramProgressHashtagsTotal
-      config.progressHashtagsAverage = paramProgressHashtagsAverage
-      config.progressMentions = paramProgressMentions
-      config.progressMentionsTotal = paramProgressMentionsTotal
-      config.progressMentionsAverage = paramProgressMentionsAverage
+      settingsForGO = {
+        GOYesNo: paramProgressYesNo,
+        GOHashtagsCount: paramProgressHashtags,
+        GOHashtagsTotal: paramProgressHashtagsTotal,
+        GOHashtagsAverage: paramProgressHashtagsAverage,
+        GOMentionsCount: paramProgressMentions,
+        GOMentionsTotal: paramProgressMentionsTotal,
+        GOMentionsAverage: paramProgressMentionsAverage,
+      }
+    } else {
+      settingsForGO = {
+        GOYesNo: config.progressYesNo ?? [],
+        GOHashtagsCount: config.progressHashtags,
+        GOHashtagsTotal: config.progressHashtagsTotal,
+        GOHashtagsAverage: config.progressHashtagsAverage,
+        GOMentionsCount: config.progressMentions,
+        GOMentionsTotal: config.progressMentionsTotal,
+        GOMentionsAverage: config.progressMentionsAverage,
+      }
     }
 
     // Get more detailed items for the chosen time period
@@ -122,7 +136,7 @@ export async function makeProgressUpdate(params: string = '', source: string = '
       periodString,
       fromDateStr,
       toDateStr,
-      config
+      settingsForGO
     )
 
     const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, false).join('\n')

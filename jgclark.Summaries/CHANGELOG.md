@@ -1,7 +1,16 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [0.19.0] - 2023-05-12
+## [0.19.1] - 2023-05-15
+### Added
+- new settings '#hashtags to average' and '#hashtags to total' alongside existing '#hashtags to count' setting for **periodStats** command
+- new setting 'Include sparkline graphs?' that now applies separately to the 'periodStats' command
+### Changed
+- the 'periodStats' command will attempt not to open another copy of the output note in another split view, if that output note is already open
+### Fixed
+- regression in last release with /periodStats
+
+## [0.19.0] - 2023-05-14
 ### Added
 - new settings '#hashtags to average' and '#hashtags to total' alongside existing '#hashtags to count' setting for **appendProgressUpdate** command.
 ### Changed

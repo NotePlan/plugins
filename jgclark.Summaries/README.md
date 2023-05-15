@@ -77,17 +77,17 @@ The many **settings** for this command are set in the Plugin Prererence pane:
   - `userwtd` is week to date using whatever you've set the start of week to be in NotePlan's 'Calendars' Preferences pane.
 - Where to write the progress update? The destination note is either the 'current'ly open note, or the current 'daily' or 'weekly' note.
 - Progress heading: this is the heading to go before the output, to which is added the period that's covered. However, if it contains the string '{{PERIOD}}, then the covered period will be inserted in place of this string wherever you want in the heading.
+- 'Include sparkline graphs?' true or false
 - **Yes/No items**: Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
-- #hashtags to **count**: e.g. '#tv, #podcast'
+- #hashtags to **count**: e.g. '#tv, #podcast' -- the simple count of all such tags is displayed
 - #mentions to **total**: e.g. '#steps' -- these are counted and displayed as a total
 - #mentions to **average**: e.g. '#fruitveg' -- these are counted and displayed as an average (to 3 significant figures)
 
-- @mentions to **count**: e.g. '@work' -- these are counted and displayed with count, total and average
+- @mentions to **count**: e.g. '@work' -- the simple count of all such tags is displayed
 - @mentions to **total**: e.g. '@distance, @run' -- these are counted and displayed as a total
 - @mentions to **average**: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average (to 3 significant figures)
 - Yes/No characters: sets the pair of characters to use as Yes and No in output of "Yes/No items". The first is for Yes, the second for No. Here are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□. (You can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.)
 - Exclude today's entries? Whether to exclude today's entries in progress updates. Can be enabled if you tend to run the progress update as part of a start-of-day routine, and only add the updates later in the day.
-- 'Include sparkline graphs?' true or false
 
 ### Calling from a Template
 This command can be used in any Template, but is particularly designed to be used from a "Daily Note Template" by including a '**progressUpdate()**' command tag in a template such as:
@@ -166,10 +166,13 @@ The settings for this command are:
 - Hashtag counts heading: e.g. '#hashtag counts',
 - Mention counts heading: e.g. '@mention counts'
 - Show hashtag or mention as links?
+- Include sparkline graphs?
 - **Yes/No items**: Comma-separated list of #hashtags and/or @mentions to track by 'did I do it this day or not?'. e.g. '#closedrings, #prayed, #tookMeds'
 - #hashtags to **count**: e.g. '#tv, #podcast'
-- #hashtags to **exclude**: e.g. ''
-- @mentions to **exclude**: e.g. '@done', '@repeat'
+- #hashtags to **average**: e.g. '#maxHeartRate' -- these are counted and displayed as an average
+- #hashtags to **total**: e.g. '#distance' -- these are counted and displayed as a total
+<!-- - #hashtags to **exclude**: e.g. ''
+- @mentions to **exclude**: e.g. '@done', '@repeat' -->
 - @mentions to **count**: e.g. '@work' -- these are counted and displayed with count, total and average
 - @mentions to **average**: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average
 - @mentions to **total**: e.g. '@distance, @run' -- these are counted and displayed as a total

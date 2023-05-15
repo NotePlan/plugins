@@ -20,6 +20,7 @@ import {
   getWeek, hyphenatedDate, unhyphenatedDate
 } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
+import { noteOpenInEditor } from '@helpers/NPWindows'
 import { logDebug, logError, logInfo, timer } from '@helpers/dev'
 import { CaseInsensitiveMap, displayTitle } from '@helpers/general'
 import { getOrMakeNote, printNote, replaceSection } from '@helpers/note'
@@ -52,13 +53,13 @@ export async function statsPeriod(): Promise<void> {
     const fromDateStr = hyphenatedDate(fromDate)
     const toDateStr = hyphenatedDate(toDate)
     logInfo(pluginJson, `statsPeriod: starting for ${periodString} (${fromDateStr} - ${toDateStr})`)
-    const calendarNoteType =
+    const calendarTimeframe =
       (periodType === 'userwtd' || periodType === 'wtd' || periodType === 'lw' || periodType === 'ow') ? 'week'
         : (periodType === 'mtd' || periodType === 'lm' || periodType === 'om') ? 'month'
           : (periodType === 'qtd' || periodType === 'lq' || periodType === 'oq') ? 'quarter'
             : (periodType === 'ytd' || periodType === 'ly' || periodType === 'oy') ? 'year'
               : '(error)'
-    if (calendarNoteType === '(error)') {
+    if (calendarTimeframe === '(error)') {
       throw new Error(`Error: I can't handle periodType '${periodType}'`)
     }
 
@@ -66,10 +67,24 @@ export async function statsPeriod(): Promise<void> {
     CommandBar.showLoading(true, `Creating Period Stats`)
     await CommandBar.onAsyncThread()
 
-    // Main work: calculate the occurrences as an array of strings
-    const tmOccurrencesArray = await gatherOccurrences(periodString, fromDateStr, toDateStr, config.includeHashtags, config.excludeHashtags, config.includeMentions, config.excludeMentions, config.periodStatsYesNo, config.periodStatsMentions, config.periodStatsMentionsAverage, config.periodStatsMentionsTotal)
+    // Main work: calculate the occurrences, using config settings and the time period info
+    const settingsForGO = {
+      GOYesNo: config.periodStatsYesNo,
+      GOHashtagsCount: config.includeHashtags,
+      GOHashtagsExclude: [],
+      GOHashtagsAverage: config.periodStatsHashtagsAverage,
+      GOHashtagsTotal: config.periodStatsHashtagsTotal,
+      GOMentionsCount: config.periodStatsMentions,
+      GOMentionsExclude: [],
+      GOMentionsAverage: config.periodStatsMentionsAverage,
+      GOMentionsTotal: config.periodStatsMentionsTotal,
+    }
+    const tmOccurrencesArray = await gatherOccurrences(periodString,
+      fromDateStr,
+      toDateStr,
+      settingsForGO)
 
-    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, true).join('\n')
+    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.periodStatsShowSparklines, true).join('\n')
 
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
@@ -87,7 +102,7 @@ export async function statsPeriod(): Promise<void> {
       outputOptions.unshift({ label: `🖊 Create/update a note in folder '${config.folderToStore}'`, value: 'note' })
     }
     if (NotePlan.environment.buildVersion >= 917) { // = 3.7.2 beta
-      outputOptions.unshift({ label: `📅 Add/Update the ${calendarNoteType}ly calendar note '${periodString}'`, value: 'calendar' })
+      outputOptions.unshift({ label: `📅 Add/Update the ${calendarTimeframe}ly calendar note '${periodString}'`, value: 'calendar' })
     }
     const destination = await chooseOption(`Where to save the summary for ${periodString}?`, outputOptions, 'note')
 
@@ -114,7 +129,7 @@ export async function statsPeriod(): Promise<void> {
           await showMessage('There was an error getting the new note ready to write')
         } else {
 
-          // logDebug('statsPeriod', `- about to update section '${config.statsHeading}' in weekly note '${note.filename}' for ${periodAndPartStr}`)
+          // logDebug('statsPeriod', `- about to update section '${config.statsHeading}' in note '${note.filename}' for ${periodAndPartStr}`)
           // Replace or add output section
           replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
           logDebug('statsPeriod', `Written results to note '${periodString}'`)
@@ -131,14 +146,27 @@ export async function statsPeriod(): Promise<void> {
       case 'calendar': {
         // Weekly note (from v3.6) or Monthly / Quarterly / Yearly (from v3.7.2)
         const todaysDate = getJSDateStartOfToday()
-
-        logDebug('statsPeriod', `- opening ${calendarNoteType} note that starts ${fromDateStr}`)
-        // TODO: when API makes this possible, make it only open a new window if not already open. Note: could work around this by writing a new func to go from fromDate+calendarNoteType -> expected filename, but I'm hoping EM will sort this soon.
-        const temp = await Editor.openNoteByDate(fromDate, false, 0, 0, true, calendarNoteType)
-        const { note } = Editor
+        // TODO: when API makes this possible, make it only open a new window if not already open.
+        const calNoteAtFromDate = DataStore.calendarNoteByDate(fromDate, calendarTimeframe)
+        if (!calNoteAtFromDate) {
+          throw new Error(`Couldn't get calendar note for ${periodString}`)
+        }
+        let note: TNote = calNoteAtFromDate
+        let filenameForCalDate = calNoteAtFromDate?.filename
+        if (!filenameForCalDate || !noteOpenInEditor(filenameForCalDate)) {
+          logDebug('statsPeriod', `- opening ${calendarTimeframe} note ${filenameForCalDate ?? '<error>'}`)
+          const res = await Editor.openNoteByDate(fromDate, false, 0, 0, true, calendarTimeframe)
+          if (res) {
+            note = res
+            filenameForCalDate = note.filename
+          }
+        } else {
+          logDebug('statsPeriod', `- ${calendarTimeframe} note ${filenameForCalDate} already open`)
+          note = calNoteAtFromDate
+        }
         if (note == null) {
-          logError('statsPeriod', `cannot get Calendar note`)
-          await showMessage('There was an error getting the Calendar ready to write')
+          logError('statsPeriod', `cannot get Calendar note for ${filenameForCalDate}`)
+          await showMessage(`There was an error getting the Calendar note ${filenameForCalDate} ready to write`)
         } else {
           // // If note doesn't appear to have a title, then insert one
           // if (note.paragraphs.length === 0 || note.paragraphs[0].headingLevel !== 1) {
