@@ -1954,8 +1954,6 @@ static + editors: Array < TEditor >;
 static + htmlWindows: Array < HTMLView >;
 }
 
-
-
 declare class HTMLView {
   // Impossible constructor.
   constructor(_: empty): empty;
@@ -2047,6 +2045,9 @@ close(): void;
  */
 windowRect: Rect;
 }
+
+/** JGC: I'm not entirely sure about this next line, but Window is some sort of thing. */
+type Window = HTMLView | Editor;
 
 type FetchOptions = {
   /* all optional */
