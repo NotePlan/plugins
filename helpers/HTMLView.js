@@ -6,7 +6,7 @@
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn, JSP } from '@helpers/dev'
-import { setHTMLWindowId } from '@helpers/NPWindows'
+import { getStoredWindowRect, isHTMLWindowOpen, rectToString, setHTMLWindowId, storeWindowRect } from '@helpers/NPWindows'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -28,8 +28,9 @@ export type HtmlWindowOptions = {
   height?: number,
   x?: number,
   y?: number,
+  reuseUsersWindowRect?: boolean,
   includeCSSAsJS?: boolean,
-  customID?: string,
+  customId?: string,
   shouldFocus?: boolean,
 }
 
@@ -125,7 +126,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push(`color: ${thisColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('body', tempSel))
-      tempSel = styleObj.size // TODO:
+      // tempSel = styleObj.size // TEST:
       rootSel.push(`--fg-main-color: ${RGBColourConvert(themeJSON?.editor?.textColor)}` ?? '#CC6666')
     }
 
@@ -174,7 +175,6 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     rootSel.push(`--bg-alt-color: ${altColor}`)
     const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
     rootSel.push(`--tint-color: ${tintColor}`)
-    // TODO: make some of this more specific so it can be turned on in Reviews but not applied generally
 
     // Set core button style from macOS based on dark or light:
     // Similarly for fake-buttons (i.e. from <a href ...>)
@@ -694,6 +694,7 @@ export function pruneTheme(themeObj: any): any {
 /**
  * Get the basic colors for CSS-in-JS
  * All code lifted from @jgclark CSS conversion above - thank you!
+ * @author @dwertheimer
  * @param {any} themeJSON - theme file (e.g. theme.values) from Editor
  */
 const getBasicColors = (themeJSON: any) => {
@@ -714,6 +715,7 @@ const getBasicColors = (themeJSON: any) => {
 /**
  * Get the current theme as a JSON string that can be passed to Javascsript in the HTML window for CSS-in-JS styling
  * Mainly, we are doing this to get the Editor object with the core styles, but we can also get the custom styles (optionally)
+ * @author @dwertheimer
  * @param {boolean} cleanIt - clean properties we know we won't use to save space (default: true, set to false for no pruning/cleaning)
  * @param {boolean} includeSpecificStyles - include the "styles" object with all the specific custom styles (default: false)
  * @returns {any} - object to be stringified or null if there are no styles to send
@@ -732,6 +734,7 @@ export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boole
 }
 
 /**
+ * WARNING: Deprecated. Please use more advanced features in showHTMLV2() instead.
  * Convenience function for opening HTML Window with as few arguments as possible
  * Automatically adds the error bridge to bring console log errors back to NP
  * You should add your own callback bridge to get data back from the HTML window to your plugin (see getCallbackCodeString() above)
@@ -812,6 +815,13 @@ export function generateScriptTags(scripts: string | ScriptObj | Array<string | 
   return output.join('\n')
 }
 
+/**
+ * Assemble/collate the HTML to use from its various parts.
+ * @author @jgclark
+ * @param {string} body
+ * @param {HtmlWindowOptions} winOpts
+ * @returns
+ */
 function collateHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
   try {
     const fullHTML = []
@@ -827,7 +837,7 @@ function collateHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
     fullHTML.push(winOpts.headerTags)
     fullHTML.push('<style type="text/css">')
     // If generalCSSIn is empty, then generate it from the current theme
-    // TODO: ideally extend to save CSS from theme, and then check if it can be reused.
+    // Note: ideally extend this to save CSS from theme, and then check if it can be reused.
     const generalCSS = winOpts.generalCSSIn && winOpts.generalCSSIn !== '' ? winOpts.generalCSSIn : generateCSSFromTheme('')
     fullHTML.push(generalCSS)
     fullHTML.push(winOpts.specificCSS)
@@ -850,6 +860,7 @@ function collateHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
 }
 
 /**
+ * WARNING: Deprecated. Please use more advanced features in showHTMLV2() instead.
  * Helper function to construct HTML to show in a new window.
  * Note: used up to v3.9.2 before more advanced window handling possible.
  * Note: if customID not passed, it will fall back to using windowTitle
@@ -866,7 +877,7 @@ function collateHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
  * @param {string?} filenameForSavedFileVersion
  * @param {number?} width
  * @param {number?} height
- * @param {string?} customID
+ * @param {string?} customId
  */
 export function showHTML(
   windowTitle: string,
@@ -880,7 +891,7 @@ export function showHTML(
   filenameForSavedFileVersion: string = '',
   width?: number,
   height?: number,
-  customID: string = '',
+  customId: string = '',
 ): void {
   try {
     const opts: HtmlWindowOptions = {
@@ -914,10 +925,10 @@ export function showHTML(
       }
     }
 
-    // Set customID for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
+    // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
     // TODO(Eduard): has said he will roll this into .showWindow()
     if (NotePlan.environment.buildVersion >= 976) {
-      setHTMLWindowId(customID ?? windowTitle)
+      setHTMLWindowId(customId ?? windowTitle)
     }
 
     // If wanted, also write this HTML to a file so we can work on it offline.
@@ -938,27 +949,35 @@ export function showHTML(
 }
 
 /**
- * V2 helper function to construct HTML to show in a new window.
- * TODO: Also helps deal automatically with saving window positions/sizes.
+ * V2 helper function to construct HTML and decide how and where to show it in a window.
+ * TODO: Read automatically from saved pref for windowRect, falling back to defaults
+ * TODO: Allow for style file when we can save arbitrary data files (and have it triggered on theme change), not just read them.
  * Note: requires NP v3.9.2
- * Note: if customID not passed, it will fall back to using windowTitle
+ * Note: if customId not passed, it will fall back to using windowTitle
  * @param {string} body
  * @param {HtmlWindowOptions} opts
  */
 export async function showHTMLV2(
   body: string,
   opts: HtmlWindowOptions,
-): Promise<HTMLView | boolean> {
+): Promise<Window | boolean> {
   try {
     if (NotePlan.environment.buildVersion < 1030) {
       logError('HTMLView / showHTMLV2', 'showHTMLV2 is only available on 3.9.1+')
       return false
     }
 
-    clo(opts, 'showHTMLV2 starting with options:')
+    // clo(opts, 'showHTMLV2 starting with options:')
     const fullHTMLStr = collateHTMLParts(body, opts)
+    const cId = opts.customId ?? ''
 
-    // Call the appropriate function, with or without h/w params.
+    // Before showing anything, see if the window is already open, and if so save its x/y/w/h (if requested)
+    if (opts.reuseUsersWindowRect && isHTMLWindowOpen(cId)) {
+      logDebug('showHTMLV2', `Window is already open, and will save its x/y/w/h`)
+      storeWindowRect(cId)
+    }
+
+    // Decide which of the appropriate functions to call.
     if (opts.makeModal || NotePlan.environment.platform !== 'macOS') {
       logDebug('showHTMLV2', `Using modal 'sheet' view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
       if (opts.width === undefined || opts.height === undefined) {
@@ -967,15 +986,41 @@ export async function showHTMLV2(
         HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
       }
     } else {
-      const winOptions = {
-        x: opts.x,
-        y: opts.y,
-        width: opts.width,
-        height: opts.height,
-        shouldFocus: opts.shouldFocus
+      let winOptions = {}
+      // Try to use saved x/y/w/h for this window if available
+      if (opts.reuseUsersWindowRect) {
+        if (cId) {
+          logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
+          const storedRect = getStoredWindowRect(cId)
+          if (storedRect) {
+            winOptions = {
+              x: storedRect.x,
+              y: storedRect.y,
+              width: storedRect.width,
+              height: storedRect.height - 52, // TODO(@Eduard): why is this needed?
+              shouldFocus: opts.shouldFocus
+            }
+            logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
+          }
+        } else {
+          logWarn('showHTMLV2', `- not passed a customId`)
+        }
+      }
+
+      if (!winOptions) {
+        // Use the default values
+        logDebug('showHTMLV2', `- Using default Rect for window`)
+        winOptions = {
+          x: opts.x,
+          y: opts.y,
+          width: opts.width,
+          height: opts.height,
+          shouldFocus: opts.shouldFocus,
+          // Note: can't set customId, but only long UID ('id')
+        }
       }
       clo(winOptions, 'subset of options for API call:')
-      const win: HTMLView = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1
+      const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
       clo(win, '-> win:')
 
       // If wanted, also write this HTML to a file so we can work on it offline.
@@ -992,18 +1037,12 @@ export async function showHTMLV2(
         }
       }
 
-      // Set customID for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
-      // TODO(Eduard): has said he will roll this into .showWindow()
-      const customIdToUse = opts.customID ?? opts.windowTitle
-      setHTMLWindowId(customIdToUse)
+      // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
+      const customIdToUse = opts.customId ?? opts.windowTitle
       win.customId = customIdToUse
-      // TEST: read this back from the window itself
-      logDebug('showHTMLV2', `- Set window customId to '${win.customId}'`)
+      // Read this back from the window itself
+      logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
 
-      // Save window details to its unique local preference
-      // TEST:
-      DataStore.setPreference(customIdToUse, win)
-      clo(DataStore.preference(customIdToUse), `- saved pref ${customIdToUse}: `)
       return win
     }
   } catch (error) {
@@ -1121,8 +1160,8 @@ export async function sendToHTMLWindow(actionType: string, data: any = {}, updat
  * Returns actual object or undefined if the global var doesn't exist (along with some noisy log errors)
  * See notes above
  * NOTE: this function should only be called after the window has fully set up, the global var has been set
- * @param {string} varName - the name of the global variable to be updated (by default "globalSharedData")
  * @author @dwertheimer
+ * @param {string} varName - the name of the global variable to be updated (by default "globalSharedData")
  * @returns {Object} - the current state of globalSharedData
  */
 export async function getGlobalSharedData(varName: string = 'globalSharedData'): any {
@@ -1136,13 +1175,11 @@ export async function getGlobalSharedData(varName: string = 'globalSharedData'):
 }
 
 /**
- * Generally, we will try not to update the global shared object directly, but instead use message passing
- * to let React update the state. But there will be times we need to update the state
- * from here (e.g. when we hit limits of message passing)
+ * Generally, we will try not to update the global shared object directly, but instead use message passing to let React update the state. But there will be times we need to update the state from here (e.g. when we hit limits of message passing).
+ * @author @dwertheimer
  * @param {any} data - the full object to be written to globalSharedData (SHARED DATA MUST BE OBJECTS)
  * @param {boolean} mergeData - if true (default), will merge the new data with the existing data, if false, will fully overwrite
  * @param {string} varName - the name of the global variable to be updated (by default "globalSharedData")
- * @author @dwertheimer
  * @returns {any} returns the result of the runJavaScript call, which in this case is typically identical to the data passed
  * ...and so can probably be ignored
  */

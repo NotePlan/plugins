@@ -62,8 +62,8 @@ export type dashboardConfigType = {
   ignoreFolders: Array<string>,
   includeFolderName: boolean,
   includeTaskContext: boolean,
-  windowWidth: number,
-  windowHeight: number,
+  // windowWidth: number, // now trying to handle automtically from v0.4.2
+  // windowHeight: number, // now trying to handle automtically from v0.4.2
   _logLevel: string,
   triggerLogging: boolean,
 }

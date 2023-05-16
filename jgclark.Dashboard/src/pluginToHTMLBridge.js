@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 27.3.2023 for v0.3.3 by @jgclark
+// Last updated 27.3.2023 for v0.4.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,11 +10,14 @@ import { getNPWeekStr, getTodaysDateUnhyphenated, RE_DATE_TIME } from '@helpers/
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { completeItem, getParagraphFromStaticObject, highlightParagraphInEditor } from '@helpers/NPParagraph'
+import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------
-// Data types
+// Data types + constants
 
 type MessageDataObject = { itemID: string, type: string, filename: string, rawContent: string }
+
+const windowCustomId = 'Dashboard'
 
 //-----------------------------------------------------------------
 
@@ -43,7 +46,6 @@ export function onMessageFromHTMLView(type: string, data: MessageDataObject): an
 /**
  * Somebody clicked on a something in the HTML view
  * @param {MessageDataObject} data - details of the item clicked
- * onClickDashboardItem: invalid data:
  */
 export async function onClickDashboardItem(data: MessageDataObject) {
   try {
@@ -99,8 +101,17 @@ export async function onClickDashboardItem(data: MessageDataObject) {
       }
     }
     else if (type === 'windowResized') {
-      logDebug(pluginJson, `windowResized triggered on plugin side`)
-      // TODO: something more useful
+      // logWindowsList()
+      logDebug(pluginJson, `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
+      clo(data)
+      const thisWin = getWindowFromCustomId(windowCustomId)
+      // const rect = getLiveWindowRectFromWin(thisWin)
+      const rect: Rect = JSON.parse(data.rawContent)
+      clo(rect)
+      if (rect) {
+        logDebug('oCDI/windowResized', rectToString(rect))
+        applyRectToWindow(rect)
+      }
     }
     else if (type === 'showNoteInEditorFromFilename') {
       // Handle a show note call simply by opening the note in the main Editor.
@@ -167,6 +178,6 @@ export async function onClickDashboardItem(data: MessageDataObject) {
   //   logError(pluginJson, `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
   // }
   } catch (error) {
-    logError(pluginJson, 'onClickDashboardItem:' + JSP(error))
+    logError(pluginJson, 'onClickDashboardItem:' + error.message)
   }
 }

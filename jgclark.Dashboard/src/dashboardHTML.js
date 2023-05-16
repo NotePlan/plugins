@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 12.4.2023 for v0.4.1 by @jgclark
+// Last updated 15.5.2023 for v0.4.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -19,7 +19,10 @@ import { getDateStringFromCalendarFilename, toLocaleTime } from '@helpers/dateTi
 import { getFolderFromFilename } from '@helpers/folders'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
-import { showHTML } from '@helpers/HTMLView'
+import {
+  // showHTML,
+  showHTMLV2
+} from '@helpers/HTMLView'
 import { getNoteType } from '@helpers/note'
 import { decodeRFC3986URIComponent, encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
@@ -28,7 +31,7 @@ import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
 //-----------------------------------------------------------------
 // HTML resources
 
-const windowCustomID = 'Dashboard'
+const windowCustomId = 'Dashboard'
 
 // Note: this "../np.Shared" path works to the flattened np.Shared structure, but it does *not* work when running the locally-written copy of the HTML output file.
 export const resourceLinksInHeader = `
@@ -59,7 +62,11 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
 <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
 `
 
-const postLoadScripts = `
+/**
+ * Attempt to add a key listener added to all checklist items
+ * TODO: Not yet working.
+ */
+const shiftKeyListenerScript = `
 <script type="text/javascript">
 document.getElementById("mainTable").addEventListener("load", addEventHandlersFunc);
 
@@ -72,10 +79,31 @@ function addEventHandlersFunc() {
   }
   console.log('ELs added');
 }
+</script>
+`
 
+/**
+ * When window is resized, send dimensions to plugin. Note: doesn't fire on window *move* alone.
+ */
+const resizeListenerScript = `
+<script type="text/javascript">
 window.addEventListener("resize", function(){
-  console.log("resize event triggered in window: inner dimensions now w"+String(window.innerWidth)+":h"+String(window.innerHeight));
-  onClickDashboardItem('dummy', 'windowResized', 'dummy', 'dummy');
+  const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.outerHeight };
+  console.log("resize event triggered in window: inner dimensions now w"+String(window.innerWidth)+":h"+String(window.innerHeight)+"/"+String(window.outerHeight));
+  onClickDashboardItem('dummy', 'windowResized', 'dummy', JSON.stringify(rect));
+})
+</script >
+`
+
+/**
+ * Before window is closed, attempt to send dimensions to plugin.
+ */
+const unloadListenerScript = `
+<script type="text/javascript">
+window.addEventListener("beforeunload", function(){
+  const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.innerHeight };
+  console.log('beforeunload event triggered in window');
+  onClickDashboardItem('dummy', 'windowResized', 'dummy', JSON.stringify(rect));
 })
 </script>
 `
@@ -166,7 +194,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
         }
       }
       // close col1
-      outputArray.push(`</p>\n   </td>`)
+      outputArray.push(`    </p>\n   </td>`)
 
       // // Prepare col 1 (section icon)
       // outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
@@ -294,41 +322,67 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
     let summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; `
     summaryStatStr += `<span id="totalDoneCount">${String(totalDoneItems)}</span> closed`
     outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}</p>`)
-    // outputArray.unshift(`<p id="error"></p>`) // TEST: is this needed?
 
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
     const windowTitle = `Dashboard (${totalOpenItems} items)`
     const filenameHTMLCopy = config._logLevel === 'DEBUG' ? '../../jgclark.Dashboard/dashboard.html' : ''
-    await showHTML(
-      windowTitle,
-      resourceLinksInHeader,
-      outputArray.join('\n'),
-      '', // get general CSS set automatically
-      '',
-      false, // = not modal window
-      '', // no extra JS
-      commsBridge + postLoadScripts,
-      filenameHTMLCopy,
-      config.windowWidth > 0 ? config.windowWidth : 1000, // = width of window
-      config.windowHeight > 0 ? config.windowHeight : 500, // = height of window
-      // windowCustomID,
-      // false // shouuld not focus, if Window already exists
-    ) // set width; max height
+
+    const winOptions = {
+      windowTitle: windowTitle,
+      headerTags: resourceLinksInHeader,
+      generalCSSIn: '', // get general CSS set automatically
+      specificCSS: '', // set in separate CSS file instead
+      makeModal: false, // = not modal window
+      preBodyScript: '', // no extra pre-JS
+      postBodyScript: commsBridge, // + resizeListenerScript + unloadListenerScript,
+      savedFilename: filenameHTMLCopy,
+      reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
+      width: 1000, // = default width of window (px)
+      height: 500, // = default height of window (px)
+      customId: windowCustomId,
+      shouldFocus: false, // shouuld not focus, if Window already exists
+      // x
+      // y
+    }
+    await showHTMLV2(outputArray.join('\n'), winOptions)
+    // await showHTML(
+    //   windowTitle,
+    //   resourceLinksInHeader,
+    //   outputArray.join('\n'),
+    //   '', // get general CSS set automatically
+    //   '',
+    //   false, // = not modal window
+    //   '', // no extra JS
+    //   commsBridge + postLoadScripts,
+    //   filenameHTMLCopy,
+    //   config.windowWidth > 0 ? config.windowWidth : 1000, // = width of window
+    //   config.windowHeight > 0 ? config.windowHeight : 500, // = height of window
+    //   // windowCustomId,
+    //   // false // shouuld not focus, if Window already exists
+    // ) // set width; max height
     logDebug(`makeDashboard`, `written to HTML window`)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
 }
 
+/**
+ * Prepend an open task to 'calNoteFilename' calendar note, using text we prompt the user for
+ * @param {string} calNoteFilename to prepend the task to
+ */
 export async function addTask(calNoteFilename: string): Promise<void> {
   const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
   logDebug('addTask', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`)
-  await prependTodoToCalendarNote('open', calNoteDateStr)
+  await prependTodoToCalendarNote('task', calNoteDateStr)
   // trigger window refresh
   await showDashboardHTML()
 }
 
+/**
+ * Prepend an open checklist to 'calNoteFilename' calendar note, using text we prompt the user for
+ * @param {string} calNoteFilename to prepend the task to
+ */
 export async function addChecklist(calNoteFilename: string): Promise<void> {
   const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
   logDebug('addChecklist', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`)

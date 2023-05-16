@@ -212,67 +212,138 @@ export function getWindowFromId(windowId: string): TEditor | HTMLView | false {
   // First loop over all Editor windows
   const allEditorWindows = NotePlan.editors
   for (const thisWindow of allEditorWindows) {
-    if (thisWindow.customId === windowId) {
+    if (thisWindow.id === windowId) {
       return thisWindow
     }
   }
   // And if not found so far, then all HTML windows
   const allHTMLWindows = NotePlan.htmlWindows
   for (const thisWindow of allHTMLWindows) {
-    if (thisWindow.customId === windowId) {
+    if (thisWindow.id === windowId) {
       return thisWindow
     }
   }
-  logWarn('getWindowFromId', `Couldn't find window matching '${windowId}'`)
+  logWarn('getWindowFromId', `Couldn't find window matching id '${windowId}'`)
+  return false
+}
+
+export function getWindowFromCustomId(windowCustomId: string): TEditor | HTMLView | false {
+  // First loop over all Editor windows
+  const allEditorWindows = NotePlan.editors
+  for (const thisWindow of allEditorWindows) {
+    if (thisWindow.customId === windowCustomId) {
+      return thisWindow
+    }
+  }
+  // And if not found so far, then all HTML windows
+  const allHTMLWindows = NotePlan.htmlWindows
+  for (const thisWindow of allHTMLWindows) {
+    if (thisWindow.customId === windowCustomId) {
+      return thisWindow
+    }
+  }
+  logWarn('getWindowFromCustomId', `Couldn't find window matching customId '${windowCustomId}'`)
   return false
 }
 
 /**
  * Save the Rect (x/y/w/h) of the given window, given by its ID, to the local device's NP preferences store.
- * @param {string} windowId
+ * @param {string} customId
  */
-export function storeWindowRect(windowId: string): void {
+export function storeWindowRect(customId: string): void {
   if (NotePlan.environment.buildVersion < 1020) {
     logDebug('storeWindowRect', `Cannot save window rect as not running v3.9.1 or later.`)
     return
   }
-  // Find the window by its windowId
-  const thisWindow = getWindowFromId(windowId)
+  // Find the window by its customId
+  const thisWindow = getWindowFromCustomId(customId)
   if (thisWindow) {
-    // Get its Rect
+    // Get its Rect from the live window
     const windowRect: Rect = thisWindow.windowRect
-    const prefName = `HTMLWinRect_${windowId}`
+    const prefName = `WinRect_${customId}`
     DataStore.setPreference(prefName, windowRect)
     logDebug('storeWindowRect', `Saved Rect ${rectToString(windowRect)} to ${prefName}`)
   } else {
-    logWarn('storeWindowRect', `Couldn't save Rect for '${windowId}'`)
+    logWarn('storeWindowRect', `Couldn't save Rect for '${customId}'`)
   }
 }
 
 /**
- * Get the Rect (x/y/w/h) of the given window, given by its ID, from the local device's NP preferences store.
+ * Get the Rect (x/y/w/h) of the given window, given by its ID, from the local device's NP preferences store
+ * @param {string} customId
+ * @returns {Rect} the Rect (x/y/w/h)
+ */
+export function getStoredWindowRect(customId: string): Rect | false {
+  try {
+    if (NotePlan.environment.buildVersion < 1020) {
+      logWarn('getWindowRect', `Cannot get window rect as not running v3.9.1 or later.`)
+      return false
+    }
+    const prefName = `WinRect_${customId}`
+    // $FlowFixMe[incompatible-type]
+    const windowRect: Rect = DataStore.preference(prefName)
+    clo(windowRect, `Retrieved Rect ${rectToString(windowRect)} from saved pref '${prefName}'`)
+    return windowRect
+  } catch (error) {
+    logError('getStoredWindowRect', error.message)
+    return false
+  }
+}
+
+/**
+ * Get the Rect (x/y/w/h) of the given live window, given by its 'id' (or if 'id' is blank, from the first HTML Window)
  * @param {string} windowId
  * @returns {Rect} the Rect (x/y/w/h)
  */
-export function getWindowRect(windowId: string): Rect | false {
+export function getLiveWindowRect(windowId: string): Rect | false {
   if (NotePlan.environment.buildVersion < 1020) {
-    logDebug('getWindowRect', `Cannot save window rect as not running v3.9.1 or later.`)
+    logWarn('getLiveWindowRect', `Cannot get window rect as not running v3.9.1 or later.`)
     return false
   }
-  const prefName = `HTMLWinRect_${windowId}`
-  const windowRect: Rect = DataStore.preference(prefName)
-  clo(windowRect, `Retrieved Rect ${rectToString(windowRect)} from ${prefName}`)
-  return windowRect
+  const windowToUse = (windowId !== '') ? getWindowFromId(windowId) : NotePlan.htmlWindows[0]
+  if (windowToUse) {
+    const windowRect: Rect = windowToUse.windowRect
+    clo(windowRect, `getLiveWindowRect(): Retrieved ${rectToString(windowRect)} from win id '${windowId}'`)
+    return windowRect
+  } else {
+    logWarn('getLiveWindowRect', `Couldn't retrieve windowRect from win id '${windowId}'`)
+    return false
+  }
 }
 
 /**
- * Sets the height of the first HTML window in NotePlan to the given height value.
- * @param {number} [height=700] - The height value to set the window to. Defaults to 700.
+ * Get the Rect (x/y/w/h) of the given live window, given the Window's reference (available from showWindowWithOptions() call)
+ * Note: this is a long-winded way of saying 'thisWindow.windowRect' in simple cases.
+ * @param {Window} win
+ * @returns {Rect} the Rect (x/y/w/h)
  */
-export function setHTMLWinHeight(height: number = 700): void {
-  const thisWin = NotePlan.htmlWindows[0]
-  const thisWinRect = thisWin.windowRect
-  logDebug('setHTMLWinHeight', `Try to set height to ${String(height)} for HTML window '${thisWin.customId ?? ''}'`)
-  thisWinRect.height = height
-  logDebug('setHTMLWinHeight ->', rectToString(thisWinRect))
+export function getLiveWindowRectFromWin(win: Window): Rect | false {
+  if (NotePlan.environment.buildVersion < 1020) {
+    logWarn('getLiveWindowRectFromWin', `Cannot get window rect as not running v3.9.1 or later.`)
+    return false
+  }
+  if (win) {
+    const windowRect: Rect = win.windowRect
+    // clo(windowRect, `getLiveWindowRectFromWin(): Retrieved Rect ${rectToString(windowRect)}:`)
+    return windowRect
+  } else {
+    logWarn('getLiveWindowRectFromWin', `Invalid window parameter`)
+    return false
+  }
+}
+
+/**
+ * Sets the x/y/w/h of the passed HTMLWindow ref, or if not given the first HTMLWindow.
+ * @param {Rect} rect - {x,y,w,h} to set the window
+ * @param {HTMLView?} thisWinId (optional) window reference
+ */
+export function applyRectToWindow(rect: Rect, customId?: string): void {
+  const winToUse = customId ? getWindowFromCustomId(customId) : NotePlan.htmlWindows[0]
+  // logDebug('applyRectToWindow', `Trying to set Rect for window '${customId ?? 'HTML[0]'}'`)
+  if (winToUse) {
+    winToUse.windowRect = rect
+    logDebug('applyRectToWindow', `Set Rect for window '${customId ?? 'HTML[0]'}' -> ${rectToString(winToUse.windowRect)}`)
+  } else {
+    logWarn('applyRectToWindow', `Can't get valid window from ${customId ?? 'HTML[0]'}`)
+  }
 }

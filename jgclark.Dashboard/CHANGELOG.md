@@ -1,14 +1,13 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
-
+<!-- ??? there is currently an issue with the height, which means that comes back slightly larger than wanted each time. -->
 ## [0.4.2] - 2023-04-???
 ### Added
 - now shows an 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of the current daily/weekly/monthly/quarterly note
-### Changes
-- ??? windowing things
-- when the dashboard window is refreshed in the background by a trigger, it will no longer 'steal focus' by bringing the window to the front.
-- ??? save last window position?
 - it now takes into account user's preferences for whether `*`, `-` and/or `1.` counts as the indicator for todos
+- it now saves the size and location of the Dashboard window when you move or resize it, and reuses it when you re-open it, or refresh it.
+### Changed
+- when the dashboard window is refreshed in the background by a trigger, it will no longer 'steal focus' by bringing the window to the front.
 - the cursor now changes when over the open task circle or checklist square, to help indicate it can be clicked
 
 ## [0.4.1] - 2023-04-16

@@ -134,17 +134,17 @@
     },
     {
       "key": "windowHeight",
-      "title": "Default window height",
+      "title": "Default window height. TODO: remove in time",
       "description": "Default window height (in pixels) when the dashboard is displayed",
-      "type": "number",
+      "type": "hidden",
       "default": 500,
       "required": false
     },
     {
       "key": "windowWidth",
-      "title": "Default window width",
+      "title": "Default window width. TODO: remove in time",
       "description": "Default window width (in pixels) when the dashboard is displayed",
-      "type": "number",
+      "type": "hidden",
       "default": 1000,
       "required": false
     },
