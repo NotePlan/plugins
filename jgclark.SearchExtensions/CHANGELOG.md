@@ -2,11 +2,13 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-<!-- FIXME: suffixes causing sync line problems. 
-- TODO: add type:checklist or type:open,checklist 
+<!-- FIXME: suffixes causing sync line problems.
+- TODO: add type:checklist or type:open,checklist
 - TODO: if no results just bring up a dialog and don't write a note
 - TODO: add new search operator type:checklist or type:open,checklist
 -->
+## [1.1.0-beta9] - 2023-05-17
+- fix to allow searching with Unicode characters (thanks to the report by @haris_sav and initial diagnosis by @dwertheimer)
 
 ## [1.1.0-beta8] - 2023-02-17 <!-- [tell JPR1972, DW, as, kennonb, modocache, stacey, jaredos] -->
 - fix to scheduled items getting synced in /searchOpenTasks results, released again to go with NP v3.8.1 build 973.
@@ -31,7 +33,7 @@
 ## [1.1.0-beta3] - 2022-12-13 <!-- [tell JPR1972, DW, as, kennonb] -->
 ### New
 - where there's an existing search results note, and the search is re-run, other text that you add before or after the results section is retained. (For @JPR1972)
-- 
+-
 ### Changed
 - will now give a warning to the user if more than 20 open tasks in results would result in Synced Lines being created. (This only applies if you're using the 'NotePlan' output style.)
 - removed the restriction that stopped you using 1- or 2-character search terms, now that you can opt to limit the number of search results returned
@@ -91,7 +93,7 @@
 - provides x-callback entry points for these searches, and provides options for restricting searches to certain types of line -- see the [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions) for details.
 - added an API call for this that also allows restricting search to one or more paragraph types (e.g. 'open' for incomplete tasks), through the last parameter on `runSearchV2(...)`.
 
-<!-- 
+<!--
 ### Todo
 - [ ] tidy up display in special case of matching H1
 - [ ] go through TODOs in searchHelpers.js

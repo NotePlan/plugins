@@ -470,6 +470,14 @@ describe('searchHelpers.js tests', () => {
       const result = normaliseSearchTerms('+bob "xxx",\'yyy\', !"asd\'sa" -\'bob two\' "" !hello', false)
       expect(result).toEqual(['+bob', 'xxx', 'yyy', "!asd'sa", '-bob two', '!hello'])
     })
+    test("test for Greek characters", () => {
+      const result = normaliseSearchTerms('γιάννης', false)
+      expect(result).toEqual(['γιάννης'])
+    })
+    test("test for Greek characters as an @mention", () => {
+      const result = normaliseSearchTerms('@γιάννης', false)
+      expect(result).toEqual(['@γιάννης'])
+    })
     // TODO: can't mix OR with +
   })
 

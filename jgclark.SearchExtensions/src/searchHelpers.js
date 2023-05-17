@@ -189,7 +189,12 @@ export function normaliseSearchTerms(
     // - and #hashtag/child and @mention(5) possibilities
     // - a word now may include any of ./!/#/-
     // To make it more manageable we need to add space to front and end
-    const RE_WOW = new RegExp(/\s([\-\+\!]?)([\-\+\!]?)(?:([\'"])(.+?)\3)|([\-\+\!]?[\w\.\!\-#@\/\(\)]+)/g)
+    // const RE_WOW = new RegExp(/\s([\-\+\!]?)([\-\+\!]?)(?:([\'"])(.+?)\3)|([\-\+\!]?[\w\.\!\-#@\/\(\)]+)/g)
+    // Following is attenpt to allow full unicode letter characters (\p{L}) and numbers (\p{N}) rather than ASCII (\w): (info from Dash.)
+    // const RE_WOW = new RegExp(/\s([\-\+\!]?)([\-\+\!]?)(?:([\'"])(.+?)\3)|([\-\+\!]?[\p{L}\.\!\-#@\/\(\)]+)/gu)
+    // Following also avoids 'classEscape' compilation errors
+    // FIXME: but breaks other things
+    const RE_WOW = new RegExp(/\s([\-\+!]?)([\-\+!]?)(?:(['"])(.+?)\3)|([\-\+!]?[\p{L}\p{N}\.!\-#@\/\(\)]+)/gu)
     const searchArgPadded = ' ' + searchArg + ' '
     const reResults = searchArgPadded.matchAll(RE_WOW)
     if (reResults) {
