@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "shared.AI",
   "plugin.name": "💡 NotePlan AI",
-  "plugin.version": "0.7.0-beta1",
-  "plugin.lastUpdateInfo": "0.7.0-beta1: Added retries because chatGPT is overloaded so often; added Xcallback/Templating command.\n0.5.0: add iOS settings editing v1 (for my mom); 0.4.3-beta2: Added summarize note/selection command and the start of some localizations. Look at the 'NotePlan AI' plugin preferences at the bottom for localization information.",
+  "plugin.version": "0.8.0",
+  "plugin.lastUpdateInfo": "0.8.0: Adding GPT-4 model choice",
   "plugin.description": "GPT integration for research, summarization, etc.",
   "plugin.author": "a man of mystery and @dwertheimer",
   "plugin.dependencies": [],
@@ -324,10 +324,9 @@
       "note": "************************************ UNUSED/DEPRECATED ****************************************"
     },
     {
-      "name": "Test Connection",
-      "description": "GPT-3 @ OpenAI",
+      "name": "OpenAI: Test Connection",
+      "description": "Show Models",
       "jsFunction": "testConnection",
-      "hidden": true,
       "alias": [],
       "arguments": [
         "test"
@@ -363,6 +362,15 @@
     {
       "type": "heading",
       "title": "ChatGPT Settings"
+    },
+    {
+      "key": "chatModel",
+      "title": "Chat model to use",
+      "description": "OpenAI model to use (assuming you have access to the model you choose)",
+      "type": "string",
+      "default": "gpt-3.5-turbo",
+      "required": true,
+      "choices": ["gpt-3.5-turbo","gpt-4"]
     },
     {
       "key": "numKeyTermsForFollowUp",

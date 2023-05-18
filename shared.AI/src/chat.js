@@ -2,7 +2,7 @@
 
 import moment from 'moment'
 
-const CHAT_MODEL = 'gpt-3.5-turbo'
+// const CHAT_MODEL = 'gpt-3.5-turbo'
 
 import { findParagraph } from '../../helpers/NPParagraph'
 import { createPrettyRunPluginLink } from '../../helpers/general'
@@ -38,10 +38,10 @@ export async function chatError(errorMessage: string, text?: string | null): Pro
  * @param {string} model
  * @returns
  */
-export function createInitialChatRequest(model: string = CHAT_MODEL): ChatRequest {
-  const { initialChatSystemPrompt } = DataStore.settings
+export function createInitialChatRequest(model: string = 'gpt-3.5-turbo'): ChatRequest {
+  const { initialChatSystemPrompt, chatModel } = DataStore.settings
   return {
-    model,
+    model: chatModel || model,
     messages: [{ role: 'system', content: initialChatSystemPrompt }],
   }
 }

@@ -4,6 +4,10 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/shared.AI/READ
 
 ## What's Changed?
 
+## [0.8.0] - 2023-05-16 (@dwertheimer)
+
+- Adding GPT-4 model choice1 
+
 ## [0.7.0-beta1] - 2023-03-31 (@dwertheimer)
 
 - Add getChat command for using in templates

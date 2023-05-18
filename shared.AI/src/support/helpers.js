@@ -14,6 +14,7 @@ export const modelOptions = {
   'text-babbage-001': 0.0005,
   'text-ada-001': 0.0004,
   'gpt-3.5-turbo': 0.002,
+  'gpt-4': 0.003,
 }
 
 const commandsPath = '/support/.readme_text/commands.md'
@@ -183,8 +184,8 @@ export async function checkModel() {
  */
 export async function chooseModel(_tokens?: number = 1000): Promise<string | null> {
   logDebug(pluginJson, `chooseModel tokens:${_tokens}`)
-  const models = (await makeRequest(modelsComponent))?.data
-  const filteredModels = models.filter((m) => modelOptions.hasOwnProperty(m.id))
+  const models = (await makeRequest('models'))?.data
+  const filteredModels = models?.filter((m) => modelOptions.hasOwnProperty(m.id)) || []
   if (filteredModels) {
     const modelsReturned = filteredModels.map((model) => {
       const cost = calculateCost(model.id, _tokens)
