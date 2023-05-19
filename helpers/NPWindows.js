@@ -56,17 +56,17 @@ export function logWindowsList(): void {
 
 /**
  * Set customId for the (single) HTML window
+ * Note: requires NP v3.8.1+
  * Note: In time, this will be removed, when @EduardMe rolls it into .showWindow() API
  * @author @jgclark
- * @param {string} customId
  * @param {string} customId
  */
 export function setHTMLWindowId(customId: string): void {
   if (NotePlan.environment.buildVersion >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
+    logDebug('setHTMLWindowId', `Starting with ${String(allHTMLWindows.length)} HTML windows`)
     const thisWindow = allHTMLWindows[0]
     if (thisWindow) {
-      thisWindow.customId = customId
       thisWindow.customId = customId
       logWindowsList()
     } else {

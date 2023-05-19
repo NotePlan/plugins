@@ -6,7 +6,7 @@
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logWarn, JSP } from '@helpers/dev'
-import { getStoredWindowRect, isHTMLWindowOpen, rectToString, setHTMLWindowId, storeWindowRect } from '@helpers/NPWindows'
+import { getStoredWindowRect, isHTMLWindowOpen, setHTMLWindowId, storeWindowRect } from '@helpers/NPWindows'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -822,7 +822,7 @@ export function generateScriptTags(scripts: string | ScriptObj | Array<string | 
  * @param {HtmlWindowOptions} winOpts
  * @returns
  */
-function collateHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
+function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
   try {
     const fullHTML = []
     fullHTML.push('<!DOCTYPE html>') // needed to let emojis work without special coding
@@ -864,7 +864,6 @@ function collateHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
  * Helper function to construct HTML to show in a new window.
  * Note: used up to v3.9.2 before more advanced window handling possible.
  * Note: if customID not passed, it will fall back to using windowTitle
- * TODO: Allow for style file when we can save arbitrary data files (and have it triggered on theme change), not just read them.
  *
  * @param {string} windowTitle
  * @param {string} headerTags
@@ -903,7 +902,7 @@ export function showHTML(
       postBodyScript: postBodyScript,
     }
     // clo(opts)
-    const fullHTMLStr = collateHTMLParts(body, opts)
+    const fullHTMLStr = assembleHTMLParts(body, opts)
 
     // Call the appropriate function, with or without h/w params.
     // Currently non-modal windows only available on macOS and from 3.7 (build 864)
@@ -926,8 +925,8 @@ export function showHTML(
     }
 
     // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
-    // TODO(Eduard): has said he will roll this into .showWindow()
     if (NotePlan.environment.buildVersion >= 976) {
+      // FIXME: Currently this is warning 0 HTML Windows
       setHTMLWindowId(customId ?? windowTitle)
     }
 
@@ -950,10 +949,15 @@ export function showHTML(
 
 /**
  * V2 helper function to construct HTML and decide how and where to show it in a window.
- * TODO: Read automatically from saved pref for windowRect, falling back to defaults
- * TODO: Allow for style file when we can save arbitrary data files (and have it triggered on theme change), not just read them.
- * Note: requires NP v3.9.2
- * Note: if customId not passed, it will fall back to using windowTitle
+ * Most data comes via an opts object, to ease future expansion.
+ * Adds ability to automatically display windows at the last position and size that the user had left them at. To enable this:
+ * - set opts.reuseUsersWindowRect to true
+ * - supply a opts.customId to distinguish which window this is to the plugin (e.g. 'review-list'). I suggest this is lower-case-with-dashes. (If customId not passed, it will fall back to using opts.windowTitle instead.)
+ * - (optional) still supply default opts.width and opts.height to use the first time
+ * Under the hood it saves the windowRect to local preference "<plugin.id>.<customId>".
+ * Note: Could allow for style file via saving arbitrary data file, and have it triggered on theme change.
+ * Note: requires NP v3.9.2 build 1037
+ * @author @jgclark
  * @param {string} body
  * @param {HtmlWindowOptions} opts
  */
@@ -962,88 +966,101 @@ export async function showHTMLV2(
   opts: HtmlWindowOptions,
 ): Promise<Window | boolean> {
   try {
-    if (NotePlan.environment.buildVersion < 1030) {
-      logError('HTMLView / showHTMLV2', 'showHTMLV2 is only available on 3.9.1+')
-      return false
-    }
+    if (NotePlan.environment.buildVersion < 1037) {
+      logWarn('HTMLView / showHTMLV2', 'showHTMLV2() is only available on 3.9.2 build 1037 or newer. Will fall back to using simpler showHTML() instead ...')
+      await showHTML(opts.windowTitle,
+        opts.headerTags ?? '',
+        body,
+        opts.generalCSSIn ?? '',
+        opts.specificCSS ?? '',
+        opts.makeModal,
+        opts.preBodyScript,
+        opts.postBodyScript,
+        opts.savedFilename ?? '',
+        opts.width,
+        opts.height,
+        opts.customId)
+      return true // for completeness
 
-    // clo(opts, 'showHTMLV2 starting with options:')
-    const fullHTMLStr = collateHTMLParts(body, opts)
-    const cId = opts.customId ?? ''
+    } else {
 
-    // Before showing anything, see if the window is already open, and if so save its x/y/w/h (if requested)
-    if (opts.reuseUsersWindowRect && isHTMLWindowOpen(cId)) {
-      logDebug('showHTMLV2', `Window is already open, and will save its x/y/w/h`)
-      storeWindowRect(cId)
-    }
+      // clo(opts, 'showHTMLV2 starting with options:')
+      // Assemble the parts of the HTML into a single string
+      const fullHTMLStr = assembleHTMLParts(body, opts)
+      const cId = opts.customId ?? opts.windowTitle ?? ''
+
+      // Before showing anything, see if the window is already open, and if so save its x/y/w/h (if requested)
+      if (opts.reuseUsersWindowRect && isHTMLWindowOpen(cId)) {
+        logDebug('showHTMLV2', `Window is already open, and will save its x/y/w/h`)
+        storeWindowRect(cId)
+      }
 
     // Decide which of the appropriate functions to call.
-    if (opts.makeModal || NotePlan.environment.platform !== 'macOS') {
-      logDebug('showHTMLV2', `Using modal 'sheet' view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
-      if (opts.width === undefined || opts.height === undefined) {
-        HTMLView.showSheet(fullHTMLStr)
+      if (opts.makeModal || NotePlan.environment.platform !== 'macOS') {
+        logDebug('showHTMLV2', `Using modal 'sheet' view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
+        if (opts.width === undefined || opts.height === undefined) {
+          HTMLView.showSheet(fullHTMLStr)
+        } else {
+          HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
+        }
       } else {
-        HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
-      }
-    } else {
       let winOptions = {}
       // Try to use saved x/y/w/h for this window if available
-      if (opts.reuseUsersWindowRect) {
-        if (cId) {
-          logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
-          const storedRect = getStoredWindowRect(cId)
-          if (storedRect) {
-            winOptions = {
-              x: storedRect.x,
-              y: storedRect.y,
-              width: storedRect.width,
-              height: storedRect.height - 52, // TODO(@Eduard): why is this needed?
-              shouldFocus: opts.shouldFocus
+        if (opts.reuseUsersWindowRect) {
+          if (cId) {
+            logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
+            const storedRect = getStoredWindowRect(cId)
+            if (storedRect) {
+              winOptions = {
+                x: storedRect.x,
+                y: storedRect.y,
+                width: storedRect.width,
+                height: storedRect.height,
+                shouldFocus: opts.shouldFocus
+              }
+              logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
             }
-            logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
           }
-        } else {
-          logWarn('showHTMLV2', `- not passed a customId`)
         }
-      }
 
-      if (!winOptions) {
-        // Use the default values
-        logDebug('showHTMLV2', `- Using default Rect for window`)
-        winOptions = {
-          x: opts.x,
-          y: opts.y,
-          width: opts.width,
-          height: opts.height,
-          shouldFocus: opts.shouldFocus,
-          // Note: can't set customId, but only long UID ('id')
+        if (!winOptions) {
+          // Use the default values
+          logDebug('showHTMLV2', `- Using default Rect for window`)
+          winOptions = {
+            x: opts.x,
+            y: opts.y,
+            width: opts.width,
+            height: opts.height,
+            shouldFocus: opts.shouldFocus,
+            // Note: can't set customId, but only long UID ('id')
+          }
         }
-      }
-      clo(winOptions, 'subset of options for API call:')
-      const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
-      clo(win, '-> win:')
+        clo(winOptions, 'subset of options for API call:')
+        const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
+        clo(win, '-> win:')
 
-      // If wanted, also write this HTML to a file so we can work on it offline.
-      // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
-      if (opts.savedFilename !== '') {
-        const thisFilename = opts.savedFilename ?? ''
-        const filenameWithoutSpaces = thisFilename.split(' ').join('') ?? ''
-        // Write to specified file in NP sandbox
-        const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
-        if (res) {
-          logDebug('showHTMLV2', `- Saved copy of HTML to '${opts.windowTitle}' to ${thisFilename}`)
-        } else {
-          logError('showHTMLV2', `- Couldn't save resulting HTML '${opts.windowTitle}' to ${thisFilename}.`)
+        // If wanted, also write this HTML to a file so we can work on it offline.
+        // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
+        if (opts.savedFilename !== '') {
+          const thisFilename = opts.savedFilename ?? ''
+          const filenameWithoutSpaces = thisFilename.split(' ').join('') ?? ''
+          // Write to specified file in NP sandbox
+          const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
+          if (res) {
+            logDebug('showHTMLV2', `- Saved copy of HTML to '${opts.windowTitle}' to ${thisFilename}`)
+          } else {
+            logError('showHTMLV2', `- Couldn't save resulting HTML '${opts.windowTitle}' to ${thisFilename}.`)
+          }
         }
+
+        // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
+        const customIdToUse = opts.customId ?? opts.windowTitle
+        win.customId = customIdToUse
+        // Read this back from the window itself
+        logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
+
+        return win
       }
-
-      // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
-      const customIdToUse = opts.customId ?? opts.windowTitle
-      win.customId = customIdToUse
-      // Read this back from the window itself
-      logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
-
-      return win
     }
   } catch (error) {
     logError('HTMLView / showHTMLV2', error.message)
