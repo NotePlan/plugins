@@ -162,7 +162,7 @@
     "react-loader-spinner": "^5.3.4",
     "react-select": "^5.7.0",
     "rxjs": "6.6.7",
-    "showdown": "1.9.1",
+    "showdown": "^1.9.1",
     "split": "1.0.1",
     "sprintf-js": "1.0.3",
     "strftime": "0.10.0",

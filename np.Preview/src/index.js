@@ -1,9 +1,9 @@
 // @flow
 
 //---------------------------------------------------------------
-// Render notes to HTML, so far focussing on Mermaid and MathML.
+// Render notes to HTML, including Mermaid and MathML.
 // by Jonathan Clark
-// v0.1.0, 27.9.2022
+// v0.2.0, 19.5.2023
 //---------------------------------------------------------------
 
 export {
@@ -11,7 +11,7 @@ export {
   testMermaid2,
   testMermaid3,
   testMermaid4
-} from './mermaid'
+} from './mermaidTests'
 
 export {
   testMathML1,
@@ -19,7 +19,11 @@ export {
   testMathJax1,
   testMathJax2,
   testMathJax3
-} from './math'
+} from './mathTests'
+
+export {
+  previewNote
+} from './main'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'

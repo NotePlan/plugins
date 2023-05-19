@@ -1,11 +1,7 @@
 # What's Changed in Previews plugin?
-## [0.1.0] - 2022-09-???
-- Initial release supporting Mermaid charts. The markdown-ish definition of these charts is done in one or more fenced code blocks:
 
-```
-``` mermaid
-... chart defintion
-lines  ...
-```  .
-```
-(please ignore the closing period; it's just there to make this render in markdown)
+## [0.2.0] - 2022-09-24
+- First release for private testing. **preview note** command previews standard Markdown, plus strikethrough text, basic tables, Mermaid diagrams and MathJax fragments or lines.
+
+## [0.1.0] - 2022-09-24
+- Initial work to test supporting Mermaid charts and MathJax display.

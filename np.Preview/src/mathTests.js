@@ -12,7 +12,7 @@ import { showHTML } from '@helpers/HTMLView'
 export function testMathML1(): void {
   try {
 
-    // Use single HTML string 
+    // Use single HTML string
     logDebug('testMathML1', `writing results to HTML output ...`)
     HTMLView.showWindow(`<!DOCTYPE html>
 <html>
@@ -61,7 +61,7 @@ and they are
 </p>
 
 </body>
-</html>`) // not giving window dimensions
+</html>`, 'testMathML1') // not giving window dimensions
     logDebug('testMathML1', `written results to HTML`)
   }
   catch (error) {
@@ -145,7 +145,7 @@ and they are
 export function testMathJax1(): void {
   try {
 
-    // Use single HTML string 
+    // Use single HTML string
     logDebug('testMathJax1', `writing results to HTML output ...`)
     HTMLView.showWindow(`<!DOCTYPE html>
 <html>
@@ -160,7 +160,7 @@ export function testMathJax1(): void {
 When \(a \ne 0\), there are two solutions to \(ax^2 + bx + c = 0\) and they are
 $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
 </body>
-</html>`) // not giving window dimensions
+</html>`, 'testMathJax1') // not giving window dimensions
     logDebug('testMathJax1', `written results to HTML`)
   }
   catch (error) {
@@ -230,8 +230,3 @@ $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
     logError('testMathJax3', error.message)
   }
 }
-
-/**
- * As test3 but now taking input from a real NP note
- * TODO: copy principles from testMermaaid4 function.
- */
