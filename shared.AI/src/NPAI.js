@@ -8,7 +8,7 @@
 
 import pluginJson from '../plugin.json'
 import { makeRequest } from './support/networking'
-import { calculateCost, modelOptions } from './support/helpers' // FIXME: Is there something better than this growth?
+import { calculateCost, chooseModel, modelOptions } from './support/helpers' // FIXME: Is there something better than this growth? // FIXME: Is there something better than this growth?
 import { intro, learningOptions, openAILearningWizard, modelsInformation, externalReading } from './support/introwizard'
 import { type CompletionsRequest, type ResearchListResult } from './support/AIFlowTypes'
 import { chooseOption, showMessage } from '@helpers/userInput'
