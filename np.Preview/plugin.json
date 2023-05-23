@@ -8,10 +8,10 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.Preview/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Preview/CHANGELOG.md",
-  "plugin.version": "0.2.0",
+  "plugin.version": "0.3.0",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
-    "mermaid.min.js",
+    "mermaid@10.1.0.esm.min.mjs",
     "polyfill.min.js",
     "tex-chtml.js"
   ],
