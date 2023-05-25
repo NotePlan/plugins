@@ -506,7 +506,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
       for (const note of notesToProcess) {
         // Only proceed if the note actually has frontmatter
         if (noteHasFrontMatter(note)) {
-          const result = removeFrontMatterField(note, 'triggers', 'onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard', true)
+          const result = removeFrontMatterField(note, 'triggers', '', true)
           if (result) {
             logDebug('removeTriggersFromRecentCalendarNotes', `removed frontmatter trigger field from ${displayTitle(note)}`)
             countRemoved++
@@ -564,16 +564,6 @@ export async function fileRootNotes(): Promise<void> {
     // Get plugin settings (config)
     let config: TidyConfig = await getSettings()
 
-    // Probably not needed
-    // if (params) {
-    //   logDebug(pluginJson, `fileRootNotes: Starting with params '${params}'`)
-    //   config = overrideSettingsWithEncodedTypedArgs(config, params)
-    //   clo(config, `config after overriding with params '${params}'`)
-    // } else {
-    //   // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-    logDebug(pluginJson, `fileRootNotes: Starting with no params`)
-    // }
-
     // Get all root notes
     const rootNotes = getProjectNotesInFolder('/')
     // logDebug('rootNotes', rootNotes.map((n) => n.title))
@@ -588,7 +578,8 @@ export async function fileRootNotes(): Promise<void> {
     )
 
     // Make list of all folders (other than root!)
-    const allFolders = getFilteredFolderList(['/'], true)
+    const allFolders = getFilteredFolderList([], true, [], false)
+    logDebug('allFolders', String(allFolders))
 
     // Pre-pend some special items
     allFolders.unshift(`🗑️ Delete this note`)

@@ -7,15 +7,16 @@ import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
 /**
  * Return a subset of folders:
  * - including only those that contain one of the strings on the inclusions list (so will include any sub-folders) if given
- * - excluding those on the given list, and any of their sub-folders (other than root which would then exclude everything).
+ * - excluding those on the 'exclusions' list, and any of their sub-folders (other than root which would then exclude everything).
  * - optionally exclude all special @... folders as well.
  * @author @jgclark, improved by @dwertheimer
- * @param {Array<string>} exclusions
- * @param {boolean} excludeSpecialFolders?
- * @param {Array<string>} inclusions?
+ * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder
+ * @param {boolean} excludeSpecialFolders? (default: true)
+ * @param {Array<string>} inclusions? (default: empty list)
+ * @param {boolean} includeRootFolder? (default: true)
  * @returns {Array<string>} array of folder names
  */
-export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialFolders: boolean = true, inclusions: Array<string> = []): Array<string> {
+export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialFolders: boolean = true, inclusions: Array<string> = [], includeRootFolder: boolean = true): Array<string> {
   try {
     // Get all folders as array of strings (other than @Trash).
     const fullFolderList = DataStore.folders
@@ -30,34 +31,38 @@ export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialF
     // }
     const exclusionsTerminatedWithSlash: Array<string> = []
     for (const e of exclusions) {
-      exclusionsTerminatedWithSlash.push(e.endsWith('/') ? e : `${e}/`)
+      if (e !== '/') {// Need to exclude root folder if given
+        exclusionsTerminatedWithSlash.push(e.endsWith('/') ? e : `${e}/`)
+      }
     }
+    // FIXME: Do we just need to treat / as a special case, with a special flag whether to include or exclude?
     let reducedList: Array<string> = []
     for (const f of fullFolderList) {
       reducedList.push(f.endsWith('/') ? f : `${f}/`)
     }
+    // logDebug('getFilteredFolderList', `- exclusionsTerminatedWithSlash: ${exclusionsTerminatedWithSlash.toString()}\n`)
 
-    // filter reducedList to only folders that (string) matches an item in the inclusions list
+    // if inclusions list is not empty, filter reducedList to only folders that matches (includes) an item in it
     reducedList = inclusions.length > 0
       ? reducedList.filter((folder) => inclusions.some((ff) => folder.includes(ff)))
       : reducedList
-    logDebug(`after inclusions: ${reducedList.length} folders: `, `${reducedList.toString()}\n`)
+    logDebug('getFilteredFolderList', `- after inclusions reducedList: ${reducedList.length} folders: ${reducedList.toString()}\n`)
 
-    // filter reducedList to only folders that don't start with an item in the exclusionsTerminatedWithSlash list
+    // if exclusions list is not empty, filter reducedList to only folders that don't start with an item in the exclusionsTerminatedWithSlash list
     reducedList = exclusions.length > 0
       ? reducedList.filter((folder) => !exclusions.some((ff) => folder.includes(ff)))
       : reducedList
     // reducedList = exclusionsTerminatedWithSlash.length > 0
     // ? reducedList.filter((folder) => !exclusionsTerminatedWithSlash.some((ee) => folder.startsWith(ee)))
     // : reducedList
-    logDebug(`after exclusions: ${reducedList.length} folders: `, `${reducedList.toString()}\n`)
+    logDebug('getFilteredFolderList', `- after exclusions: reducedList: ${reducedList.length} folders: ${reducedList.toString()}\n`)
 
     // filter reducedList to only folders that don't start with the character '@' (special folders)
     reducedList = excludeSpecialFolders
       ? reducedList.filter((folder) => !folder.startsWith('@'))
       : reducedList
 
-    // logDebug('folders / filteredFolderList', `-> filteredList: ${reducedList.length} items: [${reducedList.toString()}]`)
+    logDebug('getFilteredFolderList', `-> filteredList: ${reducedList.length} items: [${reducedList.toString()}]`)
     // return the array of folders, but if the last character is a slash, remove it
     return reducedList.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
 

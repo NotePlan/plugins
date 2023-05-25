@@ -11,7 +11,7 @@
 
 import fm from 'front-matter'
 // import { showMessage } from './userInput'
-import { clo, JSP, logError, logDebug, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getAttributes } from '@templating/support/modules/FrontmatterModule'
 const pluginJson = 'helpers/NPFrontMatter.js'
@@ -65,14 +65,20 @@ export const getFrontMatterAttributes = (note: CoreNoteFields): { [string]: stri
  * @returns {Array<TParagraph>} just the paragraphs in the front matter (or false if no frontmatter)
  */
 export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators: boolean = false): Array<TParagraph> | false => {
-  const paras = note?.paragraphs || []
-  if (!paras.length || paras[0].content !== '---') return false
-  const startAt = includeSeparators ? 0 : 1
-  for (let i = 1; i < paras.length; i++) {
-    const para = paras[i]
-    if (para.content === '---') return paras.slice(startAt, includeSeparators ? i + 1 : i)
+  try {
+    const paras = note?.paragraphs || []
+    if (!paras.length || paras[0].content !== '---') return false
+    const startAt = includeSeparators ? 0 : 1
+    for (let i = 1; i < paras.length; i++) {
+      const para = paras[i]
+      if (para.content === '---') return paras.slice(startAt, includeSeparators ? i + 1 : i)
+    }
+    return false
+  } catch (err) {
+    logError('NPFrontMatter/getFrontMatterParagraphs()', JSP(err))
+    return false
   }
-  return false
+
 }
 
 /**
@@ -80,34 +86,40 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
  * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly
  * @author @dwertheimer
  * @param {CoreNoteFields} note - the note
- * @param {boolean} removeSeparators - whether to include the separator lines (---) in the deletion
+ * @param {boolean} removeSeparators? - whether to include the separator lines (---) in the deletion. Default: false.
  * @returns {boolean} - whether the front matter was removed or not
  */
 export function removeFrontMatter(note: CoreNoteFields, removeSeparators: boolean = false): boolean {
-  const fmParas = getFrontMatterParagraphs(note, removeSeparators)
-  // clo(fmParas, 'fmParas')
-  // clo(note.paragraphs, 'note.paragraphs')
-  if (!fmParas) return false
-  const fm = getFrontMatterAttributes(note || '')
-  note.removeParagraphs(fmParas)
-  if (removeSeparators && fm && fm.title) note.prependParagraph(`# ${fm.title}`, 'text')
-  return true
+  try {
+    const fmParas = getFrontMatterParagraphs(note, removeSeparators)
+    // clo(fmParas, 'fmParas')
+    // clo(note.paragraphs, 'note.paragraphs')
+    if (!fmParas) return false
+    const fm = getFrontMatterAttributes(note || '')
+    note.removeParagraphs(fmParas)
+    if (removeSeparators && fm && fm.title) note.prependParagraph(`# ${fm.title}`, 'text')
+    return true
+  } catch (err) {
+    logError('NPFrontMatter/removeFrontMatter()', JSP(err))
+    return false
+  }
 }
 
 /**
  * Remove a particular frontmatter field, or if value provided as well, delete only if both match.
- * TODO: the simpler case above
  * @author @jgclark
  * @param {CoreNoteFields} note - the note
- * @param {boolean} removeSeparators - if no fields remain, whether to remove the separator lines (---) as well
+ * @param {string} fieldToRemove - field name (without colon)
+ * @param {string?} value - value to match on (default no matching)
+ * @param {boolean?} removeSeparators - if no fields remain, whether to remove the separator lines (---) as well. Defaults to true.
  * @returns {boolean} - whether the field was removed or not
  */
-export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: string, value?: string | null, removeSeparators: boolean = true): boolean {
+export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: string, value: string = '', removeSeparators: boolean = true): boolean {
   try {
     const fmFields = getFrontMatterAttributes(note)
     const fmParas = getFrontMatterParagraphs(note, true)
     if (!fmFields || !fmParas) {
-      logDebug('rFMF', `no front matter in note '${displayTitle(note)}'`)
+      logWarn('rFMF', `no front matter in note '${displayTitle(note)}'`)
       return false
     }
     let removed = false
@@ -129,15 +141,15 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
               fmParas.splice(i, 1) // delete this item
               removed = true
               if (fmParas.length <= 2) {
-                logDebug('rFMF', `- this was the only field in the FM`)
+                // logDebug('rFMF', `- this was the only field in the FM`)
                 const res = removeFrontMatter(note, removeSeparators)
-                logDebug('rFMF', `removeFrontMatter -> ${String(res)}`)
+                // logDebug('rFMF', `removeFrontMatter -> ${String(res)}`)
               } else {
-                logDebug('rFMF', `- now ${fmParas.length} FM paras remain`)
+                // logDebug('rFMF', `- now ${fmParas.length} FM paras remain`)
                 const res1 = removeFrontMatter(note, false)
-                logDebug('rFMF', `removeFrontMatter -> ${String(res1)}`)
+                // logDebug('rFMF', `removeFrontMatter -> ${String(res1)}`)
                 const res2 = writeFrontMatter(note, fmFields, false) // don't mind if there isn't a title; that's not relevant to this operation
-                logDebug('rFMF', `writeFrontMatter -> ${String(res2)}`)
+                // logDebug('rFMF', `writeFrontMatter -> ${String(res2)}`)
               }
             }
           }

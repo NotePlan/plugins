@@ -1,7 +1,7 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [0.4.0] - 2023-04-21???
+## [0.4.0] - 2023-05-???
 ### New
 - new **Remove triggers from recent calendar notes** command which removes one or more triggers from recent (but past) calendar notes. (This could be used as part of a daily or weekly Template.)
 - new option "➡️ Ignore this note from now on" in the **File root-level notes** command, which populates the 'Root notes to ignore' setting for you. (For @dwertheimer.) @@@ currently hits a NP bug, so not released yet.
@@ -22,6 +22,6 @@ First release, implementing these commands:
 - **Remove section from recent notes** (alias "rsfrn"): Remove a given section (both the heading and its content) from recently-changed notes. (Can be used with parameters from Template or x-callback.)
 - **Remove section from all notes** (alias "rcuh"). Remove a given section (both the heading and its content) from all notes. (Can be used with parameters from Template or x-callback.)
 - **Remove time parts from @done() dates** (alias "rtp"): Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.
-- **Remove @done() markers** (alias "rdm"): Remove @done() markers from recently-updated notes. 
+- **Remove @done() markers** (alias "rdm"): Remove @done() markers from recently-updated notes.
 
 Most can be used with parameters from a Template, or via an x-callback call.

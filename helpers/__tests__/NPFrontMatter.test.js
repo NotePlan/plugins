@@ -323,7 +323,7 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should remove matching field with no value, but leave other field, and therefore also separators', () => {
         const allParas = [{ type: 'separator', content: '---' }, { content: 'field_other: value1' }, { content: 'fieldName:' }, { type: 'separator', content: '---' }]
         const note = new Note({ paragraphs: allParas, content: '' })
-        const result = f.removeFrontMatterField(note, 'fieldName', null, true)
+        const result = f.removeFrontMatterField(note, 'fieldName', '', true)
         expect(result).toEqual(true)
         expect(note.paragraphs.length).toEqual(3)
         expect(note.paragraphs[0].content).toEqual(allParas[0].content)
@@ -333,7 +333,7 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should remove matching field (with no value test) with different values from frontmatter but leave other field, and therefore also separators', () => {
         const allParas = [{ type: 'separator', content: '---' }, { content: 'field_other: value1' }, { content: 'fieldName: this is, a, longer "value 1"' }, { type: 'separator', content: '---' }]
         const note = new Note({ paragraphs: allParas, content: '' })
-        const result = f.removeFrontMatterField(note, 'fieldName', null, true)
+        const result = f.removeFrontMatterField(note, 'fieldName', '', true)
         expect(result).toEqual(true)
         expect(note.paragraphs.length).toEqual(3)
         expect(note.paragraphs[0].content).toEqual(allParas[0].content)
