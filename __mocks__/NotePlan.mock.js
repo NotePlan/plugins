@@ -22,7 +22,7 @@ export class NotePlan {
     hasSettings: true,
     version: '3.6',
     versionNumber: 36,
-    buildVersion: '797',
+    buildVersion: 1046, // = 3.9.2 mid-beta
     templateFolder: '@Templates',
   }
   // async openURL() { return null },
