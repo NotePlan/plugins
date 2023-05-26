@@ -173,9 +173,9 @@ export async function runInteractiveReviewForDate(asOfDateString?: string = getT
   const notesToReview = getNotesAndTasksToReview(options)
   clo(notesToReview, `runInteractiveReviewForDate notesToReview`)
   await reviewTasksInNotes(notesToReview, options)
+  await askToReviewForgottenTasks(true, asOfDateString)
   await askToReviewWeeklyTasks(true, asOfDateString)
   await askToReviewTodaysTasks(true, asOfDateString)
-  await askToReviewForgottenTasks(true, asOfDateString)
   await showMessage(`Review Complete!`, 'OK', 'Task Review', true)
 }
 

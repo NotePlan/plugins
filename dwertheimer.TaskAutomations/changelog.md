@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.14.5] @dwertheimer 2023-05-23
+
+- Change order of interactive task review (look for forgotten tasks before week/today)
+
 ## [2.14.4] @dwertheimer 2023-05-10
 
 - Improve handling of scheduling overdue tasks for future (e.g. tomorrow):

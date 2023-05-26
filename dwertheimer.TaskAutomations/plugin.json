@@ -5,8 +5,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.14.4",
-  "plugin.lastUpdateInfo": "2.14.4: Improve handling of scheduling overdue tasks for future (e.g. tomorrow)",
+  "plugin.version": "2.14.5",
+  "plugin.lastUpdateInfo": "2.14.5: Change order of interactive task review (look for forgotten tasks before week/today)",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "css.plugin.css",
