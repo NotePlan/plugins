@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 21.4.2023 for v0.4.0, @jgclark
+// Last updated 26.5.2023 for v0.4.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -23,7 +23,7 @@ export {
   removeTriggersFromRecentCalendarNotes,
   removeDoneTimeParts,
   tidyUpAll
-} from './main'
+} from './tidyMain'
 
 /**
  * Other imports/exports

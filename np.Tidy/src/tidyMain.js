@@ -584,7 +584,7 @@ export async function fileRootNotes(): Promise<void> {
     // Pre-pend some special items
     allFolders.unshift(`🗑️ Delete this note`)
     allFolders.unshift(`❌ Stop processing`)
-    allFolders.unshift(`➡️ Ignore this note from now on`)
+    if (NotePlan.environment.buildVersion >= 1045) { allFolders.unshift(`➡️ Ignore this note from now on`) } // what this calls fails before 3.9.2b
     allFolders.unshift(`➡️ Leave this note in root`)
     logDebug('allFolders', String(allFolders))
     const options = allFolders.map((f) => ({
@@ -611,7 +611,7 @@ export async function fileRootNotes(): Promise<void> {
             return
           }
           case '➡️ Ignore this note from now on': {
-            const ignoreRes = appendStringToSettingArray("rootNotesToIgnore", thisTitle)
+            const ignoreRes = appendStringToSettingArray(pluginJson['plugin.id'], "rootNotesToIgnore", thisTitle, false)
             if (ignoreRes) {
               logInfo('fileRootNotes', `Ignoring '${thisTitle}' from now on; this note has been appended it to the plugin's settings`)
             } else {
