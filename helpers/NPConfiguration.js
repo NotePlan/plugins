@@ -202,13 +202,46 @@ export async function getSettings(pluginName: string = '', defaultValue?: any = 
   return typeof settings === 'object' ? settings : defaultValue
 }
 
-export async function saveSettings(pluginName: string = '', value?: any = {}): any | null {
-  return await DataStore.saveJSON(value, `../../data/${pluginName}/settings.json`)
+/**
+ * Save given settings to the given plugin's settings.json file.
+ * TODO(@dwertheimer): why can value be unspecified?
+ * @author @dwertheimer, updated by @jgclark
+ * @param {string?} pluginName
+ * @param {any?} value
+ * @param {boolean?} triggerUpdateMechanism
+ * @returns {any} ?
+ */
+export async function saveSettings(pluginName: string = '', value?: any = {}, triggerUpdateMechanism: boolean = true): any | null {
+  // logDebug('NPConfiguration/saveSettings', `starting to ${pluginName}/plugin.json with triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
+  if (NotePlan.environment.buildVersion < 1045 || triggerUpdateMechanism) {
+    // save, and can't or don't want to turn off triggering onUpdateSettings
+    return await DataStore.saveJSON(value, `../../data/${pluginName}/settings.json`)
+  } else {
+    // save, but don't trigger onUpdateSettings
+    // logDebug('NPConfiguration/saveSettings', `writing ${pluginName}/settings.json and asking to block trigger`)
+    return await DataStore.saveJSON(value, `../../data/${pluginName}/settings.json`, true)
+  }
 }
 
-export async function savePluginJson(pluginName: string = '', value?: any = {}): Promise<boolean> {
-  logDebug('NPConfiguration', `writing ${pluginName}/plugin.json`)
-  return await DataStore.saveJSON(value, `../../${pluginName}/plugin.json`)
+/**
+ * Save given settings to the given plugin's plugin.json file.
+ * TODO(@dwertheimer): why can value be unspecified?
+ * @author @dwertheimer, updated by @jgclark
+ * @param {string?} pluginName
+ * @param {any?} value
+ * @param {boolean?} triggerUpdateMechanism
+ * @returns {any} ?
+ */
+export async function savePluginJson(pluginName: string = '', value?: any = {}, triggerUpdateMechanism: boolean = true): Promise<boolean> {
+  // logDebug('NPConfiguration/savePluginJson', `starting for ${pluginName}/plugin.json triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
+  if (NotePlan.environment.buildVersion < 1045 || triggerUpdateMechanism) {
+    // save, and can't or don't want to turn off triggering onUpdateSettings
+    return await DataStore.saveJSON(value, `../../${pluginName}/plugin.json`)
+  } else {
+    // save, but don't trigger onUpdateSettings
+    // logDebug('NPConfiguration/savePluginJson', `writing ${pluginName}/plugin.json and asking to block trigger`)
+    return await DataStore.saveJSON(value, `../../${pluginName}/plugin.json`, true)
+  }
 }
 
 export async function getPluginJson(pluginName: string = ''): any {

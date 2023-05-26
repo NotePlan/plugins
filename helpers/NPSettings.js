@@ -1,13 +1,12 @@
 /* eslint-disable import/order */
 // @flow
 
+import moment from 'moment'
 import { getPluginJson, saveSettings } from './NPConfiguration'
 import { getInput, showMessage, showMessageYesNo, chooseOption } from './userInput'
-
-import moment from 'moment'
+import { clo, JSP, log, logDebug, logError, logInfo, timer } from '@helpers/dev'
 
 const pluginJson = 'helpers/NPSettings'
-import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 
 function getSettingsFromPluginJson(pluginJson: any) {
   return pluginJson['plugin.settings']
@@ -228,8 +227,8 @@ export async function editSettings(_pluginJson?: any): Promise<number> {
   const { pluginID } = DataStore.settings
   const pluginJson = _pluginJson || (await getPluginJson(pluginID))
   if (!pluginJson) throw 'editSettings: no pluginJson or pluginID found. It needs to be passed in or set in DataStore.settings.pluginID'
-  clo(pluginJson, 'editSettings: plugin.json:')
-  clo(DataStore.settings, 'editSettings: starting settings:')
+  // clo(pluginJson, 'editSettings: plugin.json:')
+  // clo(DataStore.settings, 'editSettings: starting settings:')
   const settings = getSettingsFromPluginJson(pluginJson)
 
   let editsMade = 0
@@ -237,15 +236,15 @@ export async function editSettings(_pluginJson?: any): Promise<number> {
     let chosenSetting = null
     const settingsOptions = await getSettingsOptions(settings)
     while (chosenSetting !== '__done__') {
-      logDebug(pluginJson, `editSettings: top of while loop: editsMade=${editsMade}`)
+      logDebug('editSettings', `editSettings: top of while loop: editsMade=${editsMade}`)
       const msg = `Choose a${editsMade > 0 ? 'nother' : ''} setting to edit`
-      logDebug(pluginJson, `editSettings: msg="${msg}"`)
+      logDebug('editSettings', `editSettings: msg="${msg}"`)
       chosenSetting = await chooseOption(msg, settingsOptions)
-      logDebug(pluginJson, `editSettings: after chooseOption: chosenSetting=${chosenSetting}`)
+      logDebug('editSettings', `editSettings: after chooseOption: chosenSetting=${chosenSetting}`)
       if (chosenSetting && chosenSetting !== '__done__' && chosenSetting !== '---') {
-        logDebug(pluginJson, `editSettings: chosenSetting: "${chosenSetting}"`)
+        logDebug('editSettings', `editSettings: chosenSetting: "${chosenSetting}"`)
         await updateSetting(chosenSetting, pluginJson)
-        logDebug(pluginJson, `editSettings: updated: "${chosenSetting}"`)
+        logDebug('editSettings', `editSettings: updated: "${chosenSetting}"`)
       }
       if (editsMade === 0) {
         settingsOptions.unshift({ label: '[ ✅ Finished Editing Settings ]', value: '__done__' })
@@ -254,43 +253,45 @@ export async function editSettings(_pluginJson?: any): Promise<number> {
     }
     clo(DataStore.settings, 'editSettings: final settings:')
   } else {
-    logError(pluginJson, 'No settings array found')
+    logError(pluginJson, 'NPSettings/editSettings(): No settings array found')
   }
   return editsMade
 }
 
 /**
- * Append a new string to end of an existing [string] setting
+ * Append a new string to end of an existing [string] setting in the plugin's settings.json file
  * @param {string} key to append to
  * @param {string} newItem to append
+ * @param {boolean?} triggerSettingsUpdate? defaults to triggering onSettingsUpdated when writing the file
  * @returns {boolean} success?
  */
-export async function appendStringToSettingArray(key: string, newItem: string): Promise<boolean> {
+export async function appendStringToSettingArray(pluginId: string, key: string, newItem: string, triggerSettingsUpdate: boolean = true): Promise<boolean> {
+  logDebug(pluginJson, `appendStringToSettingArray() starting for plugin '${pluginId}', key '${key}' and triggerSettingsUpdate? '${String(triggerSettingsUpdate)}'`)
   const currentSettings = DataStore.settings
   // clo(currentSettings, 'before')
   const currentSettingForKey = currentSettings[key]
-  logDebug(pluginJson, `appendStringToSettingArray: '${key}' currently '${String(currentSettingForKey)}'`)
+  logDebug('appendStringToSettingArray', `- '${key}' currently '${String(currentSettingForKey)}'`)
   if (currentSettingForKey) {
-    logDebug(pluginJson, `- appending '${newItem}'`)
+    logDebug('appendStringToSettingArray', `- appending '${newItem}'`)
     try {
       // call the specific updater function for the setting type
-      let newValArray: Array<string> = typeof currentSettingForKey === 'string' ? [currentSettingForKey] : currentSettingForKey
-      // logDebug(pluginJson, `- newValArray '${String(newValArray)}' (${typeof newValArray})`)
+      const newValArray: Array<string> = typeof currentSettingForKey === 'string' ? [currentSettingForKey] : currentSettingForKey
+      // logDebug('appendStringToSettingArray', `- newValArray '${String(newValArray)}' (${typeof newValArray})`)
       newValArray.push(newItem.trim())
-      // logDebug(pluginJson, `-> '${String(newValArray)}' (${typeof newValArray})`)
+      // logDebug('appendStringToSettingArray', `-> '${String(newValArray)}' (${typeof newValArray})`)
       if (newValArray != null) {
         currentSettings[key] = newValArray
         // DataStore.settings = currentSettings
-        await saveSettings('np.Tidy', currentSettings)
+        await saveSettings(pluginId, currentSettings, triggerSettingsUpdate)
         return true
       } else {
-        logDebug(pluginJson, `-> nothing to update`)
+        logDebug('appendStringToSettingArray', `-> nothing to update`)
       }
     } catch (error) {
-      logError(pluginJson, `appendStringToSettingArray: ${key} ${JSP(error)}`)
+      logError('appendStringToSettingArray', `appendStringToSettingArray: ${key} ${JSP(error)}`)
     }
   } else {
-    logDebug(pluginJson, `No setting found with key ${key}: will create it`)
+    logInfo('appendStringToSettingArray', `No setting found with key ${key}: will create it`)
     currentSettings[key] = [newItem.trim()]
     DataStore.settings = currentSettings
     return true

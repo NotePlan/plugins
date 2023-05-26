@@ -498,17 +498,18 @@ static + preference: (key: string) => mixed;
    * It's saved automatically into a new folder "data" in the Plugins folder.
    * But you can "escape" this folder using relative paths: ../Plugins/<folder or filename>.
    * Note: Available from v3.1
-   * @param {Object}
-   * @param {string}
-   * @return {boolean}
+   * @param {Object} jsonData to save
+   * @param {string?} filename (defaults to plugin's setting.json file)
+   * @param {boolean?} shouldBlockUpdate? (defaults to false)
+   * @returns {boolean} success
    */
-  static saveJSON(object: Object, filename ?: string): boolean;
+  static saveJSON(object: Object, filename ?: string, shouldBlockUpdate ?: boolean): boolean;
   /**
    * Load a JavaScript object from a JSON file located (by default) in the <Plugin>/data folder.
    * But you can also use relative paths: ../Plugins/<folder or filename>.
    * Note: Available from v3.1
-   * @param {string}
-   * @return {Object}
+   * @param {string} filename (defaults to plugin's setting.json)
+   * @returns {Object}
    */
   static loadJSON(filename ?: string): Object;
   /**
