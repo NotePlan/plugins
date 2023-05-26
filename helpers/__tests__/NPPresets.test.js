@@ -11,7 +11,7 @@ beforeAll(() => {
   global.DataStore = DataStore // so we see DEBUG logs in VSCode Jest debugs
   DataStore.settings['_logLevel'] = 'none' // change to DEBUG to see more console output during test runs
   global.CommandBar = CommandBar
-  global.NotePlan = NotePlan
+  global.NotePlan = new NotePlan()
 })
 
 /* Samples:
