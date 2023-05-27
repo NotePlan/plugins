@@ -2,10 +2,10 @@
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
-import { getRollupConfig, rollupReactFiles } from '../rollup.react'
+import { getRollupConfig, rollupReactFiles } from '../rollup.generic'
 
 const PLUGIN_NAME = `scripts`
-const FILENAME = `rollup.react.test`
+const FILENAME = `rollup.generic.test`
 
 beforeAll(() => {
   global.Calendar = Calendar
