@@ -13,6 +13,7 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Shared/CHANGELOG.md",
   "plugin.requiredFiles": [
     "fontawesome.css",
+    "css.w3.css",
     "duotone.min.flat4NP.css",
     "light.min.flat4NP.css",
     "regular.min.flat4NP.css",
