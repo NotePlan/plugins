@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 15.5.2023 for v0.4.2 by @jgclark
+// Last updated 17.5.2023 for v0.4.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -9,7 +9,7 @@ import moment from 'moment/min/moment-with-locales'
 import { getDataForDashboard } from './dataGeneration'
 import { getDemoDataForDashboard } from './demoDashboard'
 import {
-  addNoteOpenLinkToString, getSettings,
+  addNoteOpenLinkToString, getSettings, getTaskPriority,
   makeParaContentToLookLikeNPDisplayInHTML,
   type SectionDetails, type SectionItem
 } from './dashboardHelpers'
@@ -19,14 +19,10 @@ import { getDateStringFromCalendarFilename, toLocaleTime } from '@helpers/dateTi
 import { getFolderFromFilename } from '@helpers/folders'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
-import {
-  // showHTML,
-  showHTMLV2
-} from '@helpers/HTMLView'
+import { showHTMLV2 } from '@helpers/HTMLView'
 import { getNoteType } from '@helpers/note'
 import { decodeRFC3986URIComponent, encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
-// import { isThisMinute } from 'date-fns'
 
 //-----------------------------------------------------------------
 // HTML resources
@@ -45,6 +41,7 @@ export const resourceLinksInHeader = `
 `
 
 const commsBridge = `
+<!-- commsBridge scripts -->
 <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
 <script>
 /* you must set this before you import the CommsBridge file */
@@ -67,17 +64,58 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
  * TODO: Not yet working.
  */
 const shiftKeyListenerScript = `
+<!-- shiftKeyListenerScript -->
 <script type="text/javascript">
-document.getElementById("mainTable").addEventListener("load", addEventHandlersFunc);
-
-function addEventHandlersFunc() {
+document.getElementById("mainTable").addEventListener("load", addShiftKeyEventHandlersFunc);
+function addShiftKeyEventHandlersFunc() {
   let allTasksChecklists = document.getElementsByClassName("todo");
   for (let i=0; i<allTasksChecklists.length; i++) {
     allTasksChecklists[i].addEventListener('click', function() {
       console.log('shiftKey held? '+String(event.shiftKey))
     }, false);
   }
-  console.log('ELs added');
+  console.log('shiftKey ELs added');
+}
+</script>
+`
+
+const checkboxClickListenerScript = `
+<script type="text/javascript">
+function handleCheckboxClick(cb) {
+  // TODO: Do the real work here. Need to figure out how to keep and communicate the variable -- make it not a setting?
+  console.log("Checkbox for " + cb.name + " clicked, new value = " + cb.checked);
+  onChangeCheckbox(cb.name, cb.checked);
+}
+</script>
+`
+/**
+ * Prevent clicking on a link from also opening the HTML page in the default browser.
+ * Applied to all items that have a 'sectionItem' class
+ * Example from https://developer.mozilla.org/en-US/docs/Web/API/Event/preventDefault:
+ * const checkbox = document.querySelector("#id-checkbox");
+ * checkbox.addEventListener("click", checkboxClick, false);
+ * function checkboxClick(event) {
+ *   let warn = "preventDefault() won't let you check this!<br>";
+ *   document.getElementById("output-box").innerHTML += warn;
+ *   event.preventDefault();
+ * }
+ */
+// FIXME: fix why this isn't firing
+// Try this?
+//   const nodes = document.childNodes;
+//   const nodeArray = [...nodes];
+
+const preventClicksPropagatingScript = `
+<!-- preventClicksPropagatingScript -->
+<script type="text/javascript">
+document.getElementById("mainTable").addEventListener("load", addPreventDefaultEventHandlersFunc);
+function addPreventDefaultEventHandlersFunc() {
+  const allLinks = document.getElementsByClassName("sectionItem");
+  console.log("Attempting to add "+String(allLinks.length)+" preventClicksPropagating ELs");
+  for (let i=0; i<allLinks.length; i++) {
+    event.preventDefault();
+  }
+  console.log('-> preventClicksPropagating ELs added');
 }
 </script>
 `
@@ -85,7 +123,9 @@ function addEventHandlersFunc() {
 /**
  * When window is resized, send dimensions to plugin. Note: doesn't fire on window *move* alone.
  */
+// FIXME: fix why this is giving 0 height
 const resizeListenerScript = `
+<!-- resizeListenerScript -->
 <script type="text/javascript">
 window.addEventListener("resize", function(){
   const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.outerHeight };
@@ -97,8 +137,10 @@ window.addEventListener("resize", function(){
 
 /**
  * Before window is closed, attempt to send dimensions to plugin.
+ * TODO: not working yet
  */
 const unloadListenerScript = `
+<!-- unloadListenerScript -->
 <script type="text/javascript">
 window.addEventListener("beforeunload", function(){
   const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.innerHeight };
@@ -128,6 +170,7 @@ export async function showDemoDashboardHTML(): Promise<void> {
 export async function showDashboardHTML(demoMode: boolean = false): Promise<void> {
   try {
     const config = await getSettings()
+    let filterPriorityItems = DataStore.preference('Dashboard-filterPriorityItems') ?? false
     await checkForRequiredSharedFiles(pluginJson)
     let sections: Array<SectionDetails> = []
     let sectionItems: Array<SectionItem> = []
@@ -163,13 +206,18 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       }
 
       // Get all items for this section
-      const items = sectionItems.filter((i) => i.ID.startsWith(String(section.ID)))
+      let items = sectionItems.filter((i) => i.ID.startsWith(String(section.ID)))
 
-      if (items.length === 0 && sectionNumber > 0) {
-        // don't add this section: go on to next section
-        logDebug('showDashboardHTML', `Section ${String(sectionNumber)} (${section.name}) is empty so will skip it`)
-        sectionNumber++
-        continue // to next loop item
+      if (items.length === 0) {
+        if (sectionNumber === 0) {
+          // If there are no items in first section, then add a congratulatory message
+          items.push({ ID: '0-0C', type: 'congrats', content: `Nothing to do: take a break! <i class="fa-regular fa-face-party fa-face-sleeping"></i>`, rawContent: ``, filename: '' })
+        } else {
+          // don't add this section: go on to next section
+          logDebug('showDashboardHTML', `Section ${String(sectionNumber)} (${section.name}) is empty so will skip it`)
+          sectionNumber++
+          continue // to next loop item
+        }
       }
 
       // Prepare col 1 (section icon + title + description)
@@ -219,10 +267,37 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       // Now start a nested table for cols 3/4 (to simplify logic and CSS)
       outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;">`)
 
-      // If there are no items in section 1, then add a congratulatory message
-      if (items.length === 0) {
-        items.push({ ID: '0-0C', type: 'congrats', content: `Nothing to do: take a break! <i class="fa-regular fa-face-party fa-face-sleeping"></i>`, rawContent: ``, filename: '' })
+      let filteredOut = 0
+      const filteredItems: Array<SectionItem> = []
+      // If we want to, then filtered some out in this section, and append an item to indicate this
+      if (filterPriorityItems) {
+        let maxPriority = 0
+        for (const item of items) {
+          const thisItemPriority = getTaskPriority(item.content)
+          if (thisItemPriority > maxPriority) {
+            maxPriority = thisItemPriority
+          }
+        }
+        for (const item of items) {
+          const thisItemPriority = getTaskPriority(item.content)
+          if (maxPriority === 0 || thisItemPriority >= maxPriority) {
+            filteredItems.push(item)
+          } else {
+            filteredOut++
+          }
+        }
+        if (filteredOut > 0) {
+          items = filteredItems
+          items.push({
+            ID: 'dayfilteredOut',
+            content: `There are also ${filteredOut} lower-priority items not yet shown.`,
+            rawContent: 'Filtered out',
+            filename: '',
+            type: 'filterIndicator'
+          })
+        }
       }
+
       for (const item of items) {
         let encodedFilename = encodeRFC3986URIComponent(item.filename)
         let encodedRawContent = encodeRFC3986URIComponent(item.rawContent)
@@ -282,7 +357,6 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
           case 'congrats': {
             const cell3 = `     <td class="checked sectionItem noborders"><i class="fa-regular fa-circle-check"></i></td>`
             outputArray.push(cell3)
-            // TODO: why aren't icons appearing here?
             const cell4 = `     <td class="sectionItem noborders">${item.content} </td>\n    </tr>`
             outputArray.push(cell4)
             break
@@ -305,8 +379,17 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
             }
             break
           }
+          case 'filterIndicator': {
+            // do icon col
+            outputArray.push(`      <td class="todo sectionItem no-borders"><i class="fa-light fa-angle-right"></i></td>`)
+            // do item details
+            let cell4 = `      <td class="sectionItem lowerPriority">${item.content}</td>\n    </tr>`
+            outputArray.push(cell4)
+            break
+          }
         }
       }
+
       outputArray.push(`   </table>`)
       outputArray.push(`  </div>`)
       outputArray.push(`  </td>\n </tr>`)
@@ -322,6 +405,16 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
     let summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; `
     summaryStatStr += `<span id="totalDoneCount">${String(totalDoneItems)}</span> closed`
     outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}</p>`)
+    // Add filter checkbox
+    // TODO: here's a fancier one to experiment with
+    const temp = `
+    <label class="toggler-wrapper style-1">
+          <input type="checkbox" >
+          <div class="toggler-slider">
+            <div class="toggler-knob"></div>
+          </div>
+        </label>`
+    outputArray.unshift(`<div style="float: right;"><input type="checkbox" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? "checked" : "unchecked"}><label for="filterPriorityItems">Filter out lower-priority items?</label></div>`)
 
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
@@ -335,7 +428,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       specificCSS: '', // set in separate CSS file instead
       makeModal: false, // = not modal window
       preBodyScript: '', // no extra pre-JS
-      postBodyScript: commsBridge, // + resizeListenerScript + unloadListenerScript,
+      postBodyScript: commsBridge + preventClicksPropagatingScript + checkboxClickListenerScript, // + resizeListenerScript, //+ unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 1000, // = default width of window (px)
@@ -354,7 +447,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
     //   '',
     //   false, // = not modal window
     //   '', // no extra JS
-    //   commsBridge + postLoadScripts,
+    //   commsBridge + postLoadScripts + checkboxClickListenerScript,
     //   filenameHTMLCopy,
     //   config.windowWidth > 0 ? config.windowWidth : 1000, // = width of window
     //   config.windowHeight > 0 ? config.windowHeight : 500, // = height of window

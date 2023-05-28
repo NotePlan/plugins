@@ -62,8 +62,7 @@ export type dashboardConfigType = {
   ignoreFolders: Array<string>,
   includeFolderName: boolean,
   includeTaskContext: boolean,
-  // windowWidth: number, // now trying to handle automtically from v0.4.2
-  // windowHeight: number, // now trying to handle automtically from v0.4.2
+  // filterPriorityItems: boolean,
   _logLevel: string,
   triggerLogging: boolean,
 }
@@ -79,19 +78,27 @@ export async function getSettings(): Promise<any> {
     const config: dashboardConfigType = await DataStore.loadJSON(`../${pluginID}/settings.json`)
 
     if (config == null || Object.keys(config).length === 0) {
-      await showMessage(
+      throw new Error(
         `Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`,
       )
-      return
-    } else {
-      // clo(config, `settings`)
-      // Set special pref to avoid async promises in decideWhetherToUpdateDashboard()
-      DataStore.setPreference('Dashboard-Trigger-Log', config.triggerLogging ?? false)
-      return config
     }
+    // clo(config, `settings`)
+    // Set special pref to avoid async promises in decideWhetherToUpdateDashboard()
+    DataStore.setPreference('Dashboard-triggerLogging', config.triggerLogging ?? false)
+
+    // Set local pref Dashboard-filterPriorityItems to default false
+    // if it doesn't exist already
+    const savedValue = DataStore.preference('Dashboard-filterPriorityItems')
+    logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
+    if (!savedValue) {
+      DataStore.setPreference('Dashboard-filterPriorityItems', false)
+    }
+    logDebug(pluginJson, `filter? -> ${DataStore.preference('Dashboard-filterPriorityItems')}`)
+    return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
+    return
   }
 }
 
@@ -236,22 +243,19 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
     // If there's a ! !! or !!! add priorityN styling
     // (Simpler regex possible as the count comes later)
     // Note: this wrapping needs to go last
-    if (output.match(/\B\!+\B/)) {
-      // $FlowFixMe(incompatible-use)
-      const numExclamations = output.match(/\B\!+\B/)[0].length
-      switch (numExclamations) {
-        case 1: {
-          output = '<span class="priority1">' + output + '</span>'
-          break
-        }
-        case 2: {
-          output = '<span class="priority2">' + output + '</span>'
-          break
-        }
-        case 3: {
-          output = '<span class="priority3">' + output + '</span>'
-          break
-        }
+    const numExclamations = getTaskPriority(output)
+    switch (numExclamations) {
+      case 1: {
+        output = '<span class="priority1">' + output + '</span>'
+        break
+      }
+      case 2: {
+        output = '<span class="priority2">' + output + '</span>'
+        break
+      }
+      case 3: {
+        output = '<span class="priority3">' + output + '</span>'
+        break
       }
     }
 
@@ -261,6 +265,15 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
     logError('makeParaContentToLookLikeNPDisplayInHTML', `${error.name} ${error.message}`)
     return ''
   }
+}
+
+export function getTaskPriority(content: string): number {
+  let numExclamations = 0
+  if (content.match(/\B\!+\B/)) {
+    // $FlowFixMe(incompatible-use)
+    numExclamations = content.match(/\B\!+\B/)[0].length
+  }
+  return numExclamations
 }
 
 /**

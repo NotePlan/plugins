@@ -1,7 +1,7 @@
 /**
  * commsSwitchboard.js - HTML Window: process data to/from the plugin
  * This file is loaded by the browser via <script> tag in the HTML file
- * IMPORTANT NOTE: you can use flow and eslint to give you feedback but DO NOT put any type annotations in the actual code
+ * IMPORTANT NOTE: you can use flow and eslint to give you feedback but DO NOT put any type annotations in the actual code:
  * the file will fail silently and you will be scratching your head for why it doesn't work
  */
 
@@ -128,7 +128,7 @@ async function completeChecklist(data) {
 // so you can do error checking, logging, etc.
 
 /**
- * Event handler for the 'click' event on the status icon
+ * Event handler for the 'click' event on the icon
  * @param {string} filename
  * @param {number} lineIndex
  * @param {string} statusWas
@@ -141,10 +141,21 @@ function onClickDashboardItem(ID, type, filenameEncoded, rawContentEncoded = '')
     console.log(msg)
     showError(msg)
   } else {
-    console.log(`onClickDashboardItem received click on: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: <${rawContent}>; sending 'onClickDashboardItem' to plugin`)
+    // console.log(`onClickDashboardItem received: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: <${rawContent}>; sending 'onClickDashboardItem' to plugin`)
     const data = { ID, type, filename, rawContent }
     sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
   }
+}
+
+/**
+ * Event handler for the 'change' event on a checkbox
+ * @param {string} settingName of checkbox
+ * @param {boolean} state that it now has
+ */
+function onChangeCheckbox(settingName, state) {
+  const data = { settingName, state }
+  console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
+  sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
 }
 
 /******************************************************************************

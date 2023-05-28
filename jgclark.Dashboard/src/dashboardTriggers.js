@@ -15,11 +15,11 @@ import plugin from "@babel/core/lib/config/plugin";
 
 /**
  * Local version of log, turned on only if we have a special local pref set
- * @param {any} pluginJson 
- * @param {string} message 
+ * @param {any} pluginJson
+ * @param {string} message
  */
 function logDebug(pluginJson: any, message: string): void {
-  const doLog: boolean = !!DataStore.preference('Dashboard-Trigger-Log')
+  const doLog: boolean = !!DataStore.preference('Dashboard-triggerLogging')
   if (doLog) {
     console.log(message)
   }
@@ -27,8 +27,8 @@ function logDebug(pluginJson: any, message: string): void {
 
 /**
  * Return true if some task/checklist items have been added or completed when comparing 'previousContent' to 'currentContent'.
- * @param {string} previousContent 
- * @param {string} currentContent 
+ * @param {string} previousContent
+ * @param {string} currentContent
  * @returns {boolean} changed?
  */
 function changeToNumberOfOpenItems(previousContent: string, currentContent: string): boolean {
@@ -40,7 +40,7 @@ function changeToNumberOfOpenItems(previousContent: string, currentContent: stri
 
 /**
  * Return number of open items in a multi-line string
- * @param {number} content 
+ * @param {number} content
  * @returns {number}
  */
 function numberOfOpenItems(content: string): number {

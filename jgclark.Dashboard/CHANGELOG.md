@@ -1,11 +1,15 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
-<!-- ??? there is currently an issue with the height, which means that comes back slightly larger than wanted each time. -->
+
+## [0.5.0-b1] - 2023-06-28 (not released)
+### Added
+- new UI toggle "Filter out lower-priority items?": If set then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed. Priority items are currently indicated by having !!!, !! or ! at the beginning or end of the item.
+
 ## [0.4.2] - 2023-05-16
 ### Added
 - now shows an 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of the current daily/weekly/monthly/quarterly note
 - it now takes into account user's preferences for whether `*`, `-` and/or `1.` counts as the indicator for todos
-- it now saves the size and location of the Dashboard window when you move or resize it, and reuses it when you re-open it, or refresh it.
+- it now saves the size and location of the Dashboard window when you move or resize it, and reuses it when you re-open it, or refresh it. (Requires NP v3.9.1+)
 ### Changed
 - when the dashboard window is refreshed in the background by a trigger, it will no longer 'steal focus' by bringing the window to the front.
 - the cursor now changes when over the open task circle or checklist square, to help indicate it can be clicked

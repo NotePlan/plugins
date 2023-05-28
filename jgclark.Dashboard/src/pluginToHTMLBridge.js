@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 27.3.2023 for v0.4.2 by @jgclark
+// Last updated 28.5.2023 for v0.5.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -31,13 +31,36 @@ const windowCustomId = 'Dashboard'
  */
 export function onMessageFromHTMLView(type: string, data: MessageDataObject): any {
   try {
-    logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${type}`)
+    logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${type}:`)
+    // clo(data)
     switch (type) {
       case 'onClickDashboardItem':
         onClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
         break
+      case 'onChangeCheckbox':
+        onChangeCheckbox(data) // data is a string
+        break
+      default:
+        logError(pluginJson, `onMessageFromHTMLView(): unknown ${type} cannot be dispatched`)
+        break
     }
     return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
+ * Somebody clicked on a checkbox in the HTML view
+ * @param {MessageDataObject} data - setting name
+ */
+export async function onChangeCheckbox(data: any) {
+  try {
+    const { settingName, state } = data
+    // logDebug('pluginToHTMLBridge/onChangeCheckbox', `starting with settingName: ${settingName}, state: ${state}`)
+    DataStore.setPreference('Dashboard-filterPriorityItems', state)
+    // having changed this pref, refresh the dashboard
+    await showDashboardHTML()
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -50,44 +73,45 @@ export function onMessageFromHTMLView(type: string, data: MessageDataObject): an
 export async function onClickDashboardItem(data: MessageDataObject) {
   try {
     const { itemID, type, filename, rawContent } = data
-    logDebug(pluginJson, `pluginToHTMLBridge/onClickDashboardItem starting with type: ${type}, itemID: ${itemID}, filename: ${filename}, rawContent: <${rawContent}>`)
+    // logDebug('pluginToHTMLBridge/onClickDashboardItem', `starting with type: ${type}, itemID: ${itemID}, filename: ${filename}, rawContent: <${rawContent}>`)
     if (type === 'open') {
       const res = completeItem(filename, rawContent)
       if (res) {
-        logDebug(pluginJson, `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
         sendToHTMLWindow('completeTask', data)
       } else {
-        logWarn(pluginJson, `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+        logWarn('pluginToHTMLBridge/onClickDashboardItem', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
         await showDashboardHTML()
       }
     }
     else if (type === 'todoCancel') {
+      // TODO:
       const res = cancelItem(filename, rawContent)
       if (res) {
-        logDebug(pluginJson, `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
         sendToHTMLWindow('todoChecklist', data)
       } else {
-        logWarn(pluginJson, `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
+        logWarn('pluginToHTMLBridge/onClickDashboardItem', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
         await showDashboardHTML()
       }
     }
     else if (type === 'checklist') {
       const res = completeItem(filename, rawContent)
       if (res) {
-        logDebug(pluginJson, `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
         sendToHTMLWindow('completeChecklist', data)
       } else {
-        logWarn(pluginJson, `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+        logWarn('pluginToHTMLBridge/onClickDashboardItem', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
         await showDashboardHTML()
       }
     }
     else if (type === 'checklistCancel') {
       const res = cancelItem(filename, rawContent)
       if (res) {
-        logDebug(pluginJson, `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
         sendToHTMLWindow('cancelChecklist', data)
       } else {
-        logWarn(pluginJson, `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
+        logWarn('pluginToHTMLBridge/onClickDashboardItem', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
         await showDashboardHTML()
       }
     }
@@ -95,14 +119,14 @@ export async function onClickDashboardItem(data: MessageDataObject) {
       // Handle a review call simply by opening the note in the main Editor. Later it might get more interesting!
       const note = await Editor.openNoteByFilename(filename)
       if (note) {
-        logDebug(pluginJson, `-> successful call to open filename ${filename} in Editor`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `-> successful call to open filename ${filename} in Editor`)
       } else {
-        logWarn(pluginJson, `-> unsuccessful call to open filename ${filename} in Editor`)
+        logWarn('pluginToHTMLBridge/onClickDashboardItem', `-> unsuccessful call to open filename ${filename} in Editor`)
       }
     }
     else if (type === 'windowResized') {
       // logWindowsList()
-      logDebug(pluginJson, `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
+      logDebug('pluginToHTMLBridge/onClickDashboardItem', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
       clo(data)
       const thisWin = getWindowFromCustomId(windowCustomId)
       // const rect = getLiveWindowRectFromWin(thisWin)
@@ -117,9 +141,9 @@ export async function onClickDashboardItem(data: MessageDataObject) {
       // Handle a show note call simply by opening the note in the main Editor.
       const note = await Editor.openNoteByFilename(filename)
       if (note) {
-        logDebug(pluginJson, `-> successful call to open filename ${filename} in Editor`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `-> successful call to open filename ${filename} in Editor`)
       } else {
-        logWarn(pluginJson, `-> unsuccessful call to open filename ${filename} in Editor`)
+        logWarn('pluginToHTMLBridge/onClickDashboardItem', `-> unsuccessful call to open filename ${filename} in Editor`)
       }
     }
     else if (type === 'showNoteInEditorFromTitle') {
@@ -128,9 +152,9 @@ export async function onClickDashboardItem(data: MessageDataObject) {
       const wantedTitle = decodeURIComponent(filename)
       const note = await Editor.openNoteByTitle(wantedTitle)
       if (note) {
-        logDebug(pluginJson, `-> successful call to open title ${wantedTitle} in Editor`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `-> successful call to open title ${wantedTitle} in Editor`)
       } else {
-        logWarn(pluginJson, `-> unsuccessful call to open title ${wantedTitle} in Editor`)
+        logWarn('pluginToHTMLBridge/onClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)
       }
     }
     else if (type === 'showLineInEditorFromFilename') {
@@ -138,11 +162,11 @@ export async function onClickDashboardItem(data: MessageDataObject) {
       const note = await Editor.openNoteByFilename(filename)
       if (note) {
         // decode rawContent and pass to highlightParagraphInEditor()
-        logDebug(pluginJson, `raw in ${data.rawContent}`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `raw in ${data.rawContent}`)
         const decodedRawContent = decodeURIComponent(data.rawContent)
-        logDebug(pluginJson, `raw decoded ${decodedRawContent}`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `raw decoded ${decodedRawContent}`)
         const res = highlightParagraphInEditor({ filename: filename, rawContent: decodedRawContent })
-        logDebug(pluginJson, `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
       }
     }
     else if (type === 'showLineInEditorFromTitle') {
@@ -152,16 +176,16 @@ export async function onClickDashboardItem(data: MessageDataObject) {
       const note = await Editor.openNoteByTitle(wantedTitle)
       if (note) {
         // decode rawContent and pass to highlightParagraphInEditor()
-        logDebug(pluginJson, `raw in ${data.rawContent}`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `raw in ${data.rawContent}`)
         const decodedRawContent = decodeURIComponent(data.rawContent)
-        logDebug(pluginJson, `raw decoded ${decodedRawContent}`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `raw decoded ${decodedRawContent}`)
         const res = highlightParagraphInEditor({ filename: note.filename, rawContent: decodedRawContent })
-        logDebug(pluginJson, `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
+        logDebug('pluginToHTMLBridge/onClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
       } else {
-        logWarn(pluginJson, `-> unsuccessful call to open title ${wantedTitle} in Editor`)
+        logWarn('pluginToHTMLBridge/onClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)
       }
     } else {
-      logWarn(pluginJson, `onClickDashboardItem: can't yet handle type ${type}`)
+      logWarn('pluginToHTMLBridge/onClickDashboardItem', `onClickDashboardItem: can't yet handle type ${type}`)
     }
   // Other info from DW:
   // const para = getParagraphFromStaticObject(data, ['filename', 'lineIndex'])
@@ -175,9 +199,9 @@ export async function onClickDashboardItem(data: MessageDataObject) {
   //   // NOTE: in this particular case, it might have been easier to just call the refresh-page command, but I thought it worthwhile
   //   // to show how to update a single div in the HTML view
   // } else {
-  //   logError(pluginJson, `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
+  //   logError('pluginToHTMLBridge/onClickDashboardItem', `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
   // }
   } catch (error) {
-    logError(pluginJson, 'onClickDashboardItem:' + error.message)
+    logError(pluginJson, 'pluginToHTMLBridge / onClickDashboardItem:' + error.message)
   }
 }
