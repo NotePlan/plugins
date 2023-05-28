@@ -908,18 +908,15 @@ declare class CommandBar {
   static showOptions<TOption: string = string>(options: $ReadOnlyArray<TOption>, placeholder: string): Promise<{ +index: number, +value: TOption }>;
   /**
    * Asks the user to enter something into the CommandBar.
-   *
-   * Use the "placeholder" value to display a question,
-   * like "Type the name of the task".
-   *
-   * Use the "submitText" to describe what happens with the selection,
-   * like "Create task named '%@'".
-   *
+   * Use the "placeholder" value to display a question, like "Type the name of the task".
+   * Use the "submitText" to describe what happens with the selection, like "Create task named '%@'".
    * The "submitText" value supports the variable "%@" in the string, that
    * NotePlan autofill with the typed text.
-   *
    * It returns a Promise, so you can wait (using "await...") for the user
    * input with the entered text as success result.
+   * @param {string} placeholder
+   * @param {string} submitText
+   * @returns {Promise<string>}
    */
   static showInput(placeholder: string, submitText: string): Promise < string >;
   /**
@@ -928,9 +925,9 @@ declare class CommandBar {
    * `progress` is also optional. If it's defined, the loading indicator will change into a progress ring. Use float numbers from 0-1 to define how much the ring is filled.
    * When you are done, call `showLoading(false)` to hide the window.
    * Note: Available from v3.0.26
-   * @param {boolean}
-   * @param {string?}
-   * @param {Float?}
+   * @param {boolean} visible?
+   * @param {string?} text
+   * @param {number?} progress (floating point)
    */
   static showLoading(visible: boolean, text ?: string, progress ?: number): void;
   /**
@@ -958,9 +955,9 @@ declare class CommandBar {
    * If you don't supply any buttons, an "OK" button will be displayed.
    * The promise returns selected button, with button index (0 - first button)
    * Note: Available from v3.3.2
-   * @param {string}
-   * @param {string}
-   * @param {?$ReadOnlyArray<string>}
+   * @param {string} title
+   * @param {string} message
+   * @param {$ReadOnlyArray<string>?} buttons
    */
   static prompt(title: string, message: string, buttons ?: $ReadOnlyArray < string >): Promise < number >;
 
@@ -971,11 +968,11 @@ declare class CommandBar {
    * If the user selects "OK", the promise returns users entered value
    * If the user selects "Cancel", the promise returns false.
    * Note: Available from v3.3.2
-   * @param {string}
-   * @param {string?}
-   * @param {string?}
+   * @param {string} title
+   * @param {string} message
+   * @param {string?} defaultValue
    */
-  static textPrompt(title: string, message: string, defaultValue: string): Promise < string | false >;
+  static textPrompt(title: string, message: string, defaultValue ?: string): Promise < string | false >;
 }
 
 type CalendarDateUnit = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second'
