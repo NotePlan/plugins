@@ -1,7 +1,7 @@
 /* global jest, describe, test, expect, beforeAll */
 import { CustomConsole } from '@jest/console' // see note below
 import * as f from '../NPPresets'
-import { DataStore, CommandBar, simpleFormatter } from '@mocks/index' //had to skip all the tests because the DataStore __json needs to be figured out
+import { CommandBar, DataStore, NotePlan, simpleFormatter } from '@mocks/index' //had to skip all the tests because the DataStore __json needs to be figured out
 
 const PLUGIN_NAME = `helpers`
 const FILENAME = `NPPresets`
@@ -11,6 +11,7 @@ beforeAll(() => {
   global.DataStore = DataStore // so we see DEBUG logs in VSCode Jest debugs
   DataStore.settings['_logLevel'] = 'none' // change to DEBUG to see more console output during test runs
   global.CommandBar = CommandBar
+  global.NotePlan = new NotePlan()
 })
 
 /* Samples:

@@ -9,7 +9,7 @@
  --graph to create the visialization graph
  --watch to watch for changes
  */
-const rollupReactScript = require('../../../../scripts/rollup.react.js')
+const rollupReactScript = require('../../../../scripts/rollup.generic.js')
 const { rollupReactFiles, getCommandLineOptions, getRollupConfig } = rollupReactScript
 
 ;(async function () {

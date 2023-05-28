@@ -63,6 +63,7 @@ const dt = () => {
 const rollupDefaults = {
   externalModules: ['React', 'react'],
   buildMode: 'development',
+  format: 'iife',
   createBundleGraph: false,
 }
 
@@ -276,11 +277,12 @@ function getRollupConfig(options) {
       plugins: outputPlugins,
       file: outputFilePath,
       /* exports: 'named', */
-      format: 'iife',
+      format: opts.format,
+      inlineDynamicImports: opts.format === 'iife' ? false : true,
       name: exportedFileVarName,
       globals: externalGlobals,
       /* hoist the exports from the entry point to the global scope */
-      footer: `Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, ${exportedFileVarName})`,
+      footer: opts.format === 'iife' ? `Object.assign(typeof(globalThis) == "undefined" ? this : globalThis, ${exportedFileVarName})` : null,
     },
     plugins,
   }

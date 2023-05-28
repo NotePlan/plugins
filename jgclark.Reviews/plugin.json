@@ -117,11 +117,6 @@
       "name": "test:renderProjectLists",
       "description": "Render project lists (without recalc)",
       "jsFunction": "renderProjectLists"
-    },
-    {
-      "name": "test:setWindowHeight",
-      "description": "set height of HTML Window",
-      "jsFunction": "setHTMLWinHeight"
     }
   ],
   "plugin.inactiveCommands": [
@@ -169,6 +164,11 @@
       "name": "test:buttonTriggerOpenNote",
       "description": "test Button Trigger OpenNote",
       "jsFunction": "testButtonTriggerOpenNote"
+    },
+    {
+      "name": "test:setWindowHeight",
+      "description": "set height of HTML Window",
+      "jsFunction": "setHTMLWinHeight"
     }
   ],
   "plugin.settings": [
