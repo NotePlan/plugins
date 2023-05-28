@@ -468,9 +468,8 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
 }
 
 /**
- * Ask for a (floating point) number from user
+ * Ask for an integer number from user
  * @author @jgclark and @m1well
- *
  * @param question question for the commandbar
  * @returns {Promise<number|*>} returns integer or NaN
  */
@@ -482,6 +481,30 @@ export async function inputInteger(question: string): Promise<number> {
     logError('userInput / inputInteger', `Error trying to get integer answer for question '${question}'`)
     return NaN
   }
+}
+
+/**
+ * Ask user for integer, with lower and upper bounds. If out of bounds return NaN.
+ * @author @jgclark
+ * @param question question for the commandbar
+ * @param {number} upperBound must be equal or less than this
+ * @param {number?} lowerBound must be equal or greater than this; defaults to 0 if not given
+ * @returns {Promise<number|*>} returns integer or NaN
+ */
+export async function inputIntegerBounded(title: string, question: string, upperBound: number, lowerBound: number = 0.0): Promise<number> {
+  let result = NaN
+  const reply = await CommandBar.textPrompt(title, question)
+  if (reply != null && reply && isInt(reply)) {
+    const value = parseFloat(reply)
+    if (value <= upperBound && value >= lowerBound) {
+      result = value
+    } else {
+      logWarn('userInput / inputInteger', `Value ${reply} is out of bounds for [${String(lowerBound)},${String(upperBound)}]`)
+    }
+  } else {
+    logError('userInput / inputInteger', `Error trying to get integer answer for question '${question}'`)
+  }
+  return result
 }
 
 /**
@@ -498,7 +521,7 @@ export function isInt(value: string): boolean {
 }
 
 /**
- * Ask for an integer from user
+ * Ask for a (floating-point) number from user
  * @author @jgclark
  *
  * @param question question for the commandbar
