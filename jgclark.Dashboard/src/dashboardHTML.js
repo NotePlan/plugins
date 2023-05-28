@@ -398,23 +398,15 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
     outputArray.push(`</table>`)
 
     // write lines before first table
+
+    // Add filter checkbox
+    outputArray.unshift(`<span style="float: right;"><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? "checked" : "unchecked"}><label for="filterPriorityItems">Filter out lower-priority items?</label></inpu></span>\n</p>`)
     // Write time and refresh info
     const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', '')
     const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
-
     let summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; `
     summaryStatStr += `<span id="totalDoneCount">${String(totalDoneItems)}</span> closed`
-    outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}</p>`)
-    // Add filter checkbox
-    // TODO: here's a fancier one to experiment with
-    const temp = `
-    <label class="toggler-wrapper style-1">
-          <input type="checkbox" >
-          <div class="toggler-slider">
-            <div class="toggler-knob"></div>
-          </div>
-        </label>`
-    outputArray.unshift(`<div style="float: right;"><input type="checkbox" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? "checked" : "unchecked"}><label for="filterPriorityItems">Filter out lower-priority items?</label></div>`)
+    outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}`)
 
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
