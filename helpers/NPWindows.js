@@ -282,7 +282,7 @@ export function getStoredWindowRect(customId: string): Rect | false {
     const prefName = `WinRect_${customId}`
     // $FlowFixMe[incompatible-type]
     const windowRect: Rect = DataStore.preference(prefName)
-    clo(windowRect, `Retrieved Rect ${rectToString(windowRect)} from saved pref '${prefName}'`)
+    logDebug('getWindowRect', `Retrieved Rect ${rectToString(windowRect)} from saved pref`)
     return windowRect
   } catch (error) {
     logError('getStoredWindowRect', error.message)

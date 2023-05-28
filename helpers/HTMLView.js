@@ -63,7 +63,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       }
     }
 
-    // If that hasn't worked, they currentTheme
+    // If that hasn't worked, then currentTheme
     if (themeName === '') {
       themeName = Editor.currentTheme.name ?? ''
       themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
@@ -1035,9 +1035,9 @@ export async function showHTMLV2(
             // Note: can't set customId, but only long UID ('id')
           }
         }
-        clo(winOptions, 'subset of options for API call:')
+        // clo(winOptions, 'subset of options for API call:')
         const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
-        clo(win, '-> win:')
+        // clo(win, '-> win:')
 
         // If wanted, also write this HTML to a file so we can work on it offline.
         // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
