@@ -38,6 +38,7 @@ export type HtmlWindowOptions = {
 
 /**
  * Generate CSS instructions from the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
+ * TODO: be smarter at getting priority task theming
  * @author @jgclark
  * @param {string?} themeNameIn
  * @returns {string} outputCSS
@@ -1054,10 +1055,12 @@ export async function showHTMLV2(
         }
 
         // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
+        logDebug('showHTMLV2', `- opts.customId: '${opts.customId ?? '?'}'`)
         const customIdToUse = opts.customId ?? opts.windowTitle
+        logDebug('showHTMLV2', `- customIdToUse: '${customIdToUse}'`)
         win.customId = customIdToUse
         // Read this back from the window itself
-        logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
+        // logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
 
         return win
       }

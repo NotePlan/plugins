@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 25.10.2022 for v1.0.0-beta
+// Last updated 29.5.2023 for v1.1.0-beta
 //-----------------------------------------------------------------------------
 
 export {
@@ -14,6 +14,11 @@ export {
   searchOverCalendar
 } from './saveSearch'
 export { searchPeriod } from './saveSearchPeriod'
+export {
+  closeDialogWindow,
+  flexiSearchRequest,
+  flexiSearchHandler
+} from './flexiSearch'
 
 const pluginID = "jgclark.SearchExtensions"
 

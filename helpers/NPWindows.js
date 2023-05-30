@@ -246,6 +246,30 @@ export function getWindowFromCustomId(windowCustomId: string): TEditor | HTMLVie
   return false
 }
 
+export function closeWindowFromCustomId(windowCustomId: string): void {
+  // First loop over all Editor windows
+  let thisWin: TEditor | HTMLView
+  const allEditorWindows = NotePlan.editors
+  for (const thisWindow of allEditorWindows) {
+    if (thisWindow.customId === windowCustomId) {
+      thisWin = thisWindow
+    }
+  }
+  // And if not found so far, then all HTML windows
+  const allHTMLWindows = NotePlan.htmlWindows
+  for (const thisWindow of allHTMLWindows) {
+    if (thisWindow.customId === windowCustomId) {
+      thisWin = thisWindow
+    }
+  }
+  if (thisWin) {
+    thisWin.close()
+    logDebug('getWindowFromCustomId', `Closed window '${windowCustomId}'`)
+  } else {
+    logWarn('getWindowFromCustomId', `Couldn't find window to close matching customId '${windowCustomId}'`)
+  }
+}
+
 /**
  * Save the Rect (x/y/w/h) of the given window, given by its ID, to the local device's NP preferences store.
  * @param {string} customId
