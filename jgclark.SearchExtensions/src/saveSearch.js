@@ -31,7 +31,7 @@ import {
 
 //-------------------------------------------------------------------------------
 
-// New thinking on destinations 
+// New thinking on destinations
 // If we remove all options to specify note title, then simplifies
 // callback /non-Quick: arg0 fixed; 1=searchTerm; 2=dest 'refresh' ? ; arg
 // user     /non-Quick: arg0 fixed; 1=searchTerm; 2=dest 'newNote' ?
@@ -103,7 +103,7 @@ export async function quickSearch(searchTermsArg?: string, paraTypeFilterArg?: s
  * Run a search over all notes, saving the results in one of several locations.
  * Works interactively (if no arguments given) or in the background (using supplied arguments).
  * @author @jgclark
- * 
+ *
  * @param {string?} searchTermsArg optional comma-separated list of search terms to search
  * @param {string} noteTypesToInclude either 'project','calendar' or 'both' -- as string not array
  * @param {string?} originatorCommand optional output desination indicator: 'quick', 'current', 'newnote', 'log'
@@ -124,7 +124,7 @@ export async function saveSearch(
     let calledIndirectly = false
 
     // Get the noteTypes to include
-    const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
+    const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
     logDebug(pluginJson, `arg0 -> note types '${noteTypesToInclude.toString()}'`)
 
     // Get the search terms

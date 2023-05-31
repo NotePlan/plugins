@@ -14,8 +14,7 @@ import { displayTitle } from '@helpers/general'
 import { getNoteFilenameFromTitle } from '@helpers/NPnote'
 import {
   openNoteInNewSplitIfNeeded,
-  openNoteInNewWindowIfNeeded,
-  setEditorWindowID
+  openNoteInNewWindowIfNeeded
 } from "@helpers/NPWindows";
 import { chooseOption, getInputTrimmed, showMessage, showMessageYesNoCancel } from '@helpers/userInput'
 import { showMessageYesNo } from "../../helpers/userInput";

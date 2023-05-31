@@ -7,6 +7,9 @@
 - TODO: if no results just bring up a dialog and don't write a note
 - TODO: add new search operator type:checklist or type:open,checklist
 -->
+## [1.1.0-beta10] - 2023-05-???
+- added **flexiSearch** command
+
 ## [1.1.0-beta9] - 2023-05-17
 - fix to allow searching with Unicode characters (thanks to the report by @haris_sav and initial diagnosis by @dwertheimer)
 

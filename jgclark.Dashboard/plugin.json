@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.4.2",
-  "plugin.lastUpdateInfo": "v0.4.2: various updates to window handling.v0.4.1: bug fix, polish and demo updates.\nv0.4.0: first public release.\nv0.3.6: small bits of polish.\nv0.3.5: adds months to output.\nv0.3.4: adds width/height settings; equalises font size with NP.\nv0.3.2: improved trigger's detection of relevant changes.\nv0.3.0: will auto-update if trigger set on daily/weekly notes.",
+  "plugin.version": "0.5.0-b1",
+  "plugin.lastUpdateInfo": "v0.5.0: Can now filter out lower-priority items.\nv0.4.2: various updates to window handling.v0.4.1: bug fix, polish and demo updates.\nv0.4.0: first public release.\nv0.3.6: small bits of polish.\nv0.3.5: adds months to output.\nv0.3.4: adds width/height settings; equalises font size with NP.\nv0.3.2: improved trigger's detection of relevant changes.\nv0.3.0: will auto-update if trigger set on daily/weekly notes.",
   "plugin.requiredFiles": [
     "commsSwitchboard.js",
     "dashboard.css"
@@ -133,19 +133,12 @@
       "required": true
     },
     {
-      "key": "windowHeight",
-      "title": "Default window height. TODO: remove in time",
-      "description": "Default window height (in pixels) when the dashboard is displayed",
+      "key": "filterPriorityItems",
+      "title": "Filter priority items?",
+      "description": "If set then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed.\nPriority items are currently indicated by having !!!, !! or ! at the beginning or end of the item.",
       "type": "hidden",
-      "default": 500,
-      "required": false
-    },
-    {
-      "key": "windowWidth",
-      "title": "Default window width. TODO: remove in time",
-      "description": "Default window width (in pixels) when the dashboard is displayed",
-      "type": "hidden",
-      "default": 1000,
+      "comment": "TODO: remove me",
+      "default": true,
       "required": false
     },
     {

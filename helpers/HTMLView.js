@@ -38,6 +38,7 @@ export type HtmlWindowOptions = {
 
 /**
  * Generate CSS instructions from the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
+ * TODO: be smarter at getting priority task theming
  * @author @jgclark
  * @param {string?} themeNameIn
  * @returns {string} outputCSS
@@ -63,7 +64,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       }
     }
 
-    // If that hasn't worked, they currentTheme
+    // If that hasn't worked, then currentTheme
     if (themeName === '') {
       themeName = Editor.currentTheme.name ?? ''
       themeName = themeName.endsWith('.json') ? themeName.slice(0, -5) : themeName
@@ -1035,9 +1036,9 @@ export async function showHTMLV2(
             // Note: can't set customId, but only long UID ('id')
           }
         }
-        clo(winOptions, 'subset of options for API call:')
+        // clo(winOptions, 'subset of options for API call:')
         const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
-        clo(win, '-> win:')
+        // clo(win, '-> win:')
 
         // If wanted, also write this HTML to a file so we can work on it offline.
         // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
@@ -1054,10 +1055,12 @@ export async function showHTMLV2(
         }
 
         // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
+        logDebug('showHTMLV2', `- opts.customId: '${opts.customId ?? '?'}'`)
         const customIdToUse = opts.customId ?? opts.windowTitle
+        logDebug('showHTMLV2', `- customIdToUse: '${customIdToUse}'`)
         win.customId = customIdToUse
         // Read this back from the window itself
-        logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
+        // logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
 
         return win
       }

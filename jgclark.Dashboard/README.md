@@ -1,5 +1,6 @@
 # 🎛 Dashboard plugin
-![](dashboard-v0.4.1@2x.jpg)
+![](dashboard-v0.5.0b1@2x.jpg)
+
 
 This plugin provides a **dashboard window** that in one place shows a compact list of just the:
 - open tasks and checklists from today's note
@@ -26,6 +27,8 @@ Other notes:
     triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDasboard
     ---
     ```
+- there's a UI toggle "Filter out lower-priority items?". If this is on, then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed. Priority items are currently indicated by having !!!, !! or ! at the beginning or end of the item.
+
 
 ## Settings
 This requires the **Shared Resources** plugin to be installed as well, to work and display properly. The Dashboard should automatically offer to install it if it isn't already.
