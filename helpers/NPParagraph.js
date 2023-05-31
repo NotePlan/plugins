@@ -1298,12 +1298,12 @@ export function markComplete(para: TParagraph): boolean {
       para.type = 'done'
       para.content += doneString
       para.note?.updateParagraph(para)
-      logDebug('markComplete', `updated para ${para.content}`)
+      logDebug('markComplete', `updated para <${para.content}>`)
       return true
     } else if (para.type === 'checklist') {
       para.type = 'checklistDone'
       para.note?.updateParagraph(para)
-      logDebug('markComplete', `updated para ${para.content}`)
+      logDebug('markComplete', `updated para <${para.content}>`)
       return true
     } else {
       logWarn('markComplete', `unexpected para type ${para.type}, so won't continue`)
@@ -1325,12 +1325,12 @@ export function markCancelled(para: TParagraph): boolean {
     if (para.type === 'open') {
       para.type = 'cancelled'
       para.note?.updateParagraph(para)
-      logDebug('markCancelled', `updated para ${para.content}`)
+      logDebug('markCancelled', `updated para <${para.content}>`)
       return true
     } else if (para.type === 'checklist') {
       para.type = 'checklistCancelled'
       para.note?.updateParagraph(para)
-      logDebug('markCancelled', `updated para ${para.content}`)
+      logDebug('markCancelled', `updated para <${para.content}>`)
       return true
     } else {
       logWarn('markCancelled', `unexpected para type ${para.type}, so won't continue`)
@@ -1374,7 +1374,7 @@ export function completeItem(filenameIn: string, rawContent: string): boolean {
           }
           c++
         }
-        logWarn('completeItem', `Couldn't find paragraph '${rawContent}' to complete`)
+        logWarn('completeItem', `Couldn't find paragraph <${rawContent}> to complete`)
         return false
       } else {
         logInfo('completeItem', `Note '${filename}' appears to be empty?`)
@@ -1421,7 +1421,7 @@ export function cancelItem(filenameIn: string, rawContent: string): boolean {
           }
           c++
         }
-        logWarn('completeItem', `Couldn't find paragraph '${rawContent}' to complete`)
+        logWarn('completeItem', `Couldn't find paragraph <${rawContent}> to complete`)
         return false
       } else {
         logInfo('completeItem', `Note '${filename}' appears to be empty?`)
