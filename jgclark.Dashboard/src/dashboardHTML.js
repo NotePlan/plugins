@@ -123,7 +123,6 @@ function addPreventDefaultEventHandlersFunc() {
 /**
  * When window is resized, send dimensions to plugin. Note: doesn't fire on window *move* alone.
  */
-// FIXME: fix why this is giving 0 height
 const resizeListenerScript = `
 <!-- resizeListenerScript -->
 <script type="text/javascript">
@@ -211,7 +210,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       if (items.length === 0) {
         if (sectionNumber === 0) {
           // If there are no items in first section, then add a congratulatory message
-          items.push({ ID: '0-0C', type: 'congrats', content: `Nothing to do: take a break! <i class="fa-regular fa-face-party fa-face-sleeping"></i>`, rawContent: ``, filename: '' })
+          items.push({ ID: '0-Congrats', type: 'congrats', content: `Nothing to do: take a break! <i class="fa-regular fa-face-party fa-face-sleeping"></i>`, rawContent: ``, filename: '' })
         } else {
           // don't add this section: go on to next section
           logDebug('showDashboardHTML', `Section ${String(sectionNumber)} (${section.name}) is empty so will skip it`)
@@ -265,7 +264,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       outputArray.push(`  <td>`)
       outputArray.push(`  <div class="multi-cols">`)
       // Now start a nested table for cols 3/4 (to simplify logic and CSS)
-      outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;">`)
+      outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;" id="${section.ID}-Section">`)
 
       let filteredOut = 0
       const filteredItems: Array<SectionItem> = []
@@ -289,7 +288,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
         if (filteredOut > 0) {
           items = filteredItems
           items.push({
-            ID: 'dayfilteredOut',
+            ID: section.ID + '-Filter',
             content: `There are also ${filteredOut} lower-priority items not yet shown.`,
             rawContent: 'Filtered out',
             filename: '',
@@ -327,7 +326,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
             } else {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
             }
-            const cell4 = `     <td class="sectionItem">${paraContent}</td>\n    </tr>`
+            const cell4 = `     <td class="sectionItem"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n    </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -349,7 +348,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
             } else {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
             }
-            const cell4 = `     <td class="sectionItem">${paraContent}</td>\n    </tr>`
+            const cell4 = `     <td class="sectionItem"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n    </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -431,21 +430,6 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       // y
     }
     await showHTMLV2(outputArray.join('\n'), winOptions)
-    // await showHTML(
-    //   windowTitle,
-    //   resourceLinksInHeader,
-    //   outputArray.join('\n'),
-    //   '', // get general CSS set automatically
-    //   '',
-    //   false, // = not modal window
-    //   '', // no extra JS
-    //   commsBridge + postLoadScripts + checkboxClickListenerScript,
-    //   filenameHTMLCopy,
-    //   config.windowWidth > 0 ? config.windowWidth : 1000, // = width of window
-    //   config.windowHeight > 0 ? config.windowHeight : 500, // = height of window
-    //   // windowCustomId,
-    //   // false // shouuld not focus, if Window already exists
-    // ) // set width; max height
     logDebug(`makeDashboard`, `written to HTML window`)
   } catch (error) {
     logError(pluginJson, JSP(error))

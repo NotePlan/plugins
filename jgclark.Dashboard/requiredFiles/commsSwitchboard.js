@@ -86,8 +86,17 @@ async function completeTask(data) {
   decrementItemCount("totalOpenCount")
   incrementItemCount("totalDoneCount")
   // update the section count, which is identified as the first part of the itemID
-  const sectionID = `section${itemID.split('-')[0]}Count`
-  decrementItemCount(sectionID)
+  const sectionID = itemID.split('-')[0]
+  const sectionCountID = `section${sectionID}Count`
+  decrementItemCount(sectionCountID)
+
+  // See if the only remaining item is the '> There are also ... items' line
+  const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
+  // console.log(`completeTask: after completing, ${String(numItemsRemaining)} items remaining`)
+  if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
+    // We need to un-hide the lower-priority items: do full refresh
+    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+  }
 }
 
 /**
@@ -107,15 +116,18 @@ async function completeChecklist(data) {
   decrementItemCount("totalOpenCount")
   incrementItemCount("totalDoneCount")
   // update the section count
-  const sectionID = `section${ID.split('-')[0]}Count`
-  decrementItemCount(sectionID)
-}
+  const sectionID = itemID.split('-')[0]
+  const sectionCountID = `section${sectionID}Count`
+  decrementItemCount(sectionCountID)
 
-// TODO: is this actually used? Trying it commented out to see
-// function showLineInEditor(data) {
-//   const { ID } = data
-//   console.log(`showLineInEditor: for ID: ${ID}`)
-// }
+  // See if the only remaining item is the '> There are also ... items' line
+  const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
+  // console.log(`completeChecklist: after completing, ${String(numItemsRemaining)} items remaining`)
+  if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
+    // We need to un-hide the lower-priority items: do full refresh
+    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+  }
+}
 
 /******************************************************************************
  *                       EVENT HANDLERS FOR THE HTML VIEW
@@ -226,6 +238,39 @@ function decrementItemCount(counterID) {
     const value = parseInt(div.innerText)
     replaceHTML(counterID, String(value - 1), true)
   }
+}
+
+/**
+ * Count how many children of type 'tagName' are in DOM under sectionID.
+ * Additionally ignore children with no innerHTML
+ * @param {string} sectionID
+ * @param {string} tagName uppercase version of HTML tag e.g. 'TR'
+ * @returns {number}
+ */
+function getNumItemsInSection(sectionID, tagName) {
+  console.log(`getNumItemsInSection: ${sectionID} by ${tagName}`)
+  const sectionTable = document.getElementById(sectionID)
+  // console.log(`${sectionTable.innerHTML}`)
+  if (sectionTable) {
+    let c = 0
+    const items = sectionTable.getElementsByTagName(tagName)
+    // I think this is a collection not an array, so can't use a .filter?
+    for (i = 0; i < items.length; i++) {
+      if (items[i].innerHTML !== '') {
+        c++
+      }
+    }
+    console.log(`= ${String(c)}`)
+    return c
+  } else {
+    console.log(`Couldn't find section with ID ${sectionID}`)
+    return 0
+  }
+}
+
+function doesIDExist(itemID) {
+  // console.log(`doesIDExist for ${itemID}? ${String(document.getElementById(itemID))}`)
+  return document.getElementById(itemID)
 }
 
 function showError(message) {
