@@ -2,16 +2,19 @@
 This plugin provides the **preview note** command that renders the current note to HTML including:
 - standard Markdown conversion
 - [Mermaid diagrams](https://mermaid.js.org) (e.g. flowcharts, gantt charts, sequence diagrams ...)
-- MathJax fragments or lines (for mathematical equations and notation)
+- [MathJax](https://www.mathjax.org/) fragments or lines (for mathematical equations and notation)
 - some advanced Markdown conversion (e.g. strikethrough and tables)
+- it renders frontmatter slightly differently.
 
 [This example NotePlan note](https://noteplan.co/n/EA936BC2-A6C1-43F7-9C34-E2C31CF96AC6) includes examples of these different capabilities.
 
-Note: This is designed to be a temporary solution while we wait for similar functionality to get baked into the NotePlan app itself.  To that end, I don't intend to be making many improvements to this.
+Note: This is designed to be a temporary solution while we wait for similar functionality to get baked into the NotePlan app itself.  Indeed I know there are bugs in the rendering of frontmatter arising from one of the third-party libraries this uses. To that end, I don't intend to be making many improvements to this.
 
 ## Automatic updating
-It's possible to set a **trigger** on a note so that ???
-
+It's possible to set a **trigger** on a note so that the window will automatically refresh when you edit the note. To set this behaviour add the following line to the frontmatter block:
+```yaml
+triggers: onEditorWillSave => np.Preview.updatePreview
+```
 
 ## Mermaid charts
 The markdown-ish definition of these charts is done in one or more fenced code blocks:
@@ -39,7 +42,7 @@ $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
 ```
 
 ## Thanks
-To the people who've spend the time to create and maintain Mermaid, MathJax and the [showdown library](https://github.com/showdownjs/showdown).
+To the people who've spend the time to create and maintain [Mermaid](https://mermaid.js.org), [MathJax](https://www.mathjax.org/) and the [showdown library](https://github.com/showdownjs/showdown).
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

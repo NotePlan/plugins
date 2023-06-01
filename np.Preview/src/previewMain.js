@@ -10,6 +10,7 @@ import showdown from 'showdown' // for Markdown -> HTML from https://github.com/
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
+import { getFrontMatterParagraphs, hasFrontMatter } from '@helpers/NPFrontMatter'
 import { type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
 
 //--------------------------------------------------------------
@@ -37,6 +38,11 @@ mermaid.initialize({ startOnLoad: true, theme: '${isDarkTheme ? 'dark' : 'defaul
 const extraCSS = `
 .stickyButton { position: sticky; float: right; top: 6px; right: 8px; }
 Button a { text-decoration: none; font-size: 0.9rem; }
+.frontmatter { border-radius: 12px;
+  border: 1px solid var(--tint-color);
+  padding: 0rem 0.5rem;
+  background-color: var(--bg-alt-color);
+  }
 `
 
 /**
@@ -49,12 +55,34 @@ Button a { text-decoration: none; font-size: 0.9rem; }
  */
 export function previewNote(): void {
   try {
-    let includesMermaid = false
-    const { note, content } = Editor
+    const { note, content, title } = Editor
     let lines = content?.split('\n') ?? []
+    const hasFrontmatter = hasFrontMatter(content ?? '')
 
+    // Update frontmatter for this note (if present)
+    // In particular remove trigger line
+    if (hasFrontmatter) {
+      lines = lines.filter(l => l !== 'triggers: onEditorWillSave => np.Preview.updatePreview')
+      // look for 2nd '---' and double it, because of showdown bug
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].startsWith('title:')) {
+          lines[i] = lines[i].replace('title: ', '# ')
+        }
+        if (lines[i].trim() === '---') {
+          lines[i] = "---\n---" // add a second HR
+          break
+        }
+      }
+    }
+
+    logDebug(pluginJson, lines.join('\n'))
+    logDebug(pluginJson, '')
+
+    // TODO: Ideally build a frontmatter styler extension
+    // But for now ...
     // Update mermaid fenced code blocks to suitable <divs>
     // Note: did try to use getCodeBlocksOfType() helper but found it wasn't architected helpfully for this use case
+    let includesMermaid = false
     let inMermaidCodeblock = false
     for (let i = 0; i < lines.length; i++) {
       if (inMermaidCodeblock && lines[i].trim() === "```") {
@@ -80,10 +108,18 @@ export function previewNote(): void {
     }
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
+
+    // For now tweak body output to put frontmatter in a box if it exists
+    if (hasFrontmatter) {
+      // replace first '<hr />' with start of div
+      body = body.replace('<hr />', '<div class="frontmatter">')
+      // replace what is now the first '<hr />' with end of div
+      body = body.replace('<hr />', '</div>')
+    }
+    // logDebug(pluginJson, body)
+
     // Add sticky button at top right offering to print
     body = `	<div class="stickyButton"><button type="printButton"><a href="preview.html" onclick="window.open(this.href).print(); return false;">Print me</a></button></div>\n` + body
-
-    // TODO: triggers for refresh
 
     body += (includesMermaid ? initMermaidScripts : '')
     const windowOpts: HtmlWindowOptions = {
@@ -108,5 +144,5 @@ export function previewNote(): void {
   }
 }
 
-export function openPreviewNoteInBrowser(): void {
-}
+// export function openPreviewNoteInBrowser(): void {
+// }
