@@ -11,8 +11,7 @@
   "plugin.version": "0.3.0",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
-    "mermaid@10.1.0.esm.min.mjs",
-    "polyfill.min.js",
+    "mermaid@10.1.0.min.mjs",
     "tex-chtml.js"
   ],
   "plugin.requiredSharedFiles": [],

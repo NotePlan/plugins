@@ -2,7 +2,7 @@
 
 //--------------------------------------------------------------
 // Main rendering function for Preview
-// by Jonathan Clark, last updated 23.5.2023 for v0.3.0
+// by Jonathan Clark, last updated 27.5.2023 for v0.3.0
 //--------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -16,7 +16,6 @@ import { type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
 
 // Set up for MathJax
 const initMathJaxScripts = `
-<script src="polyfill.min.js"></script>
 <script type="text/javascript" id="MathJax-script" async
   src="tex-chtml.js">
 </script>
@@ -25,30 +24,19 @@ const initMathJaxScripts = `
 // Set up for Mermaid, using live copy of the Mermaid library (for now)
 // is current NP theme dark or light?
 const isDarkTheme = (Editor.currentTheme.mode === 'dark')
-// TODO: find a webpack version of mermaid
+// Note: using CDN version of mermaid.js, because whatever we tried for a packaged local version didn't work for Gantt charts.
 const initMermaidScripts = `
 <script type="module">
-// import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
 import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+// import merm from "./mermaid@10.1.0.min.mjs";
+// var mermaid = merm.default;
 mermaid.initialize({ startOnLoad: true, theme: '${isDarkTheme ? 'dark' : 'default'}' });
 </script>
 `
 
-const fakeButtonCSS = `
-<style type="text/css">
-	.fake-button {
-		background-color: #5E5E5E;
-		font-size: 1.0rem;
-		font-weight: 500;
-		text-decoration: none;
-		border-color: #5E5E5E;
-		border-radius: 4px;
-		box-shadow: 0 -1px 1px #6F6F6F;
-		padding: 1px 7px 1px 7px;
-		margin: 1px 4px;
-		white-space: nowrap
-	}
-</style>
+const extraCSS = `
+.stickyButton { position: sticky; float: right; top: 6px; right: 8px; }
+Button a { text-decoration: none; font-size: 0.9rem; }
 `
 
 /**
@@ -92,19 +80,19 @@ export function previewNote(): void {
     }
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
-    // TODO: make this a better-looking button
-    body = `	<p align="right" class="fakebutton"><a href="preview.html" onclick="window.open(this.href).print(); return false;">Print me</a></p>\n` + body
+    // Add sticky button at top right offering to print
+    body = `	<div class="stickyButton"><button type="printButton"><a href="preview.html" onclick="window.open(this.href).print(); return false;">Print me</a></button></div>\n` + body
 
-    // Newer way to include Mermaid is to add at end of body
+    // TODO: triggers for refresh
 
     body += (includesMermaid ? initMermaidScripts : '')
     const windowOpts: HtmlWindowOptions = {
       windowTitle: `${displayTitle(Editor)} Preview`,
       headerTags: '',
       generalCSSIn: '', // get general CSS set automatically
-      specificCSS: '', // set in separate CSS file instead
+      specificCSS: extraCSS,
       makeModal: false, // = not modal window
-      preBodyScript: fakeButtonCSS + initMathJaxScripts, // add Mermaid (if needed) and MathJax libraries
+      preBodyScript: initMathJaxScripts, // add Mermaid (if needed) and MathJax libraries
       postBodyScript: '', // none
       savedFilename: '../../np.Preview/preview.html',
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
