@@ -136,14 +136,90 @@ const JSCloseDialog = JSON.stringify(`
 })()
 `)
 
+// TODO: Script to save item to pref
+const JSUpdatePref = JSON.stringify(`
+(async function() {
+  await DataStore.invokePluginCommandByName('???', 'jgclark.SearchExtensions', ['%%KEY%%', '%%VALUE%%'] )
+})()
+`)
+
 const flexiSearchDialogPostBodyScripts = `
 <script type="text/javascript">
   window.addEventListener("load", () => {
     console.log('onLoad script running ...')
+		// Set defaults to use.
+		// Note following code assumes case sensitive matching, and that the values are distinct and not subset strings of each other
+		let noteTypesStr = 'notes,calendar,'
+		let paraTypesStr = 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
     const formID = "searchOptions"
+		// Get the form element + input controls
     const form = document.getElementById(formID)
+		const inputs = form.elements
 
-    // Add 'submit' event handler
+		function loadDialogState() {
+			// TODO: load it or have it passed in some way
+			console.log('loadDialogState()')
+		}
+
+		loadDialogState()
+
+		// Iterate over checkbox controls setting whether they're initially checked or not
+		function initDialogState() {
+			console.log('initDialogState()')
+			for (let i = 0; i < inputs.length; i++) {
+				if (inputs[i].type === "checkbox") {
+					const val = inputs[i].value
+					if (inputs[i].name === "notetype") {
+						console.log('- setting noteTypesStr "'+ val +'" to ' + noteTypesStr.includes(val))
+						inputs[i].checked = noteTypesStr.includes(val)
+					} else {
+						console.log('- setting paraTypesStr "'+ val +'" to ' + noteTypesStr.includes(val))
+						inputs[i].checked = paraTypesStr.includes(val)
+					}
+				}
+			}
+		}
+
+		initDialogState()
+
+		function saveDialogState() {
+			noteTypesStr = ''
+			paraTypesStr = ''
+			console.log('saveDialogState()')
+			// Iterate over the optional controls
+			for (let i = 0; i < inputs.length; i++) {
+				// console.log(inputs[i].nodeName, inputs[i].type, inputs[i].checked, inputs[i].value)
+				if (inputs[i].checked && inputs[i].name === "notetype") {
+					// Add this checked value to a CSV string
+					noteTypesStr += inputs[i].value + ','
+				}
+				if (inputs[i].checked && (inputs[i].name === "task" || inputs[i].name === "checklist" || inputs[i].name === "other")) {
+					// Add this checked value to a CSV string
+					paraTypesStr += inputs[i].value + ','
+				}
+			}
+      // TODO: warning if noteTypesStr is empty
+
+			// TODO: save
+			console.log('Saving ' + noteTypesStr + ' / ' + paraTypesStr)
+      window.webkit.messageHandlers.jsBridge.postMessage({
+          code: ${JSUpdatePref}.replace(%%KEY%%, 'noteTypesStr').replace(%%VALUE%%, noteTypesStr),
+          function: "miscFunc",
+          id: "1"
+        })
+      window.webkit.messageHandlers.jsBridge.postMessage({
+          code: ${JSUpdatePref}.replace(%%KEY%%, 'paraTypesStr').replace(%%VALUE%%, paraTypesStr),
+          function: "miscFunc",
+          id: "1"
+        })
+      }
+
+    // Add 'change' event handler to form
+		form.addEventListener("change", (event) => {
+			saveDialogState()
+		})
+
+    // Add 'submit' event handler to form
     form.addEventListener("submit", (event) => {
       event.preventDefault()
       const submitterValue = event.submitter.value
@@ -161,29 +237,9 @@ const flexiSearchDialogPostBodyScripts = `
         return
       }
 
-      // Get the form element
-      const inputs = form.elements
-
-      // Get main text input
-      const searchTerms = inputs["searchTerms"].value
-      console.log(searchTerms)
-
-      // Iterate over the optional controls
-      let noteTypesStr = ''
-      let paraTypesStr = ''
-      for (let i = 0; i < inputs.length; i++) {
-        // console.log(inputs[i].nodeName, inputs[i].type, inputs[i].checked, inputs[i].value)
-        if (inputs[i].checked && inputs[i].name === "notetype") {
-          // Add this checked value to a CSV string
-          noteTypesStr += inputs[i].value + ','
-        }
-        if (inputs[i].checked && (inputs[i].name === "task" || inputs[i].name === "checklist" || inputs[i].name === "other")) {
-          // Add this checked value to a CSV string
-          paraTypesStr += inputs[i].value + ','
-        }
-      }
-
-      console.log('part2')
+			// Get text input
+			const searchTerms = inputs["searchTerms"].value
+			console.log(searchTerms)
 
       // Remove any multiple or leading or trailing comma(s)
       let noteTypes = noteTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '')
@@ -253,7 +309,6 @@ const dialogCSS = `
 export async function flexiSearchRequest(
 ): Promise<void> {
   try {
-    Note: stopping compile while testing JS in script
 
     logDebug(pluginJson, `flexiSearchRequest called`)
     // TODO: add appropriate FA libraries
@@ -267,7 +322,7 @@ export async function flexiSearchRequest(
       makeModal: false, // TODO: is this more helpful?
       postBodyScript: flexiSearchDialogPostBodyScripts,
       savedFilename: '../../jgclark.SearchExtensions/flexiSearchDialog.html',
-      width: 400, // FIXME: being ignored sometimes?
+      width: 400, // FIXME: being ignored
       height: 300,
       reuseUsersWindowRect: false,
       shouldFocus: true, // FIXME: being ignored?

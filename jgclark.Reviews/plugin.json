@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.3.2",
+  "noteplan.minAppVersion": "3.9.1",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Reviews",
   "plugin.name": "🔬 Projects + Reviews",
@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.11.0",
-  "plugin.lastUpdateInfo": "0.11.0: new 'skip project review' command, and its optional @nextReview() date. New 'How to show completed/cancelled projects?' setting.\n0.10.1: bugfix and more flexible 'Folders to Include' setting.\n0.10.0: new setting 'Folders to Include' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.",
+  "plugin.version": "0.11.1",
+  "plugin.lastUpdateInfo": "0.11.1: window size and position should now be reused. Added 'add progress line' command.\n0.11.0: new 'skip project review' command, and its optional @nextReview() date. New 'How to show completed/cancelled projects?' setting.\n0.10.1: bugfix and more flexible 'Folders to Include' setting.\n0.10.0: new setting 'Folders to Include' and fix @reviewed() duplication.\n0.9.5: small fixes.\n0.9.4: fixes and smarter window management.\n0.9.3: fixes.\n0.9.2: date fixes, locale language used where possible, tool tips & other polish.",
   "plugin.requiredFiles": [],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -97,6 +97,16 @@
       ],
       "description": "adds @cancelled(date) date to the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and offers to move the note to the NotePlan Archive",
       "jsFunction": "cancelProject"
+    },
+    {
+      "name": "add progress update",
+      "alias": [
+        "apu",
+        "progress",
+        "percent"
+      ],
+      "description": "prompts for a short description and percentage completion number for the open project note, and writes it to the metadata area of the note",
+      "jsFunction": "addProgressUpdate"
     },
     {
       "name": "test:logFullReviewList",

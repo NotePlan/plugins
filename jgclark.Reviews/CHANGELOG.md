@@ -1,5 +1,11 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
+<!-- - resize action -->
+## [0.12.0] - 2023-05-???
+### Added
+- the Review List's window size and position is now saved whenever its content is refreshed, and is reused when you next re-open it. (**This feature requires NP v3.9.1+**)
+- new **add progress update** command, that prompts for a short progress update (text) and current % complete (number). This is inserted into the metadata area of the current project note.
+- when pausing a project (through the review list or the "pause project toggle" command) it now offers to write a reason as a "progress update" in the metadata.
 
 ## [0.11.0] - 2023-05-10
 ### Added

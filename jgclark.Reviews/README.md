@@ -20,20 +20,20 @@ Each **Project** is described by a separate note, and has a lifecycle something 
 
 Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on a line (which I suggest comes after the title).  For example:
 
-![Example of a Project and the fields to use](secret-undertaking-example-bordered.jpg)
-<!-- ```markdown
+```markdown
 # Secret Undertaking
 #project @review(2w) @reviewed(2021-07-20) @start(2021-04-05) @due(2021-11-30)
 Aim: Do this amazing secret thing
-Progress: 10@2022-01-07: Had the briefing and got 007 on the case
+Progress: 10@2022-01-08: Tracked down 007 and got him on the case
+Progress: 0@2022-01-03: Project started with a briefing from M about SPECTRE's dastardly plan
 
 ## Details
 * [x] Get briefing from 'M' at HQ
 * [x] recruit James Bond
-* task Q with building a personal jetpack (with USB ports)
-* set up team Deliveroo account
+* [ ]  task Q with building a personal jetpack (with USB ports)
+* [ ] set up team Deliveroo account
 ...
-``` -->
+```
 
 The fields I use are:
 - `@review(...)`: interval to use between reviews, of form [number][bdwmqy]:
@@ -45,7 +45,7 @@ The fields I use are:
 - `@completed(YYY-MM-DD)`: date project was completed (if relevant)
 - `@cancelled(YYY-MM-DD)`: date project was cancelled (if relevant)
 - `Aim: free text`: optional, and not used in any processing
-- `Progress: N:YYYY-MM-DD: free text ...`: your latest summary of progress for this N% (optional)
+- `Progress: N:YYYY-MM-DD: one-line description`: your latest summary of progress for this N% (optional). If present this is shown in the projects list; if not the % completion is calculated on the number of open and closed tasks.
 
 Similarly, if you follow the **PARA method**, then you will also have "**Areas** of responsibility" to maintain, and I use a `#area` tag to mark these. These don't normally have a start/end/completed dates, but they also need reviewing.  For example:
 
@@ -97,7 +97,7 @@ Other settings:
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders). This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.
 - Folders to Ignore (optional): Specify which folders to ignore (which includes any of their sub-folders too).  This match is done anywhere in the folder name.
 - Display project dates?  Whether to display the project's review and due dates (where set).
-- Display project's latest progress?  Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.
+- Display project's latest progress?  Whether to show the project's latest progress (where available). If some lines have a specific 'Progress:' field it will use the latest of those, otherwise it will calculate %completion based on the number of completed and open tasks.
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
 - Display grouped by folder? Whether to group the projects by their folder.
 - How to show completed/cancelled projects?: The options are 'display at end', 'display' or 'hide'.
@@ -129,6 +129,13 @@ folder: <select>
 #project @start(<%- promptDate('startDate', 'Enter start date') %>) @due(<%- promptDate('dueDate', 'Enter due date') %>) @review(<%- promptDateInterval('question', 'Enter review interval') %>)
 Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
+```
+
+## "add progress update" command
+This prompts for a short description of latest progress (as short text string) and current % complete (number). This is inserted into the metadata area of the current project note as:
+
+```markdown
+progress: <num>@YYYY-MM-DD: <short description>
 ```
 
 ## "complete project" command
