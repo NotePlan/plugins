@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.4.1] - 2023-06-02 (@dwertheimer)
+
+- add tweaks for react
+
 ## [0.4.0] - 2023-05-29 (@dwertheimer)
 
 - add w3.css to the shared files and update some of the React
