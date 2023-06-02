@@ -128,7 +128,7 @@
     {
       "name": "flexiSearchHandler",
       "hidden": true,
-      "description": "Entry point from flexiSearch dialog",
+      "description": "Called by flexiSearch dialog",
       "jsFunction": "flexiSearchHandler",
       "arguments": [
         "searchTerms",
@@ -139,10 +139,29 @@
     {
       "name": "closeDialogWindow",
       "hidden": true,
-      "description": "Entry point from flexiSearch dialog",
+      "description": "Called by flexiSearch dialog",
       "jsFunction": "closeDialogWindow",
       "arguments": [
         "customId"
+      ]
+    },
+    {
+      "name": "getPluginPreference",
+      "hidden": true,
+      "description": "Called by flexiSearch dialog",
+      "jsFunction": "getPluginPreference",
+      "arguments": [
+        "key"
+      ]
+    },
+    {
+      "name": "savePluginPreference",
+      "hidden": true,
+      "description": "Called by flexiSearch dialog",
+      "jsFunction": "savePluginPreference",
+      "arguments": [
+        "key",
+        "value"
       ]
     }
   ],
