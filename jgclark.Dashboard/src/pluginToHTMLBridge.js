@@ -40,6 +40,9 @@ export function onMessageFromHTMLView(type: string, data: MessageDataObject): an
       case 'onChangeCheckbox':
         onChangeCheckbox(data) // data is a string
         break
+      case 'refresh':
+        showDashboardHTML() // TEST: no await needed?
+        break
       default:
         logError(pluginJson, `onMessageFromHTMLView(): unknown ${type} cannot be dispatched`)
         break
@@ -187,20 +190,20 @@ export async function onClickDashboardItem(data: MessageDataObject) {
     } else {
       logWarn('pluginToHTMLBridge/onClickDashboardItem', `onClickDashboardItem: can't yet handle type ${type}`)
     }
-  // Other info from DW:
-  // const para = getParagraphFromStaticObject(data, ['filename', 'lineIndex'])
-  // if (para) {
-  //   // you can do whatever you want here. For example, you could change the status of the paragraph
-  //   // to done depending on whether it was an open task or a checklist item
-  //   para.type = statusWas === 'open' ? 'done' : 'checklistDone'
-  //   para.note?.updateParagraph(para)
-  //   const newDivContent = `<td>"${para.type}"</td><td>Paragraph status was updated by the plugin!</td>`
-  //   sendToHTMLWindow('updateDiv', { divID: lineID, html: newDivContent, innerText: false })
-  //   // NOTE: in this particular case, it might have been easier to just call the refresh-page command, but I thought it worthwhile
-  //   // to show how to update a single div in the HTML view
-  // } else {
-  //   logError('pluginToHTMLBridge/onClickDashboardItem', `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
-  // }
+    // Other info from DW:
+    // const para = getParagraphFromStaticObject(data, ['filename', 'lineIndex'])
+    // if (para) {
+    //   // you can do whatever you want here. For example, you could change the status of the paragraph
+    //   // to done depending on whether it was an open task or a checklist item
+    //   para.type = statusWas === 'open' ? 'done' : 'checklistDone'
+    //   para.note?.updateParagraph(para)
+    //   const newDivContent = `<td>"${para.type}"</td><td>Paragraph status was updated by the plugin!</td>`
+    //   sendToHTMLWindow('updateDiv', { divID: lineID, html: newDivContent, innerText: false })
+    //   // NOTE: in this particular case, it might have been easier to just call the refresh-page command, but I thought it worthwhile
+    //   // to show how to update a single div in the HTML view
+    // } else {
+    //   logError('pluginToHTMLBridge/onClickDashboardItem', `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
+    // }
   } catch (error) {
     logError(pluginJson, 'pluginToHTMLBridge / onClickDashboardItem:' + error.message)
   }

@@ -11,9 +11,8 @@ import pluginJson from '../plugin.json'
 import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getPluginJson, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
-import { showMessage } from '@helpers/userInput'
-
 export { logWindowsList } from '@helpers/NPWindows'
+import { showMessage } from '@helpers/userInput'
 
 export { getDemoDataForDashboard } from './demoDashboard'
 export { addTask, addChecklist, showDashboardHTML, showDemoDashboardHTML } from './dashboardHTML'

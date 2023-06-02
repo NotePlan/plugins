@@ -13,7 +13,13 @@
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
-  "plugin.requiredFiles": [],
+  "plugin.requiredSharedFiles": [
+    "fontawesome.css",
+    "regular.min.flat4NP.css",
+    "solid.min.flat4NP.css",
+    "fa-regular-400.woff2",
+    "fa-solid-900.woff2"
+  ],
   "plugin.commands": [
     {
       "name": "quickSearch",

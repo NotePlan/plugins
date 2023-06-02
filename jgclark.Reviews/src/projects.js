@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 3.11.2022 for v0.9.0-beta, @jgclark
+// Last updated 14.5.2023 for v0.11.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -22,7 +22,6 @@ import { logDebug, logInfo, logWarn, logError } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getOrMakeNote } from '@helpers/note'
 import {
-  // getInput,
   showMessageYesNo
 } from '@helpers/userInput'
 
@@ -31,6 +30,24 @@ import {
 const thisYearStr = hyphenatedDateString(new Date()).substring(0, 4)
 
 //-----------------------------------------------------------------------------
+
+export async function addProgressUpdate(): Promise<void> {
+  try {
+    // only proceed if we're in a valid Project note (with at least 2 lines)
+    const { note, filename } = Editor
+    if (note == null || note.type === 'Calendar' || Editor.paragraphs.length < 2) {
+      logWarn(pluginJson, `Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
+      return
+    }
+
+    // Construct a Project class object from this note
+    const projectNote = new Project(note)
+    // And then use it to add progress line
+    await projectNote.addProgressLine()
+  } catch (error) {
+    logError(pluginJson, `addProgressUpdate: ${error.message}`)
+  }
+}
 
 /**
  * Complete a Project/Area note by

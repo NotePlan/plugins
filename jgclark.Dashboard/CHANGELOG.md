@@ -1,6 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.5.0-b2] - 2023-05-31 (not released)
+### Changed
+- tweaked layout of multi-column view to avoid most examples of a single item being split across two columns. (I can't find a way to avoid some cases.)
+- changed behaviour to re-display lower priority tasks when the last higher priority one has been completed.
+
 ## [0.5.0-b1] - 2023-06-28 (not released)
 ### Added
 - new UI toggle "Filter out lower-priority items?": If set then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed. Priority items are currently indicated by having !!!, !! or ! at the beginning or end of the item.

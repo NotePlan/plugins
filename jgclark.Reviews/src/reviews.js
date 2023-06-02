@@ -1,6 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
+//
+// The major part is creating HTML view for the review list.
+// This doesn't require any comms back to the plugin through bridges;
+// all such activity happens via x-callback calls for simplicity.
+///
+// It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
+//
 // by @jgclark
 // Last updated 8.5.2023 for v0.11.0, @jgclark
 //-----------------------------------------------------------------------------
@@ -32,8 +39,8 @@ const pluginID = 'jgclark.Reviews'
 const fullReviewListFilename = 'full-review-list.md'
 const windowTitle = `Review List`
 const filenameHTMLCopy = 'review_list.html'
-const customRichWinId = `${pluginID}.rich-review-list`
-const customMarkdownWinId = `${pluginID}.markdown-review-list`
+const customRichWinId = `rich-review-list`
+const customMarkdownWinId = `markdown-review-list`
 // const reviewListPref = 'jgclark.Reviews.reviewList'
 // const fullReviewJSONFilename = 'full-review-list.json'
 
@@ -88,7 +95,7 @@ export const reviewListCSS: string = [
   .tooltip:hover .tooltiptext { visibility: visible; }`,
 ].join('\n\t')
 
-// Not currently used
+// Note: Not currently used: instead all comms happens through x-callbacks
 // const startReviewsCommandCall = `(function() {
 //     DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
 //   })()`
@@ -196,41 +203,27 @@ export async function redisplayProjectListHTML(): Promise<void> {
     // Try loading HTML saved copy
     const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
     if (savedHTML !== '') {
-      // original method
-      await showHTML(
-        windowTitle,
-        '', // no extra header tags
-        savedHTML,
-        '', // get general CSS set automatically
-        '', // CSS in HTML
-        false, // = not modal window
-        '',
-        '',
-        '',
-        config.width, // width (e.g. 800)
-        config.height, // max height (e.g. 1200)
-      )
-      // TODO: towards newer method
-      // const winOptions = {
-      //   // x: x,
-      //   // y: y,
-      //   // width: width,
-      //   // height: height,
-      //   shouldFocus: false
-      // }
-      // clo(winOptions, 'winOptions')
-      // const win = await HTMLView.showWindowWithOptions(savedHTML, windowTitle, winOptions)
-
-      // Set customID for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
-      // TODO(Eduard): has said he will roll this into .showWindow()
-      if (NotePlan.environment.buildVersion < 976) {
-        setHTMLWindowID(customRichWinId ?? windowTitle)
+      const winOptions = {
+        windowTitle: windowTitle,
+        headerTags: faLinksInHeader,
+        generalCSSIn: '', // get general CSS set automatically
+        specificCSS: reviewListCSS,
+        makeModal: false, // = not modal window
+        preBodyScript: setPercentRingJSFunc,
+        postBodyScript: '', // resizeListenerScript + unloadListenerScript,
+        savedFilename: savedHTML,
+        reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
+        width: 800, // = default width of window (px)
+        height: 1200, // = default height of window (px)
+        customId: customRichWinId,
+        shouldFocus: true, // shouuld not focus, if Window already exists
       }
-      // clo(win, 'created window')
+      const thisWindow = await showHTMLV2(savedHTML, winOptions)
+      clo(thisWindow, 'created window')
       logDebug('redisplayProjectListHTML', `Displayed HTML from saved file ${filenameHTMLCopy}`)
       return
     } else {
-      logWarn('redisplayProjectListHTML', `Couldn't read HTML from saved file ${filenameHTMLCopy}, so will render afresh`)
+      logWarn('redisplayProjectListHTML', `Couldn't read from saved HTML file ${filenameHTMLCopy}.`)
     }
   } catch (error) {
     logError('redisplayProjectListHTML', error.message)
@@ -404,46 +397,44 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
     logDebug('renderProjectListsHTML', `>> end of main loop: ${timer(funcTimer)}`)
 
     // Original version
-    await showHTML(
-      windowTitle,
-      faLinksInHeader,
-      body,
-      '', // = get general CSS set automatically
-      reviewListCSS,
-      false, // = not modal window
-      setPercentRingJSFunc, // pre-body script
-      '', // post-body script
-      filenameHTMLCopy,
-      config.width, // was 800
-      config.height, // was 1200 (max height)
-    )
-    if (shouldOpen) {
-      focusHTMLWindowIfAvailable(customRichWinId)
-    }
+    // await showHTML(
+    //   windowTitle,
+    //   faLinksInHeader,
+    //   body,
+    //   '', // = get general CSS set automatically
+    //   reviewListCSS,
+    //   false, // = not modal window
+    //   setPercentRingJSFunc, // pre-body script
+    //   '', // post-body script
+    //   filenameHTMLCopy,
+    //   config.width, // was 800
+    //   config.height, // was 1200 (max height)
+    // )
+    // if (shouldOpen) {
+    //   focusHTMLWindowIfAvailable(customRichWinId)
+    // }
 
-    // Getting ready for newer version
-    // // Show the list as HTML, and save a copy as file
-    // const opts: HtmlWindowOptions = {
-    //   windowTitle: windowTitle,
-    //   headerTags: faLinksInHeader,
-    //   generalCSSIn: '', // = get general CSS set automatically
-    //   specificCSS: reviewListCSS,
-    //   makeModal: false, // = not modal window
-    //   preBodyScript: setPercentRingJSFunc,
-    //   postBodyScript: '',
-    //   savedFilename: filenameHTMLCopy,
-    //   width: 812,
-    //   height: 1200,
-    //   customID: customRichWinId,
-    //   shouldFocus: true,
-    // }
-    // await showHTMLV2(body, opts)
-    // const thisWindow = await showHTMLV2(body, opts)
-    // if (thisWindow) {
-    logDebug('renderProjectListsHTML', `- written results to HTML window and file`)
-    // } else {
-    //   logError('renderProjectListsHTML', `- didn't get back a valid HTML Window`)
-    // }
+    const winOptions = {
+      windowTitle: windowTitle,
+      headerTags: faLinksInHeader,
+      generalCSSIn: '', // get general CSS set automatically
+      specificCSS: reviewListCSS,
+      makeModal: false, // = not modal window
+      preBodyScript: setPercentRingJSFunc,
+      postBodyScript: '', // resizeListenerScript + unloadListenerScript,
+      savedFilename: filenameHTMLCopy,
+      reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
+      width: 800, // = default width of window (px)
+      height: 1200, // = default height of window (px)
+      customId: customRichWinId,
+      shouldFocus: true, // shouuld not focus, if Window already exists
+    }
+    const thisWindow = await showHTMLV2(body, winOptions)
+    if (thisWindow) {
+      logDebug('renderProjectListsHTML', `- written results to HTML window and file`)
+    } else {
+      logError('renderProjectListsHTML', `- didn't get back a valid HTML Window`)
+    }
   } catch (error) {
     logError('renderProjectListsHTML', error.message)
   }

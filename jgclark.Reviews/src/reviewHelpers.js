@@ -12,7 +12,7 @@ import moment from 'moment/min/moment-with-locales'
 import { checkString } from '@helpers/checkType'
 import {
   calcOffsetDate, calcOffsetDateStr, daysBetween, getDateObjFromDateString, getDateFromUnhyphenatedDateString, includesScheduledFutureDate, relativeDateFromDate,
-  // relativeDateFromNumber,
+  todaysDateISOString,
   toISODateString, unhyphenateString
 } from '@helpers/dateTime'
 import { localeRelativeDateFromNumber } from '@helpers/NPdateTime'
@@ -28,7 +28,11 @@ import {
 } from '@helpers/HTMLView'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
-import { showMessage } from '@helpers/userInput'
+import {
+  getInputTrimmed,
+  inputIntegerBounded,
+  showMessage
+} from '@helpers/userInput'
 import { isDone, isOpen } from '@helpers/utils'
 
 //------------------------------
@@ -129,9 +133,10 @@ export function getParamMentionFromList(mentionList: $ReadOnlyArray<string>, men
 }
 
 /**
- * Read lines in 'note' and return any lines that contain fields
+ * Read lines in 'note' and return any lines (as strings) that contain fields
  * (that start with 'fieldName' parameter before a colon with text after).
  * The matching is done case insensitively, and only in the active region of the note.
+ * Note: see also getFieldParagraphsFromNote() variation on this
  * @param {TNote} note
  * @param {string} fieldName
  * @returns {Array<string>} lines containing fields
@@ -148,6 +153,30 @@ export function getFieldsFromNote(note: TNote, fieldName: string): Array<string>
     }
   }
   // logDebug('getFieldsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
+  return matchArr
+}
+
+/**
+ * Read lines in 'note' and return any paragraphs that contain fields
+ * (that start with 'fieldName' parameter before a colon with text after).
+ * The matching is done case insensitively, and only in the active region of the note.
+ * Note: see also getFieldsFromNote() variation on this
+ * @param {TNote} note
+ * @param {string} fieldName
+ * @returns {Array<string>} lines containing fields
+ */
+export function getFieldParagraphsFromNote(note: TNote, fieldName: string): Array<TParagraph> {
+  const paras = note.paragraphs
+  const endOfActive = findEndOfActivePartOfNote(note)
+  const matchArr = []
+  const RE = new RegExp(`^${fieldName}:\\s*(.+)`, 'i') // case-insensitive match at start of line
+  for (const p of paras) {
+    const matchRE = p.content.match(RE)
+    if (matchRE && p.lineIndex < endOfActive) {
+      matchArr.push(p)
+    }
+  }
+  // logDebug('getFieldParagraphsFromNote()', `Found ${matchArr.length} fields matching '${fieldName}'`)
   return matchArr
 }
 
@@ -173,6 +202,30 @@ function mostRecentProgressLine(progressLines: Array<string>): string {
     }
   }
   return outputLine
+}
+
+/**
+ * Return the most recent progress line from the array (normally the first one)
+ * @param {Array<string>} progressLines
+ * @returns
+ */
+function mostRecentProgressParagraph(progressParas: Array<TParagraph>): number {
+  // Default to returning first line
+  let outputParaIndex: number = progressParas[0].lineIndex
+  // Then check each line to see if its newer
+  let lastDatePart = '1000-01-01' // earliest possible YYYY-MM-DD date
+  for (const progressPara of progressParas) {
+    const progressParaParts = progressPara.content.split(/[:@]/)
+    if (progressParaParts.length >= 3) {
+      const thisDatePart = progressParaParts[1]
+      if (thisDatePart > lastDatePart) {
+        outputParaIndex = progressPara.lineIndex
+        // logDebug('Project::mostRecentProgressPara', `Found latest datePart ${thisDatePart}`)
+      }
+      lastDatePart = thisDatePart
+    }
+  }
+  return outputParaIndex
 }
 
 //-----------------------------------------------------------------------------
@@ -305,26 +358,9 @@ export class Project {
         this.percentComplete = NaN
         // logDebug('Project constructor', `- ${this.title}: % complete = NaN`)
       }
-      // ... or through specific 'Progress' field
-      const progressLines = getFieldsFromNote(this.note, 'progress')
 
-      if (progressLines.length > 0) {
-        // Get the most recent line to use
-        const progressLine = mostRecentProgressLine(progressLines)
-
-        // Get the first part of the value of the Progress field: nn@YYYYMMDD ...
-        const progressLineParts = progressLine.split(/[:@]/, 3)
-        if (progressLineParts.length >= 3) {
-          this.percentComplete = Number(progressLineParts[0])
-          const datePart = unhyphenateString(progressLineParts[1])
-          // $FlowFixMe
-          this.lastProgressComment = `${progressLineParts[2].trim()} (${relativeDateFromDate(getDateFromUnhyphenatedDateString(datePart))})`
-          // logDebug('Project constructor', `- progress field -> ${this.percentComplete} / '${this.lastProgressComment}' from <${progressLine}>`)
-        } else {
-          logWarn('Project constructor', `- cannot properly parse progress field <${progressLine}> in project '${this.title}'`)
-          clo(progressLineParts, 'progressLineParts')
-        }
-      }
+      // Find progress field lines (if any) and process
+      this.processProgressLines()
 
       // make project completed if @completed(date) set
       if (this.completedDate != null) {
@@ -433,6 +469,84 @@ export class Project {
   }
 
   /**
+   * Prompt user for the details to make a progress line:
+   * - new % complete
+   * - new comment
+   * And add to the metadata area of the note
+   */
+  async addProgressLine(): Promise<void> {
+    try {
+      // Find most recent progress paragraph
+      const progressParas = getFieldParagraphsFromNote(this.note, 'progress')
+      // Set insertion point for the new progress line to this paragraph,
+      // or if none exist, to the line after the current metadata line
+      let insertionIndex = this.metadataPara.lineIndex + 1
+      if (progressParas.length > 0) {
+        insertionIndex = mostRecentProgressParagraph(getFieldParagraphsFromNote(this.note, 'progress'))
+        logDebug('Project::addProgressLine', `Will insert new progress line before most recent progress line.`)
+      } else {
+        logDebug('Project::addProgressLine', `No progress paragraphs found, so will insert new progress line after metadata.`)
+      }
+
+      const message1 = (this.isPaused) ? `Enter comment (if wanted) as you restart this project` : `Enter comment (if wanted) as you pause this project`
+      const resText = await getInputTrimmed(message1, 'OK', 'Add Progress comment')
+      if (!resText) {
+        logDebug('Project::addProgressLine', `No valid progress line given.`)
+        return
+      }
+
+      const message2 = (!isNaN(this.percentComplete)) ? `Enter project completion (as %; last was ${String(this.percentComplete)}%)` : `Enter project completion (as %)`
+      const resNum = await inputIntegerBounded('Add Progress % completion', message2, 100, 0)
+      if (isNaN(resNum)) {
+        logDebug('Project::addProgressLine', `No valid progress line given.`)
+        return
+      }
+
+      // Update the project's metadata
+      this.percentComplete = Number(resNum)
+      // $FlowIgnore(incompatible-type)
+      this.lastProgressComment = `${resText} (today)`
+      // logDebug('Project::addProgressLine', `-> line ${String(insertionIndex)}: ${this.percentComplete} / '${this.lastProgressComment}'`)
+
+      // And write it to the Editor
+      // $FlowIgnore(incompatible-type)
+      const newProgressLine = `Progress: ${String(resNum)}@${todaysDateISOString}: ${resText}`
+      Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
+    } catch (error) {
+      logError(pluginJson, `addProgressLine: ${error.message}`)
+    }
+  }
+
+  processProgressLines(): void {
+    // Get specific 'Progress' field lines
+    // const progressLines = getFieldsFromNote(this.note, 'progress')
+    const progressParas = getFieldParagraphsFromNote(this.note, 'progress')
+
+    // if (progressLines.length > 0) {
+    if (progressParas.length > 0) {
+      // Get the most recent line to use
+      // const progressLine = mostRecentProgressLine(progressLines)
+      const progressLineIndex = mostRecentProgressParagraph(progressParas)
+
+      // Get the first part of the value of the Progress field: nn@YYYY-MM-DD ...
+      const progressLine = progressParas[progressLineIndex].content
+      const progressLineParts = progressLine.split(/[:@]/, 3)
+      if (progressLineParts.length >= 3) {
+        this.percentComplete = Number(progressLineParts[0])
+        const datePart = unhyphenateString(progressLineParts[1])
+        // $FlowFixMe
+        this.lastProgressComment = `${progressLineParts[2].trim()} (${relativeDateFromDate(getDateFromUnhyphenatedDateString(datePart))})`
+        logDebug('Project::processProgressLines', `- progress field -> ${this.percentComplete} / '${this.lastProgressComment}' from <${progressLine}>`)
+      } else {
+        logWarn('Project::processProgressLines', `- cannot properly parse progress field <${progressLine}> in project '${this.title}'`)
+        clo(progressLineParts, 'progressLineParts')
+      }
+    } else {
+      logDebug('Project::processProgressLines', `- no progress fields found`)
+    }
+  }
+
+  /**
    * Close a Project/Area note by updating the metadata and saving it:
    * - adding @completed(<today's date>)
    * @author @jgclark
@@ -520,6 +634,9 @@ export class Project {
       this.isCompleted = false
       this.isCancelled = false
       this.isPaused = !this.isPaused // toggle
+
+      // Get progress field details (if wanted)
+      this.addProgressLine()
 
       // re-write the note's metadata line
       logDebug('togglePauseProject', `Paused state now toggled to ${String(this.isPaused)} for '${this.title}' ...`)

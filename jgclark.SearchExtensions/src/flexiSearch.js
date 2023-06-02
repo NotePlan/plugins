@@ -14,56 +14,111 @@ import { closeWindowFromCustomId, logWindowsList } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------------------
 const flexiSearchDialogHTML = ` <form type="dialog" id="searchOptions">
-  <h4>Search Terms:</h4>
-  <p>
-    <input type="text" id="searchTerms" name="searchTerms" style="width: 20rem;" value="#test" />
-    (Separate terms by spaces. You can use +term, -term and !term as well.)
-  </p>
+  <div class="dialogSection">
+		<b>Search Terms</b> <input type="text" id="searchTerms" name="searchTerms" style="width: 16rem;" value="#test" />
+    <br />(Separate terms by spaces. You can use +term, -term and !term as well.)
+  </div>
 
-  <h4>Note types to include:</h4>
-  <p>
-    <input type="checkbox" name="notetype" id="notes" value="notes" checked />
-    <label for="notetype">Notes</label>
-    <input type="checkbox" name="notetype" id="calendar" value="calendar" checked />
+  <div class="dialogSection">
+		<b>Include </b>
+    <input type="checkbox" name="notetype" id="notes" value="notes"  />
+    <label for="notetype">Regular notes</label>
+    <input type="checkbox" name="notetype" id="calendar" value="calendar"  />
     <label for="notetype">Calendar notes</label>
-  </p>
+  </div>
 
-  <h4>Line Types:</h4>
-  <p>Tasks:
-    <input type="radio" id="tasksAll" name="task" value="open,done,scheduled,cancelled" checked />
-    <!-- TODO: add appropriate icons -->
-    <label for="task">All</label>
-    <input type="radio" id="tasksNotComplete" name="task" value="open,scheduled" />
-    <label for="task">Not complete</label>
-    <input type="radio" id="tasksComplete" name="task" value="done,cancelled" />
-    <label for="task">Completed</label>
-    <input type="radio" id="tasksNone" name="task" value="" />
+  <div class="dialogSection">
+	<b>Line Types to include</b>
+	<table>
+		<tr>
+  		<td>
+				<ul class="dialogList">
+				<li>Tasks:</li>
+		<li>
+    <input type="checkbox" id="taskOpen" name="task"
+      value="open" />
+    <label for="task"><i class="fa-regular fa-circle"></i>Open</label>
+		</li>
+		<li>
+    <input type="checkbox" id="taskDone" name="task" value="done"  />
+    <label for="task"><i class="fa-regular fa-circle-check"></i>Complete</label>
+		</li>
+		<li>
+    <input type="checkbox" id="taskScheduled" name="task"
+      value="taskScheduled" />
+    <label for="task"><i class="fa-regular fa-clock"></i>Scheduled</label>
+		</li>
+		<li>
+    <input type="checkbox" id="taskCancelled" name="task" value="taskCancelled" />
+    <label for="task"><i class="fa-regular fa-circle-xmark"></i>Cancelled</label>
+		</li>
+    <!--
+		<li>
+    <input type="checkbox" id="taskNone" name="task" value="" />
     <label for="task">None</label>
-  </p>
-
-  <p>Checklist items:
-    <input type="radio" id="checklistAll" name="checklist"
-      value="checklistOpen,checklistScheduled,checklistDone,checklistCancelled" checked />
-    <label for="checklist">All</label>
-    <input type="radio" id="checklistNotComplete" name="checklist" value="checklistOpen,checklistScheduled" />
-    <label for="checklist">Not complete</label>
-    <input type="radio" id="checklistComplete" name="checklist" value="checklistDone,checklistCancelled" />
-    <label for="checklist">Completed</label>
-    <input type="radio" id="checklistNone" name="checklist" value="" />
+		</li>
+    -->
+    </ul>
+	</td>
+	<td>
+	<ul class="dialogList">
+		<li>Checklist items:</li>
+		<li>
+    <input type="checkbox" id="checklistOpen" name="checklist"
+      value="checklistOpen" checked />
+    <label for="checklist"><i class="fa-regular fa-square"></i>Open</label>
+		</li>
+		<li>
+    <input type="checkbox" id="checklistDone" name="checklist" value="checklistDone" checked />
+    <label for="checklist"><i class="fa-regular fa-square-check"></i>Complete</label>
+		</li>
+		<li>
+    <input type="checkbox" id="checklistScheduled" name="checklist"
+      value="checklistScheduled" />
+    <!-- TODO: other icons needed -->
+    <label for="checklist"><i class="fa-regular fa-square-chevron-right"></i>Scheduled</label>
+		</li>
+		<li>
+    <input type="checkbox" id="checklistCancelled" name="checklist" value="checklistCancelled" />
+    <label for="checklist"><i class="fa-regular fa-square-xmark"></i>Cancelled</label>
+		</li>
+    <!--
+		<li>
+    <input type="checkbox" id="checklistNone" name="checklist" value="" />
     <label for="checklist">None</label>
-  </p>
-  <p>Others:
+		</li>
+    -->
+  </ul>
+	</td>
+	<td>
+	<ul class="dialogList">
+		<li>Other line types:</li>
+		<li>
     <input type="checkbox" name="other" id="list" value="list" checked />
-    <label for="checklist">- Bullet lists</label>
+    <label for="checklist"><kbd>-</kbd> Bullet lists</label>
+		</li>
+		<li>
     <input type="checkbox" name="other" id="quote" value="quote" checked />
-    <label for="checklist">> Quotations</label>
+    <label for="checklist"><kbd>&gt;</kbd> Quotations</label>
+		</li>
+		<li>
     <input type="checkbox" name="other" id="headings" value="title" checked />
-    <label for="checklist">Headings</label>
+    <label for="checklist"><kbd>#</kbd> Headings</label>
+		</li>
+		<li>
     <input type="checkbox" name="other" id="text" value="text" checked />
     <label for="checklist">Other note lines</label>
-  </p>
-  <input type="submit" value="Cancel" />
-  <input type="submit" value="Search!" />
+		</li>
+  </ul>
+			</td>
+		</tr>
+	</table>
+
+	</div>
+  <div class="dialogSection buttonRow">
+    <input type="submit" value="Cancel" />
+    <input type="submit" value="Search" />
+  </div>
 </form>
 `
 
@@ -81,14 +136,90 @@ const JSCloseDialog = JSON.stringify(`
 })()
 `)
 
+// TODO: Script to save item to pref
+const JSUpdatePref = JSON.stringify(`
+(async function() {
+  await DataStore.invokePluginCommandByName('???', 'jgclark.SearchExtensions', ['%%KEY%%', '%%VALUE%%'] )
+})()
+`)
+
 const flexiSearchDialogPostBodyScripts = `
 <script type="text/javascript">
   window.addEventListener("load", () => {
     console.log('onLoad script running ...')
+		// Set defaults to use.
+		// Note following code assumes case sensitive matching, and that the values are distinct and not subset strings of each other
+		let noteTypesStr = 'notes,calendar,'
+		let paraTypesStr = 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
     const formID = "searchOptions"
+		// Get the form element + input controls
     const form = document.getElementById(formID)
+		const inputs = form.elements
 
-    // Add 'submit' event handler
+		function loadDialogState() {
+			// TODO: load it or have it passed in some way
+			console.log('loadDialogState()')
+		}
+
+		loadDialogState()
+
+		// Iterate over checkbox controls setting whether they're initially checked or not
+		function initDialogState() {
+			console.log('initDialogState()')
+			for (let i = 0; i < inputs.length; i++) {
+				if (inputs[i].type === "checkbox") {
+					const val = inputs[i].value
+					if (inputs[i].name === "notetype") {
+						console.log('- setting noteTypesStr "'+ val +'" to ' + noteTypesStr.includes(val))
+						inputs[i].checked = noteTypesStr.includes(val)
+					} else {
+						console.log('- setting paraTypesStr "'+ val +'" to ' + noteTypesStr.includes(val))
+						inputs[i].checked = paraTypesStr.includes(val)
+					}
+				}
+			}
+		}
+
+		initDialogState()
+
+		function saveDialogState() {
+			noteTypesStr = ''
+			paraTypesStr = ''
+			console.log('saveDialogState()')
+			// Iterate over the optional controls
+			for (let i = 0; i < inputs.length; i++) {
+				// console.log(inputs[i].nodeName, inputs[i].type, inputs[i].checked, inputs[i].value)
+				if (inputs[i].checked && inputs[i].name === "notetype") {
+					// Add this checked value to a CSV string
+					noteTypesStr += inputs[i].value + ','
+				}
+				if (inputs[i].checked && (inputs[i].name === "task" || inputs[i].name === "checklist" || inputs[i].name === "other")) {
+					// Add this checked value to a CSV string
+					paraTypesStr += inputs[i].value + ','
+				}
+			}
+      // TODO: warning if noteTypesStr is empty
+
+			// TODO: save
+			console.log('Saving ' + noteTypesStr + ' / ' + paraTypesStr)
+      window.webkit.messageHandlers.jsBridge.postMessage({
+          code: ${JSUpdatePref}.replace(%%KEY%%, 'noteTypesStr').replace(%%VALUE%%, noteTypesStr),
+          function: "miscFunc",
+          id: "1"
+        })
+      window.webkit.messageHandlers.jsBridge.postMessage({
+          code: ${JSUpdatePref}.replace(%%KEY%%, 'paraTypesStr').replace(%%VALUE%%, paraTypesStr),
+          function: "miscFunc",
+          id: "1"
+        })
+      }
+
+    // Add 'change' event handler to form
+		form.addEventListener("change", (event) => {
+			saveDialogState()
+		})
+
+    // Add 'submit' event handler to form
     form.addEventListener("submit", (event) => {
       event.preventDefault()
       const submitterValue = event.submitter.value
@@ -106,29 +237,9 @@ const flexiSearchDialogPostBodyScripts = `
         return
       }
 
-      // Get the form element
-      const inputs = form.elements
-
-      // Get main text input
-      const searchTerms = inputs["searchTerms"].value
-      console.log(searchTerms)
-
-      // Iterate over the optional controls
-      let noteTypesStr = ''
-      let paraTypesStr = ''
-      for (let i = 0; i < inputs.length; i++) {
-        // console.log(inputs[i].nodeName, inputs[i].type, inputs[i].checked, inputs[i].value)
-        if (inputs[i].checked && inputs[i].name === "notetype") {
-          // Add this checked value to a CSV string
-          noteTypesStr += inputs[i].value + ','
-        }
-        if (inputs[i].checked && (inputs[i].name === "task" || inputs[i].name === "checklist" || inputs[i].name === "other")) {
-          // Add this checked value to a CSV string
-          paraTypesStr += inputs[i].value + ','
-        }
-      }
-
-      console.log('part2')
+			// Get text input
+			const searchTerms = inputs["searchTerms"].value
+			console.log(searchTerms)
 
       // Remove any multiple or leading or trailing comma(s)
       let noteTypes = noteTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '')
@@ -146,12 +257,48 @@ const flexiSearchDialogPostBodyScripts = `
       })
     })
 
+    // placeholder function; not sure why it's needed, but it is!
     function miscFunc(re, id) {
-      // placeholder?
     }
   });
 
 </script>
+`
+
+const headerTags = `
+  <!-- Load in fontawesome assets (licensed for NotePlan) -->
+  <link href="../np.Shared/fontawesome.css" rel="stylesheet">
+  <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
+  <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+  <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
+`
+
+const dialogCSS = `
+  /* Speciifc CSS for the dialog box */
+	ul.dialogList {
+		list-style-type: none;
+    margin: 0rem;
+    padding-inline: 0.5rem;
+	}
+  .dialogSection {
+    margin: 0.3rem 0rem;
+  }
+  .dialogSection b {
+    font-weight: bold;
+    color: var(--tint-color);
+  }
+  i, kbd {
+    color: var(--tint-color);
+    padding-right: 0.4rem;
+  }
+  input[type="submit"] {
+    padding: 3px 6px 4px 6px;
+    margin: 3px 6px;
+    font-size: 0.8rem;
+  }
+  .buttonRow {
+    text-align: center;
+  }
 `
 
 /**------------------------------------------------------------------------
@@ -162,21 +309,23 @@ const flexiSearchDialogPostBodyScripts = `
 export async function flexiSearchRequest(
 ): Promise<void> {
   try {
-    logDebug(pluginJson, `flexiSearchRequest called`)
 
+    logDebug(pluginJson, `flexiSearchRequest called`)
+    // TODO: add appropriate FA libraries
     // write HTML to capture relevant search options
     const opts: HtmlWindowOptions = {
       windowTitle: 'FlexiSearch',
       customId: 'flexiSearchDialog',
+      headerTags: headerTags,
       generalCSSIn: '',
-      specificCSS: '',
+      specificCSS: dialogCSS,
       makeModal: false, // TODO: is this more helpful?
       postBodyScript: flexiSearchDialogPostBodyScripts,
       savedFilename: '../../jgclark.SearchExtensions/flexiSearchDialog.html',
-      width: 400, // FIXME: being ignored sometimes?
+      width: 400, // FIXME: being ignored
       height: 300,
-      reuseUsersWindowRect: true,
-      shouldFocus: true,
+      reuseUsersWindowRect: false,
+      shouldFocus: true, // FIXME: being ignored?
     }
     // show dialog as non-modal HTML window
     await showHTMLV2(flexiSearchDialogHTML, opts)
@@ -193,6 +342,7 @@ export function flexiSearchHandler(searchTerms: string, noteTypeToInclude: strin
     closeDialogWindow('flexiSearchDialog')
 
     // Then call main saveSearch function (no need to await for it)
+    // FIXME: how to deal with case of empty search terms going to previous dialog?
     saveSearch(searchTerms, noteTypeToInclude, 'newnote', paraTypes, 'Searching')
     return {} // apparently required to avoid error in log
   }

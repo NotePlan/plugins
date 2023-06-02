@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 27.02.2023 for v0.9.2, @jgclark
+// Last updated 17.05.2023 for v0.11.1, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -25,6 +25,7 @@ export {
   renderProjectLists,
 } from './reviews'
 export {
+  addProgressUpdate,
   completeProject,
   cancelProject,
   togglePauseProject

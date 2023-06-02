@@ -2018,7 +2018,7 @@ customId: string;
  */
 focus(): void;
 /**
- * Close the split view or window. If it's the main note, it will close the complete main window.
+ * Close the HTML window.
  * Note: Available from NotePlan v3.8.1 build 973
  */
 close(): void;
