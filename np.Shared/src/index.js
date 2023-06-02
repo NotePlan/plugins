@@ -12,7 +12,7 @@ import { getPluginJson, updateSettingData } from '@helpers/NPConfiguration'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { showMessage } from '@helpers/userInput'
 
-export { openReactWindow } from './NPReactLocal'
+export { openReactWindow, onMessageFromHTMLView } from './NPReactLocal'
 
 /**
  * Log the list of resource files that should currently be available by this plugin (i.e. at run-time, not compile-time).
@@ -37,7 +37,7 @@ export async function logAvailableSharedResources(pluginID: string): Promise<voi
     const requiredFiles = liveSharedPluginJson['plugin.requiredFiles']
     for (const rf of requiredFiles) {
       const relativePathToRF = `../../${sharedPluginID}/${rf}`
-      logInfo(sharedPluginID, `- ${relativePathToRF} ${DataStore.fileExists(relativePathToRF) ? "is" : "isn't"} available from np.Shared`)
+      logInfo(sharedPluginID, `- ${relativePathToRF} ${DataStore.fileExists(relativePathToRF) ? 'is' : "isn't"} available from np.Shared`)
     }
   } catch (error) {
     logError(sharedPluginID, JSP(error))
