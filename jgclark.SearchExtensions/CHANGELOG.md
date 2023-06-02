@@ -3,12 +3,10 @@
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
 <!-- FIXME: suffixes causing sync line problems.
-- TODO: add type:checklist or type:open,checklist
 - TODO: if no results just bring up a dialog and don't write a note
-- TODO: add new search operator type:checklist or type:open,checklist
 -->
-## [1.1.0-beta10] - 2023-05-???
-- added **flexiSearch** command
+## [1.1.0-beta10] - 2023-06-02
+- added **flexiSearch** command, with automatic saving of options between subsequent searches. (For private test.)
 
 ## [1.1.0-beta9] - 2023-05-17
 - fix to allow searching with Unicode characters (thanks to the report by @haris_sav and initial diagnosis by @dwertheimer)

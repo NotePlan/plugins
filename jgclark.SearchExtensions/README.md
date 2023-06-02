@@ -10,12 +10,16 @@ There are the /commands available through NotePlan's command bar:
 
 ![the /commands](commands.png) <!--@@@-->
 
-1. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
-2. **/search** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
-3. **/searchOpenTasks** searches just across **open tasks** in all notes.
-4. **/searchOverNotes** searches across **all regular** (non-calendar) notes.
-5. **/searchOverCalendar** searches across **all calendar**  notes.
-6. **/searchResultsInPeriod**: searches over the **calendar and weekly notes of the time period you select**: ![selecting a period](period-selection.png)
+1. **/flexiSearch** presents a dialog box which allows you to select all available options, without needing to know which of the following specific commands to call.
+
+![/flexiSearch](flexiSearch-dialog1@2x.png)
+
+2. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
+3. **/search** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
+4. **/searchOpenTasks** searches just across **open tasks** in all notes.
+5. **/searchOverNotes** searches across **all regular** (non-calendar) notes.
+6. **/searchOverCalendar** searches across **all calendar**  notes.
+7. **/searchResultsInPeriod**: searches over the **calendar and weekly notes of the time period you select**: ![selecting a period](period-selection.png)
 
 ## Results Display
 The results are always **saved to a note** with the search terms as its title (apart from /quickSearch), in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  But you also are given the option of saving to the current note, or to the plugin console.
@@ -25,9 +29,9 @@ As the results are saved to a note, the following sorts of uses are then possibl
 - keep track of all the great `@win`s or clever `#idea`s you noted down
 - show all the things you had `Gratitude:` for in your daily journal
 
-There are two **display styles**: 
+There are two **display styles**:
 1. '**NotePlan**': all results are shown as the usual NotePlan style of tasks, bullets, quotes or just notes. **Note**: Where a task is an open one, then a sync'd copy of it is shown, to stop duplication of tasks in NotePlan. This makes it a good way of having a special note that you can easily refresh that lists all open tasks for @personX.
-2. '**Simplified**': all results are shown as bullets, and can be reduced in length if required using the 'Result quote length' setting. 
+2. '**Simplified**': all results are shown as bullets, and can be reduced in length if required using the 'Result quote length' setting.
 
 You can also set:
 - 'Highlight matching search terms?' in the results. For this you need to use an appropriate theme: see below. Note: This is disabled if the search result is a "Synced Line" using that Labs feature.

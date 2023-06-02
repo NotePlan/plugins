@@ -11,6 +11,7 @@ import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import { type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
 import { closeWindowFromCustomId, logWindowsList } from '@helpers/NPWindows'
 
+const pluginID = "jgclark.SearchExtensions"
 
 //-----------------------------------------------------------------------------
 const flexiSearchDialogHTML = `
@@ -27,7 +28,7 @@ const flexiSearchDialogHTML = `
     <input type="radio" name="savetype" id="quick" value="quick" />
     <label for="notetype">'Quick Search' note</label>
     <input type="radio" name="savetype" id="newnote" value="newnote" />
-    <label for="notetype">New note</label>
+    <label for="notetype">Specific note</label>
   </div>
 
   <div class="dialogSection">
@@ -65,12 +66,6 @@ const flexiSearchDialogHTML = `
     <input type="checkbox" id="taskCancelled" name="task" value="taskCancelled" />
     <label for="task"><i class="fa-regular fa-circle-xmark"></i>Cancelled</label>
 		</li>
-    <!--
-		<li>
-    <input type="checkbox" id="taskNone" name="task" value="" />
-    <label for="task">None</label>
-		</li>
-    -->
     </ul>
 	</td>
 	<td>
@@ -94,12 +89,6 @@ const flexiSearchDialogHTML = `
     <input type="checkbox" id="checklistCancelled" name="checklist" value="checklistCancelled" />
     <label for="checklist"><i class="fa-regular fa-square-xmark"></i>Cancelled</label>
 		</li>
-    <!--
-		<li>
-    <input type="checkbox" id="checklistNone" name="checklist" value="" />
-    <label for="checklist">None</label>
-		</li>
-    -->
   </ul>
 	</td>
 	<td>
@@ -128,7 +117,6 @@ const flexiSearchDialogHTML = `
 
 	</div>
   <div class="dialogSection buttonRow">
-    <input type="submit" value="TEST" />
     <input type="submit" value="Cancel" />
     <input type="submit" value="Search" />
   </div>
@@ -161,6 +149,7 @@ const flexiSearchDialogPostBodyScripts = `
 <script type="text/javascript">
   window.addEventListener("load", () => {
     console.log('onLoad script running ...')
+
 		// Set defaults to use.
 		// Note following code assumes case sensitive matching, and that the values are distinct and not subset strings of each other.
     // Their values are substituted before the script is loaded
@@ -193,9 +182,9 @@ const flexiSearchDialogPostBodyScripts = `
 		initDialogState()
 
 		function saveDialogState() {
+			console.log('saveDialogState()')
 			noteTypesStr = ''
 			paraTypesStr = ''
-			console.log('saveDialogState()')
 			// Iterate over the optional controls
 			for (let i = 0; i < inputs.length; i++) {
 				// console.log(inputs[i].nodeName, inputs[i].type, inputs[i].checked, inputs[i].value)
@@ -216,17 +205,17 @@ const flexiSearchDialogPostBodyScripts = `
       // FIXME: These 3 fail silently ❌
       window.webkit.messageHandlers.jsBridge.postMessage({
         code: ${JSUpdatePref}.replace('%%KEY%%', 'saveType').replace('%%VALUE%%', saveType),
-        function: "miscFunc",
+        onHandle: "miscFunc",
         id: "1"
       })
       window.webkit.messageHandlers.jsBridge.postMessage({
         code: ${JSUpdatePref}.replace('%%KEY%%', 'noteTypesStr').replace('%%VALUE%%', noteTypesStr),
-        function: "miscFunc",
+        onHandle: "miscFunc",
         id: "1"
       })
       window.webkit.messageHandlers.jsBridge.postMessage({
-        code: ${JSUpdatePref}.replace('%%KEY%%', 'noteTypesStr').replace('%%VALUE%%', noteTypesStr),
-        function: "miscFunc",
+        code: ${JSUpdatePref}.replace('%%KEY%%', 'paraTypesStr').replace('%%VALUE%%', paraTypesStr),
+        onHandle: "miscFunc",
         id: "1"
       })
       console.log('end of saveDialogState()')
@@ -247,10 +236,9 @@ const flexiSearchDialogPostBodyScripts = `
       if (submitterValue === 'Cancel') {
         console.log('cancel event fired ...')
         // Note: can't just do 'window.close()' as the window wasn't open by a window.open() command
-        // FIXME: This fails silently ❌
         window.webkit.messageHandlers.jsBridge.postMessage({
           code: ${JSCloseDialog},
-          function: "miscFunc",
+          onHandle: "miscFunc",
           id: "1"
         })
         return
@@ -258,15 +246,11 @@ const flexiSearchDialogPostBodyScripts = `
 
 			// Get text input
 			const searchTerms = inputs["searchTerms"].value
-			console.log(searchTerms)
 
       // Remove any multiple or leading or trailing comma(s)
       let noteTypes = noteTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '')
       noteTypes = (noteTypes === 'notes,calendar') ? 'both' : noteTypes
-      // console.log(noteTypes)
       let paraTypes = paraTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '')
-      // console.log(paraTypesStr)
-      // console.log(paraTypes)
 
       // Update the JS to send to the plugin based on the form values, and then send
       // Note: This one works ✅
@@ -280,11 +264,11 @@ const flexiSearchDialogPostBodyScripts = `
         id: "1"
       })
     })
-
-    // placeholder function; not sure why it's needed, but it is!
-    function miscFunc(re, id) {
-    }
   })
+
+  // placeholder function; not sure why it's needed, but it is!
+  function miscFunc(re, id) {
+  }
 
 </script>
 `
@@ -361,9 +345,10 @@ export async function flexiSearchRequest(
 ): Promise<void> {
   try {
     // Look up the 3 preferences from local store
-    const saveType = DataStore.preference('jgclark.searchExtensions.saveType') ?? 'quick'
-    const noteTypesStr = DataStore.preference('jgclark.searchExtensions.noteTypesStr') ?? 'notes,calendar,'
-    const paraTypesStr = DataStore.preference('jgclark.searchExtensions.paraTypesStr') ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
+    // Note: extra commas aren't typos
+    const saveType = DataStore.preference(pluginID + '.saveType') ?? 'quick'
+    const noteTypesStr = DataStore.preference(pluginID + '.noteTypesStr') ?? 'notes,calendar,'
+    const paraTypesStr = DataStore.preference(pluginID + '.paraTypesStr') ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
@@ -399,10 +384,16 @@ export function flexiSearchHandler(searchTerms: string, saveType: string, noteTy
     // First close the window
     closeDialogWindow('flexiSearchDialog')
 
+    // Take saveType and noteTypeToInclude add create originatorCommand from it
+    let originatorCommand =
+      (saveType === 'quick') ? 'quickSearch'
+        : (noteTypeToInclude === 'notes') ? 'searchOverNotes'
+          : (noteTypeToInclude === 'calendar') ? 'searchOverCalendar'
+            : 'search' // which defaults to 'both'
+
     // Then call main saveSearch function (no need to await for it)
-    // FIXME: why is Quick option not working?
     // TODO: how to deal with case of empty search terms going to previous dialog?
-    saveSearch(searchTerms, noteTypeToInclude, saveType, paraTypes, 'Searching')
+    saveSearch(searchTerms, noteTypeToInclude, originatorCommand, paraTypes, 'Searching')
     return {} // apparently required to avoid error in log
   }
   catch (err) {
@@ -413,15 +404,13 @@ export function flexiSearchHandler(searchTerms: string, saveType: string, noteTy
 
 /**
  * Way for an HTML window to request that it be closed.
- * TODO: Is there a simpler way? I can't find one yet.
+ * Is there a simpler way? I can't find one yet.
  * @param {customId} customId
  * @returns {any} not used, but has to be present
  */
 export function closeDialogWindow(customId: string): any {
   try {
-    logDebug(pluginJson, `closeDialogWindow('${customId}') called`)
-    logWindowsList()
-    // Close the window
+    // logDebug(pluginJson, `closeDialogWindow('${customId}') called`)
     closeWindowFromCustomId(customId)
 
     return {} // apparently required to avoid error in log
@@ -440,8 +429,9 @@ export function closeDialogWindow(customId: string): any {
  */
 export function savePluginPreference(key: string, value: string): any {
   try {
-    logDebug(pluginJson, `savePluginPreference('${key}', '${value}') called`)
-    DataStore.setPreference(key, value)
+    logDebug(pluginJson, `savePluginPreference('${key}', '${value}') called for ${pluginID}`)
+    DataStore.setPreference(pluginID + '.' + key, value)
+    // logDebug(pluginJson, `-> ${DataStore.preference(pluginID + '.' + key)}}`)
 
     return {} // apparently required to avoid error in log
   }
@@ -458,8 +448,9 @@ export function savePluginPreference(key: string, value: string): any {
  */
 export function getPluginPreference(key: string): any {
   try {
-    logDebug(pluginJson, `getPluginPreference('${key}') called`)
-    return DataStore.preference(key)
+    logDebug(pluginJson, `getPluginPreference('${key}') called for ${pluginID}`)
+    // logDebug(pluginJson, `-> ${DataStore.preference(pluginID + '.' + key)}}`)
+    return DataStore.preference(pluginID + '.' + key)
 
     // return {} // apparently required to avoid error in log
   }
