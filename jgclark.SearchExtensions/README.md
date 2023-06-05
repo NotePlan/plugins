@@ -1,5 +1,5 @@
 # 🔎 Search Extensions plugin
-NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin adds some extra power and usability to searching:
+NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin adds some extra power and usability to searching. It:
 - lets you have keep special notes that lists all open tasks for @colleagueX that you can update in place!
 - extends the search syntax
 - by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
@@ -12,17 +12,19 @@ There are the /commands available through NotePlan's command bar:
 
 1. **/flexiSearch** presents a dialog box which allows you to select all available options, without needing to know which of the following specific commands to call.
 
-![/flexiSearch](flexiSearch-dialog1@2x.png)
+<!-- ![/flexiSearch](flexiSearch-dialog1@2x.png) -->
+<img width="500px" alt="FlexiSearch" src=flexiSearch-dialog1@2x.png">
 
-2. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
-3. **/search** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
-4. **/searchOpenTasks** searches just across **open tasks** in all notes.
-5. **/searchOverNotes** searches across **all regular** (non-calendar) notes.
-6. **/searchOverCalendar** searches across **all calendar**  notes.
-7. **/searchResultsInPeriod**: searches over the **calendar and weekly notes of the time period you select**: ![selecting a period](period-selection.png)
+
+1. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
+2. **/search** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
+3. **/searchOpenTasks** searches just across **open tasks** in all notes.
+4. **/searchOverNotes** searches across **all regular** (non-calendar) notes.
+5. **/searchOverCalendar** searches across **all calendar**  notes.
+6. **/searchResultsInPeriod**: searches over the **calendar and weekly notes of the time period you select**: ![selecting a period](period-selection.png)
 
 ## Results Display
-The results are always **saved to a note** with the search terms as its title (apart from /quickSearch), in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  But you also are given the option of saving to the current note, or to the plugin console.
+Apart from /quickSearch, the results are always **saved to a note** with the search terms as its title in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  But you also are given the option of saving to the current note, or to the plugin console.
 
 As the results are saved to a note, the following sorts of uses are then possible:
 - keep a note with all open tasks for a particular `@person` -- as live tasks that can be ticked off
@@ -35,8 +37,8 @@ There are two **display styles**:
 
 You can also set:
 - 'Highlight matching search terms?' in the results. For this you need to use an appropriate theme: see below. Note: This is disabled if the search result is a "Synced Line" using that Labs feature.
-- a 'Group results by Note?' setting, where matches found within the same note are grouped together ('true' by default).
-- Where the match is in a calendar note, 'Date style' setting lets you choose where that link is shown as a 'date' using your locale, or as a NP date 'link' ([[2022-06-30]]), `at` (`@2022-06-30`), 'date' (date formatted for your locale, or 'scheduled' (`>2022-06-30`).
+- 'Group results by Note?', where matches found within the same note are grouped together ('true' by default).
+- Where the match is in a calendar note, 'Date style' setting lets you choose where that link is shown as a 'date' using your locale, or as a NP date 'link' ([[2022-06-30]]), `at` (`@2022-06-30`), 'date' (date formatted for your locale), or 'scheduled' (`>2022-06-30`).
 - the ordering of the results by the title, created date or changed date of the note the search term is found in.
 - the commands to automatically decides the name of the note to save the search results to based on the search term, which avoids the final prompt, by the 'Automatically save?' setting.
 
@@ -51,8 +53,9 @@ This is shown in the demo above.
 - put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
 - you can also use older search style: for example searching for terms X or Y using `X, Y` or `X OR Y`
+- you can use an empty search term (frmo v1.1), which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
 - the searches are simple ones, matching on whole or partial words, not using fuzzy matching or regular expressions
-- the searches aren't case sensitive (i.e. `SPIRIT` will match `spirit` or `Spirit`)
+- the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit`)
 - you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
 - all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be exluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
 - multi-word search phrases in quotes (e.g. `"Holy Spirit"`) aren't supported by the underlying API, but instead they will be treated as `+Holy +Spirit`, which means a match will only happen if they are at least on the same line.
@@ -97,7 +100,7 @@ To see **highlighting** of matching terms in Simplified-style output, you'll nee
 }
 ```
 
-### Using from x-callback calls
+## Using from x-callback calls
 It's possible to call these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=<encoded command name>&arg0=<encoded string>&arg1=<encoded string>
@@ -115,8 +118,10 @@ Notes:
 | /searchOverNotes | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverNotes&` | search term(s) (separated by commas) | terms to filter by paragraph type (separated by commas) |  |
 | /searchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. |
 
+There is no equivalent of /flexiSearch, as this is simply a wrapper around these other commands.
+
 ## Future work
-In time I hope to be able to support searching for phrases such as `Bob Smith`, meaning that exact two-word phrase. However, the underlying API doesn't make this at all easy.
+In time I hope to be able to support searching for phrases such as `Bob Smith`, meaning that exact two-word phrase. However, the underlying API doesn't make this easy.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

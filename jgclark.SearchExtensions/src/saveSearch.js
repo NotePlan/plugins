@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 23.2.2023 for v1.1.0, @jgclark
+// Last updated 5.6.2023 for v1.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -19,14 +19,16 @@ import {
   validateAndTypeSearchTerms,
   writeSearchResultsToNote,
 } from './searchHelpers'
-import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { logDebug, logInfo, logError, logWarn } from '@helpers/dev'
+import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
+import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
+import { noteOpenInEditor } from '@helpers/NPWindows'
 import {
   chooseOption,
   getInput,
   showMessage,
+  showMessageYesNo
 } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
@@ -121,7 +123,9 @@ export async function saveSearch(
     // get relevant settings
     const config = await getSearchSettings()
     const headingMarker = '#'.repeat(config.headingLevel)
-    let calledIndirectly = false
+
+    // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
+    let calledNonInteractively = (searchTermsArg !== undefined)
 
     // Get the noteTypes to include
     const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
@@ -129,16 +133,13 @@ export async function saveSearch(
 
     // Get the search terms
     let termsToMatchStr = ''
-    if (searchTermsArg) {
+    if (calledNonInteractively) {
       // either from argument supplied
-      termsToMatchStr = searchTermsArg
+      termsToMatchStr = searchTermsArg ?? ''
       logDebug(pluginJson, `arg1 -> search terms [${termsToMatchStr}]`)
-      // we are running indirectly (probably from x-callback call)
-      calledIndirectly = true
     }
     else {
       // or by asking user
-      // defaultTermsToMatchArr = Array.from(config.defaultSearchTerms)
       const newTerms = await getInput(`Enter search term(s) separated by spaces or commas. (You can use +term, -term and !term as well.)`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
       if (typeof newTerms === 'boolean') {
         // i.e. user has cancelled
@@ -149,7 +150,7 @@ export async function saveSearch(
         logDebug(pluginJson, `user -> search terms [${termsToMatchStr}]`)
       }
     }
-    logDebug(pluginJson, `- called indirectly? ${String(calledIndirectly)}`)
+    logDebug(pluginJson, `- called non-interactively? ${String(calledNonInteractively)}`)
 
     // Validate the search terms: an empty return means failure. There is error logging in the function.
     const validatedSearchTerms = await validateAndTypeSearchTerms(termsToMatchStr, true)
@@ -158,6 +159,15 @@ export async function saveSearch(
       return
     }
     logDebug(pluginJson, `arg2 -> originatorCommand = '${originatorCommand}'`)
+
+    // If we have a blank search term, then double-check user wants to do this
+    if (validatedSearchTerms.length === 1 && validatedSearchTerms[0].term === '') {
+      const res = await showMessageYesNo('No search terms specified. Are you sure you want to run a potentially very long search?')
+      if (res === 'No') {
+        logDebug(pluginJson, 'User has cancelled search')
+        return
+      }
+    }
 
     // Get the paraTypes to include
     // $FlowFixMe[incompatible-type]
@@ -182,7 +192,7 @@ export async function saveSearch(
     if (originatorCommand === 'quickSearch') {
       destination = 'quick'
     }
-    else if (calledIndirectly || config.autoSave) {
+    else if (calledNonInteractively || config.autoSave) {
       // Being called from x-callback so will only write to 'newnote' destination
       // Or we have a setting asking to save automatically to 'newnote'
       destination = 'newnote'
@@ -195,7 +205,7 @@ export async function saveSearch(
         `Where should I save the search results?`,
         [
           { label: labelString, value: 'newnote' },
-          { label: '🖊 Append/update your current note', value: 'current' },
+          { label: '🖊 Append/update your currently open note', value: 'current' },
           { label: '📋 Write to plugin console log', value: 'log' },
           { label: '❌ Cancel', value: 'cancel' },
         ],
@@ -219,7 +229,7 @@ export async function saveSearch(
     //---------------------------------------------------------
     // Do output
     // logDebug(pluginJson, 'reached do output stage')
-    const searchTermsRepStr = `"${resultSet.searchTermsRepArr.join(' ')}"`
+    const searchTermsRepStr = `[${resultSet.searchTermsRepArr.join(' ')}]`
 
     switch (destination) {
       case 'current': {
@@ -260,12 +270,14 @@ export async function saveSearch(
         const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackLink, true)
 
         logDebug(pluginJson, `- filename to write to, and show in split: ${noteFilename}`)
-        if (Editor.note?.filename !== noteFilename && !calledIndirectly) {
-          // Open the results note in a new split window, unless we can tell
-          // we already have this note open. Only works for Editor, though.
-          // TODO: persuade Eduard to do better than this.
+        // if (!calledNonInteractively) {
+        if (noteOpenInEditor(noteFilename)) {
+          logDebug(pluginJson, `- note ${noteFilename} already open in an editor window`)
+        } else {
+            // Open the results note in a new split window, unless we can tell
           await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
         }
+        // }
         break
       }
 
@@ -279,13 +291,14 @@ export async function saveSearch(
         const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackLink, false)
 
         logDebug(pluginJson, `- filename to open in split: ${noteFilename}`)
-        // Open the results note in a new split window, unless we already have this note open
-        if (Editor.note?.filename !== noteFilename && !calledIndirectly) {
-          // Open the results note in a new split window, unless we can tell
-          // we already have this note open. Only works for Editor, though.
-          // TODO: persuade Eduard to do better than this.
+        // if (!calledNonInteractively) {
+        if (noteOpenInEditor(noteFilename)) {
+          logDebug(pluginJson, `- note ${noteFilename} already open in an editor window`)
+        } else {
+            // Open the results note in a new split window, unless we can tell
           await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
         }
+        // }
         break
       }
 

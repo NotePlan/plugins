@@ -18,9 +18,9 @@ const flexiSearchDialogHTML = `
 <div class="dialogBox">
  <form type="dialog" id="searchOptions">
   <div class="dialogSection">
-		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="25" value="#test" autofocus />
+		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="25" value="#test" autofocus tabindex="1" />
     <br />
-    (Separate terms by spaces. You can use +term, -term and !term as well.)
+    (Separate terms by spaces. You can use +term, -term and !term as well. See <a href="https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/" target="_blank">README</a> for more details.)
 	</div>
 
 	<div class="dialogSection">
@@ -96,15 +96,15 @@ const flexiSearchDialogHTML = `
 		<li>Other line types:</li>
 		<li>
     <input type="checkbox" name="other" id="list" value="list" checked />
-    <label for="checklist"><kbd>-</kbd> Bullet lists</label>
+    <label for="checklist"><kbd>-</kbd>Bullet lists</label>
 		</li>
 		<li>
     <input type="checkbox" name="other" id="quote" value="quote" checked />
-    <label for="checklist"><kbd>&gt;</kbd> Quotations</label>
+    <label for="checklist"><kbd>&gt;</kbd>Quotations</label>
 		</li>
 		<li>
     <input type="checkbox" name="other" id="headings" value="title" checked />
-    <label for="checklist"><kbd>#</kbd> Headings</label>
+    <label for="checklist"><kbd>#</kbd>Headings</label>
 		</li>
 		<li>
     <input type="checkbox" name="other" id="text" value="text" checked />
@@ -116,9 +116,11 @@ const flexiSearchDialogHTML = `
 	</table>
 
 	</div>
-  <div class="dialogSection buttonRow">
-    <input type="submit" value="Cancel" />
-    <input type="submit" value="Search" />
+  <div class="dialogSection">
+    <div class="buttonRow">
+    <input type="submit" value="Search" class="mainButton" tabindex="2"/>
+    <input type="submit" value="Cancel" id="displayFirst" tabindex="3"/>
+    </div>
   </div>
  </form>
 </div>
@@ -162,8 +164,10 @@ const flexiSearchDialogPostBodyScripts = `
 		const inputs = form.elements
 
 		// Iterate over checkbox controls setting whether they're initially checked or not
+    // Note additionaly complexity because 'list' is a substring of '...Checklist'
 		function initDialogState() {
 			console.log('initDialogState()')
+      const paraTypesArr = paraTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '').split(',')
 			for (let i = 0; i < inputs.length; i++) {
         const val = inputs[i].value
         if (inputs[i].name === "notetype") {
@@ -174,7 +178,7 @@ const flexiSearchDialogPostBodyScripts = `
           inputs[i].checked = (saveType === val)
         } else if (inputs[i].type === "checkbox") {
           console.log('- setting paraTypesStr "'+ val +'" to ' + String(noteTypesStr.includes(val)))
-          inputs[i].checked = paraTypesStr.includes(val)
+          inputs[i].checked = paraTypesArr.includes(val)
         }
 			}
 		}
@@ -202,7 +206,6 @@ const flexiSearchDialogPostBodyScripts = `
 				}
 			}
 			console.log('Saving ' + saveType + ' / ' + noteTypesStr + ' / ' + paraTypesStr)
-      // FIXME: These 3 fail silently ❌
       window.webkit.messageHandlers.jsBridge.postMessage({
         code: ${JSUpdatePref}.replace('%%KEY%%', 'saveType').replace('%%VALUE%%', saveType),
         onHandle: "miscFunc",
@@ -253,7 +256,6 @@ const flexiSearchDialogPostBodyScripts = `
       let paraTypes = paraTypesStr.replace(/,{2,}/g, ',').replace(/,$/, '').replace(/^,/, '')
 
       // Update the JS to send to the plugin based on the form values, and then send
-      // Note: This one works ✅
       window.webkit.messageHandlers.jsBridge.postMessage({
         code: ${JSStartSearchInPlugin}
           .replace('%%SEARCHTERMS%%', searchTerms)
@@ -324,8 +326,14 @@ const dialogCSS = `
     font-size: 0.9rem;
   }
   .buttonRow {
-    text-align: center;
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: right;
+    align-items: right;
   }
+	.mainButton {
+		font-weight: 700;
+	}
   .atLeastOneCheckboxWarning {
     font-size: 0.9rem;
     color: red;
@@ -346,9 +354,9 @@ export async function flexiSearchRequest(
   try {
     // Look up the 3 preferences from local store
     // Note: extra commas aren't typos
-    const saveType = DataStore.preference(pluginID + '.saveType') ?? 'quick'
-    const noteTypesStr = DataStore.preference(pluginID + '.noteTypesStr') ?? 'notes,calendar,'
-    const paraTypesStr = DataStore.preference(pluginID + '.paraTypesStr') ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
+    const saveType = String(DataStore.preference(pluginID + '.saveType')) ?? 'quick'
+    const noteTypesStr = String(DataStore.preference(pluginID + '.noteTypesStr')) ?? 'notes,calendar,'
+    const paraTypesStr = String(DataStore.preference(pluginID + '.paraTypesStr')) ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
@@ -367,7 +375,7 @@ export async function flexiSearchRequest(
       savedFilename: '../../jgclark.SearchExtensions/flexiSearchDialog.html',
       width: 440,
       height: 350,
-      reuseUsersWindowRect: false,
+      reuseUsersWindowRect: true,
       shouldFocus: true,
     }
     // show dialog as non-modal HTML window
@@ -380,7 +388,7 @@ export async function flexiSearchRequest(
 
 export function flexiSearchHandler(searchTerms: string, saveType: string, noteTypeToInclude: string, paraTypes: string): any {
   try {
-    logDebug(pluginJson, `flexiSearchHandler called with ${searchTerms} / ${saveType} / ${noteTypeToInclude} / ${paraTypes}`)
+    logDebug(pluginJson, `flexiSearchHandler called with [${searchTerms}] / ${saveType} / ${noteTypeToInclude} / ${paraTypes}`)
     // First close the window
     closeDialogWindow('flexiSearchDialog')
 

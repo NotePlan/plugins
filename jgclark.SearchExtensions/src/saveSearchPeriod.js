@@ -37,6 +37,7 @@ import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import { clo, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
 import { displayTitle, titleAsLink } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
+import { noteOpenInEditor } from '@helpers/NPWindows'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 
@@ -65,7 +66,9 @@ export async function searchPeriod(
     // Get relevant settings
     const config = await getSearchSettings()
     const headingMarker = '#'.repeat(config.headingLevel)
-    let calledIndirectly = false
+
+    // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether searchTermsArg is undefined
+    let calledNonInteractively = (searchTermsArg !== undefined)
 
     // Work out time period to cover
     let fromDate: Date
@@ -117,11 +120,10 @@ export async function searchPeriod(
 
     // Get the search terms
     let termsToMatchStr = ''
-    if (searchTermsArg !== undefined) {
+    if (calledNonInteractively) {
       // either from argument supplied
-      termsToMatchStr = searchTermsArg
-      logDebug(pluginJson, `- arg0 -> search term(s) [${searchTermsArg}]`)
-      calledIndirectly = true
+      termsToMatchStr = searchTermsArg ?? ''
+      logDebug(pluginJson, `- arg0 -> search term(s) [${searchTermsArg ?? ''}]`)
     } else {
       // or by asking user
       const defaultTermsToMatchStr = config.defaultSearchTerms.join(', ')
@@ -134,7 +136,7 @@ export async function searchPeriod(
         termsToMatchStr = newTerms
       }
     }
-    logDebug(pluginJson, `- called indirectly? ${String(calledIndirectly)}`)
+    logDebug(pluginJson, `- called non-interactively? ${String(calledNonInteractively)}`)
 
     // Validate the search terms: an empty return means failure. There is error logging in the function.
     const validatedSearchTerms = await validateAndTypeSearchTerms(termsToMatchStr, true)
@@ -160,7 +162,7 @@ export async function searchPeriod(
     //---------------------------------------------------------
     // While the search goes on, work out where to save this summary
     let destination = ''
-    if (calledIndirectly || config.autoSave) {
+    if (calledNonInteractively || config.autoSave) {
       // Being called from x-callback so will only write to 'newnote' destination
       // Or we have a setting asking to save automatically to 'newnote'
       destination = 'newnote'
@@ -217,8 +219,7 @@ export async function searchPeriod(
 
     //---------------------------------------------------------
     // Do output
-    // const sectionStringToRemove = `${termsToMatchStr} ${config.searchHeading}`
-    const searchTermsRepStr = `"${resultSet.searchTermsRepArr.join(' ')}"`
+    const searchTermsRepStr = `[${resultSet.searchTermsRepArr.join(' ')}]`
     const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
 
     switch (destination) {
@@ -243,7 +244,7 @@ export async function searchPeriod(
         // note contents and re-write each search term's block.
 
         const titleToMatch = `${termsToMatchStr} ${config.searchHeading}`
-        const requestedTitle = `${termsToMatchStr} ${config.searchHeading} for ${periodAndPartStr}`
+        const requestedTitle = `${termsToMatchStr} ${config.searchHeading}\nfor ${periodAndPartStr}`
 
         // Decided to remove the x-callback link, as
         //   a) it's hard to work back from start/end dates to the human-friendly period string
@@ -255,17 +256,20 @@ export async function searchPeriod(
         const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, titleToMatch, config, xCallbackLink)
 
         logDebug(pluginJson, `- filename to open in split: ${noteFilename}`)
-        if (Editor.note?.filename !== noteFilename && !calledIndirectly) {
-          // Open the results note in a new split window, unless we can tell
-          // we already have this note open. Only works for Editor, though.
-          // TODO: persuade Eduard to do better than this.
+        // if (!calledNonInteractively) {
+        if (noteOpenInEditor(noteFilename)) {
+          logDebug(pluginJson, `- note ${noteFilename} already open in an editor window`)
+        } else {
+            // Open the results note in a new split window, unless we can tell
           await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
         }
+        // }
         break
       }
 
       case 'log': {
-        logInfo(pluginJson, `${headingMarker} ${searchTermsRepStr}(${resultSet.resultCount} results)`)
+        const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
+        logInfo(pluginJson, `${headingMarker} ${searchTermsRepStr} ${resultCounts(resultSet)} results)`)
         logInfo(pluginJson, resultOutputLines.join('\n'))
         break
       }
