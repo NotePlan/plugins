@@ -109,16 +109,18 @@ async function getArgumentText(command: any, i: number): Promise<string | false>
 export function logPreference(key: string): void {
   try {
     const value = DataStore.preference(key) ?? undefined
-    if (value === 'undefined') {
-      logDebug(`preference`, `"${key}" not found`)
+    if (value === undefined) {
+      logDebug(`logPreference`, `"${key}" not found`)
     } else if (typeof value === 'object') {
-      clo(value, `preference "${key}" [object]:`)
+      clo(value, `logPreference "${key}" [object]:`)
     } else if (typeof value === 'string') {
-      logDebug('preference', `"${key}" [string]: "${value}"`)
+      logDebug('logPreference', `"${key}" [string]: "${value}"`)
     } else if (typeof value === 'number') {
-      logDebug('preference', `"${key}" [number]: "${String(value)}"`)
+      logDebug('logPreference', `"${key}" [number]: "${String(value)}"`)
     } else if (typeof value === 'boolean') {
-      logDebug('preference', `"${key}" [boolean]: "${String(value)}"`)
+      logDebug('logPreference', `"${key}" [boolean]: "${String(value)}"`)
+    } else {
+      logDebug('logPreference', `"${key}": "${String(value)}"`)
     }
   } catch (error) {
     logError('logPreference', error.message)
