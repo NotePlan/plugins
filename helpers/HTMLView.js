@@ -237,8 +237,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.todo
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#B74746')}`)
-      // tempSel = tempSel.concat(convertStyleObjectBlock(styleObj)) // we only want the color info
+      tempSel.push(`color: ${styleObj.color ? RGBColourConvert(styleObj.color) : 'var(--tint-color)'}`)
       output.push(makeCSSSelector('.todo', tempSel))
     }
 
