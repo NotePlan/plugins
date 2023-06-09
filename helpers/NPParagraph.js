@@ -319,6 +319,7 @@ export async function gatherMatchingLines(
   highlightResults: boolean = true,
   dateStyle: string = 'link',
   matchCase: boolean = false,
+  matchOnWordBoundaries: boolean = true,
 ): Promise<[Array<string>, Array<string>]> {
   logDebug('NPParagraph/gatherMatchingLines', `Looking for '${stringToLookFor}' in ${notes.length} notes`)
 
@@ -347,7 +348,9 @@ export async function gatherMatchingLines(
 
     // set up regex for searching, now with word boundaries on either side
     // find any matches
-    const stringToLookForWithDelimiters = `[\\b\\s\\^]${stringToLookFor}[\\b\\s\\$]`
+    const stringToLookForWithDelimiters = (matchOnWordBoundaries)
+      ? `[\\b\\s\\^]${stringToLookFor}[\\b\\s\\$]`
+      : stringToLookFor
     const re = matchCase ? new RegExp(stringToLookForWithDelimiters) : new RegExp(stringToLookForWithDelimiters, 'i')
     const matchingParas = n.paragraphs.filter((q) => re.test(q.content))
     for (const p of matchingParas) {
