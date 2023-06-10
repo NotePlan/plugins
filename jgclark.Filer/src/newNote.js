@@ -3,7 +3,7 @@
 // @dwertheimer based on @jgclark's newNote
 // Create new note from currently selected text
 // and (optionally) leave backlink to it where selection was
-// Last updated 4.8.2022 for 0.8.1+, @jgclark
+// Last updated 10.6.2023 for 1.1.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,7 +12,7 @@ import { displayTitle } from '@helpers/general'
 import { getUniqueNoteTitle, noteOpener } from '@helpers/note'
 import { chooseFolder, getInput, showMessage, showMessageYesNo } from '@helpers/userInput'
 
-/** 
+/**
  * Create new note from the clipboard contents.
  * @author @jgclark
  */
@@ -33,7 +33,7 @@ export async function newNoteFromClipboard(): Promise<void> {
         await showMessage(`  Title exists. Using "${uniqueTitle}" instead`, `OK`, `New Note from Clipboard`)
         title = uniqueTitle
       }
-      const currentFolder = await chooseFolder('Select folder to add note in:')
+      const currentFolder = await chooseFolder('Select folder to add note in:', false, true)  // don't include @Archive as an option, but do allow creation of a new folder
       const content = `# ${title}\n${string}`
       if (title) {
         // Create new note in the specific folder
@@ -55,7 +55,7 @@ export async function newNoteFromClipboard(): Promise<void> {
   }
 }
 
-/** 
+/**
  * Create new note from currently selected text and (optionally) leave backlink to it where selection was.
  * @author @dwertheimer + @jgclark
  */
@@ -81,7 +81,7 @@ export async function newNoteFromSelection(): Promise<void> {
         await showMessage(`Title exists. Using "${uniqueTitle}" instead`, `OK`, `New Note from Selection`)
         title = uniqueTitle
       }
-      const currentFolder = await chooseFolder('Select folder to add note in:')
+      const currentFolder = await chooseFolder('Select folder to add note in:', false, true)  // don't include @Archive as an option, but do allow creation of a new folder
 
       if (title) {
         // Create new note in the specific folder
