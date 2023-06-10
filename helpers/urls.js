@@ -1,14 +1,5 @@
 /* @flow */
 
-/**
- * Type definition for a LinkObject.
- * @typedef {Object} LinkObject
- * @property {string} url - The full link.
- * @property {?string} name - The name found if it is a markdown link, null otherwise.
- * @property {number} lineIndex - The index of the line the link was found on.
- * @property {string} domain - The domain of the link without the extension.
- * @property {string} page - The page portion of the URL without any URL parameters.
- */
 export type LinkObject = {
   url: string,
   name: ?string,
@@ -18,7 +9,7 @@ export type LinkObject = {
 }
 
 /**
- * Processes a given URL and returns a LinkObject (called by findURLsInText()
+ * Processes a given URL and returns a LinkObject (used by findURLsInText())
  *
  * @param {string} urlStr - The URL to process.
  * @param {?string} name - The name of the markdown link. If the URL is not a markdown link, this should be null.
@@ -27,23 +18,17 @@ export type LinkObject = {
  * @returns {LinkObject} The processed LinkObject.
  */
 export function processURL(urlStr: string, name: ?string, lineIndex: number, removeSubdomain: boolean): LinkObject {
-  const url = new URL(urlStr)
+  let [domain, page] = urlStr.split(/\/+/g).slice(1)
+  page = page ? page.split('?')[0] : '' // remove URL parameters
 
-  // Remove trailing slash from the URL, if present.
-  let urlString = url.toString()
-  urlString = urlString.endsWith('/') ? urlString.slice(0, -1) : urlString
-
-  // Remove URL parameters from the page, if present, and remove leading slash.
-  let page = url.pathname.split('?')[0]
-  page = page.startsWith('/') ? page.slice(1) : page
-  page = page.endsWith('/') ? page.slice(0, -1) : page
-
-  // Remove subdomain, if required.
-  let domain = url.hostname.split('.')
-  domain = removeSubdomain ? domain.slice(1, -1).join('.') : domain.slice(0, -1).join('.')
+  if (removeSubdomain) {
+    domain = domain.split('.').slice(1, -1).join('.')
+  } else {
+    domain = domain.split('.').slice(0, -1).join('.')
+  }
 
   return {
-    url: urlString,
+    url: urlStr,
     name: name,
     lineIndex: lineIndex,
     domain: domain,
@@ -83,5 +68,3 @@ export function findURLsInText(text: string, removeSubdomain: boolean = false): 
 
   return links
 }
-
-module.exports = { findURLsInText }
