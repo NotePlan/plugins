@@ -1,0 +1,83 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "KimMachineGun.Raindrop",
+  "plugin.name": "🧩 Raindrop.io",
+  "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "Initial Release",
+  "plugin.description": "Raindrop.io integration plugin.",
+  "plugin.author": "KimMachineGun",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/KimMachineGun.Raindrop/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/KimMachineGun.Raindrop/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "name": "rd",
+      "description": "Search and create note.",
+      "jsFunction": "searchAndCreateNote",
+      "alias": [
+        "rd"
+      ]
+    },
+    {
+      "name": "rd:insert",
+      "description": "Search and insert (or copy) link.",
+      "jsFunction": "searchAndInsertOrCopy",
+      "alias": [
+        "rdi"
+      ]
+    }
+  ],
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Raindrop Settings"
+    },
+    {
+      "title": "Access Token",
+      "key": "accessToken",
+      "type": "string",
+      "description": "Your Raindrop.io test access token"
+    },
+    {
+      "title": "Note Folder",
+      "key": "noteFolder",
+      "type": "string",
+      "description": "Folder to store Raindrop notes",
+      "default": "/Raindrop.io/Tags"
+    },
+    {
+      "title": "Tag Prefix",
+      "key": "tagPrefix",
+      "type": "string",
+      "description": "Prefix of Raindrop tags",
+      "default": "rd/"
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Raindrop commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}
