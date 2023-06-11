@@ -37,7 +37,6 @@ export {
   reviewWeeklyTasks,
   reviewOverdueTasksAsOfDate,
 } from './NPOverdue'
-export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
 export { followUpSaveHere, followUpInFuture } from './NPFollowUp'
 export { processOverdueReact, onUserModifiedParagraphs, testOverdueReact, processFolderReact } from './NPOverdueReact.js'
 
