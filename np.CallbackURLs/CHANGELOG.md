@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.5.0] - 2023-06-10 (@dwertheimer)
+
+- Adding ability to open links in a note for open tasks (under the hood uses new helpers/urls functions for consistency)
+
 ## [1.4.1] - 2022-01-19 (@dwertheimer)
 
 - Make default pretty link the title

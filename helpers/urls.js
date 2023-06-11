@@ -5,7 +5,7 @@ export type LinkObject = {
   type: 'markdown' | 'bareURL',
   lineIndex: number,
   name: ?string /* will only be set if the URL is a markdown link */,
-  domain: string /* will be empty if no domain is found (e.g. MD deeplink/callback-url or MD link without http/https) */,
+  domain: string /* will be empty if no domain is found (e.g. MD vdeeplink/callback-url or MD link without http/https) */,
   page: string /* will be empty if no page is found */,
 }
 

@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "np.CallbackURLs",
   "plugin.name": "🔗 Link Creator",
-  "plugin.version": "1.4.1",
-  "plugin.lastUpdateInfo": "1.4.1: Make default pretty link the title.\n1.4.0: Add dialog box on URL creation for creating pretty links (thx @stacey).\n1.3.0: Include ability to create self-running templates (coming in Templating 2.0). Allows you to run full-featured templates via xcallback",
+  "plugin.version": "1.5.0",
+  "plugin.lastUpdateInfo": "1.5.0 Adding ability to open links in a note.",
   "plugin.description": "Interactively helps you form links/x-callback-urls (and also Template Tags with runPlugin commands) to perform actions from within NotePlan or between other applications and NotePlan.",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -18,7 +18,9 @@
       "description": "Run Wizard to get X-Callback-URL",
       "jsFunction": "xCallbackWizard",
       "alias": [
-        "xcallback","url","link"
+        "xcallback",
+        "url",
+        "link"
       ]
     },
     {
@@ -26,7 +28,8 @@
       "description": "External link to open this note",
       "jsFunction": "headingLink",
       "alias": [
-        "headinglink","notelink"
+        "headinglink",
+        "notelink"
       ]
     },
     {
@@ -36,6 +39,21 @@
       "alias": [
         "lineLink"
       ]
+    },
+    {
+      "name": "open todos containing links in browser",
+      "alias": [],
+      "description": "Open URLs in all open todo items on the page",
+      "jsFunction": "openIncompleteLinksInNote"
+    },
+    {
+      "name": "open URL on this line",
+      "alias": [
+        "openurl",
+        "launch"
+      ],
+      "description": "Open the URL on the current line in the default browser",
+      "jsFunction": "openURLOnLine"
     }
   ],
   "plugin.settings": [
