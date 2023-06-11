@@ -64,6 +64,7 @@ describe(`${PLUGIN_NAME}`, () => {
             lineIndex: 0,
             domain: 'example',
             page: 'page',
+            type: 'markdown',
           },
           {
             url: 'https://www.example2.com/page2',
@@ -71,6 +72,7 @@ describe(`${PLUGIN_NAME}`, () => {
             lineIndex: 1,
             domain: 'example2',
             page: 'page2',
+            type: 'bareURL',
           },
         ])
       })
@@ -85,6 +87,7 @@ describe(`${PLUGIN_NAME}`, () => {
             lineIndex: 0,
             domain: 'example',
             page: 'page',
+            type: 'markdown',
           },
           {
             url: 'https://www.example2.com/page2',
@@ -92,6 +95,7 @@ describe(`${PLUGIN_NAME}`, () => {
             lineIndex: 0,
             domain: 'example2',
             page: 'page2',
+            type: 'bareURL',
           },
         ])
       })
@@ -106,6 +110,7 @@ describe(`${PLUGIN_NAME}`, () => {
             lineIndex: 0,
             domain: 'www.example',
             page: 'page',
+            type: 'markdown',
           },
           {
             url: 'https://www.example2.com/page2',
@@ -113,6 +118,43 @@ describe(`${PLUGIN_NAME}`, () => {
             lineIndex: 1,
             domain: 'www.example2',
             page: 'page2',
+            type: 'bareURL',
+          },
+        ])
+      })
+
+      it('should find links without http in markdown links - domain and page are empty', () => {
+        const text = 'Hello [Example](www.example.com/page)'
+        const result = f.findURLsInText(text, false)
+        expect(result).toEqual([
+          {
+            url: 'www.example.com/page',
+            name: 'Example',
+            lineIndex: 0,
+            domain: '',
+            page: '',
+            type: 'markdown',
+          },
+        ])
+      })
+
+      it('should not find the same link (without http) in a bare link', () => {
+        const text = 'Hello www.example.com/page'
+        const result = f.findURLsInText(text, false)
+        expect(result).toEqual([])
+      })
+
+      it('should find links that are deeplinks in markdown links', () => {
+        const text = 'Hello [Example](noteplan://doSomething?with=param)'
+        const result = f.findURLsInText(text, false)
+        expect(result).toEqual([
+          {
+            url: 'noteplan://doSomething?with=param',
+            name: 'Example',
+            lineIndex: 0,
+            domain: '',
+            page: '',
+            type: 'markdown',
           },
         ])
       })
