@@ -2,6 +2,9 @@
 
 import { showMessage } from '@helpers/userInput'
 
+/**
+ * Append a human readable number of days to/from the date given in the bullet points in a list
+ */
 export async function countAndAddDays(): Promise<void> {
   const note = Editor.note
   if (!note) {

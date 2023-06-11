@@ -32,11 +32,11 @@ import {
 const pluginID = 'jgclark.NoteHelpers'
 
 //-----------------------------------------------------------------------------
-/** 
+/**
  * Private function to generate the index of a specified folder, including
  * each note as a wikilink, with relative time since it was last updated.
  * @author @jgclark
- * 
+ *
  * @param {string} folder - folder name (without trailling /)
  * @param {string} displayOrder - sort order for index items ('updatedDate'/'createdDate'/'alphabetical')
  * @param {string} dateDisplayType - what type of date suffix to add ('none'/'timeSince'/'updateDate')
@@ -99,7 +99,7 @@ function makeFolderIndex(folder: string, displayOrder: string, dateDisplayType: 
       // Add suffix, if wanted
       outputArray.push(isSubFolder
         ? `### ${f} (${notes.length})`
-        : `_index ${f}\nIndex generated ${nowLocaleShortDateTime()}. ${refreshXCBStr}\n${sortExplainer}. ${dateExplainer}`)
+        : `_index ${f}\nIndex generated ${nowLocaleShortDateTime()} ${refreshXCBStr}\n${sortExplainer}. ${dateExplainer}`)
 
       if (notes.length > 0) {
         // If this is a sub-folder level, then prefix with ### for a 3rd level heading,
@@ -131,6 +131,7 @@ function makeFolderIndex(folder: string, displayOrder: string, dateDisplayType: 
 
 /**
  * Command to index folders, creating list of notes.
+ * Called by user directly, or via x-callback call.
  * Options:
  * 1. This folder only (insert into current note)
  * 2. This folder only (add/update to _index note)
@@ -146,9 +147,10 @@ export async function indexFolders(folder: string = "", displayOrder: string = "
   try {
     let folderToUse = ''
     let fullFilename = ''
-    logDebug(pluginJson, `indexFolders() starting for '${folder}', displayOrder:${displayOrder} / dateDisplayType:${dateDisplayType} / subfolders? ${includeSubfolders}`)
+    logDebug(pluginJson, `indexFolders() starting with (possibly default) params '${folder}', displayOrder:${displayOrder} / dateDisplayType:${dateDisplayType} / subfolders? ${includeSubfolders}`)
 
     // Use parameters if passed, otherwise fallback to the settings
+    // FIXME: better way of doing this now
     const config: noteHelpersConfigType = await getSettings()
     let displayOrderToUse = displayOrder ?? config.displayOrder
     let dateDisplayTypeToUse = dateDisplayType ?? config.dateDisplayType
@@ -159,15 +161,15 @@ export async function indexFolders(folder: string = "", displayOrder: string = "
       // folderToUse = getFolderFromFilename(folder)
       folderToUse = folder
     } else {
-      fullFilename = Editor.filename ?? undefined
-      if (fullFilename === undefined) {
-        logInfo('indexFolders', `Info: No current filename (and therefore folder) found, so will ask instead.`)
-        folderToUse = await chooseFolder(`Please pick folder to index`)
-      } else {
-        folderToUse = getFolderFromFilename(fullFilename)
+      logDebug('indexFolders', Editor.filename)
+      logDebug('indexFolders', NotePlan.selectedSidebarFolder)
+      folderToUse = Editor.filename ?? NotePlan.selectedSidebarFolder ?? undefined
+      if (folderToUse === undefined) {
+        logDebug('indexFolders', `Info: No current filename (or folder) found, so will ask instead.`)
+        folderToUse = await chooseFolder(`Please pick folder to index`, true, true) // include @Archive as an option, and to create a new folder
       }
     }
-    logDebug('indexFolders', `params to use: folder ${folderToUse} / displayOrderToUse:${displayOrderToUse} / dateDisplayTypeToUse:${dateDisplayTypeToUse} / ${includeSubfoldersToUse ? 'with' : 'without'} subfolders`)
+    logDebug('indexFolders', `values to use: folder:'${folderToUse}' / displayOrderToUse:${displayOrderToUse} / dateDisplayTypeToUse:${dateDisplayTypeToUse} / ${includeSubfoldersToUse ? 'with' : 'without'} subfolders`)
 
     // If we've been called by x-callback then output will be to relevant folder's _index file.
     let option: string | boolean
