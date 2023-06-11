@@ -2,25 +2,8 @@
 
 // import { log, logError, JSP, clo } from '@helpers/dev'
 import { getParagraphContainingPosition } from '@helpers/NPParagraph'
-import { logDebug } from '@helpers/dev'
-
-/**
- * Find URLs in an array of paragraphs
- * @param {Array<TParagraph>} paras
- * @author @dwertheimer
- * @returns {Array<string>} - the URL strings as an array
- */
-export function findURLs(paras: Array<TParagraph>): Array<string> {
-  const reURL = /(http|ftp|https):\/\/([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:\/~+#-]*[\w@?^=%&\/~+#-])/gim
-  let urls = []
-  paras.forEach((para) => {
-    const matches = para.content.match(reURL)
-    if (matches) {
-      urls = [...urls, ...matches]
-    }
-  })
-  return urls
-}
+import { logDebug, logError, clo, JSP } from '@helpers/dev'
+import { findURLsInText } from '@helpers/urls'
 
 /**
  * Find Links in Paragraphs Array and open in Browser
@@ -28,9 +11,10 @@ export function findURLs(paras: Array<TParagraph>): Array<string> {
  * @author @dwertheimer
  */
 export function openLinksInParagraphs(paras: Array<TParagraph>) {
-  const urls = findURLs(paras)
-  urls.forEach(async (url) => {
-    await NotePlan.openURL(url)
+  const rawText = paras.map((p) => p.content).join('\n')
+  const urls = findURLsInText(rawText)
+  urls.forEach(async (urlObj) => {
+    await NotePlan.openURL(urlObj.url)
   })
 }
 
@@ -41,9 +25,13 @@ export function openLinksInParagraphs(paras: Array<TParagraph>) {
  */
 // eslint-disable-next-line require-await
 export async function openIncompleteLinksInNote() {
+  logDebug('openIncompleteLinksInNote running')
   if (Editor?.note) {
-    const openParas = Editor.paragraphs.filter((p) => p.type === 'open')
+    const openParas = Editor.paragraphs.filter((p) => p.type === 'open' || p.type === 'checklist')
+    logDebug(`openIncompleteLinksInNote: ${openParas.length} open paragraphs found (that could have links)`)
     openLinksInParagraphs(openParas)
+  } else {
+    logError('openIncompleteLinksInNote: Editor.note is null')
   }
 }
 

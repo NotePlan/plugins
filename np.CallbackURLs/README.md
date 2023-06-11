@@ -2,6 +2,11 @@
 
 [Help/Support on Discord](https://discord.com/channels/763107030223290449/989382962736922635/989382964016193597)
 
+## Major functions
+
+- X-Callback Link Creation
+- Act on URLs in a document (open one URL or all URLs in a document)
+
 ## About X-Callback-URL Creator
 
 X-Callback-URLs are extremely useful. They can be used to create links which open notes and perform actions from inside of NotePlan. They also allow you to automate things inside of NotePlan from Shortcuts or other apps. How to use X-Callback-URLs is covered in [the documentation](https://help.noteplan.co/article/49-x-callback-url-scheme), but creating the URLs can be a little challenging. Hence why this wizard was created. It helps take *some* of the guesswork out of creating URLs that you can use to open notes, run plugins, etc.
@@ -11,7 +16,7 @@ X-Callback-URLs are extremely useful. They can be used to create links which ope
 The simplest use case is to create a link to the currently-open document and the currently-selected heading level (e.g. a link to block).
 You can run this command directly by running the commmand:
     `/Create Link to Current Note+Heading`
-    
+
 ## X-Callback-Types
 
 As you can see from [the documentation](https://help.noteplan.co/article/49-x-callback-url-scheme), there are lots of different types of callbacks.
@@ -58,6 +63,13 @@ Field names can be sent in the URL to your template as key=value pairs, separate
 
 - Any NotePlan X-Callback command can run and return execution to a different app after execution. The Wizard will ask at the end of command creation if this is something you want to do. By default this option is turned off in the wizard, however you can enable it in the plugin settings.
   
+## Act on URLs in a document (open one URL or all URLs in a document)
+
+Commands are:
+
+- `/open todos containing links in browser` - will open any URLs found in the current document's OPEN todos (or open checklist items)
+- `/open URL on this line` - will open any url on the line the cursor is currently on
+
 ### Feedback is welcome
 
 If you are interested in the other types (not implemented yet), please comment on [This Plugin's Discord Thread](https://discord.com/channels/763107030223290449/989382962736922635/989382964016193597) to let us know which of the above you are most interested in. It will help us prioritize future releases.

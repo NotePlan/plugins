@@ -20,6 +20,8 @@ import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 
 export { xCallbackWizard, headingLink, lineLink } from './NPXCallbackWizard' // this makes the command function available to NotePlan (see plugin.json for details)
 
+export { openIncompleteLinksInNote, openURLOnLine } from './NPOpenLinks'
+
 export function onUpdateOrInstall(): void {
   // this runs after the plugin is installed or updated. the following command updates the plugin's settings data
   updateSettingData(pluginJson)

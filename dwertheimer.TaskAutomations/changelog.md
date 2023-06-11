@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.15.0] @dwertheimer 2023-06-10
+
+- Removed URL opening commands and moved them to Link Creator
+
 ## [2.14.5] @dwertheimer 2023-05-23
 
 - Change order of interactive task review (look for forgotten tasks before week/today)

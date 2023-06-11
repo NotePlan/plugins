@@ -1,24 +1,16 @@
 /* @flow */
 
-/**
- * Type definition for a LinkObject.
- * @typedef {Object} LinkObject
- * @property {string} url - The full link.
- * @property {?string} name - The name found if it is a markdown link, null otherwise.
- * @property {number} lineIndex - The index of the line the link was found on.
- * @property {string} domain - The domain of the link without the extension.
- * @property {string} page - The page portion of the URL without any URL parameters.
- */
 export type LinkObject = {
   url: string,
-  name: ?string,
+  type: 'markdown' | 'bareURL',
   lineIndex: number,
-  domain: string,
-  page: string,
+  name: ?string /* will only be set if the URL is a markdown link */,
+  domain: string /* will be empty if no domain is found (e.g. MD vdeeplink/callback-url or MD link without http/https) */,
+  page: string /* will be empty if no page is found */,
 }
 
 /**
- * Processes a given URL and returns a LinkObject (called by findURLsInText()
+ * Processes a given URL and returns a LinkObject.
  *
  * @param {string} urlStr - The URL to process.
  * @param {?string} name - The name of the markdown link. If the URL is not a markdown link, this should be null.
@@ -27,26 +19,18 @@ export type LinkObject = {
  * @returns {LinkObject} The processed LinkObject.
  */
 export function processURL(urlStr: string, name: ?string, lineIndex: number, removeSubdomain: boolean): LinkObject {
-  const url = new URL(urlStr)
+  const parts = urlStr.split(/\/+/g)
+  const domain = parts.length > 1 ? parts[1] : urlStr
+  const page = parts.slice(2).join('/').split('?')[0]
 
-  // Remove trailing slash from the URL, if present.
-  let urlString = url.toString()
-  urlString = urlString.endsWith('/') ? urlString.slice(0, -1) : urlString
-
-  // Remove URL parameters from the page, if present, and remove leading slash.
-  let page = url.pathname.split('?')[0]
-  page = page.startsWith('/') ? page.slice(1) : page
-  page = page.endsWith('/') ? page.slice(0, -1) : page
-
-  // Remove subdomain, if required.
-  let domain = url.hostname.split('.')
-  domain = removeSubdomain ? domain.slice(1, -1).join('.') : domain.slice(0, -1).join('.')
+  const finalDomain = removeSubdomain ? domain.split('.').slice(1, -1).join('.') : domain.split('.').slice(0, -1).join('.')
 
   return {
-    url: urlString,
+    url: urlStr,
     name: name,
+    type: name ? 'markdown' : 'bareURL',
     lineIndex: lineIndex,
-    domain: domain,
+    domain: finalDomain,
     page: page,
   }
 }
@@ -59,7 +43,7 @@ export function processURL(urlStr: string, name: ?string, lineIndex: number, rem
  * @returns {LinkObject[]} An array of LinkObjects.
  */
 export function findURLsInText(text: string, removeSubdomain: boolean = false): Array<LinkObject> {
-  const markdownURLPattern = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g
+  const markdownURLPattern = /\[([^\]]+)\]\(([^)]+)\)/g // Match markdown URLs with or without 'http(s)://'
   const bareURLPattern = /(https?:\/\/[^\s]+)/g
 
   const lines = text.split('\n')
@@ -83,5 +67,3 @@ export function findURLsInText(text: string, removeSubdomain: boolean = false): 
 
   return links
 }
-
-module.exports = { findURLsInText }
