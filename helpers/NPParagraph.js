@@ -319,6 +319,7 @@ export async function gatherMatchingLines(
   highlightResults: boolean = true,
   dateStyle: string = 'link',
   matchCase: boolean = false,
+  matchOnWordBoundaries: boolean = true,
 ): Promise<[Array<string>, Array<string>]> {
   logDebug('NPParagraph/gatherMatchingLines', `Looking for '${stringToLookFor}' in ${notes.length} notes`)
 
@@ -347,7 +348,9 @@ export async function gatherMatchingLines(
 
     // set up regex for searching, now with word boundaries on either side
     // find any matches
-    const stringToLookForWithDelimiters = `[\\b\\s\\^]${stringToLookFor}[\\b\\s\\$]`
+    const stringToLookForWithDelimiters = (matchOnWordBoundaries)
+      ? `[\\b\\s\\^]${stringToLookFor}[\\b\\s\\$]`
+      : stringToLookFor
     const re = matchCase ? new RegExp(stringToLookForWithDelimiters) : new RegExp(stringToLookForWithDelimiters, 'i')
     const matchingParas = n.paragraphs.filter((q) => re.test(q.content))
     for (const p of matchingParas) {
@@ -1343,16 +1346,16 @@ export function markCancelled(para: TParagraph): boolean {
 }
 
 /**
- * Complete a task/checklist item (given by 'rawContent') in note (given by 'filenameIn').
+ * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Appends a '@done(...)' date to the line if the user has selected to 'add completion date'.
  * @param {string} filenameIn to look in
- * @param {string} rawContent to find
+ * @param {string} content to find
  * @returns {boolean} true if succesful, false if unsuccesful
  */
-export function completeItem(filenameIn: string, rawContent: string): boolean {
+export function completeItem(filenameIn: string, content: string): boolean {
   try {
-    logDebug('completeItem', `starting with filename: ${filenameIn}, rawContent: ${rawContent}`)
+    logDebug('completeItem', `starting with filename: ${filenameIn}, content: ${content}`)
     let filename = filenameIn
     if (filenameIn === 'today') {
       filename = getTodaysDateUnhyphenated()
@@ -1367,14 +1370,14 @@ export function completeItem(filenameIn: string, rawContent: string): boolean {
       if (thisNote.paragraphs.length > 0) {
         let c = 0
         for (const para of thisNote.paragraphs) {
-          if (para.rawContent === rawContent) {
-            logDebug('completeItem', `found matching para ${c} of type ${para.type}: ${rawContent}`)
+          if (para.content === content) {
+            logDebug('completeItem', `found matching para ${c} of type ${para.type}: ${content}`)
             // Append @done(...) string (if user preference wishes this)
             return markComplete(para)
           }
           c++
         }
-        logWarn('completeItem', `Couldn't find paragraph <${rawContent}> to complete`)
+        logWarn('completeItem', `Couldn't find paragraph <${content}> to complete`)
         return false
       } else {
         logInfo('completeItem', `Note '${filename}' appears to be empty?`)
@@ -1391,15 +1394,15 @@ export function completeItem(filenameIn: string, rawContent: string): boolean {
 }
 
 /**
- * Cancel a task/checklist item (given by 'rawContent') in note (given by 'filenameIn').
+ * Cancel a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * @param {string} filenameIn to look in
- * @param {string} rawContent to find
+ * @param {string} content to find
  * @returns {boolean} true if succesful, false if unsuccesful
  */
-export function cancelItem(filenameIn: string, rawContent: string): boolean {
+export function cancelItem(filenameIn: string, content: string): boolean {
   try {
-    logDebug('completeItem', `starting with filename: ${filenameIn}, rawContent: ${rawContent}`)
+    logDebug('cancelItem', `starting with filename: ${filenameIn}, content: ${content}`)
     let filename = filenameIn
     if (filenameIn === 'today') {
       filename = getTodaysDateUnhyphenated()
@@ -1414,25 +1417,24 @@ export function cancelItem(filenameIn: string, rawContent: string): boolean {
       if (thisNote.paragraphs.length > 0) {
         let c = 0
         for (const para of thisNote.paragraphs) {
-          if (para.rawContent === rawContent) {
-            logDebug('completeItem', `found matching para ${c} of type ${para.type}: ${rawContent}`)
-            // Append @done(...) string (if user preference wishes this)
+          if (para.content === content) {
+            logDebug('cancelItem', `found matching para ${c} of type ${para.type}: ${content}`)
             return markCancelled(para)
           }
           c++
         }
-        logWarn('completeItem', `Couldn't find paragraph <${rawContent}> to complete`)
+        logWarn('cancelItem', `Couldn't find paragraph <${content}> to complete`)
         return false
       } else {
-        logInfo('completeItem', `Note '${filename}' appears to be empty?`)
+        logInfo('cancelItem', `Note '${filename}' appears to be empty?`)
         return false
       }
     } else {
-      logWarn('completeItem', `Can't find note '${filename}'`)
+      logWarn('cancelItem', `Can't find note '${filename}'`)
       return false
     }
   } catch (error) {
-    logError(pluginJson, `completeItem: ${error.message} for note '${filenameIn}'`)
+    logError(pluginJson, `cancelItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
 }

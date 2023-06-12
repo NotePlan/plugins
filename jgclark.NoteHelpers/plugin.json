@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "0.16.1",
-  "plugin.lastUpdateInfo": "0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.\n0.15.0: Added '/enable heading links' command, and let '/jump to heading' command by used from x-callback-urls",
+  "plugin.version": "0.17.0",
+  "plugin.lastUpdateInfo": "0.17.0: ???\n0.16.2: added ability to create new folders when selecting a folder.\n0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -139,12 +139,36 @@
       "jsFunction": "openCurrentNoteNewSplit"
     },
     {
+      "name": "open URL from a note",
+      "alias": [
+        "oun",
+        "open",
+        "URL"
+      ],
+      "description": "Open a chosen URL from a chosen note",
+      "jsFunction": "openURLFromANote"
+    },
+    {
       "name": "rename note filename",
       "alias": [
         "rename"
       ],
       "description": "Rename the current note's filename",
       "jsFunction": "renameNoteFile"
+    },
+    {
+      "name": "reset caches",
+      "alias": [
+        "reset",
+        "cache"
+      ],
+      "description": "Reset NotePlan caches",
+      "jsFunction": "resetCaches"
+    },
+    {
+      "name": "list duplicate notes",
+      "description": "list duplicate notes",
+      "jsFunction": "showDuplicates"
     },
     {
       "name": "NoteHelpers: update plugin settings",

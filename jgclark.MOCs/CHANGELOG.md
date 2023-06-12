@@ -1,4 +1,10 @@
 # What's Changed in 🕸 Map of Contents plugin?
+For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/).
+
+## [0.3.0] - 2023-06-09
+- speeded up generation significantly
+- added a refresh button to MOC notes
+- now supports Chinese character searches (thanks to report by 黑背衝鋒)
 
 ## [0.2.3] - 2022-09-27
 ### Changed

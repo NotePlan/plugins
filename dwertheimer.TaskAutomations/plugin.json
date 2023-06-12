@@ -5,8 +5,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.14.5",
-  "plugin.lastUpdateInfo": "2.14.5: Change order of interactive task review (look for forgotten tasks before week/today)",
+  "plugin.version": "2.15.0",
+  "plugin.lastUpdateInfo": "2.15.0 Removed URL opening commands and moved them to Link Creator",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "css.plugin.css",
@@ -105,21 +105,6 @@
         "folder to ignore",
         "heading-TBD"
       ]
-    },
-    {
-      "name": "open todos containing links in browser",
-      "alias": [],
-      "description": "Open URLs in open todo items on the page",
-      "jsFunction": "openIncompleteLinksInNote"
-    },
-    {
-      "name": "open URL on this line",
-      "alias": [
-        "openurl",
-        "launch"
-      ],
-      "description": "Open the URL on the current line in the default browser",
-      "jsFunction": "openURLOnLine"
     },
     {
       "name": "Review overdue tasks (by Note)",

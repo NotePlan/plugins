@@ -109,10 +109,11 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // set global variable
     baseFontSize = Number(DataStore.preference('fontSize')) ?? 14
     // tempSel.push(`color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
-    tempSel.push(`background: ${themeJSON?.editor?.backgroundColor ?? '#1D1E1F'}`)
+    const bgMainColor = themeJSON?.editor?.backgroundColor ?? '#1D1E1F'
+    tempSel.push(`background: var(--bg-main-color)`) //`color: ${bgMainColor}`
     output.push(makeCSSSelector('html', tempSel))
     // rootSel.push(`--fg-main-color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
-    rootSel.push(`--bg-main-color: ${themeJSON?.editor?.backgroundColor ?? '#1D1E1F'}`)
+    rootSel.push(`--bg-main-color: ${bgMainColor}`)
 
     // Set body:
     // - main font = styles.body.font
@@ -124,11 +125,11 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles.body
     if (styleObj) {
       const thisColor = RGBColourConvert(themeJSON?.editor?.textColor ?? '#CC6666')
-      tempSel.push(`color: ${thisColor}`)
+      tempSel.push(`color: var(--fg-main-color)`) //`color: ${thisColor}`
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('body', tempSel))
       // tempSel = styleObj.size // TEST:
-      rootSel.push(`--fg-main-color: ${RGBColourConvert(themeJSON?.editor?.textColor)}` ?? '#CC6666')
+      rootSel.push(`--fg-main-color: ${thisColor}`)
     }
 
     // Set H1 from styles.title1
@@ -236,8 +237,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.todo
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#B74746')}`)
-      // tempSel = tempSel.concat(convertStyleObjectBlock(styleObj)) // we only want the color info
+      tempSel.push(`color: ${styleObj.color ? RGBColourConvert(styleObj.color) : 'var(--tint-color)'}`)
       output.push(makeCSSSelector('.todo', tempSel))
     }
 
@@ -996,7 +996,7 @@ export async function showHTMLV2(
         storeWindowRect(cId)
       }
 
-    // Decide which of the appropriate functions to call.
+      // Decide which of the appropriate functions to call.
       if (opts.makeModal || NotePlan.environment.platform !== 'macOS') {
         logDebug('showHTMLV2', `Using modal 'sheet' view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
         if (opts.width === undefined || opts.height === undefined) {
@@ -1005,37 +1005,33 @@ export async function showHTMLV2(
           HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
         }
       } else {
-      let winOptions = {}
-      // Try to use saved x/y/w/h for this window if available
-        if (opts.reuseUsersWindowRect) {
-          if (cId) {
-            logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
-            const storedRect = getStoredWindowRect(cId)
-            if (storedRect) {
-              winOptions = {
-                x: storedRect.x,
-                y: storedRect.y,
-                width: storedRect.width,
-                height: storedRect.height,
-                shouldFocus: opts.shouldFocus
-              }
-              logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
+        let winOptions = {}
+        // First set to the default values
+        logDebug('showHTMLV2', `- Using default Rect for window`)
+        winOptions = {
+          x: opts.x,
+          y: opts.y,
+          width: opts.width,
+          height: opts.height,
+          shouldFocus: opts.shouldFocus,
+          // Note: can't set customId, but only long UID ('id')
+        }
+        // Now override with saved x/y/w/h for this window if wanted, and if available
+        if (opts.reuseUsersWindowRect && cId) {
+          logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
+          const storedRect = getStoredWindowRect(cId)
+          if (storedRect) {
+            winOptions = {
+              x: storedRect.x,
+              y: storedRect.y,
+              width: storedRect.width,
+              height: storedRect.height,
+              shouldFocus: opts.shouldFocus
             }
+            logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
           }
         }
 
-        if (!winOptions) {
-          // Use the default values
-          logDebug('showHTMLV2', `- Using default Rect for window`)
-          winOptions = {
-            x: opts.x,
-            y: opts.y,
-            width: opts.width,
-            height: opts.height,
-            shouldFocus: opts.shouldFocus,
-            // Note: can't set customId, but only long UID ('id')
-          }
-        }
         // clo(winOptions, 'subset of options for API call:')
         const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
         // clo(win, '-> win:')

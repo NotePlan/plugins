@@ -210,7 +210,7 @@ export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<
     const folderWithoutSlash = forFolder.charAt(forFolder.length - 1) === '/' ? forFolder.slice(0, forFolder.length) : forFolder
     filteredNotes = notes.filter((note) => getFolderFromFilename(note.filename) === folderWithoutSlash)
   }
-  logDebug('note/getProjectNotesInFolder', `Found ${filteredNotes.length} notes in folder '${forFolder}'`)
+  // logDebug('note/getProjectNotesInFolder', `Found ${filteredNotes.length} notes in folder '${forFolder}'`)
   return filteredNotes
 }
 

@@ -1,6 +1,10 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.1.1] - 2023-06-10
+### Added
+- now **/new note from clipboard** and **/new note from selection** commands offer option to create a new folder when selecting a folder (suggested by @dwertheimer)
+
 ## [1.1.0-beta5] - 2023-04-18
 ### Added
 - new **/archive note keeping folder structure** command (suggested by @antony-sklyar)

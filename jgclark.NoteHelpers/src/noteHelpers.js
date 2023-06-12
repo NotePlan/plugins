@@ -61,7 +61,7 @@ export async function moveNote(): Promise<void> {
       logError('moveNote()', 'No note open. Stopping.')
       return
     }
-    const selectedFolder = await chooseFolder(`Select a folder for '${title}'`, true) // include @Archive as an option
+    const selectedFolder = await chooseFolder(`Select a folder for '${title}'`, true, true) // include @Archive as an option, and to create a new folder
     logDebug('moveNote()', `move ${title} (filename = ${filename}) to ${selectedFolder}`)
 
     const newFilename = DataStore.moveNote(filename, selectedFolder)

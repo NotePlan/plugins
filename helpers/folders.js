@@ -7,7 +7,7 @@ import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
 /**
  * Return a subset of folders:
  * - including only those that contain one of the strings on the inclusions list (so will include any sub-folders) if given
- * - excluding those on the 'exclusions' list, and any of their sub-folders (other than root which would then exclude everything).
+ * - excluding those on the 'exclusions' list, and any of their sub-folders (other than root folder ('/') which would then exclude everything).
  * - optionally exclude all special @... folders as well.
  * @author @jgclark, improved by @dwertheimer
  * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder
@@ -16,57 +16,69 @@ import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
  * @param {boolean} includeRootFolder? (default: true)
  * @returns {Array<string>} array of folder names
  */
-export function getFilteredFolderList(exclusions: Array<string>, excludeSpecialFolders: boolean = true, inclusions: Array<string> = [], includeRootFolder: boolean = true): Array<string> {
+export function getFilteredFolderList(
+  exclusions: Array<string>,
+  excludeSpecialFolders: boolean = true,
+  inclusions: Array<string> = [],
+  includeRootFolder: boolean = true
+): Array<string> {
   try {
-    // Get all folders as array of strings (other than @Trash).
-    const fullFolderList = DataStore.folders
+    // Get all folders as array of strings (other than @Trash). Also remove root as a special case
+    const fullFolderList = DataStore.folders.filter((f) => f !== '/')
+    let includeRoot = includeRootFolder
     // logDebug(
     //   'folders / filteredFolderList',
     //   `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions [${inclusions.toString()}] exclusions [${exclusions.toString()}]`,
     // )
 
+    // To aid partial matching, terminate all folder strings with a trailing /
+    // Note: Now can't remember why this needed to be commented out
     // const inclusionsTerminatedWithSlash: Array<string> = []
     // for (const e of inclusions) {
     //   inclusionsTerminatedWithSlash.push(e.endsWith('/') ? e : `${e}/`)
     // }
+    // NB: Root folder ('/') here needs special handling: remove it now if found, but add back later.
     const exclusionsTerminatedWithSlash: Array<string> = []
     for (const e of exclusions) {
-      if (e !== '/') {// Need to exclude root folder if given
+      if (e === '/') {
+        includeRoot = false
+      } else {
         exclusionsTerminatedWithSlash.push(e.endsWith('/') ? e : `${e}/`)
       }
     }
-    // FIXME: Do we just need to treat / as a special case, with a special flag whether to include or exclude?
+    // logDebug('getFilteredFolderList', `- exclusionsTerminatedWithSlash: ${exclusionsTerminatedWithSlash.toString()}\n`)
+
     let reducedList: Array<string> = []
     for (const f of fullFolderList) {
       reducedList.push(f.endsWith('/') ? f : `${f}/`)
     }
-    // logDebug('getFilteredFolderList', `- exclusionsTerminatedWithSlash: ${exclusionsTerminatedWithSlash.toString()}\n`)
 
     // if inclusions list is not empty, filter reducedList to only folders that matches (includes) an item in it
     reducedList = inclusions.length > 0
       ? reducedList.filter((folder) => inclusions.some((ff) => folder.includes(ff)))
       : reducedList
-    logDebug('getFilteredFolderList', `- after inclusions reducedList: ${reducedList.length} folders: ${reducedList.toString()}\n`)
+    // logDebug('getFilteredFolderList', `- after inclusions reducedList: ${reducedList.length} folders: ${reducedList.toString()}\n`)
 
     // if exclusions list is not empty, filter reducedList to only folders that don't start with an item in the exclusionsTerminatedWithSlash list
-    reducedList = exclusions.length > 0
-      ? reducedList.filter((folder) => !exclusions.some((ff) => folder.includes(ff)))
+    // reducedList = exclusions.length > 0
+    //   ? reducedList.filter((folder) => !exclusions.some((ff) => folder.includes(ff)))
+    //   : reducedList
+    reducedList = exclusionsTerminatedWithSlash.length > 0
+      ? reducedList.filter((folder) => !exclusionsTerminatedWithSlash.some((ee) => folder.startsWith(ee)))
       : reducedList
-    // reducedList = exclusionsTerminatedWithSlash.length > 0
-    // ? reducedList.filter((folder) => !exclusionsTerminatedWithSlash.some((ee) => folder.startsWith(ee)))
-    // : reducedList
-    logDebug('getFilteredFolderList', `- after exclusions: reducedList: ${reducedList.length} folders: ${reducedList.toString()}\n`)
+    // logDebug('getFilteredFolderList', `- after exclusions: reducedList: ${reducedList.length} folders: ${reducedList.toString()}\n`)
 
     // filter reducedList to only folders that don't start with the character '@' (special folders)
-    reducedList = excludeSpecialFolders
-      ? reducedList.filter((folder) => !folder.startsWith('@'))
-      : reducedList
+    if (excludeSpecialFolders) {
+      reducedList = reducedList.filter((folder) => !folder.startsWith('@'))
+    }
 
-    logDebug('getFilteredFolderList', `-> filteredList: ${reducedList.length} items: [${reducedList.toString()}]`)
-    // return the array of folders, but if the last character is a slash, remove it
-    return reducedList.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
-
-    // return reducedList
+    // now remove trailing slash characters
+    const outputList = reducedList.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
+    // add root folder back in if wanted
+    if (includeRoot) { outputList.unshift('/') }
+    logDebug('getFilteredFolderList', `-> outputList: ${outputList.length} items: [${outputList.toString()}] with includeRoot? ${String(includeRoot)}`)
+    return outputList
   } catch (error) {
     logError('folders/getFilteredFolderList', JSP(error))
     return ['(error)']

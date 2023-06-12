@@ -30,7 +30,7 @@ import { ErrorFallback } from './ErrorFallback.jsx'
 // color this component's output differently in the console
 const consoleStyle = 'background: #222; color: #62AFEC'
 const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
-const logSubtle = (msg, ...args) => console.log(`%c${msg}`, 'color: #6D6962', ...args)
+const logSubtle = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
 const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
 
 const ROOT_DEBUG = false
@@ -208,7 +208,7 @@ export function Root(props: Props): Node {
     // send some info to the plugin
     // first param is the action type and the rest are data (can be any form you want)
     // data.foo = 'bar'
-    sendMessageToPlugin(['commsBridgeTest', 'drink green', 'tea'])
+    sendMessageToPlugin(['commsBridgeTest', 'some sample', 'data passed'])
   }
 
   /**
@@ -269,8 +269,7 @@ export function Root(props: Props): Node {
 
         {(ROOT_DEBUG || debug) && (
           <React.StrictMode>
-            <div onClick={() => dispatch('SHOW_BANNER', { msg: 'Banner test succeeded' }, `banner test`)}>Local Banner Display Test</div>
-            <div onClick={testCommsBridge}>Test Communication Bridge</div>
+            <div className="w3-container w3-green">Debugging information (Plugin passed debug variable = true)</div>
             <div>
               <span id="debugHistory">History (most recent first):</span>
               <ul>
@@ -283,8 +282,13 @@ export function Root(props: Props): Node {
                     </li>
                   ))}
               </ul>
-              <div className="monospaceData">overdue paras: {JSON.stringify(globalSharedData.overdueParas, null, 2)}</div>
               <div className="monospaceData">globalSharedData: {JSON.stringify(globalSharedData, null, 2)}</div>
+            </div>
+            <div className="w3-button w3-black" onClick={() => dispatch('SHOW_BANNER', { msg: 'Banner test succeeded' }, `banner test`)}>
+              Local Banner Display Test
+            </div>
+            <div className="w3-button w3-black" onClick={testCommsBridge}>
+              Test Communication Bridge
             </div>
           </React.StrictMode>
         )}

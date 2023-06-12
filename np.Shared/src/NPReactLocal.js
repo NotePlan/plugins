@@ -37,6 +37,26 @@ const mountAppString = `
 `
 
 /**
+ * onMessageFromHTMLView
+ * Plugin entrypoint for "/onMessageFromHTMLView"
+ * @author @dwertheimer
+ */
+export async function onMessageFromHTMLView(incoming: string) {
+  try {
+    logDebug(
+      pluginJson,
+      `onMessageFromHTMLView: incoming: ${incoming}. This is just a comms bridge test. Does not do anything. But at least you know the React window can talk to NotePlan. Use the function 'onMessageFromHTMLView' in the plugin you are building to do something useful.`,
+    )
+    await sendBannerMessage(
+      `np.Shared successfully received and executed command onMessageFromHTMLView(). This message is coming from NotePlan and confirms bilateral communications are functional. Use the function 'onMessageFromHTMLView' in the plugin you are building to do something useful.`,
+    )
+    return {} // return blank to keep NotePlan from throwing an error
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
  * Open a React Window with data and windo options provided by another plugin (e.v. via invokeCommandByName)
  * Plugin entrypoint for "/React openReactWindow"
  * Note: Paragraph data should be sent in after making static copies -- see dev.js : createStaticArray()

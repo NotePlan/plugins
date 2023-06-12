@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/CHANGELOG.md",
-  "plugin.version": "0.2.3",
-  "plugin.lastUpdateInfo": "Under-the-hood change: now ignores notes in Archive and Templates.",
+  "plugin.version": "0.3.0",
+  "plugin.lastUpdateInfo": "v0.3.0: speed up, added refresh button, fix, support Chinese character searches, new setting for heading prefix.\nv0.2.3: Under-the-hood change: now ignores notes in Archive and Templates.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -35,11 +35,11 @@
       "title": "MOCs plugin settings"
     },
     {
-      "key": "caseInsensitive",
-      "title": "Case insensitive searching?",
-      "description": "Are searches case insensitive?",
+      "key": "matchWholeWords",
+      "title": "Match whole words?",
+      "description": "Should search terms only match whole words? For non-European languages, this may need to be set to false.",
       "type": "bool",
-      "default": false,
+      "default": true,
       "required": true
     },
     {
@@ -62,9 +62,17 @@
       "required": true
     },
     {
+      "key": "headingPrefix",
+      "title": "Subheading prefix",
+      "description": "Subheading text to go before the search term. (Default is 'Notes matching'.)",
+      "type": "string",
+      "default": "Notes matching",
+      "required": false
+    },
+    {
       "key": "resultPrefix",
       "title": "Prefix for note links",
-      "description": "String to put at the start of each note link. Default is '- '. Can also be empty.",
+      "description": "Optional string to put at the start of each note link. (Default is '- '.)",
       "type": "string",
       "default": "- ",
       "required": true
