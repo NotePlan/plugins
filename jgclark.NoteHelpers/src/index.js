@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last updated 10.6.2023 for v0.17.0, @jgclark
+// last updated 12.6.2023 for v0.17.0, @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -32,10 +32,6 @@ export {
   moveNote,
   renameNoteFile,
 } from './noteHelpers'
-export {
-  // getDuplicateNotes,
-  showDuplicates,
-} from './duplicates'
 
 export function init(): void {
   // In the background, see if there is an update to the plugin to install, and if so let user know

@@ -12,13 +12,12 @@ This plugin provides commands to do things with notes that aren't yet provided i
 - **jump to note's heading** (alias **jn**): jump to a different note, and then to the selected heading
 - **jump to done** (alias **jd**): simply jumps the cursor to the `## Done` section of the current note (if it exists)
 - **move note** (alias **mn**): which moves a note to a different folder the user selects
+- **open current note new split** (alias **ocns**): open the current note again in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
 - **open note new window** (alias **onw**): open a user-selected note in a new window (and places the cursor at what it judges to be the start of the main content)
 - **open note new split** (alias **ons**): open a user-selected note in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
-- **open current note new split** (alias **ocns**): open the current note again in a new split of the main window (and places the cursor at what it judges to be the start of the main content)
+- **open url from a note**: asks for a note, and then presents a list of URLs found in that note. The selected one is then opened in your default browser. (There's a setting to ignore URLs in closed tasks.)
 - **rename note filename**: renames the currently open note. Note: this changes the underlying _filename_ not the visible _title_.
 - **reset caches**: this simply runs the command of that name in the NotePlan Help menu.
-- **show duplicates**: this creates a new note that lists all your notes with identical titles, along with summary details about those potential duplicates:
-![](duplicate-note-display@2x.png)
 
 **Tip**: some of these are even more helpful if you assign a keyboard shortcut to them, using macOS's Keyboard > Shortcuts > App Shortcuts system. For example I have mapped ⇧⌘H to `/jump to heading`.
 
@@ -39,9 +38,9 @@ Notes:
 <!--??? hopefully in time /qaw adds thisweek, nextweek terms -->
 | Command | x-callback start | arg0 | arg1 | arg2 | arg3 |
 |-----|-------------|-----|-----|-----|-----|
-| /index folders | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=index%20folders&` | folder name | displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`) | dateDisplayType (`none` (default) or `timeSince`, `updateDate`) | include subfolders? (`true` or `false`) |
-| /jump to heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&` | heading text | | | |
-??? show duplicates
+| index folders | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=index%20folders&` | folder name | displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`) | dateDisplayType (`none` (default) or `timeSince`, `updateDate`) | include subfolders? (`true` or `false`) |
+| jump to heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&` | heading text | | | |
+
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

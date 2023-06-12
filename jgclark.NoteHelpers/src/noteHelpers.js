@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 22.3.2023 for v0.16.0 by @jgclark
+// Last updated 11.6.2023 for v0.17.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -22,6 +22,7 @@ export type noteHelpersConfigType = {
   dateDisplayType: string,
   defaultFMText: string, // default text to add to frontmatter.
   displayOrder: string,
+  ignoreCompletedItems: boolean,
 }
 
 /**

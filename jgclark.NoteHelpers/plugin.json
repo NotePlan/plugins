@@ -8,7 +8,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
   "plugin.version": "0.17.0",
-  "plugin.lastUpdateInfo": "0.17.0: ???\n0.16.2: added ability to create new folders when selecting a folder.\n0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.",
+  "plugin.lastUpdateInfo": "0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.\n0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -166,11 +166,6 @@
       "jsFunction": "resetCaches"
     },
     {
-      "name": "list duplicate notes",
-      "description": "list duplicate notes",
-      "jsFunction": "showDuplicates"
-    },
-    {
       "name": "NoteHelpers: update plugin settings",
       "description": "Settings interface (even for iOS)",
       "jsFunction": "updateSettings"
@@ -178,8 +173,23 @@
   ],
   "plugin.settings": [
     {
+      "type": "separator"
+    },
+    {
       "type": "heading",
-      "title": "/indexFolders settings"
+      "title": "'convert to frontmatter' command setting"
+    },
+    {
+      "key": "defaultFMText",
+      "title": "Default Text to add to frontmatter",
+      "description": "The standard text to add after the title in the frontmatter. Can include line breaks by typing return.",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
+      "type": "heading",
+      "title": "'indexFolders' command settings"
     },
     {
       "key": "displayOrder",
@@ -212,15 +222,15 @@
     },
     {
       "type": "heading",
-      "title": "/convert to frontmatter setting"
+      "title": "'open URL from a note' command setting"
     },
     {
-      "key": "defaultFMText",
-      "title": "Default Text to add to frontmatter",
-      "description": "The standard text to add after the title in the frontmatter. Can include line breaks by typing return.",
-      "type": "string",
-      "default": "",
-      "required": false
+      "key": "ignoreCompletedItems",
+      "title": "Ignore URLs in completed items?",
+      "description": "Whether to ignore URLs found in completed (or cancelled) tasks or checklists.",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "type": "separator"
