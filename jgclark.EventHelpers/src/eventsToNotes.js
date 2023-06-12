@@ -155,10 +155,8 @@ export async function insertDaysEvents(paramString: ?string): Promise<void> {
 // ----------------------------------------------------------------------------
 
 /**
- * Return string list of matching events in the current day's note, from list
- * in keys of config.addMatchingEvents. Apply format too.
+ * Return string of matching events in the current day's note, from list in keys of config.addMatchingEvents, having applied placeholder formatting.
  * @author @jgclark
- *
  * @param {?string} paramString Paramaters to use (for future expansion)
  * @return {string} List of matching events, as a multi-line string
  */
@@ -174,7 +172,7 @@ export async function listMatchingDaysEvents(
     const config = await getEventsSettings()
     if (config.addMatchingEvents == null) {
       await showMessage(`Error: Empty 'addMatchingEvents' setting in Config. Stopping`, 'OK', 'List Matching Events')
-      return `(Error: found no 'addMatchingEvents' setting in Config.)`
+      return `**Error: found no 'Add matching events' in plugin settings.**`
     }
     const textToMatchArr = Object.keys(config.addMatchingEvents)
     const formatArr = Object.values(config.addMatchingEvents)
@@ -222,7 +220,7 @@ export async function listMatchingDaysEvents(
           const withCalendarName = thisFormat.includes('CAL')
           const reMatch = new RegExp(textToMatchArr[j], 'i')
           if (e.title.match(reMatch)) {
-            logDebug('listMatchingDaysEvents', `- Found match to event '${e.title}'`)
+            logDebug('listMatchingDaysEvents', `- Found match to event '${e.title}' from '${textToMatchArr[j]}`)
             // Replace any mentions of the keywords in the e.title string
             const replacements = getReplacements(e, config)
             const thisEventStr = smartStringReplace(thisFormat, replacements)
@@ -232,6 +230,12 @@ export async function listMatchingDaysEvents(
               start: e.date,
               text: thisEventStr,
             })
+
+            // (v0.20.3) If we have the general configuration setting, or a 'STOPMATCHING' signal on this particular event, then break out of loop as we have made a match
+            if (config.stopMatching || thisFormat.includes('STOPMATCHING')) {
+              logDebug('listMatchingDaysEvents', `- STOPMATCHING signal given, so skipping other possible matches for this event`)
+              break
+            }
           } else {
             // logDebug('listMatchingDaysEvents', `- No match to ${e.title}`)
           }
@@ -321,6 +325,7 @@ export function getReplacements(item: TCalendarItem, config: EventsConfig): Map<
     outputObject.set('URL', item.url)
     outputObject.set('ID', item.id || '')
     outputObject.set('MEETINGNOTE', item.id ? `[Meeting Note](noteplan://x-callback-url/runPlugin?pluginID=np.MeetingNotes&command=newMeetingNoteFromEventID&arg0=${item.id}&arg1=${config.meetingTemplateTitle ? encodeURIComponent(config.meetingTemplateTitle) : ''})` : '')
+    outputObject.set('STOPMATCHING', '') // a signal only, so no text from it
 
     // outputObject.forEach((v, k, map) => { logDebug('getReplacements', `- ${k} : ${v}`) })
     return outputObject
@@ -349,7 +354,7 @@ export function smartStringReplace(format: string, replacements: Map<string, str
 
     // For each possible placeholder, process it if it present in format AND the value for this event is not empty
     // (For safety ATTENDEES needs to come before END in the list, as 'END' is part of 'ATTENDEES'!)
-    const placeholders = ['CAL', 'TITLE', 'EVENTLINK', 'LOCATION', 'ATTENDEENAMES', 'ATTENDEES', 'DATE', 'START', 'END', 'NOTES', 'URL', 'MEETINGNOTE', 'ID']
+    const placeholders = ['STOPMATCHING', 'CAL', 'TITLE', 'EVENTLINK', 'LOCATION', 'ATTENDEENAMES', 'ATTENDEES', 'DATE', 'START', 'END', 'NOTES', 'URL', 'MEETINGNOTE', 'ID']
     for (const p of placeholders) {
       const thisRE = new RegExp(`\\*\\|([^|*]*?${p}.*?)\\|\\*`)
       const REResult = output.match(thisRE) // temp RE result

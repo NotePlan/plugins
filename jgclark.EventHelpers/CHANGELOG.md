@@ -1,6 +1,10 @@
 # What's changed in 🕓 Event Helpers?
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
+## [0.20.3] - 2023-06-12 @jgclark
+### Changed
+- added 'STOPMATCHING' as a possible placeholder for "/insert matching events". If present it will not process a given event further, so only the first match in the "Events match list" list will be used. (This does not stop remaining events in the day being matched.)
+
 ## [0.20.2] - 2023-02-13 @jgclark
 ### Added
 - the date offset intervals (e.g. `{3d}` can now use upper-case letters B,D,W,M,Q,Y as well as the existing lower-case letters
@@ -130,7 +134,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 - Added more flexibility in the formatting of event lists. So now instead of including (for example) `*|ATTENDEES|*` you can now include other text (including line breaks) within the placeholder, for example `*|\nwith ATTENDEES|*`. If the ATTENDEES is not empty, then it will output the list after a newline and the text 'with '.  Here is a fuller example to use in a Template.
 
 ```js
-<%- events( {format:"### (*|CAL, |**|START|*) *|EVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|**|\nURL|*", allday_format:"- (*|CAL|*) *|EVENTLINK|**|\nNOTES|**|\nURL|*", includeHeadings:true} ) %> 
+<%- events( {format:"### (*|CAL, |**|START|*) *|EVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|**|\nURL|*", allday_format:"- (*|CAL|*) *|EVENTLINK|**|\nNOTES|**|\nURL|*", includeHeadings:true} ) %>
 ```
 
 - In date offsets, added ability to specify offset dates that work relative to each subsequent line [requested by @george65]

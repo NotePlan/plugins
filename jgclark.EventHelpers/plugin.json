@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
-  "plugin.version": "0.20.2",
-  "plugin.lastUpdateInfo": "0.20.2: upper-case letters allowed in offsets.\n0.20.1: adds support for time blocks in Checklists (available from NP 3.8). 0.20.0: can now insert a MEETINGNOTE link next to each item. Please read important note in the README file on how to enable it.\n0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.",
+  "plugin.version": "0.20.3",
+  "plugin.lastUpdateInfo": "0.20.3: new 'STOPMATCHING' placeholder for '/insert matching events'.\n0.20.2: upper-case letters allowed in offsets.\n0.20.1: adds support for time blocks in Checklists (available from NP 3.8). 0.20.0: can now insert a 'MEETINGNOTE' link next to each item. Please read important note in the README file on how to enable it.\n0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -72,7 +72,7 @@
     {
       "key": "eventsHeading",
       "title": "Events heading",
-      "description": "Optional heading to put before list of the day's events (needs to include any '#' heading markers).",
+      "description": "Optional heading to put before list of the day's events (include any '#' heading markers)",
       "type": "string",
       "default": "## Events",
       "required": false
@@ -80,7 +80,7 @@
     {
       "key": "formatEventsDisplay",
       "title": "Events List display format",
-      "description": "The format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
+      "description": "The format string to use to customise how events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'. Each placeholder needs to be wrapped by '*|...|*'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
       "type": "string",
       "default": "### (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*",
       "required": true
@@ -88,7 +88,7 @@
     {
       "key": "formatAllDayEventsDisplay",
       "title": "Events List display format for all-day events",
-      "description": "The format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
+      "description": "The format string to use to customise how all-day events are displayed (when run as a /command, not through a Template). The available placeholders are 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'. Each placeholder needs to be wrapped by '*|...|*'.\n(Default is '- (*|CAL, |**|START|*) *|TITLE|**|\nEVENTLINK|**|\nwith ATTENDEES|**|\nNOTES|*'.)",
       "type": "string",
       "default": "### (*|CAL|*) *|TITLE|**|\nEVENTLINK|**|\nNOTES|*",
       "required": true
@@ -135,12 +135,12 @@
     },
     {
       "type": "heading",
-      "title": "Additional settings for insert matching events"
+      "title": "Additional '/insert matching events' settings"
     },
     {
       "key": "matchingEventsHeading",
       "title": "Matching Events heading",
-      "description": "Optional heading to put before list of matched events (needs to include any '#' heading markers).",
+      "description": "Optional heading to put before list of matched events (include any '#' heading markers)",
       "type": "string",
       "default": "## Matching Events",
       "required": false
@@ -148,9 +148,17 @@
     {
       "key": "addMatchingEvents",
       "title": "Events match list",
-      "description": "Match events with string on left, and then the string on the right is the template for how to insert this event (see README for details)",
+      "description": "Match events with string on left, and then the string on the right is the template for how to insert this event.  The available placeholders are 'STOPMATCHING', 'CAL', 'TITLE', 'EVENTLINK', 'DATE', 'START', 'END', 'NOTES', 'ATTENDEES', 'NOTES', 'URL', 'MEETINGNOTE'. Each placeholder needs to be wrapped by '*|...|*'.\n(See README for details)",
       "type": "json",
       "default": "{\n\t\"meeting\": \"### *|TITLE|* (*|START|*)*|\\nwith ATTENDEES|**|\\nNOTES|*\",\n\t\"webinar\": \"### *|TITLE|* (*|START|*)*|\\nEVENTLINK|**|\\nNOTES|*\",\n\t\"gym\": \"*|TITLE|* (*|START|*)\\nHow did it go?\"\n,\n\t\"holiday\": \"*|TITLE|**|\\nNOTES|*\"\n}",
+      "required": true
+    },
+    {
+      "key": "stopMatching",
+      "title": "Stop after first match in the list above?",
+      "description": "Note: this doesn't stop matching the rest of the events in the Calendars, but it will mean only the first match above is used for a given event.",
+      "type": "bool",
+      "default": false,
       "required": true
     },
     {
@@ -158,7 +166,7 @@
     },
     {
       "type": "heading",
-      "title": "Settings for '/time blocks to calendar'"
+      "title": "'/time blocks to calendar' settings"
     },
     {
       "key": "includeCompletedTasks",
@@ -221,12 +229,12 @@
     },
     {
       "type": "heading",
-      "title": "Setting for '/shift dates'"
+      "title": "'/shift dates' settings"
     },
     {
       "key": "removeDoneDates",
       "title": "Remove @done dates?",
-      "description": "Whether or not to remove @done(...) dates (if present) when shifting dates.",
+      "description": "Whether to remove @done(...) dates, if present, when shifting dates.",
       "type": "bool",
       "default": true,
       "required": true
@@ -234,7 +242,7 @@
     {
       "key": "uncompleteTasks",
       "title": "Set any completed tasks to not complete?",
-      "description": "Whether or not to change any completed tasks back to not complete.",
+      "description": "Whether to change any completed tasks back to not complete.",
       "type": "bool",
       "default": true,
       "required": true
@@ -249,7 +257,7 @@
     {
       "key": "locale",
       "title": "Locale",
-      "description": "Optional Locale to use for the date and times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.",
+      "description": "Optional 'Locale' to use for the date and times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.",
       "type": "string",
       "default": "",
       "required": false

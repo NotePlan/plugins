@@ -19,14 +19,16 @@ Settings:
 - **Calendar name mappings**: optional - add mappings for your calendar names to appear as in the output - e.g. from "Jonathan (iCloud)" to "Me" (and from "Us (iCloud)" to "Us") with `Jonathan (iCloud);Me, Us (iCloud);Us`. Note: separate mapping from main name by `;` a character, and separate mapping pairs with the `,` character.
 - **Meeting Note Template title**: use to set which template to pick if you have several; if it isn't set then a list of meeting note templates will be offered.
 - **Matching Events heading**: in `/insert matching events` command (or `listMatchingEvents()` template call), the heading to put before the list of matching events
-- **Events match list**: for `/add matching events` is an array of pairs of strings. The first string is what is matched for in an event's title. If it does match, the second string is used as the format for how to insert the event details at the cursor.  This uses the `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*`, `*|ATTENDEES|*`, `*|EVENTLINK|*`, `*|LOCATION|*`, `*|MEETINGNOTE|*` and `*|URL|*` format items below ...  
+- **Events match list**: for `/add matching events` is an array of pairs of strings. The first string is what is matched for in an event's title. If it does match, the second string is used as the format for how to insert the event details at the cursor.  This uses the `*|TITLE|*`, `*|START|*` (time), `*|END|*` (time), `*|NOTES|*`, `*|ATTENDEES|*`, `*|EVENTLINK|*`, `*|LOCATION|*`, `*|MEETINGNOTE|*` and `*|URL|*` format items below ...
 For example:
   ```jsonc
   {
-    "#meeting" : "### *|TITLE|* (*|START|*)\nWith *|ATTENDEES|*\n*|NOTES|*\n*|EVENTLINK|*",
+    "#meeting" : "### *|TITLE|* (*|START|*)\nWith *|ATTENDEES|**|\n NOTES|**|\nEVENTLINK|*",
     "holiday" : "*|TITLE|*\nHoliday:: *|NOTES|*"
   }
   ```
+  You can also add `*|STOPMATCHING|*` placeholder which will mean only the first match in this list is applied for a given event.
+- **Stop after first match in the list above?**: If true, only the first match in the list above is used for a given event. (Note: this doesn't stop matching the rest of the events in the Calendars.) This is the equivalent of setting 'STOPMATCHING' on every item in the above list. _Unfortunately, the NP plugin settings can change the order of the items in this list without warning. So to use this succesfully, you may need to manually edit the settings file, which is found at_ `<NotePlan root>/Plugins/jgclark.EventHelpers/settings.json`. The default is false.
 - **Include time blocks from completed tasks?**: whether to include time blocks from lines with completed tasks.
 - **Name of Calendar to write to**: the name of the calendar for `/time blocks to calendar` to write events to. Must be a writable calendar. If empty, then the default system calendar will be used. (Note: you have to specifically set a default calendar in the settings of the macOS Calendar app or in iOS Settings app > Calendar > Default Calendar.)
 - **Default event duration**: Event duration (in minutes) to use when making an event from a time block, if no end time is given.
