@@ -159,6 +159,21 @@ describe(`${PLUGIN_NAME}`, () => {
         ])
       })
 
+      it('should find hook mark links', () => {
+        const text = 'Hello Example hook://file/something to somewhere'
+        const result = f.findURLsInText(text, false)
+        expect(result).toEqual([
+          {
+            url: 'hook://file/something',
+            name: 'Example',
+            lineIndex: 0,
+            domain: '',
+            page: '',
+            type: 'bareURL',
+          },
+        ])
+      })
+
       it('should handle text without URLs', () => {
         const text = 'Hello World'
         const result = f.findURLsInText(text)
