@@ -2,6 +2,11 @@
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md)._
 
 <!-- TODO: improved flexibility of questions -->
+
+## [0.15.1] - 2023-06-16
+### Added
+- **/Journalling: update plugin settings**: This command allows the plugin's settings to be changed on iOS/iPadOS.
+
 ## [0.15.0] - 2022-11-24
 ### Added
 To go with the new calendar note capabilities of NotePlan v3.7.2:
@@ -16,7 +21,7 @@ To go with the new calendar note capabilities of NotePlan v3.7.2:
 ### Added
 - added **/weekReview**, **/monthReview** and **/quarterReview** commands, each with a setting so you can tailor the questions to them as suits your life and work. (None need to be used!)
 - /dayStart and /todayStart now uses the template's location field to determine where in the note to insert the results of the template.
-- 
+-
 ### Changed
 - because of the new commands, the plugin name has changed to the **Journalling plugin**.
 - updated logging framework
@@ -64,14 +69,14 @@ To go with the new calendar note capabilities of NotePlan v3.7.2:
 - under-the-hood changes responding to underlying framework changes
 
 ## [0.8.0] -@dwertheimer
-- new: Brought back the original /dayStart as /todayStart ;) 
+- new: Brought back the original /dayStart as /todayStart ;)
 
 ### [0.7.0..0.7.1], 2021-08-07
 ### Added
 - now supports macOS back to v10.13
 - the commands now work on whatever daily calendar note is open, not only on today's note
 
-### [0.6.0..0.6.9] - 2021-07-30 
+### [0.6.0..0.6.9] - 2021-07-30
 ### Added
 - additions to weather() template macro to add more fields and use string replacements (@dwertheimer)
 - ability to check for `<number>` as well as `<int>` values in daily review questions
@@ -80,7 +85,7 @@ To go with the new calendar note capabilities of NotePlan v3.7.2:
 - under-the-hood changes responding to underlying API and framework changes, and other plugins' changes
 - more informative pop ups as it works
 - on first use it now offers to populate default configuration (as shown above) into the _configuration file
-- now `/dayStart` calls the Templates plugin to apply the `Daily Note Template` template. To include a weather forecast, now include the `{{weather()}}` tag in that template, and configure the OpenWeather calls as described in the `Templates/_configuration` file. 
+- now `/dayStart` calls the Templates plugin to apply the `Daily Note Template` template. To include a weather forecast, now include the `{{weather()}}` tag in that template, and configure the OpenWeather calls as described in the `Templates/_configuration` file.
 - now `/dayReview` also uses the `Templates/_configuration` file to get settings for this command.
 
 ## [0.5.0] - 2021-05-27
