@@ -2,10 +2,10 @@
 
 This will be particularly of interest to Zettelkasten/PKM users, who are used to the idea of 'Maps of Content' (MOC) to be a contents page into a topic.
 
-The plugin has a single command (/make MOC) that runs iteratively, asking the user for search term(s) to look for across all notes. It then creates (or updates) the specified note, inserting `[[note links]]` to all notes it finds with those search term(s).  These are by default inserted in order of most to least recently updated, though other sorting is possible.
+The plugin has a single command **/make MOC** that runs iteratively, asking the user for search term(s) to look for across all notes. It then creates (or updates) the MOC note, inserting `[[note links]]` to all notes it finds with those search term(s).  These are by default inserted in order of most to least recently updated, though other sorting is possible.
 
 ## Configuration
-Click the gear button on the 'MOCs' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation:
+On macOS, click the gear button on the 'MOCs' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation:
 
 - Match whole words? Should search terms only match whole words? For non-European languages, this may need to be set to false.
 - Folders to exclude List of folders to exclude in these commands. May be empty. (Note that @Trash, @Templates and @Archive are always excluded.)
@@ -14,6 +14,8 @@ Click the gear button on the 'MOCs' line in the Plugin Preferences panel to conf
 - Prefix for note links Optional string to put at the start of each note link. (Default is '- '.)
 - Sort order for results Whether results are sorted alphabetically (the default), by created date, or by last updated date
 - Show empty matches? If no matches of the search term(s) are found, setting this true will still show a heading for the term(s).
+
+On iOS/iPadOS run the **/MOC: update plugin settings** command instead.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

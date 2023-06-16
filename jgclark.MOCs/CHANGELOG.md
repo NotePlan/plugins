@@ -1,6 +1,9 @@
 # What's Changed in 🕸 Map of Contents plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.MOCs/).
 
+## [0.3.1] - 2023-06-16
+- new command **/MOC: update plugin settings** that allows settings to be changed on iOS/iPadOS.
+
 ## [0.3.0] - 2023-06-09
 - speeded up generation significantly
 - added a refresh button to MOC notes

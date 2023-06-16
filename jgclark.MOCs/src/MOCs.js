@@ -4,13 +4,11 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  // gatherMatchingLines,
-  replaceContentUnderHeading
-} from '@helpers/NPParagraph'
+import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
-import { displayTitle } from '@helpers/general'
+import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getOrMakeNote, replaceSection } from '@helpers/note'
 import { projectNotesFromFilteredFolders } from '@helpers/NPnote'
 import { noteOpenInEditor } from '@helpers/NPWindows'
@@ -117,7 +115,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       let folderName
       const possibleNotes = DataStore.projectNoteByTitle(requestedTitle, true, false) ?? []
       if (possibleNotes.length === 0) {
-        folderName = await chooseFolder(`Which folder do you want to store this MOC in?`)
+        folderName = await chooseFolder(`Which folder do you want to store this MOC in?`, false, true)
         if (typeof folderName === 'boolean') {
           // i.e. user has cancelled
           logWarn(pluginJson, `User has cancelled operation.`)
@@ -164,11 +162,12 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
     }
 
     // Add an x-callback link under the title to allow this MOC to be re-created
-    const xCallbackLine = `[🔄 Click to refresh](noteplan://x-callback-url/runPlugin?pluginID=jgclark.MOCs&command=make%20MOC&arg0=${encodeURIComponent(note.filename)}&arg1=${encodeURIComponent(termsToMatchStr)})`
+    const xCallbackURL = createRunPluginCallbackUrl('jgclark.MOCs', 'make MOC', [note.filename, termsToMatchStr])
+    const xCallbackLine = `Last updated: ${nowLocaleShortDateTime()} [🔄 Click to refresh](${xCallbackURL})`
     // Either replace the existing line that starts the same way, or insert a new line after the title, so as not to disrupt any other section headings
     const line1content = (note.paragraphs.length >= 2) ? note.paragraphs[1].content : ''
     // logDebug(pluginJson, `line 1 of ${String(note.paragraphs.length)}: <${line1content}>`)
-    if (line1content?.startsWith('[🔄 Click to refresh](noteplan://x-callback-url/')) {
+    if (line1content?.includes('[🔄 Click to refresh](noteplan://x-callback-url/')) {
       note.paragraphs[1].content = xCallbackLine
       note.updateParagraph(note.paragraphs[1])
       // logDebug(pluginJson, `- updated xcallback at line 1`)
@@ -279,6 +278,7 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
           }
         }
       } else {
+        CommandBar.showLoading(false)
         if (config.showEmptyOccurrences) {
           // await replaceContentUnderHeading(note, headingToUse, `No notes found`, true, config.headingLevel)
           replaceSection(note, headingToUse, headingToUse, config.headingLevel, `No notes found`)
