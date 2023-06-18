@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 26.5.2023 for v0.4.0, @jgclark
+// Last updated 10.6.2023 for v0.5.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -25,6 +25,7 @@ export {
   tidyUpAll
 } from './tidyMain'
 
+export { showDuplicates } from './duplicates'
 /**
  * Other imports/exports
  */

@@ -3,13 +3,14 @@
 //-----------------------------------------------------------------------------
 // Map of Contents plugin
 // Jonathan Clark
-// Last updated 18.8.2022 for v0.2.2
+// Last updated 16.6.2023 for v0.3.1
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { logInfo, logError } from '@helpers/dev'
+import { JSP, logDebug, logInfo, logError } from '@helpers/dev'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 export { makeMOC } from './MOCs'
@@ -37,4 +38,18 @@ export async function onUpdateOrInstall(): Promise<void> {
     console.log(error)
   }
   console.log(`${pluginID}: onUpdateOrInstall finished`)
+}
+
+/**
+ * Update Settings/Preferences (for iOS etc)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings() {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }

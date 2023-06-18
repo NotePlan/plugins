@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.5.0] - 2023-06-12
+- new **/List duplicate notes** command that creates a new NP note that lists all your notes with identical titles, along with summary details about those potential duplicates
+
 ## [0.4.0] - 2023-05-26
 ### New
 - new **Remove triggers from recent calendar notes** command which removes one or more triggers from recent (but past) calendar notes. (This could be used as part of a daily or weekly Template.)

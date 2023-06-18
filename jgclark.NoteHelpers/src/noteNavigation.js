@@ -2,11 +2,12 @@
 //-----------------------------------------------------------------------------
 // Navigation functions for Note Helpers plugin for NotePlan
 // Jonathan Clark
-// Last updated 10.6.2023 for v0.17.0, @jgclark
+// Last updated 12.6.2023 for v0.17.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { clo, logDebug, logError, logWarn } from '@helpers/dev'
+import { getSettings } from './noteHelpers'
+import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
@@ -14,7 +15,7 @@ import {
   chooseHeading,
   showMessage
 } from '@helpers/userInput'
-import { findURLsInText, type LinkObject } from '@helpers/urls'
+import { findURLsInNote, findURLsInText, type LinkObject } from '@helpers/urls'
 
 //-----------------------------------------------------------------
 
@@ -184,6 +185,7 @@ export function jumpToDone(): void {
  */
 export async function openURLFromANote(): Promise<void> {
   try {
+    const config = await getSettings()
     // first jump to the note of interest, then to the heading
     const notesList = allNotesSortedByChanged()
     const re = await CommandBar.showOptions(
@@ -193,8 +195,8 @@ export async function openURLFromANote(): Promise<void> {
     const note = notesList[re.index]
 
     // Find all URLs in the Note
-    // FIXME(@dwertheimer):
-    const linkObjects = findURLsInText(note.content, false)
+    const linkObjects = findURLsInNote(note, false, true, config.ignoreCompletedItems)
+    // const linkObjects = findURLsInText(note.content ?? '', false)
 
     if (linkObjects.length === 0) {
       logWarn(pluginJson, `Sorry: I couldn't find any URLs in note '${displayTitle(note)}'`)
@@ -204,7 +206,7 @@ export async function openURLFromANote(): Promise<void> {
 
     // Ask user to pick a URL to open
     const foundURLs = linkObjects.map((lo) => lo.name ?? lo.url)
-    clo(urls)
+    clo(foundURLs)
     const res = await CommandBar.showOptions(foundURLs, 'Select URL to open')
     if (!res) {
       logInfo('openURLFromANote()', 'User cancelled operation')
@@ -212,9 +214,9 @@ export async function openURLFromANote(): Promise<void> {
     }
 
     // Now open it
-    const chosenURL = linkObjects[res.index]
+    const chosenURL = linkObjects[res.index].url
     logDebug('openURLFromANote()', `Opening URL '${chosenURL}'`)
-
+    await NotePlan.openURL(chosenURL)
   } catch (e) {
     logError('openURLFromANote()', e.message)
   }

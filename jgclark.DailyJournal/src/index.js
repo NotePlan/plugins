@@ -3,13 +3,14 @@
 //---------------------------------------------------------------
 // Journalling commands
 // Jonathan Clark
-// Last updated 23.11.22 for v0.15.0 by @jgclark
+// Last updated 16.6.23 for v0.15.1 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 import { JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 export {
@@ -64,4 +65,18 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
     logError(pluginID, error.message)
   }
   logInfo(pluginID, `- finished`)
+}
+
+/**
+ * Update Settings/Preferences (for iOS etc)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings() {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }

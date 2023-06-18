@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/CHANGELOG.md",
-  "plugin.version": "0.15.0",
-  "plugin.lastUpdateInfo": "v0.15: Added support for Monthly, Quarterly and Yearly review questions. v0.14: Added /weekStart command. \nv0.13: Added support for /weekReview, /monthReview and /quarterlyReview, each of which have settings for their different Review Questions. /dayStart now uses the template's location field to determine where in the note to insert.",
+  "plugin.version": "0.15.1",
+  "plugin.lastUpdateInfo": "v0.15.1: New 'Journalling: update plugin settings' command for use on iOS/iPadOS. v0.15: Added support for Monthly, Quarterly and Yearly review questions. v0.14: Added /weekStart command. \nv0.13: Added support for /weekReview, /monthReview and /quarterlyReview, each of which have settings for their different Review Questions. /dayStart now uses the template's location field to determine where in the note to insert.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -100,6 +100,11 @@
       ],
       "description": "Ask Journal questions for an end-of-year review (requires configuring)",
       "jsFunction": "yearlyJournalQuestions"
+    },
+    {
+      "name": "Journalling: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
     }
   ],
   "plugin.settings": [

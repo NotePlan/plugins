@@ -1,11 +1,11 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 10.6.2023 for v0.16.0 by @jgclark
+// Last updated 12.6.2023 for v0.5.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getSettings, type noteHelpersConfigType } from './noteHelpers'
+import { getSettings } from './tidyHelpers'
 import {
   daysBetween,
   relativeDateFromDate,
@@ -15,24 +15,20 @@ import {
   nowLocaleShortDateTime,
   toLocaleDateString,
 } from '@helpers/NPdateTime'
-import { clo, JSP, logDebug, logError, logInfo, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
 import {
   createOpenOrDeleteNoteCallbackUrl,
   createPrettyRunPluginLink,
   createRunPluginCallbackUrl,
   displayTitle,
-  returnNoteLink,
+  getTagParamsFromString,
 } from '@helpers/general'
-import { getProjectNotesInFolder, notesInFolderSortedByTitle } from '@helpers/note'
-import {
-  chooseFolder,
-  chooseOption,
-  // showMessage,
-} from '@helpers/userInput'
+import { getProjectNotesInFolder } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
+import { showMessage } from "../../helpers/userInput";
 
-const pluginID = 'jgclark.NoteHelpers'
+const pluginID = 'np.Tidy'
 
 //----------------------------------------------------------------------------
 
@@ -91,22 +87,39 @@ function getDuplicateNotes(): Array<dupeDetails> {
  * Command to show details of duplicates in a NP note (replacing any earlier version of the note)
  * @author @jgclark
  */
-export async function showDuplicates(): Promise<void> {
+export async function showDuplicates(params: string = ''): Promise<void> {
   try {
+    logDebug(pluginJson, `showDuplicates: Starting with params '${params}'`)
+    let config = await getSettings()
+
+    // Decide whether to run silently
+    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
+    logDebug('removeDoneMarkers', `runSilently = ${String(runSilently)}`)
+
     CommandBar.showLoading(true, `Finding duplicates`)
     const startTime = new Date()
     const dupes: Array<dupeDetails> = getDuplicateNotes()
     CommandBar.showLoading(false)
-    logDebug('showDuplicates', `Found ${dupes.length} dupes in ${timer(startTime)}:`)
+
+    // Only continue if there are dupes found
+    if (dupes.length === 0) {
+      logDebug('showDuplicates', `No duplicates found.`)
+      if (!runSilently) {
+        await showMessage(`No duplicates found! 🥳`)
+      }
+      return
+    } else {
+      logDebug('showDuplicates', `Found ${dupes.length} dupes in ${timer(startTime)}:`)
+    }
 
     // Form the contents of a note to display the details of dupes
     const outputArray = []
 
     // Start with an x-callback link under the title to allow this MOC to be re-created
     outputArray.push(`# Duplicate notes`)
-    const xCallbackURL = createRunPluginCallbackUrl('jgclark.NoteHelpers', 'list duplicate notes', [])
-    const xCallbackLine = `Last updated: ${nowLocaleShortDateTime()} [🔄 Click to refresh](${xCallbackURL})`
-    outputArray.push(xCallbackLine)
+    const xCallbackURL = createRunPluginCallbackUrl('np.Tidy', 'List duplicate notes', [])
+    const summaryLine = `Found ${dupes.length} potential duplicates at ${nowLocaleShortDateTime()}. [🔄 Click to refresh](${xCallbackURL})`
+    outputArray.push(summaryLine)
 
     for (const d of dupes) {
       logDebug(pluginJson, `- ${d.title}`)
@@ -124,7 +137,7 @@ export async function showDuplicates(): Promise<void> {
         const openMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', false)
         const deleteMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', true)
         // Write out all details for this dupe
-        outputArray.push(`${String(i)}. in ${thisFolder}: ${String(n.paragraphs.length)} lines, ${String(n.content.length)} bytes (created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}) [open note](${openMe}) [❗️delete note](${deleteMe})`)
+        outputArray.push(`${String(i)}. in ${thisFolder}: ${String(n.paragraphs.length)} lines, ${String(n.content?.length ?? 0)} bytes (created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}) [open note](${openMe}) [❗️delete note](${deleteMe})`)
 
         if (i > 1) {
           thisContent = n.content
@@ -144,10 +157,18 @@ export async function showDuplicates(): Promise<void> {
       }
     }
 
-    const filenameToUse = 'Duplicates.md' // TODO: from setting
+    const filenameToUse = config.duplicateNoteFilename ?? 'Duplicates.md'
 
+    // If note is not open in an editor already, write to and open the note. Otherwise just update note.
     if (!noteOpenInEditor(filenameToUse)) {
       const resultingNote = await Editor.openNoteByFilename(filenameToUse, false, 0, 0, true, true, outputArray.join('\n'))
+    } else {
+      const noteToUse = DataStore.projectNoteByFilename(filenameToUse)
+      if (noteToUse) {
+        noteToUse.content = outputArray.join('\n')
+      } else {
+        throw new Error(`Couldn't find note '${filenameToUse}' to write to`)
+      }
     }
   }
   catch (err) {

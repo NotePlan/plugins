@@ -1666,6 +1666,12 @@ paragraphs: $ReadOnlyArray < TParagraph >;
  * TODO(@EduardMe): add this to the documentation.
  */
 +frontmatterAttributes: Object;
+/**
+* Returns the conflicted version if any. Otherwise, returns undefined.
+* Note: Available from v3.9.3
+* @return { Object(filename: string, url: string, content: string) }
+*/
++conflictedVersion: Object;
 
 /**
  * Get all available versions of a note from the backup database. It returns an array with objects that have following attributes: `content` (full content of the note) and `date` (when this version was saved).
@@ -1889,6 +1895,17 @@ removeBlockID(paragraph: TParagraph): void;
  * @param {boolean} addReferenceSections
  */
 printNote(addReferenceSections: boolean): void;
+
+/**
+* Resolves a conflict, if any, using the current version (which is version 1 in the conflict bar inside the UI). Once resolved you need to reload the note.
+* Note: Available from v3.9.3
+*/
+resolveConflictWithCurrentVersion(): void;
+/**
+* Resolves a conflict, if any, using the other version (which is version 2 in the conflict bar inside the UI). Once resolved you need to reload the note.
+* Note: Available from v3.9.3
+*/
+resolveConflictWithOtherVersion(): void;
 }
 
 declare class NotePlan {
