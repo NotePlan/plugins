@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [1.1.9] - 2023-03-03 (@dwertheimer)
+
+- no meeting note code changes. just pulling in newest Templating code with fix for promptDate
+
 ## [1.1.8] - 2023-03-03 (@dwertheimer)
 
 - no code changes. just pulling in newest Templating code with fix for dashes in template
