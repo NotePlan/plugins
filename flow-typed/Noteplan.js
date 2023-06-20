@@ -283,7 +283,12 @@ insertTextAtCharacterIndex(text: string, index: number): void;
    * Note: Available from v3.0.26
    * @return {Promise}
    */
-  onMainThread(): Promise<void>;
+onMainThread(): Promise < void>;
+/**
+ * Save content of Editor to file. This can be used before updateCache() to ensure latest changes are available quickly.
+ * Note: Available from 3.9.3
+ */
+save(): Promise < void>;
   /**
    * Get the names of all supported themes (including custom themes imported into the Theme folder).
    * Use together with `.setTheme(name)`
@@ -611,7 +616,7 @@ static + preference: (key: string) => mixed;
    * Alternatively, you can also define the filename as the third optional variable (v3.5.2+)
    * Note: available from v3.5, with 'filename' parameter added in v3.5.2
    * @param {string} content for note
-   * @param {string} folder to create the note in
+  * @param {string} folder to create the note in
    * @param {string} filename of the new note (optional) (available from v3.5.2)
    * @return {string}
    */
@@ -634,9 +639,11 @@ static + preference: (key: string) => mixed;
    * If so, the note has to be reloaded for the updated .mentions to be available.
    * Note: Available from NotePlan v3.7.1
    * @param {TNote} note to update
-   * @param {Boolean} shouldUpdateTags?
+   * @param {boolean} shouldUpdateTags?
+   * @returns {TNote?} updated note object
    */
-  static updateCache(note, shouldUpdateTags): void;
+  static updateCache(note, shouldUpdateTags): TNote | null;
+
 
   /**
    * Loads all available plugins asynchronously from the GitHub repository and returns a list.
