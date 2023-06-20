@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Tidy plugin
 // Jonathan Clark
-// Last updated 10.6.2023 for v0.5.0, @jgclark
+// Last updated 15.6.2023 for v0.6.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -14,7 +14,10 @@ import { editSettings } from '@helpers/NPSettings'
 const pluginID = 'np.Tidy'
 
 export {
-  fileRootNotes,
+  fileRootNotes
+} from './fileRoot'
+
+export {
   logNotesChangedInInterval,
   removeDoneMarkers,
   removeOrphanedBlockIDs,
@@ -22,10 +25,16 @@ export {
   removeSectionFromRecentNotes,
   removeTriggersFromRecentCalendarNotes,
   removeDoneTimeParts,
+  removeBlankNotes,
   tidyUpAll
 } from './tidyMain'
 
 export { showDuplicates } from './duplicates'
+export {
+  resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion,
+  showConflicts
+} from './conflicts'
+
 /**
  * Other imports/exports
  */

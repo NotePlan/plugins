@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 21.4.2023 for v0.4.0, @jgclark
+// Last updated 20.6.2023 for v0.4.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -10,11 +10,9 @@ import { getSettings, type TidyConfig } from './tidyHelpers'
 import pluginJson from '../plugin.json'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
-import { getFilteredFolderList } from '@helpers/folders'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
 import {
   allNotesSortedByChanged,
-  getProjectNotesInFolder,
   pastCalendarNotes,
   removeSection
 } from '@helpers/note'
@@ -22,40 +20,37 @@ import { removeFrontMatterField } from '@helpers/NPFrontMatter'
 import { getNotesChangedInInterval, getNotesChangedInIntervalFromList } from '@helpers/NPnote'
 import { hasFrontMatter, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
-import { appendStringToSettingArray } from '@helpers/NPSettings'
-import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
 export async function tidyUpAll(): Promise<void> {
   try {
     logDebug(pluginJson, `tidyUpAll: Starting`)
-
-    // Show dialog to show its working
-    CommandBar.showLoading(true, `Tidy Up ...`, 0)
-
-    // Get plugin settings (config)
     const config: TidyConfig = await getSettings()
-    CommandBar.showLoading(true, `Tidy Up ...`, 0.1)
+
+    // Show spinner dialog
+    CommandBar.showLoading(true, `Tidying up ...`, 0)
+    await CommandBar.onAsyncThread()
 
     if (config.runRemoveOrphansCommand) {
+      CommandBar.showLoading(true, `Tidying up orphaned blockIDs ...`, 0.1)
       logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
       await removeOrphanedBlockIDs(config.runSilently)
     }
-    CommandBar.showLoading(true, `Tidy Up ...`, 0.4)
 
     // Following functions take params; so send runSilently as a param
     const param = config.runSilently ? '{"runSilently": true}' : ''
     if (config.runRemoveDoneMarkersCommand) {
+      CommandBar.showLoading(true, `Tidying up @done markers...`, 0.4)
       logDebug('tidyUpAll', `Starting removeDoneMarkers...`)
       await removeDoneMarkers(param)
     }
-    CommandBar.showLoading(true, `Tidy Up ...`, 0.5)
     if (config.runRemoveDoneTimePartsCommand) {
+      CommandBar.showLoading(true, `Tidying up @done time parts...`, 0.6)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeDoneTimeParts(param)
     }
-    CommandBar.showLoading(true, `Tidy Up ...`, 0.6)
 
     // Note: Disabling this one as it can't be run silently
     // if (config.runFileRootNotesCommand) {
@@ -69,12 +64,13 @@ export async function tidyUpAll(): Promise<void> {
     // }
 
     if (config.removeTriggersFromRecentCalendarNotes) {
+      CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.8)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeTriggersFromRecentCalendarNotes(param)
     }
-    CommandBar.showLoading(true, `Tidy Up ...`, 0.9)
 
     // stop spinner
+    await CommandBar.onMainThread()
     CommandBar.showLoading(false)
   } catch (error) {
     logError('tidyUpAll', JSP(error))
@@ -530,6 +526,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
 
 /**
  * Write a list of Log notes changed in the last interval of days to the plugin log. It will default to the 'Default Recent Time Interval' setting unless passed as a JSON parameter.
+ * @author @jgclark
  * @param {string} params as JSON
  */
 export async function logNotesChangedInInterval(params: string = ''): Promise<void> {
@@ -556,116 +553,9 @@ export async function logNotesChangedInInterval(params: string = ''): Promise<vo
 }
 
 /**
- * For each root-level note, asks user which folder to move it to. (There's a setting for ones to ignore.)
- * @author @jgclark
- */
-export async function fileRootNotes(): Promise<void> {
-  try {
-    // Get plugin settings (config)
-    let config: TidyConfig = await getSettings()
-
-    // Get all root notes
-    const rootNotes = getProjectNotesInFolder('/')
-    // logDebug('rootNotes', rootNotes.map((n) => n.title))
-
-    // Remove any listed in config.rootNotesToIgnore
-    const excludedNotes = config.rootNotesToIgnore ?? []
-    logDebug('excludedNotes', String(excludedNotes))
-    const rootNotesToUse = rootNotes.filter((n) => !excludedNotes.includes(n.title))
-    logDebug(
-      'rootNotesToUse',
-      rootNotesToUse.map((n) => n.title),
-    )
-
-    // Make list of all folders (other than root!)
-    const allFolders = getFilteredFolderList([], true, [], false)
-    logDebug('allFolders', String(allFolders))
-
-    // Pre-pend some special items
-    allFolders.unshift(`🗑️ Delete this note`)
-    allFolders.unshift(`❌ Stop processing`)
-    if (NotePlan.environment.buildVersion >= 1045) { allFolders.unshift(`➡️ Ignore this note from now on`) } // what this calls fails before 3.9.2b
-    allFolders.unshift(`➡️ Leave this note in root`)
-    logDebug('allFolders', String(allFolders))
-    const options = allFolders.map((f) => ({
-      label: f,
-      value: f,
-    }))
-
-    // Save currently open note in Editor
-    const openEditorNote = Editor?.note
-
-    // Loop over the rest, asking where to move to
-    let numMoved = 0
-    for (const n of rootNotesToUse) {
-      if (n && n.title && n.title !== undefined) {
-        const thisTitle = n.title // to pacify flow
-        const thisFilename = n.filename // to pacify flow
-        // open the note we're going to move in the Editor to help user assess what to do
-        const res = await Editor.openNoteByFilename(thisFilename)
-
-        const chosenFolder = await chooseOption(`Move '${thisTitle}' to which folder?`, options)
-        switch (chosenFolder) {
-          case '❌ Stop processing': {
-            logInfo('fileRootNotes', `User cancelled operation.`)
-            return
-          }
-          case '➡️ Ignore this note from now on': {
-            const ignoreRes = appendStringToSettingArray(pluginJson['plugin.id'], "rootNotesToIgnore", thisTitle, false)
-            if (ignoreRes) {
-              logInfo('fileRootNotes', `Ignoring '${thisTitle}' from now on; this note has been appended it to the plugin's settings`)
-            } else {
-              logError('fileRootNotes', `Error when trying to add '${thisTitle}' to the plugin setting "rootNotesToIgnore"`)
-            }
-            break
-          }
-          case '➡️ Leave this note in root': {
-            logDebug('fileRootNotes', `Leaving '${thisTitle}' note in root`)
-            break
-          }
-          case '🗑️ Delete this note': {
-            logInfo('fileRootNotes', `User has asked for '${thisTitle}' to be deleted ...`)
-            const res = DataStore.moveNote(n.filename, '@Trash')
-            if (res && res !== '') {
-              logDebug('fileRootNotes', '... done')
-              numMoved++
-            } else {
-              logError('fileRootNotes', `Couldn't delete it for some reason`)
-            }
-            break
-          }
-          default: {
-            logDebug('fileRootNotes', `Moving '${thisTitle}' note to folder '${chosenFolder}' ...`)
-            const res = DataStore.moveNote(n.filename, chosenFolder)
-            if (res && res !== '') {
-              logDebug('fileRootNotes', `... filename now '${res}'`)
-              numMoved++
-            } else {
-              logError('fileRootNotes', `... Failed to move it for some reason`)
-            }
-          }
-        }
-      } else {
-        logError('fileRootNotes', `Failed to get note for some reason`)
-      }
-    }
-
-    // Show a completion message
-    logDebug('fileRootNotes', `${String(numMoved)} notes moved from the root folder`)
-    const res = await showMessage(`${String(numMoved)} notes moved from the root folder`, 'OK', 'File root-level notes', false)
-
-    // Restore original note (if it was open)
-    if (openEditorNote) {
-      Editor.openNoteByFilename(openEditorNote.filename)
-    }
-  } catch (err) {
-    logError('fileRootNotes', JSP(err))
-    return // for completeness
-  }
-}
-
-/**
  * Remove orphaned blockIDs in all notes.
+ * @author @jgclark
+ * @param {boolean} runSilently?
  */
 export async function removeOrphanedBlockIDs(runSilently: boolean = false): Promise<void> {
   try {
@@ -714,7 +604,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
     }
     logDebug('removeOrphanedBlockIDs', `Found ${String(numToRemove)} orphaned blockIDs`)
 
-    // // Log the singleton blockIDs
+    // Log their details
     // logDebug('removeOrphanedBlockIDs', `\nFound these '${String(numToRemove)} orphaned blockIDs:`)
     // for (const thisPara of singletonBlockIDParas) {
     //   const otherBlockIDsForThisPara = DataStore.referencedBlocks(thisPara)
@@ -722,7 +612,7 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
     // }
 
     if (!runSilently) {
-      res = await showMessageYesNo(`Shall I proceed to remove ${String(numToRemove)} orphaned blockIDs?`, ['Yes please', 'No'], 'Remove Orphaned blockIDs', false)
+      res = await showMessageYesNo(`Shall I remove ${String(numToRemove)} orphaned blockIDs?`, ['Yes please', 'No'], 'Remove Orphaned blockIDs', false)
       if (res === 'No') {
         return
       }
@@ -755,6 +645,97 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
     }
   } catch (err) {
     logError('removeOrphanedBlockIDs', JSP(err))
+    return // for completeness
+  }
+}
+
+
+/**
+ * Remove blank (or nearly blank) notes
+ * @author @jgclark
+ * @param {boolean} runSilently?
+ */
+export async function removeBlankNotes(runSilently: boolean = false): Promise<void> {
+  try {
+    // Get plugin settings (config)
+    let config: TidyConfig = await getSettings()
+    logDebug(pluginJson, `removeBlankNotes() with runSilently? '${String(runSilently)}'`)
+
+    // Find all notes with 2 or fewer bytes' length.
+    // Show spinner dialog
+    CommandBar.showLoading(true, `Finding blank notes ...`, 0)
+    await CommandBar.onAsyncThread()
+    let start = new Date()
+
+    // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
+    let blankNotes = allNotesSortedByChanged()
+      .filter(n => n.filename.match(/(.txt|.md)$/))
+      // $FlowFixMe[incompatible-type]
+      .filter(n => n.content !== 'undefined' && n.content.length !== 'undefined' && n.content.length <= 2)
+    const numToRemove = blankNotes.length
+    logDebug('removeBlankNotes', `Found ${String(numToRemove)} blank notes in ${timer(start)}`)
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
+
+    if (numToRemove === 0) {
+      if (!runSilently) {
+        logDebug('removeBlankNotes', `No blank notes found`)
+        await showMessage(`No blanks notes found.`, 'OK, great!', 'Remove Blank Notes')
+      } else {
+        logInfo('removeBlankNotes', `No blank notes found`)
+      }
+      return
+    }
+
+    // Log their details
+    console.log(`Found ${String(numToRemove)} blank notes. Here are their filenames:`)
+    for (const thisNote of blankNotes) {
+      console.log(`- ${thisNote.filename} (${String(thisNote.content?.length)} bytes)`)
+    }
+
+    if (!runSilently) {
+      const res = await showMessageYesNo(`Shall I move ${String(numToRemove)} blank notes to the NotePlan Trash? (The details are in the Plugin Console.)`, ['Yes please', 'No'], 'Remove Blank Notes', false)
+      if (res === 'No') {
+        return
+      }
+    }
+    if (NotePlan.environment.build > 1049) {
+      logDebug('removeBlankNotes', `Will move all blank notes to the NotePlan Trash`)
+    } else {
+      logDebug('removeBlankNotes', `Will move all blank project notes to the NotePlan Trash`)
+    }
+
+    // If we get this far, then remove the notes
+    let numRemoved = 0
+    for (const thisNote of blankNotes) {
+      const filenameForTrash = '@Trash/' + thisNote.filename.replace('//', '/')
+      // Deal with a calendar note
+      if (thisNote.type === 'Calendar') {
+        // Note: before v3.9.3 we can't move Calendar notes, so don't try
+        if (NotePlan.environment.build > 1049) {
+          const res = DataStore.moveNote(thisNote.filename, filenameForTrash, 'Calendar')
+          if (res) {
+            logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
+            numRemoved++
+          } else {
+            logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to @Trash (as ${filenameForTrash}) for some unknown reason.`)
+          }
+        } else {
+          logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to @Trash (as ${filenameForTrash}); because before v3.9.3, you can't move Calendar notes.`)
+        }
+        continue // next item in loop
+      }
+      // Deal with a project note ...
+      const res = DataStore.moveNote(thisNote.filename, filenameForTrash)
+      if (res) {
+        logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
+        numRemoved++
+      } else {
+        logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to @Trash (as ${filenameForTrash}) for some unknown reason.`)
+      }
+    }
+  } catch (err) {
+    logError('removeBlankNotes', JSP(err))
     return // for completeness
   }
 }

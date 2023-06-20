@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 12.6.2023 for v0.5.0, @jgclark
+// Last updated 14.6.2023 for v0.6.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -99,4 +99,15 @@ export function returnRegexMatchedParas(notesIn: Array<TNote>, regexIn: RegExp):
   } catch (error) {
     logError(`${pluginJson}/repeats`, error.message)
   }
+}
+
+/**
+ * Show value/total as a percent (limiting number of digits of precision shown) of form 'value term (%)' (or if 0, then just '0 term')
+ * @param {number} value
+ * @param {number} total
+ * @param {string} term (optional) term to use
+ * @returns {string}
+ */
+export function percentWithTerm(value: number, total: number, term: string): string {
+  return total > 0 ? `${value.toLocaleString()} ${term} (${((value / total) * 100, 2).toLocaleString([], { maximumFractionDigits: 1 })}%)` : `${value.toLocaleString()} ${term}`
 }

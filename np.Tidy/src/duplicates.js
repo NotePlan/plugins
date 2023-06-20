@@ -1,26 +1,21 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 12.6.2023 for v0.5.0 by @jgclark
+// Last updated 20.6.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getSettings } from './tidyHelpers'
+import { getSettings, percentWithTerm } from './tidyHelpers'
 import {
   daysBetween,
   relativeDateFromDate,
-  toISOShortDateTimeString,
 } from '@helpers/dateTime'
-import {
-  nowLocaleShortDateTime,
-  toLocaleDateString,
-} from '@helpers/NPdateTime'
+import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
 import {
   createOpenOrDeleteNoteCallbackUrl,
   createPrettyRunPluginLink,
-  createRunPluginCallbackUrl,
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
@@ -38,10 +33,6 @@ type dupeDetails = {
 }
 
 //----------------------------------------------------------------------------
-
-function charsPercent(value: number, total: number): string {
-  return total > 0 ? `${value.toLocaleString()} chars (${((value / total) * 100, 2).toLocaleString([], { maximumFractionDigits: 1 })}%)` : `${value.toLocaleString()} chars`
-}
 
 /**
  * Private function to generate list of potentially duplicate notes
@@ -66,7 +57,7 @@ function getDuplicateNotes(): Array<dupeDetails> {
     // Get all dupes
     const counter = {}
     const dupes = notes.filter(n => (counter[displayTitle(n)] = counter[displayTitle(n)] + 1 || 1) === 2)
-    const dupeTitles = dupes.map(n => n.title)
+    const dupeTitles = dupes.map(n => n.title ?? '')
 
     // Log details of each dupe
     for (const dt of dupeTitles) {
@@ -97,13 +88,15 @@ export async function showDuplicates(params: string = ''): Promise<void> {
     logDebug('removeDoneMarkers', `runSilently = ${String(runSilently)}`)
 
     CommandBar.showLoading(true, `Finding duplicates`)
+    await CommandBar.onAsyncThread()
     const startTime = new Date()
     const dupes: Array<dupeDetails> = getDuplicateNotes()
+    await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 
     // Only continue if there are dupes found
     if (dupes.length === 0) {
-      logDebug('showDuplicates', `No duplicates found.`)
+      logDebug('showDuplicates', `No duplicates found (in ${timer(startTime)}).`)
       if (!runSilently) {
         await showMessage(`No duplicates found! 🥳`)
       }
@@ -115,15 +108,17 @@ export async function showDuplicates(params: string = ''): Promise<void> {
     // Form the contents of a note to display the details of dupes
     const outputArray = []
 
-    // Start with an x-callback link under the title to allow this MOC to be re-created
+    // Start with an x-callback link under the title to allow this to be refreshed easily
     outputArray.push(`# Duplicate notes`)
-    const xCallbackURL = createRunPluginCallbackUrl('np.Tidy', 'List duplicate notes', [])
-    const summaryLine = `Found ${dupes.length} potential duplicates at ${nowLocaleShortDateTime()}. [🔄 Click to refresh](${xCallbackURL})`
+    const xCallbackRefreshButton = createPrettyRunPluginLink('🔄 Click to refresh', 'np.Tidy', 'List duplicate notes', [])
+
+    const summaryLine = `Found ${dupes.length} potential duplicates at ${nowLocaleShortDateTime()}. ${xCallbackRefreshButton}`
     outputArray.push(summaryLine)
 
     for (const d of dupes) {
-      logDebug(pluginJson, `- ${d.title}`)
-      outputArray.push(`## ${d.title}`)
+      const titleToDisplay = (d.title !== '') ? d.title : '(note with no title)'
+      logDebug(pluginJson, `- ${titleToDisplay}`)
+      outputArray.push(`## ${titleToDisplay}`)
       let i = 0
       let lastContent = ''
       let thisContent = ''
@@ -137,17 +132,17 @@ export async function showDuplicates(params: string = ''): Promise<void> {
         const openMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', false)
         const deleteMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', true)
         // Write out all details for this dupe
-        outputArray.push(`${String(i)}. in ${thisFolder}: ${String(n.paragraphs.length)} lines, ${String(n.content?.length ?? 0)} bytes (created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}) [open note](${openMe}) [❗️delete note](${deleteMe})`)
+        outputArray.push(`${String(i)}. in ${thisFolder}: ${String(n.paragraphs?.length ?? 0)} lines, ${String(n.content?.length ?? 0)} bytes (created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}) [open note](${openMe}) [❌ delete note](${deleteMe})`)
 
         if (i > 1) {
           thisContent = n.content
           // $FlowIgnore[incompatible-use]
-          greatestSize = Math.max(greatestSize, n.content.length)
+          greatestSize = Math.max(greatestSize, n.content?.length ?? 0)
           // $FlowIgnore[incompatible-call]
           const allDiffRanges = NotePlan.stringDiff(lastContent, thisContent)
           const totalDiffBytes = allDiffRanges.reduce((a, b) => a + Math.abs(b.length), 0)
           if (totalDiffBytes > 0) {
-            const percentDiff = charsPercent(totalDiffBytes, greatestSize)
+            const percentDiff = percentWithTerm(totalDiffBytes, greatestSize, 'chars')
             outputArray.push(`\t- ${percentDiff} difference between ${String(i - 1)} and ${String(i)} (from ${String(allDiffRanges.length)} areas)`)
           } else {
             outputArray.push(`\t- notes ${String(i - 1)} and ${String(i)} are identical`)
