@@ -38,3 +38,29 @@ export const hasScheduledDate = (content: string): boolean => new RegExp(RE_IS_S
  * @returns {boolean} - true if scheduled, false if not
  */
 export const isScheduled = (t: TParagraph): boolean => t.type === 'scheduled' || (t.type === 'open' && hasScheduledDate(t.content))
+
+/**
+ * This function removes duplicate objects from an array based on specified keys to compare
+ * Useful e.g. for removing duplicate paragraphs/tasks from an array of tasks
+ * If the properties compared are the same, the object is considered a duplicate and only the first one is kept
+ * The order of the array is preserved *
+ * tags: dedupe, unique
+ *
+ * @param {Array<{[string]: any}>} arr - The array of objects (e.g. Paragraphs) from which to remove duplicates.
+ * @param {Array<string>} keys - The keys/property names to check for duplicates.
+ * @return {Array<{[string]: any}>} An array of objects without duplicates based on the specified keys.
+ */
+export function removeDuplicates(arr: Array<{ [string]: any }>, keys: Array<string>): Array<{ [string]: any }> {
+  const seen = new Map()
+
+  return arr.filter((item) => {
+    const keyValue = keys.map((key) => item[key]).join('|')
+
+    if (seen.has(keyValue)) {
+      return false
+    } else {
+      seen.set(keyValue, true)
+      return true
+    }
+  })
+}
