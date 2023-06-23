@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 20.6.2023 for v0.6.0 by @jgclark
+// Last updated 23.6.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -32,8 +32,8 @@ const pluginID = 'np.Tidy'
 
 type conflictDetails = {
   note: TNote,
-  filename: string,
-  url: string,
+  url: string, // = full mac/iOS filepath and filename
+  filename: string, // = just filename
   content: string
 }
 
@@ -51,8 +51,6 @@ async function getConflictedNotes(): Promise<Array<conflictDetails>> {
     if (NotePlan.environment.buildVersion < 1050) {
       await showMessage("Command '/list conflicted notes' is only available from NP 3.9.3")
       return []
-    } else {
-      // TODO: some test logic for now
     }
     logDebug(pluginJson, `getConflictedNotes() starting`)
 
@@ -67,17 +65,24 @@ async function getConflictedNotes(): Promise<Array<conflictDetails>> {
     }
 
     // Get all conflicts
-    const conflictedNotes = notes.filter(n => (n.conflictedVersion !== null))
+    const conflictedNotes = notes.filter(n => (n.conflictedVersion != null))
     // const dupeTitles = conflictedNotes.map(n => displayTitle(n))
 
     // Log details of each dupe
     for (const cn of conflictedNotes) {
-      outputArray.push({
-        note: cn,
-        url: cn.conflictedVersion.url,
-        filename: cn.conflictedVersion.filename,
-        content: cn.conflictedVersion.content
-      })
+      logDebug('getConflictedNotes', `- ${displayTitle(cn)}`)
+      const cv = cn.conflictedVersion
+      if (cv) {
+        // clo(cv, 'conflictedVersion = ')
+        outputArray.push({
+          note: cn,
+          filename: cn.filename, // needs to be main note not .conflict version
+          url: cn.conflictedVersion.url,
+          content: cn.conflictedVersion.content
+        })
+      } else {
+        logError('getConflictedNotes', `- ${displayTitle(cn)} appears to have no conflictedVersion`)
+      }
     }
     clo(outputArray, '->')
     return outputArray
@@ -129,6 +134,7 @@ export async function showConflicts(params: string = ''): Promise<void> {
     outputArray.push(summaryLine)
 
     for (const cn of conflictedNotes) {
+      logDebug('getConflictedNotes', `- ${displayTitle(cn)}, ${cn.filename}`)
       const titleToDisplay = (cn.note.title !== '') ? displayTitle(cn.note) : '(note with no title)'
       const thisFolder = cn.filename.includes('/') ? getFolderFromFilename(cn.filename) : '(root)'
       const mainContent = cn.note.content ?? ''
@@ -137,13 +143,14 @@ export async function showConflicts(params: string = ''): Promise<void> {
       logDebug(pluginJson, `- ${titleToDisplay} / ${cn.filename}`)
       // Make some button links for main note
       const openMe = createOpenOrDeleteNoteCallbackUrl(cn.filename, 'filename', '', 'splitView', false)
-      const deleteMe = createOpenOrDeleteNoteCallbackUrl(cn.filename, 'filename', '', 'splitView', true)
+      // const deleteMe = createOpenOrDeleteNoteCallbackUrl(cn.filename, 'filename', '', 'splitView', true)
       outputArray.push(`${thisFolder} / **${titleToDisplay}** (${cn.filename})`)
-      outputArray.push(`- Main note: ${String(cn.note.paragraphs?.length ?? 0)} lines, ${String(cn.content?.length ?? 0)} bytes (created ${relativeDateFromDate(cn.note.createdDate)}, updated ${relativeDateFromDate(cn.note.changedDate)}) [open note](${openMe}) [❌ delete note](${deleteMe})`)
+      outputArray.push(`- Main note: ${String(cn.note.paragraphs?.length ?? 0)} lines, ${String(cn.content?.length ?? 0)} bytes (created ${relativeDateFromDate(cn.note.createdDate)}, updated ${relativeDateFromDate(cn.note.changedDate)}) [open note](${openMe})`)
 
-      // Write out details for the conlicted version
+      // Write out details for the conflicted version
+      // Note: there are far fewer details for the conflicted version
       const cvContent = cn.note.conflictedVersion.content ?? ''
-      outputArray.push(`- Conflicted version note: ${String(cvContent.split('\n').length)} lines, ${String(cvContent.length ?? 0)} bytes`) // TODO: (created ${relativeDateFromDate(cn.note.createdDate)}, updated ${relativeDateFromDate(cn.note.changedDate)}) [open note](${openMe}) [❌ delete note](${deleteMe})`)
+      outputArray.push(`- Conflicted version note: ${String(cvContent.split('\n').length)} lines, ${String(cvContent.length ?? 0)} bytes`)
 
       const greaterSize = Math.max(cn.note.content?.length ?? 0, cvContent?.length ?? 0)
       const allDiffRanges = NotePlan.stringDiff(cvContent, mainContent)
@@ -193,7 +200,7 @@ export function resolveConflictWithCurrentVersion(filename: string): void {
       logError('resolveConflictWithCurrentVersion', `cannot find note '${filename}'`)
       return
     }
-    theNote.resolveConflictWithOtherVersion()
+    theNote.resolveConflictWithCurrentVersion()
   }
   catch (err) {
     logError(pluginJson, JSP(err))
@@ -215,7 +222,7 @@ export function resolveConflictWithOtherVersion(filename: string): void {
       logError('resolveConflictWithOtherVersion', `cannot find note '${filename}'`)
       return
     }
-    theNote.resolveConflictWithOtherVersion()
+    theNote.s
   }
   catch (err) {
     logError(pluginJson, JSP(err))
