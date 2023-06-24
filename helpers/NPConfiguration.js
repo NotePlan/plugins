@@ -187,6 +187,7 @@ export function updateSettingData(pluginJsonData: any): number {
       }
     }
   })
+  // FIXME: @jgclark at least once saw an 'undefined is not an object' error, which appeared to be for this line.
   DataStore.settings = { ...newSettings }
 
   return updateResult
