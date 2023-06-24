@@ -80,7 +80,7 @@ export async function checkForWantedResources(pluginID: string, filesToCheck?: A
       if (NotePlan.environment.buildVersion >= 973) {
         // If we can, use newer method that doesn't have to load the data
         if (DataStore.fileExists(filename)) {
-          logDebug(`checkForWantedResources`, `- ${filename} exists`)
+          // logDebug(`checkForWantedResources`, `- ${filename} exists`)
           numFound++
         } else {
           logWarn(`checkForWantedResources`, `- ${filename} not found`)
@@ -88,7 +88,7 @@ export async function checkForWantedResources(pluginID: string, filesToCheck?: A
       } else {
         const data = DataStore.loadData(filename, false)
         if (data) {
-          logDebug(`checkForWantedResources`, `- found ${filename}, length ${String(data.length)}`)
+          // logDebug(`checkForWantedResources`, `- found ${filename}, length ${String(data.length)}`)
           numFound++
         } else {
           logWarn(`checkForWantedResources`, `- ${filename} not found`)

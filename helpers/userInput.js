@@ -499,10 +499,10 @@ export async function inputIntegerBounded(title: string, question: string, upper
     if (value <= upperBound && value >= lowerBound) {
       result = value
     } else {
-      logWarn('userInput / inputInteger', `Value ${reply} is out of bounds for [${String(lowerBound)},${String(upperBound)}]`)
+      logWarn('userInput / inputInteger', `Value ${reply} is out of bounds for [${String(lowerBound)},${String(upperBound)}] -> NaN`)
     }
   } else {
-    logError('userInput / inputInteger', `Error trying to get integer answer for question '${question}'`)
+    logWarn('userInput / inputInteger', `No valid integer answer for question '${question}' -> NaN`)
   }
   return result
 }

@@ -352,8 +352,8 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
 
       // Attempt to change arg values that are numerics or booleans to the right types, otherwise they will stay as strings
       for (const key in argObj) {
-        logDebug(`dev.js`, `overrideSettingsWithStringArgs key:${key} value:${argObj[key]} typeof:${typeof argObj[key]} !isNaN(value):${String(!isNaN(argObj[key]))}`)
         let value = argObj[key]
+        logDebug(`dev.js`, `overrideSettingsWithStringArgs key:${key} value:${argObj[key]} typeof:${typeof argObj[key]} !isNaN(${value}):${String(!isNaN(argObj[key]))}`)
         if (!isNaN(value) && value !== '') {
           // Change to number type
           value = Number(value)
