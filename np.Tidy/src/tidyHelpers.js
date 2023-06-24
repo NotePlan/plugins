@@ -2,11 +2,12 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 14.6.2023 for v0.6.0, @jgclark
+// Last updated 24.6.2023 for v0.6.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
+import { castStringFromMixed } from '@helpers/dataManipulation'
 import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 
@@ -22,6 +23,9 @@ export type TidyConfig = {
   matchType: string,
   numDays: number,
   rootNotesToIgnore: Array<string>,
+  runRemoveBlankNotes: boolean,
+  runConflictFinderCommand: boolean,
+  runDuplicateFinderCommand: boolean,
   runFileRootNotesCommand: boolean,
   runRemoveOrphansCommand: boolean,
   runRemoveDoneMarkersCommand: boolean,
@@ -109,5 +113,25 @@ export function returnRegexMatchedParas(notesIn: Array<TNote>, regexIn: RegExp):
  * @returns {string}
  */
 export function percentWithTerm(value: number, total: number, term: string): string {
-  return total > 0 ? `${value.toLocaleString()} ${term} (${((value / total) * 100, 2).toLocaleString([], { maximumFractionDigits: 1 })}%)` : `${value.toLocaleString()} ${term}`
+  if (total === 0) {
+    return `invalid% ${term}`
+  }
+  if (value === 0) {
+    return `${value.toLocaleString()} ${term}`
+  }
+  const locale = getLocale({})
+  const intlOptions = { maximumFractionDigits: 1, minimumSignificantDigits: 2, maximumSignificantDigits: 2 }
+  const percentStr = ((value / total) * 100).toLocaleString(locale, intlOptions)
+  return `${value.toLocaleString(locale)} ${term} (${percentStr}%)`
+}
+
+// Get locale: if blank in settings then get from NP environment (from 3.3.2)
+// or if not available default to 'en-US'
+function getLocale(tempConfig: Object): string {
+  const envRegion = NotePlan?.environment ? NotePlan?.environment?.regionCode : ''
+  const envLanguage = NotePlan?.environment ? NotePlan?.environment?.languageCode : ''
+  let tempLocale = castStringFromMixed(tempConfig, 'locale')
+  tempLocale =
+    tempLocale != null && tempLocale !== '' ? tempLocale : envRegion !== '' ? `${envLanguage}-${envRegion}` : 'en-US'
+  return tempLocale
 }

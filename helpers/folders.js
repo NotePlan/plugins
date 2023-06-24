@@ -105,6 +105,22 @@ export function getFolderFromFilename(fullFilename: string): string {
 }
 
 /**
+ * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
+ * @author @jgclark
+ * @param {string} fullFilename - full filename to get folder name part from
+ * @returns {string} folder/subfolder name
+ */
+export function getJustFilenameFromFullFilename(fullFilename: string): string {
+  try {
+    const filenameParts = fullFilename.split('/')
+    return filenameParts.slice(-1, filenameParts.length).join('')
+  } catch (error) {
+    logError('folders/getFolderFromFilename', `Error getting folder from filename '${fullFilename}: ${error.message}`)
+    return '(error)'
+  }
+}
+
+/**
  * Get the lowest-level (subfolder) part of the folder name from the full NP (project) note filename, without leading or trailing slash.
  * @tests available in jest file
  * @author @jgclark

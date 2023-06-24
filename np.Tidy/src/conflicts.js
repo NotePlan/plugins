@@ -48,7 +48,7 @@ type conflictDetails = {
 */
 async function getConflictedNotes(): Promise<Array<conflictDetails>> {
   try {
-    if (NotePlan.environment.buildVersion < 1050) {
+    if (NotePlan.environment.buildVersion < 1053) {
       await showMessage("Command '/list conflicted notes' is only available from NP 3.9.3")
       return []
     }
@@ -97,10 +97,11 @@ async function getConflictedNotes(): Promise<Array<conflictDetails>> {
  * Command to show details of conflicted notes found, and offering to delete them
  * @author @jgclark
  */
-export async function showConflicts(params: string = ''): Promise<void> {
+export async function listConflicts(params: string = ''): Promise<void> {
   try {
-    logDebug(pluginJson, `showConflicts: Starting with params '${params}'`)
+    logDebug(pluginJson, `listConflicts: Starting with params '${params}'`)
     let config = await getSettings()
+    const outputFilename = config.conflictNoteFilename ?? 'Conflicted Notes.md'
 
     // Decide whether to run silently
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
@@ -115,13 +116,18 @@ export async function showConflicts(params: string = ''): Promise<void> {
 
     // Only continue if there are conflictedNotes found
     if (conflictedNotes.length === 0) {
-      logDebug('showConflicts', `No notes with conflicts found (in ${timer(startTime)}).`)
+      logDebug('listConflicts', `No notes with conflicts found (in ${timer(startTime)}).`)
       if (!runSilently) {
         await showMessage(`No notes with conflicts found! 🥳`)
       }
+      // remove old conflicted note list (if it exists)
+      const res = DataStore.moveNote(outputFilename, '@Trash')
+      if (res) {
+        logDebug('getConflictedNotes', `Moved existing conflicted note list '${outputFilename}' to @Trash.`)
+      }
       return
     } else {
-      logDebug('showConflicts', `Found ${conflictedNotes.length} conflictedNotes in ${timer(startTime)}:`)
+      logDebug('listConflicts', `Found ${conflictedNotes.length} conflictedNotes in ${timer(startTime)}:`)
     }
 
     // Form the contents of a note to display the details of conflictedNotes
@@ -134,6 +140,8 @@ export async function showConflicts(params: string = ''): Promise<void> {
     outputArray.push(summaryLine)
 
     for (const cn of conflictedNotes) {
+      // $FlowFixMe[prop-missing]
+      // $FlowFixMe[incompatible-call]
       logDebug('getConflictedNotes', `- ${displayTitle(cn)}, ${cn.filename}`)
       const titleToDisplay = (cn.note.title !== '') ? displayTitle(cn.note) : '(note with no title)'
       const thisFolder = cn.filename.includes('/') ? getFolderFromFilename(cn.filename) : '(root)'
@@ -144,8 +152,8 @@ export async function showConflicts(params: string = ''): Promise<void> {
       // Make some button links for main note
       const openMe = createOpenOrDeleteNoteCallbackUrl(cn.filename, 'filename', '', 'splitView', false)
       // const deleteMe = createOpenOrDeleteNoteCallbackUrl(cn.filename, 'filename', '', 'splitView', true)
-      outputArray.push(`${thisFolder} / **${titleToDisplay}** (${cn.filename})`)
-      outputArray.push(`- Main note: ${String(cn.note.paragraphs?.length ?? 0)} lines, ${String(cn.content?.length ?? 0)} bytes (created ${relativeDateFromDate(cn.note.createdDate)}, updated ${relativeDateFromDate(cn.note.changedDate)}) [open note](${openMe})`)
+      outputArray.push(`${thisFolder}/**${titleToDisplay}**`)
+      outputArray.push(`- Main note (${cn.filename}): ${String(cn.note.paragraphs?.length ?? 0)} lines, ${String(cn.content?.length ?? 0)} bytes (created ${relativeDateFromDate(cn.note.createdDate)}, updated ${relativeDateFromDate(cn.note.changedDate)}) [open note](${openMe})`)
 
       // Write out details for the conflicted version
       // Note: there are far fewer details for the conflicted version
@@ -166,22 +174,20 @@ export async function showConflicts(params: string = ''): Promise<void> {
       outputArray.push(`- ${resolveCurrentButton} ${resolveOtherButton}`)
     }
 
-    const filenameToUse = config.duplicateNoteFilename ?? 'Conflicted Notes.md'
-
     // If note is not open in an editor already, write to and open the note. Otherwise just update note.
-    if (!noteOpenInEditor(filenameToUse)) {
-      const resultingNote = await Editor.openNoteByFilename(filenameToUse, false, 0, 0, true, true, outputArray.join('\n'))
+    if (!noteOpenInEditor(outputFilename)) {
+      const resultingNote = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
     } else {
-      const noteToUse = DataStore.projectNoteByFilename(filenameToUse)
+      const noteToUse = DataStore.projectNoteByFilename(outputFilename)
       if (noteToUse) {
         noteToUse.content = outputArray.join('\n')
       } else {
-        throw new Error(`Couldn't find note '${filenameToUse}' to write to`)
+        throw new Error(`Couldn't find note '${outputFilename}' to write to`)
       }
     }
   }
   catch (err) {
-    logError('showDuplicates', JSP(err))
+    logError('listDuplicates', JSP(err))
   }
 }
 
@@ -191,7 +197,7 @@ export async function showConflicts(params: string = ''): Promise<void> {
 export function resolveConflictWithCurrentVersion(filename: string): void {
   try {
     logDebug(pluginJson, `resolveConflictWithCurrentVersion() starting for file '${filename}'`)
-    if (NotePlan.environment.buildVersion < 1050) {
+    if (NotePlan.environment.buildVersion < 1053) {
       logWarn(pluginJson, `resolveConflictWithOtherVersion() can't be run until NP v3.9.3`)
       return
     }
@@ -213,7 +219,7 @@ export function resolveConflictWithCurrentVersion(filename: string): void {
 export function resolveConflictWithOtherVersion(filename: string): void {
   try {
     logDebug(pluginJson, `resolveConflictWithOtherVersion() starting for file '${filename}'`)
-    if (NotePlan.environment.buildVersion < 1050) {
+    if (NotePlan.environment.buildVersion < 1053) {
       logWarn(pluginJson, `resolveConflictWithOtherVersion() can't be run until NP v3.9.3`)
       return
     }
@@ -222,7 +228,7 @@ export function resolveConflictWithOtherVersion(filename: string): void {
       logError('resolveConflictWithOtherVersion', `cannot find note '${filename}'`)
       return
     }
-    theNote.s
+    theNote.resolveConflictWithOtherVersion()
   }
   catch (err) {
     logError(pluginJson, JSP(err))
