@@ -21,6 +21,7 @@ export type HtmlWindowOptions = {
   generalCSSIn?: string,
   specificCSS?: string,
   makeModal?: boolean,
+  bodyOptions?: string,
   preBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
   postBodyScript?: string | ScriptObj | Array<string | ScriptObj>,
   savedFilename?: string,
@@ -844,7 +845,7 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
     fullHTML.push(winOpts.specificCSS)
     fullHTML.push('</style>')
     fullHTML.push('</head>')
-    fullHTML.push('\n<body>')
+    fullHTML.push(winOpts.bodyOptions ? `\n<body ${winOpts.bodyOptions}>` : `\n<body>`)
     fullHTML.push(body)
     fullHTML.push('\n</body>')
     const postScript = generateScriptTags(winOpts.postBodyScript ?? '')

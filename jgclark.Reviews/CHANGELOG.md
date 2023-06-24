@@ -1,11 +1,22 @@
 # What's changed in 🔬 Projects + Reviews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 <!-- - resize action -->
-## [0.12.0] - 2023-05-???
+<!-- checkboxes for only display overdue, and showing finished items -->
+## [0.12.0] - 2023-06-24
 ### Added
-- the Review List's window size and position is now saved whenever its content is refreshed, and is reused when you next re-open it. (**This feature requires NP v3.9.1+**)
-- new **add progress update** command, that prompts for a short progress update (text) and current % complete (number). This is inserted into the metadata area of the current project note.
-- when pausing a project (through the review list or the "pause project toggle" command) it now offers to write a reason as a "progress update" in the metadata.
+- new **/add progress update** command, that prompts for a short progress update (text) and current % complete (number). This is inserted into the metadata area of the current project note. It also updates the `@reviewed(...)` date and refresh the project list display.<!-- first part done in v0.11.1-->
+- new control button 'Add Progress' to make it easy to add a 'Progress: ...' line for the currently open project note (for @John1)
+- more flexibility for 'Progress:' lines: if you don't supply a percentage completion, then it will now calculate it for you (for @loupgaroublond)
+- new **/Projects: update plugin settings** command, that can work on iOS
+<!-- ## [0.11.1] - unreleased
+### Added -->
+- the Review List's window size and position is now saved whenever its content is refreshed, and is reused when you next re-open it. (_This feature requires NP v3.9.1+_)
+- when pausing a project (through the review list or the "pause project toggle" command) it now offers to write a reason as a progress update in the metadata.
+- the Review List updates itself after every relevant review action. Previously it often required hitting 'Refresh' to show the updated state. (_This feature requires NP v3.9.3+_)
+### Changed
+- when running '/finishReview' the Review List no longer opens if it isn't already open
+### Fixed
+- running from x-callbacks with passed parameters e.g. `{"foldersToInclude": "something", "displayOrder": "title" }` (thanks to tip from @1nvictus)
 
 ## [0.11.0] - 2023-05-10
 ### Added
@@ -69,7 +80,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 ## [0.9.0] - 2023-02-23
 ### Added
-- to speed up reviewing projects when you have the 'Rich' Project List view open, there's now a row of buttons above the table that trigger the following commands: **finish project review**, **next project review**, **complete project**, **cancel project**, **pause project toggle**. They work on whatever is the project note that's in NotePlan's main editor window (suggested by @John1).
+- to speed up reviewing projects when you have the 'Rich' Project List view open, there's now a row of buttons above the table that trigger the following commands: **/finish project review**, **/next project review**, **/complete project**, **/cancel project**, **/pause project toggle**. They work on whatever is the project note that's in NotePlan's main editor window (suggested by @John1).
 - the Project list view(s) now automatically update after finishing a review, or completing or cancelling a project.
 - can now show more than one review #type in the HTML view.
 

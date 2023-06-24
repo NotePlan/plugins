@@ -18,14 +18,12 @@ Each **Project** is described by a separate note, and has a lifecycle something 
 
 ![project lifecycle](project-flowchart_bordered.jpg)
 
-Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on a line (which I suggest comes after the title).  For example:
+Each such project contains the `#project` hashtag, `@review(...)` and some other metadata fields on a line (which come after the title).  For example:
 
 ```markdown
 # Secret Undertaking
 #project @review(2w) @reviewed(2021-07-20) @start(2021-04-05) @due(2021-11-30)
 Aim: Do this amazing secret thing
-Progress: 10@2022-01-08: Tracked down 007 and got him on the case
-Progress: 0@2022-01-03: Project started with a briefing from M about SPECTRE's dastardly plan
 
 ## Details
 * [x] Get briefing from 'M' at HQ
@@ -76,7 +74,28 @@ Use the '**Hashtags to review**' setting to control which notes are included in 
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
-### "project lists" command
+### Capturing Progress
+In a project/area note you can, if you wish, include a one-line summary of your view on its current overall progress. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think we're 10% complete:
+
+```markdown
+# Secret Undertaking
+#project @review(1w) @reviewed(2021-05-20) @start(2021-04-05) @due(2021-11-30)
+Aim: Do this amazing secret thing
+Progress: 10@2021-05-20: Tracked down 007 and got him on the case
+Progress: 0@2021-04-05: Project started with a briefing from M about SPECTRE's dastardly plan
+
+## Details
+* [x] Get briefing from 'M' at HQ
+* [x] recruit James Bond
+* [x]  task Q with building a personal jetpack (with USB ports)
+* [x] set up team Deliveroo account
+* [ ] arrange for 007's parking tickets to be paid
+...
+```
+The starting percentage number doesn't have to be given; if it's not it is calculated from the % of open and completed tasks found in the note. The date and the comment are needed.
+
+## The Commands
+### "/project lists" command
 This shows a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. **Tip**: Place this list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.
 
 You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, shown above) or original '**Markdown**' (normal NotePlan) output style:
@@ -84,9 +103,8 @@ You can set the '**Output style to use**'. This is either a '**Rich**' (HTML, sh
 ![Example of 'Markdown' style of Project Lists](review-list-markdown-0.11@2x.png)
 
 Notes about the displays:
-- the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use.
-- in the 'Rich' style this heading row deliberately 'sticks' to the top of the window as you scroll the list.
-![Buttons in 'Rich' style](review-list-buttons-0.11.png)
+- the **Rich style** _isn't a normal NotePlan note that is saved and can be accessed again later_. You will need to re-run the command to see the list again once you close the window.  This 'Rich' style mimics the NotePlan Theme you use.  In this style this heading row deliberately 'sticks' to the top of the window as you scroll the list:
+![Buttons in 'Rich' style](review-list-buttons-0.12.png)
 - due to limits on the API for 'Rich' style output, all #tags to review get shown one after the other in a single window.
 - if you can make the window wide enough it will display in 2 or even 3 columns!
 - the **Markdown style** list _is_ stored in summary note(s) in the 'Reviews' folder (or whatever you set the 'Folder to store' setting to be).
@@ -97,24 +115,41 @@ Other settings:
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders). This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.
 - Folders to Ignore (optional): Specify which folders to ignore (which includes any of their sub-folders too).  This match is done anywhere in the folder name.
 - Display project dates?  Whether to display the project's review and due dates (where set).
-- Display project's latest progress?  Whether to show the project's latest progress (where available). If some lines have a specific 'Progress:' field it will use the latest of those, otherwise it will calculate %completion based on the number of completed and open tasks.
+- Display project's latest progress?  Whether to show the project's latest progress (where available). If some lines have a specific 'Progress:' field. (See above for details.)
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
 - Display grouped by folder? Whether to group the projects by their folder.
 - How to show completed/cancelled projects?: The options are 'display at end', 'display' or 'hide'.
 - Hide top level folder? Whether to suppress higher-level folder names in project list headings.
 - Display archived projects? Whether to display project notes marked as `#archive`.
 
-### "start reviews" command
+### "/start reviews" command
 This kicks off the most overdue review by opening that project's note in the editor. When you have finished the review run one of the next two commands ...
 
-### "finish project review" command
+### "/finish project review" command
 This updates the current open project's `@reviewed(date)`, and if a Rich style project list is open, it is refreshed.
 
-### "next project review" command
+### "/next project review" command
 This updates this project's `@reviewed(date)`, and jumps to the next project to review. If there are none left ready for review it will show a congratulations message.
 
-### "skip project review" command
+### "/skip project review" command
 This adds a `@nextReview(...)` date of your choosing to the current project note, that overrides the normal review interval for it, and jumps to the next project to review.  The next time "finish review" command is used on the project note, the `@nextReview(date)` is removed.
+
+### "/add progress update" command
+This prompts for a short description of latest progress (as short text string) and current % complete (number). This is inserted into the metadata area of the current project note as:
+
+```markdown
+Progress: <num>@YYYY-MM-DD: <short description>
+```
+It will also update the project's `@reviewed(date)`, and if a Rich style project list is open, it is refreshed.
+
+### "/complete project" command
+This adds a `@completed(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+
+### "/cancel project" command
+This adds a `@cancelled(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
+
+### "/pause project toggle" command
+This is a toggle that adds or removes a `#paused` tag to the metadata line of the open project note. When paused it stops the note being offered with '/next review'. However, it keeps showing it in the review list, so you don't forget about it entirely.
 
 ## Creating a new Project/Area note
 A good way to quickly create a new Project or Area note is to use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the Templating plugin. Here is what I use as my New Project Template:
@@ -131,24 +166,8 @@ Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
 ```
 
-## "add progress update" command
-This prompts for a short description of latest progress (as short text string) and current % complete (number). This is inserted into the metadata area of the current project note as:
-
-```markdown
-progress: <num>@YYYY-MM-DD: <short description>
-```
-
-## "complete project" command
-This adds a `@completed(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
-
-## "cancel project" command
-This adds a `@cancelled(date)` to the metadata line of the open project note, adds its details to a yearly note in Summaries folder (if the folder exists), and removes the project/area from the review list. It also offers to move it to NotePlan's separate Archive folder.
-
-## "pause project toggle" command
-This is a toggle that adds or removes a `#paused` tag to the metadata line of the open project note. When paused it stops the note being offered with '/next review'. However, it keeps showing it in the review list, so you don't forget about it entirely.
-
 ## Configuration
-These commands require configuration, which is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel.
+These commands require configuration before they will know how you intend to use projects and reviews. On macOS this is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel. On iOS/iPadOS run the '/Projects: update plugin settings' command instead.
 
 ## Running from x-callback calls
 Most of these commands can be run from an x-callback call:
@@ -157,13 +176,15 @@ Most of these commands can be run from an x-callback call:
 
 The `command` parameter is the command name, but needs to be 'percent encoded' (i.e. with any spaces changed to `%20`).
 
-If you wish to override your current settings for this call, add `&arg0=` followed by a URL encoded version of keys and values e.g. `arg0=displayDates%3Dtrue%2CdisplayProgress%3Dfalse%2CdisplayGroupedByFolder%3Dfalse`.
+If you wish to override your current settings for this call, add `&arg0=` followed by a JSON version of the keys and values e.g.
+`arg0={"foldersToInclude":["CCC Projects"],"displayDates":true,"displayProgress":false,"displayGroupedByFolder":false,"displayOrder":"title"}`
+that then needs to be URL encoded e.g.
+`arg0=%7B%22foldersToInclude%22%3A%5B%22CCC%20Projects%22%5D%2C%22displayDates%22%3Atrue%2C%22displayProgress%22%3Afalse%2C%22displayGroupedByFolder%22%3Afalse%2C%22displayOrder%22%3A%22title%22%7D`
 
 The name of the settings are taken from the `key`s from the plugin's `plugin.json` file, which are mostly the names shown in the settings dialog without spaces.
 
-
 ## Thanks
-Thanks to George Crump and 'John1' for their suggestions and beta testing.
+Particular thanks to George Crump, 'John1' and David Wertheimer for their suggestions and beta testing.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

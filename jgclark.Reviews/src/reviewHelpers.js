@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 10.5.2023 for v0.11.0, @jgclark
+// Last updated 23.6.2023 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -11,12 +11,19 @@ import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import { checkString } from '@helpers/checkType'
 import {
-  calcOffsetDate, calcOffsetDateStr, daysBetween, getDateObjFromDateString, getDateFromUnhyphenatedDateString, includesScheduledFutureDate, relativeDateFromDate,
+  calcOffsetDate, calcOffsetDateStr, daysBetween,
+  getDateFromUnhyphenatedDateString,
+  getDateObjFromDateString,
+  getJSDateStartOfToday,
+  hyphenatedDateString,
+  includesScheduledFutureDate,
+  RE_ISO_DATE, RE_YYYYMMDD_DATE,
+  relativeDateFromDate,
   todaysDateISOString,
   toISODateString, unhyphenateString
 } from '@helpers/dateTime'
 import { localeRelativeDateFromNumber } from '@helpers/NPdateTime'
-import { clo, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { createOpenOrDeleteNoteCallbackUrl, createRunPluginCallbackUrl, getContentFromBrackets, getStringFromList } from '@helpers/general'
 import {
@@ -26,7 +33,7 @@ import {
   redToGreenInterpolation,
   rgbToHex
 } from '@helpers/HTMLView'
-import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import {
   getInputTrimmed,
@@ -34,6 +41,7 @@ import {
   showMessage
 } from '@helpers/userInput'
 import { isDone, isOpen } from '@helpers/utils'
+import { isNull } from 'mathjs'
 
 //------------------------------
 // Config setup
@@ -49,6 +57,7 @@ export type ReviewConfig = {
   displayOrder: string,
   displayGroupedByFolder: boolean,
   displayFinished: string,
+  displayOnlyOverdue: boolean,
   hideTopLevelFolder: boolean,
   displayArchivedProjects: boolean,
   finishedListHeading: string,
@@ -103,7 +112,6 @@ export async function getReviewSettings(): Promise<any> {
 
 /**
  * Calculate the next date to review, based on last review date and date interval.
- * TODO: change from new Date()
  * If no last review date, then the answer is today's date.
  * @author @jgclark
  * @param {Date} lastReviewDate - JS Date
@@ -113,8 +121,7 @@ export async function getReviewSettings(): Promise<any> {
 export function calcNextReviewDate(lastReviewDate: Date, interval: string): Date {
   const lastReviewDateStr: string = toISODateString(lastReviewDate)
   // $FlowIgnore[incompatible-type] as calcOffsetDate() will throw error rather than return null
-  const reviewDate: Date = lastReviewDate != null ? calcOffsetDate(lastReviewDateStr, interval) : new Date() // today's date
-  // TODO: simplify to const reviewDate: Date = lastReviewDate != null ? calcOffsetDate(toISODateString(lastReviewDate), interval) : new Date() // today's date ??
+  const reviewDate: Date = lastReviewDate != null ? calcOffsetDate(lastReviewDateStr, interval) : getJSDateStartOfToday() // today's date
   return reviewDate
 }
 
@@ -180,52 +187,74 @@ export function getFieldParagraphsFromNote(note: TNote, fieldName: string): Arra
   return matchArr
 }
 
-/**
- * Return the most recent progress line from the array (normally the first one)
- * @param {Array<string>} progressLines
- * @returns
- */
-function mostRecentProgressLine(progressLines: Array<string>): string {
-  // Default to returning first line
-  let outputLine = progressLines[0]
-  // Then check each line to see if its newer
-  let lastDatePart = '1000-01-01' // earliest possible YYYY-MM-DD date
-  for (const progressLine of progressLines) {
-    const progressLineParts = progressLine.split(/[:@]/)
-    if (progressLineParts.length >= 3) {
-      const thisDatePart = progressLineParts[1]
-      if (thisDatePart > lastDatePart) {
-        outputLine = progressLine
-        // logDebug('Project::mostRecentProgressLine', `Found latest datePart ${thisDatePart}`)
-      }
-      lastDatePart = thisDatePart
-    }
-  }
-  return outputLine
+export type Progress = {
+  lineIndex: number,
+  percentComplete: number,
+  date: Date,
+  comment: string
 }
 
 /**
- * Return the most recent progress line from the array (normally the first one)
- * @param {Array<string>} progressLines
- * @returns
+ * Return the (paragraph index of) the most recent progress line from the array, based upon the most recent YYYYMMDD or YYYY-MM-DD date found. If it can't find any it default to the first paragraph.
+ * @param {Array<TParagraph>} progressParas
+ * @returns {number} lineIndex of the most recent line
  */
-function mostRecentProgressParagraph(progressParas: Array<TParagraph>): number {
-  // Default to returning first line
-  let outputParaIndex: number = progressParas[0].lineIndex
-  // Then check each line to see if its newer
-  let lastDatePart = '1000-01-01' // earliest possible YYYY-MM-DD date
-  for (const progressPara of progressParas) {
-    const progressParaParts = progressPara.content.split(/[:@]/)
-    if (progressParaParts.length >= 3) {
-      const thisDatePart = progressParaParts[1]
-      if (thisDatePart > lastDatePart) {
-        outputParaIndex = progressPara.lineIndex
-        // logDebug('Project::mostRecentProgressPara', `Found latest datePart ${thisDatePart}`)
-      }
-      lastDatePart = thisDatePart
+function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress {
+  try {
+    let lastDate = new Date('0000-01-01') // earliest possible YYYY-MM-DD date
+    let lastIndex = 0 // Default to returning first line
+    let i = 0
+    let outputProgress: Progress = {
+      lineIndex: 1,
+      percentComplete: NaN,
+      date: new Date('0001-01-01'),
+      comment: '(no comment found)'
     }
+    for (const progressPara of progressParas) {
+      // const progressParaParts = progressPara.content.split(/[:@]/)
+      // if (progressParaParts.length >= 1) {
+      // const thisDatePart = progressParaParts[1]
+      const progressLine = progressPara.content
+      const thisDate: Date = (new RegExp(RE_ISO_DATE).test(progressLine))
+        // $FlowIgnore[incompatible-type]
+        ? getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
+        : (new RegExp(RE_YYYYMMDD_DATE).test(progressLine))
+          // $FlowIgnore[incompatible-type]
+          ? getDateFromUnhyphenatedDateString(progressLine.match(RE_YYYYMMDD_DATE)[0])
+          : new Date('0001-01-01')
+      const comment = progressLine.split(/[:@]/).at(-1) ?? ''
+      const percent: number = (/\d{1,2}[:@]/.test(progressLine))
+        // $FlowIgnore[incompatible-use]
+        ? Number(progressLine.match(/(\d{1,2})[:@]/).at(1))
+        : NaN
+
+      if (thisDate > lastDate) {
+        // lastIndex = i // progressPara.lineIndex
+        // logDebug('Project::mostRecentProgressParagraph', `Found latest datePart ${thisDatePart}`)
+        outputProgress = {
+          lineIndex: progressPara.lineIndex,
+          percentComplete: percent,
+          date: thisDate,
+          comment: comment
+        }
+        // clo(outputProgress, 'Project::mostRecentProgressParagraph -> ')
+      }
+      lastDate = thisDate
+
+      // }
+      i++
+    }
+    // clo(outputProgress, 'mostRecentProgressParagraph ->')
+    return outputProgress
+  } catch (e) {
+    logError('Project::mostRecentProgressParagraph', e.message)
+    return {
+      lineIndex: 1,
+      percentComplete: NaN,
+      date: new Date('0001-01-01'),
+      comment: '(no comment found)'
+    } // for completeness
   }
-  return outputParaIndex
 }
 
 //-----------------------------------------------------------------------------
@@ -251,7 +280,7 @@ export class Project {
   reviewedDate: ?Date
   reviewInterval: ?string
   nextReviewDate: ?Date
-  nextReviewDateStr: ?string
+  nextReviewDateStr: ?string // can be set by user (temporarily) but not otherwise populated
   nextReviewDays: number = NaN
   completedDate: ?Date
   completedDuration: ?string // string description of time to completion, or how long ago completed
@@ -268,9 +297,10 @@ export class Project {
   folder: string
   percentComplete: number = NaN
   lastProgressComment: string = '' // e.g. "Progress: 60@20220809: comment
+  mostRecentProgressLineIndex: number = NaN
   ID: string // required when making HTML views
 
-  constructor(note: TNote, tag?: string) {
+  constructor(note: TNote, noteTypeTag?: string) {
     try {
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
       this.ID = String(Math.round((Math.random()) * 99999))
@@ -284,19 +314,24 @@ export class Project {
       const paras = note.paragraphs
       const metadataLineIndex = getOrMakeMetadataLine(note)
       this.metadataPara = paras[metadataLineIndex]
-      const mentions: $ReadOnlyArray<string> = note.mentions ?? []
-      // This line returns some items out of date. TEST: EM says this has now  been fixed
-      // Note: Here's an alternate that just gets mentions from the metadataline
-      // const altMentions = (paras[metadataLineIndex].content + ' ').split(' ').filter((f) => f[0] === '@')
-      const hashtags: $ReadOnlyArray<string> = note.hashtags ?? []
-      // const altHashtags = (paras[metadataLineIndex].content + ' ').split(' ').filter((f) => f[0] === '#')
+      let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
+      let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
+      let metadataLine = paras[metadataLineIndex].content
+      if (mentions.length === 0) {
+        logDebug('Project constructor', `- Grr: .mentions empty: will use metadata line instead`)
+        // Note: If necessary, fall back to getting mentions just from the metadataline
+        mentions = (metadataLine + ' ').split(' ').filter((f) => f[0] === '@')
+      }
+      if (hashtags.length === 0) {
+        hashtags = (metadataLine + ' ').split(' ').filter((f) => f[0] === '#')
+      }
 
       // work out noteType:
-      // - if tag given, then use that
+      // - if noteTypeTag given, then use that
       // - else first or second hashtag in note
       try {
-        this.noteType = (tag)
-          ? tag
+        this.noteType = (noteTypeTag)
+          ? noteTypeTag
           : (hashtags[0] !== '#paused')
             ? hashtags[0]
             : (hashtags[1])
@@ -328,7 +363,12 @@ export class Project {
       this.reviewInterval = tempIntervalStr !== '' ? getContentFromBrackets(tempIntervalStr) : undefined
       // read in nextReview date (if found)
       tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
-      this.nextReviewDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
+      if (tempStr !== '') {
+        this.nextReviewDate = getDateObjFromDateString(tempStr)
+        // $FlowIgnore(incompatible-call)
+        this.nextReviewDateStr = toISODateString(this.nextReviewDate)
+        logDebug('Found nextReview()', `${this.nextReviewDateStr} / ${String(this.nextReviewDate)}`)
+      }
 
       // calculate the durations from these dates
       this.calcDurations()
@@ -340,27 +380,23 @@ export class Project {
       this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length
       this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length
 
-      if (this.title.includes('(TEST)')) {
-        logDebug('Project constructor', `- for '${this.title}' (${this.filename})`)
-        logDebug('Project constructor', `  - metadataLine = ${paras[metadataLineIndex].content}`)
-        logDebug('Project constructor', `  - mentions: ${String(mentions)}`)
-        // logDebug('Project constructor', `  - altMentions: ${String(altMentions)}`)
-        logDebug('Project constructor', `  - hashtags: ${String(hashtags)}`)
-        // logDebug('Project constructor', `  - altHashtags: ${String(altHashtags)}`)
-      }
-
       // Track percentComplete: either through calculation from counts ...
       const totalTasks = this.completedTasks + this.openTasks - this.futureTasks
       if (totalTasks > 0) {
         this.percentComplete = Math.round((this.completedTasks / totalTasks) * 100)
-        // logDebug('Project constructor', `- ${this.title}: % complete = ${this.percentComplete}`)
       } else {
         this.percentComplete = NaN
-        // logDebug('Project constructor', `- ${this.title}: % complete = NaN`)
       }
 
-      // Find progress field lines (if any) and process
-      this.processProgressLines()
+      if (this.title.includes('(TEST)')) {
+        logDebug('Project constructor', `- for '${this.title}' (${this.filename})`)
+        logDebug('Project constructor', `  - metadataLine = ${metadataLine}`)
+        logDebug('Project constructor', `  - mentions: ${String(mentions)}`)
+        // logDebug('Project constructor', `  - altMentions: ${String(altMentions)}`)
+        logDebug('Project constructor', `  - hashtags: ${String(hashtags)}`)
+        // logDebug('Project constructor', `  - altHashtags: ${String(altHashtags)}`)
+        logDebug('Project constructor', `  - % complete = ${String(this.percentComplete)}`)
+      }
 
       // make project completed if @completed(date) set
       if (this.completedDate != null) {
@@ -377,7 +413,10 @@ export class Project {
         this.isPaused = true
         this.nextReviewDays = NaN
       }
-      // logDebug('Project constructor', `- created ID ${this.ID} for '${this.title}': ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${String(this.isCompleted)} / ${String(this.isCancelled)} / ${String(this.isPaused)}`)
+      logDebug('Project constructor', `project(${this.title}) -> ID ${this.ID} / ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
+
+      // Find progress field lines (if any) and process
+      this.processProgressLines()
     }
     catch (error) {
       logError('Project constructor', error.message)
@@ -400,33 +439,34 @@ export class Project {
    */
   calcDurations(): void {
     try {
-      const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+      const now = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+      // Calculate # days until due
       this.dueDays =
         this.dueDate != null
-        // NB: Written while there was an error in EM's Calendar.unitsBetween() function
         ? daysBetween(now, this.dueDate)
         : NaN
 
       // Calculate durations or time since cancel/complete
-      if (this.startDate != null) {
+      logDebug('calcDurations', String(this.startDate))
+      if (this.startDate) {
         const momTSD = moment(this.startDate)
         if (this.completedDate != null) {
           this.completedDuration = 'after ' + momTSD.to(moment(this.completedDate), true)
-          // logDebug(`-> completedDuration = ${this.completedDuration}`)
+          // logDebug('calcDurations', `-> completedDuration = ${this.completedDuration}`)
         }
         else if (this.cancelledDate != null) {
           this.cancelledDuration = 'after ' + momTSD.to(moment(this.cancelledDate), true)
-          // logDebug(`-> cancelledDuration = ${this.cancelledDuration}`)
+          // logDebug('calcDurations', `-> cancelledDuration = ${this.cancelledDuration}`)
         }
       }
       else {
         if (this.completedDate != null) {
-          this.completedDuration = 'after ' + moment(this.completedDate).toNow(true)
-          // logDebug(`-> completedDuration = ${this.completedDuration}`)
+          this.completedDuration = moment(this.completedDate).toNow(true) + ' ago'
+          // logDebug('calcDurations', `-> completedDuration = ${this.completedDuration}`)
         }
         else if (this.cancelledDate != null) {
-          this.cancelledDuration = 'after ' + moment(this.cancelledDate).toNow(true)
-          // logDebug(`-> completedDuration = ${this.completedDuration}`)
+          this.cancelledDuration = moment(this.cancelledDate).toNow(true) + ' ago'
+          // logDebug('calcDurations', `-> completedDuration = ${this.cancelledDuration}`)
         }
         else {
           // Nothing to do
@@ -442,8 +482,8 @@ export class Project {
     try {
       // Calculate next review due date, if there isn't already a nextReviewDate, and there's a review interval.
       const now = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-      if (this.nextReviewDate) {
-        this.nextReviewDays = daysBetween(now, this.nextReviewDate)
+      if (this.nextReviewDateStr != null) {
+        this.nextReviewDays = daysBetween(now, this.nextReviewDateStr)
         logDebug('calcNextReviewDate', `already had a nextReviewDateStr ${this.nextReviewDateStr ?? '?'} -> ${String(this.nextReviewDays)} interval`)
       }
       else if (this.reviewInterval != null) {
@@ -462,7 +502,7 @@ export class Project {
           this.nextReviewDays = 0
         }
       }
-      // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / dueDays = ${String(this.dueDays)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
+      logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
     } catch (error) {
       logError('calcNextReviewDate', error.message)
     }
@@ -473,76 +513,75 @@ export class Project {
    * - new % complete
    * - new comment
    * And add to the metadata area of the note
+   * @param {string} prompt message, to which is added the note title
    */
-  async addProgressLine(): Promise<void> {
+  async addProgressLine(prompt: string = 'Enter comment about current progress for'): Promise<void> {
     try {
-      // Find most recent progress paragraph
-      const progressParas = getFieldParagraphsFromNote(this.note, 'progress')
       // Set insertion point for the new progress line to this paragraph,
       // or if none exist, to the line after the current metadata line
-      let insertionIndex = this.metadataPara.lineIndex + 1
-      if (progressParas.length > 0) {
-        insertionIndex = mostRecentProgressParagraph(getFieldParagraphsFromNote(this.note, 'progress'))
-        logDebug('Project::addProgressLine', `Will insert new progress line before most recent progress line.`)
+      let insertionIndex = this.mostRecentProgressLineIndex
+      if (isNaN(insertionIndex)) {
+        insertionIndex = findStartOfActivePartOfNote(this.note, true)
+        logDebug('Project::addProgressLine', `No progress paragraphs found, so will insert new progress line after metadata at line ${String(insertionIndex)}`)
       } else {
-        logDebug('Project::addProgressLine', `No progress paragraphs found, so will insert new progress line after metadata.`)
+        // insertionIndex = mostRecentProgressParagraph(getFieldParagraphsFromNote(this.note, 'progress'))
+        logDebug('Project::addProgressLine', `Will insert new progress line before most recent progress line at ${String(insertionIndex)}.`)
       }
 
-      const message1 = (this.isPaused) ? `Enter comment (if wanted) as you restart this project` : `Enter comment (if wanted) as you pause this project`
-      const resText = await getInputTrimmed(message1, 'OK', 'Add Progress comment')
+      const message1 = `${prompt} '${this.title}'`
+      const resText = await getInputTrimmed(message1, 'OK', `Add Progress comment`)
       if (!resText) {
         logDebug('Project::addProgressLine', `No valid progress line given.`)
         return
       }
+      const comment = String(resText) // to keep flow happy
 
-      const message2 = (!isNaN(this.percentComplete)) ? `Enter project completion (as %; last was ${String(this.percentComplete)}%)` : `Enter project completion (as %)`
+      const message2 = (!isNaN(this.percentComplete)) ? `Enter project completion (as %; last was ${String(this.percentComplete)}%) if wanted` : `Enter project completion (as %) if wanted`
       const resNum = await inputIntegerBounded('Add Progress % completion', message2, 100, 0)
+      let percentStr = ''
       if (isNaN(resNum)) {
-        logDebug('Project::addProgressLine', `No valid progress line given.`)
-        return
+        logDebug('Project::addProgressLine', `No percent completion given.`)
+      } else {
+        this.percentComplete = resNum
+        percentStr = String(resNum)
       }
 
       // Update the project's metadata
-      this.percentComplete = Number(resNum)
-      // $FlowIgnore(incompatible-type)
-      this.lastProgressComment = `${resText} (today)`
+      this.lastProgressComment = `${comment} (today)`
       // logDebug('Project::addProgressLine', `-> line ${String(insertionIndex)}: ${this.percentComplete} / '${this.lastProgressComment}'`)
 
       // And write it to the Editor
-      // $FlowIgnore(incompatible-type)
-      const newProgressLine = `Progress: ${String(resNum)}@${todaysDateISOString}: ${resText}`
+      const newProgressLine = `Progress: ${percentStr}@${todaysDateISOString}: ${comment}`
       Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
+      // Also updateCache otherwise the
+      await saveEditorToCache()
     } catch (error) {
-      logError(pluginJson, `addProgressLine: ${error.message}`)
+      logError(`Project::addProgressLine`, JSP(error))
     }
   }
 
+  /**
+   * Process the 'Progress:...' lines to retrieve metadata. Allowed forms are:
+   *   Progress: n@YYYYMMDD: progress messsage
+   *   Progress: n:YYYYMMDD: progress messsage
+   *   Progress: n:YYYY-MM-DD: progress messsage
+   *   Progress: n:YYYY-MM-DD: progress messsage
+   *   Progress: YYYYMMDD: progress messsage  [in which case % is calculated]
+   *   Progress: YYYY-MM-DD: progress messsage  [in which case % is calculated]
+   */
   processProgressLines(): void {
     // Get specific 'Progress' field lines
-    // const progressLines = getFieldsFromNote(this.note, 'progress')
     const progressParas = getFieldParagraphsFromNote(this.note, 'progress')
 
-    // if (progressLines.length > 0) {
     if (progressParas.length > 0) {
-      // Get the most recent line to use
-      // const progressLine = mostRecentProgressLine(progressLines)
-      const progressLineIndex = mostRecentProgressParagraph(progressParas)
-
-      // Get the first part of the value of the Progress field: nn@YYYY-MM-DD ...
-      const progressLine = progressParas[progressLineIndex].content
-      const progressLineParts = progressLine.split(/[:@]/, 3)
-      if (progressLineParts.length >= 3) {
-        this.percentComplete = Number(progressLineParts[0])
-        const datePart = unhyphenateString(progressLineParts[1])
-        // $FlowFixMe
-        this.lastProgressComment = `${progressLineParts[2].trim()} (${relativeDateFromDate(getDateFromUnhyphenatedDateString(datePart))})`
-        logDebug('Project::processProgressLines', `- progress field -> ${this.percentComplete} / '${this.lastProgressComment}' from <${progressLine}>`)
-      } else {
-        logWarn('Project::processProgressLines', `- cannot properly parse progress field <${progressLine}> in project '${this.title}'`)
-        clo(progressLineParts, 'progressLineParts')
-      }
+      // Get the most recent progressItem from these lines
+      const progressItem: Progress = mostRecentProgressParagraph(progressParas)
+      this.percentComplete = progressItem.percentComplete
+      this.lastProgressComment = progressItem.comment
+      this.mostRecentProgressLineIndex = progressItem.lineIndex
+      logDebug('Project::processProgressLines', `  -> ${String(this.percentComplete)}% from progress line`)
     } else {
-      logDebug('Project::processProgressLines', `- no progress fields found`)
+      // logDebug('Project::processProgressLines', `- no progress fields found`)
     }
   }
 
@@ -552,14 +591,14 @@ export class Project {
    * @author @jgclark
    * @returns {string} new machineSummaryLine or empty on failure
    */
-  completeProject(): string {
+  async completeProject(): Promise<string> {
     try {
       // update the metadata fields
       // this.isActive = false
       this.isCompleted = true
       this.isCancelled = false
       this.isPaused = false
-      this.completedDate = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone // TODO: change from new Date()
+      this.completedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
       this.calcDurations()
 
       // re-write the note's metadata line
@@ -571,9 +610,7 @@ export class Project {
       // TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // Now need to update the Cache
-      DataStore.updateCache(Editor.note, true)
-
+      await saveEditorToCache()
       const newMSL = this.machineSummaryLine()
       logDebug('completeProject', `- returning mSL '${newMSL}'`)
       return newMSL
@@ -590,14 +627,14 @@ export class Project {
    * @author @jgclark
    * @returns {string} new machineSummaryLine or empty on failure
    */
-  cancelProject(): string {
+  async cancelProject(): Promise<string> {
     try {
       // update the metadata fields
       // this.isActive = false
       this.isCompleted = false
       this.isCancelled = true
       this.isPaused = false
-      this.cancelledDate = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone // TODO: change from new Date()
+      this.cancelledDate = new moment().toDate()  // getJSDateStartOfToday() // use moment instead of `new Date` to ensure we get a date in the local timezone
       this.calcDurations()
 
       // re-write the note's metadata line
@@ -609,9 +646,7 @@ export class Project {
       // TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // Need to update the Cache
-      DataStore.updateCache(Editor.note, true)
-
+      await saveEditorToCache()
       const newMSL = this.machineSummaryLine()
       logDebug('cancelProject', `- returning mSL '${newMSL}'`)
       return newMSL
@@ -628,15 +663,15 @@ export class Project {
    * @author @jgclark
    * @returns {string} new machineSummaryLine or empty on failure
    */
-  togglePauseProject(): string {
+  async togglePauseProject(): Promise<string> {
     try {
+      // Get progress field details (if wanted)
+      await this.addProgressLine(this.isPaused ? 'Comment (if wanted) as you resume' : 'Comment (if wanted) as you pause')
+
       // update the metadata fields
       this.isCompleted = false
       this.isCancelled = false
       this.isPaused = !this.isPaused // toggle
-
-      // Get progress field details (if wanted)
-      this.addProgressLine()
 
       // re-write the note's metadata line
       logDebug('togglePauseProject', `Paused state now toggled to ${String(this.isPaused)} for '${this.title}' ...`)
@@ -647,10 +682,9 @@ export class Project {
       // TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      // Now need to update the Cache
-      DataStore.updateCache(Editor.note, true)
+      await saveEditorToCache()
       const newMSL = this.machineSummaryLine()
-      logDebug('togglePauseProject', `- returning mSL '${newMSL}'`)
+      logDebug('togglePauseProject', `- returning newMSL '${newMSL}'`)
       return newMSL
     }
     catch (error) {
@@ -688,15 +722,24 @@ export class Project {
    */
   machineSummaryLine(): string {
     try {
+      // next review in days
       let output = (!this.isPaused && this.nextReviewDays != null && !isNaN(this.nextReviewDays)) ? String(this.nextReviewDays) : 'NaN'
       output += '\t'
+      // due date in days
       output += (!this.isPaused && this.dueDays != null && !isNaN(this.dueDays)) ? String(this.dueDays) : 'NaN'
+      // title
       output += `\t${this.title}\t`
+      // folder
       output += this.folder && this.folder !== undefined ? `${this.folder}\t` : '\t'
+      // note type, then other pseudo-tags
       output += (this.noteType) ? `${this.noteType} ` : ''
       output += this.isPaused ? '#paused' : ''
       output += '\t'
-      output += (this.isCompleted) ? 'finished' : (this.isCancelled) ? 'finished-cancelled' : 'active'
+      output += (this.isCompleted)
+        ? 'finished'
+        : (this.isCancelled)
+          ? 'finished-cancelled'
+          : 'active'
       return output
     }
     catch (error) {
@@ -822,14 +865,18 @@ export class Project {
         }
 
         // Columns 3/4: date information
-        if (displayDates && !this.isPaused /** && !this.isCompleted && !this.isCancelled */) { // TODO: Why the former check? (also see MD version below)
-          if (this.completedDate != null) {
-            // "completed after X" or "cancelled X ago", depending
-            const completionRef = (this.completedDuration) ? this.completedDuration : relativeDateFromDate(this.completedDate)
+        if (displayDates && !this.isPaused) {
+          if (this.isCompleted) {
+            // "completed after X"
+            const completionRef = (this.completedDuration)
+              ? this.completedDuration
+              : "completed"
             output += `<td colspan=2 class="checked">Completed ${completionRef}</td>`
-          } else if (this.cancelledDate != null) {
-            // 'cancelled after X' or 'cancelled X ago', depending
-            const cancellationRef = (this.cancelledDuration) ? this.cancelledDuration : relativeDateFromDate(this.cancelledDate)
+          } else if (this.isCancelled) {
+            // "cancelled X ago"
+            const cancellationRef = (this.cancelledDuration)
+              ? this.cancelledDuration
+              : "cancelled"
             output += `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td>`
           }
           if (!this.isCompleted && !this.isCancelled) {
@@ -854,14 +901,18 @@ export class Project {
         output = '- '
         output += `${this.decoratedProjectTitle(style, includeFolderName)}`
         // logDebug('', `${this.decoratedProjectTitle(style, includeFolderName)}`)
-        if (displayDates) {
-          if (this.completedDate != null) {
+        if (displayDates && !this.isPaused) {
+          if (this.isCompleted) {
             // completed after X or cancelled X ago, depending
-            const completionRef = (this.completedDuration) ? this.completedDuration : relativeDateFromDate(this.completedDate)
+            const completionRef = (this.completedDuration)
+              ? this.completedDuration
+              : "completed"
             output += `\t(Completed ${completionRef})`
-          } else if (this.cancelledDate != null) {
+          } else if (this.isCancelled) {
             // completed after X or cancelled X ago, depending
-            const cancellationRef = (this.cancelledDuration) ? this.cancelledDuration : relativeDateFromDate(this.cancelledDate)
+            const cancellationRef = (this.cancelledDuration)
+              ? this.cancelledDuration
+              : "cancelled"
             output += `\t(Cancelled ${cancellationRef})`
           }
         }
@@ -960,4 +1011,49 @@ export function makeFakeButton(buttonText: string, commandName: string, commandA
     ? `<span class="fake-button tooltip"><a class="button" href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></span>`
     : `<span class="fake-button"><a class="button" href="${xcallbackURL}">${buttonText}</span>`
   return output
+}
+
+/**
+ * Function to save changes to the Editor to the cache to be available elsewhere straight away.
+ * Note: From 3.9.3 there's a function for this, but we need something else before then. Try having a basic 1s wait.
+ */
+export async function saveEditorToCache(completed: function): Promise<void> {
+  try {
+    // If 3.9.3alpha or later call specific new function
+    if (NotePlan.environment.buildVersion > 1049) {
+      logDebug('saveEditorToCache', '... waiting for Editor.save ...')
+      Editor.save()
+    }
+    // else wait for 1 second
+    else {
+      logDebug('saveEditorToCache', '... waiting for 1 second ...')
+      setTimeout(() => {
+        DataStore.updateCache(Editor.note, true)
+        completed()
+      }, 1000)
+    }
+  } catch (error) {
+    logError('saveEditorToCache', error.message)
+  }
+}
+
+// FIXME: error message "NotePlan_Beta.JSPromiseConstructor is not a constructor (evaluating 'new Promise((resolve => setTimeout(resolve, milliseconds)))')"
+// TODO: Looks like this doesn't work in NP. See some Discord chat @EduardMe, 19.6.2023
+// function delay(milliseconds: number) {
+//   try {
+//     // $FlowIgnore - @EduardMe says NP overrides the Promise mechanism
+//     const promise = new Promise()
+//     setTimeout(() => { promise.success() }, milliseconds)
+//     return promise
+//   } catch (error) {
+//     logError('delay', error.message)
+//   }
+// }
+
+const delay = (ms: number) => {
+  const start = Date.now()
+  let now = start
+  while (now - start < ms) {
+    now = Date.now()
+  }
 }

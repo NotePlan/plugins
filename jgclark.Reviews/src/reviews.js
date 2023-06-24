@@ -9,18 +9,18 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 8.5.2023 for v0.11.0, @jgclark
+// Last updated 23.6.2023 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import fm from 'front-matter'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
-import { getReviewSettings, makeFakeButton, Project } from './reviewHelpers'
+import { getReviewSettings, makeFakeButton, Project, saveEditorToCache } from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
 import { calcOffsetDate, calcOffsetDateStr, getDateObjFromDateString, getJSDateStartOfToday, getTodaysDateHyphenated, hyphenatedDateString, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
-import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithStringArgs, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { type HtmlWindowOptions, makeSVGPercentRing, redToGreenInterpolation, showHTML, showHTMLV2 } from '@helpers/HTMLView'
@@ -30,7 +30,7 @@ import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import { fieldSorter, sortListBy } from '@helpers/sorting'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
-import { focusHTMLWindowIfAvailable, logWindowsList, noteOpenInEditor, setEditorWindowId, setHTMLWindowId } from '@helpers/NPWindows'
+import { focusHTMLWindowIfAvailable, isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId, setHTMLWindowId } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------------------
 
@@ -60,7 +60,8 @@ export const reviewListCSS: string = [
   'table { font-size: 1.0rem;', // had been on 0.9rem to make text a little smaller
   '  border-collapse: collapse;', // always!
   '  width: 100%;', // keep wide to avoid different table widths
-  '  empty-cells: show;}',
+  '  empty-cells: show;',
+  '  margin-bottom: 2rem;}', // add space below to better balance with spacing around H3 headings
   'p { margin-block-start: 0.5rem; margin-block-end: 0.5rem; }',
   'a, a:visited, a:active { color: inherit; text-decoration-line: none }', // turn off special colouring and underlining for links -- turn on later when desired
   '.sticky-box-top-middle { position: sticky; top: 0px; background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); line-height: 1.8rem; margin: auto; padding: 4px; align: middle; text-align: center; }', // Keep a header stuck to top middle of window
@@ -93,6 +94,54 @@ export const reviewListCSS: string = [
   .tooltip .tooltiptext::after { content: ""; position: absolute; top: 100%; /* At the bottom of the tooltip */ left: 50%; margin-left: -5px; border: 8px solid; border-color: var(--tint-color) transparent transparent transparent; }
   /* Show the tooltip text when you mouse over the tooltip container */
   .tooltip:hover .tooltiptext { visibility: visible; }`,
+  `/* For fancy toggle as checkbox */
+  /* from [Pure CSS3 iOS switch checkbox.](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb) */
+  input.apple-switch {
+    position: relative;
+    margin-top: 1px;
+    -webkit-appearance: none;
+    outline: none;
+    width: 2.0rem; /* 50px; */
+    height: 1.1rem; /* 30px; */
+    background-color: #fff;
+    border: 1px solid #D9DADC;
+    border-radius: 2.0rem; /* 50px; */
+    box-shadow: inset -0.8rem 0 0 0 #fff; /* -20px */
+  }
+  input.apple-switch:after {
+    content: "";
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    background: transparent;
+    width: 1.0rem; /* 26px; */
+    height: 1.0rem; /* 26px; */
+    border-radius: 50%;
+    box-shadow: 2px 4px 6px rgba(0,0,0,0.2);
+    margin-right: 1.0rem;
+  }
+  input.apple-switch:checked {
+    box-shadow: inset 0.8rem 0 0 0 #4ed164; /* 20px; */
+    border-color: #4ed164;
+  }
+  input.apple-switch:checked:after {
+    left: 0.8rem; /* 20px; */
+    box-shadow: -2px 4px 3px rgba(0,0,0,0.05);
+  }
+  label {
+	  vertical-align: top;
+  }
+	ul {
+		display: flex;
+		padding: 0.4rem;
+		margin: 0rem;
+	}
+  li {
+		break-inside: avoid;
+		display: block;
+		padding-inline: 0.4rem;
+	}
+`
 ].join('\n\t')
 
 // Note: Not currently used: instead all comms happens through x-callbacks
@@ -115,7 +164,45 @@ export const reviewListCSS: string = [
 // </script>`
 // }
 
-export const setPercentRingJSFunc: string = `<script>
+export const checkboxHandlerJSFunc: string = `
+<script type="text/javascript">
+function handleCheckboxClick(cb) {
+  console.log("Checkbox for " + cb.name + " clicked, new value = " + cb.checked);
+  const callbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggleDisplayFinished";
+  console.log("Will call URL " + callbackURL);
+  fetch(callbackURL);
+}
+</script>
+`
+// TODO: in time make a 'timeago' relative display, e.g. using MOMENT moment.duration(-1, "minutes").humanize(true); // a minute ago
+// or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html
+// or https://theprogrammingexpert.com/javascript-count-up-timer/
+export const timeAgoClockJSFunc: string = `
+<script type="text/javascript">
+function timeAgo() {
+  const startTime = document.getElementsByName('startTime')[0].getAttribute('content'); // Get startTime from meta tag
+  const now = Date.now();
+	const diff = (Math.abs(now - startTime)/1000.0/60.0);  // in Mins
+	if (diff === 0) {
+		output = 'just now';
+	} else if (diff <= 90) {
+		output = String(diff) + ' mins';
+	} else if (diff <= 1440) {
+		output = String(Math.round(diff / 60.0)) + ' hours';
+	} else if (diff <= 43776) {
+		output = String(Math.round(diff / 60.0 / 24.0)) + ' days';
+	} else if (diff <= 525312) {
+		output = String(Math.round(diff / 60.0 / 24.0 / 30.4)) + ' mon';
+	} else {
+		output = String(Math.round(diff / 60.0 / 24.0 / 30.4 / 365.0)) + ' yrs';
+	}
+  document.getElementById('timer').innerHTML = output + ' ago';
+  setTimeout(startTime, 5000);
+}
+</script>`
+
+export const setPercentRingJSFunc: string = `
+<script>
   /**
    * Sets the value of a SVG percent ring.
    * @param {number} percent The percent value to set.
@@ -143,26 +230,26 @@ export const setPercentRingJSFunc: string = `<script>
 
 /**
  * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
- * Now includes support for calling from x-callback, using simple "a=b;x=y" version of settings and values that will override ones in the user's settings.
- * @param {string | null} arguments list of form "a=b;x=y"
+ * Now includes support for calling from x-callback, using full JSON '{"a":"b", "x":"y"}' version of settings and values that will override ones in the user's settings.
+ * @param {string | null} arguments as JSON
  */
 export async function makeProjectLists(argsIn?: string | null = null): Promise<void> {
   try {
     let args = argsIn?.toString() || ''
-    logDebug(pluginJson, `makeProjectLists: starting with args <${args}>`)
+    logDebug(pluginJson, `makeProjectLists: starting with JSON args <${args}>`)
     let config = await getReviewSettings()
     if (args !== '') {
-      config = overrideSettingsWithStringArgs(config, args)
-      // clo(config, 'Review settings updated with args:')
+      config = overrideSettingsWithEncodedTypedArgs(config, args)
+      clo(config, 'Review settings updated with args:')
     } else {
-      // clo(config, 'Review settings with no args:')
+      clo(config, 'Review settings with no args:')
     }
 
     // Re-calculate the full-review-list (in foreground)
-    await makeFullReviewList(true)
+    await makeFullReviewList(config, true)
 
     // Call the relevant rendering function with the updated config
-    await renderProjectLists(true)
+    await renderProjectLists(config, true)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -174,10 +261,9 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
  * @author @jgclark
  * @param {Boolean} shouldOpen window/note if not already open?
  */
-export async function renderProjectLists(shouldOpen: boolean = true): Promise<void> {
+export async function renderProjectLists(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
-    logDebug('renderProjectLists', `Started with shouldOpen ${String(shouldOpen)}`)
-    const config = await getReviewSettings()
+    logDebug('renderProjectLists', `Started with displayFinished? ${String(config.displayFinished)}`)
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -199,18 +285,19 @@ export async function renderProjectLists(shouldOpen: boolean = true): Promise<vo
 export async function redisplayProjectListHTML(): Promise<void> {
   try {
     // Re-load the saved HTML if it's available.
-    const config = await getReviewSettings()
+    // const config = await getReviewSettings()
     // Try loading HTML saved copy
     const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
     if (savedHTML !== '') {
       const winOptions = {
         windowTitle: windowTitle,
-        headerTags: faLinksInHeader,
+        headerTags: faLinksInHeader + `\n<meta name="startTime" content="${String(Date.now())}">`,
         generalCSSIn: '', // get general CSS set automatically
         specificCSS: reviewListCSS,
         makeModal: false, // = not modal window
-        preBodyScript: setPercentRingJSFunc,
-        postBodyScript: '', // resizeListenerScript + unloadListenerScript,
+        bodyOptions: '', // TODO: find a different way to get this working  'onload="timeAgo()"',
+        preBodyScript: setPercentRingJSFunc, // + checkboxHandlerJSFunc,
+        postBodyScript: '', // timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
         savedFilename: savedHTML,
         reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
         width: 800, // = default width of window (px)
@@ -246,7 +333,12 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
       throw new Error('No noteTypeTags configured to display')
     }
 
-    const funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    if (!shouldOpen && !isHTMLWindowOpen(customRichWinId)) {
+      logDebug('renderProjectListsHTML', `not continuing, as HTML window isn't open and 'shouldOpen' is false.`)
+      return
+    }
+
+    const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
     logDebug('renderProjectListsHTML', `starting for ${config.noteTypeTags.toString()} tags`)
 
     // Test to see if we have the font resources we want
@@ -305,6 +397,12 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
       '',
       `Finish review of currently open Project and start the next review`,
     )
+    const updateProgressXCallbackButton = makeFakeButton(
+      `\u00A0<i class="fa-regular fa-message-pen"></i>\u00A0Add Progress`,
+      'add progress update',
+      '',
+      'Add a progress line to the currently open Project note',
+    )
     const pauseXCallbackButton = makeFakeButton(
       `Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause`,
       'pause project toggle',
@@ -331,8 +429,21 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
     // write lines before first table
     outputArray.push(`<h1>${windowTitle}</h1>`)
     // Add a sticky area for buttons
-    const controlButtons = `<b>Reviews</b>: ${startReviewButton} \n${reviewedXCallbackButton} \n${nextReviewXCallbackButton}\n${skipReviewXCallbackButton}\n<br /><b>List</b>: \n${refreshXCallbackButton} \n<b>Projects</b>: ${pauseXCallbackButton} \n${completeXCallbackButton} \n${cancelXCallbackButton}`
+    const controlButtons = `<b>Reviews</b>: ${startReviewButton} \n${reviewedXCallbackButton} \n${nextReviewXCallbackButton}\n${skipReviewXCallbackButton}\n<br /><b>List</b>: \n${refreshXCallbackButton} \n<b>Project</b>: ${updateProgressXCallbackButton} ${pauseXCallbackButton} \n${completeXCallbackButton} \n${cancelXCallbackButton}`
     outputArray.push(`<div class="sticky-box-top-middle">\n${controlButtons}\n</div>\n`)
+
+    // Show date + display settings
+    // v1: text labels
+    let togglesValues = (config.displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects projects/areas'
+    togglesValues += (config.displayFinished === 'hide') ? '' : ', plus finished ones'
+    outputArray.push(`<p>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> (${togglesValues})</p>`)
+    // v2: TODO: working on HTML checkbox toggles
+    // outputArray.push(`<ul>`)
+    // outputArray.push(`  <li>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span></li>`)
+    // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="showOnlyOverdueItems" ${config.displayOnlyOverdue ? "checked" : "unchecked"}><label for="showOnlyOverdueItems">Show only overdue items?</label></inpu></span></li>\n`)
+    // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="showFinishedItems" ${config.displayFinished ? "checked" : "unchecked"}><label for="showOnlyOverdueItems">Also show finished items?</label></inpu></span></li>\n`)
+    // outputArray.push(`</ul>`)
+
     // Allow multi-col working
     outputArray.push(`<div class="multi-cols">`)
 
@@ -347,10 +458,10 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
       // Write out all relevant HTML
       outputArray.push('')
       outputArray.push(`<h2>${thisTag}: ${noteCount} notes, ${overdue} ready for review</h2>`)
-      if (!config.displayGroupedByFolder) {
-        outputArray.push(`<h3>All folders (${noteCount} notes)</h3>`)
+      // Add folder name, but only if we're only looking at 1 folder, and we're not grouping by folder. (If we are then folder names are added inside the table.)
+      if (!config.displayGroupedByFolder && config.foldersToInclude.length === 1) {
+        outputArray.push(`<h3>${config.foldersToInclude[0]} folder</h3>`)
       }
-      outputArray.push(`<p>Last updated: ${nowLocaleShortDateTime()}</p>`)
 
       // Start constructing table (if there any results)
       outputArray.push('\n<table>')
@@ -391,9 +502,6 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
     outputArray.push(`</div>`)
     const body = outputArray.join('\n')
 
-    // TODO: in time make a 'timeago' relative display, e.g. using MOMENT moment.duration(-1, "minutes").humanize(true); // a minute ago
-    // or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html or https://theprogrammingexpert.com/javascript-count-up-timer/
-
     logDebug('renderProjectListsHTML', `>> end of main loop: ${timer(funcTimer)}`)
 
     // Original version
@@ -416,12 +524,13 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
 
     const winOptions = {
       windowTitle: windowTitle,
-      headerTags: faLinksInHeader,
+      headerTags: faLinksInHeader + `\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: '', // get general CSS set automatically
       specificCSS: reviewListCSS,
       makeModal: false, // = not modal window
-      preBodyScript: setPercentRingJSFunc,
-      postBodyScript: '', // resizeListenerScript + unloadListenerScript,
+      bodyOptions: '', // TODO: find a different way to get this working 'onload="timeAgo()"',
+      preBodyScript: setPercentRingJSFunc, // + checkboxHandlerJSFunc,
+      postBodyScript: '', // timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 800, // = default width of window (px)
@@ -456,6 +565,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'start reviews', '') // "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=start%20reviews"
     const reviewedXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'finish project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=finish%20project%20review&arg0="
     const nextReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=next%20project%20review&arg0="
+    const addProgressXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'add progress update', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
     const pauseXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'pause project toggle', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=pause%20project%20toggle&arg0="
     const completeXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'complete project', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=complete%20project&arg0="
     const cancelXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'cancel project', '') //"noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=cancel%20project&arg0="
@@ -463,6 +573,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
     // style the x-callback URLs into markdown 'button' links
     const reviewedXCallbackButton = `[Finish](${reviewedXCallbackURL})`
     const nextReviewXCallbackButton = `[Finish + Next](${nextReviewXCallbackURL})`
+    const addProgressXCallbackButton = `[Add progress](${addProgressXCallbackURL})`
     const pauseXCallbackButton = `[toggle Pause](${pauseXCallbackURL})`
     const completeXCallbackButton = `[Complete](${completeXCallbackURL})`
     const cancelXCallbackButton = `[Cancel](${cancelXCallbackURL})`
@@ -486,14 +597,16 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           const [outputArray, noteCount, overdue] = await generateReviewSummaryLines(tag, 'Markdown', config)
           logDebug('renderProjectListsHTML', `>> after generateReviewSummaryLines(${tag}) for ${String(overdue)} projects: ${timer(funcTimer)}`)
 
-          // print header just the once (if any notes)
+          // print header info just the once (if any notes)
           const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
           const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
 
           if (overdue > 0) {
-            outputArray.unshift(`Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} Current open project note: ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
+            outputArray.unshift(`Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} Current open project note: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
-          outputArray.unshift(`Total ${noteCount} active projects${overdue > 0 ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
+          let togglesValues = (config.displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects projects/areas'
+          togglesValues += (config.displayFinished === 'hide') ? '' : 'plus finished ones'
+          outputArray.unshift(`Total ${noteCount} active projects${overdue > 0 ? `: **${startReviewButton}**` : '.'} (${togglesValues}.) Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
 
           if (!config.displayGroupedByFolder) {
             outputArray.unshift(`### All folders (${noteCount} notes)`)
@@ -504,7 +617,6 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           note.content = outputArray.join('\n')
           logDebug('renderProjectListsMarkdown', `- written results to note '${noteTitle}'`)
           // Open the note in a window
-          // TODO(@EduardMe): Ideally not open another copy of the note if its already open. But API doesn't support this yet.
           if (shouldOpen && !noteOpenInEditor(note.filename)) {
             logDebug('renderProjectListsMarkdown', `- opening note '${noteTitle}' as the note is not already open.`)
             await Editor.openNoteByFilename(note.filename, true, 0, 0, false, false)
@@ -598,7 +710,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
 
     // Ignore its frontmatter and sort rest by days before next review (first column), ignoring those for a different noteTag than we're after.
     const fmObj = fm(reviewListContents)
-    const reviewLines = fmObj.body.split('\n').filter((f) => f.match(noteTag))
+    let reviewLines = fmObj.body.split('\n').filter((f) => f.match(noteTag))
 
     let lastFolder = ''
     // Process each line in the file
@@ -607,6 +719,13 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
       const fields = thisLine.split('\t')
       const title = fields[2]
       const folder = fields[3] !== '' ? fields[3] : '(root folder)' // root is a special case
+
+      // If config.displayOnlyOverdue, then filter out non-overdue
+      if (config.displayOnlyOverdue && fields[0] >= 0) {
+        logDebug('generateReviewSummaryLines', `ignoring ${title} as not overdue`)
+        continue
+      }
+
       const notes = DataStore.projectNoteByTitle(title)
       if (notes == null || notes.length === 0) {
         logWarn('generateReviewSummaryLines', `No note found matching title '${title}'; skipping.`)
@@ -665,15 +784,17 @@ export function logFullReviewList(): void {
  * ordered by the setting 'displayOrder', optionally also pre-ordered by 'folder'.
  * This is V3, which uses Plugins/data/jgclark.Reviews/full-review-list.md to store the list
  * @author @jgclark
+ * @param {any} config
+ * @param {boolean} runInForeground?
  */
-export async function makeFullReviewList(runInForeground: boolean = false): Promise<void> {
+export async function makeFullReviewList(config: any, runInForeground: boolean = false): Promise<void> {
   try {
-    const config = await getReviewSettings()
+    // const config = await getReviewSettings() // get instead from passed config
     logDebug('makeFullReviewList', `Starting for ${config.noteTypeTags.toString()} tags:`)
     let startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // Get list of folders, excluding @specials and our foldersToIgnore setting
-    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude).sort()
+    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude, false).sort()
     // For filtering DataStore, no need to look at folders which are in other folders on the list already
     const filteredFolderListWithoutSubdirs = filteredFolderList.reduce((acc, f) => {
       const exists = acc.some((s) => f.startsWith(s))
@@ -715,7 +836,7 @@ export async function makeFullReviewList(runInForeground: boolean = false): Prom
           // Get Project class representation of each note.
           // Save those which are ready for review in projectsReadyToReview array
           for (const n of projectNotesArr) {
-            const np = new Project(n, tag)
+            const np = new Project(n, tag) // specifying tag in case the note has more than 1 tag
             projectInstances.push(np)
           }
         }
@@ -816,7 +937,7 @@ function filterAndSortReviewList(linesIn: Array<string>, config: any): Array<str
     //   outputArray.push(lineObj.reviewDays + '\t' + lineObj.dueDays + '\t' + lineObj.title + '\t' + lineObj.folder + '\t' + lineObj.tags)
     // }
 
-    // logDebug('filterAndSortReviewList', `- sorting by ${String(sortingSpecification)} ...`)
+    logDebug('filterAndSortReviewList', `- sorting by ${String(sortingSpecification)} ...`)
     const sortedlineArrayObjs = sortListBy(lineArrayObjs, sortingSpecification)
 
     // turn each lineArrayObj back to a TSV string
@@ -883,26 +1004,30 @@ export async function startReviews(): Promise<void> {
 export async function finishReview(): Promise<void> {
   try {
     const config = await getReviewSettings()
-    const currentNote = Editor
+    const currentNote = Editor // note: not Editor.note
     if (currentNote && currentNote.type === 'Notes') {
       logInfo(pluginJson, `finishReview: Starting for ${displayTitle(currentNote)}`)
+      const thisNoteAsProject = new Project(currentNote)
 
       const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
       const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, 'gi')
       const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
-      logDebug('updateMetadataInEditor', String(RE_REVIEWED_MENTION))
+      // logDebug('finishReview', String(RE_REVIEWED_MENTION))
 
       // First update @review(date) on current open note
       const openNote: ?TNote = await updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
       await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
+      // Then update the Project instance
+      thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+      thisNoteAsProject.calcNextReviewDate()
+      // logDebug('finishReview', `After metadata updates, mSL='${thisNoteAsProject.machineSummaryLine()}'`)
 
       // Also update the full-review-list
-      const thisNoteAsProject = new Project(currentNote)
       await updateReviewListAfterChange(currentNote.title ?? '', false, config, thisNoteAsProject.machineSummaryLine())
 
-      // Update list for user
-      await renderProjectLists()
+      // Update list for user (but don't focus)
+      await renderProjectLists(config, false)
     } else {
       logWarn('finishReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
     }
@@ -922,7 +1047,7 @@ export async function nextReview(): Promise<void> {
     const config = await getReviewSettings()
 
     // Finish review
-    finishReview()
+    await finishReview()
 
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
@@ -990,12 +1115,11 @@ export async function skipReview(): Promise<void> {
     thisNoteAsProject.calcDurations()
     thisNoteAsProject.calcNextReviewDate()
     logDebug('calcNextReviewDate', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
-
     const newMSL = thisNoteAsProject.machineSummaryLine()
     logDebug('skipReview', `- updatedMachineSummaryLine => '${newMSL}'`)
     await updateReviewListAfterChange(currentNote.title ?? '', false, config, newMSL)
     // Update list for user
-    await renderProjectLists()
+    await renderProjectLists(config)
 
     // Then move to nextReview
     // Read review list to work out what's the next one to review
@@ -1022,7 +1146,6 @@ export async function skipReview(): Promise<void> {
 //-------------------------------------------------------------------------------
 /**
  * Update the full-review-list after completing a review or completing/cancelling a whole project.
- * ~~Various options allow what happens next~~
  * Note: Called by nextReview, skipReview, completeProject, cancelProject, pauseProject.
  * @author @jgclark
  * @param {string} title of note that has been reviewed
@@ -1040,7 +1163,7 @@ export async function updateReviewListAfterChange(
     if (reviewedTitle === '') {
       throw new Error('Empty title passed')
     }
-    logInfo('updateReviewListAfterChange', `Updating full-review-list for '${reviewedTitle}' -> by ${simplyDelete ? 'simplyDelete' : 'update'} with '${updatedMachineSummaryLine}'`)
+    logInfo('updateReviewListAfterChange', `Updating full-review-list for '${reviewedTitle}' -> ${simplyDelete ? 'simplyDelete' : 'update'} with '${updatedMachineSummaryLine}'`)
 
     // Get contents of full-review-list
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
@@ -1087,7 +1210,7 @@ export async function updateReviewListAfterChange(
         // delete line 'thisLineNum'
         reviewLines.splice(thisLineNum, 1)
         const outputLines = filterAndSortReviewList(reviewLines, configIn)
-        DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true) // OK to here
+        DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
         logDebug('updateReviewListAfterChange', `- Deleted '${reviewedTitle}' from line number ${thisLineNum}`)
       } else {
         // update this line in the full-review-list
@@ -1156,9 +1279,10 @@ async function getNextNoteToReview(): Promise<?TNote> {
 
 //-------------------------------------------------------------------------------
 /**
- * Update project metadata @mentions (e.g. @reviewed(date)) in the note in the Editor
+ * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the note in the Editor.
+ * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of @reviewed will be removed first, before that string is appended.
  * @author @jgclark
- * @param {Array<string>} mentions to update
+ * @param {Array<string>} mentions to update:
  * @returns { ?TNote } current note
  */
 export async function updateMetadataInEditor(updatedMetadataArr: Array<string>): Promise<?TNote> {
@@ -1168,10 +1292,7 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
       logWarn('updateMetadataInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
-    const thisNote = Editor
-    // TEST: line above change from Editor.note to Editor to try and solve problem on next line. Test me!
-    // TODO: To try to work around a problem with updateParagraph() seeming not to flush before the following call, will not try creating the Project equivalent of the note straight away.
-    // const thisNoteAsProject = new Project(Editor)
+    const thisNote = Editor // note: not Editor.note
 
     const metadataLineIndex: number = getOrMakeMetadataLine(Editor, `<placeholder metadata line>`)
     // Re-read paragraphs, as they might have changed
@@ -1196,18 +1317,10 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
       logDebug('updateMetadataInEditor', `-> ${updatedLine}`)
     }
 
-    // // remove all '@reviewed()' on metadata line
-    // let updatedMetadataLineContent = origLine.replace(RE_REVIEWED_MENTION, '')
-
-    // // append new @reviewed(date) to note's default metadata line
-    // metadataPara.content = `${updatedMetadataLineContent} ${reviewedTodayString}`.trimRight().replace(/\s{2,}/g, ' ')
-    // thisNoteAsProject.reviewedDate = getJSDateStartOfToday()
-    // thisNoteAsProject.calcDurations()
-    // thisNoteAsProject.calcNextReviewDate()
-
     // send update to Editor (removing multiple and trailing spaces)
     metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
     Editor.updateParagraph(metadataPara)
+    await saveEditorToCache()
     logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
 
     // update this note in the review list
@@ -1232,10 +1345,7 @@ export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<s
       logWarn('deleteMetadataMentionInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
       return
     }
-    const thisNote = Editor
-    // TEST: line above change from Editor.note to Editor to try and solve problem on next line. Test me!
-    // TODO: To try to work around a problem with updateParagraph() seeming not to flush before the following call, will not try creating the Project equivalent of the note straight away.
-    const thisNoteAsProject = new Project(Editor)
+    const thisNote = Editor // note: not Editor.note
 
     const metadataLineIndex: number = getOrMakeMetadataLine(Editor, `<placeholder metadata line>`)
     // Re-read paragraphs, as they might have changed
@@ -1247,7 +1357,7 @@ export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<s
     const origLine: string = metadataPara.content
     let newLine = origLine
 
-    logDebug('deleteMetadataMentionInEditor', `starting for '${displayTitle(Editor)}' with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
+    logDebug('deleteMetadataMentionInEditor', `starting for '${displayTitle(Editor)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
 
     for (const mentionName of mentionsToDeleteArr) {
       // logDebug('deleteMetadataMentionInEditor', `Processing ${item} for ${mentionName}`)
@@ -1260,6 +1370,7 @@ export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<s
     // send update to Editor (removing multiple and trailing spaces)
     metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
     Editor.updateParagraph(metadataPara)
+    await saveEditorToCache()
     logDebug('deleteMetadataMentionInEditor', `- After update ${metadataPara.content}`)
 
     // update this note in the review list
@@ -1270,3 +1381,31 @@ export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<s
   }
 }
 
+export async function toggleDisplayFinished(): Promise<void> {
+  try {
+    logDebug('toggleDisplayFinished', `starting ...`)
+    let config = await getReviewSettings()
+    config.displayFinished = !config.displayFinished
+    logDebug('toggleDisplayFinished', `displayFinished? toggled to ${String(!config.displayFinished)}`)
+    // TODO: write to settings file
+    await renderProjectLists(config, true)
+  }
+  catch (error) {
+    logError('toggleDisplayFinished', error.message)
+  }
+}
+
+export async function toggleDisplayOnlyOverdue(): Promise<void> {
+  try {
+    logDebug('toggleDisplayOnlyOverdue', `starting ...`)
+    let config = await getReviewSettings()
+    config.displayOnlyOverdue = !config.displayOnlyOverdue
+    logDebug('toggleDisplayOnlyOverdue', `displayOnlyOverdue? toggled to ${String(!config.displayOnlyOverdue)}`)
+
+    // TODO: write to settings file
+    await renderProjectLists(config, true)
+  }
+  catch (error) {
+    logError('toggleDisplayOnlyOverdue', error.message)
+  }
+}

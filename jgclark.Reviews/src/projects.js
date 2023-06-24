@@ -3,13 +3,14 @@
 //-----------------------------------------------------------------------------
 // Commands for working with Project and Area notes, seen in NotePlan notes.
 // by @jgclark
-// Last updated 14.5.2023 for v0.11.0, @jgclark
+// Last updated 16.6.2023 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
 import pluginJson from "../plugin.json"
 import {
+  finishReview,
   renderProjectLists,
   updateReviewListAfterChange
 } from './reviews'
@@ -44,6 +45,8 @@ export async function addProgressUpdate(): Promise<void> {
     const projectNote = new Project(note)
     // And then use it to add progress line
     await projectNote.addProgressLine()
+    // Finally call Finish Review
+    await finishReview()
   } catch (error) {
     logError(pluginJson, `addProgressUpdate: ${error.message}`)
   }
@@ -67,19 +70,20 @@ export async function completeProject(): Promise<void> {
       return
     }
 
-    // Get settings
-    const config = await getReviewSettings()
-
     // Construct a Project class object from this note
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
-    const newMSL = projectNote.completeProject()
+    const newMSL = await projectNote.completeProject()
 
     // If this has worked, then ...
     if (newMSL) {
-      // update cache for this Note, including .hashtags and .mentions
-      DataStore.updateCache(note, true)
+      // Get settings
+      const config = await getReviewSettings()
+
+      // TEST: now don't need to update cache for this Note, including .hashtags and .mentions
+      // DataStore.updateCache(note, true)
+
       // and we need to re-load the note according to @Eduard
       await Editor.openNoteByFilename(filename)
       // logDebug('completeProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
@@ -88,7 +92,7 @@ export async function completeProject(): Promise<void> {
       await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
 
       // re-render the outputs (but don't focus)
-      await renderProjectLists(false)
+      await renderProjectLists(config, false)
 
       // Now add to the Yearly note for this year (if present)
       const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
@@ -139,19 +143,17 @@ export async function cancelProject(): Promise<void> {
       return
     }
 
-    // Get settings
-    const config = await getReviewSettings()
-
     // Construct a Project class object from this note
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
-    const newMSL = projectNote.cancelProject()
+    const newMSL = await projectNote.cancelProject()
 
     // If this has worked, then ...
     if (newMSL) {
-      // update cache for this Note, including .hashtags and .mentions
-      DataStore.updateCache(note, true)
+      // Get settings
+      const config = await getReviewSettings()
+
       // and we need to re-load the note according to EM
       await Editor.openNoteByFilename(filename)
       // logDebug('cancelProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
@@ -168,7 +170,7 @@ export async function cancelProject(): Promise<void> {
       }
 
       // re-render the outputs (but don't focus)
-      await renderProjectLists(false)
+      await renderProjectLists(config, false)
 
       // Now add to the Yearly note for this year (if present)
       const lineToAdd = projectNote.detailedSummaryLine('Markdown', true)
@@ -215,19 +217,20 @@ export async function togglePauseProject(): Promise<void> {
       return
     }
 
-    // Get settings
-    const config = await getReviewSettings()
-
     // Construct a Project class object from the open note
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
-    const newMSL = projectNote.togglePauseProject()
+    const newMSL = await projectNote.togglePauseProject()
 
     // If this has worked, then ...
     if (newMSL !== '') {
-      // update cache for this Note, including .hashtags and .mentions
-      DataStore.updateCache(note, true)
+      // Get settings
+      const config = await getReviewSettings()
+
+      // TEST: now don't need to update cache for this Note, including .hashtags and .mentions
+      // DataStore.updateCache(note, true)
+
       // and we need to re-load the note according to EM
       await Editor.openNoteByFilename(filename)
       // logDebug('pauseProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
@@ -237,7 +240,7 @@ export async function togglePauseProject(): Promise<void> {
       await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
 
       // re-render the outputs (but don't focus)
-      await renderProjectLists(false)
+      await renderProjectLists(config, false)
       logInfo('togglePauseProject', 'Project pause now toggled, review list updated, and window updated.')
     } else {
       logError('togglePauseProject', 'Error toggling pause.')

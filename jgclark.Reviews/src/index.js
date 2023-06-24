@@ -3,15 +3,16 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 17.05.2023 for v0.11.1, @jgclark
+// Last updated 23.06.2023 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 // import { generateCSSFromTheme } from '@helpers/HTMLView'
 import pluginJson from '../plugin.json'
-import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
-import { JSP, logError, logInfo } from '@helpers/dev'
 import { makeFullReviewList, renderProjectLists } from './reviews'
+import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { editSettings } from '@helpers/NPSettings'
 
 export {
   logFullReviewList,
@@ -23,6 +24,8 @@ export {
   makeProjectLists,
   redisplayProjectListHTML,
   renderProjectLists,
+  toggleDisplayFinished,
+  toggleDisplayOnlyOverdue
 } from './reviews'
 export {
   addProgressUpdate,
@@ -94,4 +97,19 @@ export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<
     logError(pluginID, error.message)
   }
   logInfo(pluginID, `- finished`)
+}
+
+
+/**
+ * Update Settings/Preferences (for iOS etc)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings() {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }
