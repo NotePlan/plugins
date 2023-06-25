@@ -3,8 +3,10 @@ This plugin provides the **preview note** command that renders the current note 
 - standard Markdown conversion
 - [Mermaid diagrams](https://mermaid.js.org) (e.g. flowcharts, gantt charts, sequence diagrams ...)
 - [MathJax](https://www.mathjax.org/) fragments or lines (for mathematical equations and notation)
-- some advanced Markdown conversion (e.g. strikethrough and tables)
+- some non-standard Markdown conversion (e.g. strikethrough and tables)
 - it renders frontmatter slightly differently.
+
+It adds a 'Print Me' button to the preview window. Clicking this opens the note in your default browser, where you can then select to print it. (I hope to make this a single step process in time.)
 
 [This example NotePlan note](https://noteplan.co/n/EA936BC2-A6C1-43F7-9C34-E2C31CF96AC6) includes examples of these different capabilities.
 

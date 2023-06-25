@@ -29,6 +29,15 @@
     },
     {
       "hidden": true,
+      "name": "open preview in browser",
+      "alias": [
+        "opib"
+      ],
+      "description": "Open note preview in browser ready to print",
+      "jsFunction": "openPreviewNoteInBrowser"
+    },
+    {
+      "hidden": true,
       "name": "updatePreview",
       "description": "onEditorWillSave",
       "jsFunction": "updatePreview"
