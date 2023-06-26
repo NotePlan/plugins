@@ -13,16 +13,13 @@ import pluginJson from '../plugin.json'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
-import {
-  allNotesSortedByChanged,
-  pastCalendarNotes,
-  removeSection
-} from '@helpers/note'
+import { allNotesSortedByChanged, pastCalendarNotes, removeSection } from '@helpers/note'
 import { removeFrontMatterField } from '@helpers/NPFrontMatter'
 import { getNotesChangedInInterval, getNotesChangedInIntervalFromList } from '@helpers/NPnote'
 import { hasFrontMatter, noteHasFrontMatter } from '@helpers/NPFrontMatter'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { getTodaysReferences } from '@helpers/NPnote'
 
 //-----------------------------------------------------------------------------
 
@@ -510,9 +507,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
     // v2 method:
     const thePastCalendarNotes = pastCalendarNotes()
     logDebug('removeTriggersFromRecentCalendarNotes', `thePastCalendarNotes.length = ${String(thePastCalendarNotes.length)}`)
-    const notesToProcess: Array<TNote> = numDays > 0
-      ? getNotesChangedInIntervalFromList(thePastCalendarNotes, numDays)
-      : thePastCalendarNotes
+    const notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(thePastCalendarNotes, numDays) : thePastCalendarNotes
     const numToProcess = notesToProcess.length
 
     if (numToProcess > 0) {
@@ -529,8 +524,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
           } else {
             logWarn('removeTriggersFromRecentCalendarNotes', `failed to remove frontmatter trigger field from ${displayTitle(note)} for some reason`)
           }
-        }
-        else {
+        } else {
           // logDebug('removeTriggersFromRecentCalendarNotes', `no frontmatter in ${displayTitle(note)}`)
         }
       }
@@ -669,7 +663,6 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
   }
 }
 
-
 /**
  * Remove blank (or nearly blank) notes
  * @author @jgclark
@@ -689,9 +682,9 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
 
     // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
     let blankNotes = allNotesSortedByChanged()
-      .filter(n => n.filename.match(/(.txt|.md)$/))
+      .filter((n) => n.filename.match(/(.txt|.md)$/))
       // $FlowFixMe[incompatible-type]
-      .filter(n => n.content !== 'undefined' && n.content.length !== 'undefined' && n.content.length <= 2)
+      .filter((n) => n.content !== 'undefined' && n.content.length !== 'undefined' && n.content.length <= 2)
     const numToRemove = blankNotes.length
     logDebug('removeBlankNotes', `Found ${String(numToRemove)} blank notes in ${timer(start)}`)
     await CommandBar.onMainThread()
@@ -714,7 +707,12 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     }
 
     if (!runSilently) {
-      const res = await showMessageYesNo(`Shall I move ${String(numToRemove)} blank notes to the NotePlan Trash? (The details are in the Plugin Console.)`, ['Yes please', 'No'], 'Remove Blank Notes', false)
+      const res = await showMessageYesNo(
+        `Shall I move ${String(numToRemove)} blank notes to the NotePlan Trash? (The details are in the Plugin Console.)`,
+        ['Yes please', 'No'],
+        'Remove Blank Notes',
+        false,
+      )
       if (res === 'No') {
         return
       }
@@ -757,5 +755,41 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
   } catch (err) {
     logError('removeBlankNotes', JSP(err))
     return // for completeness
+  }
+}
+
+/**
+ * Remove >today tags from completed/canceled todos
+ * Plugin entrypoint for command: "/Remove >today tags from completed todos"
+ * @author @dwertheimer
+ */
+export async function removeTodayTagsFromCompletedTodos(runSilently: boolean = false): Promise<void> {
+  try {
+    logDebug(pluginJson, `removeTodayTagsFromCompletedTodos running ${runSilently ? 'silently' : 'interactively'}`)
+    const todayNote = DataStore.calendarNoteByDate(new Date())
+    const refs = await getTodaysReferences(todayNote)
+    logDebug(pluginJson, `removeTodayTagsFromCompletedTodos: Found ${refs.length} tasks with >today tags`)
+    const itemsToRemove = refs.filter((ref) => ['done', 'cancelled', 'checklistDone', 'checklistCancelled'].includes(ref.type))
+    logDebug(pluginJson, `removeTodayTagsFromCompletedTodos: Found ${itemsToRemove.length} COMPLETED tasks with >today tags`)
+    if (itemsToRemove.length === 0) {
+      if (runSilently) {
+        logInfo(pluginJson, `No completed tasks with >today tags found`)
+      } else {
+        await showMessage('No completed tasks with >today tags found')
+      }
+      return
+    } else {
+      itemsToRemove.forEach((item) => {
+        item.content = item.content.replace(/ ?\>today ?/g, ' ').trim()
+        item.note?.updateParagraph(item)
+      })
+      if (runSilently) {
+        logInfo(pluginJson, `Removed >today tags from ${itemsToRemove.length} completed items`)
+      } else {
+        await showMessage(`Removed >today tags from ${itemsToRemove.length} completed items`)
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }

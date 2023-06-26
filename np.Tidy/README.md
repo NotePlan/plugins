@@ -13,6 +13,7 @@ This plugin provides commands to help tidy up your notes:
 - **/Remove time parts from @done() dates** (alias "rtp"): Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.
 - **/Remove @done() markers** (alias "rdm"): Remove @done(...) markers from recently-updated notes, optionally just from completed checklist items.
 - **/Remove triggers from recent calendar notes** (alias "rtcn"): Remove one or more triggers from recent (but past) calendar notes.
+- **/Remove >today tags from completed todos** (alias "removeToday" or "rmt"): Removes the ">today" tag still attached to completed/cancelled tasks that keeps them showing up in Today's references (every day forever). Does not touch open tasks.
 
 Most can be used with parameters from a Template, or via an x-callback call.
 
@@ -61,6 +62,7 @@ The available parameters are:
 | Remove section from all notes | keepHeading, runSilently, sectionHeading |
 | Remove section from recent notes | matchType, sectionHeading |
 | Remove time parts from @done() dates | runSilently |
+| Remove >today tags from completed todos | runSilently |
 <!-- | File root-level notes | rootNotesToIgnore | -->
 
 **Tip:** as these are complicated and fiddly to create, **I strongly suggest you use @dwertheimer's excellent [Link Creator plugin]() command "/Get X-Callback-URL"** which makes it vastly easier.
