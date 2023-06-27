@@ -42,7 +42,14 @@ export async function tidyUpAll(): Promise<void> {
       await removeOrphanedBlockIDs(config.runSilently)
     }
 
+    if (config.removeTodayTagsFromCompletedTodos) {
+      CommandBar.showLoading(true, `Tidying up completed >today items...`, 0.3)
+      logDebug('tidyUpAll', `Starting Tidying up completed >today items...`)
+      await removeTodayTagsFromCompletedTodos(config.runSilently)
+    }
+
     // Following functions take params; so send runSilently as a param
+
     const param = config.runSilently ? '{"runSilently": true}' : ''
     if (config.runRemoveDoneMarkersCommand) {
       CommandBar.showLoading(true, `Tidying up @done markers...`, 0.4)
@@ -82,12 +89,6 @@ export async function tidyUpAll(): Promise<void> {
       CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.9)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeTriggersFromRecentCalendarNotes(param)
-    }
-
-    if (config.removeTodayTagsFromCompletedTodos) {
-      CommandBar.showLoading(true, `Tidying up completed >today items...`, 0.1)
-      logDebug('tidyUpAll', `Starting Tidying up completed >today items...`)
-      await removeTodayTagsFromCompletedTodos(param)
     }
 
     // stop spinner
@@ -767,10 +768,9 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
  * Plugin entrypoint for command: "/Remove >today tags from completed todos"
  * @author @dwertheimer
  */
-export async function removeTodayTagsFromCompletedTodos(params: string = ''): Promise<void> {
+export async function removeTodayTagsFromCompletedTodos(runSilently: boolean = false): Promise<void> {
   try {
     // Decide whether to run silently
-    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
     logDebug(pluginJson, `removeTodayTagsFromCompletedTodos running ${runSilently ? 'silently' : 'with UI messaging enabled'}`)
     const todayNote = DataStore.calendarNoteByDate(new Date())
     const refs = await getTodaysReferences(todayNote).filter((ref) => ref.content.includes('>today'))
