@@ -15,6 +15,7 @@ export type LinkObject = {
 
 /**
  * Processes a given URL and returns a LinkObject.
+ * @author @dwertheimer
  *
  * @param {string} urlStr - The URL to process.
  * @param {?string} name - The name of the markdown link. If the URL is not a markdown link, this should be null.
@@ -41,7 +42,8 @@ export function processURL(urlStr: string, name: ?string, lineIndex: number, rem
 
 /**
  * Scans multiple lines of text for URLs and returns an array of LinkObjects.
- *
+ * @author @jgclark updated by @dwertheimer
+ * @tests in jest file
  * @param {string} text - The text to scan for URLs.
  * @param {boolean} [removeSubdomain=false] - Whether to remove the subdomain (like www) from the URLs or not.
  * @returns {LinkObject[]} An array of LinkObjects.
@@ -52,7 +54,7 @@ export function findURLsInText(
 ): Array<LinkObject> {
   try {
     const markdownURLPattern = /\[([^\]]+)\]\(([^)]+)\)/g // Match markdown URLs with or without 'http(s)://'
-    const bareURLPattern = /(https?:\/\/[^\s]+)/g
+    const bareURLPattern = /(\w+:\/\/[^\s]+)/g
 
     const lines = text.split('\n')
     const links: Array<LinkObject> = []
@@ -63,12 +65,15 @@ export function findURLsInText(
 
       // Process markdown URLs first and replace them with placeholders in the line.
       while ((match = markdownURLPattern.exec(line)) !== null) {
+        // $FlowIgnore[incompatible-use]
         links.push(processURL(match[2], match[1], i, removeSubdomain))
+        // $FlowIgnore[incompatible-use]
         line = line.replace(match[0], 'MARKDOWN_LINK_PLACEHOLDER')
       }
 
       // Process bare URLs.
       while ((match = bareURLPattern.exec(line)) !== null) {
+        // $FlowIgnore[incompatible-use]
         links.push(processURL(match[1], null, i, removeSubdomain))
       }
     }
@@ -82,6 +87,7 @@ export function findURLsInText(
 
 /**
  * Scans a note for URLs and returns an array of LinkObjects.
+ * @author @jgclark
  *
  * @param {TNote} note - The note to scan for URLs.
  * @param {boolean} [removeSubdomain=false] - Whether to remove the subdomain (like www) from the URLs or not.
