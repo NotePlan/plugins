@@ -423,6 +423,7 @@ static + calendarNotes: $ReadOnlyArray < TNote >;
 /**
  * Get all regular, project notes.
  * Note: This includes notes and templates from folders that begin with "@" such as "@Archive" and "@Templates". It excludes notes in the trash folder though.
+ * Note: @jgclark adds that this will return non-note document files (e.g. PDFs) as well as notes.
  */
 static + projectNotes: $ReadOnlyArray < TNote >;
 /**
@@ -595,11 +596,11 @@ static + preference: (key: string) => mixed;
    */
   static noteByFilename(filename: string, type: NoteType): ?TNote;
   /**
-   * Move a regular note using the given filename (with extension) to another
-   * folder. Use "/" for the root folder.
+   * Move a regular note using the given filename (with extension) to another folder. Use "/" for the root folder.
+   * Note: from v3.9.3 you can also use 'type' set to 'calendar' to move a calendar note.
    * Returns the final filename; if the there is a duplicate, it will add a number.
    */
-  static moveNote(noteName: string, folder: string): ?string;
+  static moveNote(noteName: string, folder: string, type ?: string): ?string;
   /**
    * Creates a regular note using the given title and folder.
    * Use "/" for the root folder.

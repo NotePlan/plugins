@@ -23,7 +23,56 @@ on:
     branches: [ "main" ]
 
 jobs:
-  test:
+  Run-all-Jest-Tests:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        # node-version: [14.x, 16.x, 18.x, 19.x]
+        node-version: [14.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      # shoulde eventually be a clean install using: - run: npm ci --legacy-peer-deps
+      - run: npm i -g node-gyp@latest && npm config set node_gyp "/usr/local/lib/node_modules/node-gyp/bin/node-gyp.js"
+      - run: npm ci # clean install (deletes node_modules)
+      - run: npm link # necessary for some reason specific to NP dev setup
+      # note: when upgrade to node 16+, add this to the following --max-old-space-size=8192 
+      - run: npm run test:ci # run Jest CI version and stop if errors
+
+      - name: Log Passing Tests ✅
+        if: ${{ success() }}
+        run: |
+          curl --request POST \
+          --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+          --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+          --header 'content-type: application/json' \
+          --data '{
+            "context": "tests",
+            "state": "success",
+            "description": "Jest Tests passed",
+            "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          }'
+
+      - name: Log Failed Tests 🚨
+        if: ${{ failure() }}
+        run: |
+          curl --request POST \
+          --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+          --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+          --header 'content-type: application/json' \
+          --data '{
+            "context": "tests",
+            "state": "failure",
+            "description": "Jest Tests failed",
+            "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          }'
+  Build-All-Plugins:
     runs-on: macos-latest
     strategy:
       matrix:
@@ -44,9 +93,8 @@ jobs:
       - run: npm link # necessary for some reason specific to NP dev setup
       # note: when upgrade to node 16+, add this to the following --max-old-space-size=8192 
       - run: NODE_OPTIONS=--max-old-space-size=8192 node scripts/rollup.js -b -ci # build all plugins and stop if errors
-      - run: npm run test:ci # run Jest CI version and stop if errors
 
-      - name: Log Passing Tests ✅
+      - name: Log Plugin Build Success ✅
         if: ${{ success() }}
         run: |
           curl --request POST \
@@ -56,11 +104,11 @@ jobs:
           --data '{
             "context": "tests",
             "state": "success",
-            "description": "Tests passed",
+            "description": "Plugins Build successful",
             "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }'
 
-      - name: Log Failed Tests 🚨
+      - name: Log Plugin Build Failure 🚨
         if: ${{ failure() }}
         run: |
           curl --request POST \
@@ -70,6 +118,6 @@ jobs:
           --data '{
             "context": "tests",
             "state": "failure",
-            "description": "Tests failed",
+            "description": "Plugins Build failed",
             "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }'

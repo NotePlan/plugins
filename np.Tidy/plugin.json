@@ -6,7 +6,7 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "0.6.0-beta",
+  "plugin.version": "0.6.0",
   "plugin.lastUpdateInfo": "v0.6.0: new commands 'Remove empty notes' 'List conflicted notes' + display improvements.\nv0.5.0: new 'list duplicate notes' command.\n0.4.0: adds command to tidy up triggers in older calendar notes, and way to change settings on iOS.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -38,7 +38,7 @@
         "dupes"
       ],
       "description": "List (in a new NP note) potentially duplicate notes because they have identical titles",
-      "jsFunction": "showDuplicates"
+      "jsFunction": "listDuplicates"
     },
     {
       "name": "List conflicted notes",
@@ -46,7 +46,7 @@
         "conflicts"
       ],
       "description": "List (in a new NP note) all notes on this device that have conflicts. (Requires NP v3.9.3)",
-      "jsFunction": "showConflicts"
+      "jsFunction": "listConflicts"
     },
     {
       "name": "Remove @done() markers",
@@ -194,14 +194,29 @@
     },
     {
       "type": "heading",
+      "title": "'/List conflicted notes' command setting"
+    },
+    {
+      "key": "conflictedNoteFilename",
+      "title": "Filepath for results note",
+      "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Conflicted Notes.md')",
+      "type": "string",
+      "default": "Conflicted Notes.md",
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
       "title": "'/List duplicate notes' command setting"
     },
     {
       "key": "duplicateNoteFilename",
-      "title": "Filename for results",
-      "description": "The filename (including any NP folders) of which NotePlan note to use. (Default: 'Duplicates.md')",
+      "title": "Filepath for results",
+      "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Duplicate Notes.md')",
       "type": "string",
-      "default": "Duplicates.md",
+      "default": "Duplicate Notes.md",
       "required": true
     },
     {
@@ -272,9 +287,33 @@
       "required": true
     },
     {
+      "title": "Run '/List conflicted notes' command?",
+      "key": "runConflictFinderCommand",
+      "description": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Run '/List duplicate notes' command?",
+      "key": "runDuplicateFinderCommand",
+      "description": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Run '/Remove blank notes' command?",
+      "key": "runRemoveBlankNotes",
+      "description": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "title": "Run '/Remove orphaned blockIDs' command?",
       "key": "runRemoveOrphansCommand",
-      "ddescription": "",
+      "description": "",
       "type": "bool",
       "default": false,
       "required": true
@@ -282,7 +321,7 @@
     {
       "title": "Run '/Remove @done() markers' command?",
       "key": "runRemoveDoneMarkersCommand",
-      "ddescription": "",
+      "description": "",
       "type": "bool",
       "default": false,
       "required": true
@@ -290,7 +329,7 @@
     {
       "title": "Run '/Remove time parts from @done() dates' command?",
       "key": "runRemoveDoneTimePartsCommand",
-      "ddescription": "",
+      "description": "",
       "type": "bool",
       "default": false,
       "required": true
@@ -298,7 +337,7 @@
     {
       "title": "Run '/Remove triggers from recent calendar notes?",
       "key": "removeTriggersFromRecentCalendarNotes",
-      "ddescription": "",
+      "description": "",
       "type": "bool",
       "default": false,
       "required": true

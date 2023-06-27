@@ -2,10 +2,12 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 20.6.2023 for v0.4.0+, @jgclark
+// Last updated 24.6.2023 for v0.6.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import { listConflicts } from './conflicts'
+import { listDuplicates } from './duplicates'
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import pluginJson from '../plugin.json'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
@@ -33,8 +35,14 @@ export async function tidyUpAll(): Promise<void> {
     CommandBar.showLoading(true, `Tidying up ...`, 0)
     await CommandBar.onAsyncThread()
 
+    if (config.runRemoveBlankNotes) {
+      CommandBar.showLoading(true, `Tidying up blank notes ...`, 0.1)
+      logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
+      await removeBlankNotes(config.runSilently)
+    }
+
     if (config.runRemoveOrphansCommand) {
-      CommandBar.showLoading(true, `Tidying up orphaned blockIDs ...`, 0.1)
+      CommandBar.showLoading(true, `Tidying up orphaned blockIDs ...`, 0.2)
       logDebug('tidyUpAll', `Starting removeOrphanedBlockIDs...`)
       await removeOrphanedBlockIDs(config.runSilently)
     }
@@ -63,8 +71,20 @@ export async function tidyUpAll(): Promise<void> {
     //   await removeSectionFromRecentNotes()
     // }
 
+    if (config.runDuplicateFinderCommand) {
+      CommandBar.showLoading(true, `Making list of Conflicted notes ...`, 0.7)
+      logDebug('tidyUpAll', `Starting listConflicts ...`)
+      await listConflicts(param)
+    }
+
+    if (config.runConflictFinderCommand) {
+      CommandBar.showLoading(true, `Making list of Duplicate notes  ...`, 0.8)
+      logDebug('tidyUpAll', `Starting listDuplicates ...`)
+      await listDuplicates(param)
+    }
+
     if (config.removeTriggersFromRecentCalendarNotes) {
-      CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.8)
+      CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.9)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeTriggersFromRecentCalendarNotes(param)
     }
@@ -663,7 +683,7 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
 
     // Find all notes with 2 or fewer bytes' length.
     // Show spinner dialog
-    CommandBar.showLoading(true, `Finding blank notes ...`, 0)
+    CommandBar.showLoading(true, `Finding blank notes ...`)
     await CommandBar.onAsyncThread()
     let start = new Date()
 
@@ -699,7 +719,7 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
         return
       }
     }
-    if (NotePlan.environment.build > 1049) {
+    if (NotePlan.environment.buildVersion > 1053) {
       logDebug('removeBlankNotes', `Will move all blank notes to the NotePlan Trash`)
     } else {
       logDebug('removeBlankNotes', `Will move all blank project notes to the NotePlan Trash`)
@@ -712,7 +732,7 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
       // Deal with a calendar note
       if (thisNote.type === 'Calendar') {
         // Note: before v3.9.3 we can't move Calendar notes, so don't try
-        if (NotePlan.environment.build > 1049) {
+        if (NotePlan.environment.buildVersion > 1053) {
           const res = DataStore.moveNote(thisNote.filename, filenameForTrash, 'Calendar')
           if (res) {
             logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)

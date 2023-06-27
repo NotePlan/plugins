@@ -12,7 +12,11 @@ import {
 } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
-import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
+import {
+  getFilteredFolderList,
+  getFolderFromFilename,
+  getJustFilenameFromFullFilename
+} from '@helpers/folders'
 import {
   createOpenOrDeleteNoteCallbackUrl,
   createPrettyRunPluginLink,
@@ -78,10 +82,11 @@ function getDuplicateNotes(): Array<dupeDetails> {
  * Command to show details of duplicates in a NP note (replacing any earlier version of the note)
  * @author @jgclark
  */
-export async function showDuplicates(params: string = ''): Promise<void> {
+export async function listDuplicates(params: string = ''): Promise<void> {
   try {
-    logDebug(pluginJson, `showDuplicates: Starting with params '${params}'`)
+    logDebug(pluginJson, `listDuplicates: Starting with params '${params}'`)
     let config = await getSettings()
+    const outputFilename = config.duplicateNoteFilename ?? 'Duplicate Notes.md'
 
     // Decide whether to run silently
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
@@ -96,13 +101,18 @@ export async function showDuplicates(params: string = ''): Promise<void> {
 
     // Only continue if there are dupes found
     if (dupes.length === 0) {
-      logDebug('showDuplicates', `No duplicates found (in ${timer(startTime)}).`)
+      logDebug('listDuplicates', `No duplicates found (in ${timer(startTime)}).`)
       if (!runSilently) {
         await showMessage(`No duplicates found! 🥳`)
       }
+      // remove old conflicted note list (if it exists)
+      const res = DataStore.moveNote(outputFilename, '@Trash')
+      if (res) {
+        logDebug('getConflictedNotes', `Moved existing duplicate note list '${outputFilename}' to @Trash.`)
+      }
       return
     } else {
-      logDebug('showDuplicates', `Found ${dupes.length} dupes in ${timer(startTime)}:`)
+      logDebug('listDuplicates', `Found ${dupes.length} dupes in ${timer(startTime)}:`)
     }
 
     // Form the contents of a note to display the details of dupes
@@ -127,46 +137,45 @@ export async function showDuplicates(params: string = ''): Promise<void> {
       for (const n of d.noteArray) {
         i++
         logDebug(pluginJson, `  ${i}. ${n.filename}`)
-        const thisFolder = n.filename.includes('/') ? 'folder **' + getFolderFromFilename(n.filename) + '**' : '**root** folder'
+        const thisFolder = n.filename.includes('/') ? '**' + getFolderFromFilename(n.filename) + '**' : '**root**'
+        const thisJustFilename = getJustFilenameFromFullFilename(n.filename)
         // Make some button links
         const openMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', false)
         const deleteMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', true)
         // Write out all details for this dupe
-        outputArray.push(`${String(i)}. in ${thisFolder}: ${String(n.paragraphs?.length ?? 0)} lines, ${String(n.content?.length ?? 0)} bytes (created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}) [open note](${openMe}) [❌ delete note](${deleteMe})`)
+        outputArray.push(`${String(i)}. ${thisFolder}/${thisJustFilename}: [open note](${openMe}) [❌ delete note](${deleteMe})`)
+        outputArray.push(`\t- ${String(n.paragraphs?.length ?? 0)} lines, ${String(n.content?.length ?? 0)} bytes created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}`)
 
+        // For all but the first of the duplicate set, show some comparison stats
         if (i > 1) {
-          thisContent = n.content
-          // $FlowIgnore[incompatible-use]
+          thisContent = n.content ?? ''
           greatestSize = Math.max(greatestSize, n.content?.length ?? 0)
-          // $FlowIgnore[incompatible-call]
           const allDiffRanges = NotePlan.stringDiff(lastContent, thisContent)
           const totalDiffBytes = allDiffRanges.reduce((a, b) => a + Math.abs(b.length), 0)
           if (totalDiffBytes > 0) {
             const percentDiff = percentWithTerm(totalDiffBytes, greatestSize, 'chars')
-            outputArray.push(`\t- ${percentDiff} difference between ${String(i - 1)} and ${String(i)} (from ${String(allDiffRanges.length)} areas)`)
+            outputArray.push(`\t- ${percentDiff} difference between ${String(i - 1)} and ${String(i)} (from ${allDiffRanges.length.toLocaleString()} ${allDiffRanges.length > 1 ? 'areas' : 'area'})`)
           } else {
             outputArray.push(`\t- notes ${String(i - 1)} and ${String(i)} are identical`)
           }
         }
-        lastContent = n.content
+        lastContent = n.content ?? ''
       }
     }
 
-    const filenameToUse = config.duplicateNoteFilename ?? 'Duplicates.md'
-
     // If note is not open in an editor already, write to and open the note. Otherwise just update note.
-    if (!noteOpenInEditor(filenameToUse)) {
-      const resultingNote = await Editor.openNoteByFilename(filenameToUse, false, 0, 0, true, true, outputArray.join('\n'))
+    if (!noteOpenInEditor(outputFilename)) {
+      const resultingNote = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
     } else {
-      const noteToUse = DataStore.projectNoteByFilename(filenameToUse)
+      const noteToUse = DataStore.projectNoteByFilename(outputFilename)
       if (noteToUse) {
         noteToUse.content = outputArray.join('\n')
       } else {
-        throw new Error(`Couldn't find note '${filenameToUse}' to write to`)
+        throw new Error(`Couldn't find note '${outputFilename}' to write to`)
       }
     }
   }
   catch (err) {
-    logError('showDuplicates', JSP(err))
+    logError('listDuplicates', JSP(err))
   }
 }

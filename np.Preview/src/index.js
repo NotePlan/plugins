@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Render notes to HTML, including Mermaid and MathML.
 // by Jonathan Clark
-// v0.3.0, 1.6.2023
+// v0.3.0, 25.6.2023
 //---------------------------------------------------------------
 
 // export {
@@ -21,8 +21,13 @@
 //   testMathJax3
 // } from './mathTests'
 
-export { previewNote } from './previewMain'
-export { updatePreview } from './previewTriggers'
+export {
+  previewNote,
+  openPreviewNoteInBrowser
+} from './previewMain'
+export {
+  updatePreview
+} from './previewTriggers'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
