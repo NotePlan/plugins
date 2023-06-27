@@ -23,7 +23,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  Run all Jest tests:
+  Run-all-Jest-Tests:
     runs-on: macos-latest
     strategy:
       matrix:
@@ -72,7 +72,7 @@ jobs:
             "description": "Jest Tests failed",
             "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }'
-  Build All Plugins:
+  Build-All-Plugins:
     runs-on: macos-latest
     strategy:
       matrix:
