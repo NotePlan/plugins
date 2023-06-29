@@ -1,7 +1,7 @@
 # 🔬 Projects + Reviews plugin
 Unlike many task or project management apps, NotePlan has very little enforced structure, and is entirely text/markdown based.  This makes it much more flexible, but makes it less obvious how to use it for tracking and managing complex work, loosely referred to here as 'Projects'.
 
-This plugin provides commands to help **review** Project-based notes, and it helps me manage over 50 such projects. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. (It probably won't have much applicability to people who just use NotePlan as a Zettelkasten-style knowledge base.)
+This plugin provides commands to help **review** Project-based notes, and it helps me manage over 50 such projects. This will be familiar to people who use David Allen's **Getting Things Done** approach, or any other where **regular reviews** are important. (It probably won't have much applicability to people who use NotePlan as a Zettelkasten-style knowledge base.)
 
 The main review screen looks like this, showing the projects due for review from various different NotePlan folders:
 
@@ -165,6 +165,16 @@ folder: <select>
 Aim: <%- prompt('aim') %>
 Context: <%- prompt('context') %>
 ```
+
+## Using 'Next Actions'
+Part of the GTD methodology is to note which are the 'next actions' for a project. This plugin doesn't have specific commands to manage these, but NP has various other features and plugins that can help.
+
+This is what user @George65 does:
+- when reviewing notes I add the `#next` tag to actionable tasks
+- use the Filer plugin's "/add sync'd copy to note" command to 'sync' those tasks to the current weekly note. (Or, if I know I don't need to get to it until the next week, then it goes into the following week or whatever. If it is actionable but I don't need to get to it until the next month I sync it into that next months task.)
+- in essence this recreates the GTD 30 day, and monthly folders, but with the advantage that all these tasks are synced back to their projects.
+- each day I drag out from the reference area's week's note any actions I want to do that day, maintaining the Sync line status.
+- I also will copy over any tasks I didn't do from the previous day.
 
 ## Configuration
 These commands require configuration before they will know how you intend to use projects and reviews. On macOS this is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel. On iOS/iPadOS run the '/Projects: update plugin settings' command instead.
