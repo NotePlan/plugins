@@ -109,8 +109,13 @@ export function previewNote(mermaidTheme?: string): void {
       }
     }
 
+    // remove any sync link markers (blockIds)
+    for (let i = 0; i < lines.length; i++) {
+      lines[i] = lines[i].replace(/\^[A-z0-9]{6}([^A-z0-9]|$)/g, '').trimRight()
+    }
+
     // Make this proper Markdown -> HTML via showdown library
-    // Set some options to turn on various more advanced HTML conversions:
+    // Set some options to turn on various more advanced HTML conversions (see actual code at https://github.com/showdownjs/showdown/blob/master/src/options.js#L109):
     const converterOptions = {
       emoji: true,
       footnotes: true,
@@ -118,6 +123,9 @@ export function previewNote(mermaidTheme?: string): void {
       strikethrough: true,
       tables: true,
       tasklists: true,
+      metadata: true,
+      requireSpaceBeforeHeadingText: true,
+      simpleLineBreaks: true // Makes this GFM style. TODO: make an option?
     }
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
@@ -132,8 +140,10 @@ export function previewNote(mermaidTheme?: string): void {
     // logDebug(pluginJson, body)
 
     // Add sticky button at top right offering to print
-    // TEST: without window.open(this.href)...
-    body = `	<div class="stickyButton"><button class="nonPrinting" type="printButton"><a href="preview.html" onclick="window.open(this.href).print(); return false;">Print me</a></button></div>\n` + body
+    // (But printing doesn't work on i(Pad)OS ...)
+    if (NotePlan.environment.platform === 'macOS') {
+      body = `	<div class="stickyButton"><button class="nonPrinting" type="printButton"><a href="preview.html" onclick="window.open(this.href).print(); return false;">Print (opens in system browser)</a></button></div>\n` + body // Note: seems to need the .print() even though it doesn't activate in the browser.
+    }
 
     body += (includesMermaid ? initMermaidScripts(mermaidTheme) : '')
     const windowOpts: HtmlWindowOptions = {

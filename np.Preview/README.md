@@ -1,22 +1,24 @@
 # Preview Plugin
-This plugin provides the **preview note** command that renders the current note to HTML including:
+This plugin provides the **/preview note** command that renders the current note to HTML including:
 - standard Markdown conversion
 - [Mermaid diagrams](https://mermaid.js.org) (e.g. flowcharts, gantt charts, sequence diagrams ...)
 - [MathJax](https://www.mathjax.org/) fragments or lines (for mathematical equations and notation)
-- some non-standard Markdown conversion (e.g. strikethrough and tables)
+- some non-standard Markdown conversion (e.g. strikethrough, footnotes, tasklists and tables)
 - it renders frontmatter slightly differently.
 
-It adds a 'Print Me' button to the preview window. Clicking this opens the note in your default browser, where you can then select to print it. (I hope to make this a single step process in time.)
+It adds a 'Print (opens in system browser)' button to the preview window (on macOS). Clicking this opens the note in your default browser, where you can then select to print it. (There are limitations in the API that prevent me from making this a single button press, sorry.)
 
 [This example NotePlan note](https://noteplan.co/n/EA936BC2-A6C1-43F7-9C34-E2C31CF96AC6) includes examples of these different capabilities.
 
 Note: This is designed to be a temporary solution while we wait for similar functionality to get baked into the NotePlan app itself.  Indeed I know there are bugs in the rendering of frontmatter arising from one of the third-party libraries this uses. To that end, I don't intend to be making many improvements to this.
 
 ## Automatic updating
-It's possible to set a **trigger** on a note so that the window will automatically refresh when you edit the note. To set this behaviour add the following line to the frontmatter block:
+It's possible to set a **trigger** on a note so that the window will automatically refresh when you edit the note. To set this behaviour add the following line to the note's frontmatter block:
 ```yaml
 triggers: onEditorWillSave => np.Preview.updatePreview
 ```
+
+Or use the "/add trigger to note" command (from the NoteHelpers plugin) and select "Preview (update preview)" option.
 
 ## Mermaid charts
 The markdown-ish definition of these charts is done in one or more fenced code blocks:

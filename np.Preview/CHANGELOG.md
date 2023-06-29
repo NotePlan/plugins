@@ -1,6 +1,12 @@
 # What's Changed in Previews plugin?
+See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
-## [0.3.0] - 2023-06-01
+## [0.3.1] - 2023-06-29
+- clarify instructions around Printing the preview, including disabling it on iOS, where it doesn't work.
+- preview output now hides sync line markers
+- added a hack to avoid displaying hashtags at the start of lines as headings [problem is in the third party library]
+
+## [0.3.0] - 2023-06-26
 - Added automatic setting of Mermaid charts to use their 'default' or 'dark' theme according to type of current NotePlan theme. See README for how to override this.
 - Will use latest Mermaid library -- now loads from internet to make sure its on the most recent version. But this means offline preview is likely to fail.
 - Adds a trigger capability, so the preview can be automatically refreshed when the note is updated. The trigger line is `triggers: onEditorWillSave => np.Preview.updatePreview`.
