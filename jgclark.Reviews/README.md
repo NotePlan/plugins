@@ -171,10 +171,12 @@ Part of the GTD methodology is to note which are the 'next actions' for a projec
 
 This is what user @George65 does:
 - when reviewing notes I add the `#next` tag to actionable tasks
-- use the Filer plugin's "/add sync'd copy to note" command to 'sync' those tasks to the current weekly note. (Or, if I know I don't need to get to it until the next week, then it goes into the following week or whatever. If it is actionable but I don't need to get to it until the next month I sync it into that next months task.)
+- use the "/add sync'd copy to note" command (from the [Filer plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer)) to 'sync' those tasks to the current weekly note. (Or, if I know I don't need to get to it until the next week, then it goes into the following week or whatever. If it is actionable but I don't need to get to it until the next month I sync it into that next months task.)
 - in essence this recreates the GTD 30 day, and monthly folders, but with the advantage that all these tasks are synced back to their projects.
 - each day I drag out from the reference area's week's note any actions I want to do that day, maintaining the Sync line status.
 - I also will copy over any tasks I didn't do from the previous day.
+
+**Tip**: use the "/searchOpenTasks" command (from the [Search Extensions plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions)) with search term `#next` to sync _all_ your open `#next` tasks to your `#next Search Results` note. You can then use this as the source to drag'n'drop tasks into daily/weekly/monthly notes.
 
 ## Configuration
 These commands require configuration before they will know how you intend to use projects and reviews. On macOS this is done by clicking the gear button on the 'Summaries' line in the Plugin Preferences panel. On iOS/iPadOS run the '/Projects: update plugin settings' command instead.
