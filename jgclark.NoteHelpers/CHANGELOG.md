@@ -3,6 +3,10 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
 
+## [0.17.1] - 2023-06-30
+### Fixed
+- fix bug in **/index folders** (spotted by @dwertheimer)
+
 ## [0.17.0] - 2023-06-12
 ### Added
 - new **/open url from a note** command that asks user for a note, and then presents a list of URLs. The selected one is then opened in your default browser. (for @John1 with help from @dwertheimer)

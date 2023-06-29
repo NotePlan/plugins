@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 7.3.2023 for v0.16.0 by @jgclark
+// Last updated 23.6.2023 for v0.17.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -15,7 +15,10 @@ import {
   nowLocaleShortDateTime,
   toLocaleDateString,
 } from '@helpers/NPdateTime'
-import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import {
+  JSP, logDebug, logError, logInfo,
+  overrideSettingsWithStringArgs
+} from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import {
   createPrettyRunPluginLink,
@@ -28,6 +31,8 @@ import {
   chooseOption,
   // showMessage,
 } from '@helpers/userInput'
+import { openNoteByFilename } from "../../helpers/NPnote";
+import ceil from "lodash/fp/ceil";
 
 const pluginID = 'jgclark.NoteHelpers'
 
@@ -143,38 +148,44 @@ function makeFolderIndex(folder: string, displayOrder: string, dateDisplayType: 
  * @param {string?} dateDisplayType - what type of date suffix to add ('none' (default) or 'timeSince', 'updateDate')
  * @param {boolean?} includeSubfolders? (default: true)
  */
-export async function indexFolders(folder: string = "", displayOrder: string = "alphabetical", dateDisplayType: string = "none", includeSubfolders: string = "true"): Promise<void> {
+// export async function indexFolders(folder: string = "", displayOrder: string = "alphabetical", dateDisplayType: string = "none", includeSubfolders: string = "true"): Promise<void> {
+export async function indexFolders(folder: string = "", args: string = ''): Promise<void> {
   try {
     let folderToUse = ''
     let fullFilename = ''
-    logDebug(pluginJson, `indexFolders() starting with (possibly default) params '${folder}', displayOrder:${displayOrder} / dateDisplayType:${dateDisplayType} / subfolders? ${includeSubfolders}`)
+
+    let config: noteHelpersConfigType = await getSettings()
 
     // Use parameters if passed, otherwise fallback to the settings
-    // FIXME: better way of doing this now
-    const config: noteHelpersConfigType = await getSettings()
-    let displayOrderToUse = displayOrder ?? config.displayOrder
-    let dateDisplayTypeToUse = dateDisplayType ?? config.dateDisplayType
-    let includeSubfoldersToUse = includeSubfolders === "true" // as it comes in as a string
+    // v1 method
+    // let displayOrderToUse = displayOrder ?? config.displayOrder
+    // let dateDisplayTypeToUse = dateDisplayType ?? config.dateDisplayType
+    // let includeSubfoldersToUse = includeSubfolders === "true" // as it comes in as a string
+    // logDebug(pluginJson, `indexFolders() starting with (possibly default) params '${folder}', displayOrder:${displayOrder} / dateDisplayType:${dateDisplayType} / subfolders? ${includeSubfolders}`)
+    // v2 method
+    config = overrideSettingsWithStringArgs(config, args)
+    logDebug(pluginJson, `indexFolders() starting with (possibly default) params '${folder}', displayOrder:${config.displayOrder} / dateDisplayType:${config.dateDisplayType} / subfolders? ${config.includeSubfolders}`)
 
     // Get folder from param, falling back to current note's folder
     if (folder) {
       // folderToUse = getFolderFromFilename(folder)
       folderToUse = folder
     } else {
-      logDebug('indexFolders', Editor.filename)
+      // logDebug('indexFolders', Editor.filename)
       logDebug('indexFolders', NotePlan.selectedSidebarFolder)
       folderToUse = Editor.filename ?? NotePlan.selectedSidebarFolder ?? undefined
-      if (folderToUse === undefined) {
-        logDebug('indexFolders', `Info: No current filename (or folder) found, so will ask instead.`)
+      if (Editor.type === 'Calendar' || folderToUse === undefined) {
+        logDebug('indexFolders', `Info: No valid current filename (or folder) found, so will ask instead.`)
         folderToUse = await chooseFolder(`Please pick folder to index`, true, true) // include @Archive as an option, and to create a new folder
       }
     }
-    logDebug('indexFolders', `values to use: folder:'${folderToUse}' / displayOrderToUse:${displayOrderToUse} / dateDisplayTypeToUse:${dateDisplayTypeToUse} / ${includeSubfoldersToUse ? 'with' : 'without'} subfolders`)
+    // logDebug('indexFolders', `- values to use: folder:'${folderToUse}' / displayOrderToUse:${displayOrderToUse} / dateDisplayTypeToUse:${dateDisplayTypeToUse} / ${includeSubfoldersToUse ? 'with' : 'without'} subfolders`)
+    logDebug('indexFolders', `- values to use: folder:'${folderToUse}' / displayOrderToUse:${config.displayOrder} / dateDisplayTypeToUse:${config.dateDisplayType} / ${config.includeSubfolders ? 'with' : 'without'} subfolders`)
 
     // If we've been called by x-callback then output will be to relevant folder's _index file.
     let option: string | boolean
     if (folder) {
-      option = (includeSubfoldersToUse) ? 'all-to-one-index' : 'one-to-index'
+      option = (config.includeSubfolders) ? 'all-to-one-index' : 'one-to-index'
     } else {
       option = await chooseOption(
         'Create index for which folder(s)?',
@@ -218,9 +229,9 @@ export async function indexFolders(folder: string = "", displayOrder: string = "
     let outputArray: Array<string> = []
 
     if (option.startsWith('one')) {
-      outputArray = makeFolderIndex(folderToUse, displayOrderToUse, dateDisplayTypeToUse, false)
+      outputArray = makeFolderIndex(folderToUse, displayOrder, dateDisplayType, false)
     } else if (option.startsWith('all')) {
-      outputArray = makeFolderIndex(folderToUse, displayOrderToUse, dateDisplayTypeToUse, true)
+      outputArray = makeFolderIndex(folderToUse, displayOrder, dateDisplayTypeToUse, true)
     }
     const outString = outputArray.join('\n')
 
@@ -237,10 +248,13 @@ export async function indexFolders(folder: string = "", displayOrder: string = "
         // outputFilename = `${pref_folderToStore}/${String(outputFilename)}` ?? '(error)'
         // NB: filename here = folder + filename
         if (outputFilename !== '') {
+          logError('indexFolders', `couldn't make a new note in folder ${folderToUse}' for some reason. Stopping.`)
           return
         }
-        outputNote = await DataStore.projectNoteByFilename(outputFilename)
-        logInfo('indexFolders', `writing results to the new note '${outputFilename}'`)
+        logInfo('indexFolders', `Writing details to the new note '${outputFilename}'`)
+        // outputNote = await DataStore.projectNoteByFilename(outputFilename)
+        const options = { newWindow: false, newSplit: true, content: `# ${outString}`, highlightStart: 0, highlightEnd: 0 }
+        outputNote = await openNoteByFilename(outputFilename, options)
       }
       // fresh test to see if we now have the note
       if (outputNote != null) {
