@@ -159,16 +159,31 @@ describe(`${PLUGIN_NAME}`, () => {
         ])
       })
 
-      it('should find hook mark links', () => {
+      it('should find bare noteplan: URIs', () => {
+        const text = 'An example: noteplan://doSomething?with=param'
+        const result = f.findURLsInText(text, false)
+        expect(result).toEqual([
+          {
+            url: 'noteplan://doSomething?with=param',
+            name: null,
+            lineIndex: 0,
+            domain: '',
+            page: '',
+            type: 'bareURL',
+          },
+        ])
+      })
+
+      it('should find bare hook mark links', () => {
         const text = 'Hello Example hook://file/something to somewhere'
         const result = f.findURLsInText(text, false)
         expect(result).toEqual([
           {
             url: 'hook://file/something',
-            name: 'Example',
+            name: null,
             lineIndex: 0,
             domain: '',
-            page: '',
+            page: 'something',
             type: 'bareURL',
           },
         ])

@@ -147,7 +147,7 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
   while (str && isScheduled(str)) {
     str = str
       .replace(RE_PLUS_DATE, '')
-      .replace('>today', '')
+      .replace(/ ?\>today ?/g, ' ')
       .replace(new RegExp(RE_SCHEDULED_ISO_DATE), '')
       .replace(RE_SCHEDULED_WEEK_NOTE_LINK, '')
       .replace(new RegExp(SCHEDULED_MONTH_NOTE_LINK), '')
@@ -302,7 +302,8 @@ export function getDateStringFromCalendarFilename(filename: string): string {
     if (filename.match(RE_DAILY_NOTE_FILENAME)) {
       // logDebug('gDSFCF', `= daily`)
       return filename.slice(0, 8)
-    } else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {//TEST:
+    } else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
+      //TEST:
       // logDebug('gDSFCF', `${filename} = weekly`)
       return filename.slice(0, 8)
     } else if (filename.match(RE_MONTHLY_NOTE_FILENAME)) {
@@ -886,9 +887,7 @@ export function calcOffsetDateStrUsingCalendarType(interval: string, baseDateISO
     }
     const unit = interval.charAt(interval.length - 1) // get last character
 
-    const baseDateISO = (baseDateISOIn !== '')
-      ? baseDateISOIn
-      : new moment().startOf('day').format('YYYY-MM-DD')
+    const baseDateISO = baseDateISOIn !== '' ? baseDateISOIn : new moment().startOf('day').format('YYYY-MM-DD')
 
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
     const offsetDate = calcOffsetDate(baseDateISO, interval)
@@ -896,17 +895,18 @@ export function calcOffsetDateStrUsingCalendarType(interval: string, baseDateISO
       throw new Error('Invalid return from calcOffsetDate()')
     }
     // Use the interval's unit to also set the output format
-    const momentDateFormat = (unit === 'd' || unit === 'b')
-      ? MOMENT_FORMAT_NP_DAY
-      : (unit === 'w')
+    const momentDateFormat =
+      unit === 'd' || unit === 'b'
+        ? MOMENT_FORMAT_NP_DAY
+        : unit === 'w'
         ? MOMENT_FORMAT_NP_WEEK
-        : (unit === 'm')
-          ? MOMENT_FORMAT_NP_MONTH
-          : (unit === 'q')
-            ? MOMENT_FORMAT_NP_QUARTER
-            : (unit === 'y')
-              ? MOMENT_FORMAT_NP_WEEK
-              : ''
+        : unit === 'm'
+        ? MOMENT_FORMAT_NP_MONTH
+        : unit === 'q'
+        ? MOMENT_FORMAT_NP_QUARTER
+        : unit === 'y'
+        ? MOMENT_FORMAT_NP_WEEK
+        : ''
     if (momentDateFormat === '') {
       throw new Error('Invalid date interval')
     }
