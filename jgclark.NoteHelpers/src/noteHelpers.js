@@ -25,6 +25,7 @@ export type noteHelpersConfigType = {
   displayOrder: string,
   ignoreCompletedItems: boolean,
   includeSubfolders: boolean,
+  indexTitle: string,
 }
 
 /**

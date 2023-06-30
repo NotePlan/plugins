@@ -42,14 +42,13 @@ const pluginID = 'jgclark.NoteHelpers'
  * @author @jgclark
  *
  * @param {string} folder - folder name (without trailling /)
- * @param {string} displayOrder - sort order for index items ('updatedDate'/'createdDate'/'alphabetical')
- * @param {string} dateDisplayType - what type of date suffix to add ('none'/'timeSince'/'updateDate')
+ * @param {any} config - config object
  * @param {boolean} includeSubfolders?
  * @returns {Array<string>} array of strings, one for each output line
 */
-function makeFolderIndex(folder: string, displayOrder: string, dateDisplayType: string, includeSubfolders: boolean): Array<string> {
+function makeFolderIndex(folder: string, config: any, /* displayOrder: string, dateDisplayType: string,*/ includeSubfolders: boolean): Array<string> {
   try {
-    logDebug(pluginJson, `makeFolderIndex() starting for '${folder}', displayOrder:${displayOrder} / dateDisplayType:${dateDisplayType} / ${includeSubfolders ? 'with' : 'without'} subfolders`)
+    logDebug(pluginJson, `makeFolderIndex() starting for '${folder}', displayOrder:${config.displayOrder} / dateDisplayType:${config.dateDisplayType} / ${includeSubfolders ? 'with' : 'without'} subfolders`)
 
     const outputArray: Array<string> = []
     let folderList: Array<string> = []
@@ -63,19 +62,19 @@ function makeFolderIndex(folder: string, displayOrder: string, dateDisplayType: 
     logDebug('makeFolderIndex', `- Found ${folderList.length} matching folder(s)`)
 
     // Prepare output items we need just once in the output
-    const sortExplainer = (displayOrder === "updatedDate")
+    const sortExplainer = (config.displayOrder === "updatedDate")
       ? "Sorted by most recently updated date"
-      : (displayOrder === "createdDate")
+      : (config.displayOrder === "createdDate")
         ? "Sorted by most recently created date"
         : "Sorted by title"
-    // const dateDisplayExplainer = (dateDisplayType === "timeSince")
-    const dateExplainer = (dateDisplayType === "updatedDate")
+    // const dateDisplayExplainer = (config.dateDisplayType === "timeSince")
+    const dateExplainer = (config.dateDisplayType === "updatedDate")
       ? "Dates are when note was last updated."
-      : (dateDisplayType === "timeSince")
+      : (config.dateDisplayType === "timeSince")
         ? "Times are since note was last updated."
         : ""
-    // const paramsForXCB: Array<string> = [folder, displayOrder, dateDisplayType, String(includeSubfolders)]
-    const argsForXCB = `displayOrder:${displayOrder};dateDisplayType=${dateDisplayType};includeSubfolders=${String(includeSubfolders)}`
+    // const paramsForXCB: Array<string> = [folder, config.displayOrder, config.dateDisplayType, String(includeSubfolders)]
+    const argsForXCB = `displayOrder:${config.displayOrder};dateDisplayType=${config.dateDisplayType};includeSubfolders=${String(includeSubfolders)}`
     const paramsForXCB: Array<string> = [folder, argsForXCB]
     const refreshXCBStr = createPrettyRunPluginLink('🔄 Refresh', pluginID, 'index folders', paramsForXCB)
 
@@ -83,13 +82,14 @@ function makeFolderIndex(folder: string, displayOrder: string, dateDisplayType: 
     let isSubFolder = false
     for (const f of folderList) {
       // Get list of the notes in this folder, but ignore any '_index' notes :-)
+      const outputTitle = config.indexTitle.replace('{{folder}}', f)
       let notes = notesInFolderSortedByTitle(f)
-        .filter((n) => !n.title?.startsWith('_index'))
-      logDebug('makeFolderIndex', `- Found ${notes.length} notes in '${f}' before '${displayOrder}' sort`)
+        .filter((n) => n.title !== outputTitle)
+      logDebug('makeFolderIndex', `- Found ${notes.length} notes in '${f}' before '${config.displayOrder}' sort`)
 
       // Sort this list by whatever the user's setting says
       // (Need to do this before the gatherMatchingLines, as afterwards we don't have date information.)
-      switch (displayOrder) {
+      switch (config.displayOrder) {
         case 'updatedDate':
           notes = notes.sort((a, b) => (a.changedDate > b.changedDate ? -1 : 1))
           break
@@ -103,9 +103,14 @@ function makeFolderIndex(folder: string, displayOrder: string, dateDisplayType: 
       // logDebug('makeFolderIndex', `- ${notes.length} notes after sort`)
 
       // Add suffix, if wanted
-      outputArray.push(isSubFolder
-        ? `### ${f} (${notes.length})`
-        : `_index ${f}\nIndex generated ${nowLocaleShortDateTime()} ${refreshXCBStr}\n${sortExplainer}. ${dateExplainer}`)
+
+      if (isSubFolder) {
+        outputArray.push(`### ${f} (${notes.length})`)
+      } else {
+        outputArray.push(outputTitle)
+        outputArray.push(`Index generated ${nowLocaleShortDateTime()} ${refreshXCBStr} \n${sortExplainer}. ${dateExplainer}`)
+
+      }
 
       if (notes.length > 0) {
         // If this is a sub-folder level, then prefix with ### for a 3rd level heading,
@@ -114,9 +119,9 @@ function makeFolderIndex(folder: string, displayOrder: string, dateDisplayType: 
         // iterate over this folder's notes
         for (const note of notes) {
           // add type of date suffix (if wanted)
-          const dateSuffix = (dateDisplayType === "updatedDate")
+          const dateSuffix = (config.dateDisplayType === "updatedDate")
             ? '\t' + toLocaleDateString(note.changedDate)
-            : (dateDisplayType === "timeSince")
+            : (config.dateDisplayType === "timeSince")
               ? '\t' + relativeDateFromNumber(daysBetween(new Date(), note.changedDate))
               : ''
           outputArray.push(`- ${returnNoteLink(note.title ?? 'error')}${dateSuffix}`)
@@ -180,7 +185,7 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
     }
     logDebug('indexFolders', `- values to use: folder:'${folderToUse}' / displayOrderToUse:${config.displayOrder} / dateDisplayTypeToUse:${config.dateDisplayType} / ${config.includeSubfolders ? 'with' : 'without'} subfolders`)
 
-    // If we've been called by x-callback then output will be to relevant folder's _index file.
+    // If we've been called by x-callback then output will be to relevant folder's Index file.
     let option: string | boolean
     if (folder) {
       option = (config.includeSubfolders) ? 'all-to-one-index' : 'one-to-index'
@@ -189,11 +194,11 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
         'Create index for which folder(s)?',
         [
           {
-            label: `🖊 This folder only (add/update to _index note)`,
+            label: `🖊 This folder only (add/update to Index note)`,
             value: 'one-to-index',
           },
           {
-            label: `🖊 This folder and sub-folders (add/update to single _index note)`,
+            label: `🖊 This folder and sub-folders (add/update to single Index note)`,
             value: 'all-to-one-index',
           },
           {
@@ -223,14 +228,14 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
     let outputArray: Array<string> = []
 
     if (option.startsWith('one')) {
-      outputArray = makeFolderIndex(folderToUse, config.displayOrder, config.dateDisplayType, false)
+      outputArray = makeFolderIndex(folderToUse, config, false)
     } else if (option.startsWith('all')) {
-      outputArray = makeFolderIndex(folderToUse, config.displayOrder, config.dateDisplayType, true)
+      outputArray = makeFolderIndex(folderToUse, config, true)
     }
     const outString = outputArray.join('\n')
 
     if (option.endsWith('index')) {
-      // write out to index file(s)
+      // write out to Index file(s)
       let outputFilename = `${folderToUse}/_index.${DataStore.defaultFileExtension}`
       // see if we already have an _index file in this folder
       let outputNote = DataStore.projectNoteByFilename(outputFilename)
