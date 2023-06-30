@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "0.17.2",
-  "plugin.lastUpdateInfo": "0.17.2: fix bug in '/index folders'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.\n0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.",
+  "plugin.version": "0.17.3",
+  "plugin.lastUpdateInfo": "0.17.3: fix bugs in '/index folders'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.\n0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [

@@ -222,17 +222,25 @@ export function getProjectNotesInFolder(forFolder: string = ''): $ReadOnlyArray<
  * @return {Array<TNote>} - list of notes
  */
 export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
-  let notesInFolder: Array<TNote>
-  // If folder given (not empty) then filter using it
-  if (folder !== '') {
-    notesInFolder = DataStore.projectNotes.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
-  } else {
-    // return all project notes
-    notesInFolder = DataStore.projectNotes.slice()
+  try {
+    // logDebug('note/notesInFolderSortedByTitle', `Starting for folder '${folder}'`)
+    const allNotesInFolder = DataStore.projectNotes.slice()
+    let notesInFolder: Array<TNote>
+    // If folder given (not empty) then filter using it
+    if (folder !== '') {
+      notesInFolder = allNotesInFolder.filter((n) => getFolderFromFilename(n.filename) === folder)
+    } else {
+      // return all project notes
+      notesInFolder = allNotesInFolder
+    }
+    // Sort alphabetically on note's title
+    const notesSortedByTitle = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
+    return notesSortedByTitle
   }
-  // Sort alphabetically on note's title
-  const notesSortedByTitle = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
-  return notesSortedByTitle
+  catch (err) {
+    logError('note/notesInFolderSortedByTitle', err.message)
+    return []
+  }
 }
 
 /**
@@ -243,15 +251,21 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
  * @returns {string} the title (not filename) that was created
  */
 export function getUniqueNoteTitle(title: string): string {
-  let i = 0
-  let res: $ReadOnlyArray<TNote> = []
-  let newTitle = title
-  while (++i === 1 || res.length > 0) {
-    newTitle = i === 1 ? title : `${title} ${i}`
-    // $FlowFixMe(incompatible-type)
-    res = DataStore.projectNoteByTitle(newTitle, true, false)
+  try {
+    let i = 0
+    let res: $ReadOnlyArray<TNote> = []
+    let newTitle = title
+    while (++i === 1 || res.length > 0) {
+      newTitle = i === 1 ? title : `${title} ${i}`
+      // $FlowFixMe(incompatible-type)
+      res = DataStore.projectNoteByTitle(newTitle, true, false)
+    }
+    return newTitle
   }
-  return newTitle
+  catch (err) {
+    logError('note/notesInFolderSortedByTitle', err.message)
+    return ''
+  }
 }
 
 /**
@@ -277,17 +291,21 @@ export function calendarNotesSortedByChanged(): Array<TNote> {
 }
 
 /**
- * Return list of past calendar notes, of any duration
- * TODO: check whether the .date is start or end of period
- * FIXME: not returning 2023-W09, but is 202303
+ * Return list of past calendar notes, of any duration.
+ * Note: the date that's checked is the *start* of the period. I.e. test on 30th June will match 2nd Quarter as being in the past.
  * @author @jgclark
  * @return {Array<TNote>} - list of notes
  */
 export function pastCalendarNotes(): Array<TNote> {
-  const startOfTodayDate = moment().startOf('day').toDate()
-  return DataStore.calendarNotes.slice().filter((note) => {
-    return note.date < startOfTodayDate
-  })
+  try {
+    const startOfTodayDate = moment().startOf('day').toDate()
+    return DataStore.calendarNotes.slice().filter((note) => {
+      return note.date < startOfTodayDate
+    })
+  } catch (err) {
+    logError('note/pastCalendarNotes', err.message)
+    return []
+  }
 }
 
 /**
@@ -316,19 +334,24 @@ export function projectNotesSortedByChanged(): Array<TNote> {
  * @return {Array<TNote>} - list of notes
  */
 export function projectNotesSortedByTitle(): Array<TNote> {
-  const projectNotes = DataStore.projectNotes.slice()
-  const notesSorted = projectNotes.sort(function (first, second) {
-    const a = first.title?.toUpperCase() ?? '' // ignore upper and lowercase
-    const b = second.title?.toUpperCase() ?? '' // ignore upper and lowercase
-    if (a < b) {
-      return -1 //a comes first
-    }
-    if (a > b) {
-      return 1 // b comes first
-    }
-    return 0 // names must be equal
-  })
-  return notesSorted
+  try {
+    const projectNotes = DataStore.projectNotes.slice()
+    const notesSorted = projectNotes.sort(function (first, second) {
+      const a = first.title?.toUpperCase() ?? '' // ignore upper and lowercase
+      const b = second.title?.toUpperCase() ?? '' // ignore upper and lowercase
+      if (a < b) {
+        return -1 //a comes first
+      }
+      if (a > b) {
+        return 1 // b comes first
+      }
+      return 0 // names must be equal
+    })
+    return notesSorted
+  } catch (err) {
+    logError('note/projectNotesSortedByTitle', err.message)
+    return []
+  }
 }
 
 /**
@@ -545,31 +568,34 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
  * @returns {Array<TNote>} - array of notes that are not in excluded folders
  */
 export function filterParasAgainstExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>, excludeNonMarkdownFiles: boolean = false): Array<TParagraph> {
-  // const ignoreThisFolder = excludedFolders.length && !!ignoreFolders.filter((folder) => note.filename.includes(`${folder}/`)).length
+  try {
+    if (!excludedFolders) {
+      logDebug('note/filterParasAgainstExcludeFolders', `excludedFolders list is empty, so will return all paras`)
+      return paras
+    }
+    // $FlowIgnore(incompatible-type)
+    const noteList: Array<CoreNoteFields> = paras.map((p) => p.note)
+    if (noteList.length > 0) {
+      const noteListFiltered = filterNotesAgainstExcludeFolders(noteList, excludedFolders, excludeNonMarkdownFiles)
 
-  if (!excludedFolders) {
-    logDebug('note/filterParasAgainstExcludeFolders', `excludedFolders list is empty, so will return all paras`)
-    return paras
-  }
-  // $FlowIgnore(incompatible-type)
-  const noteList: Array<CoreNoteFields> = paras.map((p) => p.note)
-  if (noteList.length > 0) {
-    const noteListFiltered = filterNotesAgainstExcludeFolders(noteList, excludedFolders, excludeNonMarkdownFiles)
+      if (!noteListFiltered) {
+        logInfo('note/filterParasAgainstExcludeFolders', `all notes have been excluded`)
+        return []
+      }
 
-    if (!noteListFiltered) {
-      logInfo('note/filterParasAgainstExcludeFolders', `all notes have been excluded`)
+      // filter out paras not in these notes
+      const parasFiltered = paras.filter((p) => {
+        const thisNote = p.note
+        const isInIgnoredFolder = noteListFiltered.includes(thisNote)
+        return !isInIgnoredFolder
+      })
+      return parasFiltered
+    } else {
+      logWarn('note/filterParasAgainstExcludeFolders', `ffound no corresponding notes`)
       return []
     }
-
-    // filter out paras not in these notes
-    const parasFiltered = paras.filter((p) => {
-      const thisNote = p.note
-      const isInIgnoredFolder = noteListFiltered.includes(thisNote)
-      return !isInIgnoredFolder
-    })
-    return parasFiltered
-  } else {
-    logWarn('note/filterParasAgainstExcludeFolders', `ffound no corresponding notes`)
+  } catch (err) {
+    logError('note/filterParasAgainstExcludeFolders', err)
     return []
   }
 }

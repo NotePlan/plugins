@@ -25,7 +25,7 @@ import {
   displayTitle,
   returnNoteLink,
 } from '@helpers/general'
-import { notesInFolderSortedByTitle } from '@helpers/note'
+import { notesInFolderSortedByTitle, pastCalendarNotes } from '@helpers/note'
 import {
   chooseFolder,
   chooseOption,
@@ -85,7 +85,7 @@ function makeFolderIndex(folder: string, displayOrder: string, dateDisplayType: 
       // Get list of the notes in this folder, but ignore any '_index' notes :-)
       let notes = notesInFolderSortedByTitle(f)
         .filter((n) => !n.title?.startsWith('_index'))
-      // logDebug('makeFolderIndex', `- ${notes.length} notes before '${displayOrder}' sort`)
+      logDebug('makeFolderIndex', `- Found ${notes.length} notes in '${f}' before '${displayOrder}' sort`)
 
       // Sort this list by whatever the user's setting says
       // (Need to do this before the gatherMatchingLines, as afterwards we don't have date information.)
@@ -155,6 +155,15 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
     let folderToUse = ''
     let fullFilename = ''
 
+    //----------------------------------
+    // Test something else
+    const temp1 = pastCalendarNotes()
+    const temp2 = temp1.filter((n) => n.filename.match(/2023-0\d\.md/))
+    for (const n of temp2) {
+      logDebug(pluginJson, n.filename)
+    }
+    //----------------------------------
+
     // Use parameters if passed, otherwise fallback to the settings
     // v2 method
     let config: noteHelpersConfigType = await getSettings()
@@ -167,7 +176,12 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
     } else {
       // logDebug('indexFolders', Editor.filename)
       logDebug('indexFolders', NotePlan.selectedSidebarFolder)
-      folderToUse = getFolderFromFilename(Editor.filename) ?? NotePlan.selectedSidebarFolder ?? undefined
+      folderToUse = (Editor.filename)
+        ? getFolderFromFilename(Editor.filename)
+        : (NotePlan.selectedSidebarFolder)
+          ? NotePlan.selectedSidebarFolder
+          : undefined
+      logDebug('indexFolders', `folderToUse: ${folderToUse ?? '(undefined still)'}`)
       if (Editor.type === 'Calendar' || folderToUse === undefined) {
         logDebug('indexFolders', `Info: No valid current filename (or folder) found, so will ask instead.`)
         folderToUse = await chooseFolder(`Please pick folder to index`, true, true) // include @Archive as an option, and to create a new folder
@@ -236,7 +250,7 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
         logDebug('indexFolders', `- newNote filename: ${String(outputFilename)}`)
         // outputFilename = `${pref_folderToStore}/${String(outputFilename)}` ?? '(error)'
         // NB: filename here = folder + filename
-        if (outputFilename !== '') {
+        if (outputFilename === '') {
           logError('indexFolders', `couldn't make a new note in folder ${folderToUse}' for some reason. Stopping.`)
           return
         }
