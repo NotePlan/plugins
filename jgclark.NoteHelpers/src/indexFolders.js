@@ -155,15 +155,6 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
     let folderToUse = ''
     let fullFilename = ''
 
-    //----------------------------------
-    // Test something else
-    const temp1 = pastCalendarNotes()
-    const temp2 = temp1.filter((n) => n.filename.match(/2023-0\d\.md/))
-    for (const n of temp2) {
-      logDebug(pluginJson, n.filename)
-    }
-    //----------------------------------
-
     // Use parameters if passed, otherwise fallback to the settings
     // v2 method
     let config: noteHelpersConfigType = await getSettings()
