@@ -36,10 +36,10 @@ Notes:
 
 <!--??? hopefully in time /qad adds yesterday, today, tomorrow terms -->
 <!--??? hopefully in time /qaw adds thisweek, nextweek terms -->
-| Command | x-callback start | arg0 | arg1 | arg2 | arg3 |
-|-----|-------------|-----|-----|-----|-----|
-| index folders | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=index%20folders&` | folder name | displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`) | dateDisplayType (`none` (default) or `timeSince`, `updateDate`) | include subfolders? (`true` or `false`) |
-| jump to heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&` | heading text | | | |
+| Command | x-callback start | arg0 | arg1 |
+|-----|-------------|-----|-----|
+| index folders | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=index%20folders&` | folder name | other args as a `key=value;key2=value` string. Possible keys are displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`),  dateDisplayType (`none` (default) or `timeSince`, `updateDate`), includeSubfolders (`true` or `false`) |
+| jump to heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&` | heading text | |
 
 
 ## Support

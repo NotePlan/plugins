@@ -3,7 +3,7 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
 
-## [0.17.1] - 2023-06-30
+## [0.17.2] - 2023-06-30
 ### Fixed
 - fix bug in **/index folders** (spotted by @dwertheimer)
 

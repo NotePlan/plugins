@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 11.6.2023 for v0.17.0 by @jgclark
+// Last updated 30.6.2023 for v0.17.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,6 +13,7 @@ import { convertNoteToFrontmatter } from '@helpers/NPnote'
 import { addTrigger, TRIGGER_LIST } from '@helpers/NPFrontMatter'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { chooseFolder, chooseHeading, chooseOption, getInput, showMessage } from '@helpers/userInput'
+
 //-----------------------------------------------------------------
 // Settings
 
@@ -23,6 +24,7 @@ export type noteHelpersConfigType = {
   defaultFMText: string, // default text to add to frontmatter.
   displayOrder: string,
   ignoreCompletedItems: boolean,
+  includeSubfolders: boolean,
 }
 
 /**

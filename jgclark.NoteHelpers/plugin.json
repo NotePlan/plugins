@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "0.17.1",
-  "plugin.lastUpdateInfo": "0.17.1: fix bug in '/index folders'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.\n0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.",
+  "plugin.version": "0.17.2",
+  "plugin.lastUpdateInfo": "0.17.2: fix bug in '/index folders'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.\n0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -207,7 +207,7 @@
     {
       "key": "dateDisplayType",
       "title": "What type of date suffix to add?",
-      "description": "What type of date/time period to add to the end of note links in the index",
+      "description": "What type of date/time period to add to the end of note links in the index. 'timeSince' is time since the note was last updated; 'updatedDate' shows the date the note was last updated.",
       "type": "string",
       "choices": [
         "none",
@@ -215,6 +215,14 @@
         "updatedDate"
       ],
       "default": "none",
+      "required": true
+    },
+    {
+      "key": "includeSubfolders",
+      "title": "Include Subfolders when making an index?",
+      "description": "",
+      "type": "bool",
+      "default": true,
       "required": true
     },
     {
