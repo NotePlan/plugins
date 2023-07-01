@@ -6,25 +6,20 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 
 ![demo](qs+refresh-demo.gif)
 
-There are the /commands available through NotePlan's command bar:
+## The search commands
 
-![the /commands](commands.png) <!--@@@-->
+- **/flexiSearch** presents a dialog box which allows you to select all available options, without needing to know which of the following specific commands to call.
+<img width="500px" alt="FlexiSearch" src="flexiSearch-dialog1@2x.png">
 
-1. **/flexiSearch** presents a dialog box which allows you to select all available options, without needing to know which of the following specific commands to call.
-
-<!-- ![/flexiSearch](flexiSearch-dialog1@2x.png) -->
-<img width="500px" alt="FlexiSearch" src=flexiSearch-dialog1@2x.png">
-
-
-1. **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
-2. **/search** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
-3. **/searchOpenTasks** searches just across **open tasks** in all notes.
-4. **/searchOverNotes** searches across **all regular** (non-calendar) notes.
-5. **/searchOverCalendar** searches across **all calendar**  notes.
-6. **/searchResultsInPeriod**: searches over the **calendar and weekly notes of the time period you select**: ![selecting a period](period-selection.png)
+- **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
+- **/search** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
+- **/searchOpenTasks** searches just across **open tasks** in all notes.
+- **/searchOverNotes** searches across **all regular** (non-calendar) notes.
+- **/searchOverCalendar** searches across **all calendar**  notes.
+- **/searchResultsInPeriod**: searches over the **calendar (daily, weekly etc.) notes of the time period you select**: ![selecting a period](period-selection.png)
 
 ## Results Display
-Apart from /quickSearch, the results are always **saved to a note** with the search terms as its title in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  But you also are given the option of saving to the current note, or to the plugin console.
+Apart from /quickSearch, the results are always **saved to a note** with the search terms as its title in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  You also are given the option of saving to the current note, or to the plugin console.
 
 As the results are saved to a note, the following sorts of uses are then possible:
 - keep a note with all open tasks for a particular `@person` -- as live tasks that can be ticked off
@@ -35,8 +30,8 @@ There are two **display styles**:
 1. '**NotePlan**': all results are shown as the usual NotePlan style of tasks, bullets, quotes or just notes. **Note**: Where a task is an open one, then a sync'd copy of it is shown, to stop duplication of tasks in NotePlan. This makes it a good way of having a special note that you can easily refresh that lists all open tasks for @personX.
 2. '**Simplified**': all results are shown as bullets, and can be reduced in length if required using the 'Result quote length' setting.
 
-You can also set:
-- 'Highlight matching search terms?' in the results. For this you need to use an appropriate theme: see below. Note: This is disabled if the search result is a "Synced Line" using that Labs feature.
+There are various options you can set:
+- 'Highlight matching search terms?' in the results. For this you need to use an appropriate theme: see below. Note: This is disabled if the search result is a 'Synced Line'.
 - 'Group results by Note?', where matches found within the same note are grouped together ('true' by default).
 - Where the match is in a calendar note, 'Date style' setting lets you choose where that link is shown as a 'date' using your locale, or as a NP date 'link' ([[2022-06-30]]), `at` (`@2022-06-30`), 'date' (date formatted for your locale), or 'scheduled' (`>2022-06-30`).
 - the ordering of the results by the title, created date or changed date of the note the search term is found in.
@@ -49,22 +44,24 @@ Each results note has a ` [🔄 Refresh results for ...]` pseudo-button under th
 
 This is shown in the demo above.
 
-## Extended search syntax (from v1.0)
+## Extended search syntax<!--(from v1.0)-->
+
 - put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
 - you can also use older search style: for example searching for terms X or Y using `X, Y` or `X OR Y`
-- you can use an empty search term (frmo v1.1), which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
-- the searches are simple ones, matching on whole or partial words, not using fuzzy matching or regular expressions
 - the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit`)
+- the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`), not using fuzzy matching or regular expressions
 - you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
 - all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be exluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
-- multi-word search phrases in quotes (e.g. `"Holy Spirit"`) aren't supported by the underlying API, but instead they will be treated as `+Holy +Spirit`, which means a match will only happen if they are at least on the same line.
+- you can use an empty search term (from v1.1), which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
+- (from v1.2) to search for an exact multi-word phrases, put it in quotes (e.g. `"Holy Spirit"`).
 
 ## Settings
-To change the default **settings**, click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
+To change the default **settings** on **macOS** click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
 
 ![search settings](search-settings.png)
 
+On **iOS** run the command "/Search: update plugin settings" which provides a multi-step equivalent to the more convenient macOS settings window.
 ## Results highlighting
 To see **highlighting** of matching terms in Simplified-style output, you'll need to be using a theme that highlights lines using `==this syntax==`. You can [customise an existing theme](https://help.noteplan.co/article/44-customize-themes) by adding something like:
 
@@ -109,6 +106,7 @@ Notes:
 - the number and order of arguments you pass is important
 - where an argument isn't valid, don't include it
 - as with all x-callback URLs, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.
+- **Tip**: use the Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you ...
 
 | Command | x-callback start | arg0 | arg1 | arg2 |
 |-----|-----------|----------|----------|----------|
@@ -119,9 +117,6 @@ Notes:
 | /searchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. |
 
 There is no equivalent of /flexiSearch, as this is simply a wrapper around these other commands.
-
-## Future work
-In time I hope to be able to support searching for phrases such as `Bob Smith`, meaning that exact two-word phrase. However, the underlying API doesn't make this easy.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

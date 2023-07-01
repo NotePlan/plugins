@@ -2,7 +2,8 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 23.2.2023 for v1.1.0, @jgclark
+// Last updated 5.6.2023 for v1.1.0, @jgclark
+// TODO: support multi-word search strings
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -16,7 +17,7 @@ import {
   nowLocaleShortDateTime,
 } from '@helpers/NPdateTime'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import { clo, logDebug, logError, logWarn, timer } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
 import { displayTitle, type headingLevelType, titleAsLink } from '@helpers/general'
 import { getNoteByFilename, getNoteContextAsSuffix, getOrMakeNote, getProjectNotesInFolder, replaceSection } from '@helpers/note'
@@ -125,7 +126,7 @@ export async function getSearchSettings(): Promise<any> {
 * @author @jgclark
 * @tests in jest file
 * @param {string | Array<string>} searchArg string containing search term(s) or array of search terms
-* @param {boolean?} modifyQuotedTermsToAndedTerms?
+* @param {boolean?} modifyQuotedTermsToAndedTerms? (default true)
 * @returns {Array<string>} normalised search term(s)
 */
 export function normaliseSearchTerms(
@@ -245,8 +246,9 @@ export function normaliseSearchTerms(
 * @tests in jest file
 */
 export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNegative: boolean = false): Array<typedSearchTerm> {
-
-  const normalisedTerms = normaliseSearchTerms(searchArg)
+  // TEST: Now change to modifyQuotedTermsToAndedTerms false
+  const normalisedTerms = normaliseSearchTerms(searchArg, false)
+  logDebug('validateAndTypeSearchTerms', `starting with ${String(normalisedTerms.length)} normalised terms: [${String(normalisedTerms)}]`)
 
   // Don't allow 0 terms, apart from
   // Special case for @JPR1972: allow negative or empty only
@@ -401,7 +403,8 @@ export function getSearchTermsRep(typedSearchTerms: Array<typedSearchTerm>): str
 
 /**
  * This is where the search logic is applied, using the must/may/not terms.
- * Returns the subset of results, and can optionally limit the number of results returned to the first 'resultLimit' items
+ * Returns the subset of results, and can optionally limit the number of results returned to the first 'resultLimit' items.
+ * If fromDateStr and toDateStr are given, then it will filter out results from Project Notes or the Calendar notes from outside that date range (measured at the first date of the Calendar note's period).
  * Called by runSearchesV2
  * @param {Array<resultObjectTypeV3>}
  * @param {number} resultLimit (optional; defaults to 500)
@@ -553,8 +556,9 @@ export function applySearchOperators(
   // If we have date limits, now apply them
   if (fromDateStr && toDateStr) {
     logDebug('applySearchOperators', `- Will now filter out Calendar note results outside ${fromDateStr}-${toDateStr} from ${consolidatedLineCount} results`)
-    // Keep notes that don't start with a year, or fall within the date range
-    consolidatedNALs = consolidatedNALs.filter((f) => !f.noteFilename.match(/^\d{4}/) || withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
+    // Keep results only from within the date range (measured at the first date of the Calendar note's period)
+    // TODO: ideally change to cover whole of a calendar note's date range
+    consolidatedNALs = consolidatedNALs.filter((f) => /** !f.noteFilename.match(/^\d{4}/) || */ withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
     consolidatedLineCount = consolidatedNALs.length
     consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
     logDebug('applySearchOperators', `- After filtering out by date: ${consolidatedLineCount} results`)
@@ -724,48 +728,48 @@ export async function runSearchV2(
 ): Promise<resultObjectTypeV3> {
   try {
     const headingMarker = '#'.repeat(config.headingLevel)
-    const searchTerm = typedSearchTerm.term
+    const fullSearchTerm = typedSearchTerm.term
+    let searchTerm = fullSearchTerm
     let resultParas: Array<TParagraph> = []
+    let multiWordSearch = false
     logDebug('runSearchV2', `Starting for [${searchTerm}]`)
 
-    // V1: get list of matching paragraphs for this string
-    // if (searchTerm !== '') {
-    //   CommandBar.showLoading(true, `Running search for ${typedSearchTerm.termRep} ...`)
-    //   const tempResult = await DataStore.search(searchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude)
-    //   resultParas = tempResult.slice()
-    //   CommandBar.showLoading(false)
-    // } else /** if (paraTypesToInclude.includes('open'))*/ {
-    //   CommandBar.showLoading(true, `Finding all tasks without initial search term, but restricting to types '${String(paraTypesToInclude)}' ...`)
-    //   const folderList = getFilteredFolderList(foldersToExclude, true)
-
-    //   for (const f of folderList) {
-    //     const noteList = getProjectNotesInFolder(f) // does not include any sub-folders
-    //     logDebug('runSearchV2', `- checking ${noteList.length} notes in folder '${f}'`)
-    //     for (const n of noteList) {
-    //       const theseResults = n.paragraphs?.filter(isOpen)
-    //       resultParas.push(...theseResults)
-    //     }
-    //   }
-
-    // V2: get list of matching paragraphs for this string
+    // V1: get list of matching paragraphs for this string by n.paragraphs.filter
     // ...
-    // V3: use search API that's now available
+    // V2: get list of matching paragraphs for this string by ???
+    // ...
+    // V3: use DataStore.search() API call that's now available
+    // ...
+    // V4: to deal with multi-word search terms, when the API doesn't,
+    // we will now just search for the first word in the search term
+    if (searchTerm.includes(" ")) {
+      multiWordSearch = true
+      searchTerm = searchTerm.split(' ')[0]
+      logDebug('runSearchV2', `multi-word: will just use [${searchTerm}] for [${fullSearchTerm}], and then do fuller check on results`)
+    }
 
     //-------------------------------------------------------
     // Finally, the actual Search API Call!
-    CommandBar.showLoading(true, `Running search for ${typedSearchTerm.termRep} ...`)
+    CommandBar.showLoading(true, `Running search for ${fullSearchTerm} ...`)
 
-    const tempResult = await DataStore.search(searchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
+    let tempResult = await DataStore.search(searchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
 
     CommandBar.showLoading(false)
     //-------------------------------------------------------
 
+    // if we have a multi-word search, then filter out the results to those that just contain the full search term
+    if (multiWordSearch) {
+      logDebug('runSearchV2', `multi-word: before filtering: ${String(tempResult.length)}`)
+      tempResult = tempResult.filter(tr => tr.content.includes(fullSearchTerm))
+      logDebug('runSearchV2', `multi-word: after filtering: ${String(tempResult.length)}`)
+    }
+
     if (paraTypesToInclude.length > 0) {
       CommandBar.showLoading(true, `Now filtering to para types '${String(paraTypesToInclude)}' ...`)
       // Check each result and add to the resultParas array only if it matches the given paraTypesToInclude
-      for (const tp of tempResult) {
-        if (paraTypesToInclude.includes(tp.type)) {
-          resultParas.push(tp)
+      for (const tr of tempResult) {
+        if (paraTypesToInclude.includes(tr.type)) {
+          resultParas.push(tr)
         }
       }
       logDebug('runSearchV2', `- found ${resultParas.length} open tasks to work from`)
@@ -892,7 +896,7 @@ export async function writeSearchResultsToNote(
     let outputNote: ?TNote
     let noteFilename = ''
     const headingMarker = '#'.repeat(config.headingLevel)
-    const searchTermsRepStr = `[${resultSet.searchTermsRepArr.join(' ')}]`.trim()
+    const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
     logDebug('writeSearchResultsToNote', `Starting with ${resultSet.resultCount} results for [${searchTermsRepStr}] ...`)
     const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Refresh results for ${searchTermsRepStr}](${xCallbackURL})` : ''
 

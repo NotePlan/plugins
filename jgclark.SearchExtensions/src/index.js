@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 2.6.2023 for v1.1.0-beta
+// Last updated 30.6.2023 for v1.2.0
 //-----------------------------------------------------------------------------
 
 export {
@@ -26,8 +26,9 @@ const pluginID = "jgclark.SearchExtensions"
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
+import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
-import { JSP, logError, logInfo } from '@helpers/dev'
+import { editSettings } from '@helpers/NPSettings'
 
 export function init(): void {
   try {
@@ -58,4 +59,18 @@ export async function onUpdateOrInstall(): Promise<void> {
     logError(pluginID, error.message)
   }
   logInfo(pluginID, `- finished`)
+}
+
+/**
+ * Update Settings/Preferences (for iOS etc)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings() {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }

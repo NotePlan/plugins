@@ -3,11 +3,19 @@
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
 <!-- FIXME: suffixes causing sync line problems? -->
-<!-- TODO: better split-opening management -->
 <!-- users with particular interest: JPR1972, DW, as, kennonb, modocache, stacey, jaredos-->
+## [1.2.0] - 2023-07-01
+### Added
+- searching for exact multi-word phrases such as `"Bob Smith"` is now possible, and much quicker than the previous approximately-multi-word searching
+- new iOS Settings editor command "/Search: update plugin settings"
+### Changed
+- clarified that '/searchResultsInPeriod' only returns results from calendar notes in the right time period
+
+## [1.1.1] - 2023-06-30
+- (really this is the 1.1.0 release, but I'm forced to call it 1.1.1)
 
 ## [1.1.0-beta10] - 2023-06-02
-- added **flexiSearch** command, with automatic saving of options between subsequent searches.
+- added **/flexiSearch** command, with automatic saving of options between subsequent searches.
 - allows an empty search term, which might be useful in flexiSearch to find all open tasks. It asks for confirmation first, as this might be a lengthy operation.
 - if the search has no results, it now just brings up a dialog and doesn't write to a note
 - should now only open a new split view for results when the results aren't already open in a split view

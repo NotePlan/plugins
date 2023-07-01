@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 23.12.2022 for v1.1.0, @jgclark
+// Last updated 1.7.2023 for v1.2.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -35,7 +35,10 @@ import {
 } from '@helpers/dateTime'
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import { clo, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
-import { displayTitle, titleAsLink } from '@helpers/general'
+import {
+  createRunPluginCallbackUrl,
+  displayTitle, titleAsLink
+} from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { trimAndHighlightTermInLine } from '@helpers/search'
@@ -111,12 +114,15 @@ export async function searchPeriod(
       }
       fromDateStr = unhyphenatedDate(fromDate)
       toDateStr = unhyphenatedDate(toDate)
+      if (periodAndPartStr === '') {
+        periodAndPartStr = periodString
+      }
     }
     if (fromDateStr > toDateStr) {
       logError(pluginJson, `Stopping: fromDate ${fromDateStr} is after toDate ${toDateStr}`)
       return
     }
-    logDebug(pluginJson, `- time period for search: ${periodString}`)
+    logDebug(pluginJson, `- time period for search: ${periodString} / ${periodAndPartStr}`)
 
     // Get the search terms
     let termsToMatchStr = ''
@@ -146,13 +152,14 @@ export async function searchPeriod(
     }
 
     // Get the paraTypes to include
-    // $FlowFixMe[incompatible-type]
+    // $FlowIgnore[incompatible-type]
     const paraTypesToInclude: Array<ParagraphType> = (paraTypeFilterArg && paraTypeFilterArg !== '') ? paraTypeFilterArg.split(',') : []
     clo(paraTypesToInclude, `arg3 -> para types: `)
 
     //---------------------------------------------------------
-    // Search using search() API available from v3.6.0
-    CommandBar.showLoading(true, `Searching over period ...`)
+    // Search using search() API available from v3.6.0.
+    // The helper function now takes care of the filtering by date: it matches results only from Calendar notes from that date range (measured at the first date of the Calendar note's period).
+    CommandBar.showLoading(true, `Searching over period ${periodString} ...`)
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: as no await, which gets resolved later
@@ -195,29 +202,6 @@ export async function searchPeriod(
     }
 
     //---------------------------------------------------------
-    // Filter out the results that aren't within the specified period
-
-    // logDebug(pluginJson, `Before filtering out by date: ${resultSet.resultNoteAndLineArr.length} results`)
-    // clo(resultSet.resultNoteAndLineArr, '- resultSet.resultNoteAndLineArr:')
-    // let reducedRNALArray: Array<noteAndLine> = resultSet.resultNoteAndLineArr.filter((f) => withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
-    // // Update total count
-    // resultSet.fullResultCount = reducedRNALArray.length
-
-    // // Now check to see if we have more than config.resultLimit: if so only use the first amount to return
-    // if (config.resultLimit > 0 && reducedRNALArray.length > config.resultLimit) {
-    //   reducedRNALArray = reducedRNALArray.slice(0, config.resultLimit)
-    //   logWarn(pluginJson, `We have more than ${config.resultLimit} results, so will discard all the ones beyond that limit.`)
-    // }
-    // // Update counts
-    // resultSet.resultNoteAndLineArr = reducedRNALArray
-    // resultSet.resultCount = reducedRNALArray.length
-    // resultSet.resultNoteCount = numberOfUniqueFilenames(reducedRNALArray)
-
-    // let numResultLines = resultSet.resultNoteAndLineArr.length
-    // logDebug(pluginJson, `After filtering out by date: ${resultSet.resultCount} results remain from ${resultSet.resultNoteCount} notes:`)
-    // clo(resultSet.resultNoteAndLineArr, 'resultSet.resultNoteAndLineArr')
-
-    //---------------------------------------------------------
     // Do output
     const searchTermsRepStr = `[${resultSet.searchTermsRepArr.join(' ')}]`
     const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
@@ -244,12 +228,10 @@ export async function searchPeriod(
         // note contents and re-write each search term's block.
 
         const titleToMatch = `${termsToMatchStr} ${config.searchHeading}`
-        const requestedTitle = `${termsToMatchStr} ${config.searchHeading}\nfor ${periodAndPartStr}`
+        const requestedTitle = `${termsToMatchStr} ${config.searchHeading} for ${periodAndPartStr}`
 
-        // Decided to remove the x-callback link, as
-        //   a) it's hard to work back from start/end dates to the human-friendly period string
-        //   b) over a fixed time period it's unlikely to need updating
-        const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}&arg3=${paraTypeFilterArg ?? ''}&arg4=${destinationArg ?? ''}`
+        // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${fromDateStr}&arg2=${toDateStr}&arg3=${paraTypeFilterArg ?? ''}&arg4=${destinationArg ?? ''}`
+        const xCallbackLink = createRunPluginCallbackUrl('jgclark.SearchExtensions', 'searchInPeriod', [termsToMatchStr, fromDateStr, toDateStr, paraTypeFilterArg ?? '', destinationArg ?? ''])
 
         // can't use 'await...' in the next line, as we're now in 'then...'
         // FIXME: wrong display of result counts in subhead
@@ -269,7 +251,7 @@ export async function searchPeriod(
 
       case 'log': {
         const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
-        logInfo(pluginJson, `${headingMarker} ${searchTermsRepStr} ${resultCounts(resultSet)} results)`)
+        logInfo(pluginJson, `${headingMarker} ${searchTermsRepStr} (${resultSet.resultCount} results) for ${periodAndPartStr}`)
         logInfo(pluginJson, resultOutputLines.join('\n'))
         break
       }

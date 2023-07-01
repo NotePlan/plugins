@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 5.6.2023 for v1.1.0, @jgclark
+// Last updated 1.7.2023 for v1.1.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -20,7 +20,7 @@ import {
   writeSearchResultsToNote,
 } from './searchHelpers'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
-import { displayTitle } from '@helpers/general'
+import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { replaceSection } from '@helpers/note'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
@@ -235,17 +235,15 @@ export async function saveSearch(
       case 'current': {
         // We won't write an overarching title, but will add a section heading.
         // Replace the search term's block (if already present) or append.
-        // TODO: add x-callback, which first requires seeing what the current filename is when called by an x-callback
+        // Note: won't add a refresh button, as that requires seeing what the current filename is when called from the x-callback
         const currentNote = Editor
         if (currentNote == null) {
           logError(pluginJson, `No note is open`)
         } else {
           const resultCountsStr = resultCounts(resultSet)
-          // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=${originatorCommand}&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg ?? ''}`
           const thisResultHeading = `${searchTermsRepStr} ${config.searchHeading} ${resultCountsStr}`
           logDebug(pluginJson, `Will write update/append section '${thisResultHeading}' to current note (${currentNote.filename ?? ''})`)
 
-          // resultOutputLines.unshift(`at ${nowLocaleShortDateTime} [🔄 Refresh results](${xCallbackLink})`)
           const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
           logDebug(pluginJson, resultOutputLines.length)
           resultOutputLines.unshift(`at ${nowLocaleShortDateTime()}`)
@@ -260,24 +258,19 @@ export async function saveSearch(
         // const thisResultHeading = `${resultSet.searchTerm} ${config.searchHeading}`
         // const thisResultHeadingAndCount = `${thisResultHeading} (${resultSet.resultCount} results)`
         const requestedTitle = `${termsToMatchStr} ${config.searchHeading}`
-        const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=${originatorCommand}&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg ?? ''}`
+        // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=${originatorCommand}&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg ?? ''}`
+        const xCallbackLink = createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [termsToMatchStr, paraTypeFilterArg ?? ''])
 
-        // Earlier approach:
-        // As this is likely to be a note just used for this set of search terms, just delete the whole note contents and re-write each search term's block.
-
-        // Newer approach:
         // Get/make note, and then replace the search term's block (if already present) or append.
         const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackLink, true)
-
         logDebug(pluginJson, `- filename to write to, and show in split: ${noteFilename}`)
-        // if (!calledNonInteractively) {
+
         if (noteOpenInEditor(noteFilename)) {
           logDebug(pluginJson, `- note ${noteFilename} already open in an editor window`)
         } else {
             // Open the results note in a new split window, unless we can tell
           await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
         }
-        // }
         break
       }
 
@@ -286,7 +279,8 @@ export async function saveSearch(
         // Delete the note's contents and re-write each time.
         // *Does* need to include a subhead with search term + result count, as title is fixed.
         const requestedTitle = config.quickSearchResultsTitle
-        const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg ?? ''}&arg2=${noteTypesToIncludeArg ?? ''}`
+        // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg ?? ''}&arg2=${noteTypesToIncludeArg ?? ''}`
+        const xCallbackLink = createRunPluginCallbackUrl('jgclark.SearchExtensions', 'quickSearch', [termsToMatchStr, paraTypeFilterArg ?? '', noteTypesToIncludeArg ?? ''])
 
         const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackLink, false)
 
@@ -304,7 +298,7 @@ export async function saveSearch(
 
       case 'log': {
         const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
-        logInfo(pluginJson, `${headingMarker} ${searchTermsRepStr} ${resultCounts(resultSet)} results)`)
+        logInfo(pluginJson, `${headingMarker} ${searchTermsRepStr} (${resultSet.resultCount} results)`)
         logInfo(pluginJson, resultOutputLines.join('\n'))
         break
       }

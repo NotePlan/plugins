@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.SearchExtensions/CHANGELOG.md",
-  "plugin.version": "1.1.0-beta10",
-  "plugin.lastUpdateInfo": "1.1.0: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
+  "plugin.version": "1.2.0",
+  "plugin.lastUpdateInfo": "1.2.0: multi-word search terms.\n1.1: New 'flexiSearch' command. Adds limits to very large search results, to prevent overwhelming the app. Deals with 'twitter.com' case. Lots of other polish.\n1.0: Major new release with more powerful search syntax, a new display style, sync-ing open tasks and more. Please see the README to learn more!",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -163,6 +163,11 @@
         "key",
         "value"
       ]
+    },
+    {
+      "name": "Search: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
     }
   ],
   "plugin.commands_disabled": [

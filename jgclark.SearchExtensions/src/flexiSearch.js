@@ -18,7 +18,7 @@ const flexiSearchDialogHTML = `
 <div class="dialogBox">
  <form type="dialog" id="searchOptions">
   <div class="dialogSection">
-		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="25" value="#test" autofocus tabindex="1" />
+		<b>Search Terms</b><input type="text" id="searchTerms" name="searchTerms" size="25" value="" autofocus tabindex="1" />
     <br />
     (Separate terms by spaces. You can use +term, -term and !term as well. See <a href="https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions/" target="_blank">README</a> for more details.)
 	</div>
