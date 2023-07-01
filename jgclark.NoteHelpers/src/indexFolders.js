@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 30.6.2023 for v0.17.2 by @jgclark
+// Last updated 1.7.2023 for v0.17.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -102,19 +102,20 @@ function makeFolderIndex(folder: string, config: any, /* displayOrder: string, d
       }
       // logDebug('makeFolderIndex', `- ${notes.length} notes after sort`)
 
-      // Add suffix, if wanted
 
+      // If this is a sub-folder level, then prefix with ### for a 3rd level heading,
+      // otherwise leave blank, as a suitable header gets added elsewhere.
+      // TODO: try to remove blank line that comes before subheading
       if (isSubFolder) {
-        outputArray.push(`### ${f} (${notes.length})`)
+        const folderNameWithoutFirstPart = f.split('/').slice(1).join('/')
+        outputArray.push(`### ${folderNameWithoutFirstPart} (${notes.length})`)
       } else {
         outputArray.push(outputTitle)
-        outputArray.push(`Index generated ${nowLocaleShortDateTime()} ${refreshXCBStr} \n${sortExplainer}. ${dateExplainer}`)
-
+        outputArray.push(`Generated ${nowLocaleShortDateTime()} ${refreshXCBStr} \n${sortExplainer}. ${dateExplainer}`)
       }
 
+      // Add suffix, if wanted
       if (notes.length > 0) {
-        // If this is a sub-folder level, then prefix with ### for a 3rd level heading,
-        // otherwise leave blank, as a suitable header gets added elsewhere.
         // outputArray.push(`${notes.length} notes`)
         // iterate over this folder's notes
         for (const note of notes) {
@@ -128,7 +129,9 @@ function makeFolderIndex(folder: string, config: any, /* displayOrder: string, d
         }
         outputArray.push('')
       } else {
-        outputArray.push('(No notes found)')
+        if (isSubFolder) {
+          outputArray.push('_No notes found_')
+        }
       }
       isSubFolder = true
     }
