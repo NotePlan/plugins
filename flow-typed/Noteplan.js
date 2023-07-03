@@ -480,6 +480,7 @@ static + filters: $ReadOnlyArray < string >;
  *   "fontSize"                // Font size defined in editor preferences (might be overwritten by custom theme)
  *   "fontFamily"              // Font family defined in editor preferences (might be overwritten by custom theme)
  *   "timeblockTextMustContainString" // Optional text to trigger timeblock detection in a line
+ *   "openAIKey" // Optional user's openAIKey (from v3.9.3 build 1063)
  * Others can be set by plugins.
  * Note: these keys and values do not sync across a user's devices; they are only local.
  * The keys are case-sensitive (it uses the Apple UserDefaults mechanism).
