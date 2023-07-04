@@ -6,8 +6,8 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "0.6.0",
-  "plugin.lastUpdateInfo": "v0.6.0: new commands 'Remove empty notes' 'List conflicted notes' + display improvements.\nv0.5.0: new 'list duplicate notes' command.\n0.4.0: adds command to tidy up triggers in older calendar notes, and way to change settings on iOS.",
+  "plugin.version": "0.7.1",
+  "plugin.lastUpdateInfo": "v0.7.1: new command: /Remove >today tags from completed todos\nv0.6.0: new commands 'Remove empty notes' 'List conflicted notes' + display improvements.\nv0.5.0: new 'list duplicate notes' command.\n0.4.0: adds command to tidy up triggers in older calendar notes, and way to change settings on iOS.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -142,6 +142,15 @@
       ],
       "arguments": [
         "Parameters"
+      ]
+    },
+    {
+      "name": "Remove >today tags from completed todos",
+      "description": "Remove Completed todos that have a >today tag. Can be used with parameters from Template or Callback.",
+      "jsFunction": "removeTodayTagsFromCompletedTodos",
+      "alias": [
+        "removeToday",
+        "rmt"
       ]
     },
     {
@@ -337,6 +346,14 @@
     {
       "title": "Run '/Remove triggers from recent calendar notes?",
       "key": "removeTriggersFromRecentCalendarNotes",
+      "description": "",
+      "type": "bool",
+      "default": false,
+      "required": true
+    }, 
+    {
+      "title": "Run '/Remove >today tags from completed todos?",
+      "key": "removeTodayTagsFromCompletedTodos",
       "description": "",
       "type": "bool",
       "default": false,

@@ -6,23 +6,18 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
+import pluginJson from '../plugin.json'
 import { listConflicts } from './conflicts'
 import { listDuplicates } from './duplicates'
 import { getSettings, type TidyConfig } from './tidyHelpers'
-import pluginJson from '../plugin.json'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { displayTitle, getTagParamsFromString } from '@helpers/general'
-import {
-  allNotesSortedByChanged,
-  pastCalendarNotes,
-  removeSection
-} from '@helpers/note'
-import { removeFrontMatterField } from '@helpers/NPFrontMatter'
-import { getNotesChangedInInterval, getNotesChangedInIntervalFromList } from '@helpers/NPnote'
-import { hasFrontMatter, noteHasFrontMatter } from '@helpers/NPFrontMatter'
+import { allNotesSortedByChanged, pastCalendarNotes, removeSection } from '@helpers/note'
+import { removeFrontMatterField, noteHasFrontMatter } from '@helpers/NPFrontMatter'
+import { getNotesChangedInInterval, getNotesChangedInIntervalFromList, getTodaysReferences } from '@helpers/NPnote'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
-import { chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -47,7 +42,14 @@ export async function tidyUpAll(): Promise<void> {
       await removeOrphanedBlockIDs(config.runSilently)
     }
 
+    if (config.removeTodayTagsFromCompletedTodos) {
+      CommandBar.showLoading(true, `Tidying up completed >today items...`, 0.3)
+      logDebug('tidyUpAll', `Starting Tidying up completed >today items...`)
+      await removeTodayTagsFromCompletedTodos(config.runSilently)
+    }
+
     // Following functions take params; so send runSilently as a param
+
     const param = config.runSilently ? '{"runSilently": true}' : ''
     if (config.runRemoveDoneMarkersCommand) {
       CommandBar.showLoading(true, `Tidying up @done markers...`, 0.4)
@@ -128,10 +130,10 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     logDebug('removeDoneMarkers', `runSilently = ${String(runSilently)}`)
 
     // Find which notes have @done(...) tags
-    let start = new Date()
+    const start = new Date()
     // Use multi-threaded DataStore.search() to look for "@done(", and then use regex to narrow down. This also implements foldersToExclude for us.
     // (It's twice as quick as doing a more exact regex over all notes in my testing.)
-    let parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
+    const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
     const RE = new RegExp(RE_DONE_DATE_OPT_TIME) // @done(date) or @done(date time)
     let allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE.test(p.content)) ?? []
 
@@ -147,7 +149,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
     // $FlowFixMe(incompatible-type)
-    let recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => p.note.changedDate >= jsdateToStartLooking)
+    const recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => p.note.changedDate >= jsdateToStartLooking)
 
     // Now map from paras -> notes and dedupe
     let numToRemove = allMatchedParas.length
@@ -232,12 +234,12 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     logDebug('removeDoneTimeParts', `runSilently = ${String(runSilently)}`)
 
     // Find which notes have @done(...) tags
-    let start = new Date()
+    const start = new Date()
     // Use multi-threaded DataStore.search() to look for "@done(", and then use regex to narrow down. This also implements foldersToExclude for us.
     // Note: It's twice as quick as doing a more exact regex over all notes in my testing.
-    let parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
+    const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
     const RE = new RegExp(RE_DONE_DATE_TIME)
-    let allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE.test(p.content)) ?? []
+    const allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE.test(p.content)) ?? []
 
     // Get date range to use
     const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
@@ -245,7 +247,7 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     const jsdateToStartLooking = momentToStartLooking.toDate()
 
     // $FlowFixMe(incompatible-type)
-    let recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => p.note.changedDate >= jsdateToStartLooking)
+    const recentMatchedParas: Array<TParagraph> = allMatchedParas.filter((p) => p.note.changedDate >= jsdateToStartLooking)
 
     // Now map from paras -> notes and dedupe
     let numToRemove = allMatchedParas.length
@@ -510,9 +512,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
     // v2 method:
     const thePastCalendarNotes = pastCalendarNotes()
     logDebug('removeTriggersFromRecentCalendarNotes', `thePastCalendarNotes.length = ${String(thePastCalendarNotes.length)}`)
-    const notesToProcess: Array<TNote> = numDays > 0
-      ? getNotesChangedInIntervalFromList(thePastCalendarNotes, numDays)
-      : thePastCalendarNotes
+    const notesToProcess: Array<TNote> = numDays > 0 ? getNotesChangedInIntervalFromList(thePastCalendarNotes, numDays) : thePastCalendarNotes
     const numToProcess = notesToProcess.length
 
     if (numToProcess > 0) {
@@ -529,8 +529,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
           } else {
             logWarn('removeTriggersFromRecentCalendarNotes', `failed to remove frontmatter trigger field from ${displayTitle(note)} for some reason`)
           }
-        }
-        else {
+        } else {
           // logDebug('removeTriggersFromRecentCalendarNotes', `no frontmatter in ${displayTitle(note)}`)
         }
       }
@@ -669,7 +668,6 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
   }
 }
 
-
 /**
  * Remove blank (or nearly blank) notes
  * @author @jgclark
@@ -678,20 +676,20 @@ export async function removeOrphanedBlockIDs(runSilently: boolean = false): Prom
 export async function removeBlankNotes(runSilently: boolean = false): Promise<void> {
   try {
     // Get plugin settings (config)
-    let config: TidyConfig = await getSettings()
+    const config: TidyConfig = await getSettings()
     logDebug(pluginJson, `removeBlankNotes() with runSilently? '${String(runSilently)}'`)
 
     // Find all notes with 2 or fewer bytes' length.
     // Show spinner dialog
     CommandBar.showLoading(true, `Finding blank notes ...`)
     await CommandBar.onAsyncThread()
-    let start = new Date()
+    const start = new Date()
 
     // Note: PDF and other non-notes are contained in the directories, and returned as 'notes' by allNotesSortedByChanged(). Some appear to have 'undefined' content length, but I had to find a different way to distinguish them.
-    let blankNotes = allNotesSortedByChanged()
-      .filter(n => n.filename.match(/(.txt|.md)$/))
+    const blankNotes = allNotesSortedByChanged()
+      .filter((n) => n.filename.match(/(.txt|.md)$/))
       // $FlowFixMe[incompatible-type]
-      .filter(n => n.content !== 'undefined' && n.content.length !== 'undefined' && n.content.length <= 2)
+      .filter((n) => n.content !== 'undefined' && n.content.length !== 'undefined' && n.content.length <= 2)
     const numToRemove = blankNotes.length
     logDebug('removeBlankNotes', `Found ${String(numToRemove)} blank notes in ${timer(start)}`)
     await CommandBar.onMainThread()
@@ -714,7 +712,12 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     }
 
     if (!runSilently) {
-      const res = await showMessageYesNo(`Shall I move ${String(numToRemove)} blank notes to the NotePlan Trash? (The details are in the Plugin Console.)`, ['Yes please', 'No'], 'Remove Blank Notes', false)
+      const res = await showMessageYesNo(
+        `Shall I move ${String(numToRemove)} blank notes to the NotePlan Trash? (The details are in the Plugin Console.)`,
+        ['Yes please', 'No'],
+        'Remove Blank Notes',
+        false,
+      )
       if (res === 'No') {
         return
       }
@@ -728,7 +731,7 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     // If we get this far, then remove the notes
     let numRemoved = 0
     for (const thisNote of blankNotes) {
-      const filenameForTrash = '@Trash/' + thisNote.filename.replace('//', '/')
+      const filenameForTrash = `@Trash/${thisNote.filename.replace('//', '/')}`
       // Deal with a calendar note
       if (thisNote.type === 'Calendar') {
         // Note: before v3.9.3 we can't move Calendar notes, so don't try
@@ -757,5 +760,43 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
   } catch (err) {
     logError('removeBlankNotes', JSP(err))
     return // for completeness
+  }
+}
+
+/**
+ * Remove >today tags from completed/canceled todos
+ * Plugin entrypoint for command: "/Remove >today tags from completed todos"
+ * @author @dwertheimer
+ */
+export async function removeTodayTagsFromCompletedTodos(runSilently: boolean = false): Promise<void> {
+  try {
+    // Decide whether to run silently
+    logDebug(pluginJson, `removeTodayTagsFromCompletedTodos running ${runSilently ? 'silently' : 'with UI messaging enabled'}`)
+    const todayNote = DataStore.calendarNoteByDate(new Date())
+    const refs = await getTodaysReferences(todayNote).filter((ref) => ref.content.includes('>today'))
+    logDebug(pluginJson, `removeTodayTagsFromCompletedTodos: Found ${refs.length} tasks with >today tags`)
+    const itemsToRemove = refs.filter((ref) => ['done', 'cancelled', 'checklistDone', 'checklistCancelled'].includes(ref.type))
+    logDebug(pluginJson, `removeTodayTagsFromCompletedTodos: Found ${itemsToRemove.length} COMPLETED tasks with >today tags`)
+    clo(itemsToRemove, 'removeTodayTagsFromCompletedTodos, itemsToRemove')
+    if (itemsToRemove.length === 0) {
+      if (runSilently) {
+        logInfo(pluginJson, `No completed tasks with >today tags found`)
+      } else {
+        await showMessage('No completed tasks with >today tags found')
+      }
+      return
+    } else {
+      itemsToRemove.forEach((item) => {
+        item.content = item.content.replace(/ ?\>today ?/g, ' ').trim()
+        item.note?.updateParagraph(item)
+      })
+      if (runSilently) {
+        logInfo(pluginJson, `Removed >today tags from ${itemsToRemove.length} completed items`)
+      } else {
+        await showMessage(`Removed >today tags from ${itemsToRemove.length} completed items`)
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }

@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.7.0] - 2023-06-26 @dwertheimer
+- new command: /Remove >today tags from completed todos
+
 ## [0.6.0] - 2023-06-24
 - new **/List conflicted notes** command that creates a new NP note that lists all your notes on your current device with file-level conflicts, along with summary details about them
 - new **/Remove blank notes** command will delete any completely blank notes, or just with a starting '#' character

@@ -32,6 +32,7 @@ export type TidyConfig = {
   runRemoveDoneTimePartsCommand: boolean,
   runRemoveSectionFromNotesCommand: boolean,
   removeTriggersFromRecentCalendarNotes: boolean,
+  removeTodayTagsFromCompletedTodos: boolean,
   runSilently: boolean,
   _logLevel: string,
 }
@@ -131,7 +132,6 @@ function getLocale(tempConfig: Object): string {
   const envRegion = NotePlan?.environment ? NotePlan?.environment?.regionCode : ''
   const envLanguage = NotePlan?.environment ? NotePlan?.environment?.languageCode : ''
   let tempLocale = castStringFromMixed(tempConfig, 'locale')
-  tempLocale =
-    tempLocale != null && tempLocale !== '' ? tempLocale : envRegion !== '' ? `${envLanguage}-${envRegion}` : 'en-US'
+  tempLocale = tempLocale != null && tempLocale !== '' ? tempLocale : envRegion !== '' ? `${envLanguage}-${envRegion}` : 'en-US'
   return tempLocale
 }
