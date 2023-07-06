@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Render notes to HTML, including Mermaid and MathML.
 // by Jonathan Clark
-// v0.3.0, 25.6.2023
+// v0.4.0, 5.7.2023
 //---------------------------------------------------------------
 
 // export {
@@ -22,6 +22,7 @@
 // } from './mathTests'
 
 export {
+  addTriggerAndStartPreview,
   previewNote,
   openPreviewNoteInBrowser
 } from './previewMain'

@@ -2,7 +2,7 @@
 
 //--------------------------------------------------------------
 // Main rendering function for Preview
-// by Jonathan Clark, last updated 24.6.2023 for v0.3.0
+// by Jonathan Clark, last updated 24.6.2023 for v0.4.0
 //--------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,9 +10,12 @@ import pluginJson from '../plugin.json'
 import showdown from 'showdown' // for Markdown -> HTML from https://github.com/showdownjs/showdown
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { addTrigger } from '@helpers/NPFrontMatter'
 import { displayTitle } from '@helpers/general'
 import { getFrontMatterParagraphs, hasFrontMatter } from '@helpers/NPFrontMatter'
 import { type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
+import { formRegExForUsersOpenTasks } from '@helpers/regex'
+import { showMessageYesNo } from '@helpers/userInput'
 
 //--------------------------------------------------------------
 
@@ -46,9 +49,9 @@ mermaid.initialize({ startOnLoad: true, theme: '${themeToUse}' });
 const extraCSS = `
 .stickyButton { position: sticky; float: right; top: 6px; right: 8px; }
 Button a { text-decoration: none; font-size: 0.9rem; }
-.frontmatter { border-radius: 12px;
+.frontmatter { border-radius: 8px;
   border: 1px solid var(--tint-color);
-  padding: 0rem 0.5rem;
+  padding: 0rem 0.4rem;
   background-color: var(--bg-alt-color);
   }
 @media print {
@@ -65,31 +68,41 @@ Button a { text-decoration: none; font-size: 0.9rem; }
  * - other standard Markdown conversion (supplied by 'showdown' library)
  * - some non-standard Markdown conversion (e.g. tables) (also supplied by 'showdown' library)
  * @author @jgclark
+ * @param {string?} mermaidTheme name (optional)
  */
 export function previewNote(mermaidTheme?: string): void {
   try {
     const { note, content, title } = Editor
     let lines = content?.split('\n') ?? []
-    const hasFrontmatter = hasFrontMatter(content ?? '')
+    // let endOfFMIndex = -1
+    let hasFrontmatter = hasFrontMatter(content ?? '')
+    const RE_OPEN_TASK_FOR_USER = formRegExForUsersOpenTasks(false)
 
     // Update frontmatter for this note (if present)
     // In particular remove trigger line
     if (hasFrontmatter) {
+      let titleAsMD = ''
       lines = lines.filter(l => l !== 'triggers: onEditorWillSave => np.Preview.updatePreview')
       // look for 2nd '---' and double it, because of showdown bug
       for (let i = 1; i < lines.length; i++) {
-        if (lines[i].startsWith('title:')) {
-          lines[i] = lines[i].replace('title: ', '# ')
+        if (lines[i].match(/^title:\s/)) {
+          titleAsMD = lines[i].replace('title:', '#')
+          logDebug('previewNote', `removing title line ${String(i)}`)
+          lines.splice(i, 1)
         }
         if (lines[i].trim() === '---') {
-          lines[i] = "---\n---" // add a second HR
+          lines.splice(i, 0, '') // add a blank before second HR to stop it acting as an ATX header line
+          lines.splice(i + 2, 0, titleAsMD) // add the title (as MD)
           break
         }
       }
-    }
 
-    logDebug(pluginJson, lines.join('\n'))
-    logDebug(pluginJson, '')
+      // If we now have empty frontmatter (so, just 3 sets of '---'), then remove them all
+      if (lines[0] === '---' && lines[1] === '' && lines[2] === '---') {
+        lines.splice(0, 3)
+        hasFrontmatter = false
+      }
+    }
 
     // TODO: Ideally build a frontmatter styler extension
     // But for now ...
@@ -109,9 +122,20 @@ export function previewNote(mermaidTheme?: string): void {
       }
     }
 
-    // remove any sync link markers (blockIds)
+    // Make some necessary changes before conversion to HTML
     for (let i = 0; i < lines.length; i++) {
+      // remove any sync link markers (blockIds)
       lines[i] = lines[i].replace(/\^[A-z0-9]{6}([^A-z0-9]|$)/g, '').trimRight()
+
+      // change open tasks to GFM-flavoured task syntax
+      const res = lines[i].match(RE_OPEN_TASK_FOR_USER)
+      if (res) {
+        lines[i] = lines[i].replace(res[0], '- [ ]')
+      }
+    }
+
+    for (let i = 0; i < 10; i++) {
+      logDebug('previewNote', `start ${i}: ${lines[i]}`)
     }
 
     // Make this proper Markdown -> HTML via showdown library
@@ -123,14 +147,16 @@ export function previewNote(mermaidTheme?: string): void {
       strikethrough: true,
       tables: true,
       tasklists: true,
-      metadata: true,
+      metadata: false, // otherwise metadata is swallowed
       requireSpaceBeforeHeadingText: true,
       simpleLineBreaks: true // Makes this GFM style. TODO: make an option?
     }
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
 
-    // For now tweak body output to put frontmatter in a box if it exists
+    logDebug(pluginJson, 'Converter produces:\n' + body)
+
+    // Tweak body output to put frontmatter in a box if it exists
     if (hasFrontmatter) {
       // replace first '<hr />' with start of div
       body = body.replace('<hr />', '<div class="frontmatter">')
@@ -181,5 +207,32 @@ export async function openPreviewNoteInBrowser(): Promise<void> {
     // await open(savedFilename)
   } catch (error) {
     logError(pluginJson, `openPreviewNoteInBrowser: ${error.message}`)
+  }
+}
+
+export async function addTriggerAndStartPreview(): Promise<void> {
+  try {
+    // Check to stop it running on iOS
+    if (NotePlan.environment.platform !== 'macOS') {
+      logDebug(pluginJson, `Designed only to run on macOS. Stopping.`)
+      return
+    }
+    // Add trigger to frontmatter
+    const res = addTrigger(Editor, 'onEditorWillSave', 'np.Preview', 'updatePreview')
+    if (res) {
+      logDebug(pluginJson, 'Preview trigger added.')
+    } else {
+      logWarn(pluginJson, 'Preview trigger could not be added for some reason.')
+      const res2 = await showMessageYesNo(`Warning: Couldn't add trigger for previewing note. Do you wish to continue with preview?`, ['Yes', 'No'], 'Preview warning', false)
+      if (res2 === 'No') {
+        return // = stop
+      }
+    }
+
+    // Start the preview
+    previewNote()
+  }
+  catch (error) {
+    logError(pluginJson, `${error.name}: ${error.message}`)
   }
 }

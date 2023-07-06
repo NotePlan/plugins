@@ -394,7 +394,7 @@ export function formatTriggerString(triggerObj: { [TriggerTypes]: Array<{ plugin
  * @param {string} trigger 1 from the TriggerTypes
  * @param {string} pluginID - the ID of the plugin
  * @param {string} commandName - the name (NOT THE jsFunction) of the command to run
- * @returns {boolean} - whether the trigger was added or not
+ * @returns {boolean} - true if the trigger already existed or was added succesfully
  */
 export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: string, commandName: string): boolean {
   try {

@@ -4,10 +4,10 @@
 // Regex definitions for NotePlan and its plugins
 // @jgclark, last updated 15.1.2023
 //---------------------------------------------------------------------
-// 
+//
 // This file holds definitions that don't live in more specific helper files, and also lists other files with useful regexes.
 //
-// Note: these are JavaScript RegExp objects. 
+// Note: these are JavaScript RegExp objects.
 // They are then difficult to use in composition to more complex regexes: to do that start with simpler strings.
 //
 // The main ways to use them are:
@@ -169,16 +169,23 @@ export const RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*[\*\-
 export const RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp = /[\n^]\s*[\*\-\+]\s*(\[[x\-]\]|s[^\[])/g
 
 /**
- * Make regex to find open tasks or checklist items in a multi-line string, that takes account of the user's preference for what counts as a todo.
+ * Make regex to find open tasks or checklist items string, that takes account of the user's preference for what counts as a todo.
+ * Parameter controls whether this searches all items in a multi-line string, or just the first natch in a single-line string.
+ * @param {boolean} multiLine?
  * @returns {RegExp}
  */
-export function formRegExForUsersOpenTasks(): RegExp {
+export function formRegExForUsersOpenTasks(multiLine: boolean): RegExp {
   // read the user's prefs for what counts as a todo
   const CHECKLIST_TODO = "+"
   const ASTERISK_TODO = DataStore.preference("isAsteriskTodo") ? "*" : ""
   const DASH_TODO = DataStore.preference("isDashTodo") ? "-" : ""
   const NUMBER_TODO = DataStore.preference("isNumbersTodo") ? "|\\d+\\." : ""
   // form the regex to find open items for these type(s) of todos
-  const RE: RegExp = new RegExp(`[\\n^]\\s*(([${CHECKLIST_TODO}${ASTERISK_TODO}${DASH_TODO}]${NUMBER_TODO})\\s(?!\\[[x\-]))`, 'g')
+  let RE: RegExp
+  if (multiLine) {
+    RE = new RegExp(`[\\n^]\\s*(([${CHECKLIST_TODO}${ASTERISK_TODO}${DASH_TODO}]${NUMBER_TODO})\\s(?!\\[[x\\-\\]])(\\[[\\s>]\\])?)`, 'g')
+  } else {
+    RE = new RegExp(`^\\s*(([${CHECKLIST_TODO}${ASTERISK_TODO}${DASH_TODO}]${NUMBER_TODO})\\s(?!\\[[x\\-\\]])(\\[[\\s>]\\])?)`)
+  }
   return RE
 }
