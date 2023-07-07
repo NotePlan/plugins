@@ -26,7 +26,7 @@ import {
   hyphenatedDateString,
   RE_DONE_DATE_OPT_TIME,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
-  RE_DONE_DATE_TIME_CAPTURES,
+  // RE_DONE_DATE_TIME_CAPTURES,
   toISODateString,
   unhyphenatedDate,
   weekStartEndDates,
@@ -120,7 +120,7 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
 /**
  * Create a heatmap for the specified time period, using data returned from the specified function. Covers all notes, other than in @special folders and any in foldersToExclude.
  * Incorporating heatmap charting from AnyChart demo (details at https://www.anychart.com/blog/2020/02/26/heat-map-chart-create-javascript/) with addition of
- * - horizontal scroller (https://docs.anychart.com/Common_Settings/Scroller) 
+ * - horizontal scroller (https://docs.anychart.com/Common_Settings/Scroller)
  * - and tooltips (https://docs.anychart.com/Basic_Charts/Heat_Map_Chart#formatting_functions).
  * Note: Using trial (and watermarked) version of Anychart. I need to find a different solution for the longer term.
  * Note: This AnyChart code isn't designed for time series, so doesn't really cope with missing data points, particularly if at the start of the (throws off Y axis) or a whole week (throws off X axis).
@@ -171,7 +171,7 @@ export async function generateHeatMap(
       const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
       let dataPointObj = { x: weekTitle, y: dayAbbrev, heat: value, isoDate: isoDate }
       if (!withinDateRange(isoDate, fromDateStr, toDateStr)) {
-        // one of the data points added on the start to get the layour right ... don't pass the date      
+        // one of the data points added on the start to get the layour right ... don't pass the date
         dataPointObj.isoDate = ''
       }
       dataToPass.push(dataPointObj)
@@ -196,20 +196,20 @@ export async function generateHeatMap(
     anychart.onDocumentReady(function () {
       // create the chart and set the data
       chart = anychart.heatMap(${dataToPassAsString});
-      
+
       // set the chart title
       chart.title("${chartTitle}");
-      
+
       // create and configure the color scale.
       var customColorScale = anychart.scales.linearColor();
       customColorScale.colors(${colorScaleRange});
-      
+
       // set the color scale as the color scale of the chart
       chart.colorScale(customColorScale);
-      
+
       // set the container id
       chart.container("container");
-      
+
       // set the labels off
       chart.labels().enabled(false);
 
@@ -225,7 +225,7 @@ export async function generateHeatMap(
           return 'No data';
         }
       });
-      
+
       chart.xScroller().enabled(true);
       chart.xZoom().setToPointsCount(36);
 
@@ -815,7 +815,7 @@ export async function weeklyStats2(): Promise<void> {
         let y = fromYear
         let counter = 0
         while (counter < weeks) {
-          // increment which week/year we're looking at, and get the actual dates to use      
+          // increment which week/year we're looking at, and get the actual dates to use
           let answer = calcWeekOffset(w, y, +1)
           w = answer.week
           y = answer.year

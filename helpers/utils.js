@@ -30,7 +30,7 @@ export const isDone = (t: TParagraph): boolean => t.type === 'done' || t.type ==
  * @param {string} content
  * @returns {boolean} true if has a scheduled date, false if not
  */
-export const hasScheduledDate = (content: string): boolean => new RegExp(RE_IS_SCHEDULED).test(content)
+export const hasScheduledDate = (content: string): boolean => RE_IS_SCHEDULED.test(content)
 
 /**
  * Test whether a paragraph/task is scheduled (type: 'scheduled' or open with a scheduled date)
