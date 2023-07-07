@@ -2,13 +2,14 @@
 //-----------------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// Last updated 21.12.2022 for v0.4.0
+// Last updated 7.7.2023 for v0.6.0
 //-----------------------------------------------------------------------------
 // allow changes in plugin.json to trigger recompilation
 
 import pluginJson from '../plugin.json'
 import { logDebug, logError, logInfo, JSP } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 const pluginID = "jgclark.RepeatExtensions"
@@ -47,4 +48,18 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
     logError(pluginID, error.message)
   }
   logInfo(pluginID, `- finished`)
+}
+
+/**
+ * Update Settings/Preferences (for iOS etc)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings() {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
 }

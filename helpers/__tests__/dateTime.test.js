@@ -524,6 +524,38 @@ describe(`${PLUGIN_NAME}`, () => {
       test('2022-W23 -2w', () => {
         expect(dt.calcOffsetDateStr('2022-W23', '-2w')).toEqual('2022-W21')
       })
+      test('2022-02 +3m', () => {
+        expect(dt.calcOffsetDateStr('2022-02', '3m')).toEqual('2022-05')
+      })
+      test('2022-02 -3m', () => {
+        expect(dt.calcOffsetDateStr('2022-02', '-3m')).toEqual('2021-11')
+      })
+      test('2022-Q2 +2q', () => {
+        expect(dt.calcOffsetDateStr('2022-Q2', '2q')).toEqual('2022-Q4')
+      })
+      test('2022-Q2 -2q', () => {
+        expect(dt.calcOffsetDateStr('2022-Q2', '-2q')).toEqual('2021-Q4')
+      })
+      test('2022 +2y', () => {
+        expect(dt.calcOffsetDateStr('2022', '2y')).toEqual('2024')
+      })
+      test('2022 -2y', () => {
+        expect(dt.calcOffsetDateStr('2022', '-2y')).toEqual('2020')
+      })
+    })
+    describe('adapting output to shorter durations than input', () => {
+      test('2023-07 +14d -> 2023-07-15', () => {
+        expect(dt.calcOffsetDateStr('2023-07', '14d')).toEqual('2023-07-15')
+      })
+      test('2023-07 +2w -> 2023-W28', () => {
+        expect(dt.calcOffsetDateStr('2023-07', '2w')).toEqual('2023-W28')
+      })
+      test('2023-Q3 +6w -> 2023-W32', () => {
+        expect(dt.calcOffsetDateStr('2023-Q3', '6w')).toEqual('2023-W32')
+      })
+      test('2023 +3q -> 2023-Q4', () => {
+        expect(dt.calcOffsetDateStr('2023', '3q')).toEqual('2023-Q4')
+      })
     })
     describe('should return errors', () => {
       test('2022-01 (invalid date)', () => {

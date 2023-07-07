@@ -52,12 +52,14 @@ export const RE_BARE_WEEKLY_DATE_CAPTURE = `[^\d(<\/-](${RE_NP_WEEK_SPEC})` // c
 export const RE_NP_MONTH_SPEC = '\\d{4}-[01]\\d(?![\\d-])' // find dates of form YYYY-mm not followed by digit or - [fails if I add negative start or negative lookbehinds]
 export const MONTH_NOTE_LINK = `[\<\>]${RE_NP_MONTH_SPEC}`
 export const SCHEDULED_MONTH_NOTE_LINK = `>${RE_NP_MONTH_SPEC}`
+export const RE_SCHEDULED_MONTH_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_MONTH_SPEC}`)
 export const RE_MONTHLY_NOTE_FILENAME = `(^|\\/)${RE_NP_MONTH_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
 // Quarters
 export const RE_NP_QUARTER_SPEC = '\\d{4}\\-Q[1-4](?!\\d)' // find dates of form YYYY-Qn not followed by digit
 export const QUARTER_NOTE_LINK = `[\<\>]${RE_NP_QUARTER_SPEC}`
 export const SCHEDULED_QUARTERLY_NOTE_LINK = `>${RE_NP_QUARTER_SPEC}`
+export const RE_SCHEDULED_QUARTERLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_QUARTER_SPEC}`)
 export const RE_QUARTERLY_NOTE_FILENAME = `(^|\\/)${RE_NP_QUARTER_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
 // Years
@@ -65,15 +67,18 @@ export const RE_QUARTERLY_NOTE_FILENAME = `(^|\\/)${RE_NP_QUARTER_SPEC}${RE_FILE
 export const RE_NP_YEAR_SPEC = '\\d{4}(?![\\d-])' // find years of form YYYY without trailing - or digit [fails if I add negative start or negative lookbehinds]
 export const YEAR_NOTE_LINK = `[\<\>]${RE_NP_YEAR_SPEC}`
 export const SCHEDULED_YEARLY_NOTE_LINK = `>${RE_NP_YEAR_SPEC}`
+export const RE_SCHEDULED_YEARLY_NOTE_LINK: RegExp = new RegExp(`>${RE_NP_YEAR_SPEC}`)
 export const RE_YEARLY_NOTE_FILENAME = `(^|\\/)${RE_NP_YEAR_SPEC}${RE_FILE_EXTENSIONS_GROUP}`
 
-export const RE_IS_SCHEDULED = `>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC}|today)`
+// Tests for all interval types
+export const RE_ANY_DUE_DATE_TYPE: RegExp = new RegExp(`\s+>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})`)
+export const RE_IS_SCHEDULED: RegExp = new RegExp(`>(${RE_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC}|today)`)
 
 // @done(...)
-export const RE_DONE_DATE_TIME = `@done\\(${RE_DATE_TIME}\\)` // find @done(DATE TIME)
-export const RE_DONE_DATE_TIME_CAPTURES = `@done\\((${RE_DATE})( ${RE_TIME})\\)` // find @done(DATE TIME) and return date-time part
-export const RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE = `@done\\((${RE_DATE})( ${RE_TIME})?\\)` // find @done(DATE TIME) and return date-time part
-export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME})?\\)`
+export const RE_DONE_DATE_TIME: RegExp = new RegExp(`@done\\(${RE_DATE_TIME}\\)`) // find @done(DATE TIME)
+export const RE_DONE_DATE_TIME_CAPTURES: RegExp = new RegExp(`@done\\((${RE_DATE})( ${RE_TIME})\\)`) // find @done(DATE TIME) and return date-time part
+export const RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE: RegExp = new RegExp(`@done\\((${RE_DATE})( ${RE_TIME})?\\)`) // find @done(DATE TIME) and return date-time part
+export const RE_DONE_DATE_OPT_TIME: RegExp = new RegExp(`@done\\(${RE_ISO_DATE}( ${RE_TIME})?\\)`)
 
 // Intervals
 export const RE_DATE_INTERVAL = `[+\\-]?\\d+[BbDdWwMmQqYy]`
@@ -150,9 +155,9 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
       .replace(/ ?\>today ?/g, ' ')
       .replace(new RegExp(RE_SCHEDULED_ISO_DATE), '')
       .replace(RE_SCHEDULED_WEEK_NOTE_LINK, '')
-      .replace(new RegExp(SCHEDULED_MONTH_NOTE_LINK), '')
-      .replace(new RegExp(SCHEDULED_QUARTERLY_NOTE_LINK), '')
-      .replace(new RegExp(SCHEDULED_YEARLY_NOTE_LINK), '')
+      .replace(RE_SCHEDULED_MONTH_NOTE_LINK, '')
+      .replace(RE_SCHEDULED_QUARTERLY_NOTE_LINK, '')
+      .replace(RE_SCHEDULED_YEARLY_NOTE_LINK, '')
       .replace(/ {2,}/g, ' ')
       .trim()
   }
@@ -674,19 +679,19 @@ export function getNPWeekStr(inDate: Date): string {
 export function getNPMonthStr(inDate: Date): string {
   // Using 'moment' library
   const dateMoment = moment(inDate)
-  return dateMoment.format('YYYY-MM')
+  return dateMoment.format(MOMENT_FORMAT_NP_MONTH)
 }
 
 export function getNPQuarterStr(inDate: Date): string {
   // Using 'moment' library
   const dateMoment = moment(inDate)
-  return dateMoment.format('YYYY-[Q]Q')
+  return dateMoment.format(MOMENT_FORMAT_NP_QUARTER)
 }
 
 export function getNPYearStr(inDate: Date): string {
   // Using 'moment' library
   const dateMoment = moment(inDate)
-  return dateMoment.format('YYYY')
+  return dateMoment.format(MOMENT_FORMAT_NP_YEAR)
 }
 
 /**
@@ -768,15 +773,78 @@ export function calcWeekOffset(startWeek: number, startYear: number, offset: num
 }
 
 /**
+ * Get moment format unit [bdwMQy] equivalent to my offset unit [bdwmqy]
+ * @param {string} unit
+ * @returns {string} momentUnitFormat
+ */
+function convertOffsetUnitToMomentUnit(unit: string): string {
+  let unitForMoment = ''
+  switch (unit) {
+    case 'm':
+      unitForMoment = 'M'
+      break
+    case 'q':
+      unitForMoment = 'Q'
+      break
+    default:
+      unitForMoment = unit
+      break
+  }
+  return unitForMoment
+}
+
+/**
+ * Get moment date format for calendar note filenames for offset unit [bdwmqy]
+ * @param {string} unit
+ * @returns {string} momentDateFormat
+ */
+function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
+  const momentDateFormat =
+    unit === 'd' || unit === 'b'
+      ? MOMENT_FORMAT_NP_DAY // = YYYYMMDD not display format
+      : unit === 'w'
+        ? MOMENT_FORMAT_NP_WEEK
+        : unit === 'm'
+          ? MOMENT_FORMAT_NP_MONTH
+          : unit === 'q'
+            ? MOMENT_FORMAT_NP_QUARTER
+            : unit === 'y'
+              ? MOMENT_FORMAT_NP_WEEK
+              : ''
+  return momentDateFormat
+}
+
+/**
+ * Get moment date format for calendar note filenames for offset unit [bdwmqy]
+ * @param {string} unit
+ * @returns {string} momentDateFormat
+ */
+function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
+  const momentDateFormat =
+    unit === 'd' || unit === 'b'
+      ? MOMENT_FORMAT_NP_ISO // = YYYY-MM-DD not filename format
+      : unit === 'w'
+        ? MOMENT_FORMAT_NP_WEEK
+        : unit === 'm'
+          ? MOMENT_FORMAT_NP_MONTH
+          : unit === 'q'
+            ? MOMENT_FORMAT_NP_QUARTER
+            : unit === 'y'
+              ? MOMENT_FORMAT_NP_WEEK
+              : ''
+  return momentDateFormat
+}
+
+/**
  * Calculate an offset date of either a NP daily or weekly date, and return as a JS Date.
- * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly strings as well.
+ * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly/Monthly/Quarterly/Yearly strings as well.
  * Moment docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark
  *
- * @param {string} baseDateIn is type ISO Date (i.e. YYYY-MM-DD) or NP Weekly date (i.e. YYYY-Wnn) - NB: different from JavaScript's Date type, and NP's filename format
+ * @param {string} baseDateIn is type ISO Date (i.e. YYYY-MM-DD NB: different from JavaScript's Date type, and NP's filename format) or NP Weekly/Monthly/Quarterly/Yearly date strings
  * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @returns {Date} new date
- * @test - TODO: available in jest file
+ * @test - available in jest file
  */
 export function calcOffsetDate(baseDateIn: string, interval: string): Date | null {
   try {
@@ -788,33 +856,30 @@ export function calcOffsetDate(baseDateIn: string, interval: string): Date | nul
     const num = Number(interval.substr(0, interval.length - 1)) // return all but last character
 
     // short codes in moment library aren't quite the same as mine
-    let unitForMoment = ''
-    switch (unit) {
-      case 'm':
-        unitForMoment = 'M'
-        break
-      case 'q':
-        unitForMoment = 'Q'
-        break
-      default:
-        unitForMoment = unit
-        break
-    }
+    const unitForMoment = convertOffsetUnitToMomentUnit(unit)
 
     let momentDateFormat = ''
     if (baseDateIn.match(RE_ISO_DATE)) {
       momentDateFormat = 'YYYY-MM-DD'
     } else if (baseDateIn.match(RE_NP_WEEK_SPEC)) {
       momentDateFormat = MOMENT_FORMAT_NP_WEEK
+    } else if (baseDateIn.match(RE_NP_MONTH_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_MONTH
+    } else if (baseDateIn.match(RE_NP_QUARTER_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_QUARTER
+    } else if (baseDateIn.match(RE_NP_YEAR_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_YEAR
     } else {
       throw new Error('Invalid date string')
     }
 
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
     const baseDateMoment = moment(baseDateIn, momentDateFormat)
-    const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num).toDate()
+    const newDate = unit !== 'b'
+      ? baseDateMoment.add(num, unitForMoment)
+      : momentBusiness(baseDateMoment).businessAdd(num).toDate()
 
-    // logDebug('dateTime / cOD', `for '${baseDateIn}' interval ${num} / ${unitForMoment} -> ${String(newDate)}`)
+    logDebug('dateTime / cOD', `for '${baseDateIn}' interval ${num} / ${unitForMoment} -> ${String(newDate)}`)
     return newDate
   } catch (e) {
     logError('dateTime / cOD', `${e.message} for '${baseDateIn}' interval '${interval}'`)
@@ -823,27 +888,29 @@ export function calcOffsetDate(baseDateIn: string, interval: string): Date | nul
 }
 
 /**
- * Calculate an offset date of either a NP daily or weekly date, and return _in whichever of the two ISO formats were supplied (YYYY-MM-DD or YYYY-Wnn)_.
+ * Calculate an offset date of any date interval NP supports, and return _in whichever format was supplied_.
  * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly strings as well.
  * Moment docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark
  *
- * @param {string} baseDateIn is type ISO Date (i.e. YYYY-MM-DD) or NP Weekly date (i.e. YYYY-Wnn) - NB: different from JavaScript's Date type
- * @param {interval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
+ * @param {string} baseDateIn the base date as a string in any of the formats that NP supports: YYYY-MM-DD (not filename format here), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
+ * @param {offsetInterval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
+ * @param {boolean} adaptOutputInterval? If true (the default), and the offsetInterval is small enough that the output string would be the same as the input, then adapt the output to use the same format. E.g. '2023-07' + '2w' -> '2023-07-15'
  * @returns {string} new date in the same format that was supplied
  * @test - available in jest file
  */
-export function calcOffsetDateStr(baseDateIn: string, interval: string): string {
+export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, adaptOutputInterval: boolean = true): string {
   try {
     if (baseDateIn === '') {
       throw new Error('Empty baseDateIn string')
     }
-    if (interval === '') {
-      throw new Error('Empty interval string')
+    if (offsetInterval === '') {
+      throw new Error('Empty offsetInterval string')
     }
+    const unit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
 
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
-    const offsetDate = calcOffsetDate(baseDateIn, interval)
+    const offsetDate = calcOffsetDate(baseDateIn, offsetInterval)
     if (!offsetDate) {
       throw new Error('Invalid return from calcOffsetDate()')
     }
@@ -852,70 +919,75 @@ export function calcOffsetDateStr(baseDateIn: string, interval: string): string 
       momentDateFormat = MOMENT_FORMAT_NP_ISO
     } else if (baseDateIn.match(RE_NP_WEEK_SPEC)) {
       momentDateFormat = MOMENT_FORMAT_NP_WEEK
+    } else if (baseDateIn.match(RE_NP_MONTH_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_MONTH
+    } else if (baseDateIn.match(RE_NP_QUARTER_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_QUARTER
+    } else if (baseDateIn.match(RE_NP_YEAR_SPEC)) {
+      momentDateFormat = MOMENT_FORMAT_NP_YEAR
     } else {
       throw new Error('Invalid date string')
     }
 
-    const newDateStr = moment(offsetDate).format(momentDateFormat)
-    // logDebug('dateTime / cODS', `for '${baseDateIn}' interval ${num} / ${unitForMoment} -> '${newDateISO}'`)
+    let newDateStr = moment(offsetDate).format(momentDateFormat)
+
+    if (adaptOutputInterval && (newDateStr === baseDateIn)) {
+      const newerOutputFormat = getNPDateFormatForDisplayFromOffsetUnit(unit)
+      if (newerOutputFormat === '') {
+        throw new Error('Invalid date offsetInterval')
+      }
+      newDateStr = moment(offsetDate).format(newerOutputFormat)
+      logDebug('dateTime / cODS', `- needed to change format from ${momentDateFormat} -> ${newerOutputFormat}`)
+    }
+
+    logDebug('dateTime / cODS', `for '${baseDateIn}' offsetInterval ${offsetInterval} / ${momentDateFormat} -> '${newDateStr}'`)
     return newDateStr
   } catch (e) {
-    logError('dateTime / cODS', `${e.message} for '${baseDateIn}' interval '${interval}'`)
+    logError('dateTime / cODS', `${e.message} for '${baseDateIn}' offsetInterval '${offsetInterval}'`)
     return '(error)'
   }
 }
 
 /**
- * Calculate an offset date of either a NP daily or weekly date, and return _in whichever of the NotePlan date string formats were supplied in 'interval' (YYYY-MM-DD / YYYY-Wnn / YYYY-MM / YYYY-Qn / YYYY)_.
+ * Calculate an offset date of either a NP daily or weekly date, and return _in whichever of the NotePlan date string formats were supplied in 'offsetInterval' (YYYY-MM-DD / YYYY-Wnn / YYYY-MM / YYYY-Qn / YYYY)_.
  * The date to offset can be supplied, or today's date will be used.
  * (Uses 'moment' library to avoid using NP calls.)
  * Moment docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark
  *
- * @param {string} interval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
+ * @param {string} offsetInterval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @param {string?} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type. If not given then today's date is used.
  * @returns {string} new date in the same format that was supplied
  * @test - TODO: add jest file
  */
-export function calcOffsetDateStrUsingCalendarType(interval: string, baseDateISOIn: string = ''): string {
+export function calcOffsetDateStrUsingCalendarType(offsetInterval: string, baseDateISOIn: string = ''): string {
   try {
-    if (interval === '') {
-      throw new Error('Empty interval string')
+    if (offsetInterval === '') {
+      throw new Error('Empty offsetInterval string')
     }
-    if (!interval.match(RE_DATE_INTERVAL)) {
-      throw new Error(`Invalid date interval '${interval}'`)
+    if (!offsetInterval.match(RE_DATE_INTERVAL)) {
+      throw new Error(`Invalid date offsetInterval '${offsetInterval}'`)
     }
-    const unit = interval.charAt(interval.length - 1) // get last character
+    const unit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
 
     const baseDateISO = baseDateISOIn !== '' ? baseDateISOIn : new moment().startOf('day').format('YYYY-MM-DD')
 
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
-    const offsetDate = calcOffsetDate(baseDateISO, interval)
+    const offsetDate = calcOffsetDate(baseDateISO, offsetInterval)
     if (!offsetDate) {
       throw new Error('Invalid return from calcOffsetDate()')
     }
-    // Use the interval's unit to also set the output format
-    const momentDateFormat =
-      unit === 'd' || unit === 'b'
-        ? MOMENT_FORMAT_NP_DAY
-        : unit === 'w'
-        ? MOMENT_FORMAT_NP_WEEK
-        : unit === 'm'
-        ? MOMENT_FORMAT_NP_MONTH
-        : unit === 'q'
-        ? MOMENT_FORMAT_NP_QUARTER
-        : unit === 'y'
-        ? MOMENT_FORMAT_NP_WEEK
-        : ''
+    // Use the offsetInterval's unit to also set the output format
+    const momentDateFormat = getNPDateFormatForDisplayFromOffsetUnit(unit)
     if (momentDateFormat === '') {
-      throw new Error('Invalid date interval')
+      throw new Error('Invalid date offsetInterval')
     }
 
     const newDateStr = moment(offsetDate).format(momentDateFormat)
-    // logDebug('dateTime / cODSUCT', `for '${interval}'  (unit=${unit}) from ${baseDateISO}' -> ${newDateStr}`)
+    // logDebug('dateTime / cODSUCT', `for '${offsetInterval}'  (unit=${unit}) from ${baseDateISO}' -> ${newDateStr}`)
     return newDateStr
   } catch (e) {
-    logError('dateTime / cODSUCT', `${e.message} for '${baseDateISOIn}' interval '${interval}'`)
+    logError('dateTime / cODSUCT', `${e.message} for '${baseDateISOIn}' offsetInterval '${offsetInterval}'`)
     return '(error)'
   }
 }

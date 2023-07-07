@@ -1,6 +1,11 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
+## [0.6.0] - 2023-07-07
+- support for repeats on dates specified as `>YYYY-MM` (month), `>YYYY-Qq` (quarter) and `YYYY` (year) as well as day and week. For example `* do something monthly @repeat(1m) >2023-07`.  These can be used in project or calendar notes.
+- support for repeats in monthly/quarterly/yearly calendar notes, as well as daily and weekly ones. The next repeat can be written into any of those, depending on the offset interval specified. e.g. `@repeat(1q)` will write the next repeat into the appropriate quarterly note (if it didn't come from a project note).
+- new **/Repeats: update plugin settings** command for iOS users
+
 ## [0.5.2] - 2023-03-15
 ### Changed
 <!-- - Now internally running from Editor only -->

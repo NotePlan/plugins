@@ -6,12 +6,12 @@ NotePlan has a simple [built-in repeat mechanism](https://noteplan.co/faq/Notes%
 
 And here's an example where the repeat is calculated from a set date:
 ```
-* [ ] put out recycling bin @repeat(2w)
+* [ ] put out recycling @repeat(2w)
 ```
 is completed, and then `/rpt` run, the task then becomes:
 ```
-* [ ] put out recycling bin @repeat(2w) >2021-07-15
-* [x] put out recycling bin @repeat(2w) @done(2021-07-01)
+* [ ] put out recycling @repeat(2w) >2021-07-15
+* [x] put out recycling @repeat(2w) @done(2021-07-01)
 ```
 and the task will show up again 2 weeks after the last set date.
 
@@ -29,10 +29,10 @@ triggers: onEditorWillSave => jgclark.RepeatExtensions.onEditorWillSave
 ---
 ```
 
-Note: This uses the [experimental new trigger feature](https://help.noteplan.co/article/173-plugin-note-triggers), and the NotePlan developer is rightly being cautious with it. Hence ensuring you don't turn it on unintentionally.
+Note: This uses the [trigger feature](https://help.noteplan.co/article/173-plugin-note-triggers), which is designed that you can't't turn it on unintentionally.
 
 ## Running it Manually
-On the _currently open note_, open the command bar and type the **/generate repeats** command.  
+On the _currently open note_, open the command bar and type the **/generate repeats** command.
 - When run on a _Project note_, it creates the new repeated task straight before the completed task.
 - When run on a (daily or weekly) _Calendar note_, it creates the new repeated task on the date of the new repeat.
 
@@ -47,6 +47,14 @@ The time intervals have two parts: number and then a character. The **character*
 
 When the **number** starts with a **+** (e.g. `+1m`) it will duplicate the task for 1 month after the date the _task was completed_.
 When the number doesn't start with a + (e.g. `1m`) it will duplicate the task for 1 month after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. If this can't be determined, then it defaults to the first option.
+
+From v0.6 you can specify scheduled dates to all the other calendar note types supported by NotePlan:
+- weekly (e.g. `>2023-W28`)
+- monthly (e.g. `>2023-07`)
+- quarterly (e.g. `>2023-Q3`)
+- yearly (e.g. `>2023`)
+
+The resulting repeat lines will also be specified using that same note type, and will write to the appropriate new calendar note (unless it came from a project note, in which case it will stay in the same project note).
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
