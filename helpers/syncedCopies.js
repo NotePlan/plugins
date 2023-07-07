@@ -36,7 +36,7 @@ export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, kee
       if (keepWhich === 'most-recent') {
         sortedParas.map((p) => {
           const n = p.note
-          logDebug('eDSP', `- ${p.filename ?? '-'} / ${String(n?.changedDate)} / ${p.content}`)
+          // logDebug('eDSP', `- ${p.filename ?? '-'} / ${String(n?.changedDate)} / ${p.content}`)
         })
       }
 
