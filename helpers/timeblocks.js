@@ -18,8 +18,8 @@ export const RE_TIME_EXT = `${RE_HOURS_EXT}:${RE_MINUTES}`
 export const RE_AMPM = `(AM|am|PM|pm)` // logic changed in v3.4
 export const RE_AMPM_OPT = `${RE_AMPM}?`
 export const RE_TIME_TO = `\\s*(\\-|\\–|\\~|\\〜|to)\\s*`
-export const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_AMPM}?\\)` // this is now a near dupe of helpers/dateTime
-export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMPM}?)?\\)` // this is now a dupe of helpers/dateTime
+// export const RE_DONE_DATETIME = `@done\\(${RE_ISO_DATE} ${RE_TIME}${RE_AMPM}?\\)` // this is now a near dupe of helpers/dateTime
+// export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMPM}?)?\\)` // this is now a dupe of helpers/dateTime
 
 //-----------------------------------------------------------------------------
 // NB: According to @EduardMe in Discord 29.1.2022, the detection is tightened in v3.4
@@ -32,10 +32,10 @@ export const RE_DONE_DATE_OPT_TIME = `@done\\(${RE_ISO_DATE}( ${RE_TIME}${RE_AMP
 // printDateRange(Calendar.parseDateText("2021-06-02 2.15PM-3.45PM")[0]) -> 11AM on that day
 // printDateRange(Calendar.parseDateText("2021-06-02 at 2PM")[0]) // -> 1PM on that day
 // printDateRange(Calendar.parseDateText("something at 2to3 ok")[0]) // -> crashes NP!
-// - The time is 2pm-3 // produces timeblock 2pm to midnight 
+// - The time is 2pm-3 // produces timeblock 2pm to midnight
 
 //-----------------------------------------------------------------------------
-// Note: According to @EduardMe in Discord 3.1.2022, the time blocks now work on 
+// Note: According to @EduardMe in Discord 3.1.2022, the time blocks now work on
 // paragraph types [.title, .open, .done, .list].
 // These can more easily be tested for by API calls than in the regex, so that's what this now does.
 // Note: added 'checklist' and 'checklistDone' types ready for NP 3.8 release
@@ -80,7 +80,7 @@ export const TIMEBLOCK_TASK_TYPES = ['title', 'open', 'done', 'list', 'checklist
 // export const RE_TIMEBLOCK_START = `(^|\\s|T)(?:(?:at|from)\\s*)?(?:(?:${RE_MINUTES}|noon|midnight)(:${RE_MINUTES})?|(?:${RE_MINUTES}|noon|midnight))(A\\.M\\.|P\\.M\\.|AM?|PM?|am?|pm?)?(?=\\W|$)`
 // export const RE_TIMEBLOCK_END = `(?<!\\d{4}(-[01]\\d)?)\\s*(?:\\-|\\–|\\~|\\〜|to|\\?)\\s*(?:${RE_MINUTES})(?::${RE_MINUTES})?(A\\.M\\.|P\\.M\\.|AM?|PM?|am?|pm?)?(?=\\W|$)`
 
-// To make it possible to identify matching lines in a single operation, 
+// To make it possible to identify matching lines in a single operation,
 // I have now combined the two regex into one.
 // NB: These use few non-capturing groups to be shorter and easier to understand.
 // export const RE_TIMEBLOCK = `(^|\\s|T)((at|from)\\s*)?((${RE_MINUTES}|noon|midnight)(:${RE_MINUTES})?|(?:${RE_MINUTES}|noon|midnight))(A\\.M\\.|P\\.M\\.|AM?|PM?|am?|pm?)?(${RE_TIME_TO}(${RE_HOURS})(:${RE_MINUTES})?(A\\.M\\.|P\\.M\\.|AM?|PM?|am?|pm?)?|$)`
@@ -146,7 +146,7 @@ export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_
  * Decide whether this line contains an active time block.
  * @tests available for jest
  * @author @dwertheimer
- * 
+ *
  * @param {string} contentString
  * @returns {boolean}
  */
@@ -174,7 +174,7 @@ export function isTimeBlockLine(contentString: string): boolean {
  * v2, following news about earlier change of definition (Discord, 3.1.2022)
  * @tests available for jest
  * @author @jgclark
- * 
+ *
  * @param {TParagraph} para
  * @returns {boolean}
  */
@@ -187,7 +187,7 @@ export function isTypeThatCanHaveATimeBlock(para: TParagraph): boolean {
  * Also now defeats on timeblock in middle of a [...](filename) or URL
  * @tests available for jest
  * @author @jgclark
- * 
+ *
  * @param {TParagraph} para
  * @returns {boolean}
  */
@@ -205,8 +205,8 @@ export function isTimeBlockPara(para: TParagraph): boolean {
  * Find longest string from array of strings
  * @tests available for jest
  * @author @dwertheimer
- * 
- * @param {Array<string>} arr 
+ *
+ * @param {Array<string>} arr
  * @returns {string}
  */
 export const findLongestStringInArray = (arr: Array<string>): string =>
@@ -217,7 +217,7 @@ export const findLongestStringInArray = (arr: Array<string>): string =>
  * Does not return the text after the timeblock (you can use isTimeBlockLine to check if it's a timeblock line)
  * @tests available for jest
  * @author @dwertheimer
- * 
+ *
  * @param {string} contentString
  * @returns {string} the time portion of the timeblock line
  */
