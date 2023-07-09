@@ -1,19 +1,17 @@
 # 🔁 Repeat Extension plugin
 
-NotePlan has a simple [built-in repeat mechanism](https://noteplan.co/faq/Notes%20&%20Todos/How%20to%20create%20a%20recurring%20or%20repeating%20todo/), which allows for `@repeat(1/n)`.  That wasn't flexible enough for my purposes, so I wrote this plugin to allow repeats **every x days, weeks, months, quarters or years**. It does the work of creating the next task using information from completed tasks that include a `@repeat(interval)`, on the appropriate future date.  Here's an example (from v0.5) where it will repeat 6 weeks after completion:
+NotePlan has a simple [built-in repeat mechanism](https://noteplan.co/faq/Notes%20&%20Todos/How%20to%20create%20a%20recurring%20or%20repeating%20todo/), which allows for `@repeat(1/n)`.  That wasn't flexible enough for my purposes, so I wrote this plugin to allow repeats **every x days, weeks, months, quarters or years**. It does the work of creating the next task using information from completed tasks that include a `@repeat(interval)` string and a completed `@done(...)` date.
 
-<img src="repeat-auto-mode.gif" width="500px">
+Here are some examples:
 
-And here's an example where the repeat is calculated from a set date:
-```
-* [ ] put out recycling @repeat(2w)
-```
-is completed, and then `/rpt` run, the task then becomes:
-```
-* [ ] put out recycling @repeat(2w) >2021-07-15
-* [x] put out recycling @repeat(2w) @done(2021-07-01)
-```
-and the task will show up again 2 weeks after the last set date.
+| Type of repeat | The original line | The result after completing the task and then running /rpt |
+|-----|-----|-----|
+| every Monday (starting 2023-07-10) | `* task @repeat(1w) >2023-07-10` | `* task @repeat(1w) >2023-07-17` (i.e. the next Monday) <br /> `* [x] task @repeat(1w) >2023-07-10 @done(...) ` |
+| 1st of the month (starting 2023-08-01) | `* do expenses @repeat(1m) >2023-08-01` | `* do expenses @repeat(1m) >2023-09-01` (i.e. the next month start) <br /> `* [x] do expenses @repeat(1m) >2023-08-01 @done(...) ` |
+| every 2 weeks | `* put out recycling @repeat(2w)` | `* put out recycling @repeat(2w) >2021-07-15` <br /> `* [x] put out recycling @repeat(2w) @done(2021-07-01)` |
+| 2 months after last done | `* top up washer fluid @repeat(+2m)` | `* top up washer fluid @repeat(+2m) >2023-09-04` <br /> `* [x] top up washer fluid @repeat(+2m) @done(2023-07-04)` |
+
+See below for more details.
 
 Compared with the built-in functionality, it also allows you to easily change the text of a repeated task, which otherwise means visiting all the future notes with repeats.
 
@@ -21,7 +19,11 @@ Compared with the built-in functionality, it also allows you to easily change th
 For this feature to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**, and not to mind the time portion of the `@done(...)` tag being removed, as a sign that the line has been processed.
 
 ## Running it Automatically
-From NotePlan v3.7.2, this plugin can **automatically generate** the new repeated task after you complete an existing one. This requires adding the following line to frontmatter at the start of _every note_ you wish to automate in this way:
+From NotePlan v3.7.2, this plugin can **automatically generate** the new repeated task after you complete an existing one. Here's an example (from v0.5) where it will repeat 6 weeks after completion:
+
+<img src="repeat-auto-mode.gif" width="500px">
+
+This requires adding the following line to frontmatter at the start of _every note_ you wish to automate in this way:
 ``` yaml
 ---
 title: <<the note's title on this line, instead of a markdown H1 title>>
