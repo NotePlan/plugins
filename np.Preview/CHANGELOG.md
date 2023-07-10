@@ -1,7 +1,7 @@
 # What's Changed in Previews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
-## [0.4.0] - 2023-07-06
+## [0.4.0] - 2023-07-10
 - new command **/start live preview** that adds a trigger to the note (if it doesn't already exist) to enable near-live update to the note preview, and then opens the preview window
 - fix to preview display of title and frontmatter for some notes
 - make all open task and checklist types (according to user's Markdown settings) now render as open tasks (using basic GFM rendering)

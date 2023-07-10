@@ -3,10 +3,10 @@
   "noteplan.minAppVersion": "3.8.0",
   "plugin.id": "np.Shared",
   "plugin.name": "🤝 Shared Resources",
-  "plugin.version": "0.4.1",
+  "plugin.version": "0.4.2",
   "plugin.description": "Shared resources for NotePlan plugins. (There are no commands for users to run directly.)",
   "plugin.author": "jgclark + dwertheimer",
-  "plugin.lastUpdateInfo": "0.4.1: Adding tweaks for react",
+  "plugin.lastUpdateInfo": "0.4.2: Adding encodeDecode funcs",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md",
@@ -28,7 +28,8 @@
     "react.core.dev.js",
     "react.c.Root.min.js",
     "react.c.Root.dev.js",
-    "noteplanstate-edited.otf"
+    "noteplanstate-edited.otf",
+    "encodeDecode.js"
   ],
   "plugin.commands": [
     {
