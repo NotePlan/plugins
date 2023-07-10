@@ -99,7 +99,7 @@ export function removeContentUnderHeading(note: CoreNoteFields, heading: string,
  * @param {string} parasAsText - text to insert (multiple lines, separated by newlines)
  * @param {number} headingLevel of the heading to insert where necessary (1-5, default 2)
  */
-export async function insertContentUnderHeading(destNote: CoreNoteFields, headingToFind: string, parasAsText: string, headingLevel: number = 2) {
+export function insertContentUnderHeading(destNote: CoreNoteFields, headingToFind: string, parasAsText: string, headingLevel: number = 2) {
   logDebug(`NPParagraph/insertContentUnderHeading`, `Called for '${headingToFind}' with ${parasAsText.split('\n').length} paras)`)
   const headingMarker = '#'.repeat(headingLevel)
   const startOfNote = findStartOfActivePartOfNote(destNote)
@@ -114,7 +114,7 @@ export async function insertContentUnderHeading(destNote: CoreNoteFields, headin
   logDebug(`NPParagraph/insertContentUnderHeading`, `insertionIndex = ${insertionIndex} (startOfNote = ${startOfNote})`)
   // If we didn't find the heading, insert at the top of the note
   const paraText = insertionIndex === startOfNote && headingToFind !== '' ? `${headingMarker} ${headingToFind}\n${parasAsText}\n` : parasAsText
-  await destNote.insertParagraph(paraText, insertionIndex, 'text')
+  destNote.insertParagraph(paraText, insertionIndex, 'text')
 }
 
 /**
@@ -348,9 +348,7 @@ export async function gatherMatchingLines(
 
     // set up regex for searching, now with word boundaries on either side
     // find any matches
-    const stringToLookForWithDelimiters = (matchOnWordBoundaries)
-      ? `[\\b\\s\\^]${stringToLookFor}[\\b\\s\\$]`
-      : stringToLookFor
+    const stringToLookForWithDelimiters = matchOnWordBoundaries ? `[\\b\\s\\^]${stringToLookFor}[\\b\\s\\$]` : stringToLookFor
     const re = matchCase ? new RegExp(stringToLookForWithDelimiters) : new RegExp(stringToLookForWithDelimiters, 'i')
     const matchingParas = n.paragraphs.filter((q) => re.test(q.content))
     for (const p of matchingParas) {
@@ -1446,21 +1444,16 @@ export function cancelItem(filenameIn: string, content: string): boolean {
  * @param {string} NPDateStr the usual calendar titles, plus YYYYMMDD
  * @param {string} todoTextArg text to prepend. If empty or missing, then will ask user for it
  */
-export async function prependTodoToCalendarNote(
-  todoTypeName: "task" | "checklist",
-  NPDateStr: string,
-  todoTextArg: string = '',
-): Promise<void> {
+export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklist', NPDateStr: string, todoTextArg: string = ''): Promise<void> {
   logDebug(pluginJson, `starting prependTodoToCalendarNote`)
   try {
-    const todoType = (todoTypeName === 'task') ? 'open' : 'checklist'
+    const todoType = todoTypeName === 'task' ? 'open' : 'checklist'
     // Get calendar note to use
     const note = DataStore.calendarNoteByDateString(NPDateStr)
     if (note != null) {
       // Get input either from passed argument or ask user
-      const todoText = (todoTextArg != null && todoTextArg !== '')
-        ? todoTextArg
-        : await CommandBar.showInput(`Type the ${todoTypeName} text to add`, `Add ${todoTypeName} '%@' to ${NPDateStr}`)
+      const todoText =
+        todoTextArg != null && todoTextArg !== '' ? todoTextArg : await CommandBar.showInput(`Type the ${todoTypeName} text to add`, `Add ${todoTypeName} '%@' to ${NPDateStr}`)
       logDebug('prependTodoToCalendarNote', `- Prepending type ${todoType} '${todoText}' to '${displayTitle(note)}'`)
       smartPrependPara(note, todoText, todoType)
     } else {

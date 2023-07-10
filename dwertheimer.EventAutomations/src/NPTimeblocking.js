@@ -51,7 +51,8 @@ export function getConfig(): AutoTimeBlockingConfig {
   if (Object.keys(config).length) {
     try {
       // $FlowIgnore
-      config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
+      // In real NotePlan, config.timeblockTextMustContainString won't be set, but in testing it will be, so this covers both test and prod
+      if (!config.timeblockTextMustContainString) config.timeblockTextMustContainString = DataStore.preference('timeblockTextMustContainString') || ''
       validateAutoTimeBlockingConfig(config)
       return config
     } catch (error) {
@@ -99,7 +100,7 @@ export async function insertItemsIntoNote(
     // $FlowIgnore
     logDebug(pluginJson, `insertItemsIntoNote: items.length=${list.length}`)
     // Note: could probably use API addParagraphBelowHeadingTitle to insert
-    await insertContentUnderHeading(note, heading, list.join('\n'))
+    insertContentUnderHeading(note, heading, list.join('\n'))
     // Fold the heading to hide the list
     if (shouldFold && heading !== '') {
       const thePara = note.paragraphs.find((p) => p.type === 'title' && p.content.includes(heading))
@@ -284,7 +285,7 @@ export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TP
   }
   const backLinksAndNoteTodos = [...backlinkParas, ...todosInNote]
   logDebug(pluginJson, `Found ${backLinksAndNoteTodos.length} backlinks+today-note items (may include completed items)`)
-  const undupedBackLinkParas = eliminateDuplicateSyncedParagraphs(backLinksAndNoteTodos)
+  const undupedBackLinkParas = eliminateDuplicateSyncedParagraphs(backLinksAndNoteTodos, 'most-recent', true)
   logDebug(pluginJson, `Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
   let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(undupedBackLinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
   todosParagraphs = Array.isArray(includeTasksWithText) && includeTasksWithText?.length > 0 ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText) : todosParagraphs
@@ -314,6 +315,7 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
   logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr ?? 'null'}  Editor.paras=${Editor.paragraphs.length}`)
   if (dateStr && dateStr === date) {
     logDebug(pluginJson, `createTimeBlocksForTodaysTasks dateStr=${dateStr} is today - starting  Editor.paras=${Editor.paragraphs.length}`)
+
     const todosParagraphs = await getTodaysFilteredTodos(config).filter(
       (t) => t.filename !== Editor.filename || (t.filename === Editor.filename && !completedItems.find((c) => c.lineIndex === t.lineIndex)),
     )
@@ -327,14 +329,14 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
     const cleanTodayTodoParas = [...removeDateTagsFromArray(todosWithLinksMaybe)]
     logDebug(pluginJson, `After removeDateTagsFromArray, ${cleanTodayTodoParas.length} potential items  Editor.paras=${Editor.paragraphs.length}`)
     const tasksByType = todosWithLinksMaybe.length ? getTasksByType(todosWithLinksMaybe, true) : null // puts in object by type of task and enriches with sort info (like priority)
-    clo(tasksByType, 'createTimeBlocksForTodaysTasks: tasksByType')
+    // clo(tasksByType, 'createTimeBlocksForTodaysTasks: tasksByType')
     logDebug(
       pluginJson,
       `After getTasksByType, ${tasksByType?.open.length ?? 0} OPEN items | ${tasksByType?.scheduled.length ?? 0} Scheduled (for today) items Editor.paras=${
         Editor.paragraphs.length
       }`,
     )
-    clo(tasksByType?.open, 'createTimeBlocksForTodaysTasks: tasksByType.open')
+    // clo(tasksByType?.open, 'createTimeBlocksForTodaysTasks: tasksByType.open')
     if (deletePreviousCalendarEntries) {
       await deleteCalendarEventsWithTag(timeBlockTag, dateStr)
     }
@@ -364,6 +366,7 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
         )
       }
       const calendarMapWithEvents = await getPopulatedTimeMapForToday(dateStr, intervalMins, config)
+      // clo(calendarMapWithEvents, `calendarMapWithEvents: ${calendarMapWithEvents.length} items`)
       logDebug(
         pluginJson,
         `After getPopulatedTimeMapForToday, ${calendarMapWithEvents.length} timeMap slots; last = ${JSON.stringify(
@@ -373,7 +376,10 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
       // logDebug(pluginJson, `sortedTodos[0]: ${sortedTodos[0].content}  Editor.paras=${Editor.paragraphs.length}`)
       // logDebug(pluginJson, `sortedParas[0]: ${sortedParas[0].content}`)
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
-      const { timeBlockTextList, blockList } = eventsToTimeblock
+      clo(eventsToTimeblock, `createTimeBlocksForTodaysTasks eventsToTimeblock`)
+      const { blockList, noTimeForTasks } = eventsToTimeblock
+      let { timeBlockTextList } = eventsToTimeblock
+
       clo(timeBlockTextList, `timeBlockTextList`)
       logDebug(
         pluginJson,
@@ -397,10 +403,20 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
 
         logDebug(pluginJson, `About to insert ${String(timeBlockTextList?.length)} timeblock items into note  Editor.paras=${Editor.paragraphs.length}`)
         if (!String(config.timeBlockHeading)?.length) {
-          await showMessage(`You need to set a synced copies title in the plugin settings`)
+          await showMessage(`You need to set a time block heading title in the plugin settings`)
           return
         } else {
           // $FlowIgnore -- Delete any previous timeblocks we created
+          if (noTimeForTasks && Object.keys(noTimeForTasks).length) {
+            // removeContentUnderHeading(Editor, config.timeBlockHeading, false, true) -- too dangerous, will delete stuff people write underneath
+            if (!timeBlockTextList) timeBlockTextList = []
+            Object.keys(noTimeForTasks).forEach((key) =>
+              noTimeForTasks[key].forEach((p) =>
+                timeBlockTextList.push(`> No time ${key === '_' ? 'available' : `in timeblock *${key}*`} for task: **- ${p.content}** ${config.timeBlockTag}`),
+              ),
+            )
+          }
+          clo(timeBlockTextList, `getTimeBlockTimesForEvents timeBlockTextList`)
           await insertItemsIntoNote(Editor, timeBlockTextList, config.timeBlockHeading, config.foldTimeBlockHeading, config)
         }
 

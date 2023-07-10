@@ -2,11 +2,11 @@
   "macOS.minVersion": "10.13.0",
   "noteplan.minAppVersion": "3.6",
   "plugin.id": "dwertheimer.EventAutomations",
-  "plugin.name": "🗓 Event Automations",
+  "plugin.name": "🗓 AutoTimeBlocking / Events",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for >today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.15.1",
-  "plugin.lastUpdateInfo": "1.15.1: Fix bug in tasks open in today's note.\n1.15.0: Checklists for AutoTimeBlocks, and checking a checklist timeblock will check the undelying task.",
+  "plugin.version": "1.16.0",
+  "plugin.lastUpdateInfo": "1.16.0: Create Tasks within Timeblocks",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -403,11 +403,21 @@
       "title": "Task->Time Block processing mode",
       "choices": [
         "PRIORITY_FIRST",
-        "LARGEST_FIRST"
+        "LARGEST_FIRST",
+        "BY_TIMEBLOCK_TAG"
       ],
-      "description": "PRIORITY_FIRST places the highest priority (most !'s) first (if there's a slot) and then continues down the priority stack. LARGEST_FIRST tries to place the longest/largest duration item first.",
+      "description": "PRIORITY_FIRST places the highest priority (most !'s) first (if there's a slot) and then continues down the priority stack. LARGEST_FIRST tries to place the longest/largest duration item first. BY_TIMEBLOCK_TAG will try to slot items into a pre-existing timeblock that matches a tag on the task (e.g. #projectA). Will then fall back to PRIORITY_FIRST if no matching timeblock is found.",
       "default": "PRIORITY_FIRST",
       "required": true
+    },
+    {
+      "key": "orphanTagggedTasks",
+      "title": "What to do with orphaned tagged timeblock tasks?",
+      "description": "(this is only relevant when the setting above is set to BY_TIMEBLOCK_TAG). When placing tasks into timeblocks of matching tag, what should happen when there are more tasks than will fit in the matching time block?",
+      "type": "string",
+      "default": "OUTPUT_FOR_INFO (but don't schedule them)",
+      "required": true,
+      "choices": ["IGNORE_THEM","OUTPUT_FOR_INFO (but don't schedule them)", "SCHEDULE_ELSEWHERE_LAST", "SCHEDULE_ELSEWHERE_FIRST"]
     },
     {
       "type": "separator"

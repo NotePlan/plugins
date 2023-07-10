@@ -7,8 +7,9 @@
  *
  */
 import moment from 'moment'
+import * as chrono from 'chrono-node'
 
-const Calendar = {
+export const Calendar = {
   // async add() { return null },
   // async addUnitToDate() { return null },
   availableCalendarTitles(writeOnly: boolean) {
@@ -25,6 +26,19 @@ const Calendar = {
   // async eventsBetween() { return null },
   // async eventsToday() { return null },
   parseDateText(str) {
+    if (str && str.length) {
+      const chronoGuesses = chrono.parse(str)
+      if (chronoGuesses && chronoGuesses.length) {
+        const retObj = {
+          start: chronoGuesses[0].start.date(),
+          end: chronoGuesses[0].end?.date() || chronoGuesses[0].start.date(),
+          text: chronoGuesses[0].text || '',
+          index: 2,
+        }
+        return [retObj]
+      }
+      throw `Calendar.parseDateText() date string  (${str}) not recognized`
+    }
     return { start: new Date('2022-01-01 00:00'), end: new Date('2022-01-01 03:00'), text: str, index: 2 }
   },
   // async reminderByID() { return null },
@@ -49,4 +63,4 @@ const Calendar = {
   },
 }
 
-module.exports = Calendar
+// module.exports = Calendar

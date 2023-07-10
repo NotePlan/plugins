@@ -4,6 +4,11 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.16.0] 2023-07-05 @dwertheimer
+
+- Create Tasks within Timeblocks
+- Change Plugin Name to AutoTimeBlocking/Events
+
 ## [1.15.1] 2023-04-20
 
 - Fix bug in tasks open in today's note.

@@ -12,65 +12,66 @@
  */
 
 import { Note } from './Note.mock'
-const note = new Note() // NOTE: try to reference the code in the Note mock wherever possible!
+const blankNote = new Note() // NOTE: try to reference the code in the Note mock wherever possible!
+// NOTE: blankNote is spread into Editor below, so any properties that exist in Note will overwrite the ones in Editor
 
 export const Editor = {
-  addBlockID(p) {
-    return this.note.addBlockID(p)
-  },
-  // async addParagraphBelowHeadingTitle() { return null },
-  // async addTheme() { return null },
-  // async addTodoBelowHeadingTitle() { return null },
-  async appendParagraph(title = 'mock tester', type: 'text') {
-    return null
-  },
-  // async appendParagraphBelowHeadingLineIndex() { return null },
-  // async appendTodo() { return null },
-  // async appendTodoBelowHeadingLineIndex() { return null },
-  /* availableThemes: [{ return default }], */
-  // content: VALUE ,
-  // async copySelection() { return null },
-  filename: 'thisFileName.txt',
-  // async highlight() { return null },
-  // async highlightByIndex() { return null },
-  // async highlightByRange() { return null },
-  // async insertCancelledTodo() { return null },
-  // async insertCompletedTodo() { return null },
-  // async insertHeading() { return null },
-  // async insertList() { return null },
-  async insertParagraph(name = 'mock tester', lineIndex = 1, type: 'text') {
-    return null
-  },
-  // async insertParagraphAfterParagraph() { return null },
-  // async insertParagraphAtCursor() { return null },
-  // async insertParagraphBeforeParagraph() { return null },
-  // async insertQuote() { return null },
-  // async insertScheduledTodo() { return null },
-  async insertTextAtCharacterIndex(text = '', length = 0) {
-    return text
-  },
-  async insertTextAtCursor(text: string) {
-    return text //void return
-  },
-  // async insertTodo() { return null },
-  // async insertTodoAfterParagraph() { return null },
-  // async insertTodoBeforeParagraph() { return null },
-  async isFolded(para) {
-    return false
-  },
-  note: null,
-
-  async openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote> {
-    return this.note
-  },
-  // async openNoteByDateString() { return null },
-  // async openNoteByFilename() { return null },
-  // async openNoteByTitle() { return null },
-  // async openNoteByTitleCaseInsensitive() { return null },
-  async paragraphRangeAtCharacterIndex() {
-    return null
-  },
-  /* paragraphs: [{ return {
+  ...{
+    note: blankNote,
+    addBlockID(p) {
+      return this.note.addBlockID(p)
+    },
+    // async addParagraphBelowHeadingTitle() { return null },
+    // async addTheme() { return null },
+    // async addTodoBelowHeadingTitle() { return null },
+    async appendParagraph(title = 'mock tester', type: 'text') {
+      return this.note.appendParagraph(title, type)
+    },
+    // async appendParagraphBelowHeadingLineIndex() { return null },
+    // async appendTodo() { return null },
+    // async appendTodoBelowHeadingLineIndex() { return null },
+    /* availableThemes: [{ return default }], */
+    // content: VALUE ,
+    // async copySelection() { return null },
+    filename: 'thisFileName.txt',
+    // async highlight() { return null },
+    // async highlightByIndex() { return null },
+    // async highlightByRange() { return null },
+    // async insertCancelledTodo() { return null },
+    // async insertCompletedTodo() { return null },
+    // async insertHeading() { return null },
+    // async insertList() { return null },
+    // insertParagraph(name = 'mock tester', lineIndex = 1, type: 'text') {
+    //   return blankNote.insertParagraph(name, lineIndex, type)
+    // },
+    // async insertParagraphAfterParagraph() { return null },
+    // async insertParagraphAtCursor() { return null },
+    // async insertParagraphBeforeParagraph() { return null },
+    // async insertQuote() { return null },
+    // async insertScheduledTodo() { return null },
+    async insertTextAtCharacterIndex(text = '', length = 0) {
+      return this.note.insertTextAtCharacterIndex(text, length)
+    },
+    async insertTextAtCursor(text: string) {
+      return this.note.insertTextAtCursor(text)
+    },
+    // async insertTodo() { return null },
+    // async insertTodoAfterParagraph() { return null },
+    // async insertTodoBeforeParagraph() { return null },
+    async isFolded(para) {
+      return false
+    },
+    async openNoteByDate(date: Date, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean, timeframe?: string): Promise<TNote> {
+      return this.note
+    },
+    // async openNoteByDateString() { return null },
+    // async openNoteByFilename() { return null },
+    // async openNoteByTitle() { return null },
+    // async openNoteByTitleCaseInsensitive() { return null },
+    async paragraphRangeAtCharacterIndex() {
+      return null
+    },
+    /* paragraphs: [{ return {
 		"type": "title",
 		"content": "MyNoteTitle",
 		"rawContent": "# MyNoteTitle",
@@ -88,32 +89,32 @@ export const Editor = {
 		"referencedBlocks": [],
 		"note": {}
 } }], */
-  // async pasteClipboard() { return null },
-  // async prependParagraph() { return null },
-  // async prependTodo() { return null },
-  // async printNote() { return null },
-  // async removeBlockID() { return null },
+    // async pasteClipboard() { return null },
+    // async prependParagraph() { return null },
+    // async prependTodo() { return null },
+    // async printNote() { return null },
+    // async removeBlockID() { return null },
 
-  async removeParagraph(para) {
-    return note.removeParagraph(para)
-  },
-  async removeParagraphs(paras) {
-    return note.removeParagraphs(paras)
-  },
+    async removeParagraph(para) {
+      return note.removeParagraph(para)
+    },
+    async removeParagraphs(paras) {
+      return note.removeParagraphs(paras)
+    },
 
-  // async removeParagraphAtIndex() { return null },
-  // async renderedSelect() { return null },
-  /* renderedSelection: {
+    // async removeParagraphAtIndex() { return null },
+    // async renderedSelect() { return null },
+    /* renderedSelection: {
 		"start": 36,
 		"end": 36,
 		"length": 0
 } ,  */
-  // async replaceSelectionWithText() { return null },
-  // async replaceTextInCharacterRange() { return null },
-  // async select() { return null },
-  // async selectAll() { return null },
-  /* selectedLinesText: [{ return * one task in the note }], */
-  /* selectedParagraphs: [{ return {
+    // async replaceSelectionWithText() { return null },
+    // async replaceTextInCharacterRange() { return null },
+    // async select() { return null },
+    // async selectAll() { return null },
+    /* selectedLinesText: [{ return * one task in the note }], */
+    /* selectedParagraphs: [{ return {
 		"type": "open",
 		"content": "one task in the note",
 		"rawContent": "* one task in the note",
@@ -131,25 +132,27 @@ export const Editor = {
 		"referencedBlocks": [],
 		"note": {}
 } }], */
-  // selectedText: VALUE ,
-  /* selection: {
+    // selectedText: VALUE ,
+    /* selection: {
 		"start": 36,
 		"end": 36,
 		"length": 0
 } ,  */
-  // async setTheme() { return null },
-  // title: VALUE ,
-  async toggleFolding() {
-    return null
-  },
-  // type: VALUE ,
+    // async setTheme() { return null },
+    // title: VALUE ,
+    async toggleFolding() {
+      return null
+    },
+    // type: VALUE ,
 
-  async updateParagraph(para) {
-    return note.updateParagraph(para)
+    async updateParagraph(para) {
+      return note.updateParagraph(para)
+    },
+    async updateParagraphs(paras) {
+      return note.updateParagraphs(paras)
+    },
   },
-  async updateParagraphs(paras) {
-    return note.updateParagraphs(paras)
-  },
+  ...blankNote,
 }
 
 // module.exports = Editor
