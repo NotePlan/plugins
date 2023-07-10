@@ -1,5 +1,9 @@
 # np.ThemeChooser Changelog
 
+## [1.6.2] 2023-07-09 @dwertheimer
+
+- Remove background color from code blocks which was causing selections to fail.
+
 ## [1.6.1] 2023-03-31 @dwertheimer
 
 - Adding fancier version of inline comment hide

@@ -417,7 +417,12 @@
       "type": "string",
       "default": "OUTPUT_FOR_INFO (but don't schedule them)",
       "required": true,
-      "choices": ["IGNORE_THEM","OUTPUT_FOR_INFO (but don't schedule them)", "SCHEDULE_ELSEWHERE_LAST", "SCHEDULE_ELSEWHERE_FIRST"]
+      "choices": [
+        "IGNORE_THEM",
+        "OUTPUT_FOR_INFO (but don't schedule them)",
+        "SCHEDULE_ELSEWHERE_LAST",
+        "SCHEDULE_ELSEWHERE_FIRST"
+      ]
     },
     {
       "type": "separator"
