@@ -32,13 +32,13 @@ export function quoteText(text: string): string {
 }
 
 /**
- * Test whether a string contains front matter.
+ * Test whether a string contains front matter using the front-matter library which has a bug/limitation
  * Note: underlying library doesn't actually check whether the YAML comes at the start of the string. @jgclark has raised an issue to fix that.
  * @param {string} text - the text to test (typically the content of a note -- note.content)
  * @returns {boolean} true if it has front matter
  */
 // export const hasFrontMatter = (text: string): boolean => fm.test(text)
-export const hasFrontMatter = (text: string): boolean => fm.test(text) && text.split("\n", 1)[0] === "---"
+export const hasFrontMatter = (text: string): boolean => fm.test(text) && text.split('\n', 1)[0] === '---'
 
 /**
  * Test whether a Note contains front matter
@@ -47,7 +47,8 @@ export const hasFrontMatter = (text: string): boolean => fm.test(text) && text.s
  * @param {CoreNoteFields} note - the note to test
  * @returns {boolean} true if the note has front matter
  */
-export const noteHasFrontMatter = (note: CoreNoteFields): boolean => note && hasFrontMatter(note.content || '') && (note.paragraphs[0].type === 'separator' || note.paragraphs[0].content === '---')
+export const noteHasFrontMatter = (note: CoreNoteFields): boolean =>
+  note && hasFrontMatter(note.content || '') && note.paragraphs?.length >= 2 && (note.paragraphs[0].type === 'separator' || note.paragraphs[0].content === '---')
 
 /**
  * get the front matter attributes from a note
@@ -78,7 +79,6 @@ export const getFrontMatterParagraphs = (note: CoreNoteFields, includeSeparators
     logError('NPFrontMatter/getFrontMatterParagraphs()', JSP(err))
     return false
   }
-
 }
 
 /**
@@ -215,6 +215,7 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
 export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: string }): boolean {
   try {
     const title = varObj.title || null
+    logDebug(`setFrontMatterVars`, `Note "${title || ''}" BEFORE: hasFrontmatter:${String(noteHasFrontMatter(note) || '')} note has ${note.paragraphs.length} lines`)
     const hasFM = ensureFrontmatter(note, true, title)
     clo(note.paragraphs, `setFrontMatterVars: after ensureFrontMatter with ${note.paragraphs.length} lines`)
     if (!hasFM) {
@@ -279,9 +280,10 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
       // no note - return false
       logError('ensureFrontmatter', `No note found. Stopping conversion.`)
       // await showMessage(`No note found to convert to frontmatter.`)
-    } else if (hasFrontMatter(note?.content || '')) {
+    } else if (hasFrontMatter(note.content || '')) {
       // already has frontmatter
       const attr = getAttributes(note.content)
+      clo(attr, `ensureFrontmatter: Note '${displayTitle(note)}' has frontmatter already: attr =`)
       if (!attr.title && title) {
         logDebug('ensureFrontmatter', `Note '${displayTitle(note)}' already has frontmatter but no title. Adding title.`)
         if (note.content) note.content = note.content.replace('---', `---\ntitle: ${title}\n`)
@@ -305,8 +307,8 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         const titleFromFirstLine = firstLine.type === 'title' && firstLine.headingLevel === 1 ? firstLine.content : ''
 
         // Make title from parameter or note's existing H1 title or note.title respectively
-        newTitle = title || titleFromFirstLine || note.title || '' // cover Calendar notes where title is not in the note
-        // logDebug('ensureFrontmatter', `- newTitle='${newTitle ?? ''}'`)
+        newTitle = (title || titleFromFirstLine || note.title || '').replace(/`/g, '') // cover Calendar notes where title is not in the note
+        logDebug('ensureFrontmatter', `- newTitle='${newTitle ?? ''}'`)
         if (newTitle === '') {
           logError('ensureFrontmatter', `Cannot find title for '${note.filename}'. Stopping conversion.`)
         }

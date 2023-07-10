@@ -8,8 +8,11 @@ import { sortListBy } from '@helpers/sorting'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { createPrettyLinkToLine, createWikiLinkToLine } from '@helpers/NPSyncedCopies'
 import { logError, JSP, copyObject, clo, logDebug } from '@helpers/dev'
+import { RE_DATE_INTERVAL } from '../../helpers/dateTime'
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
+
+const pluginJson = `timeblocking-helpers.js`
 
 /**
  * Create a map of the time intervals for a portion of day
@@ -210,10 +213,22 @@ export const timeIsAfterWorkHours = (nowStr: string, config: TimeBlockDefaults):
  */
 export function filterTimeMapToOpenSlots(timeMap: IntervalMap, config: { [key: string]: any }): IntervalMap {
   const nowStr = config.nowStrOverride ?? getTimeStringFromDate(new Date())
-  return timeMap.filter((t) => {
+  const retVal = timeMap.filter((t) => {
     // console.log(t.start >= nowStr, t.start >= config.workDayStart, t.start < config.workDayEnd, !t.busy)
-    return t.start >= nowStr && t.start >= config.workDayStart && t.start < config.workDayEnd && !t.busy
+    // should filter to only open slots but will also include slots that are busy but have the timeblock tag - DataStore.preference('timeblockTextMustContainString')
+    return (
+      t.start >= nowStr &&
+      t.start >= config.workDayStart &&
+      t.start < config.workDayEnd &&
+      (!t.busy ||
+        (config.mode === 'BY_TIMEBLOCK_TAG' &&
+          config.timeblockTextMustContainString?.length &&
+          typeof t.busy === 'string' &&
+          t.busy.includes(config.timeblockTextMustContainString)))
+    )
   })
+  // logDebug(`\n\nfilterTimeMapToOpenSlots: ${JSP(retVal)}`)
+  return retVal
 }
 
 export function createOpenBlockObject(block: BlockData, config: { [key: string]: any }, includeLastSlotTime: boolean = true): OpenBlock | null {
@@ -234,6 +249,7 @@ export function createOpenBlockObject(block: BlockData, config: { [key: string]:
     end: getTimeStringFromDate(endTime),
     // $FlowIgnore
     minsAvailable: differenceInMinutes(endTime, startTime, { roundingMethod: 'ceil' }),
+    title: block.title,
   }
 }
 
@@ -252,13 +268,24 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
     let blockStart = timeMap[0]
     for (let i = 1; i < timeMap.length; i++) {
       const slot = timeMap[i]
-      // console.log(`findTimeBlocks[${i}]: slot: ${slot.start} ${slot.index}`)
-      if (slot.index === lastSlot.index + 1 && i <= timeMap.length - 1) {
+      // console.log(`findTimeBlocks[${i}]: slot: ${slot.start} ${slot.index} ${slot.busy}}`)
+      const noBreakInContinuity = slot.index === lastSlot.index + 1 && i <= timeMap.length - 1 && lastSlot.busy === slot.busy
+      if (noBreakInContinuity) {
         lastSlot = slot
         continue
       } else {
         // there was a break in continuity
-        const block = createOpenBlockObject({ start: blockStart.start, end: lastSlot.start }, config, true)
+        // logDebug(`findTimeBlocks: lastSlot break in continuity at ${i}: ${JSP(lastSlot)}`)
+        const title =
+          typeof lastSlot.busy === 'string' /* this was a named timeblock */
+            ? lastSlot.busy
+                // .replace(config.timeblockTextMustContainString || '', '') //if you do this, then the tb will be screened out later
+                .replace(/ {2,}/g, ' ')
+                .trim()
+            : ''
+        // logDebug(`findTimeBlocks: creating block title: ${title}`)
+        const block = createOpenBlockObject({ start: blockStart.start, end: lastSlot.start, title }, config, true)
+        // clo(block, `findTimeBlocks: block created`)
         if (block) blocks.push(block)
         blockStart = slot
         lastSlot = slot
@@ -266,13 +293,21 @@ export function findTimeBlocks(timeMap: IntervalMap, config: { [key: string]: an
     }
     if (timeMap.length && lastSlot === timeMap[timeMap.length - 1]) {
       // pick up the last straggler edge case
-      const lastBlock = createOpenBlockObject({ start: blockStart.start, end: lastSlot.start }, config, true)
+      const title =
+        typeof lastSlot.busy === 'string'
+          ? lastSlot.busy
+              // .replace(config.timeblockTextMustContainString || '', '') //if you do this, then the tb will be screened out later
+              .replace(/ {2,}/g, ' ')
+              .trim()
+          : ''
+      const lastBlock = createOpenBlockObject({ start: blockStart.start, end: lastSlot.start, title }, config, true)
       if (lastBlock) blocks.push(lastBlock)
     }
   } else {
     // console.log(`findTimeBlocks: timeMap array was empty`)
   }
   // console.log(`findTimeBlocks: found blocks: ${JSP(blocks)}`)
+
   return blocks
 }
 
@@ -302,22 +337,143 @@ export function blockTimeAndCreateTimeBlockText(tbm: TimeBlocksWithMap, block: B
   return { timeMap, blockList, timeBlockTextList }
 }
 
+/**
+ * Get the timeblocks that have names/titles (e.g. a user set them up "Work" or "Home" or whatever)
+ * @param {Array<OpenBlock>} blockList
+ * @param {*} config
+ * @returns {Array<OpenBlock>} the filtered blockList
+ */
+export function getNamedTimeBlocks(blockList: Array<OpenBlock>): Array<OpenBlock> {
+  return blockList.filter((b) => b.title && b.title !== '')
+}
+
+/**
+ * Finds a named hashtag or attag in a line of text.
+ *
+ * @param {string} blockName - The name of the block to search for.
+ * @param {string} line - The line of text to search in.
+ * @param {Object.<string, any>} config - The configuration object.
+ * @return {?string} - The matched tag or null if no match is found.
+ */
+export function namedTagExistsInLine(blockName: string, line: string): boolean {
+  const regex = new RegExp(blockName, 'gi')
+  const match = regex.exec(line)
+  return match ? true : false
+}
+
+/**
+ * Reduce an array of objects to a single object with the same keys and the values combined into arrays
+ * @param {*} arr - the array of objects to reduce
+ * @param {*} propToLookAt - if you only want to look at one key in each top level object
+ * @returns a single object with the same keys and the values combined into arrays
+ */
+function reduceArrayOfObjectsToSingleObject(arr: Array<{ [key: string]: any }>, propToLookAt? = null): { [key: string]: any } {
+  return arr.reduce((acc, obj) => {
+    const o = propToLookAt ? obj[propToLookAt] : obj
+    Object.keys(o).forEach((key) => {
+      if (acc[key]) {
+        acc[key] = [...acc[key], ...o[key]]
+      } else {
+        acc[key] = o[key]
+      }
+    })
+    return acc
+  }, {})
+}
+/**
+ * Process the tasks that have a named tag in them (e.g. @work or #work)
+ * @param {*} sortedTaskList
+ * @param {TimeBlocksWithMap} tmb
+ * @param {*} config
+ * @returns {TimeBlocksWithMap}
+ */
+export function processByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuration>, tmb: TimeBlocksWithMap, config: { [key: string]: any }): TimeBlocksWithMap {
+  const { blockList, timeMap } = tmb
+  let newBlockList = blockList
+  let unprocessedTasks = [...sortedTaskList]
+  let results = []
+  let noTimeForTasks = {}
+  const namedBlocks = getNamedTimeBlocks(newBlockList ?? [])
+  namedBlocks.forEach((block) => {
+    const blockTitle = (block.title || '').replace(config.timeblockTextMustContainString, '').replace(/ {2,}/g, ' ').trim()
+    logDebug(`processByTimeBlockTag blockTitle="${blockTitle}"`)
+    const tasksMatchingThisNamedTimeblock = unprocessedTasks.filter((task) => (block.title ? namedTagExistsInLine(blockTitle, task.content) : false))
+    logDebug(`processByTimeBlockTag tasksMatchingThisNamedTimeblock (${blockTitle}): ${JSP(tasksMatchingThisNamedTimeblock)}`)
+    tasksMatchingThisNamedTimeblock.forEach((task) => {
+      // call matchTasksToSlots for each block as if the block all that's available
+      // remove from sortedTaskList
+      // FIXME: need to make sure block list and time map are updated after each call
+      const newTimeBlockWithMap = matchTasksToSlots([task], { blockList: [block], timeMap: timeMap.filter((t) => t.start >= block.start && t.start <= block.end) }, config)
+      unprocessedTasks = unprocessedTasks.filter((t) => t !== task) // remove the task from the list
+      const foundTimeForTask = newTimeBlockWithMap.timeBlockTextList && newTimeBlockWithMap.timeBlockTextList.length > 0
+      if (foundTimeForTask) {
+        results.push(newTimeBlockWithMap)
+      } else {
+        if (!noTimeForTasks[blockTitle]) noTimeForTasks[blockTitle] = []
+        noTimeForTasks[blockTitle].push(task)
+      }
+    })
+    newBlockList = blockList?.filter((b) => b !== block) // remove the block from the list
+  })
+  // ["IGNORE_THEM","OUTPUT_FOR_INFO (but don't schedule them)", "SCHEDULE_ELSEWHERE_LAST", "SCHEDULE_ELSEWHERE_FIRST"]
+  const noTimeTasks = Object.values(noTimeForTasks || {}).reduce((acc, val) => acc.concat(val), [])
+  switch (config.orphanTagggedTasks) {
+    case 'IGNORE_THEM':
+      noTimeForTasks = null
+      break
+    case "OUTPUT_FOR_INFO (but don't schedule them)":
+      break
+    case 'SCHEDULE_ELSEWHERE_LAST':
+      unprocessedTasks = [...unprocessedTasks, ...noTimeTasks]
+      break
+    case 'SCHEDULE_ELSEWHERE_FIRST':
+      unprocessedTasks = [...noTimeTasks, ...unprocessedTasks]
+      break
+  }
+  // process the rest of the tasks
+  newBlockList = blockList?.filter((b) => !b.title || b.title === '') || [] // remove the named blocks from the list
+
+  config.mode = 'PRIORITY_FIRST' // now that we've processed the named blocks, we can process the rest of the tasks by priority
+  results.push(matchTasksToSlots(unprocessedTasks, { blockList: newBlockList, timeMap }, config))
+  clo(results, `\n\nprocessByTimeBlockTag results:\n\n`)
+
+  return {
+    noTimeForTasks: reduceArrayOfObjectsToSingleObject(results, 'noTimeForTasks'),
+    timeMap,
+    blockList: newBlockList,
+    timeBlockTextList: results
+      .map((r) => r.timeBlockTextList)
+      .flat()
+      .sort(),
+  }
+}
+
 interface ParagraphWithDuration extends Paragraph {
   duration: number;
 }
 
+/**
+ *
+ * @param {Array<ParagraphWithDuration>} sortedTaskList
+ * @param {TimeBlocksWithMap} tmb
+ * @param {[key: string]: any} config
+ * @returns {TimeBlocksWithMap}
+ */
 export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, tmb: TimeBlocksWithMap, config: { [key: string]: any }): TimeBlocksWithMap {
   const { timeMap } = tmb
   let newMap = filterTimeMapToOpenSlots(timeMap, config)
   let newBlockList = findTimeBlocks(newMap, config)
   const { durationMarker } = config
   let timeBlockTextList = []
+  const noTimeForTasks = {}
+
   // sortedTaskList.forEach((task) => {
-  for (let i = 0; i < sortedTaskList.length; i++) {
-    const task = sortedTaskList[i]
+  for (let t = 0; t < sortedTaskList.length; t++) {
+    const task = sortedTaskList[t]
+    const taskTitle = removeDateTagsAndToday(task.content)
+    const taskDuration = task.duration || getDurationFromLine(task.content, durationMarker) || config.defaultDuration // default time is 15m
+    // logDebug(`== matchTasksToSlots task="${task.content}" newBlockList.length=${newBlockList.length}`)
     if (newBlockList && newBlockList.length) {
-      const taskDuration = task.duration || getDurationFromLine(task.content, durationMarker) || config.defaultDuration // default time is 15m
-      const taskTitle = removeDateTagsAndToday(task.content)
       let scheduling = true
       let schedulingCount = 0
       let scheduledMins = 0
@@ -359,9 +515,18 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
           }
         }
       }
+      if (scheduling) {
+        logDebug(`matchTasksToSlots task[${t}]="${taskTitle}" scheduling:${String(scheduling)}`)
+        if (!noTimeForTasks['_']) noTimeForTasks['_'] = []
+        noTimeForTasks['_'].push(task)
+      }
+    } else {
+      logDebug(`matchTasksToSlots task[${t}]="${taskTitle}" no blocks. saving.`)
+      if (!noTimeForTasks['_']) noTimeForTasks['_'] = []
+      noTimeForTasks['_'].push(task)
     }
   }
-  return { timeMap: newMap, blockList: newBlockList, timeBlockTextList }
+  return { timeMap: newMap, blockList: newBlockList, timeBlockTextList, noTimeForTasks }
 }
 
 /**
@@ -415,7 +580,7 @@ export const addDurationToTasks = (tasks: Array<SortableParagraphSubset>, config
 }
 
 export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<SortableParagraphSubset>, config: { [key: string]: any }): TimeBlocksWithMap {
-  let newInfo = { timeMap, blockList: [], timeBlockTextList: [] }
+  let newInfo = { timeMap, blockList: [], timeBlockTextList: [], noTimeForTasks: {} }
   // $FlowIgnore
   const availableTimes = filterTimeMapToOpenSlots(timeMap, config)
   if (availableTimes.length === 0) {
@@ -429,6 +594,7 @@ export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<So
         // Go down priority list and split events if necessary
         const sortedTaskList = sortListBy(todosWithDurations, ['-priority', 'duration'])
         newInfo = matchTasksToSlots(sortedTaskList, { blockList: blocksAvailable, timeMap: availableTimes }, config)
+        logDebug(pluginJson, `getTimeBlockTimesForEvents newInfo.noTimeForTasks=${JSP(newInfo.noTimeForTasks)}`)
         // const { timeBlockTextList, timeMap, blockList } = newInfo
         break
       }
@@ -440,11 +606,20 @@ export function getTimeBlockTimesForEvents(timeMap: IntervalMap, todos: Array<So
         // FIXME: HERE AND RESULT IS NOT RIGHT
         break
       }
+      case 'BY_TIMEBLOCK_TAG': {
+        const sortedTaskList = sortListBy(todosWithDurations, ['-priority', 'duration'])
+        // clo(blocksAvailable, `getTimeBlockTimesForEvents blocksAvailable`)
+        // clo(timeMap, `getTimeBlockTimesForEvents timeMap`)
+        // clo(sortedTaskList, `getTimeBlockTimesForEvents sortedTaskList`)
+        newInfo = processByTimeBlockTag(sortedTaskList, { blockList: blocksAvailable, timeMap: availableTimes }, config)
+        // FIXME: HERE WORKING ON THIS
+        break
+      }
     }
   } else {
-    // console.log(
-    //   `INFO: getTimeBlockTimesForEvents nothing will be entered because todos.length=${todos.length} blocksAvailable.length=${blocksAvailable.length} timeMap.length=${timeMap.length} config.mode=${config.mode}`,
-    // )
+    logDebug(
+      `INFO: getTimeBlockTimesForEvents nothing will be entered because todos.length=${todos.length} blocksAvailable.length=${blocksAvailable.length} timeMap.length=${timeMap.length} config.mode=${config.mode}`,
+    )
   }
   return newInfo
 }

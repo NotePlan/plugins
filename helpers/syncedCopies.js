@@ -17,9 +17,10 @@ export const textWithoutSyncedCopyTag = (text: string): string => text.replace(n
  * @author @dwertheimer updated by @jgclark
  * @param {Array<TParagraph>} paras: Array<TParagraph>
  * @param {string} keepWhich = 'first' (default) or 'most-recent'
+ * @param {boolean} syncedLinesOnly = false (default) or true - only eliminate duplicates if they are synced lines (plain lines are allowed even when dupes)
  * @returns Array<TParagraph> unduplicated paragraphs
  */
-export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, keepWhich: string = 'first'): Array<TParagraph> {
+export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, keepWhich?: string = 'first', syncedLinesOnly?: boolean = false): Array<TParagraph> {
   try {
     // logDebug('eliminateDuplicateSyncedParagraphs', `starting for ${String(paras.length)} paras with ${keepWhich}`)
     const revisedParas = []
@@ -45,10 +46,14 @@ export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, kee
         const matchingIndex = revisedParas.findIndex((t) => {
           if (t.content === e.content) {
             if (t.blockId !== undefined && e.blockId !== undefined && t.blockId === e.blockId) {
+              logDebug('eDSP', `Duplicate line eliminated: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
               return true
             } else {
-              if (t.filename === e.filename) {
+              if (t.filename === e.filename && !syncedLinesOnly) {
+                logDebug('eDSP', `Duplicate line eliminated: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
                 return true
+              } else {
+                logDebug('eDSP', `Duplicate line allowed due to settings: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
               }
             }
           }

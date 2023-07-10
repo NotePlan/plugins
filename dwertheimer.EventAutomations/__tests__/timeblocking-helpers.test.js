@@ -1,6 +1,6 @@
-/* globals describe, expect, test, beforeAll */
+/* globals describe, expect, test, beforeAll, afterAll */
 // import colors from 'chalk'
-import /* differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, */ 'date-fns'
+// import /* differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, */ 'date-fns'
 import * as tb from '../src/timeblocking-helpers'
 import { getTasksByType } from '@helpers/sorting'
 
@@ -212,24 +212,30 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    test('filterTimeMapToOpenSlots ', () => {
-      const timeMap = [
-        { start: '00:00', busy: false },
-        { start: '00:05', busy: false },
-      ]
-      let cfg = { ...config, workDayStart: '00:00', workDayEnd: '23:59', nowStrOverride: '00:02 ' }
-      // expect(tb.filterTimeMapToOpenSlots(timeMap, nowStr, workDayStart, workDayEnd)).toEqual(true)
-      expect(tb.filterTimeMapToOpenSlots(timeMap, cfg)).toEqual(timeMap.slice(1, 2)) // now is after first item
-      cfg.nowStrOverride = '00:00'
-      expect(tb.filterTimeMapToOpenSlots(timeMap, cfg)).toEqual(timeMap) // now is equal to first item
-      cfg = { ...cfg, workDayStart: '00:01' }
-      expect(tb.filterTimeMapToOpenSlots(timeMap, cfg)).toEqual(timeMap.slice(1, 2)) // workDayStart is after first item
-      cfg = { ...cfg, workDayStart: '00:05' }
-      expect(tb.filterTimeMapToOpenSlots(timeMap, cfg)).toEqual(timeMap.slice(1, 2)) // workDayStart is equal to 2nd item
-      cfg = { ...config, workDayEnd: '00:00', nowStrOverride: '00:00' }
-      expect(tb.filterTimeMapToOpenSlots(timeMap, cfg)).toEqual([]) // workDayEnd is before 1st item
-      cfg = { ...config, workDayStart: '00:00', workDayEnd: '00:03', nowStrOverride: '00:00' }
-      expect(tb.filterTimeMapToOpenSlots(timeMap, cfg, '00:00')).toEqual(timeMap.slice(0, 1)) // workDayEnd is before 2st item
+    describe('filterTimeMapToOpenSlots', () => {
+      test('filterTimeMapToOpenSlots ', () => {
+        const timeMap = [
+          { start: '00:00', busy: false },
+          { start: '00:05', busy: false },
+        ]
+        let cfg = { ...config, workDayStart: '00:00', workDayEnd: '23:59', nowStrOverride: '00:02 ' }
+        // expect(tb.filterTimeMapToOpenSlots(timeMap, nowStr, workDayStart, workDayEnd)).toEqual(true)
+        expect(tb.filterTimeMapToOpenSlots(timeMap, cfg)).toEqual(timeMap.slice(1, 2)) // now is after first item
+        cfg.nowStrOverride = '00:00'
+        expect(tb.filterTimeMapToOpenSlots(timeMap, cfg)).toEqual(timeMap) // now is equal to first item
+        cfg = { ...cfg, workDayStart: '00:01' }
+        expect(tb.filterTimeMapToOpenSlots(timeMap, cfg)).toEqual(timeMap.slice(1, 2)) // workDayStart is after first item
+        cfg = { ...cfg, workDayStart: '00:05' }
+        expect(tb.filterTimeMapToOpenSlots(timeMap, cfg)).toEqual(timeMap.slice(1, 2)) // workDayStart is equal to 2nd item
+        cfg = { ...config, workDayEnd: '00:00', nowStrOverride: '00:00' }
+        expect(tb.filterTimeMapToOpenSlots(timeMap, cfg)).toEqual([]) // workDayEnd is before 1st item
+        cfg = { ...config, workDayStart: '00:00', workDayEnd: '00:03', nowStrOverride: '00:00' }
+        expect(tb.filterTimeMapToOpenSlots(timeMap, cfg, '00:00')).toEqual(timeMap.slice(0, 1)) // workDayEnd is before 2st item
+        cfg = { ...config, workDayStart: '00:00', workDayEnd: '00:30', nowStrOverride: '00:00', timeblockTextMustContainString: '#tb', mode: 'BY_TIMEBLOCK_TAG' }
+        timeMap.push({ start: '00:10', busy: 'work #tb' })
+        const result = tb.filterTimeMapToOpenSlots(timeMap, cfg, '00:00')
+        expect(result[2]).toEqual(timeMap[2]) // does not screen out timeblocks
+      })
     })
 
     test('makeAllItemsTodos ', () => {
@@ -270,9 +276,9 @@ describe(`${PLUGIN_NAME}`, () => {
         { start: '00:30', busy: false, index: 5 } /* this one should cause a break */,
       ]
       let timeBlocks = tb.findTimeBlocks(timeMap, config)
-      expect(timeBlocks[0]).toEqual({ start: '00:05', end: '00:10', minsAvailable: 5 })
-      expect(timeBlocks[1]).toEqual({ start: '00:15', end: '00:25', minsAvailable: 10 })
-      expect(timeBlocks[2]).toEqual({ start: '00:30', end: '00:35', minsAvailable: 5 })
+      expect(timeBlocks[0]).toEqual({ start: '00:05', end: '00:10', minsAvailable: 5, title: '' })
+      expect(timeBlocks[1]).toEqual({ start: '00:15', end: '00:25', minsAvailable: 10, title: '' })
+      expect(timeBlocks[2]).toEqual({ start: '00:30', end: '00:35', minsAvailable: 5, title: '' })
 
       timeMap = [
         // test the whole map is available/contiguous
@@ -282,7 +288,7 @@ describe(`${PLUGIN_NAME}`, () => {
       ]
       timeBlocks = tb.findTimeBlocks(timeMap, config)
       expect(timeBlocks.length).toEqual(1)
-      expect(timeBlocks[0]).toEqual({ start: '00:15', end: '00:30', minsAvailable: 15 })
+      expect(timeBlocks[0]).toEqual({ start: '00:15', end: '00:30', minsAvailable: 15, title: '' })
       timeMap = [
         // one item and one contiguous block
         { start: '00:00', busy: false, index: 0 },
@@ -292,8 +298,8 @@ describe(`${PLUGIN_NAME}`, () => {
       ]
       timeBlocks = tb.findTimeBlocks(timeMap, config)
       expect(timeBlocks.length).toEqual(2)
-      expect(timeBlocks[0]).toEqual({ start: '00:00', end: '00:05', minsAvailable: 5 })
-      expect(timeBlocks[1]).toEqual({ start: '00:15', end: '00:30', minsAvailable: 15 })
+      expect(timeBlocks[0]).toEqual({ start: '00:00', end: '00:05', minsAvailable: 5, title: '' })
+      expect(timeBlocks[1]).toEqual({ start: '00:15', end: '00:30', minsAvailable: 15, title: '' })
       timeMap = [
         // one item and one contiguous block
         { start: '23:40', busy: false, index: 0 },
@@ -303,7 +309,18 @@ describe(`${PLUGIN_NAME}`, () => {
       ]
       timeBlocks = tb.findTimeBlocks(timeMap, config)
       expect(timeBlocks.length).toEqual(1)
-      expect(timeBlocks[0]).toEqual({ start: '23:40', end: '23:59', minsAvailable: 20 }) //FIXME: this doesn't seem right!
+      expect(timeBlocks[0]).toEqual({ start: '23:40', end: '23:59', minsAvailable: 20, title: '' }) //FIXME: this doesn't seem right!
+      timeMap = [
+        // one item and one contiguous block
+        { start: '23:40', busy: false, index: 0 },
+        { start: '23:45', busy: 'foo #tb', index: 1 },
+        { start: '23:50', busy: 'foo #tb', index: 2 },
+        { start: '23:55', busy: false, index: 3 },
+      ]
+      timeBlocks = tb.findTimeBlocks(timeMap, config)
+      expect(timeBlocks.length).toEqual(3)
+      expect(timeBlocks[1].minsAvailable).toEqual(10)
+      expect(timeBlocks[1].title).toEqual('foo #tb')
     })
 
     describe('addMinutesToTimeText', () => {
@@ -444,6 +461,59 @@ describe(`${PLUGIN_NAME}`, () => {
         const res = tb.getTimeBlockTimesForEvents(timeMap, todosByType['open'], cfg)
         expect(res.timeBlockTextList).toEqual(['* 23:55-23:56 ! line2 #🕑'])
       })
+      test('should place single BY_TIMEBLOCK_TAG items inside timeblock of that name', () => {
+        const timeMap = [
+          // one item and one contiguous block
+          { start: '23:45', busy: 'timblock #tb', index: 1 },
+          { start: '23:50', busy: 'timblock #tb', index: 2 },
+          { start: '23:55', busy: 'timblock #tb', index: 3 },
+        ]
+        const todos = [{ content: "! line2 '5m #timblock", type: 'open' }]
+        const todosByType = getTasksByType(todos)
+
+        const cfg = {
+          ...config,
+          workDayStart: '23:00',
+          intervalMins: 5,
+          workDayEnd: '23:59',
+          nowStrOverride: '23:00',
+          mode: 'BY_TIMEBLOCK_TAG',
+          timeblockTextMustContainString: '#tb',
+          allowEventSplits: false,
+        }
+        const result = tb.getTimeBlockTimesForEvents(timeMap, todosByType['open'], cfg)
+        expect(result.timeBlockTextList).toEqual(expect.arrayContaining(['* 23:45-23:50 ! line2 #timblock #🕑 #tb']))
+      })
+      test('should place BY_TIMEBLOCK_TAG items inside timeblock of that name when there are other blocks', () => {
+        const timeMap = [
+          // one item and one contiguous block
+          { start: '23:40', busy: false, index: 0 },
+          { start: '23:45', busy: 'timblock #tb', index: 1 },
+          { start: '23:50', busy: 'timblock #tb', index: 2 },
+          { start: '23:55', busy: 'timblock #tb', index: 3 },
+          { start: '24:00', busy: false, index: 4 },
+          { start: '24:05', busy: false, index: 5 },
+        ]
+        const todos = [
+          { content: "!! line1 '2m", type: 'open' },
+          { content: "! line2 '5m #timblock", type: 'open' },
+          { content: "!!! line3 '5m", type: 'open' },
+        ]
+        const todosByType = getTasksByType(todos)
+
+        const cfg = {
+          ...config,
+          workDayStart: '23:00',
+          intervalMins: 5,
+          workDayEnd: '23:59',
+          nowStrOverride: '23:00',
+          mode: 'BY_TIMEBLOCK_TAG',
+          timeblockTextMustContainString: '#tb',
+          allowEventSplits: false,
+        }
+        const result = tb.getTimeBlockTimesForEvents(timeMap, todosByType['open'], cfg)
+        expect(result.timeBlockTextList).toEqual(expect.arrayContaining(['* 23:45-23:50 ! line2 #timblock #🕑 #tb']))
+      })
     })
 
     test('blockTimeAndCreateTimeBlockText ', () => {
@@ -459,7 +529,7 @@ describe(`${PLUGIN_NAME}`, () => {
       // (1) Base test. Block a time and return proper results
       const result = tb.blockTimeAndCreateTimeBlockText(tbm, block, cfg)
       expect(result).toEqual({
-        blockList: [{ end: '00:10', minsAvailable: 5, start: '00:05' }],
+        blockList: [{ end: '00:10', minsAvailable: 5, start: '00:05', title: '' }],
         timeBlockTextList: [`* 00:00-00:05 test ${config.timeBlockTag}`],
         timeMap: [{ busy: false, index: 1, start: '00:05' }],
       })
@@ -486,7 +556,7 @@ describe(`${PLUGIN_NAME}`, () => {
       tbm = { timeMap, blockList, timeBlockTextList: [] }
       const result3 = tb.blockTimeAndCreateTimeBlockText(tbm, block, cfg)
       expect(result3).toEqual({
-        blockList: [{ start: '00:02', end: '00:08', minsAvailable: 6 }],
+        blockList: [{ start: '00:02', end: '00:08', minsAvailable: 6, title: '' }],
         timeBlockTextList: [`* 00:00-00:02 test2 ${config.timeBlockTag}`],
         timeMap: [
           { start: '00:02', busy: false, index: 1 },
@@ -514,8 +584,8 @@ describe(`${PLUGIN_NAME}`, () => {
         const res = tb.matchTasksToSlots(tasks, { blockList: timeBlocks, timeMap }, cfg)
         expect(res.timeBlockTextList[0]).toEqual(`* 00:02-00:04 line1 ${config.timeBlockTag}`)
         expect(res.timeBlockTextList[1]).toEqual(`* 00:04-00:05 line2 ${config.timeBlockTag}`)
-        expect(res.blockList[0]).toEqual({ start: '00:06', end: '00:08', minsAvailable: 2 })
-        expect(res.blockList[1]).toEqual({ start: '00:20', end: '00:24', minsAvailable: 4 })
+        expect(res.blockList[0]).toEqual({ start: '00:06', end: '00:08', minsAvailable: 2, title: '' })
+        expect(res.blockList[1]).toEqual({ start: '00:20', end: '00:24', minsAvailable: 4, title: '' })
         expect(res.timeMap[0]).toEqual({ start: '00:06', busy: false, index: 3 })
         expect(res.timeMap[1]).toEqual({ start: '00:20', busy: false, index: 10 })
         expect(res.timeMap[2]).toEqual({ start: '00:22', busy: false, index: 11 })
@@ -551,6 +621,29 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(res.timeMap.length).toEqual(0)
         expect(res.blockList.length).toEqual(0)
       })
+      test('no time for even one task', () => {
+        // Now check that items that don't fit inside the time block get split properly
+        const cfg = {
+          ...config,
+          nowStrOverride: '00:00',
+          workDayStart: '00:00',
+          workDayEnd: '00:08',
+          intervalMins: 2,
+        }
+        const timeMap2 = [
+          { start: '00:00', busy: false, index: 0 },
+          { start: '00:02', busy: false, index: 1 },
+          { start: '00:04', busy: false, index: 2 },
+          { start: '00:06', busy: false, index: 3 },
+        ]
+        const nonFittingTasks = [{ content: "wont get placed '12m" }]
+        const timeBlocks = [] // irrelevant because will be rebuilt
+        const res = tb.matchTasksToSlots(nonFittingTasks, { blockList: timeBlocks, timeMap: timeMap2, timeBlockTextList: [] }, cfg)
+        expect(res.timeBlockTextList.length).toEqual(0)
+        expect(Object.keys(res.noTimeForTasks).length).toEqual(1)
+        expect(res.noTimeForTasks['_'].length).toEqual(1)
+        expect(res.noTimeForTasks['_'][0]).toEqual({ content: `wont get placed '12m` })
+      })
       test('items that do not fit in slots do not get split when allowEventSplits is missing', () => {
         // Now check that items that don't fit inside the time block get split properly
         // Even if the whole task can't find a slot
@@ -585,6 +678,40 @@ describe(`${PLUGIN_NAME}`, () => {
         const timeMap = [{ start: '00:00', busy: false, index: 1 }]
         const cfg = { ...config, nowStrOverride: '00:00', workDayStart: '00:00', intervalMins: 20, defaultDuration: 13 }
         const res = tb.matchTasksToSlots([{ content: 'line4' }], { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+        expect(res.timeBlockTextList).toEqual([`* 00:00-00:13 line4 ${config.timeBlockTag}`])
+      })
+      // dbw: skipping these tests for now because I think they are well covered elsewhere and this is not actually the path
+      // for the BY_TIMEBLOCK_TAG mode. Leaving them in case they are useful later.
+      test.skip('Mode: BY_TIMEBLOCK_TAG Put tasks inside timeblocks with their name - single item', () => {
+        // now test line which had no time attached
+        const timeBlocks = [{ start: '00:00', end: '00:20', minsAvailable: 20, title: 'timblock' }]
+        const timeMap = [{ start: '00:00', busy: false, index: 1 }]
+        const cfg = { ...config, nowStrOverride: '00:00', workDayStart: '00:00', intervalMins: 20, defaultDuration: 5, mode: 'BY_TIMEBLOCK_TAG' }
+        const res = tb.matchTasksToSlots([{ content: 'Do something #timblock' }], { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+        expect(res.timeBlockTextList).toEqual(['* 00:00-00:05 Do something #timblock #🕑'])
+      })
+      test.skip('Mode: BY_TIMEBLOCK_TAG Put tasks inside timeblocks with their name - multi items', () => {
+        // now test line which had no time attached
+        const timeBlocks = [
+          { start: '00:00', end: '00:20', minsAvailable: 20, title: '' },
+          { start: '00:40', end: '01:00', minsAvailable: 20, title: 'timblock' },
+          { start: '01:30', end: '01:50', minsAvailable: 20, title: '' },
+        ]
+        const timeMap = [
+          { start: '00:00', busy: false, index: 1 },
+          { start: '00:40', busy: 'timblock #tb', index: 5 },
+        ]
+        const cfg = {
+          ...config,
+          nowStrOverride: '00:00',
+          workDayStart: '00:00',
+          intervalMins: 20,
+          defaultDuration: 5,
+          mode: 'BY_TIMEBLOCK_TAG',
+          timeblockTextMustContainString: '#tb',
+        }
+        const sortedTaskList = [{ content: 'Do something #timblock' }, { content: 'line2' }, { content: 'line3' }]
+        const res = tb.matchTasksToSlots(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
         expect(res.timeBlockTextList).toEqual([`* 00:00-00:13 line4 ${config.timeBlockTag}`])
       })
     })
@@ -698,6 +825,14 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     describe('appendLinkIfNecessary', () => {
+      let fname
+      beforeAll(() => {
+        fname = Editor.filename
+        Editor.filename = 'foo.md'
+      })
+      afterAll(() => {
+        Editor.filename = fname
+      })
       const paragraphs = [
         { content: 'foo', type: 'done', filename: 'foof.md' },
         { content: 'bar', type: 'open', filename: 'barf.md' },
@@ -719,14 +854,14 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(res).toEqual(p)
       })
       test('should add wikilink to content in form of [[title#heading]]', () => {
-        const note = new Note({ title: 'foo' })
+        const note = new Note({ title: 'foo', filename: Editor.filename })
         const p = [{ type: 'open', content: 'ugh', heading: 'bar', note }]
         note.paragraphs = p
         const res = tb.appendLinkIfNecessary(p, { ...config, includeLinks: '[[internal#links]]' })
         expect(res[0].content).toEqual('ugh [[foo^123456]]')
       })
       test('should add url-style link to content in form of noteplan://', () => {
-        const note = new Note({ title: 'foo' })
+        const note = new Note({ title: 'foo', filename: Editor.filename })
         const p = [{ type: 'open', content: 'ugh', heading: 'bar', filename: 'baz', note }]
         note.paragraphs = p
         const res = tb.appendLinkIfNecessary(p, { ...config, includeLinks: 'Pretty Links', linkText: '%' })
@@ -904,3 +1039,193 @@ describe(`${PLUGIN_NAME}`, () => {
 /*
 appendLinkIfNecessary
 */
+
+/*
+ * getNamedTimeBlocks()
+ */
+describe('getNamedTimeBlocks()' /* function */, () => {
+  test('should return empty array if no named blocks', () => {
+    const blocks = [
+      { start: '00:00', end: '00:20', minsAvailable: 20, title: '' },
+      { start: '00:40', end: '01:00', minsAvailable: 20, title: '' },
+    ]
+    const result = tb.getNamedTimeBlocks(blocks)
+    expect(result).toEqual([])
+  })
+})
+
+/*
+ * processByTimeBlockTag()
+ */
+describe('processByTimeBlockTag()' /* function */, () => {
+  test('When in mode: BY_TIMEBLOCK_TAG, should do exactly the same as matchTaskToSlots if there are no named slots (e.g. you have not specified a matching time block)', () => {
+    // now test line which had no time attached
+    const timeBlocks = [
+      { start: '00:00', end: '00:10', minsAvailable: 10, title: '' },
+      { start: '00:40', end: '00:45', minsAvailable: 5, title: '' },
+    ]
+    const timeMap = [
+      { start: '00:00', busy: false, index: 1 },
+      { start: '00:05', busy: false, index: 2 },
+      { start: '00:40', busy: false, index: 5 },
+    ]
+    const cfg = {
+      ...config,
+      nowStrOverride: '00:00',
+      workDayStart: '00:00',
+      intervalMins: 5,
+      defaultDuration: 5,
+      mode: 'BY_TIMEBLOCK_TAG',
+      timeblockTextMustContainString: '#tb',
+    }
+    const sortedTaskList = [{ content: 'Do something #timblock' }, { content: 'line2' }, { content: 'line3' }]
+    const timeBlockTextList = ['* 00:00-00:05 Do something #timblock #🕑 #tb', '* 00:05-00:10 line2 #🕑 #tb', '* 00:40-00:45 line3 #🕑 #tb']
+    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    expect(res.timeBlockTextList).toEqual(timeBlockTextList)
+  })
+  test('should place one named item', () => {
+    // now test line which had no time attached
+    const timeBlocks = [
+      { start: '00:00', end: '00:20', minsAvailable: 20, title: '' },
+      { start: '00:20', end: '00:30', minsAvailable: 10, title: 'foo' },
+      { start: '00:30', end: '00:35', minsAvailable: 5, title: '' },
+    ]
+    const timeMap = [
+      { start: '00:00', busy: false, index: 1 },
+      { start: '00:05', busy: false, index: 2 },
+      { start: '00:10', busy: false, index: 3 },
+      { start: '00:15', busy: false, index: 4 },
+      { start: '00:20', busy: 'foo #tb', index: 5 },
+      { start: '00:25', busy: 'foo #tb', index: 6 },
+      { start: '00:30', busy: false, index: 7 },
+    ]
+    const cfg = {
+      ...config,
+      nowStrOverride: '00:00',
+      workDayStart: '00:00',
+      intervalMins: 20,
+      defaultDuration: 5,
+      mode: 'BY_TIMEBLOCK_TAG',
+      timeblockTextMustContainString: '#tb',
+    }
+    const sortedTaskList = [{ content: 'Do something #foo' }]
+    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    expect(res.timeBlockTextList).toEqual([`* 00:20-00:25 Do something #foo #🕑 #tb`])
+  })
+  test('should place two tasks in one named timeblock', () => {
+    // now test line which had no time attached
+    const timeBlocks = [
+      { start: '00:00', end: '00:20', minsAvailable: 20, title: '' },
+      { start: '00:20', end: '00:30', minsAvailable: 10, title: 'foo' },
+      { start: '00:30', end: '00:35', minsAvailable: 5, title: '' },
+    ]
+    const timeMap = [
+      { start: '00:00', busy: false, index: 1 },
+      { start: '00:05', busy: false, index: 2 },
+      { start: '00:10', busy: false, index: 3 },
+      { start: '00:15', busy: false, index: 4 },
+      { start: '00:20', busy: 'foo #tb', index: 5 },
+      { start: '00:25', busy: 'foo #tb', index: 6 },
+      { start: '00:30', busy: false, index: 7 },
+    ]
+    const cfg = {
+      ...config,
+      nowStrOverride: '00:00',
+      workDayStart: '00:00',
+      intervalMins: 20,
+      defaultDuration: 5,
+      mode: 'BY_TIMEBLOCK_TAG',
+      timeblockTextMustContainString: '#tb',
+    }
+    const sortedTaskList = [{ content: 'Do something #foo' }, { content: 'Do something else #foo' }]
+    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    expect(res.timeBlockTextList).toEqual(['* 00:20-00:25 Do something #foo #🕑 #tb', '* 00:25-00:30 Do something else #foo #🕑 #tb'])
+  })
+  test('should place two tasks in one named timeblock but not a third that doesnt fit', () => {
+    // now test line which had no time attached
+    const timeBlocks = [
+      { start: '00:00', end: '00:20', minsAvailable: 20, title: '' },
+      { start: '00:25', end: '00:35', minsAvailable: 10, title: 'foo' },
+      { start: '00:40', end: '00:45', minsAvailable: 5, title: 'bar' },
+    ]
+    const timeMap = [
+      { start: '00:00', busy: false, index: 1 },
+      { start: '00:05', busy: false, index: 2 },
+      { start: '00:10', busy: false, index: 3 },
+      { start: '00:15', busy: false, index: 4 },
+      { start: '00:25', busy: 'foo #tb', index: 10 },
+      { start: '00:30', busy: 'foo #tb', index: 11 },
+      { start: '00:40', busy: 'bar #tb', index: 20 },
+    ]
+    const cfg = {
+      ...config,
+      nowStrOverride: '00:00',
+      workDayStart: '00:00',
+      intervalMins: 5,
+      defaultDuration: 5,
+      mode: 'BY_TIMEBLOCK_TAG',
+      timeblockTextMustContainString: '#tb',
+    }
+    const sortedTaskList = [{ content: 'Do something #foo' }, { content: 'Do something else #foo' }, { content: 'this wont fit #foo' }]
+    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    expect(res.timeBlockTextList).toEqual(['* 00:25-00:30 Do something #foo #🕑 #tb', '* 00:30-00:35 Do something else #foo #🕑 #tb'])
+  })
+  test('should place two tasks in one named timeblock and another in another one', () => {
+    // now test line which had no time attached
+    const timeBlocks = [
+      { start: '00:00', end: '00:05', minsAvailable: 5, title: '' },
+      { start: '00:20', end: '00:30', minsAvailable: 10, title: 'foo' },
+      { start: '00:40', end: '00:50', minsAvailable: 10, title: 'bar' },
+    ]
+    const timeMap = [
+      { start: '00:00', busy: false, index: 1 },
+      { start: '00:20', busy: '#foo #tb', index: 5 },
+      { start: '00:25', busy: '#foo #tb', index: 6 },
+      { start: '00:40', busy: '#bar #tb', index: 10 },
+      { start: '00:45', busy: '#bar #tb', index: 11 },
+    ]
+    const cfg = {
+      ...config,
+      nowStrOverride: '00:00',
+      workDayStart: '00:00',
+      intervalMins: 5,
+      defaultDuration: 5,
+      mode: 'BY_TIMEBLOCK_TAG',
+      timeblockTextMustContainString: '#tb',
+    }
+    const sortedTaskList = [{ content: 'this is another #bar' }, { content: 'Do something #foo' }, { content: 'Do something else #foo' }]
+    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:20-00:25 Do something #foo #🕑 #tb']))
+    expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:25-00:30 Do something else #foo #🕑 #tb']))
+    expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:40-00:45 this is another #bar #🕑 #tb']))
+  })
+  test('should place tasks in a named timeblock and a plain task in a regular open area', () => {
+    // now test line which had no time attached
+    const timeBlocks = [
+      { start: '00:00', end: '00:05', minsAvailable: 5, title: '' },
+      { start: '00:20', end: '00:30', minsAvailable: 10, title: 'foo' },
+      { start: '00:40', end: '00:50', minsAvailable: 10, title: 'bar' },
+    ]
+    const timeMap = [
+      { start: '00:00', busy: false, index: 1 },
+      { start: '00:20', busy: '#foo 🕑', index: 5 },
+      { start: '00:25', busy: '#foo 🕑', index: 6 },
+      { start: '00:40', busy: '#bar 🕑', index: 10 },
+      { start: '00:45', busy: '#bar 🕑', index: 11 },
+    ]
+    const cfg = {
+      ...config,
+      nowStrOverride: '00:00',
+      workDayStart: '00:00',
+      intervalMins: 5,
+      defaultDuration: 5,
+      mode: 'BY_TIMEBLOCK_TAG',
+      timeblockTextMustContainString: '🕑',
+    }
+    const sortedTaskList = [{ content: 'this is another #bar' }, { content: 'Do something #foo' }, { content: 'Do something outside' }]
+    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:00-00:05 Do something outside #🕑']))
+    expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:20-00:25 Do something #foo #🕑']))
+    expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:40-00:45 this is another #bar #🕑']))
+  })
+})

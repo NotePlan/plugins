@@ -99,5 +99,33 @@ describe(`${FILE}`, () => {
         expect(sc.eliminateDuplicateSyncedParagraphs([...before], 'most-recent')).toEqual([before[2]])
       })
     })
+
+    describe('3rd param - syncedLinesOnly', () => {
+      test('should eliminate synced line if syncedLinesOnly is true', () => {
+        const before = [
+          { content: 'foo', filename: 'file1', blockId: '^b', note: { changedDate: new Date(2022, 5, 6, 6, 6, 6) } },
+          { content: 'foo', filename: 'file2', blockId: '^b', note: { changedDate: new Date(2023, 0, 1, 1, 1, 1) } },
+        ]
+        expect(sc.eliminateDuplicateSyncedParagraphs([...before], null, true)).toEqual([before[0]])
+      })
+      test('should not eliminate non-synced line in same file if syncedLinesOnly is true', () => {
+        const before = [
+          { content: 'foo', filename: 'file1', blockId: '^b', note: { changedDate: new Date(2022, 5, 6, 6, 6, 6) } },
+          { content: 'foo', filename: 'file2', blockId: '^b', note: { changedDate: new Date(2023, 0, 1, 1, 1, 1) } },
+          { content: 'foob', filename: 'file1', blockId: undefined, note: { changedDate: new Date(2022, 5, 6, 6, 6, 6) } },
+          { content: 'foob', filename: 'file1', blockId: undefined, note: { changedDate: new Date(2022, 5, 6, 6, 6, 6) } },
+        ]
+        expect(sc.eliminateDuplicateSyncedParagraphs([...before], null, true)).toEqual([before[0], before[2], before[3]])
+      })
+      test('should not eliminate non-synced line in different file if syncedLinesOnly is true', () => {
+        const before = [
+          { content: 'foo', filename: 'file1', blockId: '^b', note: { changedDate: new Date(2022, 5, 6, 6, 6, 6) } },
+          { content: 'foo', filename: 'file2', blockId: '^b', note: { changedDate: new Date(2023, 0, 1, 1, 1, 1) } },
+          { content: 'foob', filename: 'file1', blockId: undefined, note: { changedDate: new Date(2022, 5, 6, 6, 6, 6) } },
+          { content: 'foob', filename: 'file2', blockId: undefined, note: { changedDate: new Date(2022, 5, 6, 6, 6, 6) } },
+        ]
+        expect(sc.eliminateDuplicateSyncedParagraphs([...before], null, true)).toEqual([before[0], before[2], before[3]])
+      })
+    })
   })
 })

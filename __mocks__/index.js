@@ -1,4 +1,4 @@
-export { default as Calendar } from './Calendar.mock'
+export { Calendar } from './Calendar.mock'
 export { default as Clipboard } from './Clipboard.mock'
 export { default as CommandBar } from './CommandBar.mock'
 export { DataStore } from './DataStore.mock'

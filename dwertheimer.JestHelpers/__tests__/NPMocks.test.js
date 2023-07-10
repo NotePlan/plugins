@@ -74,17 +74,19 @@ describe('dwertheimer.JestHelpers' /* pluginID */, () => {
     })
   })
 
+  // dbw: Skipping Editor-specific mock tests because I am trying to get the undelying Note methods to override the Editor methods
+  // where they exist
   describe('Editor' /* file */, () => {
-    describe('local settings mock' /* function */, () => {
+    describe('Editor mock gets settings from underlying Note' /* function */, () => {
       test('should return mock data: filename', () => {
         const editor = Editor // should work in local context
-        expect(editor.filename).toEqual('thisFileName.txt')
+        expect(editor.filename).toEqual('FILENAME_PLACEHOLDER_FROM_NOTE_MOCK') // gets overwritten by Note mock
       })
     })
     describe('NP file settings mock' /* function */, () => {
       test('should return mock data: filename', async () => {
         const editor = await NPfile.getEditor() // should come back with the mock
-        expect(editor.filename).toEqual('thisFileName.txt')
+        expect(editor.filename).toEqual('FILENAME_PLACEHOLDER_FROM_NOTE_MOCK') // gets overwritten by Note mock
       })
     })
   })

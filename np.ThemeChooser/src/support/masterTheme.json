@@ -571,7 +571,7 @@
       "color": "#96CBFE",
       "size": 14
     },
-    "inline-code_info": {
+    "code_info": {
       "description": "Use these code.* settings to highlight and style inline code in backticks. You can color the left and right backticks below also.",
       "example": "\tsome `code` in here"
     },
@@ -587,8 +587,7 @@
         "font": "Menlo-Regular",
         "paragraphSpacingBefore": 0,
         "paragraphSpacing": 0,
-        "size": 14,
-        "backgroundColor": "#253422"
+        "size": 14
       },
       "corner-radius": 7,
       "fence-open": {
