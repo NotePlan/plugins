@@ -167,7 +167,7 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
  * update setting data in the event plugin.settings object has been updated
  * @author @codedungeon
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
- * @return {number} update result (1 settings update, 0 no update necessary)
+ * @return {number} update result (1 settings update, 0 no update necessary, -1 update failed)
  */
 export function updateSettingData(pluginJsonData: any): number {
   let updateResult = 0
@@ -188,7 +188,28 @@ export function updateSettingData(pluginJsonData: any): number {
     }
   })
   // FIXME: @jgclark at least once saw an 'undefined is not an object' error, which appeared to be for this line.
-  DataStore.settings = { ...newSettings }
+  // dbw did the following logging to try to track it down but it looks like, JS thinks that DataStore is not an object at times
+  // and yet, somehow the migration actually does work and migrates new settings. So, I'm not sure what's going on here.
+  // we are going to leave this alone for the time being, but if you see this error again, please uncomment the following to keep hunting
+  // logDebug(
+  //   'NPConfiguration/updateSettingData',
+  //   `typeof DataStore: ${typeof DataStore} isArray:${String(
+  //     Array.isArray(DataStore),
+  //   )} typeof DataStore.settings: ${typeof DataStore?.settings} typeof newSettings: ${typeof newSettings}`,
+  // )
+  // logDebug(`NPConfiguration/updateSettingData: Object.keys(DataStore): ${Object.keys(DataStore).join(',')}`)
+  // logDebug('currentSettingData:', JSP(currentSettingData, 2))
+  // logDebug('newSettings:', JSP(newSettings, 2))
+  // logDebug('DataStore.settings:', JSP(DataStore.settings, 2))
+  try {
+    console.log(`NPConfiguration/updateSettingData: You may see a JS Exception: TypeError below, but as far as we can tell, the migration is working so you can ignore the error.`)
+    DataStore.settings = newSettings
+  } catch (error) {
+    console.log(
+      'NPConfiguration/updateSettingData/Plugin Settings Migration Failed. Was not able to automatically migrate your plugin settings to the new version. Please open the plugin settings and save in order to update your settings.',
+    )
+    updateResult = -1
+  }
 
   return updateResult
 }
