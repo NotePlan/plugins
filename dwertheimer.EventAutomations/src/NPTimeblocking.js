@@ -31,7 +31,7 @@ import type { IntervalMap, PartialCalendarItem } from './timeblocking-flow-types
 import { getTimedEntries, keepTodayPortionOnly } from '@helpers/calendar'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '@helpers/NPCalendar'
-import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated } from '@helpers/dateTime'
+import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated, removeRepeats, removeDateTagsAndToday } from '@helpers/dateTime'
 import { getTasksByType, sortListBy, isTask } from '@helpers/sorting'
 import { showMessage, chooseOption } from '@helpers/userInput'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
@@ -412,7 +412,9 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
             if (!timeBlockTextList) timeBlockTextList = []
             Object.keys(noTimeForTasks).forEach((key) =>
               noTimeForTasks[key].forEach((p) =>
-                timeBlockTextList.push(`> No time ${key === '_' ? 'available' : `in timeblock *${key}*`} for task: **- ${p.content}** ${config.timeBlockTag}`),
+                timeBlockTextList.push(
+                  `+ No time ${key === '_' ? 'available' : `in timeblock *${key}*`} for task: **- ${removeRepeats(removeDateTagsAndToday(p.content))}** ${config.timeBlockTag}`,
+                ),
               ),
             )
           }

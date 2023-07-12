@@ -403,6 +403,19 @@ export function removeDateTagsAndToday(tag: string, removeAllSpecialNoteLinks: b
 }
 
 /**
+ * Remove repeats from a string (e.g. @repeat(1/3) or @repeat(2/3) or @repeat(3/3) or @repeat(1/1) or @repeat(2/2) etc.)
+ * Because NP complains when you try to rewrite them (delete them)
+ * @param {string} content
+ * @returns  {string} content with repeats removed
+ */
+export function removeRepeats(content: string): string {
+  return content
+    .replace(/\@repeat\(\d{1,}\/\d{1,}\)/g, '')
+    .replace(/ {2,}/g, ' ')
+    .trim()
+}
+
+/**
  * Return difference between start and end dates (by default ignoring any time components)
  * if returnFractionalDays is true, then use time components and return a fractional number of days (e.g. 1.5 for 36 hours)
  * Note: It is highly recommended that if you have an ISO string (e.g. '2022-01-01') you send the string
@@ -803,14 +816,14 @@ function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_DAY // = YYYYMMDD not display format
       : unit === 'w'
-        ? MOMENT_FORMAT_NP_WEEK
-        : unit === 'm'
-          ? MOMENT_FORMAT_NP_MONTH
-          : unit === 'q'
-            ? MOMENT_FORMAT_NP_QUARTER
-            : unit === 'y'
-              ? MOMENT_FORMAT_NP_WEEK
-              : ''
+      ? MOMENT_FORMAT_NP_WEEK
+      : unit === 'm'
+      ? MOMENT_FORMAT_NP_MONTH
+      : unit === 'q'
+      ? MOMENT_FORMAT_NP_QUARTER
+      : unit === 'y'
+      ? MOMENT_FORMAT_NP_WEEK
+      : ''
   return momentDateFormat
 }
 
@@ -824,14 +837,14 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_ISO // = YYYY-MM-DD not filename format
       : unit === 'w'
-        ? MOMENT_FORMAT_NP_WEEK
-        : unit === 'm'
-          ? MOMENT_FORMAT_NP_MONTH
-          : unit === 'q'
-            ? MOMENT_FORMAT_NP_QUARTER
-            : unit === 'y'
-              ? MOMENT_FORMAT_NP_WEEK
-              : ''
+      ? MOMENT_FORMAT_NP_WEEK
+      : unit === 'm'
+      ? MOMENT_FORMAT_NP_MONTH
+      : unit === 'q'
+      ? MOMENT_FORMAT_NP_QUARTER
+      : unit === 'y'
+      ? MOMENT_FORMAT_NP_WEEK
+      : ''
   return momentDateFormat
 }
 
@@ -875,9 +888,7 @@ export function calcOffsetDate(baseDateIn: string, interval: string): Date | nul
 
     // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
     const baseDateMoment = moment(baseDateIn, momentDateFormat)
-    const newDate = unit !== 'b'
-      ? baseDateMoment.add(num, unitForMoment)
-      : momentBusiness(baseDateMoment).businessAdd(num).toDate()
+    const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num).toDate()
 
     logDebug('dateTime / cOD', `for '${baseDateIn}' interval ${num} / ${unitForMoment} -> ${String(newDate)}`)
     return newDate
@@ -931,7 +942,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
 
     let newDateStr = moment(offsetDate).format(momentDateFormat)
 
-    if (adaptOutputInterval && (newDateStr === baseDateIn)) {
+    if (adaptOutputInterval && newDateStr === baseDateIn) {
       const newerOutputFormat = getNPDateFormatForDisplayFromOffsetUnit(unit)
       if (newerOutputFormat === '') {
         throw new Error('Invalid date offsetInterval')
