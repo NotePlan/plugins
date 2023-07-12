@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.9.8] (aka 2.0.0-beta.11): 2023-07-12 @dwertheimer
+
+- Fix web services intermittent bug
+
 ## [1.9.7] (aka 2.0.0-beta.10) - 2023-05-01 @dwertheimer
 
 - Fix bug in promptDate / promptDateInterval
