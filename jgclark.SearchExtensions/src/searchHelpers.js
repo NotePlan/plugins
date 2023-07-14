@@ -2,8 +2,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 5.6.2023 for v1.1.0, @jgclark
-// TODO: support multi-word search strings
+// Last updated 14.7.2023 for v1.2.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -284,7 +283,7 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
     return []
   }
 
-  clo(validatedTerms, 'validatedTerms')
+  // clo(validatedTerms, 'validatedTerms')
 
   // Now check we have a valid set of terms. (If they're not valid, return an empty array.)
   // Invalid if we don't have any must-have or may-have search terms
@@ -422,7 +421,7 @@ export function applySearchOperators(
   const mustResultObjects: Array<resultObjectTypeV3> = termsResults.filter((t) => t.searchTerm.type === 'must')
   const mayResultObjects: Array<resultObjectTypeV3> = termsResults.filter((t) => t.searchTerm.type === 'may')
   const notResultObjects: Array<resultObjectTypeV3> = termsResults.filter((t) => t.searchTerm.type.startsWith('not'))
-  logDebug('applySearchOperators', `Starting with ${getSearchTermsRep(termsResults.map(m => m.searchTerm))}: ${mustResultObjects.length} must terms; ${mayResultObjects.length} may terms; ${notResultObjects.length} not terms`)
+  logDebug('applySearchOperators', `Starting with ${getSearchTermsRep(termsResults.map(m => m.searchTerm))}: ${mustResultObjects.length} must terms; ${mayResultObjects.length} may terms; ${notResultObjects.length} not terms. Limiting to ${resultLimit} results. ${(fromDateStr && toDateStr) ? '- with dates from ' + fromDateStr + ' to ' + toDateStr : 'with no dates'}`)
 
   // clo(termsResults, 'resultObjectV3: ')
 
@@ -652,7 +651,7 @@ export async function runSearchesV2(
     const termsResults: Array<resultObjectTypeV3> = []
     let resultCount = 0
     let outerStartTime = new Date()
-    logDebug('runSearchesV2', `Starting with ${termsToMatchArr.length} search term(s) (and paraTypes '${String(paraTypesToInclude)}')`)
+    logDebug('runSearchesV2', `Starting with ${termsToMatchArr.length} search term(s) and paraTypes '${String(paraTypesToInclude)}'. (With ${(fromDateStr && toDateStr) ? fromDateStr + '-' + toDateStr : 'no'} dates.)`)
 
     //------------------------------------------------------------------
     // Get results for each search term independently and save
@@ -678,7 +677,7 @@ export async function runSearchesV2(
     // }
 
     //------------------------------------------------------------------
-    // Work out what subset of results to return, taking into the must/may/not terms
+    // Work out what subset of results to return, taking into the must/may/not terms, and potentially dates too
     outerStartTime = new Date()
     const consolidatedResultSet: resultOutputTypeV3 = applySearchOperators(termsResults, config.resultLimit, fromDateStr, toDateStr)
     logDebug('runSearchesV2', `- Applied search logic in ${timer(outerStartTime)}s`)
@@ -752,7 +751,8 @@ export async function runSearchV2(
     // Finally, the actual Search API Call!
     CommandBar.showLoading(true, `Running search for ${fullSearchTerm} ...`)
 
-    let tempResult = await DataStore.search(searchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
+    const response = await DataStore.search(searchTerm, noteTypesToInclude, foldersToInclude, foldersToExclude, false)
+    let tempResult: Array<TParagraph> = response.slice() // to convert from $ReadOnlyArray to $Array
 
     CommandBar.showLoading(false)
     //-------------------------------------------------------

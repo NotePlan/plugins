@@ -2,8 +2,11 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-<!-- FIXME: suffixes causing sync line problems? -->
 <!-- users with particular interest: JPR1972, DW, as, kennonb, modocache, stacey, jaredos-->
+## [1.2.1] - 2023-07-14
+- add 'Click to refresh' button when appending to current note (for @dvcrn)
+- fix bug in /searchInPeriod when run from x-callback with date parameters
+
 ## [1.2.0] - 2023-07-01
 ### Added
 - searching for exact multi-word phrases such as `"Bob Smith"` is now possible, and much quicker than the previous approximately-multi-word searching

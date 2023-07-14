@@ -229,7 +229,8 @@ export async function saveSearch(
     //---------------------------------------------------------
     // Do output
     // logDebug(pluginJson, 'reached do output stage')
-    const searchTermsRepStr = `[${resultSet.searchTermsRepArr.join(' ')}]`
+    const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
+    const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [termsToMatchStr, paraTypeFilterArg ?? ''])
 
     switch (destination) {
       case 'current': {
@@ -243,10 +244,12 @@ export async function saveSearch(
           const resultCountsStr = resultCounts(resultSet)
           const thisResultHeading = `${searchTermsRepStr} ${config.searchHeading} ${resultCountsStr}`
           logDebug(pluginJson, `Will write update/append section '${thisResultHeading}' to current note (${currentNote.filename ?? ''})`)
+          const xCallbackLine = (xCallbackURL !== '') ? ` [🔄 Refresh results for ${searchTermsRepStr}](${xCallbackURL})` : ''
 
           const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
           logDebug(pluginJson, resultOutputLines.length)
-          resultOutputLines.unshift(`at ${nowLocaleShortDateTime()}`)
+          resultOutputLines.unshift(xCallbackLine)
+          // resultOutputLines.unshift(`at ${nowLocaleShortDateTime()}`)
           replaceSection(currentNote, searchTermsRepStr, thisResultHeading, config.headingLevel, resultOutputLines.join('\n'))
         }
         break
@@ -255,14 +258,10 @@ export async function saveSearch(
       case 'newnote': {
         // We will write an overarching title, as we need an identifying title for the note.
         // Note: Does again need to include a subhead with search term + result count
-        // const thisResultHeading = `${resultSet.searchTerm} ${config.searchHeading}`
-        // const thisResultHeadingAndCount = `${thisResultHeading} (${resultSet.resultCount} results)`
         const requestedTitle = `${termsToMatchStr} ${config.searchHeading}`
-        // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=${originatorCommand}&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg ?? ''}`
-        const xCallbackLink = createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [termsToMatchStr, paraTypeFilterArg ?? ''])
 
         // Get/make note, and then replace the search term's block (if already present) or append.
-        const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackLink, true)
+        const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackURL, true)
         logDebug(pluginJson, `- filename to write to, and show in split: ${noteFilename}`)
 
         if (noteOpenInEditor(noteFilename)) {

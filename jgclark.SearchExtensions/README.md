@@ -16,7 +16,7 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 - **/searchOpenTasks** searches just across **open tasks** in all notes.
 - **/searchOverNotes** searches across **all regular** (non-calendar) notes.
 - **/searchOverCalendar** searches across **all calendar**  notes.
-- **/searchResultsInPeriod**: searches over the **calendar (daily, weekly etc.) notes of the time period you select**: ![selecting a period](period-selection.png)
+- **/searchInPeriod**: searches over the **calendar (daily, weekly etc.) notes of the time period you select**: ![selecting a period](period-selection.png)
 
 ## Results Display
 Apart from /quickSearch, the results are always **saved to a note** with the search terms as its title in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  You also are given the option of saving to the current note, or to the plugin console.
@@ -108,15 +108,15 @@ Notes:
 - as with all x-callback URLs, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.
 - **Tip**: use the Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you ...
 
-| Command | x-callback start | arg0 | arg1 | arg2 |
+| Command | x-callback start | arg0 | arg1 | arg2 | arg3 | arg4 |
 |-----|-----------|----------|----------|----------|
-| /quickSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&` | search term(s) (separated by commas) | terms to filter by paragraph type (separated by commas) | noteTypesToInclude either 'project','calendar' or 'both' |
-| /search | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&` | search term(s) (separated by commas) | terms to filter by paragraph type (separated by commas) |  |
-| /searchOverCalendar | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverCalendar&` | search term(s) (separated by commas) | terms to filter by paragraph type (separated by commas) |  |
-| /searchOverNotes | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverNotes&` | search term(s) (separated by commas) | terms to filter by paragraph type (separated by commas) |  |
-| /searchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. |
+| /quickSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) | noteTypesToInclude either 'project','calendar' or 'both' | | |
+| /search | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
+| /searchOverCalendar | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverCalendar&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
+| /searchOverNotes | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverNotes&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
+| /searchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. | optional paragraph types to filter by (separated by commas) | optional output desination indicator: 'current', 'newnote', or 'log' |
 
-There is no equivalent of /flexiSearch, as this is simply a wrapper around these other commands.
+There is no x-callback equivalent of /flexiSearch, as this is simply a wrapper around these other commands.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
