@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.5.0] - 2023-07-14
+### Added
+- update open icon to completed or cancelled, as it disappears in the animation.
+
 ## [0.5.0-b3] - 2023-07-14 (not released)
 ### Added
 - new optional section that displays all open tasks/checklists that contains a #tag or @mention that you can set in the optional new setting '#tag/@mention to show'. This is one way of showing all `#next` actions, for example.

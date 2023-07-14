@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggering
-// Last updated 27.4.2023 for v0.4.2 by @jgclark
+// Last updated 14.7.2023 for v0.5.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -61,7 +61,7 @@ export function decideWhetherToUpdateDashboard(): void {
       logDebug(pluginJson, `Dashboard window not open, so stopping.`)
       return
     }
-    // TODO: Temporary check to stop it running on iOS
+    // Check to stop it running on iOS
     if (NotePlan.environment.platform !== 'macOS') {
       logDebug(pluginJson, `Designed only to run on macOS. Stopping.`)
       return
@@ -73,34 +73,38 @@ export function decideWhetherToUpdateDashboard(): void {
     }
 
     // Get the details of what's been changed
-    const latestContent = Editor.content ?? ''
-    const noteReadOnly: CoreNoteFields = Editor.note
-    const previousContent = noteReadOnly.versions[0].content
-    const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
-    logDebug(pluginJson, `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`)
-    logDebug(pluginJson, `- previous version: ${String(noteReadOnly.versions[0].date)} [${previousContent}]`)
-    logDebug(pluginJson, `- new version: ${String(Date.now())} [${latestContent}]`)
+    if (Editor.content && Editor.note) {
+      const latestContent = Editor.content ?? ''
+      const noteReadOnly: CoreNoteFields = Editor.note
+      const previousContent = noteReadOnly.versions[0].content
+      const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
+      logDebug(pluginJson, `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`)
+      logDebug(pluginJson, `- previous version: ${String(noteReadOnly.versions[0].date)} [${previousContent}]`)
+      logDebug(pluginJson, `- new version: ${String(Date.now())} [${latestContent}]`)
 
-    // first check to see if this has been called in the last 1000ms: if so don't proceed, as this could be a double call.
-    if (timeSinceLastEdit <= 2000) {
-      logDebug(pluginJson, `decideWhetherToUpdateDashboard fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
-      return
-    }
+      // first check to see if this has been called in the last 1000ms: if so don't proceed, as this could be a double call.
+      if (timeSinceLastEdit <= 2000) {
+        logDebug(pluginJson, `decideWhetherToUpdateDashboard fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
+        return
+      }
 
-    // Decide if there are relevant changes
-    // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
-    // (This avoids firing when simply moving task/checklist items around, or updating the text.)
-    const isThisChangeSignificant = changeToNumberOfOpenItems(previousContent, latestContent)
+      // Decide if there are relevant changes
+      // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
+      // (This avoids firing when simply moving task/checklist items around, or updating the text.)
+      const isThisChangeSignificant = changeToNumberOfOpenItems(previousContent, latestContent)
 
-    if (isThisChangeSignificant) {
-      // ??? Cache the current content
-      // DataStore.updateCache(Editor.note)
-      // Update the dashboard
-      logDebug(pluginJson, `WILL update dashboard.`)
-      showDashboardHTML()
-    }
-    else {
-      logDebug(pluginJson, `Won't update dashboard.`)
+      if (isThisChangeSignificant) {
+        // TODO: try await Editor.save()? to get latest version available
+        // DataStore.updateCache(Editor.note)
+        // Update the dashboard
+        logDebug(pluginJson, `WILL update dashboard.`)
+        showDashboardHTML()
+      }
+      else {
+        logDebug(pluginJson, `Won't update dashboard.`)
+      }
+    } else {
+      throw new Error("Cannot get Editor details. Is there a note open in the Editor?")
     }
   }
   catch (error) {

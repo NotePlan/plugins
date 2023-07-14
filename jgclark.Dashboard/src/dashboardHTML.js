@@ -399,7 +399,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
           case 'open': {
             // do icon col (was col3)
             // outputArray.push(`         <td id="${item.ID}A" class="todo clickTarget sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`)
-            outputArray.push(`        <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders"><i class="todo fa-regular fa-circle"></i></td>`)
+            outputArray.push(`        <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`)
 
             // do col 4: whole note link is clickable.
             // If context is wanted, and linked note title
@@ -421,7 +421,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
           case 'checklist': {
             // do icon col (was col3)
             // outputArray.push(`         <td class="todo clickTarget sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${false ? 'checklistCancel' : 'checklist'}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
-            outputArray.push(`         <td class="todo sectionItem sectionItemChecklist no-borders" id="${encodedFilename}"><i class="fa-regular fa-square"></i></td>`)
+            outputArray.push(`         <td class="todo sectionItem sectionItemChecklist no-borders" id="${encodedFilename}"><i id="${item.ID}I" class="fa-regular fa-square"></i></td>`)
 
             // do item details col (was col4): whole note link is clickable
             // If context is wanted, and linked note title

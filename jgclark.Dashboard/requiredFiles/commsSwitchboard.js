@@ -84,7 +84,7 @@ async function completeTask(data) {
   // const { ID } = data
   const itemID = data.itemID
   console.log(`completeTask: for ID: ${itemID}`)
-  // replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked box icon
+  replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked box icon
   // addClassToID(itemID, "checked") // adds colour + line-through
   addClassToID(itemID, "fadeOutAndHide")
   await delay(2000)
@@ -114,7 +114,7 @@ async function completeChecklist(data) {
   // const { ID } = data
   const itemID = data.itemID
   console.log(`completeChecklist: for ID: ${itemID}`)
-  // replaceClassInID(`${itemID}I`, "fa-regular fa-box-check") // adds ticked box icon
+  replaceClassInID(`${itemID}I`, "fa-regular fa-box-check") // adds ticked box icon
   // addClassToID(itemID, "checked") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
   await delay(2000)
