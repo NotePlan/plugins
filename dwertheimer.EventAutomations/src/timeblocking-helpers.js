@@ -3,12 +3,11 @@ import { endOfDay, startOfDay, eachMinuteOfInterval, formatISO9075, addMinutes, 
 import type { SortableParagraphSubset } from '../../helpers/sorting'
 import type { IntervalMap, OpenBlock, BlockArray, TimeBlocksWithMap, BlockData, TimeBlockDefaults, PartialCalendarItem } from './timeblocking-flow-types'
 import type { AutoTimeBlockingConfig } from './config'
-import { getDateObjFromDateTimeString, getTimeStringFromDate, removeDateTagsAndToday } from '@helpers/dateTime'
+import { getDateObjFromDateTimeString, getTimeStringFromDate, removeDateTagsAndToday, removeRepeats } from '@helpers/dateTime'
 import { sortListBy } from '@helpers/sorting'
 import { textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { createPrettyLinkToLine, createWikiLinkToLine } from '@helpers/NPSyncedCopies'
 import { logError, JSP, copyObject, clo, logDebug } from '@helpers/dev'
-import { RE_DATE_INTERVAL } from '../../helpers/dateTime'
 
 // import { timeblockRegex1, timeblockRegex2 } from '../../helpers/markdown-regex'
 
@@ -394,9 +393,9 @@ export function processByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuratio
   let results = []
   let noTimeForTasks = {}
   const namedBlocks = getNamedTimeBlocks(newBlockList ?? [])
+  logDebug(`\n\nprocessByTimeBlockTag namedBlocks:${namedBlocks.reduce((acc, val) => `${acc}, ${val.title || ''}`, '')}`)
   namedBlocks.forEach((block) => {
     const blockTitle = (block.title || '').replace(config.timeblockTextMustContainString, '').replace(/ {2,}/g, ' ').trim()
-    logDebug(`processByTimeBlockTag blockTitle="${blockTitle}"`)
     const tasksMatchingThisNamedTimeblock = unprocessedTasks.filter((task) => (block.title ? namedTagExistsInLine(blockTitle, task.content) : false))
     logDebug(`processByTimeBlockTag tasksMatchingThisNamedTimeblock (${blockTitle}): ${JSP(tasksMatchingThisNamedTimeblock)}`)
     tasksMatchingThisNamedTimeblock.forEach((task) => {
@@ -409,6 +408,7 @@ export function processByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuratio
       if (foundTimeForTask) {
         results.push(newTimeBlockWithMap)
       } else {
+        if (!noTimeForTasks) noTimeForTasks = {}
         if (!noTimeForTasks[blockTitle]) noTimeForTasks[blockTitle] = []
         noTimeForTasks[blockTitle].push(task)
       }
@@ -435,7 +435,7 @@ export function processByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuratio
 
   config.mode = 'PRIORITY_FIRST' // now that we've processed the named blocks, we can process the rest of the tasks by priority
   results.push(matchTasksToSlots(unprocessedTasks, { blockList: newBlockList, timeMap }, config))
-  clo(results, `\n\nprocessByTimeBlockTag results:\n\n`)
+  // clo(results, `\n\nprocessByTimeBlockTag results:\n\n`)
 
   return {
     noTimeForTasks: reduceArrayOfObjectsToSingleObject(results, 'noTimeForTasks'),
@@ -470,7 +470,7 @@ export function matchTasksToSlots(sortedTaskList: Array<ParagraphWithDuration>, 
   // sortedTaskList.forEach((task) => {
   for (let t = 0; t < sortedTaskList.length; t++) {
     const task = sortedTaskList[t]
-    const taskTitle = removeDateTagsAndToday(task.content)
+    const taskTitle = removeRepeats(removeDateTagsAndToday(task.content))
     const taskDuration = task.duration || getDurationFromLine(task.content, durationMarker) || config.defaultDuration // default time is 15m
     // logDebug(`== matchTasksToSlots task="${task.content}" newBlockList.length=${newBlockList.length}`)
     if (newBlockList && newBlockList.length) {

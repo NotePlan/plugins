@@ -31,7 +31,7 @@ import type { IntervalMap, PartialCalendarItem } from './timeblocking-flow-types
 import { getTimedEntries, keepTodayPortionOnly } from '@helpers/calendar'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { getEventsForDay, writeTimeBlocksToCalendar, checkOrGetCalendar } from '@helpers/NPCalendar'
-import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated } from '@helpers/dateTime'
+import { getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated, removeRepeats, removeDateTagsAndToday } from '@helpers/dateTime'
 import { getTasksByType, sortListBy, isTask } from '@helpers/sorting'
 import { showMessage, chooseOption } from '@helpers/userInput'
 import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
@@ -412,7 +412,9 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
             if (!timeBlockTextList) timeBlockTextList = []
             Object.keys(noTimeForTasks).forEach((key) =>
               noTimeForTasks[key].forEach((p) =>
-                timeBlockTextList.push(`> No time ${key === '_' ? 'available' : `in timeblock *${key}*`} for task: **- ${p.content}** ${config.timeBlockTag}`),
+                timeBlockTextList.push(
+                  `+ No time ${key === '_' ? 'available' : `in timeblock *${key}*`} for task: **- ${removeRepeats(removeDateTagsAndToday(p.content))}** ${config.timeBlockTag}`,
+                ),
               ),
             )
           }
@@ -710,9 +712,10 @@ export async function onEditorWillSave(incoming: string | null = null) {
       const updatedParasInTodayNote = []
       const timeBlocks = getBlockUnderHeading(Editor, timeBlockHeading, false)
       if (timeBlocks?.length) {
-        const checkedItems = timeBlocks.filter((f) => completedTypes.indexOf(f.type) > -1)
+        // only try to mark items that are completed and were created by this plugin
+        const checkedItems = timeBlocks.filter((f) => completedTypes.indexOf(f.type) > -1 && f.content.indexOf(config.timeBlockTag) > -1)
         if (checkedItems?.length) {
-          // clo(checkedItems, `onEditorWillSave found:${checkedItems?.length} checked items`)
+          clo(checkedItems, `onEditorWillSave found:${checkedItems?.length} checked items`)
           const todayTodos = getTodaysFilteredTodos(config)
           // clo(todayTodos, `onEditorWillSave ${todayTodos?.length} todayTodos`)
           checkedItems.forEach((item, i) => {
@@ -738,6 +741,8 @@ export async function onEditorWillSave(incoming: string | null = null) {
           })
           // re-run /atb - but is it safe within a hook?
           await createTimeBlocksForTodaysTasks(config, updatedParasInTodayNote)
+        } else {
+          logDebug(pluginJson, `onEditorWillSave: no checked items found -- noop`)
         }
       }
     }

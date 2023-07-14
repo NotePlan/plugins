@@ -159,13 +159,13 @@ async function getWeatherForLocation(location: LocationOption, weatherParams: We
  * Get URL for retrieving weather in a particular location
  * (Plugin entry point for /Get weather XCallbackURL)
  */
-export async function insertWeatherCallbackURL(incoming: string = ''): Promise<string> {
+export async function insertWeatherCallbackURL(xcallbackWeatherLocation: string = ''): Promise<string> {
   try {
     if (!(await validateWeatherParams(DataStore.settings))) {
       Editor.insertTextAtCursor(getConfigErrorText())
       return ''
     } else {
-      let locationString = incoming
+      let locationString = xcallbackWeatherLocation
       if (!locationString?.length) locationString = await CommandBar.textPrompt('Weather Lookup', 'Enter a location name to lookup weather for:', '')
       if (locationString && locationString?.length) {
         logDebug(pluginJson, `insertWeatherCallbackURL: locationString: ${String(locationString)}`)
@@ -177,9 +177,9 @@ export async function insertWeatherCallbackURL(incoming: string = ''): Promise<s
             text = createPrettyRunPluginLink(`${locationString} weather`, pluginJson['plugin.id'], pluginJson['plugin.commands'][0].name, [JSON.stringify(location), 'yes'])
             logError(pluginJson, `insertWeatherCallbackURL: No location to look for: "${locationString}"`)
           }
-          if (incoming.length) {
+          if (xcallbackWeatherLocation.length) {
             // this must have come from a runPlugin command
-            Editor.insertTextAtCursor(text)
+            // Editor.insertTextAtCursor(text)
             return text
           } else {
             Editor.insertTextAtCursor(text)

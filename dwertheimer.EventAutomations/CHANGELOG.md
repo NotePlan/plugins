@@ -4,6 +4,14 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.16.2] 2023-07-13
+
+- Fix bug in non-ATB timeblocks getting deleted
+
+## [1.16.1] 2023-07-05 @dwertheimer
+
+- bump to chase onSettingsUpdated NP bug
+
 ## [1.16.0] 2023-07-05 @dwertheimer
 
 - Create Tasks within named Timeblocks (e.g. #home) - aka BY_TIMEBLOCK_TAG mode (see the README ^^^)
