@@ -23,15 +23,14 @@ From NotePlan v3.7.2, this plugin can **automatically generate** the new repeate
 
 <img src="repeat-auto-mode.gif" width="500px">
 
-This requires adding the following line to frontmatter at the start of _every note_ you wish to automate in this way:
+This requires adding the following [trigger line](https://help.noteplan.co/article/173-plugin-note-triggers) to the frontmatter at the start of _every note_ you wish to automate in this way:
 ``` yaml
 ---
 title: <<the note's title on this line, instead of a markdown H1 title>>
 triggers: onEditorWillSave => jgclark.RepeatExtensions.onEditorWillSave
 ---
 ```
-
-Note: This uses the [trigger feature](https://help.noteplan.co/article/173-plugin-note-triggers), which is designed that you can't't turn it on unintentionally.
+Tip: This is most easily done by using the **/add trigger to note** command from my [Note Helpers plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 
 ## Running it Manually
 On the _currently open note_, open the command bar and type the **/generate repeats** command.

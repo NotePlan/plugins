@@ -12,9 +12,11 @@ This plugin provides commands to more quickly add tasks/todos or general text to
 - **/quick prepend task to calendar note** (alias **/qpc**): Quickly prepend a task to a chosen calendar note
 - **/quick prepend task to note** (alias **/qpt**): Quickly prepend a task to a chosen project note. (Inserts after title or YAML frontmatter, or starting metadata lines.)
 
+These can be used by Shortcuts on iOS or macOS or by other third-party apps to integrate NotePlan into your working practices: see [Using from x-callback calls](#using-from-x-callback-calls) below.
 
 Note: there's a bug in NotePlan's API that means '/quick add task under heading' and '/quick add line under heading' don't work properly if there's an identical line to the heading you select earlier in the same file, even if it's not a markdown heading.
-## Tips for macOS users 
+
+## Tips for macOS users
 - Add Keyboard Shortcuts to get to these commands even more quickly, by using macOS System Settings > Keyboard > Shortcuts.
 - My suggestions about [Using Text Expansion with NotePlan](https://noteplan.co/n/0D40215F-ACA3-4B89-8976-C6B32B1BA167) are relevant here.
 
@@ -22,10 +24,10 @@ Note: there's a bug in NotePlan's API that means '/quick add task under heading'
 The command `/quick add task to inbox` requires configuring, by clicking on the gear button on the 'Event Helpers' line in the Plugin Preferences panel. (Or, on iOS or iPadOS you can use the **/QuickCapture: update plugin settings** instead.)
 
 The settings are:
-- **Where is your Inbox?**: Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note. Or  choose 'Fixed' and then add the note title in the next setting
-- **InboxTitle**: If the previous setting is set to 'Fixed', this is wherre you set the Title of that note. (Default: "📥 Inbox".)
--	**Where to add in Inbox?**: either "prepend" (start) or "append" (end) in Inbox (and the other commands which use the term 'add')
-- **Text to append to new inbox tasks**: optional text  (that can include hashtags or mentions) to append to any tasks captured to the inbox.
+- 'Where is your Inbox?': Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note. Or  choose 'Fixed' and then add the note title in the next setting
+- 'InboxTitle': If the previous setting is set to 'Fixed', this is wherre you set the Title of that note. (Default: "📥 Inbox".)
+- 'Where to add in Inbox?': either "prepend" (start) or "append" (end) in Inbox (and the other commands which use the term 'add'). Note: if the note has frontmatter, the item will be added _after_ that.
+- 'Text to append to new inbox tasks': optional text  (that can include hashtags or mentions) to append to any tasks captured to the inbox.
 
 ## Using from x-callback calls
 From v0.9 it's possible to call each of these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
