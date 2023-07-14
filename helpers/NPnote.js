@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
+import moment from 'moment/min/moment-with-locales'
+import { getBlockUnderHeading } from './NPParagraph'
 import {
   calcOffsetDateStrUsingCalendarType,
   getTodaysDateHyphenated,
@@ -13,8 +15,6 @@ import {
   RE_OFFSET_DATE_CAPTURE,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
-import moment from 'moment/min/moment-with-locales'
-import { getBlockUnderHeading } from './NPParagraph'
 import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { ensureFrontmatter } from '@helpers/NPFrontMatter'
@@ -377,6 +377,21 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
   }
 }
 
+export function findNotesMatchingHashtagOrMention(
+  tag: string,
+  folder: ?string,
+  includeSubfolders: boolean = false,
+  tagsToExclude: Array<string> = [],
+  caseInsensitiveMatch: boolean = true,
+  notesToSearchIn?: Array<TNote>,
+): Array<TNote> {
+  logDebug(
+    `NPNote::findNotesMatchingHashtagOrMention`,
+    `tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
+  )
+  return findNotesMatchingHashtag(tag, folder, includeSubfolders, tagsToExclude, caseInsensitiveMatch, notesToSearchIn, true)
+}
+
 /**
  * Return list of notes with a particular hashtag (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
  * @author @jgclark
@@ -396,6 +411,7 @@ export function findNotesMatchingHashtag(
   tagsToExclude: Array<string> = [],
   caseInsensitiveMatch: boolean = true,
   notesToSearchIn?: Array<TNote>,
+  alsoSearchMentions: boolean = false
 ): Array<TNote> {
   // logDebug(
   //   `NPNote::findNotesMatchingHashtag`,
@@ -427,18 +443,27 @@ export function findNotesMatchingHashtag(
     projectNotesInFolder = notesToSearch.slice()
   }
 
-  // Filter by tag
+  // Filter by tag (and now mentions as well, if requested)
   let projectNotesWithTag: Array<TNote>
   if (caseInsensitiveMatch) {
     projectNotesWithTag = projectNotesInFolder.filter((n) => {
       // logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
-      // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
-      return caseInsensitiveIncludes(tag, n.hashtags)
+      if (alsoSearchMentions) {
+        // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+        return caseInsensitiveIncludes(tag, n.mentions) || caseInsensitiveIncludes(tag, n.hashtags)
+      } else {
+        // $FlowIgnore[incompatible-call] only about $ReadOnlyArray
+        return caseInsensitiveIncludes(tag, n.hashtags)
+      }
     })
   } else {
     projectNotesWithTag = projectNotesInFolder.filter((n) => {
       // logDebug(`findNotesMatchingHashtag ${n.filename}: has hashtags [${n.hashtags.toString()}]`)
-      return n.hashtags.includes(tag)
+      if (alsoSearchMentions) {
+        return n.mentions.includes(tag) || n.hashtags.includes(tag)
+      } else {
+        return n.hashtags.includes(tag)
+      }
     })
   }
   logDebug('NPnote/findNotesMatchingHashtag', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
