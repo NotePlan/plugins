@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.4.3] - 2023-07-14 (@jgclark)
+
+- update encode function for safe data transport to/from JS of `&` and `&amp;` strings
+
 ## [0.4.2] - 2023-06-07 (@jgclark)
 
 - add encode and decode functions for safe data transport to/from JS

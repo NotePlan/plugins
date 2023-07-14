@@ -270,6 +270,12 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = st.encodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
       })
+      test('should deal with innerHTML partial encoding of &amp;', () => {
+        const input = ' &amp; %26amp%3B &amp%3B %26amp; &amp; '
+        const expected = '%20%26%20%26%20%26%20%26%20%26%20'
+        const result = st.encodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
     })
 
     /*

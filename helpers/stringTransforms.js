@@ -236,7 +236,6 @@ export function stripHashtagsFromString(original: string): string {
 export function stripMentionsFromString(original: string): string {
   let output = original
   // Note: the regex from @EduardMe's file is /(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/ but :punct: doesn't work in JS, so here's my simplified version
-  // TODO: matchAll?
   const captures = output.match(/(?:\s|^|\"|\(|\)\')(@[A-Za-z][\w\d\.\-\(\)]*)/g)
   if (captures) {
     clo(captures, 'results from mention matches:')
@@ -315,7 +314,13 @@ export function stripAllMarkersFromString(original: string, stripTags: false, st
  * @returns {string} URL-encoded string
  */
 export function encodeRFC3986URIComponent(input: string): string {
-  return encodeURIComponent(input)
+  // special case that appears in innerHTML
+  const dealWithSpecialCase = input
+    .replace(/&amp;/g, '&')
+    .replace(/&amp%3B/g, '&')
+    .replace(/%26amp;/g, '&')
+    .replace(/%26amp%3B/g, '&')
+  return encodeURIComponent(dealWithSpecialCase)
     .replace(/\[/g, '%5B')
     .replace(/\]/g, '%5D')
     .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)

@@ -1,10 +1,18 @@
 /**
- * encode/decode scripts to embed in HTML views
- * originals in @helpers/stringTransforms.js
+ * encode/decode scripts to embed in HTML views.
+ * Originals in @helpers/stringTransforms.js, but with
+ * flow typing and 'export's removed.
  */
 
 function encodeRFC3986URIComponent(input) {
-  return encodeURIComponent(input)
+  console.log(`encodeRFC3986URIComponent for {${input}}`)
+  // special case that appears in innerHTML
+  const dealWithSpecialCase = input
+    .replace(/&amp;/g, '&')
+    .replace(/&amp%3B/g, '&')
+    .replace(/%26amp;/g, '&')
+    .replace(/%26amp%3B/g, '&')
+  return encodeURIComponent(dealWithSpecialCase)
     .replace(/\[/g, '%5B')
     .replace(/\]/g, '%5D')
     .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
