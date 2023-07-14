@@ -1669,7 +1669,7 @@ paragraphs: $ReadOnlyArray < TParagraph >;
  */
 +frontmatterAttributes: Object;
 /**
-* Returns the conflicted version if any. Otherwise, returns undefined.
+* Returns the conflicted version if any, including 'url' which is the path to the file. Otherwise, returns undefined.
 * Note: Available from v3.9.3
 * @return { Object(filename: string, url: string, content: string) }
 */

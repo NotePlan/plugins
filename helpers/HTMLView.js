@@ -1150,6 +1150,7 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  * which gives us more visibility into what's happening on the HTML side
  * @param {string - see above} actionType - the reducer-type action to be dispatched (tells the app how to act on the data passed)
  * @param {any} data - the data to be passed to the app (and ultimately to be written to globalSharedData)
+ * @param {string} updateInfo - the message to be sent to the app
  * @return {any} - the result of the runJavaScript call (should be unimportant in this case -- undefined is ok)
  * @author @dwertheimer
  */
