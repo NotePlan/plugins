@@ -1353,7 +1353,7 @@ export function markCancelled(para: TParagraph): boolean {
  */
 export function completeItem(filenameIn: string, content: string): boolean {
   try {
-    logDebug('completeItem', `starting with filename: ${filenameIn}, content: ${content}`)
+    logDebug('NPP/completeItem', `starting with filename: ${filenameIn}, content: ${content}`)
     let filename = filenameIn
     if (filenameIn === 'today') {
       filename = getTodaysDateUnhyphenated()
@@ -1369,24 +1369,24 @@ export function completeItem(filenameIn: string, content: string): boolean {
         let c = 0
         for (const para of thisNote.paragraphs) {
           if (para.content === content) {
-            logDebug('completeItem', `found matching para ${c} of type ${para.type}: ${content}`)
+            logDebug('NPP/completeItem', `found matching para ${c} of type ${para.type}: ${content}`)
             // Append @done(...) string (if user preference wishes this)
             return markComplete(para)
           }
           c++
         }
-        logWarn('completeItem', `Couldn't find paragraph <${content}> to complete`)
+        logWarn('NPP/completeItem', `Couldn't find paragraph <${content}> to complete`)
         return false
       } else {
-        logInfo('completeItem', `Note '${filename}' appears to be empty?`)
+        logInfo('NPP/completeItem', `Note '${filename}' appears to be empty?`)
         return false
       }
     } else {
-      logWarn('completeItem', `Can't find note '${filename}'`)
+      logWarn('NPP/completeItem', `Can't find note '${filename}'`)
       return false
     }
   } catch (error) {
-    logError(pluginJson, `completeItem: ${error.message} for note '${filenameIn}'`)
+    logError(pluginJson, `NPP/completeItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
 }
@@ -1400,7 +1400,7 @@ export function completeItem(filenameIn: string, content: string): boolean {
  */
 export function cancelItem(filenameIn: string, content: string): boolean {
   try {
-    logDebug('cancelItem', `starting with filename: ${filenameIn}, content: ${content}`)
+    logDebug('NPP/cancelItem', `starting with filename: ${filenameIn}, content: ${content}`)
     let filename = filenameIn
     if (filenameIn === 'today') {
       filename = getTodaysDateUnhyphenated()
@@ -1416,23 +1416,23 @@ export function cancelItem(filenameIn: string, content: string): boolean {
         let c = 0
         for (const para of thisNote.paragraphs) {
           if (para.content === content) {
-            logDebug('cancelItem', `found matching para ${c} of type ${para.type}: ${content}`)
+            logDebug('NPP/cancelItem', `found matching para ${c} of type ${para.type}: ${content}`)
             return markCancelled(para)
           }
           c++
         }
-        logWarn('cancelItem', `Couldn't find paragraph <${content}> to complete`)
+        logWarn('NPP/cancelItem', `Couldn't find paragraph <${content}> to complete`)
         return false
       } else {
-        logInfo('cancelItem', `Note '${filename}' appears to be empty?`)
+        logInfo('NPP/cancelItem', `Note '${filename}' appears to be empty?`)
         return false
       }
     } else {
-      logWarn('cancelItem', `Can't find note '${filename}'`)
+      logWarn('NPP/cancelItem', `Can't find note '${filename}'`)
       return false
     }
   } catch (error) {
-    logError(pluginJson, `cancelItem: ${error.message} for note '${filenameIn}'`)
+    logError(pluginJson, `NPP/cancelItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
 }
