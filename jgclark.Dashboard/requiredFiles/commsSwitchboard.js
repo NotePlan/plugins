@@ -21,12 +21,12 @@ async function delay(time) {
  * onMessageFromPlugin is where you route the data returned from the plugin
  * the plugin will send a 'type' and 'data' object
  * this function is just a switch/router. Based on the type, call a function to process the data.
- * do not do any processing here, just call the function to do the processing
+ * Do not do any processing here, just call the function to do the processing.
  * @param {string} type
  * @param {any} data
  */
 async function onMessageFromPlugin(type, data) {
-  console.log(`onMessageFromPlugin: starting with type: ${type} and data.ID: ${data.ID}`)
+  console.log(`onMessageFromPlugin: starting with type: ${type} and data.itemID: ${data.itemID ?? 'n/a'}`)
   switch (type) {
     case 'updateDiv':
       updateDivReceived(data)
@@ -36,6 +36,12 @@ async function onMessageFromPlugin(type, data) {
       break
     case 'completeChecklist':
       await completeChecklist(data) // Note: await not needed
+      break
+    case 'cancelTask':
+      await cancelTask(data) // Note: await not needed
+      break
+    case 'cancelChecklist':
+      await cancelChecklist(data) // Note: await not needed
       break
     default:
       console.log(`- unknown type: ${type}`)
@@ -72,13 +78,14 @@ function deleteItemRow(data) {
 /**
  * A task has been completed (details in data); now update window accordingly
  * @param { { ID: string, html: string, innerText:boolean } } data
+ * TODO: move this into the click event handler?
  */
 async function completeTask(data) {
-  const { ID } = data
-  const itemID = ID
+  // const { ID } = data
+  const itemID = data.itemID
   console.log(`completeTask: for ID: ${itemID}`)
-  replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked box icon
-  addClassToID(itemID, "checked") // adds colour + line-through
+  // replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked box icon
+  // addClassToID(itemID, "checked") // adds colour + line-through
   addClassToID(itemID, "fadeOutAndHide")
   await delay(2000)
   deleteHTMLItem(itemID)
@@ -104,11 +111,11 @@ async function completeTask(data) {
  * @param { { ID: string, html: string, innerText:boolean } } data
  */
 async function completeChecklist(data) {
-  const { ID } = data
-  const itemID = ID
+  // const { ID } = data
+  const itemID = data.itemID
   console.log(`completeChecklist: for ID: ${itemID}`)
-  replaceClassInID(`${itemID}I`, "fa-regular fa-box-check") // adds ticked box icon
-  addClassToID(itemID, "checked") // adds colour + line-through text
+  // replaceClassInID(`${itemID}I`, "fa-regular fa-box-check") // adds ticked box icon
+  // addClassToID(itemID, "checked") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
   await delay(2000)
   deleteHTMLItem(itemID)
@@ -129,6 +136,66 @@ async function completeChecklist(data) {
   }
 }
 
+/**
+ * A task has been cancelled (details in data); now update window accordingly
+ * @param { { ID: string, html: string, innerText:boolean } } data
+ */
+async function cancelChecklist(data) {
+  // const { ID } = data
+  const itemID = data.itemID
+  console.log(`cancelChecklist: for ID: ${itemID}`)
+  replaceClassInID(`${itemID}I`, "fa-regular fa-square-xmark") // adds x-box icon
+  addClassToID(itemID, "cancelled") // adds colour + line-through text
+  addClassToID(itemID, "fadeOutAndHide")
+  await delay(2000)
+  deleteHTMLItem(itemID)
+  // update the totals
+  decrementItemCount("totalOpenCount")
+  // incrementItemCount("totalDoneCount")
+  // update the section count
+  const sectionID = itemID.split('-')[0]
+  const sectionCountID = `section${sectionID}Count`
+  decrementItemCount(sectionCountID)
+
+  // See if the only remaining item is the '> There are also ... items' line
+  const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
+  // console.log(`cancelChecklist: after completing, ${String(numItemsRemaining)} items remaining`)
+  if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
+    // We need to un-hide the lower-priority items: do full refresh
+    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+  }
+}
+
+/**
+ * A checklist has been cancelled (details in data); now update window accordingly
+ * @param { { ID: string, html: string, innerText:boolean } } data
+ */
+async function cancelTask(data) {
+  // const { ID } = data
+  const itemID = data.itemID
+  console.log(`cancelTask: for ID: ${itemID}`)
+  replaceClassInID(`${itemID}I`, "fa-regular fa-circle-xmark") // adds x-circle icon
+  addClassToID(itemID, "cancelled") // adds colour + line-through text
+  addClassToID(itemID, "fadeOutAndHide")
+  await delay(2000)
+  deleteHTMLItem(itemID)
+  // update the totals
+  decrementItemCount("totalOpenCount")
+  // incrementItemCount("totalDoneCount")
+  // update the section count
+  const sectionID = itemID.split('-')[0]
+  const sectionCountID = `section${sectionID}Count`
+  decrementItemCount(sectionCountID)
+
+  // See if the only remaining item is the '> There are also ... items' line
+  const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
+  // console.log(`cancelTask: after completing, ${String(numItemsRemaining)} items remaining`)
+  if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
+    // We need to un-hide the lower-priority items: do full refresh
+    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+  }
+}
+
 /******************************************************************************
  *                       EVENT HANDLERS FOR THE HTML VIEW
  *****************************************************************************/
@@ -139,24 +206,53 @@ async function completeChecklist(data) {
 // You could call sendMessageToPlugin directly from the HTML onClick event handler, but I prefer to have a separate function
 // so you can do error checking, logging, etc.
 
+// /**
+//  * Event handler for the 'click' event on the icon
+//  * Note: v1 with 4 params
+//  * @param {string} filename
+//  * @param {number} lineIndex
+//  * @param {string} statusWas
+//  */
+// function onClickDashboardItemV1(ID, type, filenameEncoded, rawContentEncoded = '') {
+//   const filename = decodeRFC3986URIComponent(filenameEncoded)
+//   const rawContent = decodeRFC3986URIComponent(rawContentEncoded)
+
+//   if (!ID || !type || !filename) {
+//     const msg = `onClickDashboardItem: invalid data: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: '${rawContent}'`
+//     console.log(msg)
+//     showError(msg)
+//   } else {
+//     console.log(`onClickDashboardItem received: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: <${rawContent}>; sending 'onClickDashboardItem' to plugin`)
+//     const data = { ID, type, filename, rawContent }
+//     sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
+//   }
+// }
+
 /**
  * Event handler for the 'click' event on the icon
+ * Note: v2 with object passed in
  * @param {string} filename
  * @param {number} lineIndex
  * @param {string} statusWas
  */
-function onClickDashboardItem(ID, type, filenameEncoded, rawContentEncoded = '') {
-  const filename = decodeRFC3986URIComponent(filenameEncoded)
-  const rawContent = decodeRFC3986URIComponent(rawContentEncoded)
-  if (!ID || !type || !filename) {
-    const msg = `onClickDashboardItem: invalid data: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: '${rawContent}'`
-    console.log(msg)
-    showError(msg)
-  } else {
-    // console.log(`onClickDashboardItem received: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: <${rawContent}>; sending 'onClickDashboardItem' to plugin`)
-    const data = { ID, type, filename, rawContent }
-    sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
-  }
+function onClickDashboardItem(data) {
+  sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
+
+  // const {itemID, type, filename, encodedContent} = data
+  // // const ID = data.itemID
+  // // const type = data.type
+  // // const filename = decodeRFC3986URIComponent(data.encodedFilename)
+  // // const content = decodeRFC3986URIComponent(data.encodedContent)
+
+  // if (!ID || !type || !filename) {
+  //   const msg = `onClickDashboardItem: invalid data: ID: ${ID}, type: ${type}, filename: ${filename}, encodedContent: '${encodedContent}'`
+  //   console.log(msg)
+  //   showError(msg)
+  // } else {
+  //   console.log(`onClickDashboardItem received: ID: ${ID}, type: ${type}, filename: ${filename}, encodedContent: <${encodedContent}>; sending 'onClickDashboardItem' to plugin`)
+  //   const data = { itemID, type, filename, encodedContent }
+  //   sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
+  // }
 }
 
 /**
@@ -165,8 +261,8 @@ function onClickDashboardItem(ID, type, filenameEncoded, rawContentEncoded = '')
  * @param {boolean} state that it now has
  */
 function onChangeCheckbox(settingName, state) {
-  const data = { settingName, state }
-  console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
+  // const data = { settingName, state }
+  // console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
   sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
 }
 
@@ -197,11 +293,12 @@ function addClassToID(ID, newerClass) {
 }
 
 function replaceClassInID(ID, replacementClass) {
-  console.log(`replaceClassInID: ID: ${ID}`)
+  console.log(`replaceClassInID: for ${ID}`)
   const elem = document.getElementById(ID)
   if (elem) {
+    console.log(`- before = ${elem.getAttribute("class")}`)
     elem.setAttribute("class", replacementClass)
-    // console.log(`after = ${elem.getAttribute("class")}`)
+    console.log(`- after = ${elem.getAttribute("class")}`)
   }
 }
 
@@ -248,7 +345,7 @@ function decrementItemCount(counterID) {
  * @returns {number}
  */
 function getNumItemsInSection(sectionID, tagName) {
-  console.log(`getNumItemsInSection: ${sectionID} by ${tagName}`)
+  // console.log(`getNumItemsInSection: ${sectionID} by ${tagName}`)
   const sectionTable = document.getElementById(sectionID)
   // console.log(`${sectionTable.innerHTML}`)
   if (sectionTable) {
@@ -260,7 +357,7 @@ function getNumItemsInSection(sectionID, tagName) {
         c++
       }
     }
-    console.log(`= ${String(c)}`)
+    // console.log(`= ${String(c)}`)
     return c
   } else {
     console.log(`Couldn't find section with ID ${sectionID}`)
@@ -280,21 +377,21 @@ function showError(message) {
   }
 }
 
-/**
- * Reverse of encodeRFC3986URIComponent
- * Note: copy of function in helpers/stringTransforms.js, but without type information
- * @author @jgclark
- * @tests in jest file
- * @param {string} input
- * @returns {string}
- */
-function decodeRFC3986URIComponent(input) {
-  return decodeURIComponent(input)
-    .replace(/%5B/g, "[")
-    .replace(/%5D/g, "]")
-    .replace(/%21/g, "!")
-    .replace(/%27/g, "'")
-    .replace(/%28/g, "(")
-    .replace(/%29/g, ")")
-    .replace(/%2A/g, "*")
-}
+// /**
+//  * Reverse of encodeRFC3986URIComponent
+//  * Note: copy of function in helpers/stringTransforms.js, but without type information
+//  * @author @jgclark
+//  * @tests in jest file
+//  * @param {string} input
+//  * @returns {string}
+//  */
+// function decodeRFC3986URIComponent(input) {
+//   return decodeURIComponent(input)
+//     .replace(/%5B/g, "[")
+//     .replace(/%5D/g, "]")
+//     .replace(/%21/g, "!")
+//     .replace(/%27/g, "'")
+//     .replace(/%28/g, "(")
+//     .replace(/%29/g, ")")
+//     .replace(/%2A/g, "*")
+// }

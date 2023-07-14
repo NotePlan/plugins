@@ -85,8 +85,9 @@ a:hover {
 .noteTitle { /* add "font-weight: 700;" to make noteTitles bold */
 	color: var(--tint-color) !important;
 }
-.multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces */
+.multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
 	column-count: 3;
+	column-fill: balance;
 	column-width: 25rem;
 	column-gap: 1rem;
 	column-rule: 1px dotted var(--tint-color);

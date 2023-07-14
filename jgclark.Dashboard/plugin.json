@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.5.0-b2",
-  "plugin.lastUpdateInfo": "v0.5.0: Can now filter out lower-priority items.\nv0.4.2: various updates to window handling.v0.4.1: bug fix, polish and demo updates.\nv0.4.0: first public release.\nv0.3.6: small bits of polish.\nv0.3.5: adds months to output.\nv0.3.4: adds width/height settings; equalises font size with NP.\nv0.3.2: improved trigger's detection of relevant changes.\nv0.3.0: will auto-update if trigger set on daily/weekly notes.",
+  "plugin.version": "0.5.0-b3",
+  "plugin.lastUpdateInfo": "v0.5.0: Can now filter out lower-priority items. Can cancel or add tasks and checklists. New optional 'hastags/mentions to show' section.\nv0.4.2: various updates to window handling.v0.4.1: bug fix, polish and demo updates.\nv0.4.0: first public release.\nv0.3.6: small bits of polish.\nv0.3.5: adds months to output.\nv0.3.4: adds width/height settings; equalises font size with NP.\nv0.3.2: improved trigger's detection of relevant changes.\nv0.3.0: will auto-update if trigger set on daily/weekly notes.",
   "plugin.requiredFiles": [
     "commsSwitchboard.js",
     "dashboard.css"
@@ -22,7 +22,8 @@
     "fa-light-300.woff2",
     "fa-regular-400.woff2",
     "fa-solid-900.woff2",
-    "pluginToHTMLCommsBridge.js"
+    "pluginToHTMLCommsBridge.js",
+    "encodeDecode.js"
   ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -44,7 +45,7 @@
     {
       "name": "test:demo dashboard",
       "alias": [
-        "ldb"
+        "ddb"
       ],
       "description": "Show Demo Dashboard",
       "jsFunction": "showDemoDashboardHTML",
@@ -111,9 +112,11 @@
     {
       "key": "ignoreFolders",
       "title": "Folders to ignore when finding linked items",
-      "description": "If set, the contents of these folder(s) will be ignored when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results.",
+      "description": "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results.",
       "type": "[string]",
-      "default": "Saved Searches",
+      "default": [
+        "Saved Searches"
+      ],
       "required": false
     },
     {
@@ -133,12 +136,11 @@
       "required": true
     },
     {
-      "key": "filterPriorityItems",
-      "title": "Filter priority items?",
-      "description": "If set then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed.\nPriority items are currently indicated by having !!!, !! or ! at the beginning or end of the item.",
-      "type": "hidden",
-      "comment": "TODO: remove me",
-      "default": true,
+      "key": "tagToShow",
+      "title": "#tag/@mention to show",
+      "description": "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. (It is limited hashtags and mentions for speed.)\nNote: this could show tasks duplicated from other sections.",
+      "type": "string",
+      "default": "",
       "required": false
     },
     {

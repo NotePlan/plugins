@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 31.3.2023 for v0.3.x by @jgclark
+// Last updated 9.7.2023 for v0.5.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -62,7 +62,8 @@ export type dashboardConfigType = {
   ignoreFolders: Array<string>,
   includeFolderName: boolean,
   includeTaskContext: boolean,
-  // filterPriorityItems: boolean,
+  // filterPriorityItems: boolean, // now kept in a DataStore.preference key
+  tagToShow: string,
   _logLevel: string,
   triggerLogging: boolean,
 }
@@ -93,7 +94,7 @@ export async function getSettings(): Promise<any> {
     if (!savedValue) {
       DataStore.setPreference('Dashboard-filterPriorityItems', false)
     }
-    logDebug(pluginJson, `filter? -> ${DataStore.preference('Dashboard-filterPriorityItems')}`)
+    logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -257,6 +258,10 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
         output = '<span class="priority3">' + output + '</span>'
         break
       }
+      default: {
+        // Don't do anything
+        break
+      }
     }
 
     return output
@@ -293,10 +298,12 @@ export function addNoteOpenLinkToString(item: SectionItem | SectionDetails, disp
 
     if (item.rawContent) {
       // call showLineinEditor... with the filename and rawConetnt
-      return `<a class="" onClick="onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
+      // return `<a class="" onClick="onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
+      return `<a>${displayStr}</a>`
     } else {
       // call showNoteinEditor... with the filename
-      return `<a class="" onClick="onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')">${displayStr}</a>`
+      // return `<a class="" onClick="onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')">${displayStr}</a>`
+      return `<a>${displayStr}</a>`
     }
   }
   catch (error) {

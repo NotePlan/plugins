@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 17.5.2023 for v0.4.3 by @jgclark
+// Last updated 14.7.2023 for v0.5.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -40,6 +40,11 @@ export const resourceLinksInHeader = `
 <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
 `
 
+const encodeDecodeScript = `
+<!-- encode+decode script -->
+<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
+`
+
 const commsBridge = `
 <!-- commsBridge scripts -->
 <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
@@ -63,31 +68,131 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
  * Attempt to add a key listener added to all checklist items
  * TODO: Not yet working.
  */
-const shiftKeyListenerScript = `
-<!-- shiftKeyListenerScript -->
+const addEventListenersScript = `
+<!-- addEventListenersScript -->
 <script type="text/javascript">
-document.getElementById("mainTable").addEventListener("load", addShiftKeyEventHandlersFunc);
-function addShiftKeyEventHandlersFunc() {
-  let allTasksChecklists = document.getElementsByClassName("todo");
-  for (let i=0; i<allTasksChecklists.length; i++) {
-    allTasksChecklists[i].addEventListener('click', function() {
-      console.log('shiftKey held? '+String(event.shiftKey))
-    }, false);
-  }
-  console.log('shiftKey ELs added');
+console.log('add Event Listeners ...');
+
+function mouseenterTodoFunc() {
+	console.log('mouseenterTodo ...');
+	if (event.metaKey) {
+		this.innerHTML = '<i class="cancelled fa-regular fa-circle-check">';
+	} else {
+		this.innerHTML = '<i class="checked fa-regular fa-circle-check">';
+	}
 }
+
+function mouseenterChecklistFunc() {
+	console.log('mouseenterChecklist ...');
+	if (event.metaKey) {
+		this.innerHTML = '<i class="cancelled fa-regular fa-square-check">';
+	} else {
+		this.innerHTML = '<i class="checked fa-regular fa-square-check">';
+	}
+}
+
+function mouseoutTodoFunc() {
+	this.innerHTML = '<i class="todo fa-regular fa-circle">';
+}
+
+function mouseoutChecklistFunc() {
+	this.innerHTML = '<i class="todo fa-regular fa-square">';
+}
+
+// Add event handlers for task icons
+let allTodos = document.getElementsByClassName("sectionItemTodo");
+for (const thisTodo of allTodos) {
+	thisTodo.addEventListener('click', function () {
+    this.removeEventListener("mouseenter", mouseenterTodoFunc);
+    this.removeEventListener("mouseout", mouseoutTodoFunc);
+    let thisId = thisTodo.parentElement.id;
+    console.log('sectionItemTodo ' + thisId + ' clicked');
+    let thisFilename = thisTodo.id;
+    let metaModifier = event.metaKey;
+    handleIconClick(thisId, 'open', thisFilename, thisTodo.nextElementSibling.getElementsByTagName("A")[0].innerHTML, metaModifier);
+  }, false);
+	// FIXME: Why is this stopping click from working? Seems its treating click as mouseenter
+	// thisTodo.addEventListener('mouseenter', mouseenterTodoFunc, false);
+	// thisTodo.addEventListener('mouseout', mouseoutTodoFunc, false);
+	// console.log('sectionItemTodo EL added');
+}
+
+// Add event handlers for checklist icons
+let allChecklists = document.getElementsByClassName("sectionItemChecklist");
+for (const thisChecklist of allChecklists) {
+	thisChecklist.addEventListener('click', function () {
+    this.removeEventListener("mouseout", mouseoutChecklistFunc);
+    let thisId = thisChecklist.parentElement.id;
+    let thisFilename = thisChecklist.id;
+    let metaModifier = event.metaKey;
+    handleIconClick(thisId, 'checklist', thisFilename, thisChecklist.nextElementSibling.getElementsByTagName("A")[0].innerHTML, metaModifier);
+  }, false);
+	// FIXME: as above
+	// checklist.addEventListener('mouseenter', mouseenterChecklistFunc, false);
+	// checklist.addEventListener('mouseout', mouseoutChecklistFunc, false);
+	// console.log('sectionItemChecklist EL added');
+}
+
+// Add click handler for item contents
+let allContentItems = document.getElementsByClassName("sectionItemContent");
+for (const contentItem of allContentItems) {
+	contentItem.addEventListener('click', function () {
+		const thisLink = contentItem.getElementsByTagName("A")[0];
+		let thisFilename = contentItem.id;
+		handleContentClick(contentItem.parentElement.id, thisFilename, thisLink.innerHTML);
+	}, false);
+	// console.log('sectionItem EL added');
+}
+
+console.log('All ELs added');
 </script>
 `
 
-const checkboxClickListenerScript = `
+/**
+ * Handle various clicks
+ */
+const clickHandlersScript = `
+<!-- clickHandlersScript -->
 <script type="text/javascript">
+
+// For clicking on item icons
+function handleIconClick(id, paraType, filename, content, metaModifier) {
+  console.log('handleIconClick( ' + id + ' / ' + paraType + ' / {' + content + '} / ' + filename + ' / ' + String(metaModifier)+ ' )');
+  const encodedFilename = encodeRFC3986URIComponent(filename);
+  const encodedContent = encodeRFC3986URIComponent(content);
+
+  switch(paraType) {
+    case 'open': {
+      onClickDashboardItem( { itemID: id, type: (metaModifier) ? 'cancelTask' : 'completeTask', encodedFilename: encodedFilename, encodedContent: encodedContent } );
+      break;
+    }
+    case 'checklist': {
+      onClickDashboardItem( { itemID: id, type: (metaModifier) ? 'cancelChecklist' : 'completeChecklist', encodedFilename: encodedFilename, encodedContent: encodedContent } );
+      break;
+    }
+    default: {
+      console.error('- unknown paraType: ' + paraType);
+      break;
+    }
+  }
+}
+
+// For clicking on main 'paragraph content'
+function handleContentClick(id, filename, content) {
+  console.log('handleContentClick( ' + id + ' / ' + filename + ' / {' +content + '} )');
+  const encodedFilename = encodeRFC3986URIComponent(filename);
+  const encodedContent = encodeRFC3986URIComponent(content);
+	onClickDashboardItem( { itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } );
+}
+
+// For e.g. filter checkbox
 function handleCheckboxClick(cb) {
-  // TODO: Do the real work here. Need to figure out how to keep and communicate the variable -- make it not a setting?
   console.log("Checkbox for " + cb.name + " clicked, new value = " + cb.checked);
   onChangeCheckbox(cb.name, cb.checked);
 }
 </script>
 `
+
 /**
  * Prevent clicking on a link from also opening the HTML page in the default browser.
  * Applied to all items that have a 'sectionItem' class
@@ -122,6 +227,7 @@ function addPreventDefaultEventHandlersFunc() {
 
 /**
  * When window is resized, send dimensions to plugin. Note: doesn't fire on window *move* alone.
+ * TODO: Is this working?
  */
 const resizeListenerScript = `
 <!-- resizeListenerScript -->
@@ -180,7 +286,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       [sections, sectionItems] = await getDataForDashboard()
     }
 
-    logDebug('showDashboardHTML', `Starting with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
+    // logDebug('showDashboardHTML', `Starting with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
 
     const outputArray: Array<string> = []
     const dailyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'day'))
@@ -226,45 +332,27 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       const sectionNameWithPossibleLink = (section.filename)
         ? addNoteOpenLinkToString(section, section.name)
         : section.name
-      outputArray.push(` <tr>\n  <td style="min-width:7rem; max-width: 9rem;"><p class="${section.sectionTitleClass} sectionName"><i class="${section.FAIconClass} pad-right"></i>${sectionNameWithPossibleLink}</p>`)
+      outputArray.push(` <tr>\n  <td style="min-width:8rem; max-width: 10rem;"><p class="${section.sectionTitleClass} sectionName"><i class="${section.FAIconClass} pad-right"></i>${sectionNameWithPossibleLink}</p>`)
 
       if (items.length > 0) {
         outputArray.push(`   <p class="sectionDescription">${sectionCountPrefix} ${section.description}`)
 
-        if (section.filename !== '') {
+        if (['Today', 'This week', 'This month', 'This quarter', 'This year'].includes(section.name)) {
           // Add 'add task' and 'add checklist' icons
           // TODO: add tooltip
           const xcbAddTask = createRunPluginCallbackUrl('jgclark.Dashboard', 'addTask', [section.filename])
-          outputArray.push(`     <span><a href="${xcbAddTask}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a></span>`)
+          outputArray.push(`    <span><a href="${xcbAddTask}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a></span>`)
           const xcbAddChecklist = createRunPluginCallbackUrl('jgclark.Dashboard', 'addChecklist', [section.filename])
-          outputArray.push(`     <span><a href="${xcbAddChecklist}"><i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i></a></span>`)
+          outputArray.push(`    <span><a href="${xcbAddChecklist}"><i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i></a></span>`)
         }
       }
-      // close col1
-      outputArray.push(`    </p>\n   </td>`)
+      // Close col 1
+      outputArray.push(`   </p>\n  </td>`)
 
-      // // Prepare col 1 (section icon)
-      // outputArray.push(` <tr>\n  <td><span class="${section.sectionTitleClass}"><i class="${section.FAIconClass}"></i></td>`)
-
-      // // Prepare col 2 (section title)
-      // // First prepend a sectionNCount ID and populate it. This needs a span with an ID so that it can be updated later.
-      // const sectionCountID = `section${String(section.ID)}Count`
-      // const sectionCountPrefix = `<span id="${sectionCountID}">${String(items.length)}</span>`
-      // const sectionNameWithPossibleLink = (section.filename)
-      //   ? addNoteOpenLinkToString(section, section.name)
-      //   : section.name
-      // if (items.length > 0) {
-      //   outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${sectionNameWithPossibleLink}</span><br /><span class="sectionDescription">${sectionCountPrefix} ${section.description}</span></td>`)
-      // } else {
-      //   // add a simpler version of the line
-      //   outputArray.push(`  <td><span class="sectionName ${section.sectionTitleClass}" style="max-width: 14rem;">${sectionNameWithPossibleLink}</span></td>`)
-      // }
-
-      // Start col 2: table of items in this section
+      // Start col 2+3 = embedded table of items for this section
       outputArray.push(`  <td>`)
-      outputArray.push(`  <div class="multi-cols">`)
-      // Now start a nested table for cols 3/4 (to simplify logic and CSS)
-      outputArray.push(`   <table style="table-layout: auto; word-wrap: break-word;" id="${section.ID}-Section">`)
+      outputArray.push(`   <div class="multi-cols">`)
+      outputArray.push(`     <table style="table-layout: auto; word-wrap: break-word;" id="${section.ID}-Section">`)
 
       let filteredOut = 0
       const filteredItems: Array<SectionItem> = []
@@ -301,7 +389,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
         let encodedFilename = encodeRFC3986URIComponent(item.filename)
         let encodedRawContent = encodeRFC3986URIComponent(item.rawContent)
         let reviewNoteCount = 0 // count of note-review items
-        outputArray.push(`    <tr class="no-borders" id="${item.ID}">`)
+        outputArray.push(`       <tr class="no-borders" id="${item.ID}">`)
 
         // Long-winded way to get note title, as we don't have TNote, but do have note's filename
         const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString((item.filename).split(".")[0]))
@@ -310,9 +398,8 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
         switch (item.type) {
           case 'open': {
             // do icon col (was col3)
-            outputArray.push(
-              `     <td id="${item.ID}A" class="todo clickTarget sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`,
-            )
+            // outputArray.push(`         <td id="${item.ID}A" class="todo clickTarget sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`)
+            outputArray.push(`        <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders"><i class="todo fa-regular fa-circle"></i></td>`)
 
             // do col 4: whole note link is clickable.
             // If context is wanted, and linked note title
@@ -326,14 +413,15 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
             } else {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
             }
-            const cell4 = `     <td class="sectionItem"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n    </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" id="${encodedFilename}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
           }
           case 'checklist': {
             // do icon col (was col3)
-            outputArray.push(`     <td class="todo clickTarget sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${false ? 'checklistCancel' : 'checklist'}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
+            // outputArray.push(`         <td class="todo clickTarget sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${false ? 'checklistCancel' : 'checklist'}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
+            outputArray.push(`         <td class="todo sectionItem sectionItemChecklist no-borders" id="${encodedFilename}"><i class="fa-regular fa-square"></i></td>`)
 
             // do item details col (was col4): whole note link is clickable
             // If context is wanted, and linked note title
@@ -348,28 +436,28 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
             } else {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
             }
-            const cell4 = `     <td class="sectionItem"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n    </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" id="${encodedFilename}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
           }
           case 'congrats': {
-            const cell3 = `     <td class="checked sectionItem noborders"><i class="fa-regular fa-circle-check"></i></td>`
+            const cell3 = `          <td class="checked sectionItem noborders"><i class="fa-regular fa-circle-check"></i></td>`
             outputArray.push(cell3)
-            const cell4 = `     <td class="sectionItem noborders">${item.content} </td>\n    </tr>`
+            const cell4 = `         <td class="sectionItem noborders">${item.content} </td>\n       </tr>`
             outputArray.push(cell4)
             break
           }
           case 'review': {
             if (itemNoteTitle) {
               // do icon col (was col3)
-              outputArray.push(`      <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`)
+              outputArray.push(`           <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`)
 
               // do item details col (was col4): review note link as internal calls
               const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
-              let cell4 = `      <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
+              let cell4 = `          <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
               // TODO: make specific to that note
-              cell4 += `</td>\n    </tr>`
+              cell4 += `</td>\n       </tr>`
               outputArray.push(cell4)
               totalOpenItems++
               reviewNoteCount++
@@ -380,18 +468,18 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
           }
           case 'filterIndicator': {
             // do icon col
-            outputArray.push(`      <td class="todo sectionItem no-borders"><i class="fa-light fa-angle-right"></i></td>`)
+            outputArray.push(`          <td class="todo sectionItem no-borders"><i class="fa-light fa-plus"></i></td>`)
             // do item details
-            let cell4 = `      <td class="sectionItem lowerPriority">${item.content}</td>\n    </tr>`
+            let cell4 = `          <td class="sectionItem lowerPriority">${item.content}</td>\n       </tr>`
             outputArray.push(cell4)
             break
           }
         }
       }
 
-      outputArray.push(`   </table>`)
-      outputArray.push(`  </div>`)
-      outputArray.push(`  </td>\n </tr>`)
+      outputArray.push(`      </table>`)
+      outputArray.push(`    </div>`)
+      outputArray.push(`   </td>\n </tr>`)
       sectionNumber++
     }
     outputArray.push(`</table>`)
@@ -414,19 +502,19 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
 
     const winOptions = {
       windowTitle: windowTitle,
+      customId: windowCustomId,
       headerTags: resourceLinksInHeader,
       generalCSSIn: '', // get general CSS set automatically
       specificCSS: '', // set in separate CSS file instead
-      makeModal: false, // = not modal window
+      makeModal: false,
+      shouldFocus: false, // shouuld not focus, if Window already exists
       preBodyScript: '', // no extra pre-JS
-      postBodyScript: commsBridge + preventClicksPropagatingScript + checkboxClickListenerScript, // + resizeListenerScript, //+ unloadListenerScript,
+      postBodyScript: encodeDecodeScript + commsBridge + preventClicksPropagatingScript + addEventListenersScript + clickHandlersScript, // + checkboxClickListenerScript, // + resizeListenerScript, // + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 1000, // = default width of window (px)
       height: 500, // = default height of window (px)
-      customId: windowCustomId,
-      shouldFocus: false, // shouuld not focus, if Window already exists
-      // x
+      // x TODO: should these be included again?
       // y
     }
     await showHTMLV2(outputArray.join('\n'), winOptions)

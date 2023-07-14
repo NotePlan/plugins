@@ -34,8 +34,8 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
     .replace('%%commandName%%', commandName)
     .replace('%%pluginID%%', pluginID)
     .replace('%%commandArgs%%', JSON.stringify(commandArgs))
-  // logDebug(`runPluginCommand: Sending command "${commandName}" to NotePlan: "${pluginID}" with args: ${JSON.stringify(commandArgs)}`);
-  logDebug(`CommsBridge: window.runPluginCommand: Sending code: "${code}"`)
+  // logDebug(`bridge::runPluginCommand`,`Sending command "${commandName}" to NotePlan: "${pluginID}" with args: ${JSON.stringify(commandArgs)}`);
+  // logDebug(`bridge::runPluginCommand`,`window.runPluginCommand: Sending code: "${code}"`)
   if (window.webkit) {
     window.webkit.messageHandlers.jsBridge.postMessage({
       code: code,
@@ -43,21 +43,21 @@ const runPluginCommand = (commandName = '%%commandName%%', pluginID = '%%pluginI
       id: '1',
     })
   } else {
-    logDebug(`CommsBridge: Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
+    logDebug(`bridge::runPluginCommand`, `Simulating: window.runPluginCommand: ${commandName} called with args:`, commandArgs)
   }
 }
 
 /**
  * SENDER to the plugin: one single function to send data to your plugin - supply whatever arguments as an array
- * @param {type:string} type - the type of action we want the plugin to perform
- * @param {data:any} data - the data we want to send to the plugin
+ * @param {string} type - the type of action we want the plugin to perform
+ * @param {any} data - the data we want to send to the plugin
  */
 const sendMessageToPlugin = (type, data) => runPluginCommand('onMessageFromHTMLView', receivingPluginID, [type, data])
 
 /**
  * RECEIVER from the plugin -- callback function which receives async messages from the Plugin to the HTML view
  * Sends the messages sent to the 'switchboard' function which you define in your JS code before this file is imported
- * @param {} event
+ * @param {} event { origin, source, data }
  * @returns
  */
 const onMessageReceived = (event) => {

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 7.4.2023 for v0.3.x by @jgclark
+// Last updated 9.7.2023 for v0.5.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,11 +13,11 @@ import {
   type SectionDetails, type SectionItem
 } from './dashboardHelpers'
 import { toLocaleDateString, getDateStringFromCalendarFilename } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, timer } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { filterParasAgainstExcludeFolders } from '@helpers/note'
-import { getReferencedParagraphs } from '@helpers/NPnote'
+import { findNotesMatchingHashtagOrMention, getReferencedParagraphs } from '@helpers/NPnote'
 import { makeBasicParasFromContent } from '@helpers/paragraph'
 import {
   addPriorityToParagraphs,
@@ -86,7 +86,7 @@ function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriod
   refParas = eliminateDuplicateSyncedParagraphs(refParas)
   // Temporarily extend TParagraph with the task's priority
   refParas = addPriorityToParagraphs(refParas)
-  logDebug('', `found ${String(refParas.length ?? 0)} references to today`)
+  logDebug('', `found ${String(refParas.length ?? 0)} references to ${timePeriodName}`)
   // sort the list only by priority, otherwise leaving order the same
 
   // Decide whether to return two separate arrays, or one combined one
@@ -298,7 +298,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
       const dateStr = getDateStringFromCalendarFilename(thisFilename)
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentQuarterlyNote, config.separateSectionForReferencedNotes, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("quarter", currentQuarterlyNote, config.separateSectionForReferencedNotes, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -344,6 +344,42 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     }
 
     // Note: If we want to do yearly then the icon is fa-calendar-days (same as quarter)
+
+    // Add a section for tagToShow, if set
+    if (config.tagToShow) {
+      const isHashtag: boolean = config.tagToShow.startsWith('#')
+      const isMention: boolean = config.tagToShow.startsWith('@')
+
+      if (isHashtag || isMention) {
+        let itemCount = 0
+        const notesWithTag = findNotesMatchingHashtagOrMention(config.tagToShow)
+        for (const n of notesWithTag) {
+          const tagParasFromNote = n.paragraphs.filter(p => p.content?.includes(config.tagToShow) && isOpen(p))
+          if (tagParasFromNote.length > 0) {
+            for (const p of tagParasFromNote) {
+              const thisID = `${sectionCount}-${itemCount}`
+              const thisFilename = p.note?.filename ?? ''
+              sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type })
+              itemCount++
+            }
+          }
+        }
+
+        if (itemCount > 0) {
+          sections.push({
+            ID: sectionCount,
+            name: `${config.tagToShow}`,
+            description: `open task(s)`,
+            FAIconClass: (isHashtag) ? 'fa-solid fa-hashtag' : 'fa-solid fa-at',
+            sectionTitleClass: 'sidebarDaily',
+            filename: ''
+          })
+          sectionCount++
+        }
+      } else {
+        logWarn(`getDataForDashboard`, `tagToShow '${config.tagToShow}' is not a hashtag or mention`)
+      }
+    }
 
     // Send doneCount through as a special type item:
     sections.push({

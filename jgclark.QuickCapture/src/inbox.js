@@ -57,7 +57,7 @@ export async function addTaskToInbox(taskArg?: string = ''): Promise<void> {
 
           // Create the inbox note if it doesn't exist, asking the user which folder
           if (inboxNote == null) {
-            const folder = await chooseFolder('Choose a folder for your inbox note (or cancel [ESC])')
+            const folder = await chooseFolder('Choose a folder for your inbox note (or cancel [ESC])', false, true)  // don't include @Archive as an option, but do allow creation of a new folder
             newFilename = DataStore.newNote(config.inboxTitle, folder) ?? ''
             // Note: this returns a filename not of our choosing
             if (newFilename != null && newFilename !== '') {

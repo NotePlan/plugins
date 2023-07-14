@@ -1,10 +1,18 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.5.0-b3] - 2023-07-14 (not released)
+### Added
+- new optional section that displays all open tasks/checklists that contains a #tag or @mention that you can set in the optional new setting '#tag/@mention to show'. This is one way of showing all `#next` actions, for example.
+- you can now also **cancel** an open task or checklist by pressing ⌘ (Command) when clicking on the open circle or square.
+<!-- ### Changed
+- changed message passing to use single object not multiple params
+- better handling of strange punctuation in tasks and filenames -->
+
 ## [0.5.0-b2] - 2023-05-31 (not released)
 ### Changed
 - tweaked layout of multi-column view to avoid most examples of a single item being split across two columns. (I can't find a way to avoid some cases.)
-- changed behaviour to re-display lower priority tasks when the last higher priority one has been completed.
+- will now re-display lower priority tasks when the last higher priority one has been completed.
 
 ## [0.5.0-b1] - 2023-06-28 (not released)
 ### Added
@@ -12,7 +20,8 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 
 ## [0.4.2] - 2023-05-16
 ### Added
-- now shows an 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of the current daily/weekly/monthly/quarterly note
+- now shows 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of the current daily/weekly/monthly/quarterly note
+    <img src="add-buttons@2x.png" width="200px">
 - it now takes into account user's preferences for whether `*`, `-` and/or `1.` counts as the indicator for todos
 - it now saves the size and location of the Dashboard window when you move or resize it, and reuses it when you re-open it, or refresh it. (Requires NP v3.9.1+)
 ### Changed
