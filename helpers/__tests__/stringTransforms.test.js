@@ -276,6 +276,12 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = st.encodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
       })
+      test('should encode accents in text', () => {
+        const input = 'aàáâäæãåāeèéêëēėęiîíoôölł'
+        const expected = 'a%C3%A0%C3%A1%C3%A2%C3%A4%C3%A6%C3%A3%C3%A5%C4%81e%C3%A8%C3%A9%C3%AA%C3%AB%C4%93%C4%97%C4%99i%C3%AE%C3%ADo%C3%B4%C3%B6l%C5%82'
+        const result = st.encodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
     })
 
     /*
@@ -294,15 +300,21 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = st.decodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
       })
-      test('should encode standard punctuation', () => {
+      test('should decode standard punctuation', () => {
         const input = '%22%23%25%26%2A%2B%2C%2F%3A%3B%3C%3D%3E%3F%40%5C%5E%60%7B%7C%7D'
         const expected = '"#%&*+,/:;<=>?@\\^`{|}'
         const result = st.decodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
       })
-      test('should encode additional punctuation', () => {
+      test('should decode additional punctuation', () => {
         const input = '%21%28%29%5B%5D%2A%27'
         const expected = '!()[]*\''
+        const result = st.decodeRFC3986URIComponent(input)
+        expect(result).toEqual(expected)
+      })
+      test('should decode accents in text', () => {
+        const input = 'a%C3%A0%C3%A1%C3%A2%C3%A4%C3%A6%C3%A3%C3%A5%C4%81e%C3%A8%C3%A9%C3%AA%C3%AB%C4%93%C4%97%C4%99i%C3%AE%C3%ADo%C3%B4%C3%B6l%C5%82'
+        const expected = 'aàáâäæãåāeèéêëēėęiîíoôölł'
         const result = st.decodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
       })
