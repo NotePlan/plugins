@@ -1,8 +1,8 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [0.7.0] - 2023-06-26 @dwertheimer
-- new command: /Remove >today tags from completed todos
+## [0.7.0] - 2023-07-04 @dwertheimer
+- new **/Remove >today tags from completed todos** command that removes the ">today" tag still attached to completed/cancelled tasks that means they keep showing up in Today's references every day forever. Does not touch open tasks.
 
 ## [0.6.0] - 2023-06-24
 - new **/List conflicted notes** command that creates a new NP note that lists all your notes on your current device with file-level conflicts, along with summary details about them

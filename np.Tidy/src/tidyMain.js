@@ -134,8 +134,8 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     // Use multi-threaded DataStore.search() to look for "@done(", and then use regex to narrow down. This also implements foldersToExclude for us.
     // (It's twice as quick as doing a more exact regex over all notes in my testing.)
     const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
-    const RE = new RegExp(RE_DONE_DATE_OPT_TIME) // @done(date) or @done(date time)
-    let allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE.test(p.content)) ?? []
+    // const RE = new RegExp(RE_DONE_DATE_OPT_TIME) // @done(date) or @done(date time)
+    let allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE_DONE_DATE_OPT_TIME.test(p.content)) ?? []
 
     // if justRemoveFromChecklists set, filter out non-checklists (i.e. tasks)
     if (config.justRemoveFromChecklists) {
@@ -238,8 +238,8 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     // Use multi-threaded DataStore.search() to look for "@done(", and then use regex to narrow down. This also implements foldersToExclude for us.
     // Note: It's twice as quick as doing a more exact regex over all notes in my testing.
     const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
-    const RE = new RegExp(RE_DONE_DATE_TIME)
-    const allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE.test(p.content)) ?? []
+    // const RE = new RegExp(RE_DONE_DATE_TIME)
+    const allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE_DONE_DATE_TIME.test(p.content)) ?? []
 
     // Get date range to use
     const todayStart = new moment().startOf('day') // use moment instead of `new Date` to ensure we get a date in the local timezone
