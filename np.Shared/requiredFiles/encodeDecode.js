@@ -5,7 +5,6 @@
  */
 
 function encodeRFC3986URIComponent(input) {
-  console.log(`encodeRFC3986URIComponent for {${input}}`)
   // special case that appears in innerHTML
   const dealWithSpecialCase = input
     .replace(/&amp;/g, '&')

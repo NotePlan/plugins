@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.4.4] - 2023-07-15 (@jgclark)
+
+- bugfix for 'undefined' message on plugin upgrade
+
 ## [0.4.3] - 2023-07-14 (@jgclark)
 
 - update encode function for safe data transport to/from JS of `&` and `&amp;` strings
