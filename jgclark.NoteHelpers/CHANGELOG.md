@@ -3,6 +3,13 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
 
+## [0.18.0] - 2023-07-???
+### Added
+New commands by @Leo:
+- "/list inconsistent note filenames": lists the names of notes whose filenames are inconsistent with their titles.
+- "/rename filename to title": renames the current filename to the title of the note.
+- "/rename inconsistent note filenames": renames the files of notes whose filenames are inconsistent with their titles.
+
 ## [0.17.3] - 2023-07-01
 - added new setting 'Title to use for index notes' for "/index folders" command (requested by @dwertheimer)
 - layout improvements and further bug fix  in "/index folders" (spotted by @dwertheimer)

@@ -1022,7 +1022,7 @@ export async function saveEditorToCache(completed: function): Promise<void> {
     // If 3.9.3alpha or later call specific new function
     if (NotePlan.environment.buildVersion > 1049) {
       logDebug('saveEditorToCache', '... waiting for Editor.save ...')
-      Editor.save()
+      await Editor.save() // TEST: adding await
     }
     // else wait for 1 second
     else {

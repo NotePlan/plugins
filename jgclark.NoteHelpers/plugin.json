@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "0.17.3",
-  "plugin.lastUpdateInfo": "0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.\n0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.",
+  "plugin.version": "0.18.0",
+  "plugin.lastUpdateInfo": "0.18.0: 3 new commands about file naming\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -164,6 +164,30 @@
       ],
       "description": "Reset NotePlan caches",
       "jsFunction": "resetCaches"
+    },
+    {
+      "name": "list inconsistent note filenames",
+      "alias": [
+        "listInconsistentNames"
+      ],
+      "description": "Lists the names of notes whose filenames are inconsistent with their titles.",
+      "jsFunction": "listInconsistentNames"
+    },
+    {
+      "name": "rename filename to title",
+      "alias": [
+        "titleToFilename"
+      ],
+      "description": "Renames the current filename to the title of the note.",
+      "jsFunction": "titleToFilename"
+    },
+    {
+      "name": "rename inconsistent note filenames",
+      "alias": [
+        "renameInconsistentNames"
+      ],
+      "description": "Renames the files of notes whose filenames are inconsistent with their titles.",
+      "jsFunction": "renameInconsistentNames"
     },
     {
       "name": "NoteHelpers: update plugin settings",
