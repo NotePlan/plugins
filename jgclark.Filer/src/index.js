@@ -53,7 +53,7 @@ export function onSettingsUpdated(): void {
 export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<void> {
   try {
     // Tell user the plugin has been updated
-    if (pluginJson['plugin.lastUpdateInfo'] !== 'undefined') {
+    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
       await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks', `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`)
     }
   } catch (error) {

@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Shared Resources plugin for NotePlan
 // Jonathan Clark
-// last updated 23.2.2023 for v0.3.0, @jgclark
+// last updated 15.7.2023 for v0.4.4, @jgclark
 // -----------------------------------------------------------------------------
 
 const sharedPluginID = 'np.Shared'
@@ -119,7 +119,7 @@ export async function onUpdateOrInstall(): Promise<void> {
     logDebug(sharedPluginID, `onUpdateOrInstall: UpdateSettingData code: ${updateSettings}`)
 
     // Tell user the plugin has been updated
-    if (pluginJson['plugin.lastUpdateInfo'] !== 'undefined') {
+    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
       await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks', `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`)
     }
   } catch (error) {

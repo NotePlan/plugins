@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last updated 12.6.2023 for v0.17.0, @jgclark
+// last updated 16.7.2023 for v0.18.0, @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -16,6 +16,11 @@ import { showMessage } from '@helpers/userInput'
 
 export { countAndAddDays } from './countDays'
 export { indexFolders } from './indexFolders'
+export {
+  listInconsistentNames,
+  titleToFilename,
+  renameInconsistentNames
+} from './fileNaming'
 export {
   jumpToDone,
   jumpToHeading,
@@ -49,7 +54,7 @@ export async function onUpdateOrInstall(): Promise<void> {
     logDebug(pluginJson, `${configKey}: onUpdateOrInstall running`)
 
     // Tell user the plugin has been updated
-    if (pluginJson['plugin.lastUpdateInfo'] !== 'undefined') {
+    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
       await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
         `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`
       )
