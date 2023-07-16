@@ -157,8 +157,8 @@ const clickHandlersScript = `
 
 // For clicking on item icons
 function handleIconClick(id, paraType, filename, content, metaModifier) {
-  console.log('handleIconClick( ' + id + ' / ' + paraType + ' / {' + content + '} / ' + filename + ' / ' + String(metaModifier)+ ' )');
-  const encodedFilename = encodeRFC3986URIComponent(filename);
+  console.log('handleIconClick( ' + id + ' / ' + paraType + ' / ' + filename + '/ {' + content + '} / ' + String(metaModifier)+ ' )');
+  const encodedFilename = filename; // already encoded at this point. Was: encodeRFC3986URIComponent(filename);
   const encodedContent = encodeRFC3986URIComponent(content);
 
   switch(paraType) {
@@ -180,7 +180,7 @@ function handleIconClick(id, paraType, filename, content, metaModifier) {
 // For clicking on main 'paragraph content'
 function handleContentClick(id, filename, content) {
   console.log('handleContentClick( ' + id + ' / ' + filename + ' / {' +content + '} )');
-  const encodedFilename = encodeRFC3986URIComponent(filename);
+  const encodedFilename = filename; // already encoded at this point. Was: encodeRFC3986URIComponent(filename);
   const encodedContent = encodeRFC3986URIComponent(content);
 	onClickDashboardItem( { itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } );
 }

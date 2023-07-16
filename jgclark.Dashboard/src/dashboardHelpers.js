@@ -328,7 +328,9 @@ export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteT
 
     // Method 2: pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${item.filename}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
+    // return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${item.filename}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
+    // Method 3: pass as a single object
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.filename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
   }
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
@@ -347,7 +349,8 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
     // Pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('fake','showNoteInEditorFromTitle','${encodeURIComponent(noteTitle)}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
+    // return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('fake','showNoteInEditorFromTitle','${encodeURIComponent(noteTitle)}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
   }
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)

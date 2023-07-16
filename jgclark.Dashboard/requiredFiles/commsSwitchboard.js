@@ -99,7 +99,6 @@ async function completeTask(data) {
 
   // See if the only remaining item is the '> There are also ... items' line
   const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
-  // console.log(`completeTask: after completing, ${String(numItemsRemaining)} items remaining`)
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
@@ -129,7 +128,6 @@ async function completeChecklist(data) {
 
   // See if the only remaining item is the '> There are also ... items' line
   const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
-  // console.log(`completeChecklist: after completing, ${String(numItemsRemaining)} items remaining`)
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
@@ -151,7 +149,6 @@ async function cancelChecklist(data) {
   deleteHTMLItem(itemID)
   // update the totals
   decrementItemCount("totalOpenCount")
-  // incrementItemCount("totalDoneCount")
   // update the section count
   const sectionID = itemID.split('-')[0]
   const sectionCountID = `section${sectionID}Count`
@@ -159,7 +156,6 @@ async function cancelChecklist(data) {
 
   // See if the only remaining item is the '> There are also ... items' line
   const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
-  // console.log(`cancelChecklist: after completing, ${String(numItemsRemaining)} items remaining`)
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
@@ -181,7 +177,6 @@ async function cancelTask(data) {
   deleteHTMLItem(itemID)
   // update the totals
   decrementItemCount("totalOpenCount")
-  // incrementItemCount("totalDoneCount")
   // update the section count
   const sectionID = itemID.split('-')[0]
   const sectionCountID = `section${sectionID}Count`
@@ -189,7 +184,6 @@ async function cancelTask(data) {
 
   // See if the only remaining item is the '> There are also ... items' line
   const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
-  // console.log(`cancelTask: after completing, ${String(numItemsRemaining)} items remaining`)
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
@@ -286,9 +280,7 @@ function addClassToID(ID, newerClass) {
   const elem = document.getElementById(ID)
   if (elem) {
     const origClass = elem.getAttribute("class")
-    // console.log(`before = ${origClass}`)
     elem.setAttribute("class", `${origClass} ${newerClass}`)
-    // console.log(`after = ${elem.getAttribute("class")}`)
   }
 }
 
@@ -296,9 +288,7 @@ function replaceClassInID(ID, replacementClass) {
   console.log(`replaceClassInID: for ${ID}`)
   const elem = document.getElementById(ID)
   if (elem) {
-    console.log(`- before = ${elem.getAttribute("class")}`)
     elem.setAttribute("class", replacementClass)
-    console.log(`- after = ${elem.getAttribute("class")}`)
   }
 }
 

@@ -145,7 +145,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         clo(data)
         const thisWin = getWindowFromCustomId(windowCustomId)
         // const rect = getLiveWindowRectFromWin(thisWin)
-        const rect: Rect = JSON.parse(data.content)
+        const rect: Rect = JSON.parse(content)
         clo(rect)
         if (rect) {
           logDebug('oCDI/windowResized', rectToString(rect))
@@ -167,7 +167,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // Handle a show note call simply by opening the note in the main Editor
         // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
         // TEST: decoding not needed now? 7.6.23
-        const wantedTitle = filename // decodeURIComponent(filename)
+        const wantedTitle = filename
         const note = await Editor.openNoteByTitle(wantedTitle)
         if (note) {
           logDebug('bridgeClickDashboardItem', `-> successful call to open title ${wantedTitle} in Editor`)
@@ -182,10 +182,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         if (note) {
           // decode content and pass to highlightParagraphInEditor()
           // TEST: decoding not needed now? 7.6.23
-          logDebug('bridgeClickDashboardItem', `raw in ${data.content}`)
-          const decodedContent = data.content // decodeURIComponent(data.content)
-          logDebug('bridgeClickDashboardItem', `raw decoded ${decodedContent}`)
-          const res = highlightParagraphInEditor({ filename: filename, content: decodedContent })
+          logDebug('bridgeClickDashboardItem', `raw decoded ${content}`)
+          const res = highlightParagraphInEditor({ filename: filename, content: content })
           logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
         }
         break
@@ -198,10 +196,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         if (note) {
           // decode content and pass to highlightParagraphInEditor()
           // TEST: decoding not needed now? 7.6.23
-          logDebug('bridgeClickDashboardItem', `raw in ${data.content}`)
-          const decodedContent = data.content // decodeURIComponent(data.content)
-          logDebug('bridgeClickDashboardItem', `raw decoded ${decodedContent}`)
-          const res = highlightParagraphInEditor({ filename: note.filename, content: decodedContent })
+          logDebug('bridgeClickDashboardItem', `raw decoded ${content}`)
+          const res = highlightParagraphInEditor({ filename: note.filename, content: content })
           logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
         } else {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)

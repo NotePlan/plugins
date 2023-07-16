@@ -21,8 +21,8 @@ On the daily/weekly/monthly sections there are 'add task' and 'add checklist' ic
 <img src="add-buttons@2x.png" width="170px">
 
 
-
 Other notes:
+- _It requires the separate 'Shared Resources' plugin to be installed_.
 - The Dashboard doesn't use NotePlan's normal editor, but a more flexible HTML-based display. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
 - The plugin cannot work effectively on an **iPhone**-sized device, so it is disabled there.  On an **iPad** windows can't float in the same way as they can on macOS, so it's less useful, but it still works.
 - When the window is wide enough, it will switch to a multi-column display

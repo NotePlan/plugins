@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.5.1] - 2023-07-???
+### Fixed
+- ...
+
 ## [0.5.0] - 2023-07-14
 ### Added
 - update open icon to completed or cancelled, as it disappears in the animation.
