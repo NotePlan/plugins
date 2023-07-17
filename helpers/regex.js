@@ -96,6 +96,10 @@ export const RE_EVENT_LINK: RegExp = /!\[.*\]\(\d{4}-[01]\d-[0123]\d\s[0-2]\d:[0
 // - RE_ALLOWED_TIME_BLOCK_LINE_START
 // - RE_TIMEBLOCK_FOR_THEMES
 
+// notelinks
+export const RE_NOTELINK_G: Regex = /\[\[[^\[]+\]\]/g
+export const RE_NOTELINK_CAPTURE_TITLE_G: Regex = /\[\[([^\[]+)\]\]/g
+
 // URLs and Links
 export const RE_MARKDOWN_LINKS_CAPTURE_G: RegExp = /\[([^\]]+)\]\(([^\)]+)\)/g
 export const RE_MARKDOWN_LINK_PATH_CAPTURE: RegExp = /\[.+?\]\(([^\s]*?)\)/
