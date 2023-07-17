@@ -591,7 +591,7 @@ export function filterParasAgainstExcludeFolders(paras: Array<TParagraph>, exclu
       })
       return parasFiltered
     } else {
-      logWarn('note/filterParasAgainstExcludeFolders', `ffound no corresponding notes`)
+      logDebug('note/filterParasAgainstExcludeFolders', `found no corresponding notes`)
       return []
     }
   } catch (err) {
