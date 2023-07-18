@@ -9,6 +9,7 @@ import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import { listConflicts } from './conflicts'
 import { listDuplicates } from './duplicates'
+import { moveTopLevelTasksInNote } from './topLevelTasks'
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import { RE_DONE_DATE_TIME, RE_DONE_DATE_TIME_CAPTURES, RE_DONE_DATE_OPT_TIME } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
@@ -89,6 +90,11 @@ export async function tidyUpAll(): Promise<void> {
       CommandBar.showLoading(true, `Tidying up old triggers ...`, 0.9)
       logDebug('tidyUpAll', `Starting removeDoneTimeParts...`)
       await removeTriggersFromRecentCalendarNotes(param)
+    }
+
+    if (config.moveTopLevelTasksInEditor) {
+      const heading = config.moveTopLevelTasksHeading.length ? config.moveTopLevelTasksHeading : null
+      await moveTopLevelTasksInNote(Editor, heading, config.runSilently)
     }
 
     // stop spinner

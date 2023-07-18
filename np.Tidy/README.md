@@ -14,6 +14,7 @@ This plugin provides commands to help tidy up your notes:
 - **/Remove @done() markers** (alias "rdm"): Remove @done(...) markers from recently-updated notes, optionally just from completed checklist items.
 - **/Remove >today tags from completed todos** (alias "removeToday" or "rmt"): Removes the ">today" tag still attached to completed/cancelled tasks that means they keep showing up in Today's references every day forever. Does not touch open tasks.
 - **/Remove triggers from recent calendar notes** (alias "rtcn"): Remove one or more triggers from recent (but past) calendar notes.
+- **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading.
 
 Most can be used with parameters from a Template, or via an x-callback call.
 
@@ -63,6 +64,7 @@ The available parameters are:
 | Remove section from recent notes | matchType, sectionHeading |
 | Remove time parts from @done() dates | runSilently |
 | Remove >today tags from completed todos | runSilently |
+| Move top-level tasks in Editor to heading | Heading name to place the tasks under | runSilently |
 <!-- | File root-level notes | rootNotesToIgnore | -->
 
 **Tip:** as these are complicated and fiddly to create, **I strongly suggest you use @dwertheimer's excellent [Link Creator plugin]() command "/Get X-Callback-URL"** which makes it vastly easier.
