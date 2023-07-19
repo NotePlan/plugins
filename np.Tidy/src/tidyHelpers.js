@@ -34,7 +34,7 @@ export type TidyConfig = {
   removeTriggersFromRecentCalendarNotes: boolean,
   removeTodayTagsFromCompletedTodos: boolean,
   moveTopLevelTasksInEditor: boolean,
-  moveTopLevelTasksInEditor: string,
+  moveTopLevelTasksHeading: string,
   runSilently: boolean,
   _logLevel: string,
 }
