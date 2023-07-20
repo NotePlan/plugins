@@ -15,14 +15,19 @@ import { removeRepeats } from '@helpers/dateTime'
  * @author @dwertheimer
  * @param {string} headingName - Name of heading to place the tasks under (will be created if doesn't exist)
  * @param {boolean} runSilently - Run silently (e.g. in a template). Default is false.
+ * @param {boolean} returnContentAsText - Return the content of the note as text, rather than inserting under a heading (e.g. for template use)
  */
-export async function moveTopLevelTasksInEditor(headingName: string | null = null, runSilently: boolean = false) {
+export async function moveTopLevelTasksInEditor(headingName: string | null = null, runSilently: boolean = false, returnContentAsText: boolean = false): Promise<string | null> {
   try {
-    logDebug(pluginJson, `moveTopLevelTasksInEditor running with headingName: ${String(headingName)}, runSilently: ${String(runSilently)}`)
-    await moveTopLevelTasksInNote(Editor, headingName, runSilently)
+    logDebug(
+      pluginJson,
+      `moveTopLevelTasksInEditor running with headingName: ${String(headingName)}, runSilently: ${String(runSilently)} returnContentAsText: ${String(returnContentAsText)}`,
+    )
+    return await moveTopLevelTasksInNote(Editor, headingName, runSilently, returnContentAsText)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+  return null
 }
 /**
  * Move top-level tasks to heading - Helper function called by the moveTopLevelTasksInEditor function
@@ -30,10 +35,19 @@ export async function moveTopLevelTasksInEditor(headingName: string | null = nul
  * @param {CoreNoteFields} note - The note to process. Can be Editor,or a note
  * @param {string} headingName - Name of heading to place the tasks under (will be created if doesn't exist)
  * @param {boolean} runSilently - Run silently (e.g. in a template). Default is false.
+ * @param {boolean} returnContentAsText - Return the content of the note as text, rather than inserting under a heading (e.g. for template use)
  */
-export async function moveTopLevelTasksInNote(note: CoreNoteFields, headingName: string | null = null, runSilently: boolean = false) {
+export async function moveTopLevelTasksInNote(
+  note: CoreNoteFields,
+  headingName: string | null = null,
+  runSilently: boolean = false,
+  returnContentAsText?: boolean = false,
+): Promise<string | null> {
   try {
-    logDebug(pluginJson, `moveTopLevelTasksInNote running with headingName: ${String(headingName)}, runSilently: ${String(runSilently)}`)
+    logDebug(
+      pluginJson,
+      `moveTopLevelTasksInNote running with headingName: ${String(headingName)}, runSilently: ${String(runSilently)} returnContentAsText: ${String(returnContentAsText)}`,
+    )
     let heading = headingName || DataStore.settings.moveTopLevelTasksHeading
     /*
             Note: top level tasks without a title are just like calendar notes:
@@ -41,25 +55,27 @@ export async function moveTopLevelTasksInNote(note: CoreNoteFields, headingName:
             -1 for items at the top level
             1+ for items beneath a heading
           */
+    const returnTextArr = []
     const minLevel = 0
     if (note.paragraphs.length) {
       const topLevelParas = note.paragraphs.filter((para) => para.headingLevel < minLevel && TASK_TYPES.includes(para.type))
       if (topLevelParas.length) {
-        if (!heading) {
+        if (!returnContentAsText && !heading) {
           heading = await chooseHeading(note, true, true, true)
           if (!heading) {
             logError(pluginJson, 'moveTopLevelTasks: No heading chosen. Exiting.')
             runSilently ? null : await showMessage('No heading chosen. Exiting.')
-            return
+            return null
           }
         }
         const reversedParas = topLevelParas.sort((a, b) => (b.lineIndex > a.lineIndex ? 1 : -1))
         reversedParas.forEach((para) => {
           logDebug(pluginJson, `moveTopLevelTasks: Moving paragraph ${para.lineIndex}: "${para.rawContent}" to heading ${heading}`)
-          note.addParagraphBelowHeadingTitle(para.content, para.type, heading || '', false, true)
+          returnContentAsText ? returnTextArr.push(para.rawContent) : note.addParagraphBelowHeadingTitle(para.content, para.type, heading || '', false, true)
+          // delete the paragraph at the top of the note
           para.content = removeRepeats(para.content)
           note.updateParagraph(para)
-          note.removeParagraph(para)
+          note.removeParagraph(note.paragraphs[para.lineIndex])
           if (note.paragraphs[para.lineIndex] && note.paragraphs[para.lineIndex].rawContent === para.rawContent) {
             logError(pluginJson, `moveTopLevelTasks: Failed to remove paragraph ${para.lineIndex}: "${para.rawContent}"`)
           }
@@ -70,21 +86,26 @@ export async function moveTopLevelTasksInNote(note: CoreNoteFields, headingName:
           logDebug(pluginJson, 'moveTopLevelTasks: Removing empty paragraph at top of note.')
           const contentArr = note.content?.split('\n') || []
           note.content = contentArr.slice(1).join('\n')
-          const headingPara = note.paragraphs.find((para) => para.type === 'title' && para.content === heading)
-          if (headingPara) {
-            const headingContentRangeEnd = headingPara.contentRange?.end || 0
-            Editor.highlightByIndex(headingContentRangeEnd + 1, 0) // skip the newline and the task character
-            clo(headingPara, `headingPara`)
-            clo(headingPara.contentRange, `headingPara.contentRange`)
+          if (!returnContentAsText) {
+            // resetting the content will scroll to the end of the note, so let's scroll to the place we inserted
+            const headingPara = note.paragraphs.find((para) => para.type === 'title' && para.content === heading)
+            if (headingPara) {
+              const headingContentRangeEnd = headingPara.contentRange?.end || 0
+              Editor.highlightByIndex(headingContentRangeEnd + 1, 0) // skip the newline and the task character
+            }
           }
         }
+        returnContentAsText ? logDebug(pluginJson, `moveTopLevelTasks: returning content:${returnTextArr.toString()}`) : null
+        return returnContentAsText ? returnTextArr.join('\n') : null
       }
     } else {
       logError(pluginJson, 'moveTopLevelTasks: No paragraphs in note. Exiting.')
       runSilently ? null : await showMessage('No paragraphs in note. Exiting.')
-      return
+      return returnContentAsText ? '' : null
     }
   } catch (error) {
     logError(pluginJson, JSP(error))
+    returnContentAsText ? '' : null
   }
+  return returnContentAsText ? '' : null
 }

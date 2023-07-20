@@ -176,8 +176,9 @@
       "jsFunction": "moveTopLevelTasksInEditor",
       "alias": [ "mtth","mtlth"],
       "arguments": [
-        "Heading name to place the tasks under (will be created if doesn't exist)", 
-        "Run silently (e.g. in a template). Default is false."
+        "Heading name to place the tasks under (will be created if doesn't exist). If you are running this command in a template, put any non-blank text in the field below.", 
+        "Run silently (e.g. in a template). Default is false.",
+        "Return the content of the tasks text, rather than inserting under a heading (e.g. for inserting in a tempate)"
       ]
     }
   ],
@@ -384,7 +385,7 @@
     {
       "title": "Run '/Move top-level tasks in Editor to heading?",
       "key": "moveTopLevelTasksInEditor",
-      "description": "",
+      "description": "Note: this command does not work like the other commands inside a template (e.g. your daily template). See plugin README for how to run this command in a daily template.",
       "type": "bool",
       "default": false,
       "required": true
