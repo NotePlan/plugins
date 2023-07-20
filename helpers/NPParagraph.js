@@ -1353,7 +1353,7 @@ export function markCancelled(para: TParagraph): boolean {
  */
 export function completeItem(filenameIn: string, content: string): boolean {
   try {
-    logDebug('NPP/completeItem', `starting with filename: ${filenameIn}, content: ${content}`)
+    logDebug('NPP/completeItem', `starting with filename: ${filenameIn}, content: <${content}>`)
     let filename = filenameIn
     if (filenameIn === 'today') {
       filename = getTodaysDateUnhyphenated()
