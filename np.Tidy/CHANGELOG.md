@@ -4,6 +4,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README
 ## [0.8.0] - 2023-07-18 @dwertheimer
 
 - new command: Move top-level tasks in Editor to heading]
+- fixed moving of files to proper folder name in Trash
 
 ## [0.7.0] - 2023-07-04 @dwertheimer
 - new **/Remove >today tags from completed todos** command that removes the ">today" tag still attached to completed/cancelled tasks that means they keep showing up in Today's references every day forever. Does not touch open tasks.

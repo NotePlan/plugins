@@ -19,6 +19,7 @@ import { removeFrontMatterField, noteHasFrontMatter } from '@helpers/NPFrontMatt
 import { getNotesChangedInInterval, getNotesChangedInIntervalFromList, getTodaysReferences } from '@helpers/NPnote'
 import { removeContentUnderHeadingInAllNotes } from '@helpers/NPParagraph'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
+import { getFolderFromFilename } from '@helpers/folders'
 
 //-----------------------------------------------------------------------------
 
@@ -737,30 +738,33 @@ export async function removeBlankNotes(runSilently: boolean = false): Promise<vo
     // If we get this far, then remove the notes
     let numRemoved = 0
     for (const thisNote of blankNotes) {
-      const filenameForTrash = `@Trash/${thisNote.filename.replace('//', '/')}`
+      // const filenameForTrash = `@Trash/${thisNote.filename.replace('//', '/')}`
+      const filenameForTrash = `@Trash` // `@Trash/Calendar`
       // Deal with a calendar note
       if (thisNote.type === 'Calendar') {
         // Note: before v3.9.3 we can't move Calendar notes, so don't try
         if (NotePlan.environment.buildVersion > 1053) {
-          const res = DataStore.moveNote(thisNote.filename, filenameForTrash, 'Calendar')
+          logDebug('removeBlankNotes', `running DataStore.moveNote("${thisNote.filename}", "${filenameForTrash}", 'calendar')`)
+          const res = DataStore.moveNote(thisNote.filename, filenameForTrash, 'calendar')
           if (res) {
             logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
             numRemoved++
           } else {
-            logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to @Trash (as ${filenameForTrash}) for some unknown reason.`)
+            logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}' for some unknown reason.`)
           }
         } else {
-          logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to @Trash (as ${filenameForTrash}); because before v3.9.3, you can't move Calendar notes.`)
+          logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}'; because before v3.9.3, you can't move Calendar notes.`)
         }
         continue // next item in loop
       }
       // Deal with a project note ...
       const res = DataStore.moveNote(thisNote.filename, filenameForTrash)
+      logDebug('removeBlankNotes', `running DataStore.moveNote("${thisNote.filename}", "${filenameForTrash}")`)
       if (res) {
         logDebug('removeBlankNotes', `- moved '${thisNote.filename}' to '${res}'`)
         numRemoved++
       } else {
-        logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to @Trash (as ${filenameForTrash}) for some unknown reason.`)
+        logInfo('removeBlankNotes', `- couldn't move '${thisNote.filename}' to '${filenameForTrash}' for some unknown reason.`)
       }
     }
   } catch (err) {
