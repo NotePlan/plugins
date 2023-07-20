@@ -14,6 +14,7 @@ This plugin provides commands to help tidy up your notes:
 - **/Remove @done() markers** (alias "rdm"): Remove @done(...) markers from recently-updated notes, optionally just from completed checklist items.
 - **/Remove >today tags from completed todos** (alias "removeToday" or "rmt"): Removes the ">today" tag still attached to completed/cancelled tasks that means they keep showing up in Today's references every day forever. Does not touch open tasks.
 - **/Remove triggers from recent calendar notes** (alias "rtcn"): Remove one or more triggers from recent (but past) calendar notes.
+- **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. NOTE: this command does not work inside a template. See details below.
 
 Most can be used with parameters from a Template, or via an x-callback call.
 
@@ -21,6 +22,10 @@ There's also the **/Tidy Up** (alias "tua"), which runs as many of the other com
 
 ## Using from Templates
 If these commands are valuable to you, then you probably want to be running them regularly. NotePlan doesn't (yet) allow fully automatic running of commands, but you can get close by including the commands in your Daily Note Template that you run each day (e.g. via the separate /dayStart command from my [Daily Journal plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md)).
+
+To call all the checked commands in settings inside your template:
+
+`<% await DataStore.invokePluginCommandByName("Tidy Up","np.Tidy",[])  %>`
 
 To call one of these commands from a Template use this Templating command:
 
@@ -33,6 +38,19 @@ For example, this will remove sections with the heading 'Habit Progress' from no
 `<% await DataStore.invokePluginCommandByName("Remove section from notes","np.Tidy",['{"numDays":2, "sectionHeading":"Habit progress", "runSilently": true}'])  %>`
 
 **Tip:** as these are complicated and fiddly to create, **I suggest you use @dwertheimer's excellent [Link Creator plugin](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) command "/Get X-Callback-URL"** which makes it much simpler.
+
+### Running **/Move top-level tasks in Editor to heading** in a template
+
+This command rewrites the current document in the Editor, moving tasks from the top to underneath a specified heading. It cannot run like the other commands by itself or as part of TidyUp in a template, because the template processor is rewriting the document in parallel. You will get duplicate headings. There is a way to include this in your daily note, however. If you include some code like the following in your daily note template, it will run the command and include the output in the flow of writing the template, and so the document will not be getting written twice in parallel.
+```
+## Tasks
+* 
+<% const tasks = await DataStore.invokePluginCommandByName("Tidy: Move top-level tasks in Editor to heading","np.Tidy",["Tasks",true,true]);  -%>
+<% if (tasks.length) { -%>
+<%- tasks %>
+<% } -%>
+```
+> **NOTE:** If you also run the `Tidy Up` command in your template, you should uncheck this command in the TidyUp settings.
 
 <!-- but if not ??? list params -->
 
@@ -63,6 +81,7 @@ The available parameters are:
 | Remove section from recent notes | matchType, sectionHeading |
 | Remove time parts from @done() dates | runSilently |
 | Remove >today tags from completed todos | runSilently |
+| Move top-level tasks in Editor to heading | Heading name to place the tasks under | runSilently |
 <!-- | File root-level notes | rootNotesToIgnore | -->
 
 **Tip:** as these are complicated and fiddly to create, **I strongly suggest you use @dwertheimer's excellent [Link Creator plugin]() command "/Get X-Callback-URL"** which makes it vastly easier.
