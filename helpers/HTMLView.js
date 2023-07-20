@@ -981,6 +981,8 @@ export async function showHTMLV2(
         opts.savedFilename ?? '',
         opts.width,
         opts.height,
+        opts.x,
+        opts.y,
         opts.customId)
       return true // for completeness
 
@@ -1008,29 +1010,34 @@ export async function showHTMLV2(
       } else {
         let winOptions = {}
         // First set to the default values
-        logDebug('showHTMLV2', `- Using default Rect for window`)
         winOptions = {
           x: opts.x,
           y: opts.y,
           width: opts.width,
-          height: opts.height,
+          height: (opts.height > 56) ? opts.height : 500, // to cope with bug where height can change to 28px
           shouldFocus: opts.shouldFocus,
           // Note: can't set customId, but only long UID ('id')
         }
         // Now override with saved x/y/w/h for this window if wanted, and if available
         if (opts.reuseUsersWindowRect && cId) {
-          logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
+          // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
           const storedRect = getStoredWindowRect(cId)
           if (storedRect) {
             winOptions = {
               x: storedRect.x,
               y: storedRect.y,
               width: storedRect.width,
-              height: storedRect.height,
+              height: (storedRect.height > 56) ? storedRect.height : 500, // to cope with bug where height can change to 28px
               shouldFocus: opts.shouldFocus
             }
             logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
+          } else {
+            logDebug('showHTMLV2', `- Couldn't read user's saved Rect from pref from ${cId}`)
           }
+        }
+        clo(winOptions, 'showHTMLV2 using winOptions:')
+        if (winOptions.height < 29) {
+          logWarn('showHTMLV2', `**** height to use = ${winOptions.height}px! ****`)
         }
 
         // clo(winOptions, 'subset of options for API call:')
