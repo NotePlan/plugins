@@ -174,9 +174,12 @@
       "name": "Tidy: Move top-level tasks in Editor to heading",
       "description": "Tasks at top of active note (prior to any heading) will be placed under a specified heading",
       "jsFunction": "moveTopLevelTasksInEditor",
-      "alias": [ "mtth","mtlth"],
+      "alias": [
+        "mtth",
+        "mtlth"
+      ],
       "arguments": [
-        "Heading name to place the tasks under (will be created if doesn't exist). If you are running this command in a template, put any non-blank text in the field below.", 
+        "Heading name to place the tasks under (will be created if doesn't exist). If you are running this command in a template, put any non-blank text in the field below.",
         "Run silently (e.g. in a template). Default is false.",
         "Return the content of the tasks text, rather than inserting under a heading (e.g. for inserting in a tempate)"
       ]
