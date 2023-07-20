@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 12.4.2023 for v0.4.1 by @jgclark
+// Last updated 17.7.2023 for v0.5.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -371,9 +371,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
       {
         "priority": -1,
         "type": "open",
-        "content": "Methodist HC sheet fix typo → @RP for printing ^l7flz7 >2023-W09",
+        "content": "fix HC sheet typo → @RP for printing ^l7flz7 >2023-W09",
         "blockId": "^l7flz7",
-        "rawContent": "* Methodist HC sheet fix typo → @RP for printing ^l7flz7 >2023-W09",
+        "rawContent": "* fix HC sheet typo → @RP for printing ^l7flz7 >2023-W09",
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 13,
@@ -395,8 +395,8 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
       {
         "priority": -1,
         "type": "checklist",
-        "content": "Send Linda a link to welcome presentation >2023-W09",
-        "rawContent": "+ Send Linda a link to welcome presentation >2023-W09",
+        "content": "Send @Linda a link to welcome presentation >2023-W09",
+        "rawContent": "+ Send @Linda a link to welcome presentation >2023-W09",
         "prefix": "+ ",
         "contentRange": {},
         "lineIndex": 18,
@@ -563,6 +563,52 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
       sectionCount++
     }
 
+    //-----------------------------------------------------------
+    // Demo data for TagToShow section
+    const tagToShow = '#next'
+    const isHashtag: boolean = tagToShow.startsWith('#')
+    // FIXME: Error in where this is used: note title = '(error)'
+    const tagParasFromNote = [
+      {
+        "type": "checklist",
+        "content": "Open Deliveroo account #next",
+        "rawContent": "+ Open Deliveroo account #next",
+        "title": "Test Project A",
+        "filename": "Test Project A.md",
+      },
+      {
+        "type": "open",
+        "content": "Make expenses claim #next",
+        "rawContent": "* Make expenses claim #next",
+        "title": "Finance",
+        "filename": "Finance.md",
+      }
+    ]
+    if (tagToShow !== '') {
+      let itemCount = 0
+      if (tagParasFromNote.length > 0) {
+        for (const p of tagParasFromNote) {
+          const thisID = `${sectionCount}-${itemCount}`
+          const thisFilename = p.note?.filename ?? ''
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename, type: p.type })
+          itemCount++
+        }
+      }
+
+      if (itemCount > 0) {
+        sections.push({
+          ID: sectionCount,
+          name: `${tagToShow}`,
+          description: `open task(s)`,
+          FAIconClass: (isHashtag) ? 'fa-solid fa-hashtag' : 'fa-solid fa-at',
+          sectionTitleClass: 'sidebarDaily',
+          filename: ''
+        })
+        sectionCount++
+      }
+    }
+
+    //-----------------------------------------------------------
     // Get completed count too
     doneCount += 2 // made up for demo purposes
 
@@ -580,7 +626,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
     // Notes to review
     const nextNotesToReview = [
       {
-        "filename": "CCC Areas/Staff/Staff Induction JM.md",
+        "filename": "CCC Areas/Staff/Staff Induction (JW).md",
         "type": "Notes",
         "title": "Staff Induction (JW)",
         "changedDate": "2023-02-28T13:11:30.000Z",

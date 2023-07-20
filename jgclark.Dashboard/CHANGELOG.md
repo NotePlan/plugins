@@ -2,8 +2,14 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 ## [0.5.1] - 2023-07-???
+### Added
+- tasks including markdown bold and italic text are now styled appropriately
+- embedded images in tasks are now replaced with an icon
+- new 'hover' effect over the todo circle and checklist square, to help hint that clicking will complete it (or command-click will cancel it).
+
 ### Fixed
-- ...
+- lots of edge cases ???
+- 'Filter ...' checkbox
 
 ## [0.5.0] - 2023-07-14
 ### Added

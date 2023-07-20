@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 22.3.2023 for v0.3.2, @jgclark
+// last updated 18.7.2023 for v0.5.1, @jgclark
 // ----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -15,7 +15,7 @@ export { logWindowsList } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
 
 export { getDemoDataForDashboard } from './demoDashboard'
-export { addTask, addChecklist, showDashboardHTML, showDemoDashboardHTML } from './dashboardHTML'
+export { addTask, addChecklist, showDashboardHTML, showDemoDashboardHTML, resetDashboardWinSize } from './dashboardHTML'
 export { decideWhetherToUpdateDashboard } from './dashboardTriggers'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge'
 export { getDataForDashboard, logDashboardData } from './dataGeneration'

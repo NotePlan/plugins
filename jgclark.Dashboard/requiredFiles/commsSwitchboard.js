@@ -230,6 +230,7 @@ async function cancelTask(data) {
  * @param {string} statusWas
  */
 function onClickDashboardItem(data) {
+  event.preventDefault // TEST: does this do anything?
   sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
 
   // const {itemID, type, filename, encodedContent} = data
@@ -255,7 +256,7 @@ function onClickDashboardItem(data) {
  * @param {boolean} state that it now has
  */
 function onChangeCheckbox(settingName, state) {
-  // const data = { settingName, state }
+  const data = { settingName, state }
   // console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
   sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
 }

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 14.7.2023 for v0.5.0 by @jgclark
+// Last updated 18.7.2023 for v0.5.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -15,6 +15,7 @@ import {
 } from './dashboardHelpers'
 import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { unsetPreference } from '@helpers/NPdev'
 import { getDateStringFromCalendarFilename, toLocaleTime } from '@helpers/dateTime'
 import { getFolderFromFilename } from '@helpers/folders'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
@@ -22,7 +23,15 @@ import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCal
 import { showHTMLV2 } from '@helpers/HTMLView'
 import { getNoteType } from '@helpers/note'
 import { decodeRFC3986URIComponent, encodeRFC3986URIComponent } from '@helpers/stringTransforms'
-import { focusHTMLWindowIfAvailable } from '@helpers/NPWindows'
+import {
+  applyRectToWindow,
+  closeWindowFromCustomId,
+  focusHTMLWindowIfAvailable,
+  getLiveWindowRectFromWin,
+  getStoredWindowRect,
+  getWindowFromCustomId,
+  rectToString
+} from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------
 // HTML resources
@@ -65,37 +74,37 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
 `
 
 /**
- * Attempt to add a key listener added to all checklist items
- * TODO: Not yet working.
+ * Add event listener added to all todo + checklist icons
+ * Note: now not used, as on onClick is included in the HTML directly when generating the page.
  */
-const addEventListenersScript = `
-<!-- addEventListenersScript -->
+const addIconEventListenersScript = `
+<!-- addIconEventListenersScript -->
 <script type="text/javascript">
-console.log('add Event Listeners ...');
+console.log('add Event Listeners to Icons ...');
 
 function mouseenterTodoFunc() {
-	console.log('mouseenterTodo ...');
+	// console.log('mouseenterTodo ... after '+String(event.detail)+' clicks');
 	if (event.metaKey) {
-		this.innerHTML = '<i class="cancelled fa-regular fa-circle-check">';
+		this.innerHTML = '<i class="cancelled fa-regular fa-circle-xmark">';
 	} else {
 		this.innerHTML = '<i class="checked fa-regular fa-circle-check">';
 	}
 }
 
 function mouseenterChecklistFunc() {
-	console.log('mouseenterChecklist ...');
+	// console.log('mouseenterChecklist ... after '+String(event.detail)+' clicks');
 	if (event.metaKey) {
-		this.innerHTML = '<i class="cancelled fa-regular fa-square-check">';
+		this.innerHTML = '<i class="cancelled fa-regular fa-square-xmark">';
 	} else {
 		this.innerHTML = '<i class="checked fa-regular fa-square-check">';
 	}
 }
 
-function mouseoutTodoFunc() {
+function mouseleaveTodoFunc() {
 	this.innerHTML = '<i class="todo fa-regular fa-circle">';
 }
 
-function mouseoutChecklistFunc() {
+function mouseleaveChecklistFunc() {
 	this.innerHTML = '<i class="todo fa-regular fa-square">';
 }
 
@@ -104,47 +113,100 @@ let allTodos = document.getElementsByClassName("sectionItemTodo");
 for (const thisTodo of allTodos) {
 	thisTodo.addEventListener('click', function () {
     this.removeEventListener("mouseenter", mouseenterTodoFunc);
-    this.removeEventListener("mouseout", mouseoutTodoFunc);
+    this.removeEventListener("mouseleave", mouseleaveTodoFunc);
     let thisId = thisTodo.parentElement.id;
     console.log('sectionItemTodo ' + thisId + ' clicked');
     let thisFilename = thisTodo.id;
     let metaModifier = event.metaKey;
-    handleIconClick(thisId, 'open', thisFilename, thisTodo.nextElementSibling.getElementsByTagName("A")[0].innerHTML, metaModifier);
+    // handleIconClick(thisId, 'open', thisFilename, thisTodo.nextElementSibling.getElementsByTagName("A")[0].innerHTML, metaModifier);
+    handleIconClick(thisId, 'open', thisFilename, thisTodo.dataset.encodedContent, metaModifier);
   }, false);
-	// FIXME: Why is this stopping click from working? Seems its treating click as mouseenter
-	// thisTodo.addEventListener('mouseenter', mouseenterTodoFunc, false);
-	// thisTodo.addEventListener('mouseout', mouseoutTodoFunc, false);
-	// console.log('sectionItemTodo EL added');
+	// Add mouseover-type events to hint as to what's going to happen
+	thisTodo.addEventListener('mouseenter', mouseenterTodoFunc, false);
+	thisTodo.addEventListener('mouseleave', mouseleaveTodoFunc, false);
 }
+console.log(String(allTodos.length) + ' sectionItemTodo ELs added (to icons)');
 
 // Add event handlers for checklist icons
 let allChecklists = document.getElementsByClassName("sectionItemChecklist");
 for (const thisChecklist of allChecklists) {
 	thisChecklist.addEventListener('click', function () {
-    this.removeEventListener("mouseout", mouseoutChecklistFunc);
+    this.removeEventListener("mouseenter", mouseenterChecklistFunc);
+    this.removeEventListener("mouseleave", mouseleaveChecklistFunc);
     let thisId = thisChecklist.parentElement.id;
     let thisFilename = thisChecklist.id;
     let metaModifier = event.metaKey;
-    handleIconClick(thisId, 'checklist', thisFilename, thisChecklist.nextElementSibling.getElementsByTagName("A")[0].innerHTML, metaModifier);
+    // handleIconClick(thisId, 'checklist', thisFilename, thisChecklist.nextElementSibling.getElementsByTagName("A")[0].innerHTML, metaModifier);
+    handleIconClick(thisId, 'checklist', thisFilename, thisChecklist.dataset.encodedContent, metaModifier);
   }, false);
-	// FIXME: as above
-	// checklist.addEventListener('mouseenter', mouseenterChecklistFunc, false);
-	// checklist.addEventListener('mouseout', mouseoutChecklistFunc, false);
-	// console.log('sectionItemChecklist EL added');
+	// Add mouseover-type events to hint as to what's going to happen
+	thisChecklist.addEventListener('mouseenter', mouseenterChecklistFunc, false);
+	thisChecklist.addEventListener('mouseleave', mouseleaveChecklistFunc, false);
 }
+console.log(String(allChecklists.length) + ' sectionItemChecklist ELs added (to icons)');
+</script>
+`
 
-// Add click handler for item contents
+/**
+ * Add an event listener to all content items (not the icons),
+ * except ones with class 'noteTitle', as they get their onClick definition
+ */
+const addContentEventListenersScript = `
+<!-- addContentEventListenersScript -->
+<script type="text/javascript">
+console.log('add Event Listeners to Content...');
+// Add click handler to all sectionItemContent items (which already have a basic <a>...</a> wrapper)
+// Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
 let allContentItems = document.getElementsByClassName("sectionItemContent");
 for (const contentItem of allContentItems) {
-	contentItem.addEventListener('click', function () {
-		const thisLink = contentItem.getElementsByTagName("A")[0];
-		let thisFilename = contentItem.id;
-		handleContentClick(contentItem.parentElement.id, thisFilename, thisLink.innerHTML);
-	}, false);
-	// console.log('sectionItem EL added');
-}
+  const thisID = contentItem.parentElement.id;
+  const thisEncodedContent = contentItem.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
+  const thisEncodedFilename = contentItem.dataset.encodedFilename; // contentItem.id;
+  // console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent);
 
-console.log('All ELs added');
+  // add event handler to each <a> (normally only 1 per item),
+  // unless it's a noteTitle, which gets its own click handler.
+  const theseLinks = contentItem.getElementsByTagName("A");
+  for (const thisLink of theseLinks) {
+    console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className);
+    if (!thisLink.className.match('noteTitle')) {
+      thisLink.addEventListener('click', function () {
+        handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
+        event.preventDefault(); // TEST: prevent default
+      }, false);
+    }
+  }
+
+  // // TEST: add event handler to the <td> itself
+  // contentItem.addEventListener('click', function () {
+  //   handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
+  //   event.preventDefault(); // TEST: prevent default
+  // }, false);
+}
+console.log(String(allContentItems.length) + ' sectionItem ELs added (to content links)');
+</script>
+`
+
+/**
+ * Add an event listener to all <td class="review ..."> items
+ */
+const addReviewEventListenersScript = `
+<!-- addReviewEventListenersScript -->
+<script type="text/javascript">
+console.log('add Event Listeners to Review items...');
+// Add click handler to all sectionItemReview items (which already have a basic <a>...</a> wrapper)
+// Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
+let allReviewItems = document.getElementsByClassName("review");
+for (const reviewItem of allReviewItems) {
+  const thisID = reviewItem.id;
+  const thisEncodedFilename = reviewItem.dataset.encodedFilename; // i.e. the "data-encoded-review" element, with auto camelCase transposition
+  // console.log(thisID + ' / ' + thisEncodedFilename);
+  // add event handler
+  reviewItem.addEventListener('click', function () {
+    handleIconClick(thisID, 'review', thisEncodedFilename, '', event.metaKey);
+  }, false);
+}
+console.log(String(allReviewItems.length) + ' review ELs added (to review cells)');
 </script>
 `
 
@@ -156,12 +218,12 @@ const clickHandlersScript = `
 <script type="text/javascript">
 
 // For clicking on item icons
-function handleIconClick(id, paraType, filename, content, metaModifier) {
-  console.log('handleIconClick( ' + id + ' / ' + paraType + ' / ' + filename + '/ {' + content + '} / ' + String(metaModifier)+ ' )');
+function handleIconClick(id, itemType, filename, content, metaModifier) {
+  console.log('handleIconClick( ' + id + ' / ' + itemType + ' / ' + filename + '/ {' + content + '} / ' + String(metaModifier)+ ' )');
   const encodedFilename = filename; // already encoded at this point. Was: encodeRFC3986URIComponent(filename);
-  const encodedContent = encodeRFC3986URIComponent(content);
+  const encodedContent = content; // already encoded at this point. Was: encodeRFC3986URIComponent(content);
 
-  switch(paraType) {
+  switch(itemType) {
     case 'open': {
       onClickDashboardItem( { itemID: id, type: (metaModifier) ? 'cancelTask' : 'completeTask', encodedFilename: encodedFilename, encodedContent: encodedContent } );
       break;
@@ -170,8 +232,12 @@ function handleIconClick(id, paraType, filename, content, metaModifier) {
       onClickDashboardItem( { itemID: id, type: (metaModifier) ? 'cancelChecklist' : 'completeChecklist', encodedFilename: encodedFilename, encodedContent: encodedContent } );
       break;
     }
+    case 'review': {
+      onClickDashboardItem( { itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: '' } );
+      break;
+    }
     default: {
-      console.error('- unknown paraType: ' + paraType);
+      console.error('- unknown itemType: ' + paraType);
       break;
     }
   }
@@ -179,9 +245,9 @@ function handleIconClick(id, paraType, filename, content, metaModifier) {
 
 // For clicking on main 'paragraph content'
 function handleContentClick(id, filename, content) {
-  console.log('handleContentClick( ' + id + ' / ' + filename + ' / {' +content + '} )');
+  console.log('handleContentClick( ' + id + ' / ' + filename + ' / ' +content + ' )');
   const encodedFilename = filename; // already encoded at this point. Was: encodeRFC3986URIComponent(filename);
-  const encodedContent = encodeRFC3986URIComponent(content);
+  const encodedContent = content; // already encoded at this point. Was: encodeRFC3986URIComponent(content);
 	onClickDashboardItem( { itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } );
 }
 
@@ -205,7 +271,7 @@ function handleCheckboxClick(cb) {
  *   event.preventDefault();
  * }
  */
-// FIXME: fix why this isn't firing
+// FIXME: fix why this isn't working. (Trying to have it on Listener object itself)
 // Try this?
 //   const nodes = document.childNodes;
 //   const nodeArray = [...nodes];
@@ -213,7 +279,6 @@ function handleCheckboxClick(cb) {
 const preventClicksPropagatingScript = `
 <!-- preventClicksPropagatingScript -->
 <script type="text/javascript">
-document.getElementById("mainTable").addEventListener("load", addPreventDefaultEventHandlersFunc);
 function addPreventDefaultEventHandlersFunc() {
   const allLinks = document.getElementsByClassName("sectionItem");
   console.log("Attempting to add "+String(allLinks.length)+" preventClicksPropagating ELs");
@@ -222,6 +287,8 @@ function addPreventDefaultEventHandlersFunc() {
   }
   console.log('-> preventClicksPropagating ELs added');
 }
+
+document.getElementById("mainTable").addEventListener("load", addPreventDefaultEventHandlersFunc);
 </script>
 `
 
@@ -266,8 +333,8 @@ export async function showDemoDashboardHTML(): Promise<void> {
  * Show the generated dashboard data using native HTML.
  * The HTML item IDs are defined as:
  * - x-y = section x item y, used in <tr> tags and onClick references
- * - x-yA = href link for section x item y, used in 'col 3' <td> tags
- * - x-yI = icon for section x item y, used in 'col 3' <td> tags
+ * - <filename> = encoded filename of task, used in both 'col 3' <td> tags
+ * - x-yI = icon for section x item y, used in 'col 3' <i> tag
  *
  * @author @jgclark
  * @param {boolean?} showDemoData - if true, show the demo data, otherwise show the real data
@@ -377,7 +444,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
           items = filteredItems
           items.push({
             ID: section.ID + '-Filter',
-            content: `There are also ${filteredOut} lower-priority items not yet shown.`,
+            content: `There are also ${filteredOut} lower-priority items not shown.`,
             rawContent: 'Filtered out',
             filename: '',
             type: 'filterIndicator'
@@ -387,7 +454,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
 
       for (const item of items) {
         let encodedFilename = encodeRFC3986URIComponent(item.filename)
-        let encodedRawContent = encodeRFC3986URIComponent(item.rawContent)
+        let encodedContent = encodeRFC3986URIComponent(item.content)
         let reviewNoteCount = 0 // count of note-review items
         outputArray.push(`       <tr class="no-borders" id="${item.ID}">`)
 
@@ -397,46 +464,58 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
         // Do main work for the item
         switch (item.type) {
           case 'open': {
+            logDebug('showDashboardHTML', `- adding open taskContent for ${item.content} / ${itemNoteTitle}`)
             // do icon col (was col3)
-            // outputArray.push(`         <td id="${item.ID}A" class="todo clickTarget sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${item.type}','${encodedFilename}','${encodedRawContent}')"><i id="${item.ID}I" class="fa-regular fa-circle"></i></td>`)
-            outputArray.push(`        <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`)
+            // outputArray.push(`         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`)
+            // outputArray.push(`         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders" onClick="onClickDashboardItem({itemID:'${item.ID}', type:'completeTask',encodedFilename:'${encodedFilename}',encodedContent:'${encodedContent}'})"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`)
+            outputArray.push(`         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`)
 
             // do col 4: whole note link is clickable.
             // If context is wanted, and linked note title
             let paraContent = ''
             if (config.includeTaskContext) {
-              if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle || itemNoteTitle === monthlyNoteTitle || itemNoteTitle === quarterlyNoteTitle) {
+              if ([dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
                 paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
               } else {
                 paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
               }
             } else {
-              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all')
             }
-            const cell4 = `         <td class="sectionItemContent sectionItem" id="${encodedFilename}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
+            // const cell4 = `         <td class="sectionItemContent sectionItem" id="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
           }
           case 'checklist': {
+            logDebug('showDashboardHTML', `- adding checklist taskContent for ${item.content} / ${itemNoteTitle}`)
             // do icon col (was col3)
-            // outputArray.push(`         <td class="todo clickTarget sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','${false ? 'checklistCancel' : 'checklist'}','${encodedFilename}','${encodedRawContent}')"><i class="fa-regular fa-square"></i></td>`)
-            outputArray.push(`         <td class="todo sectionItem sectionItemChecklist no-borders" id="${encodedFilename}"><i id="${item.ID}I" class="fa-regular fa-square"></i></td>`)
+            // outputArray.push(`         <td class="todo sectionItem sectionItemChecklist no-borders" id="${encodedFilename}"><i id="${item.ID}I" class="fa-regular fa-square"></i></td>`)
+            // outputArray.push(`         <td id="${encodedFilename}" class="sectionItemChecklist sectionItem no-borders" onClick="onClickDashboardItem({itemID:'${item.ID}', type:'completeChecklist',encodedFilename:'${encodedFilename}',encodedContent:'${encodedContent}'})"><i id="${item.ID}I" class="todo fa-regular fa-square"></i></td>`)
+            outputArray.push(`         <td id="${encodedFilename}" class="sectionItemChecklist sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-square"></i></td>`)
 
-            // do item details col (was col4): whole note link is clickable
-            // If context is wanted, and linked note title
+            // do item details col (was col4):
             let paraContent = ''
-            if (config.includeTaskContext) {
-              if (itemNoteTitle === dailyNoteTitle || itemNoteTitle === weeklyNoteTitle) {
-                logDebug('showDashboardHTML', `- adding checklist taskContent for ${itemNoteTitle} ?= ${weeklyNoteTitle}`)
-                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
-              } else {
-                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
-              }
+            // // whole note link is clickable if context is wanted, and linked note title
+            // if (config.includeTaskContext) {
+            //   if ([dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
+            //     paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
+            //   } else {
+            //     paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
+            //   }
+            // } else {
+            //   paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all')
+            // }
+            // whole note link is clickable if context is wanted, and linked note title
+            if (config.includeTaskContext && ![dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
             } else {
-              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item)
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
             }
-            const cell4 = `         <td class="sectionItemContent sectionItem" id="${encodedFilename}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
+
+            // const cell4 = `         <td class="sectionItemContent sectionItem" id="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -451,13 +530,13 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
           case 'review': {
             if (itemNoteTitle) {
               // do icon col (was col3)
-              outputArray.push(`           <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`)
+              // outputArray.push(`         <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`)
+              outputArray.push(`         <td id="${item.ID}I" class="review sectionItem no-borders" data-encoded-filename="${encodedFilename}"><i class="fa-solid fa-calendar-check"></i></td>`)
 
               // do item details col (was col4): review note link as internal calls
               const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
-              let cell4 = `          <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${encodedFilename}','${encodedRawContent}')">${itemNoteTitle}</a>`
-              // TODO: make specific to that note
-              cell4 += `</td>\n       </tr>`
+              // let cell4 = `         <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem({itemID:'${item.ID}', type:'showNoteInEditorFromFilename',encodedFilename:'${encodedFilename}',encodedContent:''})">${itemNoteTitle}</a>`
+              let cell4 = `         <td id="${item.ID}" class="sectionItem sectionItemContent" data-encoded-filename="${encodedFilename}">${folderNamePart}<a class="noteTitle">${itemNoteTitle}</a></td>\n       </tr>`
               outputArray.push(cell4)
               totalOpenItems++
               reviewNoteCount++
@@ -509,13 +588,13 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       makeModal: false,
       shouldFocus: false, // shouuld not focus, if Window already exists
       preBodyScript: '', // no extra pre-JS
-      postBodyScript: encodeDecodeScript + commsBridge + preventClicksPropagatingScript + addEventListenersScript + clickHandlersScript, // + checkboxClickListenerScript, // + resizeListenerScript, // + unloadListenerScript,
+      postBodyScript: encodeDecodeScript + commsBridge + addIconEventListenersScript + addContentEventListenersScript + clickHandlersScript + addReviewEventListenersScript, // + preventClicksPropagatingScript // + checkboxClickListenerScript, // + resizeListenerScript, // + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 1000, // = default width of window (px)
       height: 500, // = default height of window (px)
-      // x TODO: should these be included again?
-      // y
+      x: 409, // default, normally overriden from last position
+      y: 0 // default, normally overriden from last position
     }
     await showHTMLV2(outputArray.join('\n'), winOptions)
     logDebug(`makeDashboard`, `written to HTML window`)
@@ -546,4 +625,10 @@ export async function addChecklist(calNoteFilename: string): Promise<void> {
   await prependTodoToCalendarNote('checklist', calNoteDateStr)
   // trigger window refresh
   await showDashboardHTML()
+}
+
+export function resetDashboardWinSize(): void {
+  unsetPreference('WinRect_Dashboard')
+  closeWindowFromCustomId('Dashboard')
+  showDashboardHTML()
 }

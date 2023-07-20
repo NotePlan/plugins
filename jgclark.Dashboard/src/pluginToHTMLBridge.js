@@ -43,7 +43,7 @@ export function onMessageFromHTMLView(type: string, data: any): any {
         bridgeChangeCheckbox(data) // data is a string
         break
       case 'refresh':
-        showDashboardHTML() // TEST: no await needed?
+        showDashboardHTML() // no await needed, I think
         break
       default:
         logError(pluginJson, `onMessageFromHTMLView(): unknown ${type} cannot be dispatched`)
@@ -61,7 +61,7 @@ export function onMessageFromHTMLView(type: string, data: any): any {
  */
 export async function bridgeChangeCheckbox(data: SettingDataObject) {
   try {
-    clo(data, 'bridgeChangeChecbox received data object')
+    // clo(data, 'bridgeChangeChecbox received data object')
     const { settingName, state } = data
     logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
     DataStore.setPreference('Dashboard-filterPriorityItems', state)
@@ -78,12 +78,12 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
  */
 export async function bridgeClickDashboardItem(data: MessageDataObject) {
   try {
-    clo(data, 'bridgeClickDashboardItem received data object')
+    // clo(data, 'bridgeClickDashboardItem received data object')
     const ID = data.itemID
     const type = data.type
     const filename = decodeRFC3986URIComponent(data.encodedFilename)
     const content = decodeRFC3986URIComponent(data.encodedContent)
-    logDebug('bridgeClickDashboardItem', `- ID: ${ID}, type: ${type}, filename: ${filename}, content: <${content}>`)
+    logDebug('bridgeClickDashboardItem', `- ID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     switch (type) {
       case 'completeTask': {
         const res = completeItem(filename, content)
