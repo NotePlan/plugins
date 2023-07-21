@@ -16,7 +16,7 @@ This will create a fork (copy) of the noteplan/plugins repository in your **pers
 
 ## Decide where you want to work on the code
 
-You will be working on your code in a directory outside of the NotePlan file sandbox, so you can download the plugin development code anywhere you want on your computer. You will then use the command line interface tool (`noteplan-cli`) in the plugin repository to automatically build and copy the plugin code from your development folder to your NotePlan Plugins folder so you can test/use your plugin. So now, find or create a directory where you want to start development (anywhere on your computer).
+You will be working on your code in a directory outside of the NotePlan file sandbox, so you can put the plugin development code anywhere you want on your computer. You will then use the command line interface tool (`noteplan-cli`) in the plugin repository to automatically build and copy the plugin code from your development folder to your NotePlan Plugins folder so you can test/use your plugin. So now, find or create a directory where you want to start development (anywhere on your computer).
 
 ## Cloning the Repo to your Desktop
 
