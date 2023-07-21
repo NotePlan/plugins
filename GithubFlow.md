@@ -20,7 +20,7 @@ You will be working on your code in a directory outside of the NotePlan file san
 
 ## Cloning the Repo to your Desktop
 
-Once you have your own fork (on Github.com), you'll need to create a **clone** of that code on your local computer so you can work on it. To do that, you can use any git client app (e.g. the [free Github Desktop app](https://desktop.github.com/) to clone your repo, or if you prefer, skip the app and just head straight to the command line in your terminal:
+Once you have your own fork (on Github.com) and a directory where you want to develop, you'll need to create a **clone** of that code on your local computer so you can work on it. To do that, you can use any git client app (e.g. the [free Github Desktop app](https://desktop.github.com/) to clone your repo, or if you prefer, skip the app and just head straight to the command line in your terminal:
 
 ```shell
 # Change directory to where you want to install the plugins project
