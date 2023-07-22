@@ -62,8 +62,12 @@ async function getReadwise(force: boolean): Promise<any> {
   log(pluginJson, `last fetch time is : ${lastFetchTime}`)
   logDebug(pluginJson, `base folder is : ${DataStore.settings.baseFolder}`)
 
+  return doReadWiseFetch(accessToken, lastFetchTime, 0, '')
+}
+
+async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downloadCount: int, nextPageCursor: string): Promise<any> {
   try {
-    const url = `https://readwise.io/api/v2/export/?updatedAfter=${lastFetchTime}`
+    const url = `https://readwise.io/api/v2/export/?updatedAfter=${lastFetchTime}&pageCursor=${nextPageCursor}`
 
     const options = {
       method: 'GET',
@@ -74,11 +78,18 @@ async function getReadwise(force: boolean): Promise<any> {
     const response = await fetch(url, options)
     DataStore.saveData(new Date().toISOString(), LAST_SYNÇ_TIME, true)
 
-    const Json = JSON.parse(response)
+    const parsedJson = JSON.parse(response)
     // DataStore.saveData(JSON.stringify(Json), 'readwise_data.json', true)
-    downloadHiglightCount = Json.count
-    logDebug(pluginJson, `Downloaded : ${downloadHiglightCount} highlights`)
-    return Json.results
+    const pageCursor = parsedJson.nextPageCursor
+    logDebug(pluginJson, `page cursor is : ${pageCursor}`)
+
+    let data = []
+    const count = parsedJson.count + downloadCount
+    if (pageCursor !== null && pageCursor !== '') {
+      data = await doReadWiseFetch(accessToken, lastFetchTime, count, pageCursor)
+    }
+    downloadHiglightCount = count
+    return parsedJson.results.concat(data)
   } catch (error) {
     logError(pluginJson, error)
   }
