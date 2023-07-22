@@ -476,16 +476,20 @@ async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> 
       const fmObj = fm(reviewListContents)
       const reviewLines = fmObj.body.split('\n')
 
-      // Now read from the top until we find a line with a negative value in the first column (nextReviewDays).
+      // Now read from the top until we find a line with a negative value in the first column (nextReviewDays)
+      // and not complete ('finished').
       // Continue until we have found up to numToReturn such notes.
       const notesToReview: Array<TNote> = []
       for (let i = 0; i < reviewLines.length; i++) {
         const thisLine = reviewLines[i]
+        console.log(String(thisLine.split('\t').length) + ' from ' + String(thisLine.split('\t')))
         const nextReviewDays = Number(thisLine.split('\t')[0]) ?? NaN // get first field = nextReviewDays
-        const nextNoteTitle = thisLine.split('\t')[2] // get third field = title
-        if (nextReviewDays < 0) {
-          // logDebug('dashboard / getNextNotesToReview', `- Next to review = '${nextNoteTitle}'`)
-          const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
+        const thisNoteTitle = thisLine.split('\t')[2] // get third field = title
+        const tags = thisLine.split('\t')[5] ?? '' // get last field = tags
+        console.log(thisNoteTitle + ': ' + tags)
+        if (nextReviewDays < 0 && !tags.includes('finished')) {
+          // logDebug('dashboard / getNextNotesToReview', `- Next to review = '${thisNoteTitle}'`)
+          const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
           notesToReview.push(nextNotes[0]) // add first matching note
           if (notesToReview.length >= numToReturn) {
             break // stop processing the loop
