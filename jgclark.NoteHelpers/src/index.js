@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last updated 16.7.2023 for v0.18.0, @jgclark
+// last updated ?.7.2023 for v0.17.x, @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -16,11 +16,6 @@ import { showMessage } from '@helpers/userInput'
 
 export { countAndAddDays } from './countDays'
 export { indexFolders } from './indexFolders'
-export {
-  listInconsistentNames,
-  titleToFilename,
-  renameInconsistentNames
-} from './fileNaming'
 export {
   jumpToDone,
   jumpToHeading,
