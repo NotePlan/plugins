@@ -6,7 +6,7 @@ import pluginJson from '../../plugin.json'
 export function newNotePath(note: Note): string {
   const { defaultFileExtension } = DataStore
 
-  const title = note.title ?? ''
+  const title = note.paragraphs[0]?.content ?? ''
   if (title !== '') {
     const currentFullPath = note.filename
     const pathWithoutTitle = currentFullPath.split('/').slice(0, -1).join('/')

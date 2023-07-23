@@ -15,8 +15,9 @@ import { showMessage } from '@helpers/userInput'
 
 export { countAndAddDays } from './countDays'
 export { indexFolders } from './indexFolders'
-export { listInconsistentNames } from './listInconsistentNames'
-export { titleToFilename, renameInconsistentNames } from './fileNaming'
+export { listInconsistentNames } from './lib/commands/listInconsistentNames'
+export { titleToFilename } from './lib/commands/titleToFilename'
+export { renameInconsistentNames } from './lib/commands/renameInconsistentNames'
 export { jumpToDone, jumpToHeading, jumpToNoteHeading, openCurrentNoteNewSplit, openNoteNewWindow, openNoteNewSplit, openURLFromANote } from './noteNavigation'
 export { addTriggerToNote, convertLocalLinksToPluginLinks, addFrontmatterToNote, moveNote, renameNoteFile } from './noteHelpers'
 

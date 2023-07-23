@@ -1,18 +1,18 @@
 // @flow
 
-import { showHTMLV2 } from '../../helpers/HTMLView'
-import { logError, logInfo } from '../../helpers/dev'
-import { displayTitle } from '../../helpers/general'
-import pluginJson from '../plugin.json'
-import { findInconsistentNames } from './lib/findInconsistentNames'
-import { newNotePath } from './lib/newNotePath'
+import { showHTMLV2 } from '../../../../helpers/HTMLView'
+import { logDebug, logError } from '../../../../helpers/dev'
+import { displayTitle } from '../../../../helpers/general'
+import pluginJson from '../../../plugin.json'
+import { findInconsistentNames } from '../../helpers/findInconsistentNames'
+import { newNotePath } from '../../helpers/newNotePath'
 /**
  * Shows a list of notes with inconsistent names (i.e. where the note title and filename are different).
  * @returns void
  */
 export function listInconsistentNames(): void {
   try {
-    logInfo(pluginJson, 'listInconsistentNames(): Checking for inconsistent names in project notes...')
+    logDebug(pluginJson, 'listInconsistentNames(): Checking for inconsistent names in project notes...')
 
     const inconsistentNames = findInconsistentNames()
     if (inconsistentNames.length > 0) {
