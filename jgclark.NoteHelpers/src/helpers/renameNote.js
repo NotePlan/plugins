@@ -14,7 +14,7 @@ export async function renameNote(note: Note, shouldPromptBeforeRenaming: boolean
   }
   if (Editor.type === 'Calendar') {
     // Won't work on calendar notes
-    showMessage('This command does not support renaming calendar notes.')
+    await showMessage('This command does not support renaming calendar notes.')
     return
   }
 
@@ -31,7 +31,7 @@ export async function renameNote(note: Note, shouldPromptBeforeRenaming: boolean
   if (currentFullPath === newPath) {
     // No need to rename
     logDebug(pluginJson, 'rename(): Current path is the same as the new path. Stopping.')
-    showMessage('The note name is already consistent with its filename.')
+    await showMessage('The note name is already consistent with its filename.')
     return
   }
 
@@ -51,7 +51,7 @@ export async function renameNote(note: Note, shouldPromptBeforeRenaming: boolean
   if (promptResponse === 'Yes') {
     const newFilename = note.rename(newPath)
     logDebug(pluginJson, `rename(): ${currentFullPath} -> ${newFilename}`)
-    showMessage(`Renamed note ${title} to ${newFilename}.`)
+    await showMessage(`Renamed note ${title} to ${newFilename}.`)
   } else {
     logDebug(pluginJson, 'rename(): User chose not to rename.')
   }
