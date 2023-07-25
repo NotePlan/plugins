@@ -296,17 +296,48 @@ export function getTimeStringFromDate(date: Date): string {
 }
 
 /**
+ * Take a date string from calendar note filename, and convert to NP display string. In practice this leaves week, month, quarter, year dates alone, but changes YYYYMMDD to YYYY-MM-DD.
+ * @param {string} dateStrIn from filename
+ * @returns {string}
+ */
+export function getDisplayDateStrFromFilenameDateStr(dateStrIn: string): string {
+  if (dateStrIn.match(RE_YYYYMMDD_DATE)) {
+    return getISODateStringFromYYYYMMDD(dateStrIn)
+  } else {
+    return dateStrIn
+  }
+}
+
+/**
+ * Take a NP display date string and convert to one to use in API calls. In practice this leaves week, month, quarter, year dates alone, but changes YYYY-MM-DD to YYYYMMDD.
+ * @param {string} dateStrIn from filename
+ * @returns {string}
+ */
+export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
+  if (dateStrIn.match(RE_ISO_DATE)) {
+    return unhyphenateString(dateStrIn)
+  } else {
+    return dateStrIn
+  }
+}
+
+/**
  * Returns a string representation of a Calendar note's date, from its filename
  * @param {string} filename
- * @returns {string} YYYYMMDD / YYYY-Wnn / YYYY-mm / YYYY-Qn / YYYY date (some only from NP v3.7.2)
+ * @param {boolean} returnISODate - returns ISO daily note YYYY-MM-DD not actual filename YYYYMMDD
+ * @returns {string} YYYYMMDD or YYYY-MM-DD depending on 2nd parameter / YYYY-Wnn / YYYY-mm / YYYY-Qn / YYYY date (some only from NP v3.7.2)
  * @tests in jest file
  */
-export function getDateStringFromCalendarFilename(filename: string): string {
+export function getDateStringFromCalendarFilename(filename: string, returnISODate: boolean = false): string {
   try {
     // logDebug('gDSFCF', `for ${filename} ...`)
     if (filename.match(RE_DAILY_NOTE_FILENAME)) {
       // logDebug('gDSFCF', `= daily`)
-      return filename.slice(0, 8)
+      if (returnISODate) {
+        return getISODateStringFromYYYYMMDD(filename)
+      } else {
+        return filename.slice(0, 8)
+      }
     } else if (filename.match(RE_WEEKLY_NOTE_FILENAME)) {
       //TEST:
       // logDebug('gDSFCF', `${filename} = weekly`)
@@ -330,7 +361,7 @@ export function getDateStringFromCalendarFilename(filename: string): string {
 }
 
 /**
- * Returns a YYYYMMDD string representation of a Calendar note's first date, from its filename. (e.g. '2022-Q4.md' -> '20221001')
+ * Returns a YYYYMMDD string representation of a Calendar note's first date that it covers, from its filename. (e.g. '2022-Q4.md' -> '20221001')
  * @param {string} filename
  * @returns {string} YYYYMMDD for first date in period
  */
@@ -361,7 +392,7 @@ export function getISODateStringFromYYYYMMDD(filename: string): string {
   if (filename.match(/^\d{8}/)) {
     return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`
   } else {
-    return '(invalid date)'
+    return '(not a YYYYMMDD date)'
   }
 }
 
@@ -890,7 +921,7 @@ export function calcOffsetDate(baseDateIn: string, interval: string): Date | nul
     const baseDateMoment = moment(baseDateIn, momentDateFormat)
     const newDate = unit !== 'b' ? baseDateMoment.add(num, unitForMoment) : momentBusiness(baseDateMoment).businessAdd(num).toDate()
 
-    logDebug('dateTime / cOD', `for '${baseDateIn}' interval ${num} / ${unitForMoment} -> ${String(newDate)}`)
+    // logDebug('dateTime / cOD', `for '${baseDateIn}' interval ${num} / ${unitForMoment} -> ${String(newDate)}`)
     return newDate
   } catch (e) {
     logError('dateTime / cOD', `${e.message} for '${baseDateIn}' interval '${interval}'`)
@@ -900,17 +931,18 @@ export function calcOffsetDate(baseDateIn: string, interval: string): Date | nul
 
 /**
  * Calculate an offset date of any date interval NP supports, and return _in whichever format was supplied_.
- * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly strings as well.
+ * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
  * Moment docs: https://momentjs.com/docs/#/get-set/
  * @author @jgclark
  *
  * @param {string} baseDateIn the base date as a string in any of the formats that NP supports: YYYY-MM-DD (not filename format here), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
  * @param {offsetInterval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
- * @param {boolean} adaptOutputInterval? If true (the default), and the offsetInterval is small enough that the output string would be the same as the input, then adapt the output to use the same format. E.g. '2023-07' + '2w' -> '2023-07-15'
+ * TODO:
+ * @param {string} adaptOutputInterval. Optional. If 'shorter' keep the shorter of the two calendar types (E.g. a daily date + 1w -> daily date. Or '2023-07' + '2w' -> '2023-W28'.) If 'longer' use the longer of the two calendar types (e.g. a daily date + 1w -> weekly date). If 'offset' then keep type of the offsetInterval. By default 'base', to keep the type of the base date.
  * @returns {string} new date in the same format that was supplied
  * @test - available in jest file
  */
-export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, adaptOutputInterval: boolean = true): string {
+export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, adaptOutputInterval: string = 'base'): string {
   try {
     if (baseDateIn === '') {
       throw new Error('Empty baseDateIn string')
@@ -918,40 +950,83 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     if (offsetInterval === '') {
       throw new Error('Empty offsetInterval string')
     }
-    const unit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
+    let offsetUnit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
 
-    // calc offset (Note: library functions cope with negative nums, so just always use 'add' function)
+    // calc offset date
+    // (Note: library functions cope with negative nums, so just always use 'add' function)
     const offsetDate = calcOffsetDate(baseDateIn, offsetInterval)
     if (!offsetDate) {
       throw new Error('Invalid return from calcOffsetDate()')
     }
-    let momentDateFormat = ''
+    // Now decide how to format the new date.
+    // start with using baseDateIn's format
+    const calendarTypeOrder = 'dbwmqy'
+    let newDateStr = ''
+    let baseDateMomentFormat = ''
+    let baseDateUnit = ''
     if (baseDateIn.match(RE_ISO_DATE)) {
-      momentDateFormat = MOMENT_FORMAT_NP_ISO
+      baseDateMomentFormat = MOMENT_FORMAT_NP_ISO
+      baseDateUnit = 'd'
     } else if (baseDateIn.match(RE_NP_WEEK_SPEC)) {
-      momentDateFormat = MOMENT_FORMAT_NP_WEEK
+      baseDateMomentFormat = MOMENT_FORMAT_NP_WEEK
+      baseDateUnit = 'w'
     } else if (baseDateIn.match(RE_NP_MONTH_SPEC)) {
-      momentDateFormat = MOMENT_FORMAT_NP_MONTH
+      baseDateMomentFormat = MOMENT_FORMAT_NP_MONTH
+      baseDateUnit = 'm'
     } else if (baseDateIn.match(RE_NP_QUARTER_SPEC)) {
-      momentDateFormat = MOMENT_FORMAT_NP_QUARTER
+      baseDateMomentFormat = MOMENT_FORMAT_NP_QUARTER
+      baseDateUnit = 'q'
     } else if (baseDateIn.match(RE_NP_YEAR_SPEC)) {
-      momentDateFormat = MOMENT_FORMAT_NP_YEAR
+      baseDateMomentFormat = MOMENT_FORMAT_NP_YEAR
+      baseDateUnit = 'y'
     } else {
       throw new Error('Invalid date string')
     }
+    const newDateStrFromBaseDateType = moment(offsetDate).format(baseDateMomentFormat)
+    newDateStr = newDateStrFromBaseDateType
 
-    let newDateStr = moment(offsetDate).format(momentDateFormat)
+    // Also calculate offset's output format
+    const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit(offsetUnit)
+    const newDateStrFromOffsetDateType = moment(offsetDate).format(offsetMomentFormat)
 
-    if (adaptOutputInterval && newDateStr === baseDateIn) {
-      const newerOutputFormat = getNPDateFormatForDisplayFromOffsetUnit(unit)
-      if (newerOutputFormat === '') {
-        throw new Error('Invalid date offsetInterval')
+    // logDebug('dateTime / cODS', `Starting with ${adaptOutputInterval} adapt for ${baseDateIn} ${baseDateUnit} ${String(calendarTypeOrder.indexOf(baseDateUnit))} / ${offsetInterval} ${unit} ${String(calendarTypeOrder.indexOf(unit))}`)
+    // If we want to adapt smaller
+    switch (adaptOutputInterval) {
+      case 'offset': {
+        newDateStr = newDateStrFromOffsetDateType
+        break
       }
-      newDateStr = moment(offsetDate).format(newerOutputFormat)
-      logDebug('dateTime / cODS', `- needed to change format from ${momentDateFormat} -> ${newerOutputFormat}`)
+      case 'shorter': {
+        if (calendarTypeOrder.indexOf(offsetUnit) < calendarTypeOrder.indexOf(baseDateUnit)) {
+          newDateStr = newDateStrFromOffsetDateType
+          logDebug('dateTime / cODS', `- needing to go 'smaller': changed format to ${baseDateMomentFormat} -> ${offsetMomentFormat}`)
+        }
+        break
+      }
+      case 'longer': {
+        if (calendarTypeOrder.indexOf(offsetUnit) > calendarTypeOrder.indexOf(baseDateUnit)) {
+          newDateStr = newDateStrFromOffsetDateType
+          logDebug('dateTime / cODS', `- needing to go 'larger': changed format to ${baseDateMomentFormat} -> ${offsetMomentFormat}`)
+        }
+        break
+      }
+      default: { // i.e. 'base'
+        newDateStr = newDateStrFromBaseDateType
+        break
+      }
     }
 
-    logDebug('dateTime / cODS', `for '${baseDateIn}' offsetInterval ${offsetInterval} / ${momentDateFormat} -> '${newDateStr}'`)
+    // TODO: is this still needed?
+    // if (adaptOutputInterval && newDateStr === baseDateIn) {
+    //   const newerOutputFormat = getNPDateFormatForDisplayFromOffsetUnit(unit)
+    //   if (newerOutputFormat === '') {
+    //     throw new Error('Invalid date offsetInterval')
+    //   }
+    //   newDateStr = moment(offsetDate).format(newerOutputFormat)
+    //   logDebug('dateTime / cODS', `- needed to change format from ${baseDateMomentFormat} -> ${newerOutputFormat}`)
+    // }
+
+    logDebug('dateTime / cODS', `for '${baseDateIn}' offsetInterval ${offsetInterval} using type ${adaptOutputInterval} -> '${newDateStr}'`)
     return newDateStr
   } catch (e) {
     logError('dateTime / cODS', `${e.message} for '${baseDateIn}' offsetInterval '${offsetInterval}'`)

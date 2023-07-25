@@ -1,6 +1,6 @@
 /* globals describe, expect, jest, test, beforeEach, afterEach, beforeAll */
 
-// Last updated: 23.11.2022 by @jgclark
+// Last updated: 23.7.2023 by @jgclark
 
 import colors from 'chalk'
 import { CustomConsole } from '@jest/console' // see note below
@@ -318,7 +318,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(dt.getISODateStringFromYYYYMMDD('2021123100.md')).toEqual('2021-12-31')
     })
     test('2021123.md fail', () => {
-      expect(dt.getISODateStringFromYYYYMMDD('2021123.md')).toEqual('(invalid date)')
+      expect(dt.getISODateStringFromYYYYMMDD('2021123.md')).toEqual('(not a YYYYMMDD date)')
     })
   })
 
@@ -437,9 +437,6 @@ describe(`${PLUGIN_NAME}`, () => {
       test('2022-01-01 +364d', () => {
         expect(dt.calcOffsetDateStr('2022-01-01', '364d')).toEqual('2022-12-31')
       })
-      test('2022-01-01 +2w', () => {
-        expect(dt.calcOffsetDateStr('2022-01-01', '2w')).toEqual('2022-01-15')
-      })
       test('2022-01-01 +4m', () => {
         expect(dt.calcOffsetDateStr('2022-01-01', '4m')).toEqual('2022-05-01')
       })
@@ -515,6 +512,12 @@ describe(`${PLUGIN_NAME}`, () => {
       test('2022-W52 +1w', () => {
         expect(dt.calcOffsetDateStr('2022-W52', '1w')).toEqual('2023-W01')
       })
+      test('2022-01-01 +2w', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01', '2w')).toEqual('2022-01-15')
+      })
+      test('2023-07-24 +0w', () => {
+        expect(dt.calcOffsetDateStr('2023-07-24', '0w')).toEqual('2023-07-24')
+      })
       test('2022-W23 +2w', () => {
         expect(dt.calcOffsetDateStr('2022-W23', '2w')).toEqual('2022-W25')
       })
@@ -543,18 +546,52 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(dt.calcOffsetDateStr('2022', '-2y')).toEqual('2020')
       })
     })
-    describe('adapting output to shorter durations than input', () => {
-      test('2023-07 +14d -> 2023-07-15', () => {
-        expect(dt.calcOffsetDateStr('2023-07', '14d')).toEqual('2023-07-15')
+    describe('adapting output to offset durations', () => {
+      beforeAll(() => {
+        DataStore.settings['_logLevel'] = "DEBUG"
       })
-      test('2023-07 +2w -> 2023-W28', () => {
-        expect(dt.calcOffsetDateStr('2023-07', '2w')).toEqual('2023-W28')
+      test('2023-07 +14d -> 2023-07-15', () => {
+        expect(dt.calcOffsetDateStr('2023-07', '14d', 'offset')).toEqual('2023-07-15')
+      })
+      test('2023-07 +10b -> 2023-07-14', () => {
+        expect(dt.calcOffsetDateStr('2023-07', '10b', 'offset')).toEqual('2023-07-14')
+      })
+      test('2023-W30 0d -> 2023-07-24', () => {
+        expect(dt.calcOffsetDateStr('2023-W30', '0d', 'offset')).toEqual('2023-07-24')
       })
       test('2023-Q3 +6w -> 2023-W32', () => {
-        expect(dt.calcOffsetDateStr('2023-Q3', '6w')).toEqual('2023-W32')
+        expect(dt.calcOffsetDateStr('2023-Q3', '6w', 'offset')).toEqual('2023-W32')
       })
       test('2023 +3q -> 2023-Q4', () => {
-        expect(dt.calcOffsetDateStr('2023', '3q')).toEqual('2023-Q4')
+        expect(dt.calcOffsetDateStr('2023', '3q', 'offset')).toEqual('2023-Q4')
+      })
+    })
+    describe('adapting output to shorter durations than base', () => {
+      test('2023-07 +14d -> 2023-07-15', () => {
+        expect(dt.calcOffsetDateStr('2023-07', '14d', 'shorter')).toEqual('2023-07-15')
+      })
+      test('2023-07 +2w -> 2023-W28', () => {
+        expect(dt.calcOffsetDateStr('2023-07', '2w', 'shorter')).toEqual('2023-W28')
+      })
+      test('2023-Q3 +6w -> 2023-W32', () => {
+        expect(dt.calcOffsetDateStr('2023-Q3', '6w', 'shorter')).toEqual('2023-W32')
+      })
+      test('2023 +3q -> 2023-Q4', () => {
+        expect(dt.calcOffsetDateStr('2023', '3q', 'shorter')).toEqual('2023-Q4')
+      })
+    })
+    describe('adapting output to longer durations than base', () => {
+      test('2023-07-24 +0w -> 2023-W30', () => {
+        expect(dt.calcOffsetDateStr('2023-07-24', '0w', 'longer')).toEqual('2023-W30')
+      })
+      test('2023-07+24 +2w -> 2023-W32', () => {
+        expect(dt.calcOffsetDateStr('2023-07-24', '2w', 'longer')).toEqual('2023-W32')
+      })
+      test('2023-W30 +1m -> 2023-W32', () => {
+        expect(dt.calcOffsetDateStr('2023-W30', '1m', 'longer')).toEqual('2023-08')
+      })
+      test('2023-02 +2q -> 2023-Q3', () => {
+        expect(dt.calcOffsetDateStr('2023-02', '2q', 'longer')).toEqual('2023-Q3')
       })
     })
     describe('should return errors', () => {
@@ -741,6 +778,10 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should return valid date for daily note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('20220101.md')
       expect(result).toEqual('20220101')
+    })
+    test('should return valid ISO date for daily note filename (with returnISODate)', () => {
+      const result = dt.getDateStringFromCalendarFilename('20220101.md', true)
+      expect(result).toEqual('2022-01-01')
     })
     test('should return valid date for weekly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-W52.md')
