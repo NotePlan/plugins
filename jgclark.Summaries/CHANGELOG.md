@@ -1,6 +1,10 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.19.2] - 2023-07-28
+### Fixed
+- date logic when selecting 'other month' for stats (thanks to tip by @chrismalek)
+
 ## [0.19.1] - 2023-05-15
 ### Added
 - new settings '#hashtags to average' and '#hashtags to total' alongside existing '#hashtags to count' setting for **periodStats** command
