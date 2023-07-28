@@ -247,7 +247,7 @@ export async function getPeriodStartEndDates(
   const todaysDate = toDateMom.toDate()
   // couldn't get const { y, m, d } = getYearMonthDate(todaysDate) to work ??
   const y = todaysDate.getFullYear()
-  const m = todaysDate.getMonth() + 1 // counting from 1
+  const m = todaysDate.getMonth() + 1 // so we can count from 1
   const d = todaysDate.getDate()
 
   // We appear to need to take timezone offset into account in order to avoid landing
@@ -260,60 +260,82 @@ export async function getPeriodStartEndDates(
 
   switch (periodType) {
     case 'lm': {
-      fromDateMom = fromDateMom.subtract(1, 'month').startOf('month') //.subtract(6, 'days')
-      fromDate = fromDateMom.toDate()
-      logDebug('fromDate', String(fromDate))
-      logDebug('fromDateMom', fromDateMom.format('YYYY-MM-DD'))
-      toDateMom = moment(toDate).startOf('month').subtract(1, 'days')
-      toDate = toDateMom.toDate()
-      logDebug('toDate', String(toDate))
-      logDebug('toDateMom', toDateMom.format('YYYY-MM-DD'))
-
       // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // go to start of this month
       // fromDate = Calendar.addUnitToDate(fromDate, 'month', -1) // -1 month
       // toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
-      const theY = m > 1 ? y : y - 1
-      periodString = `${monthNameAbbrev(fromDate.getMonth() + 1)} ${theY}`
+      // const theY = m > 1 ? y : y - 1
+      // periodString = `${monthNameAbbrev(fromDate.getMonth() + 1)} ${theY}`
+      // Now use moment instead:
+      fromDateMom = fromDateMom.subtract(1, 'month').startOf('month') //.subtract(6, 'days')
+      fromDate = fromDateMom.toDate()
+      toDateMom = moment(toDate).startOf('month').subtract(1, 'days')
+      toDate = toDateMom.toDate()
+      periodString = fromDateMom.format('MMM YYYY')
       break
     }
     case 'mtd': {
-      fromDateMom = moment(toDate).startOf('month')
-      fromDate = fromDateMom.toDate()
       // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
       // toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
-      periodString = `${monthNameAbbrev(m)} ${y}`
+      // periodString = `${monthNameAbbrev(m)} ${y}`
+      // periodAndPartStr = `${periodString}, day ${d}`
+
+      // Now use moment instead
+      fromDateMom = moment(toDate).startOf('month')
+      fromDate = fromDateMom.toDate()
+      periodString = fromDateMom.format('MMM YYYY')
       periodAndPartStr = `${periodString}, day ${d}`
       break
     }
     case 'om': {
       const theY = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Month', String(y)))
       const theM = Number(await getInput('Choose month, (1-12)', 'OK', 'Counts for Month'))
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theY, theM, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
-      toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
-      toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${monthNameAbbrev(theM)} ${theY}`
+      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theY, theM, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
+      // toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
+      // toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
+      // periodString = `${monthNameAbbrev(theM)} ${theY}`
+
+      // Now use moment instead:
+      fromDateMom = moment({ year: theY, month: theM - 1, day: 1 })
+      toDateMom = moment(fromDateMom).endOf('month') // have to clone otherwise fromDateMom mutates
+      // logDebug('', `om: ${fromDateMom.format()} - ${toDateMom.format()}`)
+      fromDate = fromDateMom.toDate()
+      toDate = toDateMom.toDate()
+      periodString = fromDateMom.format('MMM YYYY')
       break
     }
 
     case 'lq': {
-      const thisQ = Math.floor((m - 1) / 3) + 1 // quarter (1-4)
-      const theQ = thisQ > 1 ? thisQ - 1 : 4 // last quarter (1-4)
-      const theY = theQ === 4 ? y - 1 : y // change the year if we want Q4
-      const [f, t] = quarterStartEnd(theQ, theY)
-      fromDate = f
-      toDate = t
-      const theQStartMonth = (theQ - 1) * 3 + 1
-      toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
-      toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${theY} Q${theQ} (${monthNameAbbrev(theQStartMonth)}-${monthNameAbbrev(theQStartMonth + 2)})`
+      // const thisQ = Math.floor((m - 1) / 3) + 1 // quarter (1-4)
+      // const theQ = thisQ > 1 ? thisQ - 1 : 4 // last quarter (1-4)
+      // const theY = theQ === 4 ? y - 1 : y // change the year if we want Q4
+      // const [f, t] = quarterStartEnd(theQ, theY)
+      // fromDate = f
+      // toDate = t
+      // const theQStartMonth = (theQ - 1) * 3 + 1
+      // toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
+      // toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
+      // periodString = `${theY} Q${theQ} (${monthNameAbbrev(theQStartMonth)}-${monthNameAbbrev(theQStartMonth + 2)})`
+
+      // Now use moment instead:
+      fromDateMom = moment().startOf('quarter').subtract(1, 'quarter')
+      toDateMom = moment(fromDateMom).endOf('quarter') // have to clone otherwise
+      fromDate = fromDateMom.toDate()
+      toDate = toDateMom.toDate()
+      periodString = fromDateMom.format('YYYY [Q]Q (MMM-') + toDateMom.format('MMM)')
       break
     }
     case 'qtd': {
-      const thisQ = Math.floor((m - 1) / 3) + 1
-      const thisQStartMonth = (thisQ - 1) * 3 + 1
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0), 'minute', -TZOffset) // start of this quarter
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
-      periodString = `${y} Q${thisQ} (${monthNameAbbrev(thisQStartMonth)}-${monthNameAbbrev(thisQStartMonth + 2)})`
+      // const thisQ = Math.floor((m - 1) / 3) + 1
+      // const thisQStartMonth = (thisQ - 1) * 3 + 1
+      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0), 'minute', -TZOffset) // start of this quarter
+      // toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
+      // periodString = `${y} Q${thisQ} (${monthNameAbbrev(thisQStartMonth)}-${monthNameAbbrev(thisQStartMonth + 2)})`
+      // periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
+
+      // Now use moment instead
+      fromDateMom = moment(toDate).startOf('quarter')
+      fromDate = fromDateMom.toDate()
+      periodString = fromDateMom.format('YYYY [Q]Q')
       periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
       break
     }
@@ -321,12 +343,19 @@ export async function getPeriodStartEndDates(
       const theY = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Quarter', String(y)))
       const theQ = Number(await getInput('Choose quarter, (1-4)', 'OK', 'Counts for Quarter'))
       const theQStartMonth = (theQ - 1) * 3 + 1
-      const [f, t] = quarterStartEnd(theQ, theY)
-      fromDate = f
-      toDate = t
-      toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
-      toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      periodString = `${theY} Q${theQ} (${monthNameAbbrev(theQStartMonth)}-${monthNameAbbrev(theQStartMonth + 2)})`
+      // const [f, t] = quarterStartEnd(theQ, theY)
+      // fromDate = f
+      // toDate = t
+      // toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
+      // toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
+      // periodString = `${theY} Q${theQ} (${monthNameAbbrev(theQStartMonth)}-${monthNameAbbrev(theQStartMonth + 2)})`
+
+      // Now use moment instead:
+      fromDateMom = moment({ year: theY, month: theQStartMonth - 1, day: 1 })
+      toDateMom = moment(fromDateMom).endOf('quarter') // have to clone otherwise fromDateMom mutates
+      fromDate = fromDateMom.toDate()
+      toDate = toDateMom.toDate()
+      periodString = fromDateMom.format('YYYY [Q]Q (MMM-') + toDateMom.format('MMM)')
       break
     }
 
@@ -424,7 +453,7 @@ export async function getPeriodStartEndDates(
       // fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -27)
       // toDate = Calendar.addUnitToDate(fromDate, 'day', 27)
       toDateMom = moment(toDate).startOf('day')
-      fromDateMom = toDateMom.subtract(27, 'days')
+      fromDateMom = moment(toDateMom).subtract(27, 'days')
       fromDate = fromDateMom.toDate()
       // logDebug('last4w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
       break
@@ -443,22 +472,36 @@ export async function getPeriodStartEndDates(
 
     case 'ly': {
       const lastY = y - 1
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(lastY, 1, 1, 0, 0, 0), 'minute', -TZOffset)
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(lastY, 12, 31, 0, 0, 0), 'minute', -TZOffset)
+      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(lastY, 1, 1, 0, 0, 0), 'minute', -TZOffset)
+      // toDate = Calendar.addUnitToDate(Calendar.dateFrom(lastY, 12, 31, 0, 0, 0), 'minute', -TZOffset)
+
+      // Now use moment instead:
+      fromDateMom = moment().startOf('year').subtract(1, 'year')
+      toDateMom = moment(fromDateMom).endOf('year')
+      fromDate = fromDateMom.toDate()
+      toDate = toDateMom.toDate()
       periodString = `${lastY}`
       break
     }
     case 'ytd': {
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
+      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
+      // toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
+      // Now use moment instead:
+      fromDateMom = moment().startOf('year')
+      fromDate = fromDateMom.toDate()
       periodString = `${y}`
       periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
       break
     }
     case 'oy': {
       const theYear = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Year', String(y)))
-      fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
-      toDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 12, 31, 0, 0, 0), 'minute', -TZOffset)
+      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
+      // toDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 12, 31, 0, 0, 0), 'minute', -TZOffset)
+      // Now use moment instead:
+      fromDateMom = moment({ year: theYear, month: 0, day: 1 })
+      toDateMom = moment(fromDateMom).endOf('year')
+      fromDate = fromDateMom.toDate()
+      toDate = toDateMom.toDate()
       periodString = `${theYear}`
       break
     }
@@ -477,13 +520,12 @@ export async function getPeriodStartEndDates(
       periodString = `<Error: couldn't parse interval type '${periodType}'>`
     }
   }
-  // if (excludeToday && ['wtd,mtd,qtd,ytd'].includes(periodType)) {
   if (excludeToday) {
     logDebug('getPeriodStartEndDates', `- as requested, today's date will be excluded`)
     toDateMom = moment(toDate).subtract(1, 'day')
     toDate = toDateMom.toDate()
   }
-  logDebug('getPeriodStartEndDates', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString}, ${periodAndPartStr}`)
+  logDebug('getPeriodStartEndDates', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString} / ${periodAndPartStr}`)
   return [fromDate, toDate, periodType, periodString, periodAndPartStr]
 }
 
