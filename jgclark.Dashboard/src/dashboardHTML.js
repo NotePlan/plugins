@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 18.7.2023 for v0.5.0 by @jgclark
+// Last updated 25.7.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,13 +11,13 @@ import { getDemoDataForDashboard } from './demoDashboard'
 import {
   addNoteOpenLinkToString, getSettings, getTaskPriority,
   makeParaContentToLookLikeNPDisplayInHTML,
-  type SectionDetails, type SectionItem
+  type Section, type SectionItem
 } from './dashboardHelpers'
-import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
+import { getDateStringFromCalendarFilename, getTodaysDateUnhyphenated, toLocaleTime } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { unsetPreference } from '@helpers/NPdev'
-import { getDateStringFromCalendarFilename, toLocaleTime } from '@helpers/dateTime'
 import { getFolderFromFilename } from '@helpers/folders'
+import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
 import { showHTMLV2 } from '@helpers/HTMLView'
@@ -149,7 +149,7 @@ console.log(String(allChecklists.length) + ' sectionItemChecklist ELs added (to 
 
 /**
  * Add an event listener to all content items (not the icons),
- * except ones with class 'noteTitle', as they get their onClick definition
+ * except ones with class 'noteTitle', as they get their own onClick definition
  */
 const addContentEventListenersScript = `
 <!-- addContentEventListenersScript -->
@@ -170,18 +170,12 @@ for (const contentItem of allContentItems) {
   for (const thisLink of theseLinks) {
     console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className);
     if (!thisLink.className.match('noteTitle')) {
-      thisLink.addEventListener('click', function () {
+      thisLink.addEventListener('click', function (event) {
+        event.preventDefault(); // TEST:
         handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
-        event.preventDefault(); // TEST: prevent default
       }, false);
     }
   }
-
-  // // TEST: add event handler to the <td> itself
-  // contentItem.addEventListener('click', function () {
-  //   handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
-  //   event.preventDefault(); // TEST: prevent default
-  // }, false);
 }
 console.log(String(allContentItems.length) + ' sectionItem ELs added (to content links)');
 </script>
@@ -194,19 +188,57 @@ const addReviewEventListenersScript = `
 <!-- addReviewEventListenersScript -->
 <script type="text/javascript">
 console.log('add Event Listeners to Review items...');
-// Add click handler to all sectionItemReview items (which already have a basic <a>...</a> wrapper)
+// Add click handler to all 'review' class items (which already have a basic <a>...</a> wrapper)
 // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
 let allReviewItems = document.getElementsByClassName("review");
 for (const reviewItem of allReviewItems) {
   const thisID = reviewItem.id;
   const thisEncodedFilename = reviewItem.dataset.encodedFilename; // i.e. the "data-encoded-review" element, with auto camelCase transposition
-  // console.log(thisID + ' / ' + thisEncodedFilename);
   // add event handler
-  reviewItem.addEventListener('click', function () {
+  reviewItem.addEventListener('click', function (event) {
+    event.preventDefault(); // TEST:
     handleIconClick(thisID, 'review', thisEncodedFilename, '', event.metaKey);
   }, false);
 }
 console.log(String(allReviewItems.length) + ' review ELs added (to review cells)');
+</script>
+`
+
+/**
+ * Add an event listener to all class="moveButton" and "changeDateButton" items
+ */
+const addButtonEventListenersScript = `
+<!-- addButtonEventListenersScript -->
+<script type="text/javascript">
+// Add click handler to all hoverExtraControls' buttons
+// Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
+let allMoveButtons = document.getElementsByClassName("moveButton");
+for (const button of allMoveButtons) {
+  const thisTD = button.parentElement.parentElement.parentElement;
+  const thisID = thisTD.parentElement.id;
+  const thisControlStr = button.dataset.controlStr;
+  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-date-string" element, with auto camelCase transposition
+  const thisFilename = button.parentElement.dataset.dateString;
+  // add event handler
+  button.addEventListener('click', function () {
+    handleButtonClick(thisControlStr, 'moveFromCalToCal', thisFilename, thisEncodedContent, event.metaKey);
+  }, false);
+}
+console.log(String(allMoveButtons.length) + ' moveButton ELs added');
+
+let allChangeDateButtons = document.getElementsByClassName("changeDateButton");
+for (const button of allChangeDateButtons) {
+  const thisTD = button.parentElement.parentElement.parentElement;
+  const thisID = thisTD.parentElement.id;
+  const thisControlStr = button.dataset.controlStr;
+  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-date-string" element, with auto camelCase transposition
+  const thisEncodedFilename = thisTD.dataset.encodedFilename;
+  // add event handler
+  button.addEventListener('click', function () {
+    handleButtonClick(thisControlStr, 'updateTaskDate', thisEncodedFilename, thisEncodedContent, event.metaKey);
+  }, false);
+}
+console.log(String(allChangeDateButtons.length) + ' dateChangeButton ELs added');
 </script>
 `
 
@@ -251,65 +283,42 @@ function handleContentClick(id, filename, content) {
 	onClickDashboardItem( { itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } );
 }
 
-// For e.g. filter checkbox
+// For clicking on checkbox
 function handleCheckboxClick(cb) {
   console.log("Checkbox for " + cb.name + " clicked, new value = " + cb.checked);
   onChangeCheckbox(cb.name, cb.checked);
 }
-</script>
-`
 
-/**
- * Prevent clicking on a link from also opening the HTML page in the default browser.
- * Applied to all items that have a 'sectionItem' class
- * Example from https://developer.mozilla.org/en-US/docs/Web/API/Event/preventDefault:
- * const checkbox = document.querySelector("#id-checkbox");
- * checkbox.addEventListener("click", checkboxClick, false);
- * function checkboxClick(event) {
- *   let warn = "preventDefault() won't let you check this!<br>";
- *   document.getElementById("output-box").innerHTML += warn;
- *   event.preventDefault();
- * }
- */
-// FIXME: fix why this isn't working. (Trying to have it on Listener object itself)
-// Try this?
-//   const nodes = document.childNodes;
-//   const nodeArray = [...nodes];
-
-const preventClicksPropagatingScript = `
-<!-- preventClicksPropagatingScript -->
-<script type="text/javascript">
-function addPreventDefaultEventHandlersFunc() {
-  const allLinks = document.getElementsByClassName("sectionItem");
-  console.log("Attempting to add "+String(allLinks.length)+" preventClicksPropagating ELs");
-  for (let i=0; i<allLinks.length; i++) {
-    event.preventDefault();
-  }
-  console.log('-> preventClicksPropagating ELs added');
+// For clicking on button in hoverExtraControls
+function handleButtonClick(id, controlStr, filename, content) {
+  console.log("Button clicked on id: " + id + " for controlStr " + controlStr + ". filename: " + filename + " content: {" + content +"}");
+  onClickDashboardItem( { itemID: id, type: controlStr, encodedFilename: filename, encodedContent: content } );
 }
-
-document.getElementById("mainTable").addEventListener("load", addPreventDefaultEventHandlersFunc);
 </script>
 `
 
 /**
- * When window is resized, send dimensions to plugin. Note: doesn't fire on window *move* alone.
- * TODO: Is this working?
+ * When window is resized, send notification (now not dimensions which seem unreliable) to plugin.
+ * Note: as it continuously fires, I've added a debounce (from lodash, as best I can)
+ * Note: doesn't fire on window *move* alone.
  */
 const resizeListenerScript = `
 <!-- resizeListenerScript -->
+<script type="text/javascript" src="./debounce.js"></script>
 <script type="text/javascript">
-window.addEventListener("resize", function(){
-  const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.outerHeight };
+function addResizeHandler() {
+  // const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.innerHeight };
   console.log("resize event triggered in window: inner dimensions now w"+String(window.innerWidth)+":h"+String(window.innerHeight)+"/"+String(window.outerHeight));
-  onClickDashboardItem('dummy', 'windowResized', 'dummy', JSON.stringify(rect));
-})
-</script >
+  onClickDashboardItem({itemID: 'dummy', type: 'windowResized', encodedFilename: 'dummy', encodedContent: 'dummy'});
+}
+
+window.addEventListener("resize", debounce(addResizeHandler, 250, false), false);
+</script>
 `
 
 /**
  * Before window is closed, attempt to send dimensions to plugin.
- * TODO: not working yet
+ * Note: currently disabled, as I don't think it was working
  */
 const unloadListenerScript = `
 <!-- unloadListenerScript -->
@@ -317,7 +326,7 @@ const unloadListenerScript = `
 window.addEventListener("beforeunload", function(){
   const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.innerHeight };
   console.log('beforeunload event triggered in window');
-  onClickDashboardItem('dummy', 'windowResized', 'dummy', JSON.stringify(rect));
+  onClickDashboardItem({itemID: 'dummy', type: 'windowResized', encodedFilename: 'dummy', encodedContent: JSON.stringify(rect)});
 })
 </script>
 `
@@ -342,9 +351,10 @@ export async function showDemoDashboardHTML(): Promise<void> {
 export async function showDashboardHTML(demoMode: boolean = false): Promise<void> {
   try {
     const config = await getSettings()
+    const todaysFilenameDate = getTodaysDateUnhyphenated()
     let filterPriorityItems = DataStore.preference('Dashboard-filterPriorityItems') ?? false
     await checkForRequiredSharedFiles(pluginJson)
-    let sections: Array<SectionDetails> = []
+    let sections: Array<Section> = []
     let sectionItems: Array<SectionItem> = []
 
     if (demoMode) {
@@ -461,13 +471,41 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
         // Long-winded way to get note title, as we don't have TNote, but do have note's filename
         const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString((item.filename).split(".")[0]))
 
+        // Work out the extra controls that are relevant for this task, and set up as tooltips
+        const possibleControlTypes = [
+          { displayString: "today", controlStr: "t", sectionDateTypes: ['W', 'M', 'Q'] }, // special controlStr to indicate change to '>today'
+          { displayString: "+1d", controlStr: "+1d", sectionDateTypes: ['D'] },
+          { displayString: "+1b", controlStr: "+1b", sectionDateTypes: ['D'] },
+          { displayString: "wk", controlStr: "+0w", sectionDateTypes: ['D', 'M'] },
+          { displayString: "+1w", controlStr: "+1w", sectionDateTypes: ['D', 'W'] },
+          { displayString: "mon", controlStr: "+0m", sectionDateTypes: ['W', 'Q'] },
+          { displayString: "+1m", controlStr: "+1m", sectionDateTypes: ['M'] },
+        ]
+        const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
+        let tooltipContent = ''
+        if (controlTypesForThisSection.length > 0) {
+          tooltipContent = `\n      <span class="hoverExtraControls" data-date-string="${section.filename}">`
+          // only want control types relevant for this section
+          for (const ct of controlTypesForThisSection) {
+            if (ct.sectionDateTypes.includes(section.dateType)) {
+              if (item.filename === section.filename) {
+                tooltipContent += `      <button class="moveButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
+              } else {
+                logDebug('dashboardHTML', `- This needs to be updateTaskDate ${item.filename} as != ${section.filename}`)
+                tooltipContent += `      <button class="changeDateButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
+              }
+            }
+          }
+          tooltipContent += '</span>\n'
+        }
+
+        // TODO: how does this need to change for non-calendar notes?
+
         // Do main work for the item
         switch (item.type) {
           case 'open': {
             logDebug('showDashboardHTML', `- adding open taskContent for ${item.content} / ${itemNoteTitle}`)
             // do icon col (was col3)
-            // outputArray.push(`         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`)
-            // outputArray.push(`         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders" onClick="onClickDashboardItem({itemID:'${item.ID}', type:'completeTask',encodedFilename:'${encodedFilename}',encodedContent:'${encodedContent}'})"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`)
             outputArray.push(`         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`)
 
             // do col 4: whole note link is clickable.
@@ -482,8 +520,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
             } else {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all')
             }
-            // const cell4 = `         <td class="sectionItemContent sectionItem" id="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
-            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}</div></td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -491,22 +528,10 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
           case 'checklist': {
             logDebug('showDashboardHTML', `- adding checklist taskContent for ${item.content} / ${itemNoteTitle}`)
             // do icon col (was col3)
-            // outputArray.push(`         <td class="todo sectionItem sectionItemChecklist no-borders" id="${encodedFilename}"><i id="${item.ID}I" class="fa-regular fa-square"></i></td>`)
-            // outputArray.push(`         <td id="${encodedFilename}" class="sectionItemChecklist sectionItem no-borders" onClick="onClickDashboardItem({itemID:'${item.ID}', type:'completeChecklist',encodedFilename:'${encodedFilename}',encodedContent:'${encodedContent}'})"><i id="${item.ID}I" class="todo fa-regular fa-square"></i></td>`)
             outputArray.push(`         <td id="${encodedFilename}" class="sectionItemChecklist sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-square"></i></td>`)
 
             // do item details col (was col4):
             let paraContent = ''
-            // // whole note link is clickable if context is wanted, and linked note title
-            // if (config.includeTaskContext) {
-            //   if ([dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
-            //     paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
-            //   } else {
-            //     paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
-            //   }
-            // } else {
-            //   paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all')
-            // }
             // whole note link is clickable if context is wanted, and linked note title
             if (config.includeTaskContext && ![dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
@@ -514,8 +539,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
             }
 
-            // const cell4 = `         <td class="sectionItemContent sectionItem" id="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
-            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere">${paraContent}</div></td>\n       </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}</div></td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -530,13 +554,11 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
           case 'review': {
             if (itemNoteTitle) {
               // do icon col (was col3)
-              // outputArray.push(`         <td class="todo sectionItem no-borders" onClick="onClickDashboardItem('${item.ID}','review','${encodedFilename}','')"><i class="fa-solid fa-calendar-check"></i></td>`)
               outputArray.push(`         <td id="${item.ID}I" class="review sectionItem no-borders" data-encoded-filename="${encodedFilename}"><i class="fa-solid fa-calendar-check"></i></td>`)
 
               // do item details col (was col4): review note link as internal calls
               const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
-              // let cell4 = `         <td class="sectionItem">${folderNamePart}<a class="noteTitle" href="" onClick = "onClickDashboardItem({itemID:'${item.ID}', type:'showNoteInEditorFromFilename',encodedFilename:'${encodedFilename}',encodedContent:''})">${itemNoteTitle}</a>`
-              let cell4 = `         <td id="${item.ID}" class="sectionItem sectionItemContent" data-encoded-filename="${encodedFilename}">${folderNamePart}<a class="noteTitle">${itemNoteTitle}</a></td>\n       </tr>`
+              let cell4 = `         <td id="${item.ID}" class="sectionItem">${folderNamePart}<a class="review noteTitle" data-encoded-filename="${encodedFilename}">${itemNoteTitle}</a></td>\n       </tr>`
               outputArray.push(cell4)
               totalOpenItems++
               reviewNoteCount++
@@ -588,7 +610,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       makeModal: false,
       shouldFocus: false, // shouuld not focus, if Window already exists
       preBodyScript: '', // no extra pre-JS
-      postBodyScript: encodeDecodeScript + commsBridge + addIconEventListenersScript + addContentEventListenersScript + clickHandlersScript + addReviewEventListenersScript, // + preventClicksPropagatingScript // + checkboxClickListenerScript, // + resizeListenerScript, // + unloadListenerScript,
+      postBodyScript: encodeDecodeScript + commsBridge + addIconEventListenersScript + addContentEventListenersScript + addButtonEventListenersScript + addReviewEventListenersScript + clickHandlersScript + resizeListenerScript, // + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 1000, // = default width of window (px)

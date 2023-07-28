@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 9.7.2023 for v0.5.x by @jgclark
+// Last updated 28.7.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,7 +10,7 @@ import fm from 'front-matter' // For reviewList functionality
 import {
   getSettings,
   type dashboardConfigType,
-  type SectionDetails, type SectionItem
+  type Section, type SectionItem
 } from './dashboardHelpers'
 import { toLocaleDateString, getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -18,7 +18,7 @@ import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { filterParasAgainstExcludeFolders } from '@helpers/note'
 import { findNotesMatchingHashtagOrMention, getReferencedParagraphs } from '@helpers/NPnote'
-import { makeBasicParasFromContent } from '@helpers/paragraph'
+// import { makeBasicParasFromContent } from '@helpers/NPParagraph'
 import {
   addPriorityToParagraphs,
   getNumericPriorityFromPara,
@@ -27,6 +27,7 @@ import {
   type GroupedTasks,
   type SortableParagraphSubset
 } from '@helpers/sorting'
+import { stripMailtoLinks, convertMarkdownLinks } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isDone, isOpen } from '@helpers/utils'
 
@@ -51,53 +52,47 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
 function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, includeReferencedItems: boolean, dashboardConfig: dashboardConfigType): [Array<TParagraph>, Array<TParagraph>] {
-  logDebug('getDataForDashboard/gOIPFCTP', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
+  try {
+    logDebug('getOpenItemParasForCurrentTimePeriod', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
+    let parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
 
-  let parasToUse: $ReadOnlyArray<any> = []
-  // TODO: un-comment when makeBasicParasFromContent() is ready
-  // if (Editor && timePeriodNote.filename === Editor.filename) {
-  //   // timePeriodNote = Editor.note // Note: produces content, but not the most recent change. FIXME: switch to Editor not Editor.note?
-  //   logDebug('getDataForDashboard', `Starting for Editor version of '${timePeriodNote?.filename ?? 'error'}' with ${String(Editor.note?.versions?.length ?? NaN)} versions`)
-  //   console.log(`Editor.content latest version: <${Editor.content ?? 'no content'}>`)
-  //   parasToUse = makeBasicParasFromContent(Editor.content ?? '')
-  // } else {
-  logDebug('getDataForDashboard', `Starting for '${timePeriodNote.filename ?? 'error'}'`)
-  parasToUse = timePeriodNote.paragraphs
-  // }
+    // Need to filter out non-open task types for following function, and any blank tasks
+    let openParas = parasToUse.filter(isOpen).filter((p) => p.content !== '')
+    // Filter out anything from 'ignoreTasksWithPhrase' setting
+    if (dashboardConfig.ignoreTasksWithPhrase) {
+      logDebug('getOpenItemParasForCurrentTimePeriod', `Before 'ignore' filter: ${openParas.length} paras`)
+      openParas = openParas.filter((p) => !p.content.includes(dashboardConfig.ignoreTasksWithPhrase))
+    }
+    logDebug('getOpenItemParasForCurrentTimePeriod', `After 'ignore' filter: ${openParas.length} paras`)
+    // openParas.map((p) => console.log(`\t<${p.content}>`))
+    // Temporarily extend TParagraph with the task's priority
+    openParas = addPriorityToParagraphs(openParas)
 
-  // Need to filter out non-open task types for following function, and any blank tasks
-  let openParas = parasToUse.filter(isOpen).filter((p) => p.content !== '')
-  // Filter out anything from 'ignoreTasksWithPhrase' setting
-  if (dashboardConfig.ignoreTasksWithPhrase) {
-    logDebug('getDataForDashboard', `Before 'ignore' filter: ${openParas.length} paras`)
-    openParas = openParas.filter((p) => !p.content.includes(dashboardConfig.ignoreTasksWithPhrase))
-  }
-  logDebug('getDataForDashboard', `After 'ignore' filter: ${openParas.length} paras`)
-  // openParas.map((p) => console.log(`\t<${p.content}>`))
-  // Temporarily extend TParagraph with the task's priority
-  openParas = addPriorityToParagraphs(openParas)
+    // -------------------------------------------------------------
+    // Get list of open tasks/checklists scheduled to today from other notes, and of the right paragraph type
+    let refParas = timePeriodNote ? getReferencedParagraphs(timePeriodNote, false).filter(isOpen).filter((p) => p.content !== '') : []
+    // Remove items referenced from items in 'ignoreFolders'
+    refParas = filterParasAgainstExcludeFolders(refParas, dashboardConfig.ignoreFolders, true)
+    // Remove possible dupes from sync'd lines
+    refParas = eliminateDuplicateSyncedParagraphs(refParas)
+    // Temporarily extend TParagraph with the task's priority
+    refParas = addPriorityToParagraphs(refParas)
+    logDebug('', `found ${String(refParas.length ?? 0)} references to ${timePeriodName}`)
+    // sort the list only by priority, otherwise leaving order the same
 
-  // -------------------------------------------------------------
-  // Get list of open tasks/checklists scheduled to today from other notes, and of the right paragraph type
-  let refParas = timePeriodNote ? getReferencedParagraphs(timePeriodNote, false).filter(isOpen).filter((p) => p.content !== '') : []
-  // Remove items referenced from items in 'ignoreFolders'
-  refParas = filterParasAgainstExcludeFolders(refParas, dashboardConfig.ignoreFolders, true)
-  // Remove possible dupes from sync'd lines
-  refParas = eliminateDuplicateSyncedParagraphs(refParas)
-  // Temporarily extend TParagraph with the task's priority
-  refParas = addPriorityToParagraphs(refParas)
-  logDebug('', `found ${String(refParas.length ?? 0)} references to ${timePeriodName}`)
-  // sort the list only by priority, otherwise leaving order the same
-
-  // Decide whether to return two separate arrays, or one combined one
-  if (dashboardConfig.separateSectionForReferencedNotes) {
-    const sortedOpenParas = sortListBy(openParas, ['-priority'])
-    const sortedRefParas = sortListBy(refParas, ['-priority'])
-    return [sortedOpenParas, sortedRefParas]
-  } else {
-    const combinedParas = sortListBy(openParas.concat(refParas), ['-priority'])
-    const combinedSortedParas = sortListBy(combinedParas, ['-priority'])
-    return [combinedSortedParas, []]
+    // Decide whether to return two separate arrays, or one combined one
+    if (dashboardConfig.separateSectionForReferencedNotes) {
+      const sortedOpenParas = sortListBy(openParas, ['-priority'])
+      const sortedRefParas = sortListBy(refParas, ['-priority'])
+      return [sortedOpenParas, sortedRefParas]
+    } else {
+      const combinedParas = sortListBy(openParas.concat(refParas), ['-priority'])
+      const combinedSortedParas = sortListBy(combinedParas, ['-priority'])
+      return [combinedSortedParas, []]
+    }
+  } catch (err) {
+    logError('getOpenItemParasForCurrentTimePeriod', err.message)
+    return [[], []] // for completeness
   }
 }
 
@@ -105,15 +100,15 @@ function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriod
  * Work out the data for the dashboard, ready to pass to a renderer.
  * Will instead use demo data if useDemoData is true.
  * @param {boolean} useDemoData
- * @returns {[Array<SectionDetails>, Array<SectionItem>]}
+ * @returns {[Array<Section>, Array<SectionItem>]}
  */
-export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Array<SectionItem>]> {
+export async function getDataForDashboard(): Promise<[Array<Section>, Array<SectionItem>]> {
   try {
     // Get settings
     const config: dashboardConfigType = await getSettings()
 
     // Set up data structure to receive sections and their items
-    const sections: Array<SectionDetails> = []
+    const sections: Array<Section> = []
     const sectionItems: Array<SectionItem> = []
     let sectionCount = 0
     let doneCount = 0
@@ -139,19 +134,18 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         // clo(combinedSortedParas, "daily sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-        sections.push({ ID: sectionCount, name: 'Today', description: `from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'Today', dateType: 'D', description: `from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
         sectionCount++
 
         // clo(sortedRefParas, "sortedRefParas")
         if (sortedRefParas.length > 0) {
-
           itemCount = 0
           sortedRefParas.map((p) => {
             const thisID = `${sectionCount}-${itemCount}`
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'Today', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+          sections.push({ ID: sectionCount, name: 'Today', dateType: 'D', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
           sectionCount++
         }
       }
@@ -165,20 +159,17 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         // clo(sortedRefParas, "sortedRefParas")
         sections.push({
-          ID: sectionCount, name: 'Today', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename
+          ID: sectionCount, name: 'Today', dateType: 'D', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename
         })
         sectionCount++
       }
       // Get count of tasks/checklists done today
       doneCount += currentDailyNote.paragraphs.filter(isDone).length
 
-      // TODO: add completed count for today from referenced notes as well
+      // Note: ideally also add completed count for today from referenced notes as well
     } else {
       logDebug('getDataForDashboard', `No daily note found for filename '${currentDailyNote?.filename ?? 'error'}'`)
     }
-
-    // TODO: Include context for sub-tasks/checklist?
-    // config.includeTaskContext
 
     //-----------------------------------------------------------
     // Get list of open tasks/checklists from weekly note (if it exists)
@@ -186,7 +177,8 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
     if (currentWeeklyNote) {
       const thisFilename = currentWeeklyNote?.filename ?? '(error)'
-      const dateStr = thisFilename.replace('.md', '') // getDateStringFromCalendarFilename(thisFilename) FIXME: fix whether this function or its description should be changed
+      // const dateStr = thisFilename.replace('.md', '')
+      const dateStr = getDateStringFromCalendarFilename(thisFilename)
 
       // Get list of open tasks/checklists from this calendar note
       const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentWeeklyNote, config.separateSectionForReferencedNotes, config)
@@ -202,7 +194,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         // clo(combinedSortedParas, "weekly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} weekly items`)
-        sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This week', dateType: 'W', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
         sectionCount++
 
         // clo(sortedRefParas, "weekly sortedRefParas")
@@ -213,7 +205,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'This week', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly", filename: '' })
+          sections.push({ ID: sectionCount, name: 'This week', dateType: 'W', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly", filename: '' })
           sectionCount++
         }
       } else {
@@ -225,7 +217,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           itemCount++
         })
         // clo(sortedRefParas, "weekly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This week', dateType: 'W', description: `from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
         sectionCount++
       }
       // Get count of tasks/checklists done this week
@@ -257,7 +249,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         // clo(combinedSortedParas, "monthly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} monthly items`)
-        sections.push({ ID: sectionCount, name: 'This Month', description: `from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This Month', dateType: 'M', description: `from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
         sectionCount++
 
         // clo(sortedRefParas, "monthly sortedRefParas")
@@ -268,7 +260,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'This month', description: `scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly", filename: '' })
+          sections.push({ ID: sectionCount, name: 'This month', dateType: 'M', description: `scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly", filename: '' })
           sectionCount++
         }
       } else {
@@ -280,7 +272,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           itemCount++
         })
         // clo(sortedRefParas, "monthly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This month', description: `from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This month', dateType: 'M', description: `from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
         sectionCount++
       }
 
@@ -294,7 +286,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     // Get list of open tasks/checklists from quarterly note (if it exists)
     const currentQuarterlyNote = DataStore.calendarNoteByDate(today, 'quarter')
     if (currentQuarterlyNote) {
-      const thisFilename = currentDailyNote?.filename ?? '(error)'
+      const thisFilename = currentCalendarNote?.filename ?? '(error)'
       const dateStr = getDateStringFromCalendarFilename(thisFilename)
 
       // Get list of open tasks/checklists from this calendar note
@@ -311,7 +303,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         })
         // clo(combinedSortedParas, "quarterly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} quarterly items`)
-        sections.push({ ID: sectionCount, name: 'This quarter', description: `from quarterly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This quarter', dateType: 'Q', description: `from quarterly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
         sectionCount++
 
         // clo(sortedRefParas, "quarterly sortedRefParas")
@@ -322,7 +314,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'This quarter', description: `scheduled to this quarter`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarQuarterly", filename: '' })
+          sections.push({ ID: sectionCount, name: 'This quarter', dateType: 'Q', description: `scheduled to this quarter`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarQuarterly", filename: '' })
           sectionCount++
         }
       } else {
@@ -334,7 +326,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           itemCount++
         })
         // clo(sortedRefParas, "quarterly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This quarter', description: `from quarterly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This quarter', dateType: 'Q', description: `from quarterly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
         sectionCount++
       }
       // Get count of tasks/checklists done this quarter
@@ -369,6 +361,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
           sections.push({
             ID: sectionCount,
             name: `${config.tagToShow}`,
+            dateType: '',
             description: `open task(s)`,
             FAIconClass: (isHashtag) ? 'fa-solid fa-hashtag' : 'fa-solid fa-at',
             sectionTitleClass: 'sidebarDaily',
@@ -385,6 +378,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
     sections.push({
       ID: doneCount,
       name: 'Done',
+      dateType: '',
       description: ``,
       FAIconClass: '',
       sectionTitleClass: '',
@@ -407,6 +401,7 @@ export async function getDataForDashboard(): Promise<[Array<SectionDetails>, Arr
         sections.push({
           ID: sectionCount,
           name: 'Projects',
+          dateType: '',
           description: `next projects to review`,
           FAIconClass: 'fa-regular fa-calendar-check',
           sectionTitleClass: 'sidebarYearly',
@@ -454,7 +449,7 @@ export async function logDashboardData(): Promise<void> {
  * Get list of the next note(s) to review (if any).
  * It assumes the full-review-list exists and is sorted by nextReviewDate (earliest to latest).
  * Note: This is a variant of the original singular version in jgclark.Reviews/src/reviews.js
- * TODO: Should this move to the other plugin?
+ * TODO: Should move this to the Reviews plugin
  * @author @jgclark
  * @param { number } numToReturn first n notes to return
  * @return { Array<TNote> } next notes to review, up to numToReturn. Can be an empty array.
@@ -482,11 +477,9 @@ async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> 
       const notesToReview: Array<TNote> = []
       for (let i = 0; i < reviewLines.length; i++) {
         const thisLine = reviewLines[i]
-        console.log(String(thisLine.split('\t').length) + ' from ' + String(thisLine.split('\t')))
         const nextReviewDays = Number(thisLine.split('\t')[0]) ?? NaN // get first field = nextReviewDays
         const thisNoteTitle = thisLine.split('\t')[2] // get third field = title
         const tags = thisLine.split('\t')[5] ?? '' // get last field = tags
-        console.log(thisNoteTitle + ': ' + tags)
         if (nextReviewDays < 0 && !tags.includes('finished')) {
           // logDebug('dashboard / getNextNotesToReview', `- Next to review = '${thisNoteTitle}'`)
           const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
@@ -509,16 +502,4 @@ async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> 
     logError(pluginJson, `dashboard::getNextNotesToReview: ${error.message}`)
     return []
   }
-}
-
-// TODO: move these to the right places
-
-// Strip mailto links from the start of email addresses
-function stripMailtoLinks(email: string): string {
-  return email.replace(/^mailto:/, '')
-}
-
-// Convert markdown links to HTML links
-function convertMarkdownLinks(text: string): string {
-  return text.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$1">$2</a>')
 }

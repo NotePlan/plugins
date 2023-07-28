@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 17.7.2023 for v0.5.x by @jgclark
+// Last updated 28.7.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -34,10 +34,11 @@ import { toLocaleDateTimeString } from "../../helpers/NPdateTime";
 //-----------------------------------------------------------------
 // Data types
 
-// details for a section heading
-export type SectionDetails = {
+// details for a section
+export type Section = {
   ID: number,
-  name: string,
+  name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
+  dateType: '' | 'D' | 'W' | 'M' | 'Q' | 'Y',
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,
@@ -232,7 +233,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
     }
 
     // add basic *italic* or _italic_ styling
-    // Note: simplified regex needs to come after bold above
+    // Note: uses a simplified regex that needs to come after bold above
     const RE_ITALIC_PHRASE = new RegExp(/([_\*])([^*]+?)\1/, "g")
     captures = output.matchAll(RE_ITALIC_PHRASE)
     if (captures) {
@@ -243,8 +244,6 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
     }
 
     // Add suitable colouring to remaining >date items
-    // Note: This is my attempt at finding all scheduled date links
-    // TODO(@EduardMe): send us his version of this
     captures = output.match(RE_SCHEDULED_DATES_G)
     if (captures) {
       // clo(captures, 'results from >date match:')
@@ -333,7 +332,7 @@ export function getTaskPriority(content: string): number {
  * @param {string} displayStr
  * @returns {string} transformed output
  */
-export function addNoteOpenLinkToString(item: SectionItem | SectionDetails, displayStr: string): string {
+export function addNoteOpenLinkToString(item: SectionItem | Section, displayStr: string): string {
   try {
     // Method 2: pass request back to plugin
     const filenameEncoded = encodeURIComponent(item.filename)

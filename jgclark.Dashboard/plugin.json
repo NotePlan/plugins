@@ -8,11 +8,12 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.5.1",
-  "plugin.lastUpdateInfo": "v0.5.1: display improvements + bug fixes.\nv0.5.0: Can now filter out lower-priority items. Can cancel or add tasks and checklists. New optional 'hastags/mentions to show' section.\nv0.4.2: various updates to window handling.v0.4.1: bug fix, polish and demo updates.\nv0.4.0: first public release.\nv0.3.6: small bits of polish.\nv0.3.5: adds months to output.\nv0.3.4: adds width/height settings; equalises font size with NP.\nv0.3.2: improved trigger's detection of relevant changes.\nv0.3.0: will auto-update if trigger set on daily/weekly notes.",
+  "plugin.version": "0.6.0",
+  "plugin.lastUpdateInfo": "v0.6.0: adds tooltip on displayed tasks that allows task to be moved on to next day, week etc.\nv0.5.1: display improvements + bug fixes.\nv0.5.0: Can now filter out lower-priority items. Can cancel or add tasks and checklists. New optional 'hastags/mentions to show' section.\nv0.4.2: various updates to window handling.v0.4.1: bug fix, polish and demo updates.\nv0.4.0: first public release.\nv0.3.6: small bits of polish.\nv0.3.5: adds months to output.\nv0.3.4: adds width/height settings; equalises font size with NP.\nv0.3.2: improved trigger's detection of relevant changes.\nv0.3.0: will auto-update if trigger set on daily/weekly notes.",
   "plugin.requiredFiles": [
     "commsSwitchboard.js",
-    "dashboard.css"
+    "dashboard.css",
+    "debounce.js"
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",

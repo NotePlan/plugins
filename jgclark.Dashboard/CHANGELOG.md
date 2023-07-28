@@ -1,7 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [0.5.1] - 2023-07-???
+## [0.6.0] - 2023-07-???
+### Added
+- adds tooltip on displayed tasks that allows task to be moved on to next day (`+1d`), next business day (`+1b`), this week's note (`wk`), next week's note (`+1w`). (If you're wondering, this uses the same syntax as my Repeat Extensions plugin.)
+
+## [0.5.1] - 2023-07-21 (unreleased)
 ### Added
 - tasks including markdown bold and italic text are now styled appropriately
 - embedded images in tasks are now replaced with an icon

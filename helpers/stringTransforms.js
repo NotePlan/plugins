@@ -305,6 +305,24 @@ export function stripAllMarkersFromString(original: string, stripTags: false, st
 }
 
 /**
+ * Strip mailto links from the start of email addresses
+ * @param {string} email
+ * @returns {string}
+ */
+export function stripMailtoLinks(email: string): string {
+  return email.replace(/^mailto:/, '')
+}
+
+/**
+ * Convert markdown links to HTML links in 'text' string
+ * @param {string} text
+ * @returns {string}
+ */
+export function convertMarkdownLinks(text: string): string {
+  return text.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$1">$2</a>')
+}
+
+/**
  * Version of URL encode that extends encodeURIComponent()
  * (which everything except A-Z a-z 0-9 - _ . ! ~ * ' ( ))
  * plus ! ' ( ) [ ] * required by RFC3986, and needed when passing text to JS in some settings

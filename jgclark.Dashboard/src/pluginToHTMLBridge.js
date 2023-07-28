@@ -1,17 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Dashboard plugin helper functions
-// Last updated 14.6.2023 for v0.5.0 by @jgclark
+// Bridging functions for Dashboard plugin
+// Last updated 27.7.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { showDashboardHTML } from './dashboardHTML'
-import { getNPWeekStr, getTodaysDateUnhyphenated, RE_DATE_TIME } from '@helpers/dateTime'
+import { calcOffsetDateStr, getNPWeekStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated, RE_DATE_INTERVAL, RE_DATE_TIME, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
-import { cancelItem, completeItem, getParagraphFromStaticObject, highlightParagraphInEditor } from '@helpers/NPParagraph'
+import { cancelItem, completeItem, getParagraphFromStaticObject, highlightParagraphInEditor, moveItemBetweenCalendarNotes } from '@helpers/NPParagraph'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
-import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString } from '@helpers/NPWindows'
+import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString, storeWindowRect } from '@helpers/NPWindows'
+import { findParaFromStringAndFilename } from "../../helpers/NPParagraph";
 
 //-----------------------------------------------------------------
 // Data types + constants
@@ -83,6 +84,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const type = data.type
     const filename = decodeRFC3986URIComponent(data.encodedFilename)
     const content = decodeRFC3986URIComponent(data.encodedContent)
+    logDebug('bridgeClickDashboardItem', '-------------------------')
     logDebug('bridgeClickDashboardItem', `- ID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     switch (type) {
       case 'completeTask': {
@@ -142,14 +144,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'windowResized': {
         // logWindowsList()
         logDebug('bridgeClickDashboardItem', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
-        clo(data)
         const thisWin = getWindowFromCustomId(windowCustomId)
-        // const rect = getLiveWindowRectFromWin(thisWin)
-        const rect: Rect = JSON.parse(content)
-        clo(rect)
+        const rect = getLiveWindowRectFromWin(thisWin)
         if (rect) {
-          logDebug('oCDI/windowResized', rectToString(rect))
-          applyRectToWindow(rect)
+          // logDebug('bridgeClickDashboardItem/windowResized', `- saving rect: ${rectToString(rect)} to pref`)
+          storeWindowRect(windowCustomId)
         }
         break
       }
@@ -201,6 +200,83 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
         } else {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)
+        }
+        break
+      }
+
+      case 'moveFromCalToCal': {
+        // Instruction from a 'moveButton' to move task from calendar note to a different calendar note.
+        // Note: Overloads ID with the dateInterval to use
+        const dateInterval = ID
+        let startDateStr = ''
+        let newDateStr = ''
+        if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
+          logError('bridgeClickDashboardItem', `bad move date interval: ${dateInterval}`)
+          break
+        }
+        if (dateInterval === 't') {
+          // Special case to change to '>today'
+          startDateStr = getDateStringFromCalendarFilename(filename, true)
+          newDateStr = getTodaysDateHyphenated()
+          logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> 'today'`)
+
+        }
+        else if (dateInterval.match(RE_DATE_INTERVAL)) {
+          // Get the (ISO) current date on the task
+          startDateStr = getDateStringFromCalendarFilename(filename, true)
+          newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'offset') // 'longer'
+          logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> ${newDateStr}`)
+        }
+        // Do the actual move
+        const res = moveItemBetweenCalendarNotes(startDateStr, newDateStr, content)
+        if (res) {
+          logDebug('bridgeClickDashboardItem', `-> appeared to move item succesfully`)
+          await showDashboardHTML() // refresh display
+        } else {
+          logWarn('bridgeClickDashboardItem', `-> moveFromCalToCal to ${newDateStr} not successful`)
+        }
+        break
+      }
+
+      case 'updateTaskDate': {
+        // Instruction from a 'changeDateButton' to change date on a task
+        // Note: Overloads ID with the dateInterval to use
+        const dateInterval = ID
+        let startDateStr = ''
+        let newDateStr = ''
+        if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
+          logError('bridgeClickDashboardItem', `bad move date interval: ${dateInterval}`)
+          break
+        }
+        if (dateInterval === 't') {
+          // Special case to change to '>today'
+          // FIXME: fails for week date referenced in project note
+          startDateStr = getDateStringFromCalendarFilename(filename, true)
+          newDateStr = 'today'
+          logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> 'today'`)
+        }
+        else if (dateInterval.match(RE_DATE_INTERVAL)) {
+          // Get today's date, ignoring current date on task
+          startDateStr = getTodaysDateHyphenated()
+          newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'longer') // TEST: longer?
+          logDebug('bridgeClickDashboardItem', `change due date on task from ${startDateStr} -> ${newDateStr}`)
+        }
+        // Make the actual change
+        const thePara = findParaFromStringAndFilename(filename, content)
+        if (typeof thePara !== 'boolean') {
+          const theLine = thePara.content
+          const changedLine = replaceArrowDatesInString(thePara.content, '>' + newDateStr)
+          logDebug('bridgeClickDashboardItem', `Found line {${theLine}}\n-> changed line: {${changedLine}}`)
+          thePara.content = changedLine
+          const thisNote = thePara.note
+          if (thisNote) {
+            thisNote.updateParagraph(thePara)
+            logDebug('bridgeClickDashboardItem', `- appeared to update line OK -> {${changedLine}}`)
+            // refresh display
+            await showDashboardHTML()
+          } else {
+            logWarn('bridgeClickDashboardItem', `- can't find note to update to {${changedLine}}`)
+          }
         }
         break
       }

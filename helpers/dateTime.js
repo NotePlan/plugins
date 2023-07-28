@@ -134,21 +134,23 @@ export const isYearlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_YEA
 export const isScheduled = (content: string): boolean => new RegExp(RE_IS_SCHEDULED).test(content)
 
 /**
- * Remove all >date or >today occurrences in a string and add (>today's-date by default) or the supplied string to the end
+ * Remove all >date or >today occurrences in a string and add (>today's-date by default) or the supplied string to the end.
+ * Note: this does not automatically add the '>' on the front of the replaceWith string.
  * @param {string} inString - the string to start with
  * @param {?string | null} replaceWith - the string to add to the end (if nothing sent, will use >todaysDate)
- * @returns {string} string with the replacements made
+ * @returns {string} string with the replacements made, and trimmed
  * @author @dwertheimer
  */
 export function replaceArrowDatesInString(inString: string, replaceWith: string | null = null): string {
   let str = inString
   let repl = replaceWith
-  if (replaceWith === null) {
+  if (replaceWith == null) {
     // if no replacement string, use today's date (e.g. replace >today with todays date instead)
     repl = getTodaysDateAsArrowDate()
   }
   // $FlowIgnore[incompatible-type]
   logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith}, repl=${repl}`)
+  // TODO: could this be done by .replace(RE_SCHEDULED_DATES_G) instead?
   while (str && isScheduled(str)) {
     str = str
       .replace(RE_PLUS_DATE, '')
@@ -322,7 +324,7 @@ export function getAPIDateStrFromDisplayDateStr(dateStrIn: string): string {
 }
 
 /**
- * Returns a string representation of a Calendar note's date, from its filename
+ * Returns the NP string representation of a Calendar note's date, from its filename. Covers daily to yearly notes.
  * @param {string} filename
  * @param {boolean} returnISODate - returns ISO daily note YYYY-MM-DD not actual filename YYYYMMDD
  * @returns {string} YYYYMMDD or YYYY-MM-DD depending on 2nd parameter / YYYY-Wnn / YYYY-mm / YYYY-Qn / YYYY date (some only from NP v3.7.2)

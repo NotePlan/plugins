@@ -3,7 +3,7 @@
 import moment from 'moment/min/moment-with-locales'
 import { trimString } from '@helpers/dataManipulation'
 import {
-  // daysBetween,
+  getAPIDateStrFromDisplayDateStr,
   getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
@@ -23,6 +23,7 @@ import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateT
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
+import { getLineMainContentPos } from '@helpers/search'
 import { isOpen } from '@helpers/utils'
 
 const pluginJson = 'NPParagraph'
@@ -1354,37 +1355,43 @@ export function markCancelled(para: TParagraph): boolean {
 export function completeItem(filenameIn: string, content: string): boolean {
   try {
     logDebug('NPP/completeItem', `starting with filename: ${filenameIn}, content: <${content}>`)
-    let filename = filenameIn
-    if (filenameIn === 'today') {
-      filename = getTodaysDateUnhyphenated()
-    } else if (filenameIn === 'thisweek') {
-      filename = getNPWeekStr(new Date())
-    }
-    // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-    // $FlowIgnore[incompatible-type]
-    const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
-
-    if (thisNote) {
-      if (thisNote.paragraphs.length > 0) {
-        let c = 0
-        for (const para of thisNote.paragraphs) {
-          if (para.content === content) {
-            logDebug('NPP/completeItem', `found matching para ${c} of type ${para.type}: ${content}`)
-            // Append @done(...) string (if user preference wishes this)
-            return markComplete(para)
-          }
-          c++
-        }
-        logWarn('NPP/completeItem', `Couldn't find paragraph <${content}> to complete`)
-        return false
-      } else {
-        logInfo('NPP/completeItem', `Note '${filename}' appears to be empty?`)
-        return false
-      }
-    } else {
-      logWarn('NPP/completeItem', `Can't find note '${filename}'`)
+    const possiblePara = findParaFromStringAndFilename(filenameIn, content)
+    if (typeof possiblePara === 'boolean') {
       return false
     }
+    return markComplete(possiblePara)
+
+    // let filename = filenameIn
+    // if (filenameIn === 'today') {
+    //   filename = getTodaysDateUnhyphenated()
+    // } else if (filenameIn === 'thisweek') {
+    //   filename = getNPWeekStr(new Date())
+    // }
+    // // Long-winded way to get note title, as we don't have TNote, but do have note's filename
+    // // $FlowIgnore[incompatible-type]
+    // const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
+
+    // if (thisNote) {
+    //   if (thisNote.paragraphs.length > 0) {
+    //     let c = 0
+    //     for (const para of thisNote.paragraphs) {
+    //       if (para.content === content) {
+    //         logDebug('NPP/completeItem', `found matching para ${c} of type ${para.type}: ${content}`)
+    //         // Append @done(...) string (if user preference wishes this)
+    //         return markComplete(para)
+    //       }
+    //       c++
+    //     }
+    //     logWarn('NPP/completeItem', `Couldn't find paragraph <${content}> to complete`)
+    //     return false
+    //   } else {
+    //     logInfo('NPP/completeItem', `Note '${filename}' appears to be empty?`)
+    //     return false
+    //   }
+    // } else {
+    //   logWarn('NPP/completeItem', `Can't find note '${filename}'`)
+    //   return false
+    // }
   } catch (error) {
     logError(pluginJson, `NPP/completeItem: ${error.message} for note '${filenameIn}'`)
     return false
@@ -1401,6 +1408,59 @@ export function completeItem(filenameIn: string, content: string): boolean {
 export function cancelItem(filenameIn: string, content: string): boolean {
   try {
     logDebug('NPP/cancelItem', `starting with filename: ${filenameIn}, content: ${content}`)
+    const possiblePara = findParaFromStringAndFilename(filenameIn, content)
+    if (typeof possiblePara === 'boolean') {
+      return false
+    }
+    return markCancelled(possiblePara)
+
+    // let filename = filenameIn
+    // if (filenameIn === 'today') {
+    //   filename = getTodaysDateUnhyphenated()
+    // } else if (filenameIn === 'thisweek') {
+    //   filename = getNPWeekStr(new Date())
+    // }
+    // // Long-winded way to get note title, as we don't have TNote, but do have note's filename
+    // // $FlowIgnore[incompatible-type]
+    // const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
+
+    // if (thisNote) {
+    //   if (thisNote.paragraphs.length > 0) {
+    //     let c = 0
+    //     for (const para of thisNote.paragraphs) {
+    //       if (para.content === content) {
+    //         logDebug('NPP/cancelItem', `found matching para ${c} of type ${para.type}: ${content}`)
+    //         return markCancelled(para)
+    //       }
+    //       c++
+    //     }
+    //     logWarn('NPP/cancelItem', `Couldn't find paragraph <${content}> to complete`)
+    //     return false
+    //   } else {
+    //     logInfo('NPP/cancelItem', `Note '${filename}' appears to be empty?`)
+    //     return false
+    //   }
+    // } else {
+    //   logWarn('NPP/cancelItem', `Can't find note '${filename}'`)
+    //   return false
+    // }
+  } catch (error) {
+    logError(pluginJson, `NPP/cancelItem: ${error.message} for note '${filenameIn}'`)
+    return false
+  }
+}
+
+/**
+ * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
+ * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * Appends a '@done(...)' date to the line if the user has selected to 'add completion date'.
+ * @param {string} filenameIn to look in
+ * @param {string} content to find
+ * @returns {TParagraph | boolean} TParagraph if succesful, false if unsuccesful
+ */
+export function findParaFromStringAndFilename(filenameIn: string, content: string): TParagraph | boolean {
+  try {
+    // logDebug('NPP/findParaFromStringAndFilename', `starting with filename: ${filenameIn}, content: {${content}}`)
     let filename = filenameIn
     if (filenameIn === 'today') {
       filename = getTodaysDateUnhyphenated()
@@ -1416,27 +1476,26 @@ export function cancelItem(filenameIn: string, content: string): boolean {
         let c = 0
         for (const para of thisNote.paragraphs) {
           if (para.content === content) {
-            logDebug('NPP/cancelItem', `found matching para ${c} of type ${para.type}: ${content}`)
-            return markCancelled(para)
+            logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
+            return para
           }
           c++
         }
-        logWarn('NPP/cancelItem', `Couldn't find paragraph <${content}> to complete`)
+        logWarn('NPP/findParaFromStringAndFilename', `Couldn't find paragraph {${content}} to complete`)
         return false
       } else {
-        logInfo('NPP/cancelItem', `Note '${filename}' appears to be empty?`)
+        logInfo('NPP/findParaFromStringAndFilename', `Note '${filename}' appears to be empty?`)
         return false
       }
     } else {
-      logWarn('NPP/cancelItem', `Can't find note '${filename}'`)
+      logWarn('NPP/findParaFromStringAndFilename', `Can't find note '${filename}'`)
       return false
     }
   } catch (error) {
-    logError(pluginJson, `NPP/cancelItem: ${error.message} for note '${filenameIn}'`)
+    logError(pluginJson, `NPP/findParaFromStringAndFilename: ${error.message} for note '${filenameIn}'`)
     return false
   }
 }
-
 /**
  * Prepend a todo (task or checklist) to a calendar note
  * @author @jgclark
@@ -1445,7 +1504,7 @@ export function cancelItem(filenameIn: string, content: string): boolean {
  * @param {string} todoTextArg text to prepend. If empty or missing, then will ask user for it
  */
 export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklist', NPDateStr: string, todoTextArg: string = ''): Promise<void> {
-  logDebug(pluginJson, `starting prependTodoToCalendarNote`)
+  // logDebug('NPP/prependTodoToCalendarNote', `Starting with NPDateStr: ${NPDateStr}, todoTypeName: ${todoTypeName}, todoTextArg: ${todoTextArg}`)
   try {
     const todoType = todoTypeName === 'task' ? 'open' : 'checklist'
     // Get calendar note to use
@@ -1454,13 +1513,147 @@ export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklis
       // Get input either from passed argument or ask user
       const todoText =
         todoTextArg != null && todoTextArg !== '' ? todoTextArg : await CommandBar.showInput(`Type the ${todoTypeName} text to add`, `Add ${todoTypeName} '%@' to ${NPDateStr}`)
-      logDebug('prependTodoToCalendarNote', `- Prepending type ${todoType} '${todoText}' to '${displayTitle(note)}'`)
+      logDebug('NPP/prependTodoToCalendarNote', `- Prepending type ${todoType} '${todoText}' to '${displayTitle(note)}'`)
       smartPrependPara(note, todoText, todoType)
     } else {
-      logError('prependTodoToCalendarNote', `- Can't get calendar note for ${NPDateStr}`)
+      logError('NPP/prependTodoToCalendarNote', `- Can't get calendar note for ${NPDateStr}`)
     }
   } catch (err) {
-    logError('prependTodoToCalendarNote', `${err.name}: ${err.message}`)
+    logError('NPP/prependTodoToCalendarNote', `${err.name}: ${err.message}`)
     await showMessage(err.message)
+  }
+}
+
+/**
+ * Prepend a todo (task or checklist) to a calendar note
+ * @author @jgclark
+ * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
+ * @param {string} NPFromDateStr from date (the usual calendar titles, plus YYYYMMDD)
+ * @param {string} NPToDateStr to date (the usual calendar titles, plus YYYYMMDD)
+ * @param {string} itemText text to prepend. If empty or missing, then will ask user for it
+ */
+export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, itemText: string): boolean {
+  logDebug(pluginJson, `starting moveItemBetweenCalendarNotes`)
+  try {
+    // Get calendar note to use
+    const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
+    const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))
+    // Don't proceed unless we have valid from/to notes
+    if (!fromNote || !toNote) {
+      logError('moveTodoBetweenCalendarNotes', `- Can't get calendar note for ${NPFromDateStr} and/or ${NPToDateStr}`)
+      return false
+    }
+
+    // find para in the fromNote
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, itemText)
+    if (typeof possiblePara === 'boolean') {
+      throw new Error('moveTodoBetweenCalendarNotes: no para found')
+    }
+    const itemType = possiblePara?.type
+
+    // add to toNote
+    logDebug('moveTodoBetweenCalendarNotes', `- Prepending type ${itemType} '${itemText}' to '${displayTitle(toNote)}'`)
+    smartPrependPara(toNote, itemText, itemType)
+
+    // Assuming that's not thrown an error, now remove from fromNote
+    logDebug('moveTodoBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
+    fromNote.removeParagraph(possiblePara)
+    return true
+  } catch (err) {
+    logError('moveTodoBetweenCalendarNotes', `${err.name}: ${err.message}`)
+    return false
+  }
+}
+
+
+/**
+ * Take a (multi-line) raw content block, typically from the editor, and turn it into an array of TParagraph-like objects
+ * Designed to be used with Editor.content that is available in a trigger, before Editor.note.paragraphs is updated.
+ * Only writes "type", "content", "rawContent", "lineIndex" fields.
+ * WARNING: worked stopped on this as I found a better way to proceed that didn't need it
+ * TODO: finish work; see notes below
+ * @author @jgclark
+ * @param {string} content to parse
+ * @returns {Array<any>} array of TParagraph-like objects
+ * @tests in jest file
+ */
+export function makeBasicParasFromContent(content: string): Array<any> {
+  try {
+    const allLines = content.split('\n')
+    logDebug('makeBasicParasFromEditorContent', `Starting with ${String(allLines.length)} lines of editorContent}`)
+    // read the user's prefs for what counts as a todo
+    const ASTERISK_TODO = DataStore.preference("isAsteriskTodo") ? "*" : ""
+    const DASH_TODO = DataStore.preference("isDashTodo") ? "-" : ""
+    const NUMBER_TODO = DataStore.preference("isNumbersTodo") ? "|\\d+\\." : ""
+    // previously used /^\s*([\*\-]\s[^\[]|[\*\-]\s\[\s\])/
+    const RE_OPEN_TASK = new RegExp(`^\\s*(([${DASH_TODO}${ASTERISK_TODO}]${NUMBER_TODO})\\s(?!\\[[x\\-\\]])(\\[[\\s>]\\])?)`)
+    const ASTERISK_BULLET = DataStore.preference("isAsteriskTodo") ? "" : "*"
+    const DASH_BULLET = DataStore.preference("isDashTodo") ? "" : "-"
+    const RE_BULLET_LIST = new RegExp(`^\\s*([${DASH_BULLET}${ASTERISK_BULLET}])\\s+[\\w\\d[:punct:]]`)
+
+    // console.log(RE_OPEN_TASK)
+    // console.log(RE_BULLET_LIST)
+    const basicParas = []
+    let c = 0
+    for (const thisLine of allLines) {
+      const thisPara = {}
+      if (thisLine.match(/^#{1,5}\s+/)) {
+        thisPara.type = 'title'
+      }
+      // FIXME:
+      else if (thisLine.match(RE_OPEN_TASK)) {
+        thisPara.type = 'open'
+      }
+      // FIXME:
+      else if (thisLine.match(/^\s*(\+\s[^\[]|\+\s\[ \])/)) {
+        thisPara.type = 'checklist'
+      }
+      else if (thisLine.match(/^\s*([\*\-]\s\[>\])/)) {
+        thisPara.type = 'scheduled'
+      }
+      else if (thisLine.match(/^\s*(\+\s\[>\])/)) {
+        thisPara.type = 'checklistScheduled'
+      }
+      if (thisLine.match(/^\s*([\*\-]\s\[x\])/)) {
+        thisPara.type = 'done'
+      }
+      else if (thisLine.match(/^\s*([\*\-]\s\[\-\])/)) {
+        thisPara.type = 'cancelled'
+      }
+      else if (thisLine.match(/^\s*(\+\s\[x\])/)) {
+        thisPara.type = 'checklistDone'
+      }
+      else if (thisLine.match(/^\s*(\+\s\[\-\])/)) {
+        thisPara.type = 'checklistCancelled'
+      }
+      // FIXME:
+      else if (thisLine.match(RE_BULLET_LIST)) {
+        thisPara.type = 'list'
+      }
+      else if (thisLine.match(/^\s*>\s/)) {
+        thisPara.type = 'quote'
+      }
+      else if (thisLine === '---') {
+        thisPara.type = 'separator'
+      }
+      else if (thisLine === '') {
+        thisPara.type = 'empty'
+      }
+      else {
+        thisPara.type = 'text'
+      }
+      thisPara.lineIndex = c
+      thisPara.rawContent = thisLine
+      const startOfMainLineContentPos = getLineMainContentPos(thisLine)
+      thisPara.content = thisLine.slice(startOfMainLineContentPos)
+      basicParas.push(thisPara)
+      clo(thisPara, `${c}: `)
+      c++
+    }
+    return basicParas
+  }
+  catch (error) {
+    logError('makeBasicParasFromEditorContent', `${error.message} for input '${content}'`)
+    return []
   }
 }

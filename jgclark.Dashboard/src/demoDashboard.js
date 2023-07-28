@@ -2,13 +2,14 @@
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
 // Last updated 17.7.2023 for v0.5.1 by @jgclark
+// Note: to run this:noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=test%3Ademo%20dashboard
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import {
   getSettings,
   type dashboardConfigType,
-  type SectionDetails, type SectionItem
+  type Section, type SectionItem
 } from './dashboardHelpers'
 import {
   getNPMonthStr,
@@ -23,14 +24,14 @@ import { clo, logDebug, logError, logInfo, timer } from '@helpers/dev'
 
 /**
  * Setup dummy data for the demo dashboard, using the same data structures as the main dataGeneration.js
- * @returns {[Array<SectionDetails>, Array<SectionItem>]}
+ * @returns {[Array<Section>, Array<SectionItem>]}
  */
-export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>, Array<SectionItem>]> {
+export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<SectionItem>]> {
   try {
     // Get settings
     const config: dashboardConfigType = await getSettings()
 
-    const sections: Array<SectionDetails> = []
+    const sections: Array<Section> = []
     const sectionItems: Array<SectionItem> = []
     let sectionCount = 0
     let doneCount = 0

@@ -8,7 +8,6 @@ import {
   RE_SIMPLE_URI_MATCH,
   RE_MARKDOWN_LINK_PATH_CAPTURE,
 } from '@helpers/regex'
-import { getLineMainContentPos } from '@helpers/search'
 import { stripLinksFromString } from '@helpers/stringTransforms'
 
 //-----------------------------------------------------------------------------
@@ -151,65 +150,6 @@ export function printParagraph(p: TParagraph) {
   }
   logDebug('paragraph/printParagraph', JSON.stringify(logObject, null, 2))
 }
-
-/**
- * WARNING: use findStartOfActivePartOfNote() instead
- * Works out which line to insert at top of file. Rather than just after title line,
- * go after any YAML frontmatter or a metadata line (= starts with a hashtag).
- * TODO: How is this really different from findStartOfActivePartOfNote() ?
- * @author @jgclark
- * @tests in jest file
- * @param {TNote} note - the note of interest
- * @returns {number} line - the calculated line to insert/prepend at
- */
-// export function calcSmartPrependPoint(note: TNote): number {
-//   const lines = note.paragraphs.map((s) => s.content)
-//   // logDebug('paragraph/calcSmartPrependPoint', `Starting with ${lines.length} lines`)
-
-//   // By default we prepend at line 1, i.e. right after the Title line for regular notes
-//   let insertionLine = note.type === 'Calendar' ? 0 : 1
-//   // If we have any content, check for these special cases
-//   if (lines.length > 0) {
-//     if (lines[0] === '---') {
-//       logDebug('paragraph/calcSmartPrependPoint', `- YAML start found. Will check ${lines.length} lines`)
-//       // We (probably) have a YAML block
-//       // Find end of YAML/frontmatter
-//       for (let i = 1; i < lines.length; i++) {
-//         if (lines[i] === '---' || lines[i] === '...') {
-//           // logDebug('???', `YAML end at ${i}`)
-//           insertionLine = i + 1
-//           break
-//         }
-//       }
-//       if (insertionLine === 1) {
-//         // If we get here we haven't found an end to the YAML block.
-//         logWarn('paragraph/calcSmartPrependPoint', `- Couldn't find end of YAML frontmatter in note ${displayTitle(note)}`)
-//         // It's not clear what to do at this point, so will leave insertion point as is
-//       }
-//     } else if (lines.length >= 2 && lines[1].match(/^#[A-z]/)) {
-//       // We have a hashtag at the start of the line, making this a metadata line
-//       // Move insertion point to after the next blank line, or before the next
-//       // heading line, whichever is sooner.
-//       logDebug('paragraph/calcSmartPrependPoint', `- Metadata line found`)
-//       for (let i = 2; i < lines.length; i++) {
-//         // logDebug('???', `${i}: ${lines[i]}`)
-//         if (lines[i].match(/^#{1,5}\s/)) {
-//           logDebug('paragraph/calcSmartPrependPoint', `  - Heading at ${i}`)
-//           insertionLine = i + 1
-//           break
-//         } else if (lines[i] === '') {
-//           logDebug('paragraph/calcSmartPrependPoint', `  - Blank line at ${i}`)
-//           insertionLine = i + 1
-//           break
-//         }
-//       }
-//     } else {
-//       logDebug('paragraph/calcSmartPrependPoint', `  - neither frontmatter nor metadata line found -> line ${insertionLine}`)
-//     }
-//   }
-//   // Return the smarter insertionLine number
-//   return insertionLine
-// }
 
 /**
  * Appends text to a chosen note, but more smartly than usual.
@@ -491,72 +431,4 @@ export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $
     }
   })
   return [...syncedMap.values(), ...notSyncedArr]
-}
-
-/**
- * Take a (multi-line) raw content block, typically from the editor, and turn it into an array of TParagraph-like objects
- * Designed to be used with Editor.content that is available in a trigger, before Editor.note.paragraphs is updated.
- * Only writes "type", "content", "rawContent", "lineIndex" fields.
- * TODO: make tests
- * @author @jgclark
- * @param {string} content to parse
- * @returns {Array<any>} array of TParagraph-like objects
- */
-export function makeBasicParasFromContent(content: string): Array<any> {
-  try {
-    const editorLines = content.split('\n')
-    logDebug('makeBasicParasFromEditorContent', `Starting with ${String(editorLines.length)} lines of editorContent}`)
-    const basicParas = []
-    let c = 0
-    for (const thisLine of editorLines) {
-      const thisPara = {}
-      // FIXME:
-      if (thisLine.match(/^\s*([\*\-]\s[^\[]|[\*\-]\s\[\s\])/)) {
-        thisPara.type = 'open'
-      }
-      else if (thisLine.match(/^\s*([\*\-]\s\[>\])/)) {
-        thisPara.type = 'scheduled'
-      }
-      // FIXME:
-      else if (thisLine.match(/^\s*(\+\s[^\[]|\+\s\[ \])/)) {
-        thisPara.type = 'checklist'
-      }
-      else if (thisLine.match(/^\s*(\+\s\[>\])/)) {
-        thisPara.type = 'checklistScheduled'
-      }
-      if (thisLine.match(/^\s*([\*\-]\s\[x\])/)) {
-        thisPara.type = 'done'
-      }
-      else if (thisLine.match(/^\s*([\*\-]\s\[\-\])/)) {
-        thisPara.type = 'cancelled'
-      }
-      else if (thisLine.match(/^\s*(\+\s\[x\])/)) {
-        thisPara.type = 'checklistDone'
-      }
-      else if (thisLine.match(/^\s*(\+\s\[\-\])/)) {
-        thisPara.type = 'checklistCancelled'
-      }
-      else if (thisLine === '---') {
-        thisPara.type = 'separator'
-      }
-      else if (thisLine === '') {
-        thisPara.type = 'empty'
-      }
-      else {
-        thisPara.type = 'text'
-      }
-      thisPara.lineIndex = c
-      thisPara.rawContent = thisLine
-      const startOfMainLineContentPos = getLineMainContentPos(thisLine)
-      thisPara.content = thisLine.slice(startOfMainLineContentPos)
-      basicParas.push(thisPara)
-      clo(thisPara, `${c}: `)
-      c++
-    }
-    return basicParas
-  }
-  catch (error) {
-    logError('makeBasicParasFromEditorContent', `${error.message} for input '${content}'`)
-    return []
-  }
 }

@@ -230,7 +230,6 @@ async function cancelTask(data) {
  * @param {string} statusWas
  */
 function onClickDashboardItem(data) {
-  event.preventDefault // TEST: does this do anything?
   sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
 
   // const {itemID, type, filename, encodedContent} = data
