@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 3.3.2023 for v0.18.0 by @jgclark
+// Last updated 25.7.2023 for v0.19.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -16,7 +16,7 @@ import {
   unhyphenateString,
   withinDateRange,
 } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
+import { clo, JSP, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
   type headingLevelType,
@@ -392,22 +392,23 @@ export class TMOccurrences {
 export function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, config: OccurrencesConfig): Array<TMOccurrences> {
   try {
     // clo(config, `gatherOccurrences() starting for '${periodString}' (${fromDateStr} - ${toDateStr}) with config:`)
-    logDebug(config, `gatherOccurrences() starting for '${periodString}' (${fromDateStr} - ${toDateStr})`)
+    // TODO: is 'periodDailyNotes' name accurate?
     const periodDailyNotes = DataStore.calendarNotes.filter(
       (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), unhyphenateString(fromDateStr), unhyphenateString(toDateStr)))
     if (periodDailyNotes.length === 0) {
       logWarn('gatherOccurrences', `- no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
       return [] // for completeness
     }
+    logInfo('gatherOccurrences', `starting with ${periodDailyNotes.length} calendar notes for '${periodString}' (${fromDateStr} - ${toDateStr})`)
+    let tmOccurrencesArr: Array<TMOccurrences> = [] // to hold what we find
 
     // Note: in the following is a workaround to an API 'feature' in note.hashtags
     // where #one/two/three gets reported as #one, #one/two, and #one/two/three.
     // To take account of this the tag/mention loops below go backwards to use the longest first
 
-    let tmOccurrencesArr: Array<TMOccurrences> = [] // to hold what we find
-
     //------------------------------
     // Review each wanted YesNo type
+    let startTime = new Date()
     const YesNoListArr = (typeof config.GOYesNo === 'string') ? config.GOYesNo.split(',') : config.GOYesNo // make sure this is an array first
     for (let wantedItem of YesNoListArr) {
       // initialise a new TMOccurence for this YesNo item
@@ -459,10 +460,12 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
+    logInfo('gatherOccurrencesd', `Gathered YesNoList in ${timer(startTime)}`)
 
     //------------------------------
     // Review each wanted hashtag
     // Note: Add exclusion mechanism back in if needed? (I looked at it, and to do so breaks various things including result ordering that derives from the 'wanted' setting.)
+    startTime = new Date()
 
     // There are now 3 kinds of @mentions to process: make a superset of them to sort and then process in one go
     // Make sure they are arrays first.
@@ -477,6 +480,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
     logDebug('gatherOccurrences', `sorted combinedHashtags: ${String(combinedHashtags)}`)
 
+    // Note: I think there's a reason for nesting these two loops this way round, but I now can't remember what it was.
     for (const thisTag of combinedHashtags) {
       // initialise a new TMOccurence for this mention
       const [thisName, thisType] = thisTag
@@ -515,10 +519,12 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
+    logInfo('gatherOccurrencesd', `Gathered combinedHashtags in ${timer(startTime)}`)
 
     //------------------------------
     // Now repeat for @mentions
     // Note: Add exclusions -- as section above?
+    startTime = new Date()
 
     // There are now 3 kinds of @mentions to process: make a superset of them to sort and then process in one go
     // Make sure they are arrays first.
@@ -533,6 +539,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
     logDebug('gatherOccurrences', `sorted combinedMentions: ${String(combinedMentions)}`)
 
+    // Note: I think there's a reason for nesting these two loops this way round, but I now can't remember what it was.
     for (let thisMention of combinedMentions) {
       // initialise a new TMOccurence for this mention
       const [thisName, thisType] = thisMention
@@ -571,6 +578,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
+    logInfo('gatherOccurrencesd', `Gathered combinedMentions data in ${timer(startTime)}`)
 
     logDebug('gatherOccurrences', `Finished with ${tmOccurrencesArr.length} occObjects`)
     return tmOccurrencesArr

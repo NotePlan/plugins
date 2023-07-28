@@ -10,6 +10,7 @@ import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
+  type OccurrencesConfig,
   TMOccurrences,
   type SummariesConfig,
 } from './summaryHelpers'
@@ -58,7 +59,7 @@ export async function makeProgressUpdate(params: string = '', source: string = '
   try {
     // Get config setting
     let config: SummariesConfig = await getSummariesSettings()
-    let settingsForGO: OccurrencesConfig = {}
+    let settingsForGO: OccurrencesConfig
 
     // If there are params passed, then we've been called by a template command (and so use those).
     if (params) {
@@ -100,9 +101,11 @@ export async function makeProgressUpdate(params: string = '', source: string = '
         GOHashtagsCount: paramProgressHashtags,
         GOHashtagsTotal: paramProgressHashtagsTotal,
         GOHashtagsAverage: paramProgressHashtagsAverage,
+        GOHashtagsExclude: [],
         GOMentionsCount: paramProgressMentions,
         GOMentionsTotal: paramProgressMentionsTotal,
         GOMentionsAverage: paramProgressMentionsAverage,
+        GOMentionsExclude: [],
       }
     } else {
       settingsForGO = {
@@ -110,9 +113,11 @@ export async function makeProgressUpdate(params: string = '', source: string = '
         GOHashtagsCount: config.progressHashtags,
         GOHashtagsTotal: config.progressHashtagsTotal,
         GOHashtagsAverage: config.progressHashtagsAverage,
+        GOHashtagsExclude: [],
         GOMentionsCount: config.progressMentions,
         GOMentionsTotal: config.progressMentionsTotal,
         GOMentionsAverage: config.progressMentionsAverage,
+        GOMentionsExclude: [],
       }
     }
 

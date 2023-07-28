@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 21.3.2022 for v0.18.0
+// Last updated 25.7.2023 for v0.19.2
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -63,8 +63,8 @@ export async function statsPeriod(): Promise<void> {
       throw new Error(`Error: I can't handle periodType '${periodType}'`)
     }
 
-    const startTime = new Date()
-    CommandBar.showLoading(true, `Creating Period Stats`)
+    let startTime = new Date()
+    CommandBar.showLoading(true, `Gathering Data`)
     await CommandBar.onAsyncThread()
 
     // Main work: calculate the occurrences, using config settings and the time period info
@@ -83,12 +83,15 @@ export async function statsPeriod(): Promise<void> {
       fromDateStr,
       toDateStr,
       settingsForGO)
+    logInfo('statsPeriod', `Gathered all occurrences in ${timer(startTime)}`)
 
+    CommandBar.showLoading(true, `Creating Period Stats`)
+    startTime = new Date()
     const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.periodStatsShowSparklines, true).join('\n')
 
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-    logDebug('statsPeriod', `Created 'progress update' in ${timer(startTime)}`)
+    logInfo('statsPeriod', `Created period stats in ${timer(startTime)}`)
 
     // --------------------------------------------------------------------------
     // Ask where to save this summary to
