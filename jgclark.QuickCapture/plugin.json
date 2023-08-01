@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.13.0",
-  "plugin.lastUpdateInfo": "0.13.0: appending now comes before archive section, and prepending comes after any frontmatter. Some command name changes. ???",
+  "plugin.version": "0.14.0-RC1",
+  "plugin.lastUpdateInfo": "0.14.0: allow relative dates in '/quick append task/line under heading' and other commands.\n0.13.0: appending now comes before archive section, and prepending comes after any frontmatter. Some command name changes.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -46,7 +46,7 @@
       "description": "Quickly add a task to a chosen note's section heading",
       "jsFunction": "addTaskToNoteHeading",
       "arguments": [
-        "note title (or YYYYMMDD or YYYY-MM-DD or YYYY-Wnn for an existing calendar note)",
+        "note title (or YYYYMMDD, YYYY-MM-DD, YYYY-Wnn, or relative date for an existing calendar note)",
         "note section heading to add text under",
         "text to add"
       ]
@@ -59,7 +59,7 @@
       "description": "Quickly add text to a chosen note's section heading",
       "jsFunction": "addTextToNoteHeading",
       "arguments": [
-        "note title (or YYYYMMDD or YYYY-MM-DD or YYYY-Wnn for an existing calendar note)",
+        "note title (or YYYYMMDD, YYYY-MM-DD, YYYY-Wnn, or relative date for an existing calendar note)",
         "note section heading to add text under",
         "text to add"
       ]
@@ -74,7 +74,7 @@
       "description": "Quickly append a task to a chosen calendar note",
       "jsFunction": "appendTaskToCalendarNote",
       "arguments": [
-        "note date (YYYY-MM-DD, YYYYMMDD or YYYY-Wnn etc.)",
+        "note date: e.g. YYYYMMDD, YYYY-MM-DD, YYYY-Wnn, or relative date ('tomorrow', 'next week' etc.)",
         "text to add"
       ]
     },

@@ -1,6 +1,11 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
-<!-- ??? qalh adding a line after an earlier non-heading line with same text as the heading line. According to @Colin. -->
+
+## [0.14.0] - 2023-08-01
+### Added
+- _relative dates_ `today`, `yesterday`, `tomorrow`, `this week`, `last week`, `next week`, `this month`, `last month`, `next month`, `this quarter`, `last quarter`, `next quarter` are available when using x-callback-url mechanism to invoke the "/quick add to calendar note", "/quick prepend task to calendar note", "/quick add task under heading" and "/quick add line under heading" commands. Pass in in place of the 'note title' or 'note date' argument (suitably URL encoded, of course).
+- the same commands, when run interactively from the command bar, now annotate these same dates, so you can find them more easily in the long list. The list remains sorted with most-recently updated first.
+
 ## [0.13.0] - 2023-03-24
 ### Added
 - command to edit settings, even on iOS
@@ -63,7 +68,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 
 ## [0.5.0] - 2021-08-14
 ### Changed
-- `/int` now only looks for `inboxTitle` in the _configuration settings note. If the setting is missing, or doesn't match a note, then the plugin will try to create it, from default settings if necessary. If the empty string (`inboxTitle: ""`) is given, then use the daily note instead 
+- `/int` now only looks for `inboxTitle` in the _configuration settings note. If the setting is missing, or doesn't match a note, then the plugin will try to create it, from default settings if necessary. If the empty string (`inboxTitle: ""`) is given, then use the daily note instead
 - some code refactoring
 
 ## [0.4.0..0.4.5] - 2021-07-09
