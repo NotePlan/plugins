@@ -351,6 +351,12 @@ export async function showDemoDashboardHTML(): Promise<void> {
  */
 export async function showDashboardHTML(demoMode: boolean = false): Promise<void> {
   try {
+    // Check to stop it running on iOS
+    if (NotePlan.environment.platform !== 'macOS') {
+      logDebug(pluginJson, `Dashboard is designed only to run on macOS. Stopping.`)
+      return
+    }
+
     const config = await getSettings()
     const todaysFilenameDate = getTodaysDateUnhyphenated()
     let filterPriorityItems = DataStore.preference('Dashboard-filterPriorityItems') ?? false
