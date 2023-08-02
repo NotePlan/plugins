@@ -29,6 +29,7 @@ import {
 } from '@helpers/sorting'
 import { stripMailtoLinks, convertMarkdownLinks } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { isTimeBlockPara } from '@helpers/timeblocks'
 import { isDone, isOpen } from '@helpers/utils'
 
 //-----------------------------------------------------------------
@@ -40,31 +41,46 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
 //-----------------------------------------------------------------
 
 /**
- * Return list(s) of open task/checklist paragraphs from the current calendar note of type 'timePeriodName'. Optionally if 'includeReferencedItems' is true, then include references to this period as well.
- * Other config.* items are used:
+ * Return list(s) of open task/checklist paragraphs from the current calendar note of type 'timePeriodName'.
+ * Various config.* items are used:
  * - ignoreFolders? for folders to ignore for referenced notes
  * - separateSectionForReferencedNotes? if true, then two arrays will be returned: first from the calendar note; the second from references to that calendar note. If false, then both are included in a combined list (with the second being an empty array).
  * - ignoreTasksWithPhrase
+ * - excludeTasksWithTimeblocks & excludeChecklistsWithTimeblocks
  * @param {string} timePeriodName
  * @param {TNote} timePeriodNote base calendar note to process
- * @param {boolean} includeReferencedItems?
  * @param {dashboardConfigType} dashboardConfig
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
-function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, includeReferencedItems: boolean, dashboardConfig: dashboardConfigType): [Array<TParagraph>, Array<TParagraph>] {
+function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, dashboardConfig: dashboardConfigType): [Array<TParagraph>, Array<TParagraph>] {
   try {
     logDebug('getOpenItemParasForCurrentTimePeriod', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
     let parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
 
     // Need to filter out non-open task types for following function, and any blank tasks
     let openParas = parasToUse.filter(isOpen).filter((p) => p.content !== '')
+
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (dashboardConfig.ignoreTasksWithPhrase) {
       logDebug('getOpenItemParasForCurrentTimePeriod', `Before 'ignore' filter: ${openParas.length} paras`)
       openParas = openParas.filter((p) => !p.content.includes(dashboardConfig.ignoreTasksWithPhrase))
     }
     logDebug('getOpenItemParasForCurrentTimePeriod', `After 'ignore' filter: ${openParas.length} paras`)
+
+    // Filter out tasks with timeblocks, if wanted
+    if (dashboardConfig.excludeTasksWithTimeblocks) {
+      openParas = openParas.filter((p) => !(p.type === 'open' && isTimeBlockPara(p)))
+    }
+    logDebug('getOpenItemParasForCurrentTimePeriod', `After 'exclude task timeblocks' filter: ${openParas.length} paras`)
+
+    // Filter out checklists with timeblocks, if wanted
+    if (dashboardConfig.excludeChecklistsWithTimeblocks) {
+      openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
+    }
+    logDebug('getOpenItemParasForCurrentTimePeriod', `After 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
+
     // openParas.map((p) => console.log(`\t<${p.content}>`))
+
     // Temporarily extend TParagraph with the task's priority
     openParas = addPriorityToParagraphs(openParas)
 
@@ -121,7 +137,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       const thisFilename = currentDailyNote?.filename ?? '(error)'
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config.separateSectionForReferencedNotes, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -181,7 +197,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       const dateStr = getDateStringFromCalendarFilename(thisFilename)
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentWeeklyNote, config.separateSectionForReferencedNotes, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("week", currentWeeklyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -236,7 +252,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       let parasToUse: $ReadOnlyArray<any> = []
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("month", currentCalendarNote, config.separateSectionForReferencedNotes, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("month", currentCalendarNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -290,7 +306,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       const dateStr = getDateStringFromCalendarFilename(thisFilename)
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("quarter", currentQuarterlyNote, config.separateSectionForReferencedNotes, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("quarter", currentQuarterlyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {

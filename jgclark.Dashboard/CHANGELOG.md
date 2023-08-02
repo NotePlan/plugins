@@ -1,9 +1,13 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [0.6.0] - 2023-07-???
+## [0.6.0] - 2023-07-0???
 ### Added
 - adds tooltip on displayed tasks that allows task to be moved on to next day (`+1d`), next business day (`+1b`), this week's note (`wk`), next week's note (`+1w`). (If you're wondering, this uses the same syntax as my Repeat Extensions plugin.)
+- now truncates very long task/checklist items in the display
+- new setting 'Add dashboard auto-update trigger when dashboard opened?' that controls whether to add the auto-update trigger to the frontmatter to the current note when the dashboard is opened
+- new setting 'Exclude tasks that include time blocks?' that controls whether to stop display of open tasks that contain a time block
+- new setting 'Exclude checklists that include time blocks?' that controls whether to stop display of open checklists that contain a time block
 
 ## [0.5.1] - 2023-07-21 (unreleased)
 ### Added

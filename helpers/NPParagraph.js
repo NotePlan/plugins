@@ -1,5 +1,7 @@
 // @flow
-
+// TODO: asd
+// FIXME asdas
+// TEST: WARNING:
 import moment from 'moment/min/moment-with-locales'
 import { trimString } from '@helpers/dataManipulation'
 import {
@@ -1515,6 +1517,9 @@ export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklis
         todoTextArg != null && todoTextArg !== '' ? todoTextArg : await CommandBar.showInput(`Type the ${todoTypeName} text to add`, `Add ${todoTypeName} '%@' to ${NPDateStr}`)
       logDebug('NPP/prependTodoToCalendarNote', `- Prepending type ${todoType} '${todoText}' to '${displayTitle(note)}'`)
       smartPrependPara(note, todoText, todoType)
+
+      // Ask for cache refresh for this note
+      DataStore.updateCache(note, false)
     } else {
       logError('NPP/prependTodoToCalendarNote', `- Can't get calendar note for ${NPDateStr}`)
     }
@@ -1558,6 +1563,11 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
     // Assuming that's not thrown an error, now remove from fromNote
     logDebug('moveTodoBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
     fromNote.removeParagraph(possiblePara)
+
+    // Ask for cache refresh for these notes
+    DataStore.updateCache(fromNote, false)
+    DataStore.updateCache(toNote, false)
+
     return true
   } catch (err) {
     logError('moveTodoBetweenCalendarNotes', `${err.name}: ${err.message}`)

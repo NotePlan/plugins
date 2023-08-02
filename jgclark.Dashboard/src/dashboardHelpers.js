@@ -1,12 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 28.7.2023 for v0.6.0 by @jgclark
+// Last updated 2.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_EVENT_ID } from '@helpers/calendar'
+import { trimString } from '@helpers/dataManipulation'
 import { getDateStringFromCalendarFilename, toLocaleTime } from '@helpers/dateTime'
 import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { isTermInURL } from '@helpers/paragraph'
@@ -65,10 +66,13 @@ export type dashboardConfigType = {
   ignoreFolders: Array<string>,
   includeFolderName: boolean,
   includeTaskContext: boolean,
-  // filterPriorityItems: boolean, // now kept in a DataStore.preference key
+  autoAddTrigger: boolean,
+  excludeTasksWithTimeblocks: boolean,
+  excludeChecklistsWithTimeblocks: boolean,
   tagToShow: string,
   _logLevel: string,
   triggerLogging: boolean,
+  // filterPriorityItems: boolean, // now kept in a DataStore.preference key
 }
 
 /**
@@ -121,9 +125,14 @@ export async function getSettings(): Promise<any> {
  * @param {SectionItem} thisItem
  * @param {string?} noteTitle
  * @param {string?} noteLinkStyle: "append" or "all"
+ * @param {string?} truncateLength (optional) length of string after which to truncate. Will not truncate if set to 0.
  * @returns {string} altered string
  */
-export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, noteTitle: string = "", noteLinkStyle: string = "all"): string {
+export function makeParaContentToLookLikeNPDisplayInHTML(
+  thisItem: SectionItem,
+  noteTitle: string = "",
+  noteLinkStyle: string = "all",
+  truncateLength: number = 0): string {
   try {
     logDebug(`makeParaContent...`, `for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${thisItem.filename}'`)
     // Start with the content of the item
@@ -265,6 +274,12 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
       }
     }
 
+    // Truncate the HTML string if wanted (avoiding breaking in middle of HTML tags)
+    // Note: Best done before the note link is added
+    if (truncateLength > 0 && thisItem.content.length > truncateLength) {
+      output = truncateHTML(output, truncateLength, true)
+    }
+
     // Now include an active link to the note, if 'noteTitle' is given
     if (noteTitle) {
       // logDebug('makeParaContet...', `- before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
@@ -311,6 +326,33 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
     return ''
   }
 }
+
+function truncateHTML(html: string, maxLength: number, dots: boolean = true): string {
+  let holdCounter = false
+  let truncatedHTML = ''
+  let limit = maxLength
+  for (let index = 0; index < html.length; index++) {
+    if (!limit || limit === 0) {
+      break
+    }
+    if (html[index] == '<') {
+      holdCounter = true
+    }
+    if (!holdCounter) {
+      limit--
+    }
+    if (html[index] == '>') {
+      holdCounter = false
+    }
+    truncatedHTML += html[index]
+  }
+  if (dots) {
+    truncatedHTML = truncatedHTML + ' …'
+  }
+  // logDebug('truncateHTML', `{${html}} -> {${truncatedHTML}}`)
+  return truncatedHTML
+}
+
 
 /**
  * Get number of consecutive '!' in 'content' that aren't at the start/end/middle of a word, or preceding a '['

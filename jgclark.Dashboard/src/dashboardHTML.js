@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 25.7.2023 for v0.6.0 by @jgclark
+// Last updated 2.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -17,6 +17,7 @@ import { getDateStringFromCalendarFilename, getTodaysDateUnhyphenated, toLocaleT
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { unsetPreference } from '@helpers/NPdev'
 import { getFolderFromFilename } from '@helpers/folders'
+import { addTrigger } from '@helpers/NPFrontMatter'
 import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
@@ -372,7 +373,8 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
     const quarterlyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'quarter'))
     const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '')
 
-    // Create nice HTML display for this data.
+    //--------------------------------------------------------------
+    // Create nice HTML display for this data
 
     // Main table loop
     let totalOpenItems = 0
@@ -513,12 +515,12 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
             let paraContent = ''
             if (config.includeTaskContext) {
               if ([dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
-                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 150)
               } else {
-                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append', 150)
               }
             } else {
-              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all')
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all', 150)
             }
             const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}</div></td>\n       </tr>`
             outputArray.push(cell4)
@@ -534,9 +536,9 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
             let paraContent = ''
             // whole note link is clickable if context is wanted, and linked note title
             if (config.includeTaskContext && ![dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
-              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append')
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append', 150)
             } else {
-              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all')
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 150)
             }
 
             const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}</div></td>\n       </tr>`
@@ -596,6 +598,7 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
     summaryStatStr += `<span id="totalDoneCount">${String(totalDoneItems)}</span> closed`
     outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}`)
 
+    //--------------------------------------------------------------
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
     const windowTitle = `Dashboard (${totalOpenItems} items)`
@@ -620,6 +623,18 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
     }
     await showHTMLV2(outputArray.join('\n'), winOptions)
     logDebug(`makeDashboard`, `written to HTML window`)
+
+    //--------------------------------------------------------------
+    // Finally, add auto-update trigger to open note (if wanted)
+    if (config.autoAddTrigger) {
+      const res = addTrigger(Editor, 'onEditorWillSave', 'jgclark.Dashboard', 'show dashboard')
+      if (res) {
+        logDebug(pluginJson, 'Dashboard trigger added.')
+      } else {
+        logWarn(pluginJson, 'Dashboard trigger could not be added for some reason.')
+        const res2 = await showMessage(`Warning: Couldn't add auto-update trigger for the Dashboard for some reason.`)
+      }
+    }
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
