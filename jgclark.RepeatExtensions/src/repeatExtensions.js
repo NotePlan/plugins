@@ -71,7 +71,7 @@ export async function onEditorWillSave(): Promise<void> {
       // Get changed ranges
       const ranges = NotePlan.stringDiff(previousContent, latestContent)
       if (!ranges || ranges.length === 0) {
-        logDebug(`No ranges returned, so stopping.`)
+        logDebug('repeatExtensions/onEditorWillSave', `No ranges returned, so stopping.`)
         return
       }
       const earliestStart = ranges[0].start
