@@ -91,60 +91,60 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
         return
       }
 
-      // Get all open items from before and after
-      const beforeOpenParas = noteReadOnly.versions[0].paragraphs.filter((p) => isOpen(p))
-      const beforeOpenLines = beforeOpenParas.map((p) => p.rawContent)
-      const afterOpenParas = Editor.paragraphs.filter((p) => isOpen(p))
-      const afterOpenLines = afterOpenParas.map((p) => p.rawContent)
+      // // Get all open items from before and after
+      // const beforeOpenParas = noteReadOnly.versions[0].paragraphs.filter((p) => isOpen(p))
+      // const beforeOpenLines = beforeOpenParas.map((p) => p.rawContent)
+      // const afterOpenParas = Editor.paragraphs.filter((p) => isOpen(p))
+      // const afterOpenLines = afterOpenParas.map((p) => p.rawContent)
 
-      // Sort them
-      const beforeOpenSorted = beforeOpenLines.sort()
-      logDebug('\nbefore = ', beforeOpenSorted.join('\n'))
-      const afterOpenSorted = afterOpenLines.sort()
-      logDebug('\nafter = ', afterOpenSorted.join('\n'))
+      // // Sort them
+      // const beforeOpenSorted = beforeOpenLines.sort()
+      // logDebug('\nbefore = ', beforeOpenSorted.join('\n'))
+      // const afterOpenSorted = afterOpenLines.sort()
+      // logDebug('\nafter = ', afterOpenSorted.join('\n'))
 
-      // Compare them
-      const openItemsHaveChanged = (beforeOpenSorted.length > 0 && (beforeOpenSorted === afterOpenSorted))
+      // // Compare them
+      // const openItemsHaveChanged = (beforeOpenSorted.length > 0 && (beforeOpenSorted === afterOpenSorted))
 
-      // // Decide if there are more or fewer open items than before
-      // // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
-      // // (This avoids firing when simply moving task/checklist items around, or updating the text.)
-      // const hasNumberOfOpenItemsChanged = changeToNumberOfOpenItems(previousContent, latestContent)
+      // Decide if there are more or fewer open items than before
+      // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
+      // (This avoids firing when simply moving task/checklist items around, or updating the text.)
+      const hasNumberOfOpenItemsChanged = changeToNumberOfOpenItems(previousContent, latestContent)
 
-      // // TODO: now look for edits in open items
-      // // Get changed ranges
-      // const ranges = NotePlan.stringDiff(previousContent, latestContent)
-      // if (!ranges || ranges.length === 0) {
-      //   logDebug('decideWhetherToUpdateDashboard', `No ranges returned, so stopping.`)
-      //   return
-      // }
-      // const earliestStart = ranges[0].start
-      // let latestEnd = ranges[ranges.length - 1].end
-      // const overallRange: TRange = Range.create(earliestStart, latestEnd)
-      // logDebug('decideWhetherToUpdateDashboard', `- overall changed content from ${rangeToString(overallRange)}`)
-      // // Get changed lineIndexes
+      // TODO: now look for edits in open items
+      // Get changed ranges
+      const ranges = NotePlan.stringDiff(previousContent, latestContent)
+      if (!ranges || ranges.length === 0) {
+        logDebug('decideWhetherToUpdateDashboard', `No ranges returned, so stopping.`)
+        return
+      }
+      const earliestStart = ranges[0].start
+      let latestEnd = ranges[ranges.length - 1].end
+      const overallRange: TRange = Range.create(earliestStart, latestEnd)
+      logDebug('decideWhetherToUpdateDashboard', `- overall changed content from ${rangeToString(overallRange)}`)
+      // Get changed lineIndexes
 
-      // // earlier method for changedExtent based on character region, which didn't seem to always include all the changed parts.
-      // // const changedExtent = latestContent?.slice(earliestStart, latestEnd)
-      // // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
-      // // logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
-
-      // // Newer method uses changed paragraphs: this will include more than necessary, but that's more useful in this case
-      // let changedExtent = ''
-      // const [startParaIndex, endParaIndex] = selectedLinesIndex(overallRange, Editor.paragraphs)
-      // logDebug('decideWhetherToUpdateDashboard', `- changed lines ${startParaIndex}-${endParaIndex}`)
-      // // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
-      // for (let i = startParaIndex; i <= endParaIndex; i++) {
-      //   changedExtent += Editor.paragraphs[i].content
-      // }
+      // earlier method for changedExtent based on character region, which didn't seem to always include all the changed parts.
+      // const changedExtent = latestContent?.slice(earliestStart, latestEnd)
+      // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
       // logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
 
-      // // TODO: first get changed range
-      // // TODO: then expand to get the paragraphs in the range
-      // const openItemsChanged = false
+      // Newer method uses changed paragraphs: this will include more than necessary, but that's more useful in this case
+      let changedExtent = ''
+      const [startParaIndex, endParaIndex] = selectedLinesIndex(overallRange, Editor.paragraphs)
+      logDebug('decideWhetherToUpdateDashboard', `- changed lines ${startParaIndex}-${endParaIndex}`)
+      // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
+      for (let i = startParaIndex; i <= endParaIndex; i++) {
+        changedExtent += Editor.paragraphs[i].content
+      }
+      logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
 
-      // if (hasNumberOfOpenItemsChanged || openItemsChanged) {
-      if (openItemsHaveChanged) {
+      // TODO: first get changed range
+      // TODO: then expand to get the paragraphs in the range
+      const openItemsChanged = false
+
+      if (hasNumberOfOpenItemsChanged || openItemsChanged) {
+      // if (openItemsHaveChanged) {
         // TODO: try await Editor.save()? to get latest version available
         // Editor.save() // FIXME: hanging with or without await
         // DataStore.updateCache(Editor.note)
