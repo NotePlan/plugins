@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 2.8.2023 for v0.6.0 by @jgclark
+// Last updated 3.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,7 +14,7 @@ import {
   type Section, type SectionItem
 } from './dashboardHelpers'
 import { getDateStringFromCalendarFilename, getTodaysDateUnhyphenated, toLocaleTime } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { unsetPreference } from '@helpers/NPdev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { addTrigger } from '@helpers/NPFrontMatter'
@@ -33,6 +33,7 @@ import {
   getWindowFromCustomId,
   rectToString
 } from '@helpers/NPWindows'
+import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // HTML resources
@@ -165,17 +166,27 @@ for (const contentItem of allContentItems) {
   const thisEncodedFilename = contentItem.dataset.encodedFilename; // contentItem.id;
   // console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent);
 
-  // add event handler to each <a> (normally only 1 per item),
+  // // add event handler to each <a> (normally only 1 per item),
+  // // unless it's a noteTitle, which gets its own click handler.
+  // const theseLinks = contentItem.getElementsByTagName("A");
+  // for (const thisLink of theseLinks) {
+  //   console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className);
+  //   if (!thisLink.className.match('noteTitle')) {
+  //     thisLink.addEventListener('click', function (event) {
+  //       event.preventDefault();
+  //       handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
+  //     }, false);
+  //   }
+  // }
+  // add event handler to each <div> (normally only 1 per item),
   // unless it's a noteTitle, which gets its own click handler.
-  const theseLinks = contentItem.getElementsByTagName("A");
+  const theseLinks = contentItem.getElementsByTagName("DIV");
   for (const thisLink of theseLinks) {
     console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className);
-    if (!thisLink.className.match('noteTitle')) {
-      thisLink.addEventListener('click', function (event) {
-        event.preventDefault(); // TEST:
-        handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
-      }, false);
-    }
+    thisLink.addEventListener('click', function (event) {
+      // event.preventDefault(); // TEST: disabling to ensure that externalLinks etc. can fire
+      handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
+    }, false);
   }
 }
 console.log(String(allContentItems.length) + ' sectionItem ELs added (to content links)');
@@ -336,7 +347,7 @@ window.addEventListener("beforeunload", function(){
  * Show the dashboard HTML window, _but with some pre-configured demo data_.
  */
 export async function showDemoDashboardHTML(): Promise<void> {
-  await showDashboardHTML(true)
+  await showDashboardHTML(true, true)
 }
 
 /**
@@ -347,9 +358,10 @@ export async function showDemoDashboardHTML(): Promise<void> {
  * - x-yI = icon for section x item y, used in 'col 3' <i> tag
  *
  * @author @jgclark
- * @param {boolean?} showDemoData - if true, show the demo data, otherwise show the real data
+ * @param {boolean?} shouldFocusWindow? (default: true)
+ * @param {boolean?} showDemoData? if true, show the demo data, otherwise show the real data
  */
-export async function showDashboardHTML(demoMode: boolean = false): Promise<void> {
+export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: boolean = false): Promise<void> {
   try {
     // Check to stop it running on iOS
     if (NotePlan.environment.platform !== 'macOS') {
@@ -492,19 +504,19 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
         const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
         let tooltipContent = ''
         if (controlTypesForThisSection.length > 0) {
-          tooltipContent = `\n      <span class="hoverExtraControls" data-date-string="${section.filename}">`
+          tooltipContent = `\n           <span class="hoverExtraControls" data-date-string="${section.filename}">`
           // only want control types relevant for this section
           for (const ct of controlTypesForThisSection) {
             if (ct.sectionDateTypes.includes(section.dateType)) {
               if (item.filename === section.filename) {
-                tooltipContent += `      <button class="moveButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
+                tooltipContent += `<button class="moveButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
               } else {
                 logDebug('dashboardHTML', `- This needs to be updateTaskDate ${item.filename} as != ${section.filename}`)
-                tooltipContent += `      <button class="changeDateButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
+                tooltipContent += `<button class="changeDateButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
               }
             }
           }
-          tooltipContent += '</span>\n'
+          tooltipContent += '</span>'
         }
 
         // TODO: how does this need to change for non-calendar notes?
@@ -521,14 +533,14 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
             let paraContent = ''
             if (config.includeTaskContext) {
               if ([dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
-                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 150)
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 140)
               } else {
-                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append', 150)
+                paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append', 140)
               }
             } else {
-              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all', 150)
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all', 140)
             }
-            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}</div></td>\n       </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -542,12 +554,12 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
             let paraContent = ''
             // whole note link is clickable if context is wanted, and linked note title
             if (config.includeTaskContext && ![dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
-              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append', 150)
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append', 140)
             } else {
-              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 150)
+              paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 140)
             }
 
-            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}"><div class="avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}</div></td>\n       </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -617,9 +629,9 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       generalCSSIn: '', // get general CSS set automatically
       specificCSS: '', // set in separate CSS file instead
       makeModal: false,
-      shouldFocus: false, // shouuld not focus, if Window already exists
+      shouldFocus: shouldFocus, // shouuld focus window?
       preBodyScript: '', // no extra pre-JS
-      postBodyScript: encodeDecodeScript + commsBridge + addIconEventListenersScript + addContentEventListenersScript + addButtonEventListenersScript + addReviewEventListenersScript + clickHandlersScript + resizeListenerScript, // + unloadListenerScript,
+      postBodyScript: encodeDecodeScript + commsBridge + addIconEventListenersScript + addContentEventListenersScript + addButtonEventListenersScript + addReviewEventListenersScript + clickHandlersScript, // + resizeListenerScript, // + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 1000, // = default width of window (px)
@@ -628,15 +640,13 @@ export async function showDashboardHTML(demoMode: boolean = false): Promise<void
       y: 0 // default, normally overriden from last position
     }
     await showHTMLV2(outputArray.join('\n'), winOptions)
-    logDebug(`makeDashboard`, `written to HTML window`)
+    // logDebug(`makeDashboard`, `written to HTML window with shouldFocus ${String(shouldFocus)}`)
 
     //--------------------------------------------------------------
     // Finally, add auto-update trigger to open note (if wanted)
     if (config.autoAddTrigger) {
-      const res = addTrigger(Editor, 'onEditorWillSave', 'jgclark.Dashboard', 'show dashboard')
-      if (res) {
-        logDebug(pluginJson, 'Dashboard trigger added.')
-      } else {
+      const res = addTrigger(Editor, 'onEditorWillSave', 'jgclark.Dashboard', 'decideWhetherToUpdateDashboard')
+      if (!res) {
         logWarn(pluginJson, 'Dashboard trigger could not be added for some reason.')
         const res2 = await showMessage(`Warning: Couldn't add auto-update trigger for the Dashboard for some reason.`)
       }

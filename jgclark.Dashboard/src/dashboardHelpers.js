@@ -382,11 +382,13 @@ export function addNoteOpenLinkToString(item: SectionItem | Section, displayStr:
     if (item.rawContent) {
       // call showLineinEditor... with the filename and rawConetnt
       // return `<a class="" onClick="onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
-      return `<a>${displayStr}</a>`
+      // return `<a>${displayStr}</a>`
+      return `${displayStr}`
     } else {
       // call showNoteinEditor... with the filename
       // return `<a class="" onClick="onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')">${displayStr}</a>`
-      return `<a>${displayStr}</a>`
+      // return `<a>${displayStr}</a>`
+      return `${displayStr}`
     }
   }
   catch (error) {

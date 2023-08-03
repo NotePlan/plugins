@@ -37,7 +37,8 @@ export function changeBareLinksToHTMLLink(original: string): string {
     // clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
       const linkURL = capture[3]
-      output = output.replace(linkURL, `<span class="externalLink"><a href="${linkURL}">${linkURL}</a></span>`)
+      // output = output.replace(linkURL, `<span class="externalLink"><a href="${linkURL}">${linkURL}</a></span>`)
+      output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}">${linkURL}</a>`)
     }
   }
   return output
@@ -58,7 +59,8 @@ export function changeMarkdownLinksToHTMLLink(original: string): string {
     for (const capture of captures) {
       const linkTitle = capture[1]
       const linkURL = capture[2]
-      output = output.replace(`[${linkTitle}](${linkURL})`, `<span class="externalLink"><a href="${linkURL}">${linkTitle}</a></span>`)
+      // output = output.replace(`[${linkTitle}](${linkURL})`, `<span class="externalLink"><a href="${linkURL}">${linkTitle}</a></span>`)
+      output = output.replace(`[${linkTitle}](${linkURL})`, `<a class="externalLink" href="${linkURL}">${linkTitle}</a>`)
     }
   }
   return output
@@ -324,7 +326,7 @@ export function convertMarkdownLinks(text: string): string {
 
 /**
  * Version of URL encode that extends encodeURIComponent()
- * (which everything except A-Z a-z 0-9 - _ . ! ~ * ' ( ))
+ * (which does everything except A-Z a-z 0-9 - _ . ! ~ * ' ( ))
  * plus ! ' ( ) [ ] * required by RFC3986, and needed when passing text to JS in some settings
  * Taken from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURI#encoding_for_rfc3986
  * @tests in jest file
@@ -341,7 +343,12 @@ export function encodeRFC3986URIComponent(input: string): string {
   return encodeURIComponent(dealWithSpecialCase)
     .replace(/\[/g, '%5B')
     .replace(/\]/g, '%5D')
-    .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/!/g, '%21')
+    .replace(/'/g, "%27")
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A')
+    // .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
 }
 
 /**
@@ -352,7 +359,7 @@ export function encodeRFC3986URIComponent(input: string): string {
  * @returns {string}
  */
 export function decodeRFC3986URIComponent(input: string): string {
-  return decodeURIComponent(input)
+  const decodedSpecials = input
     .replace(/%5B/g, '[')
     .replace(/%5D/g, ']')
     .replace(/%21/g, '!')
@@ -360,4 +367,5 @@ export function decodeRFC3986URIComponent(input: string): string {
     .replace(/%28/g, '(')
     .replace(/%29/g, ')')
     .replace(/%2A/g, '*')
+  return decodeURIComponent(decodedSpecials)
 }

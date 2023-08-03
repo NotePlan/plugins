@@ -14,11 +14,15 @@ function encodeRFC3986URIComponent(input) {
   return encodeURIComponent(dealWithSpecialCase)
     .replace(/\[/g, '%5B')
     .replace(/\]/g, '%5D')
-    .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/!/g, '%21')
+    .replace(/'/g, "%27")
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A')
 }
 
 function decodeRFC3986URIComponent(input) {
-  return decodeURIComponent(input)
+  const decodedSpecials = input
     .replace(/%5B/g, '[')
     .replace(/%5D/g, ']')
     .replace(/%21/g, '!')
@@ -26,4 +30,5 @@ function decodeRFC3986URIComponent(input) {
     .replace(/%28/g, '(')
     .replace(/%29/g, ')')
     .replace(/%2A/g, '*')
+  return decodeURIComponent(decodedSpecials)
 }

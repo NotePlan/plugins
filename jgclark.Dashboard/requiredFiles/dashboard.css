@@ -68,17 +68,25 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 .scheduledDate {
 	color: var(--tint-color);
 }
-a, a:visited, a:active { /* all links turn off text color and underlining by default */
+div, div:visited, div:active { /* all links turn off text color and underlining by default */
 	color: inherit;
 	text-decoration: none;
 	cursor: pointer;
 }
-a:hover {
+div:hover {
 	text-decoration: underline;
-	text-decoration-color: var(--tint-color); }
-.externalLink a, a:hover {
+	/* text-decoration-color: var(--tint-color); */
+}
+.externalLink {
 	text-decoration: underline;
-	cursor: pointer; }
+	cursor: pointer;
+	color: var(--tint-color);
+}
+.externalLink::before {
+	content: "\1F9ED  ";
+	/* color: var(--tint-color); */
+	text-decoration: none;
+}
 .event-link {
 	font-weight: 400;
 	border-color: var(--bg-alt-color);
