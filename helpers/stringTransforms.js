@@ -28,9 +28,10 @@ export function convertAllLinksToHTMLLinks(original: string): string {
  * Convert bare URLs to display as HTML links
  * @author @jgclark
  * @tests in jest file
- * @param {string} original
+ * @param {string} original string
+ * @param {boolean?} addWebIcon before the link? (default: true)
  */
-export function changeBareLinksToHTMLLink(original: string): string {
+export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean = true): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
   if (captures.length > 0) {
@@ -38,7 +39,12 @@ export function changeBareLinksToHTMLLink(original: string): string {
     for (const capture of captures) {
       const linkURL = capture[3]
       // output = output.replace(linkURL, `<span class="externalLink"><a href="${linkURL}">${linkURL}</a></span>`)
-      output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}">${linkURL}</a>`)
+      if (addWebIcon) {
+        // not displaying icon
+        output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe"></i>${linkURL}</a>`)
+      } else {
+        output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}">${linkURL}</a>`)
+      }
     }
   }
   return output
@@ -48,9 +54,10 @@ export function changeBareLinksToHTMLLink(original: string): string {
  * Change [title](URI) markdown links to <a href="URI">title</a> HTML style
  * @author @jgclark
  * @tests in jest file
- * @param {string} original
+ * @param {string} original string
+ * @param {boolean?} addWebIcon before the link? (default: true)
  */
-export function changeMarkdownLinksToHTMLLink(original: string): string {
+export function changeMarkdownLinksToHTMLLink(original: string, addWebIcon: boolean = true): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_MARKDOWN_LINKS_CAPTURE_G) ?? [])
   if (captures.length > 0) {
@@ -60,7 +67,12 @@ export function changeMarkdownLinksToHTMLLink(original: string): string {
       const linkTitle = capture[1]
       const linkURL = capture[2]
       // output = output.replace(`[${linkTitle}](${linkURL})`, `<span class="externalLink"><a href="${linkURL}">${linkTitle}</a></span>`)
-      output = output.replace(`[${linkTitle}](${linkURL})`, `<a class="externalLink" href="${linkURL}">${linkTitle}</a>`)
+      if (addWebIcon) {
+        // not displaying icon
+        output = output.replace(`[${linkTitle}](${linkURL})`, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe"></i>${linkTitle}</a>`)
+      } else {
+        output = output.replace(`[${linkTitle}](${linkURL})`, `<a class="externalLink" href="${linkURL}">${linkTitle}</a>`)
+      }
     }
   }
   return output

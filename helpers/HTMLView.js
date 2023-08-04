@@ -118,7 +118,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // Set body:
     // - main font = styles.body.font
-    // const bodyFont = translateFontNameNPToCSS(themeJSON.styles.body.font)
+    const bodyFont = themeJSON.styles.body.font ?? ''
+    logDebug('generateCSSFromTheme', `bodyFont: ${bodyFont}`)
     // - main foreground colour (styles.body.color)
     // - main background colour (editor.backgroundColor)
     tempSel = []
@@ -128,7 +129,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       const thisColor = RGBColourConvert(themeJSON?.editor?.textColor ?? '#CC6666')
       tempSel.push(`color: var(--fg-main-color)`) //`color: ${thisColor}`
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('body', tempSel))
+      output.push(makeCSSSelector('body, .body', tempSel))
       // tempSel = styleObj.size // TEST:
       rootSel.push(`--fg-main-color: ${thisColor}`)
     }
@@ -182,11 +183,19 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set core button style from macOS based on dark or light:
     // Similarly for fake-buttons (i.e. from <a href ...>)
     if (isLightTheme) {
-      output.push(makeCSSSelector('button', ['background-color: #FFFFFF', 'font-size: 1.0rem', 'font-weight: 500']))
+      output.push(makeCSSSelector('button', [
+        'color: var(--fg-main-color)',
+        'background-color: #FFFFFF',
+        `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
+        // 'font-size: 1.0rem',
+        'font-weight: 500',
+        'border-radius: 4px',
+      ]))
       output.push(
         makeCSSSelector('.fake-button a', [
+          'color: var(--fg-main-color)',
           'background-color: #FFFFFF',
-          //          'font-size: 1.0rem',
+          // 'font-size: 1.0rem',
           'font-weight: 500',
           'text-decoration: none',
           'border-color: #DFE0E0',
@@ -199,18 +208,26 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       )
     } else {
       // dark theme
-      output.push(makeCSSSelector('button', ['background-color: #5E5E5E', 'font-size: 1.0rem', 'font-weight: 500']))
+      output.push(makeCSSSelector('button', [
+        'color: var(--fg-main-color)',
+        'background-color: #5E5E5E',
+        `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
+        // 'font-size: 1.0rem',
+        'font-weight: 500',
+        'border-radius: 4px',
+      ]))
       output.push(
         makeCSSSelector('.fake-button a', [
+          'color: var(--fg-main-color)',
           'background-color: #5E5E5E',
-          'font-size: 1.0rem',
+          // 'font-size: 1.0rem',
           'font-weight: 500',
           'text-decoration: none',
           'border-color: #5E5E5E',
           'border-radius: 4px',
           'box-shadow: 0 -1px 1px #6F6F6F',
           'padding: 1px 7px 1px 7px',
-          'margin: 1px 4px',
+          'margin: 2px 4px',
           'white-space: nowrap', // no wrapping (i.e. line break) within the button display
         ]),
       )
@@ -276,6 +293,9 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles.hashtag
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
+      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.hashtag', tempSel))
     }
@@ -285,6 +305,9 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles.attag
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
+      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.attag', tempSel))
     }
@@ -295,6 +318,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFE5E5')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority1', tempSel))
     }
@@ -305,6 +330,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFC5C5')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority2', tempSel))
     }
@@ -315,8 +342,22 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFA5A5')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority3', tempSel))
+    }
+
+    // Set class for 'working-on' if present
+    tempSel = []
+    styleObj = themeJSON.styles['working-on']
+    if (styleObj) {
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
+      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFA5A5')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      output.push(makeCSSSelector('.priority5', tempSel))
     }
 
     // Now put the important info and rootSel at the start of the output
@@ -344,12 +385,14 @@ function convertStyleObjectBlock(styleObject: any): Array<string> {
     cssStyleLinesOutput.push(`font-size: ${pxToRem(styleObject?.size, baseFontSize)}`)
   }
   if (styleObject?.paragraphSpacingBefore) {
-    cssStyleLinesOutput.push(`line-height: ${pxToRem(styleObject?.paragraphSpacingBefore, baseFontSize)}`)
-    // `padding-top: ${themeJSON.styles.body.paragraphSpacingBefore}` ?? "0" + 'px', // TODO:
+    cssStyleLinesOutput.push(`margin-top: ${pxToRem(styleObject?.paragraphSpacingBefore, baseFontSize)}`)
   }
   if (styleObject?.paragraphSpacing) {
-    cssStyleLinesOutput.push(`padding-bottom: ${pxToRem(styleObject?.paragraphSpacing, baseFontSize)}`)
-    // `padding-bottom: ${themeJSON.styles.body.paragraphSpacing}` ?? "6" + 'px', // TODO:
+    cssStyleLinesOutput.push(`margin-bottom: ${pxToRem(styleObject?.paragraphSpacing, baseFontSize)}`)
+  }
+  if (styleObject?.lineSpacing) {
+    const lineSpacingRem = Number(styleObject?.lineSpacing) * 1.5
+    cssStyleLinesOutput.push(`line-height: ${String(lineSpacingRem)}rem`)
   }
   if (styleObject?.font) {
     cssStyleLinesOutput = cssStyleLinesOutput.concat(fontPropertiesFromNP(styleObject?.font))
@@ -838,8 +881,7 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
     }
     fullHTML.push(winOpts.headerTags)
     fullHTML.push('<style type="text/css">')
-    // If generalCSSIn is empty, then generate it from the current theme
-    // Note: ideally extend this to save CSS from theme, and then check if it can be reused.
+    // If generalCSSIn is empty, then generate it from the current theme. (Note: could extend this to save CSS from theme, and then check if it can be reused.)
     const generalCSS = winOpts.generalCSSIn && winOpts.generalCSSIn !== '' ? winOpts.generalCSSIn : generateCSSFromTheme('')
     fullHTML.push(generalCSS)
     fullHTML.push(winOpts.specificCSS)
@@ -981,8 +1023,6 @@ export async function showHTMLV2(
         opts.savedFilename ?? '',
         opts.width,
         opts.height,
-        opts.x,
-        opts.y,
         opts.customId)
       return true // for completeness
 
@@ -1014,7 +1054,7 @@ export async function showHTMLV2(
           x: opts.x,
           y: opts.y,
           width: opts.width,
-          height: (opts.height > 56) ? opts.height : 500, // to cope with bug where height can change to 28px
+          height: (opts.height > 56) ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
           shouldFocus: opts.shouldFocus,
           // Note: can't set customId, but only long UID ('id')
         }
@@ -1027,7 +1067,7 @@ export async function showHTMLV2(
               x: storedRect.x,
               y: storedRect.y,
               width: storedRect.width,
-              height: (storedRect.height > 56) ? storedRect.height : 500, // to cope with bug where height can change to 28px
+              height: (storedRect.height > 56) ? storedRect.height : 500, // to attempt to cope with bug where height can change to 28px
               shouldFocus: opts.shouldFocus
             }
             logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
@@ -1036,7 +1076,9 @@ export async function showHTMLV2(
           }
         }
         clo(winOptions, 'showHTMLV2 using winOptions:')
+        // $FlowIgnore[invalid-compare]
         if (winOptions.height < 29) {
+          // $FlowIgnore[incompatible-type]
           logWarn('showHTMLV2', `**** height to use = ${winOptions.height}px! ****`)
         }
 

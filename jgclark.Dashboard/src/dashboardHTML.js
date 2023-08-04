@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 3.8.2023 for v0.6.0 by @jgclark
+// Last updated 4.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,7 +13,8 @@ import {
   makeParaContentToLookLikeNPDisplayInHTML,
   type Section, type SectionItem
 } from './dashboardHelpers'
-import { getDateStringFromCalendarFilename, getTodaysDateUnhyphenated, toLocaleTime } from '@helpers/dateTime'
+import { getDateStringFromCalendarFilename, getTodaysDateUnhyphenated } from '@helpers/dateTime'
+import { nowLocaleShortTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { unsetPreference } from '@helpers/NPdev'
 import { getFolderFromFilename } from '@helpers/folders'
@@ -178,15 +179,16 @@ for (const contentItem of allContentItems) {
   //     }, false);
   //   }
   // }
-  // add event handler to each <div> (normally only 1 per item),
-  // unless it's a noteTitle, which gets its own click handler.
+  // add event handler to each "div.content" (normally only 1 per item),
   const theseLinks = contentItem.getElementsByTagName("DIV");
   for (const thisLink of theseLinks) {
-    console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className);
-    thisLink.addEventListener('click', function (event) {
-      // event.preventDefault(); // TEST: disabling to ensure that externalLinks etc. can fire
-      handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
-    }, false);
+    if (thisLink.className.match('content')) {
+      console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisLink.className);
+      thisLink.addEventListener('click', function (event) {
+        // event.preventDefault(); // TEST: disabling to ensure that externalLinks etc. can fire
+        handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
+      }, false);
+    }
   }
 }
 console.log(String(allContentItems.length) + ' sectionItem ELs added (to content links)');
@@ -311,8 +313,9 @@ function handleButtonClick(id, controlStr, filename, content) {
 
 /**
  * When window is resized, send notification (now not dimensions which seem unreliable) to plugin.
- * Note: as it continuously fires, I've added a debounce (from lodash, as best I can)
+ * As it continuously fires, I've added a debounce (borrowed from lodash, as best I can)
  * Note: doesn't fire on window *move* alone.
+ * TODO: seems to fire immediately, which is unhelpful. So currently disabled.
  */
 const resizeListenerScript = `
 <!-- resizeListenerScript -->
@@ -438,9 +441,9 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
           // Add 'add task' and 'add checklist' icons
           // TODO: add tooltip
           const xcbAddTask = createRunPluginCallbackUrl('jgclark.Dashboard', 'addTask', [section.filename])
-          outputArray.push(`    <span><a href="${xcbAddTask}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a></span>`)
+          outputArray.push(`    <a href="${xcbAddTask}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a>`)
           const xcbAddChecklist = createRunPluginCallbackUrl('jgclark.Dashboard', 'addChecklist', [section.filename])
-          outputArray.push(`    <span><a href="${xcbAddChecklist}"><i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i></a></span>`)
+          outputArray.push(`    <a href="${xcbAddChecklist}"><i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i></a>`)
         }
       }
       // Close col 1
@@ -453,17 +456,24 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
 
       let filteredOut = 0
       const filteredItems: Array<SectionItem> = []
-      // If we want to, then filtered some out in this section, and append an item to indicate this
+      // If we want to, then filter some out in this section, and append an item to indicate this
+      // Count newer 'working-on' indicator as priority 0, with no priority indicator as -1
       if (filterPriorityItems) {
-        let maxPriority = 0
+        let maxPriority = -1
         for (const item of items) {
-          const thisItemPriority = getTaskPriority(item.content)
+          const thisPriority = getTaskPriority(item.content)
+          const thisItemPriority = (thisPriority === 'W')
+            ? 0 : ['1', '2', '3'].includes(thisPriority)
+              ? Number(thisPriority) : -1
           if (thisItemPriority > maxPriority) {
             maxPriority = thisItemPriority
           }
         }
         for (const item of items) {
-          const thisItemPriority = getTaskPriority(item.content)
+          const thisPriority = getTaskPriority(item.content)
+          const thisItemPriority = (thisPriority === 'W')
+            ? 0 : ['1', '2', '3'].includes(thisPriority)
+              ? Number(thisPriority) : -1
           if (maxPriority === 0 || thisItemPriority >= maxPriority) {
             filteredItems.push(item)
           } else {
@@ -540,7 +550,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
             } else {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all', 140)
             }
-            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="content avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -559,7 +569,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 140)
             }
 
-            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="content avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -605,16 +615,21 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     }
     outputArray.push(`</table>`)
 
-    // write lines before first table
+    // write header lines before first table
+    const summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; <span id="totalDoneCount">${String(totalDoneItems)}</span> closed. Last updated ${nowLocaleShortTime()}`
 
-    // Add filter checkbox
-    outputArray.unshift(`<span style="float: right;"><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? "checked" : "unchecked"}><label for="filterPriorityItems">Filter out lower-priority items?</label></inpu></span>\n</p>`)
     // Write time and refresh info
     const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', '')
     const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
-    let summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; `
-    summaryStatStr += `<span id="totalDoneCount">${String(totalDoneItems)}</span> closed`
-    outputArray.unshift(`<p>${summaryStatStr}. Last updated: ${toLocaleTime(new Date())} ${refreshXCallbackButton}`)
+    // Now using a proper button, not a fake one. But it needs to live inside a form to activate.
+    // FIXME: works in Safari, but not in NP. Grrr.
+    // const refreshXCallbackButton = `<form action="${refreshXCallbackURL}" style="display: inline;"><button class="mainButton" type="submit"></form><i class="fa-solid fa-arrow-rotate-right"></i> Refresh</button>`
+
+    // Add filter checkbox
+    const filterCheckbox = `<span style="float: right;"><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? "checked" : "unchecked"}><label for="filterPriorityItems">Filter out lower-priority items?</label></input></span>\n`
+
+    const header = `<div class="body">${summaryStatStr}\n${refreshXCallbackButton}\n${filterCheckbox}</div>`
+    outputArray.unshift(header)
 
     //--------------------------------------------------------------
     // Show in an HTML window, and save a copy as file
@@ -627,7 +642,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
       customId: windowCustomId,
       headerTags: resourceLinksInHeader,
       generalCSSIn: '', // get general CSS set automatically
-      specificCSS: '', // set in separate CSS file instead
+      specificCSS: '', // set in separate CSS file referenced in header
       makeModal: false,
       shouldFocus: shouldFocus, // shouuld focus window?
       preBodyScript: '', // no extra pre-JS
@@ -644,7 +659,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
 
     //--------------------------------------------------------------
     // Finally, add auto-update trigger to open note (if wanted)
-    if (config.autoAddTrigger) {
+    if (config.autoAddTrigger && !demoMode) {
       const res = addTrigger(Editor, 'onEditorWillSave', 'jgclark.Dashboard', 'decideWhetherToUpdateDashboard')
       if (!res) {
         logWarn(pluginJson, 'Dashboard trigger could not be added for some reason.')

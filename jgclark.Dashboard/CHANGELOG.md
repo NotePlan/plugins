@@ -8,10 +8,13 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 - new setting 'Add dashboard auto-update trigger when dashboard opened?' that controls whether to add the auto-update trigger to the frontmatter to the current note when the dashboard is opened
 - new setting 'Exclude tasks that include time blocks?' that controls whether to stop display of open tasks that contain a time block
 - new setting 'Exclude checklists that include time blocks?' that controls whether to stop display of open checklists that contain a time block
+- support for new NP theme item 'working-on', invoked with a `>>` at the start of a task line
+- support for coloured (and curved) backgrounds on #tags and @mentions and priority highlights (if set in the theme)
 
 ### Changed
 - the auto-update trigger should now fire when an open task/checklist is edited, not just added ???
 - now will bring the Dashboard window to the front if run from the command bar or an x-callback, but will not take focus if it updates itself via a`` trigger.
+- better translation of NP theme vertical spacing to the HTML display
 
 ### Fixed
 - background of tasks with !! or !!! priority markers sometimes wrong

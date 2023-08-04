@@ -296,26 +296,12 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
       logDebug('makeParaContet...', `- after: '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
     }
 
-    // If there's a ! !! or !!! add priorityN styling around the whole string. Note: this wrapping needs to go last.
-    // (Simpler regex possible as the count comes later)
-    const numExclamations = getTaskPriority(output)
-    switch (numExclamations) {
-      case 1: {
-        output = '<span class="priority1">' + output + '</span>'
-        break
-      }
-      case 2: {
-        output = '<span class="priority2">' + output + '</span>'
-        break
-      }
-      case 3: {
-        output = '<span class="priority3">' + output + '</span>'
-        break
-      }
-      default: {
-        // Don't do anything
-        break
-      }
+    // If there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority5.
+    // Note: this wrapping needs to go last.
+    // (Uses simpler regex as the count comes later)
+    const taskPriority = getTaskPriority(output)
+    if (taskPriority > -1) {
+      output = '<span class="priority' + String(taskPriority) + '">' + output + '</span>'
     }
 
     // logDebug('makeParaContet...', `\n-> ${output}`)
@@ -357,15 +343,19 @@ function truncateHTML(html: string, maxLength: number, dots: boolean = true): st
 /**
  * Get number of consecutive '!' in 'content' that aren't at the start/end/middle of a word, or preceding a '['
  * @param {string} content
- * @returns number of !
+ * @returns {string} number of !, or 5 if line is flagged as 'working-on', or -1
  */
 export function getTaskPriority(content: string): number {
   let numExclamations = 0
   if (content.match(/\B\!+\B(?!\[)/)) {
-    // $FlowFixMe(incompatible-use)
+    // $FlowIgnore[incompatible-use]
     numExclamations = content.match(/\B\!+\B/)[0].length
+    return numExclamations
   }
-  return numExclamations
+  if (content.match(/^>>/)) {
+    return 5
+  }
+  return -1
 }
 
 /**
@@ -442,7 +432,7 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
  * @param {string} term
  * @returns {boolean} true if found
  */
-export function isTermInNotelinkOrURI(input: string, term: sting): boolean {
+export function isTermInNotelinkOrURI(input: string, term: string): boolean {
   if (term === '') {
     logDebug(`isTermInNotelinkOrURI`, `empty search term`)
     return false

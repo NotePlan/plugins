@@ -85,7 +85,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const type = data.type
     const filename = decodeRFC3986URIComponent(data.encodedFilename)
     const content = decodeRFC3986URIComponent(data.encodedContent)
-    logDebug('bridgeClickDashboardItem', '-------------------------')
+    logDebug('', '-------------------------')
     logDebug('bridgeClickDashboardItem', `- ID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     switch (type) {
       case 'completeTask': {
@@ -175,7 +175,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'showNoteInEditorFromTitle': {
         // Handle a show note call simply by opening the note in the main Editor
         // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
-        // TEST: decoding not needed now? 7.6.23
         const wantedTitle = filename
         const note = await Editor.openNoteByTitle(wantedTitle)
         if (note) {
@@ -189,9 +188,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // Handle a show line call simply by opening the note in the main Editor, and then finding and highlighting the line.
         const note = await Editor.openNoteByFilename(filename)
         if (note) {
-          // decode content and pass to highlightParagraphInEditor()
-          // TEST: decoding not needed now? 7.6.23
-          logDebug('bridgeClickDashboardItem', `raw decoded ${content}`)
           const res = highlightParagraphInEditor({ filename: filename, content: content })
           logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
         }
@@ -203,9 +199,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         const wantedTitle = decodeURIComponent(filename)
         const note = await Editor.openNoteByTitle(wantedTitle)
         if (note) {
-          // decode content and pass to highlightParagraphInEditor()
-          // TEST: decoding not needed now? 7.6.23
-          logDebug('bridgeClickDashboardItem', `raw decoded ${content}`)
           const res = highlightParagraphInEditor({ filename: note.filename, content: content })
           logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
         } else {

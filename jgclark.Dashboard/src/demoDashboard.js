@@ -46,10 +46,10 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
     // Note: in following, the filenames need to be real otherwise there will be 'error' in the display
     const openParas = [
       {
-        "priority": -1,
+        "priority": "W",
         "type": "open",
-        "content": "#editvideo from CFL visit",
-        "rawContent": "* #editvideo from CFL visit",
+        "content": ">> #editvideo from CFL visit",
+        "rawContent": ">> * #editvideo from CFL visit",
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 4,
