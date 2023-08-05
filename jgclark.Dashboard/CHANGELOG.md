@@ -9,7 +9,8 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 - new setting 'Exclude tasks that include time blocks?' that controls whether to stop display of open tasks that contain a time block
 - new setting 'Exclude checklists that include time blocks?' that controls whether to stop display of open checklists that contain a time block
 - support for new NP theme item 'working-on', invoked with a `>>` at the start of a task line
-- support for coloured (and curved) backgrounds on #tags and @mentions and priority highlights (if set in the theme)
+- support for coloured (and curved) backgrounds on #tags, @mentions, priority highlights, `code` fragments and ==highlights== (if set in the theme)
+
 
 ### Changed
 - the auto-update trigger should now fire when an open task/checklist is edited, not just added ???
