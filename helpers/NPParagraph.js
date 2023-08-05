@@ -1580,8 +1580,6 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
  * Take a (multi-line) raw content block, typically from the editor, and turn it into an array of TParagraph-like objects
  * Designed to be used with Editor.content that is available in a trigger, before Editor.note.paragraphs is updated.
  * Only writes "type", "content", "rawContent", "lineIndex" fields.
- * WARNING: worked stopped on this as I found a better way to proceed that didn't need it
- * TODO: finish work; see notes below
  * @author @jgclark
  * @param {string} content to parse
  * @returns {Array<any>} array of TParagraph-like objects
@@ -1597,50 +1595,47 @@ export function makeBasicParasFromContent(content: string): Array<any> {
     const NUMBER_TODO = DataStore.preference("isNumbersTodo") ? "|\\d+\\." : ""
     // previously used /^\s*([\*\-]\s[^\[]|[\*\-]\s\[\s\])/
     const RE_OPEN_TASK = new RegExp(`^\\s*(([${DASH_TODO}${ASTERISK_TODO}]${NUMBER_TODO})\\s(?!\\[[x\\-\\]])(\\[[\\s>]\\])?)`)
-    const ASTERISK_BULLET = DataStore.preference("isAsteriskTodo") ? "" : "*"
-    const DASH_BULLET = DataStore.preference("isDashTodo") ? "" : "-"
-    const RE_BULLET_LIST = new RegExp(`^\\s*([${DASH_BULLET}${ASTERISK_BULLET}])\\s+[\\w\\d[:punct:]]`)
+    // logDebug('makeBasicParas...', `RE_OPEN_TASK: ${String(RE_OPEN_TASK)}`)
+    const ASTERISK_BULLET = DataStore.preference("isAsteriskTodo") ? "" : "\\*"
+    const DASH_BULLET = DataStore.preference("isDashTodo") ? "" : "\\-"
+    const RE_BULLET_LIST = new RegExp(`^\\s*([${DASH_BULLET}${ASTERISK_BULLET}])\\s+`)
+    // logDebug('makeBasicParas...', `RE_BULLET_LIST: ${String(RE_BULLET_LIST)}`)
 
-    // console.log(RE_OPEN_TASK)
-    // console.log(RE_BULLET_LIST)
     const basicParas = []
     let c = 0
     for (const thisLine of allLines) {
       const thisPara = {}
-      if (thisLine.match(/^#{1,5}\s+/)) {
+      if (/^#{1,5}\s+/.test(thisLine)) {
         thisPara.type = 'title'
       }
-      // FIXME:
-      else if (thisLine.match(RE_OPEN_TASK)) {
+      else if (RE_OPEN_TASK.test(thisLine)) {
         thisPara.type = 'open'
       }
-      // FIXME:
-      else if (thisLine.match(/^\s*(\+\s[^\[]|\+\s\[ \])/)) {
+      else if (/^\s*(\+\s[^\[]|\+\s\[ \])/.test(thisLine)) {
         thisPara.type = 'checklist'
       }
-      else if (thisLine.match(/^\s*([\*\-]\s\[>\])/)) {
+      else if (/^\s*([\*\-]\s\[>\])/.test(thisLine)) {
         thisPara.type = 'scheduled'
       }
-      else if (thisLine.match(/^\s*(\+\s\[>\])/)) {
+      else if (/^\s*(\+\s\[>\])/.test(thisLine)) {
         thisPara.type = 'checklistScheduled'
       }
-      if (thisLine.match(/^\s*([\*\-]\s\[x\])/)) {
+      else if (/^\s*([\*\-]\s\[x\])/.test(thisLine)) {
         thisPara.type = 'done'
       }
-      else if (thisLine.match(/^\s*([\*\-]\s\[\-\])/)) {
+      else if (/^\s*([\*\-]\s\[\-\])/.test(thisLine)) {
         thisPara.type = 'cancelled'
       }
-      else if (thisLine.match(/^\s*(\+\s\[x\])/)) {
+      else if (/^\s*(\+\s\[x\])/.test(thisLine)) {
         thisPara.type = 'checklistDone'
       }
-      else if (thisLine.match(/^\s*(\+\s\[\-\])/)) {
+      else if (/^\s*(\+\s\[\-\])/.test(thisLine)) {
         thisPara.type = 'checklistCancelled'
       }
-      // FIXME:
-      else if (thisLine.match(RE_BULLET_LIST)) {
+      else if (RE_BULLET_LIST.test(thisLine)) {
         thisPara.type = 'list'
       }
-      else if (thisLine.match(/^\s*>\s/)) {
+      else if (/^\s*>\s/.test(thisLine)) {
         thisPara.type = 'quote'
       }
       else if (thisLine === '---') {
@@ -1654,10 +1649,9 @@ export function makeBasicParasFromContent(content: string): Array<any> {
       }
       thisPara.lineIndex = c
       thisPara.rawContent = thisLine
-      const startOfMainLineContentPos = getLineMainContentPos(thisLine)
-      thisPara.content = thisLine.slice(startOfMainLineContentPos)
+      thisPara.content = thisLine.slice(getLineMainContentPos(thisLine))
       basicParas.push(thisPara)
-      clo(thisPara, `${c}: `)
+      // logDebug('makeBasicParas...', `${c}: ${thisPara.type}: ${thisLine}`)
       c++
     }
     return basicParas
