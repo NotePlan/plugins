@@ -14,8 +14,7 @@ export {
 export {
   showTaskCompletionHeatmap,
   testGenStats,
-  weeklyStats,
-  weeklyStats2
+  weeklyStats
 } from './forCharting'
 export {
   makeProgressUpdate,

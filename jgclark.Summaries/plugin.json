@@ -64,7 +64,7 @@
         "count"
       ],
       "description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a file",
-      "jsFunction": "weeklyStats2"
+      "jsFunction": "weeklyStats"
     },
     {
       "hidden": false,
