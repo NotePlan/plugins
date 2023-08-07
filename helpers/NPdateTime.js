@@ -6,7 +6,7 @@
 import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
-import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, todaysDateISOString, toISOShortDateTimeString, weekStartEndDates, RE_DATE } from './dateTime'
+import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, todaysDateISOString, toISOShortDateTimeString, isoWeekStartEndDates, RE_DATE } from './dateTime'
 import { logDebug, logError, logWarn, clo, JSP } from './dev'
 // import { getSetting } from './NPConfiguration'
 import { chooseOption, getInput } from './userInput'
@@ -16,10 +16,10 @@ export function setMomentLocaleFromEnvironment(): void {
   // logDebug('NPdateTime', `NP reports languageCode = ${NotePlan.environment.languageCode ?? '<not set>'}`)
   // logDebug('NPdateTime', `NP reports regionCode   = ${NotePlan.environment.regionCode ?? '<not set>'}`)
   // Locale-specific date + time formats
-  // Set locale for momnet library
+  // Set locale for moment library
   const userLocaleSetting = `${NotePlan.environment.languageCode}${NotePlan.environment.regionCode ? '-' + NotePlan.environment.regionCode : ''}`
   moment.locale(userLocaleSetting)
-  // logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
+  logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
 }
 
 export function nowLocaleShortDateTime(): string {
@@ -50,6 +50,11 @@ export function toLocaleDateTimeString(dateObj: Date, locale: string | Array<str
   return dateObj.toLocaleString(locale, options)
 }
 export const nowLocaleDateTime: string = moment().toDate().toLocaleString()
+
+export function localeDateStr(dateIn: Date): string {
+  setMomentLocaleFromEnvironment()
+  return moment(dateIn).format('L')
+}
 
 // TODO: Finish moving references to this file from dateTime.js
 // TODO: Or can this now be deprecated in favour of newer functions above?
@@ -374,7 +379,7 @@ export async function getPeriodStartEndDates(
       } else {
         lastWeekNum = currentWeekNum - 1
       }
-      ;[fromDate, toDate] = weekStartEndDates(lastWeekNum, theYear)
+      ;[fromDate, toDate] = isoWeekStartEndDates(lastWeekNum, theYear)
       periodString = `${String(theYear)}-W${lastWeekNum < 10 ? '0' + String(lastWeekNum) : String(lastWeekNum)}`
       break
     }
@@ -409,7 +414,7 @@ export async function getPeriodStartEndDates(
         theYear -= 1
       }
       // I don't know why the [from, to] construct doesn't work here, but using tempObj instead
-      const tempObj = weekStartEndDates(currentWeekNum, theYear)
+      const tempObj = isoWeekStartEndDates(currentWeekNum, theYear)
       fromDate = tempObj[0]
       toDate = tempObj[1]
       periodString = `${theYear}-W${currentWeekNum < 10 ? '0' + String(currentWeekNum) : String(currentWeekNum)}`
@@ -463,7 +468,7 @@ export async function getPeriodStartEndDates(
       const theYear = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Week', String(y)))
       const weekNum = Number(await getInput('Choose week number, 1-53', 'OK', 'Counts for Week'))
       // I don't know why the [from, to] form doesn't work here, but using tempObj instead
-      const tempObj = weekStartEndDates(weekNum, theYear)
+      const tempObj = isoWeekStartEndDates(weekNum, theYear)
       fromDate = tempObj[0]
       toDate = tempObj[1]
       periodString = `${theYear}-W${weekNum < 10 ? '0' + String(weekNum) : String(weekNum)}`
@@ -558,7 +563,7 @@ export type NotePlanYearInfo = {
   endDate: Date,
 }
 
-function pad(n: number) {
+export function pad(n: number) {
   return n < 10 ? `0${n}` : n
 }
 

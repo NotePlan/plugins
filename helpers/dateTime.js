@@ -85,21 +85,45 @@ export const RE_DATE_INTERVAL = `[+\\-]?\\d+[BbDdWwMmQqYy]`
 export const RE_OFFSET_DATE = `{\\^?${RE_DATE_INTERVAL}}`
 export const RE_OFFSET_DATE_CAPTURE = `{(\\^?${RE_DATE_INTERVAL})}`
 
-// Get today's date in various ways
-// these two are the same!
+/**
+ * Get today's date
+ * This uses local time, so shouldn't get TZ problems.
+ * @author @jgclark
+ * @returns {string} YYYY-MM-DD
+ */
 export function getTodaysDateHyphenated(): string {
   return moment().format('YYYY-MM-DD')
 }
+/**
+ * Constant version of getTodaysDateHyphenated()
+ * This uses local time, so shouldn't get TZ problems.
+ * @author @jgclark
+ */
 export const todaysDateISOString: string = moment().format('YYYY-MM-DD')
 
+/**
+ * Returns today's date as a date of form 'YYYY-MM-DD'.
+ * This uses local time, so shouldn't get TZ problems.
+ * @return {string} the Arrow Date representation of today's date.
+ */
 export function getTodaysDateAsArrowDate(): string {
   return `>${getTodaysDateHyphenated()}`
 }
 
+/**
+ * Get today's date in form YYYYMMDD
+ * This uses local time, so shouldn't get TZ problems.
+ * @author @jgclark
+ * @returns {string} YYYY-MM-DD
+ */
 export function getTodaysDateUnhyphenated(): string {
   return moment().format('YYYYMMDD')
 }
 
+/**
+ * Returns the start of today as a JS Date object.
+ * @return {Date} start of todayobject.
+ */
 export function getJSDateStartOfToday(): Date {
   return moment().startOf('day').toDate()
 }
@@ -170,7 +194,13 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
 
 //-------------------------------------------------------------------------------
 
-// @nmn
+/**
+ * Get Y, M, D parts.
+ * Note: This works on local time, so can ignore TZ effects.
+ * @author @nmn
+ * @param {Date} dateObj
+ * @returns {{year: number, month: number, date: number}}
+ */
 export function getYearMonthDate(dateObj: Date): $ReadOnly<{
   year: number,
   month: number,
@@ -230,18 +260,37 @@ export function printDateRange(dr: DateRange) {
   logInfo('dateTime / printDateRange', `<${toISOShortDateTimeString(dr.start)} - ${toISOShortDateTimeString(dr.end)}>`)
 }
 
+/**
+ * Get YYYYMMDD for supplied date.
+ * Note: This works on local time, so can ignore TZ effects.
+ * @author @nmn
+ * @param {Date} dateObj
+ * @returns {string}
+ */
 export function unhyphenatedDate(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
 }
 
-// @nmn
+/**
+ * Get YYYY-MM-DD for supplied date.
+ * Note: This works on local time, so can ignore TZ effects.
+ * @author @nmn
+ * @param {Date} dateObj
+ * @returns {string}
+ */
 export function hyphenatedDateString(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}-${month < 10 ? '0' : ''}${month}-${date < 10 ? '0' : ''}${date}`
 }
 
-// @nmn
+/**
+ * Alias for unhyphenatedDate()
+ * Note: This works on local time, so can ignore TZ effects.
+ * @author @nmn
+ * @param {Date} dateObj
+ * @returns {string}
+ */
 export function filenameDateString(dateObj: Date): string {
   const { year, month, date } = getYearMonthDate(dateObj)
   return `${year}${month < 10 ? '0' : ''}${month}${date < 10 ? '0' : ''}${date}`
@@ -742,7 +791,7 @@ export function getNPYearStr(inDate: Date): string {
 
 /**
  * Return start and end dates for a given week number.
- * Uses ISO 8601 definition of week.
+ * Note: Uses ISO 8601 definition of week, so may differ from NP week definitions, depending which first day of the week the user has.
  * V2 now uses Moment library
  * @author @jgclark
  *
@@ -751,14 +800,13 @@ export function getNPYearStr(inDate: Date): string {
  * @return {[Date, Date]}} - start and end dates (as JS Dates)
  * @test - defined in Jest, but won't work until Calendar.addUnitToDate can be stubbed out
  */
-export function weekStartEndDates(week: number, year: number): [Date, Date] {
+export function isoWeekStartEndDates(week: number, year: number): [Date, Date] {
   if (week > 53 || week < 1) {
-    logWarn('helpers/weekStartEndDates', `Invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
+    logWarn('helpers/isoWeekStartEndDates', `Invalid week number ${week} given, but will still calculate correctly, relative to year ${year}.`)
   }
 
   // the .milliseconds in the following shouldn't really be needed, but it seems to
   const startDate = moment().year(year).isoWeeks(week).startOf('isoWeek').milliseconds(0).toDate()
-  // const endDate = start.add(6, 'days').hours(23).minutes(59).seconds(59).toDate()
   const endDate = moment().year(year).isoWeeks(week).endOf('isoWeek').milliseconds(0).toDate()
   return [startDate, endDate]
 }
