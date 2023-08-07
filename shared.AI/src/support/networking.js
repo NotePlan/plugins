@@ -1,9 +1,14 @@
 // @flow
 
+/**
+ * DBW NOTE: MOVED MOST/ALL OF THESE FUNCTIONS TO @HELPERS/OPENAI
+ */
+
 import pluginJson from '../../plugin.json'
-import type { ChatResponse, ChatRequest } from './AIFlowTypes'
+// import type { ChatResponse, ChatRequest } from './AIFlowTypes'
 import { showMessage } from '@helpers/userInput'
 import { logDebug, logWarn, logError, clo, JSP } from '@helpers/dev'
+export { saveDebugResponse } from '@helpers/openAI'
 
 /*
  * CONSTANTS
@@ -164,15 +169,15 @@ export const getRequestObj = (method: string = 'GET', body: any = null): any => 
  * @param {ChatRequest} request
  * @param {ChatResponse} chatResponse
  */
-export function saveDebugResponse(folderName: string, filename: string, request: ChatRequest, chatResponse: ChatResponse | null) {
-  if (chatResponse) {
-    const { saveResponses } = DataStore.settings
-    if (saveResponses) {
-      const fa = filename.split('/')
-      const fname = fa[fa.length - 1].replace(/\.md$|\.txt$/g, '').substring(0, 100) + String(new Date())
-      logDebug(pluginJson, `saveDebugResponse fa=${fa.toString()} fname=${fname}`)
-      DataStore.saveJSON(chatResponse, `${folderName}/${fname}.${String(request.messages.length / 2)}.json`)
-      clo(chatResponse, `chatResponse/${filename}.${String(request.messages.length / 2)}.json`)
-    }
-  }
-}
+// export function saveDebugResponse(folderName: string, filename: string, request: ChatRequest, chatResponse: ChatResponse | null) {
+//   if (chatResponse) {
+//     const { saveResponses } = DataStore.settings
+//     if (saveResponses) {
+//       const fa = filename.split('/')
+//       const fname = fa[fa.length - 1].replace(/\.md$|\.txt$/g, '').substring(0, 100) + String(new Date())
+//       logDebug(pluginJson, `saveDebugResponse fa=${fa.toString()} fname=${fname}`)
+//       DataStore.saveJSON(chatResponse, `${folderName}/${fname}.${String(request.messages.length / 2)}.json`)
+//       clo(chatResponse, `chatResponse/${filename}.${String(request.messages.length / 2)}.json`)
+//     }
+//   }
+// }

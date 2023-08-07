@@ -329,11 +329,11 @@ export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: stri
  * @param {string} linkText - the text to display for the link
  * @param {string} pluginID - the plugin's ID
  * @param {boolean} command - the "name" field of the plugin command to run
- * @param {Array<string> | string} args - heading inside of note (optional)
+ * @param {any} args - arguments to pass (optional)
  * @returns {string} arguments as strings (or single argument string) to send through to plugin
  * @tests available
  */
-export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> | string): string {
+export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: any): string {
   return `[${linkText}](${createRunPluginCallbackUrl(pluginID, command, args)})`
 }
 
