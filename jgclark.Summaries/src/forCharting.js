@@ -14,12 +14,14 @@ import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
+  TMOccurrences,
   type SummariesConfig
 } from './summaryHelpers'
 import {
   calcWeekOffset,
   getDateObjFromDateString,
   getDateStringFromCalendarFilename,
+  getJSDateStartOfToday,
   getTodaysDateHyphenated,
   getWeek,
   hyphenatedDate,
@@ -27,18 +29,26 @@ import {
   RE_DONE_DATE_OPT_TIME,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
   // RE_DONE_DATE_TIME_CAPTURES,
+  todaysDateISOString, // const
   toISODateString,
   unhyphenatedDate,
-  weekStartEndDates,
+  isoWeekStartEndDates,
   withinDateRange,
 } from '@helpers/dateTime'
 import {
+  getNPWeekData,
   getUsersFirstDayOfWeekUTC,
+  type NotePlanWeekInfo,
+  localeDateStr,
+  pad,
   setMomentLocaleFromEnvironment,
 } from '@helpers/NPdateTime'
 import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { showHTML } from '@helpers/HTMLView'
+import {
+  // showHTML,
+  showHTMLV2
+} from '@helpers/HTMLView'
 import { clearNote, getOrMakeNote } from '@helpers/note'
 import { projectNotesFromFilteredFolders } from '@helpers/NPnote'
 import { chooseOption, getInput, showMessage } from '@helpers/userInput'
@@ -64,6 +74,33 @@ export async function testGenStats(): Promise<void> {
 }
 
 /**
+ * Calculate first day at start of week 'numWeeksToGoBack' ago.
+ * Note: this uses the user's start-of-week setting.
+ * @param {number?} numWeeksToGoBack, or will default to 0
+ * @returns {string} YYYY-MM-DD
+ */
+function getFirstDateForWeeklyStats(numWeeksToGoBack?: number): string {
+  let numWeeks = numWeeksToGoBack ? numWeeksToGoBack : 0
+  if (numWeeksToGoBack === 0) {
+    const dayOfYear = moment().format('DDD')
+    if (dayOfYear > 182) {
+      numWeeks = Calendar.weekNumber(moment().toDate()) - 1
+    } else {
+      numWeeks = 23
+    }
+  }
+
+  let mom = moment().subtract(numWeeks, 'week')
+
+  // Now get the start of the week, using NP week information
+  const weekInfo = getNPWeekData(mom.toDate()) ?? {}
+  const fromDateStr = hyphenatedDateString(weekInfo.startDate)
+
+  logDebug('getFirstDateForWeeklyStats', `Will go back ${numWeeks} weeks, starting w/c ${fromDateStr}`)
+  return fromDateStr
+}
+
+/**
  * Create heatmap of task completion for last config.weeklyStatsDuration weeks (or if not specified, a sensible period between 6 and 12 months).
  * @author @jgclark
  */
@@ -71,22 +108,10 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
   const config = await getSummariesSettings()
 
   // Work out time interval to use
-  const toDateStr = moment().startOf('day').format('YYYY-MM-DD')
-  let fromDateStr = ''
-  if (config.weeklyStatsDuration !== null && config.weeklyStatsDuration > 0) {
-    // Look back the specified number of weeks
-    fromDateStr = moment().subtract(config.weeklyStatsDuration, 'week').format('YYYY-MM-DD')
-  }
-  else {
-    // If not specified, then up to 12 months ago ...
-    const dayOfYear = moment().format('DDD')
-    if (dayOfYear > 182) {
-      fromDateStr = moment().startOf('year').format('YYYY-MM-DD')
-    } else {
-      fromDateStr = moment().subtract(6, 'month').format('YYYY-MM-DD')
-    }
-  }
-  logDebug('generateHeatMap', `Generating heatmap for ${fromDateStr} to ${toDateStr} from c.WSD ${config.weeklyStatsDuration}...`)
+  const toDateStr = todaysDateISOString
+  let fromDateStr = getFirstDateForWeeklyStats(config.weeklyStatsDuration)
+  logDebug('generateHeatMap', `generateHeatMap: starting for c.${config.weeklyStatsDuration} weeks (${fromDateStr} to ${toDateStr}) ...`)
+
 
   const statsMap = await generateTaskCompletionStats(config.foldersToExclude, 'day', fromDateStr) // to today
 
@@ -101,9 +126,8 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
     }
   }
 
-  // Set locale for momnet library
-  setMomentLocaleFromEnvironment()
-  const fromDateLocale = moment(fromDateStr, 'YYYY-MM-DD').format('L')
+  setMomentLocaleFromEnvironment() // not sure why this is needed as it is in the next function.
+  const fromDateLocale = localeDateStr(moment(fromDateStr, 'YYYY-MM-DD')) // uses moment's locale info
   await generateHeatMap(
     'NotePlan Task Completion Heatmap',
     `Task Completion Heatmap (${total.toLocaleString()} since ${fromDateLocale})`,
@@ -113,7 +137,8 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
     'day',
     fromDateStr,
     toDateStr,
-    "task-completion-heatmap.html"
+    "task-completion-heatmap.html",
+    "task-completion-heatmap"
   )
 }
 
@@ -144,12 +169,13 @@ export async function generateHeatMap(
   intervalType: string,
   fromDateStr: string,
   toDateStr: string,
-  filenameToSave: string
+  filenameToSave: string,
+  windowID: string,
 ): Promise<void> {
   try {
     // const title = 'NotePlan Task Completion Heatmap'
     // const config = await getSummariesSettings()
-    let fromDateStr = ''
+    // let fromDateStr = ''
     logDebug('generateHeatMap', `Generating heatmap for ${fromDateStr} to ${toDateStr} with ${statsMap.size} statsMap elements...`)
 
     /**
@@ -165,9 +191,11 @@ export async function generateHeatMap(
       const value = item[1]
       // logDebug('', `- ${isoDate}: ${value}`)
       const mom = moment(isoDate, 'YYYY-MM-DD')
-      const weekNum = Number(mom.format('WW'))
+      // const weekNum = Number(mom.format('WW')) // moment week number
+      const weekInfo = getNPWeekData(mom.toDate()) ?? {}
+      const weekNum = weekInfo.weekNumber // NP week number
       // Get string for heatmap column title: week number, or year number if week 1
-      const weekTitle = (weekNum !== 1) ? mom.format('[W]WW') : mom.format('YYYY') // with this library the value needs to be identical all week
+      const weekTitle = (weekNum !== 1) ? 'W' + pad(weekNum) : mom.format('YYYY') // with this library the value needs to be identical all week
       const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
       let dataPointObj = { x: weekTitle, y: dayAbbrev, heat: value, isoDate: isoDate }
       if (!withinDateRange(isoDate, fromDateStr, toDateStr)) {
@@ -182,9 +210,11 @@ export async function generateHeatMap(
 
     const heatmapCSS = `html, body, #container {
     width: 100%;
-    height: 270px; //100%
+    height: 100%;
     margin: 0px;
     padding: 0px;
+    color: var(fg-main-color); /* doesn't do anything */
+    background-color: var(--bg-main-color); /* doesn't do anything */
   }
   `
     const preScript = `<script src="https://cdn.anychart.com/releases/8.7.1/js/anychart-core.min.js"></script>
@@ -235,19 +265,23 @@ export async function generateHeatMap(
     });
 </script>
 `
-    showHTML(windowTitle,
-      '',
-      body,
-      '', // generate CSS from theme
-      heatmapCSS,
-      false, // not modal
-      preScript,
-      '',
-      filenameToSave, // can be empty
-      600, 260
-    )
+    const winOpts = {
+      windowTitle: windowTitle,
+      width: 600,
+      height: 304,
+      generalCSSIn: '',
+      specificCSS: heatmapCSS,
+      preBodyScript: preScript,
+      postBodyScript: '',
+      customId: windowID,
+      savedFilename: filenameToSave,
+      makeModal: false,
+      reuseUsersWindowRect: true,
+      shouldFocus: true
+    }
+    const res = await showHTMLV2(body, winOpts)
 
-    logDebug('generateTaskCompletionStats', `Shown window '${chartTitle}'`)
+    logInfo('generateTaskCompletionStats', `Shown window '${chartTitle}'`)
 
   }
   catch (error) {
@@ -401,7 +435,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     const usersFirstDayOfWeek = getUsersFirstDayOfWeekUTC() // 0(Sun)-6(Sat); deals with undefined case
     logDebug('generateTaskCompletionStats', `- fromDateDayOfWeek = ${fromDateDayOfWeek}`)
     logDebug('generateTaskCompletionStats', `- usersFirstDayOfWeek = ${usersFirstDayOfWeek}`)
-    const numBlanksToAdd = (fromDateDayOfWeek - 1) // TODO: test other start-day-of-week options
+    const numBlanksToAdd = (fromDateDayOfWeek - 1) // Note: Haven't fully tested other start-day-of-week options
     logDebug('generateTaskCompletionStats', `- numBlanksToAdd = ${numBlanksToAdd}`)
     if (numBlanksToAdd > 0) {
       for (let i = numBlanksToAdd; i > 0; i--) {
@@ -517,6 +551,7 @@ function formatForSimpleCSV(inArray: Array<string>): Array<string> {
 }
 
 /**
+ * WARNING: Now deprecated in favour of weeklyStats2() function.
  * Generate stats for the specified mentions and hashtags over a period of consecutive
  * weeks, and write as a CSV table, ready for charting by gnuplot.
  * Only the specifically 'included' hashtags or mentions are included, as given by those settings.
@@ -624,7 +659,7 @@ export async function weeklyStats(): Promise<void> {
       y = answer.year
       counter++
       logDebug(pluginJson, `${counter}: w ${w} y ${y}`)
-      const [weekStartDate, weekEndDate] = weekStartEndDates(w, y)
+      const [weekStartDate, weekEndDate] = isoWeekStartEndDates(w, y)
 
       // Calc hashtags stats (returns two maps)
       let weekResults = await calcHashtagStatsPeriod(unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate), config.includeHashtags, [])
@@ -737,57 +772,82 @@ export async function weeklyStats(): Promise<void> {
 /**
  * Generate stats for the specified mentions and hashtags over a period of consecutive
  * weeks, and write as a CSV table, ready for plotting (not gnuplot this time).
+ * CSV = term, startDateStr, count, total, average
  * Only the specifically 'included' hashtags or mentions are included, as given by those settings.
  * @author @jgclark
  */
 export async function weeklyStats2(): Promise<void> {
   try {
+    const daysInterval = 7 // in days
+
     let config = await getSummariesSettings()
 
     // Get number of weeks to look back over
-    let weeks = config.weeklyStatsDuration ?? 23 // should never need this fallback
-    // Calc range of dates this implies
-    const todayMom = moment()
-    // const endOfLastWeekMom = startOfThisWeekMom.subtract(1, 'days')
-    const toDateStr = todayMom.toISOString(true)
-    const toWeekStr = todayMom.format('YYYY-[W]WW')
-    let toWeek = todayMom.isoWeek()
-    let toYear = todayMom.year()
+    // const weeks = config.weeklyStatsDuration ?? 23 // should never need this fallback
 
-    // FIXME: decide whether to include current part-week or not (currently not it seems)
-    // FIXME: add separate setting for which ones to include
+    // Calculate week range from answer, asking for date offset _before_ current week.
+    // Note: This is horribly complicated given the mismatch between NP and moment, and translation from JS dates needs care re TZs.
+    // Note: toISODateString() isn't helpful as doesn't use local time. Instead use hyphenatedDateString().
+    const todaysDate = new Date()
+    let thisYear = todaysDate.getFullYear() // JS uses local time
+    const todayStartMom = moment().startOf('day')
 
-    const startOfThisWeekMom = todayMom.startOf('week')
-    const startOfPeriodMom = startOfThisWeekMom.subtract(weeks, 'weeks')
-    const fromDateStr = startOfPeriodMom.toISOString(true)
-    const fromWeekStr = startOfPeriodMom.format('YYYY-[W]WW')
-    let fromWeek = startOfPeriodMom.isoWeek()
-    let fromYear = startOfPeriodMom.year()
-    // const todaysDate = new Date()
-    // const thisWeek = getWeek(todaysDate)
-    // let thisYear = todaysDate.getFullYear()
+    // // V2: use Moment for all calcs
+    // // const endOfLastWeekMom = startOfThisWeekMom.subtract(1, 'days')
+    // let toDateStr = todayStartMom.toISOString(true)
+    // let toWeekStr = todayStartMom.format('YYYY-[W]WW')
+    // let toWeek = todayStartMom.isoWeek()
+    // let toYear = todayStartMom.year()
+    // const startOfThisWeekMom = todayStartMom.startOf('week')
+    // const startOfPeriodMom = moment(startOfThisWeekMom).subtract(weeks, 'weeks') // need to clone first
+    // let fromDateStr = startOfPeriodMom.toISOString(true)
+    // let fromWeekStr = startOfPeriodMom.format('YYYY-[W]WW')
+    // let fromWeek = startOfPeriodMom.isoWeek()
+    // let fromYear = startOfPeriodMom.year()
+    // let periodString = `${fromYear}W${fromWeek} - ${toYear}W${toWeek}`
+    // logDebug(pluginJson, `weeklyStats: calculating for ${periodString} (${weeks} weeks) = ${fromDateStr} - ${toDateStr} (V2)`)
 
-
-    // Calculate week range from answer, asking for date offset _before_ current week
-    // endYear = thisYear
-    // const currentWeekNum = getWeek(todaysDate)
-    // First deal with edge case: after start of ordinal year but before first week starts
-    // if (
-    //   currentWeekNum === 52 && // i.e. last week of the year AND
-    //   todaysDate.getMonth() == 0
-    // ) {
-    //   // i.e. first month of the year (counting from 0)
-    //   thisYear -= 1
-    // }
-    // let answer = calcWeekOffset(thisWeek, thisYear, Number(-period))
-    // fromYear = answer.year
-    // fromWeek = answer.week
+    // // V3: use NP's API for week calculations
+    // const weeksAgoDate = moment(todayStartMom).subtract(weeks, 'weeks').toDate() // need to clone first
+    // logDebug('weeklyStats', `weeksAgoDate = ${String(weeksAgoDate)}`)
+    // fromWeek = Calendar.weekNumber(weeksAgoDate) // NP
+    // toWeek = Calendar.weekNumber(todayStartMom) // NP
+    // fromYear = weeksAgoDate.getFullYear() // helper
     // toYear = thisYear
-    // toWeek = thisWeek
+    // periodString = `${fromYear}W${fromWeek} - ${toYear}W${toWeek}`
+    // let fromDate = Calendar.startOfWeek(weeksAgoDate)
+    // fromDateStr = hyphenatedDateString(fromDate)
+    // let toDate = Calendar.endOfWeek(todaysDate)
+    // toDateStr = hyphenatedDateString(toDate)
+    // logDebug(pluginJson, `weeklyStats: calculating for ${periodString} (${weeks} weeks) = ${fromDateStr} - ${toDateStr} (V3)`)
 
-    const periodString = `${fromYear}W${fromWeek} - ${toYear}W${toWeek}`
-    logDebug(pluginJson, `weeklyStats: calculating for ${periodString} (${weeks} weeks)`)
-    logDebug(pluginJson, `${fromDateStr} - ${toDateStr}`)
+    // V4: use DW helper function 'getNPWeekData()'
+    // const weeksAgoDateStr = moment(todayStartMom).subtract(weeks, 'weeks').format('YYYY-MM-DD')
+    // const weeksAgoDateStr = getFirstDateForWeeklyStats(config.weeklyStatsDuration)
+    // let firstWeekInfo = getNPWeekData(weeksAgoDateStr)
+    // // logDebug('weeklyStats', `firstWeekInfo = ${JSON.stringify(firstWeekInfo)}`)
+    // const fromDateStr = hyphenatedDateString(firstWeekInfo.startDate)
+    const fromDateStr = getFirstDateForWeeklyStats(config.weeklyStatsDuration)
+    const firstWeekInfo = getNPWeekData(fromDateStr) ?? {}
+    logDebug('weeklyStats', `firstWeekInfo = ${JSON.stringify(firstWeekInfo)}`)
+    const lastWeekInfo = getNPWeekData(todaysDateISOString) ?? {}
+    const toDateStr = hyphenatedDateString(lastWeekInfo.endDate)
+    let weeks = lastWeekInfo.weekNumber - firstWeekInfo.weekNumber
+    if (weeks < 0) weeks += 52
+
+    // Prepare config for gatherOccurrences() call
+    const occConfig = {
+      GOYesNo: [],
+      GOHashtagsCount: [],
+      GOHashtagsAverage: [],
+      GOHashtagsTotal: config.weeklyStatsItems.filter((a) => a.startsWith('#')),
+      GOHashtagsExclude: [], // no exclusions used here
+      GOMentionsCount: [],
+      GOMentionsAverage: [],
+      GOMentionsTotal: config.weeklyStatsItems.filter((a) => a.startsWith('@')),
+      GOMentionsExclude: [], // no exclusions used here
+      GOHashtagsTotal: [],
+    }
 
     // Pop up UI wait dialog as this can be a long-running process
     CommandBar.showLoading(true, `Preparing weekly stats over ${weeks} weeks`)
@@ -795,35 +855,57 @@ export async function weeklyStats2(): Promise<void> {
 
     // Gather all the appropriate occurrences of the wanted terms
     CommandBar.showLoading(true, `Gathering relevant #hashtags and @mentions`)
-    // FIXME: need to specify three different items here to pick out total/count/average.
-    let occs = await gatherOccurrences(
+    let occs: Array<TMOccurrences> = await gatherOccurrences(
       'period',
       fromDateStr, toDateStr, // YYYY-MM-DD
-      [], [],
-      [], [],
-      [], config.weeklyStatsItems, [], [])
+      occConfig)
 
-    // For every week of interest calculate stats and add to the two output arrays
+    // For every week of interest calculate stats and add to the output array
     let outputArray = []
     let i = 0
+    // let thisWeekStartDate = fromDate
     if (occs.length > 0) {
       for (let occ of occs) {
-        // Update UI wait dialog
         i++
+        // Update UI wait dialog
         CommandBar.showLoading(true, `Calculating stats for ${occs.length} terms of interest`, i / occs.length)
-        let w = fromWeek
-        let y = fromYear
-        let counter = 0
+
+        // let w = fromWeek
+        // let y = fromYear
+
+        let counter = -1
         while (counter < weeks) {
-          // increment which week/year we're looking at, and get the actual dates to use
-          let answer = calcWeekOffset(w, y, +1)
-          w = answer.week
-          y = answer.year
           counter++
-          logDebug(pluginJson, `${counter}: w ${w} y ${y}`)
-          const [weekStartDate, weekEndDate] = weekStartEndDates(w, y)
-          const weekSummaryCSV = occ.summariseToInterval(toISODateString(weekStartDate), toISODateString(weekEndDate), 'week')
+          // // V2
+          // // increment which week/year we're looking at, and get the actual dates to use
+          // let answer = calcWeekOffset(w, y, +1)
+          // w = answer.week
+          // y = answer.year
+          // logDebug(pluginJson, `${counter}: w ${w} y ${y}`)
+          // let [weekStartDate, weekEndDate] = isoWeekStartEndDates(w, y)
+          // let weekStartDateStr = hyphenatedDateString(weekStartDate)
+          // let weekEndDateStr = hyphenatedDateString(weekEndDate)
+          // logDebug(pluginJson, `-> ${weekStartDateStr} - ${weekEndDateStr} (V2)`)
+
+          // // V3
+          // weekStartDate = Calendar.startOfWeek(thisWeekStartDate)
+          // weekEndDate = Calendar.endOfWeek(thisWeekStartDate)
+          // weekStartDateStr = hyphenatedDateString(weekStartDate)
+          // weekEndDateStr = hyphenatedDateString(weekEndDate)
+          // logDebug(pluginJson, `-> ${weekStartDateStr} -  ${weekEndDateStr} (V3)`)
+
+          // V4
+          const thisWeekInfo = getNPWeekData(todaysDateISOString, counter - weeks, 'week') ?? {}
+          let weekStartDate = thisWeekInfo.startDate
+          let weekEndDate = thisWeekInfo.endDate
+
+          let weekStartDateStr = hyphenatedDateString(weekStartDate)
+          let weekEndDateStr = hyphenatedDateString(weekEndDate)
+          logDebug(pluginJson, `-> ${weekStartDateStr} -  ${weekEndDateStr} (V4)`)
+          const weekSummaryCSV = occ.summariseToInterval(weekStartDateStr, weekEndDateStr, 'week')
           outputArray.push(weekSummaryCSV)
+
+          // thisWeekStartDate = Calendar.addUnitToDate(thisWeekStartDate, 'day', daysInterval)
         }
       }
     } else {

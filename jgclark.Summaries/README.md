@@ -48,7 +48,7 @@ All notes in the special folders (@Archive, @Templates and @Trash) are **ignored
 Note: **Why use `@run(...)` (mentions) rather than `#run(...)` (hashtags)**? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a decimal number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside for `@run(5.3)`.  _However, you can use a `#hashtag/value` if you don't mind this limitation._
 
 ## 'heatmap for complete tasks' command
-This displays a 'heatmap' chart of many tasks you've completed on each day (see example above). It uses the `@done(...)` dates in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you don't set it, the plugin will generate a sensible period up to 12 months.  It also counts completed tasks without `@done(...)` dates on Calendar notes, assuming the tasks were completed on the day or start of week in question.
+This displays a 'heatmap' chart of many tasks you've completed on each day (see example above). It uses the `@done(...)` dates in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you set this to 0, the plugin will generate a sensible longish period between 6 and 12 months.  It also counts completed tasks without `@done(...)` dates on Calendar notes, and assumes the tasks were completed on the day or start of week in question.
 
 (NotePlan automatically appends a 'completion date' to completed tasks if you have the Preferences > Todo > Append Completion Date setting turned on.)
 
@@ -182,11 +182,11 @@ The settings for this command are:
 Note: sparklines won't show for periods of time greater than 31 days -- they just get too wide for most devices.
 
 ## weeklyStatsToCSV command
-This is a niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV table to 'Summaries/weekly_stats'. This is designed to be used by third-party graphing tools.
+This is a niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV file to 'Plugins/data/jgclark.Summaries/weekly_stats.csv'. This is designed to be used by third-party graphing tools.
 
 The relevant settings for this command are:
-- Chart Duration (in weeks): e.g. 26. If no number is given, the plugin will generate a sensible longish period up to 1 year.
-- Items to Chart: Comma-separated list of @mentions or #hashtags to chart. Note: currently they will share the same scaling on the Y-axis.
+- Chart Duration (in weeks): e.g. 26. If this is set to 0, the plugin will generate a sensible longish period up to 1 year. Note, that this is the number of completed weeks. Normally, the current incomplete week will be added.
+- Items to Chart: Comma-separated list of @mentions or #hashtags to chart.
 
 ## To do
 - now NotePlan has begun to make HTML content possible, I wish to create proper charts/graphs of numeric summaries. (The 'ASCII art' sparklines were an interim step towards this.)

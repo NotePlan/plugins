@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 25.7.2023 for v0.19.2 by @jgclark
+// Last updated 6.8.2023 for v0.19.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -229,8 +229,8 @@ export class TMOccurrences {
     let summaryOcc = new TMOccurrences(this.term, this.type, fromDateStr, toDateStr, interval)
     const momFromDate = new moment(fromDateStr, 'YYYY-MM-DD')
     const momToDate = new moment(toDateStr, 'YYYY-MM-DD')
-    this.numDays = Math.round(momToDate.diff(momFromDate, 'days', true)) + 1
-    logDebug('summariseToInterval', `For ${this.numDays} days`)
+    this.numDays = momToDate.diff(momFromDate, 'days')
+    logDebug('summariseToInterval', `For ${fromDateStr} - ${toDateStr} = ${this.numDays} days`)
     // Now calculate summary from this (existing) object
     let count = 0
     let total = 0
@@ -312,9 +312,10 @@ export class TMOccurrences {
 
   /**
    * Get stats for a particular term, over the current period, in a specified style.
-   * Currently the only available styles are 'text' and 'CSV'.
+   * Currently the only available styles are:
+   * - 'text' => varies depending on the 'type' of the 'term'
+   * - 'CSV' => term, startDateStr, count, total, average
    * Currently the only available interval is 'day'.
-   * It also changes depending on the 'type' of the 'term'.
    */
   getStats(style: string): string {
     let output = ''
@@ -392,14 +393,13 @@ export class TMOccurrences {
 export function gatherOccurrences(periodString: string, fromDateStr: string, toDateStr: string, config: OccurrencesConfig): Array<TMOccurrences> {
   try {
     // clo(config, `gatherOccurrences() starting for '${periodString}' (${fromDateStr} - ${toDateStr}) with config:`)
-    // TODO: is 'periodDailyNotes' name accurate?
-    const periodDailyNotes = DataStore.calendarNotes.filter(
+    const calendarNotesInPeriod = DataStore.calendarNotes.filter(
       (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), unhyphenateString(fromDateStr), unhyphenateString(toDateStr)))
-    if (periodDailyNotes.length === 0) {
-      logWarn('gatherOccurrences', `- no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
+    if (calendarNotesInPeriod.length === 0) {
+      logWarn('gatherOccurrences', `- no matching calendar notes found between ${fromDateStr} and ${toDateStr}`)
       return [] // for completeness
     }
-    logInfo('gatherOccurrences', `starting with ${periodDailyNotes.length} calendar notes for '${periodString}' (${fromDateStr} - ${toDateStr})`)
+    logInfo('gatherOccurrences', `starting with ${calendarNotesInPeriod.length} calendar notes for '${periodString}' (${fromDateStr} - ${toDateStr})`)
     let tmOccurrencesArr: Array<TMOccurrences> = [] // to hold what we find
 
     // Note: in the following is a workaround to an API 'feature' in note.hashtags
@@ -415,7 +415,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       const thisOcc = new TMOccurrences(wantedItem, 'yesno', fromDateStr, toDateStr)
 
       // For each daily note in the period
-      for (const n of periodDailyNotes) {
+      for (const n of calendarNotesInPeriod) {
         const thisDateStr = getDateStringFromCalendarFilename(n.filename)
 
         // Look at hashtags first ...
@@ -488,7 +488,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       // logDebug('gatherOccurrences', `thisTag=${thisName} / ${thisType}`)
 
       // For each daily note in the period, look at each tag in reverse order to make subset checking work
-      for (const n of periodDailyNotes) {
+      for (const n of calendarNotesInPeriod) {
         const thisDateStr = getDateStringFromCalendarFilename(n.filename)
         const seenTags = n.hashtags.slice().reverse()
         let lastTag = ''
@@ -546,7 +546,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       const thisOcc = new TMOccurrences(thisName, thisType, fromDateStr, toDateStr)
 
       // For each daily note in the period, look at each mention in reverse order to make subset checking work
-      for (const n of periodDailyNotes) {
+      for (const n of calendarNotesInPeriod) {
         const thisDateStr = getDateStringFromCalendarFilename(n.filename)
         const seenMentions = n.mentions.slice().reverse()
         let lastMention = ''
@@ -674,9 +674,9 @@ export function calcHashtagStatsPeriod(
 ): ?[CaseInsensitiveMap<number>, CaseInsensitiveMap<number>] {
 // ): ?[Map<string, number>, Map<string, number>] {
   // Get all daily notes that are within this time period
-  const periodDailyNotes = DataStore.calendarNotes.filter(
+  const calendarNotesInPeriod = DataStore.calendarNotes.filter(
     (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
-  if (periodDailyNotes.length === 0) {
+  if (calendarNotesInPeriod.length === 0) {
     logWarn('calcHashtagStatsPeriod', `no matching daily notes found between ${fromDateStr} and ${toDateStr}`)
     return
   }
@@ -700,7 +700,7 @@ export function calcHashtagStatsPeriod(
   }
 
   // For each daily note review each included hashtag
-  for (const n of periodDailyNotes) {
+  for (const n of calendarNotesInPeriod) {
     // The following is a workaround to an API 'feature' in note.hashtags where
     // #one/two/three gets reported as #one, #one/two, and #one/two/three.
     // Go backwards through the hashtag array, and then check
@@ -781,10 +781,10 @@ export function calcMentionStatsPeriod(
   // ): ?[Map<string, number>, Map<string, number>] {
 ): ?[CaseInsensitiveMap<number>, CaseInsensitiveMap<number>] {
   // Get all daily notes that are within this time period
-  const periodDailyNotes = DataStore.calendarNotes.filter(
+  const calendarNotesInPeriod = DataStore.calendarNotes.filter(
     (p) => withinDateRange(getDateStringFromCalendarFilename(p.filename), fromDateStr, toDateStr))
 
-  if (periodDailyNotes.length === 0) {
+  if (calendarNotesInPeriod.length === 0) {
     logWarn(pluginJson, 'no matching daily notes found between ${fromDateStr} and ${toDateStr}')
     return
   }
@@ -807,7 +807,7 @@ export function calcMentionStatsPeriod(
     logDebug('calcMentionStatsPeriod', `  ${key}: ${value}`)
   }
 
-  for (const n of periodDailyNotes) {
+  for (const n of calendarNotesInPeriod) {
     // The following is a workaround to an API 'feature' in note.mentions where
     // @one/two/three gets reported as @one, @one/two, and @one/two/three.
     // Go backwards through the mention array, and then check

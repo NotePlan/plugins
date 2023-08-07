@@ -60,42 +60,42 @@ export async function onSettingsUpdated(): Promise<void> {
     const initialSettings = await getSettings(pluginID) ?? `{".logLevel": "INFO"}`
     // $FlowFixMe[incompatible-type]
     const logLevel = initialSettings["_logLevel"]
-    logInfo('onSettingsUpdated', `Starting with _logLevel ${logLevel}`)
+    // logInfo('onSettingsUpdated', `Starting with _logLevel ${logLevel}`)
     // clo(initialPluginJson, 'initialPluginJson')
 
-    let updatedPluginJson = initialPluginJson
-    if (initialPluginJson) {
-      const commands = updatedPluginJson['plugin.commands']
-      clo(commands, 'commands')
-      let testCommands = commands.filter((command) => {
-        const start = command.name.slice(0, 4)
-        return start === 'test'
-      })
-      logInfo('onSettingsUpdated', `- found ${testCommands.length} test commands`)
+    // WARNING: savePluginJson causes an infinite loop!
+    // WARNING: So all these lines are commented out.
+    // let updatedPluginJson = initialPluginJson
+    // if (initialPluginJson) {
+    //   const commands = updatedPluginJson['plugin.commands']
+    //   clo(commands, 'commands')
+    //   let testCommands = commands.filter((command) => {
+    //     const start = command.name.slice(0, 4)
+    //     return start === 'test'
+    //   })
+    //   logInfo('onSettingsUpdated', `- found ${testCommands.length} test commands`)
 
-      // WARNING: savePluginJson causes an infinite loop!
-      // WARNING: So all these lines are commented out.
-      // if (logLevel === 'DEBUG') {
-      //   for (let command of testCommands) {
-      //     updatedPluginJson = updateJSONForFunctionNamed(updatedPluginJson, command, false)
-      //   }
-      //   clo(updatedPluginJson, `updatedPluginJson after unhiding:`)
-      // }
-      // else {
-      //   for (let command of testCommands) {
-      //     updatedPluginJson = updateJSONForFunctionNamed(updatedPluginJson, command, true)
-      //   }
-      //   clo(updatedPluginJson, `updatedPluginJson after hiding:`)
+    //   if (logLevel === 'DEBUG') {
+    //     for (let command of testCommands) {
+    //       updatedPluginJson = updateJSONForFunctionNamed(updatedPluginJson, command, false)
+    //     }
+    //     clo(updatedPluginJson, `updatedPluginJson after unhiding:`)
+    //   }
+    //   else {
+    //     for (let command of testCommands) {
+    //       updatedPluginJson = updateJSONForFunctionNamed(updatedPluginJson, command, true)
+    //     }
+    //     clo(updatedPluginJson, `updatedPluginJson after hiding:`)
 
-      // }
-      // logDebug('onSettingsUpdated', `- before savePluginJson ...`)
+    //   }
+    //   logDebug('onSettingsUpdated', `- before savePluginJson ...`)
 
-      // await savePluginJson(pluginJson['plugin.id'], updatedPluginJson)
-      // logDebug('onSettingsUpdated', `  - NOT CALLED OTHERWISE AN INFINITE LOOP!`)
-    }
+    //   await savePluginJson(pluginJson['plugin.id'], updatedPluginJson)
+    //   logDebug('onSettingsUpdated', `  - NOT CALLED OTHERWISE AN INFINITE LOOP!`)
+    // }
   }
   catch (error) {
-    logError('onSettingsUpdated', error.message)
+    logError('jgclark.Summaries::onSettingsUpdated', error.message)
   }
 }
 
@@ -116,9 +116,9 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
     }
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
+    logInfo(pluginID, `- finished`)
 
   } catch (error) {
-    logError(pluginID, error.message)
+    logError('jgclark.Summaries::onUpdateOrInstall', error.message)
   }
-  logInfo(pluginID, `- finished`)
 }

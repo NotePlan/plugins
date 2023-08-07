@@ -1,6 +1,10 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.19.3] - 2023-08-06
+### Fixed
+- date logic on 'weeklyStatsToCSV' command output
+
 ## [0.19.2] - 2023-07-28
 ### Fixed
 - date logic when selecting 'other month' for stats (thanks to tip by @chrismalek)
