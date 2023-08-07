@@ -5,8 +5,9 @@
 
 import { clo, logDebug, logError, logWarn } from './dev'
 import {
-  RE_SIMPLE_URI_MATCH,
   RE_MARKDOWN_LINK_PATH_CAPTURE,
+  RE_NOTELINK_G,
+  RE_SIMPLE_URI_MATCH,
 } from '@helpers/regex'
 import { stripLinksFromString } from '@helpers/stringTransforms'
 
@@ -39,6 +40,56 @@ export function isTermInURL(term: string, searchString: string): boolean {
 
   // logDebug('isTermInURL', `looking for ${term} in ${searchString} ${String(caseInsensitiveSubstringMatch(term, searchStringWithoutURL))} / ${searchStringWithoutURL} ${String(RE_SIMPLE_URI_MATCH.test(searchStringWithoutURL))} -> ${String(success)}`)
   return success
+}
+
+/**
+ * Is 'term' (typically a #tag) found in [[...]] or a URL in a string which may contain 0 or more notelinks and URLs?
+ * @param {string} input
+ * @param {string} term
+ * @returns {boolean} true if found
+ */
+export function isTermInNotelinkOrURI(input: string, term: string): boolean {
+  if (term === '') {
+    logDebug(`isTermInNotelinkOrURI`, `empty search term`)
+    return false
+  }
+  if (input === '') {
+    logDebug(`isTermInNotelinkOrURI`, `empty input string to search`)
+    return false
+  }
+  // Where is the term in the input?
+  const index = input.indexOf(term)
+  if (index < 0) {
+    logDebug(`isTermInNotelinkOrURI`, `term ${term} not found in'${input}'`)
+    return false
+  }
+  // Find any [[...]] ranges
+  const matches = input.matchAll(RE_NOTELINK_G)
+  if (matches) {
+    for (const match of matches) {
+      clo(match)
+      const rangeStart = match.index
+      const rangeEnd = match.index + match[0].length
+      logDebug(`isTermInNotelinkOrURI`, `[[...]] range: ${String(rangeStart)}-${String(rangeEnd)}`)
+      if (index >= rangeStart && index <= rangeEnd) {
+        return true
+      }
+    }
+  }
+  // Check for URL ranges. Following isn't perfect, but close enough for URLs on their own or in a [markdown](link).
+  return isTermInURL(term, input)
+}
+
+/** tests for above function */
+function testTermInNotelinkOrURI() {
+  logDebug('test1 -> false', String(isTermInNotelinkOrURI('[[link with#tag]] but empty search term', '')))
+  logDebug('test2 -> true', String(isTermInNotelinkOrURI('[[link with#tag]]', '#tag')))
+  logDebug('test3 -> false', String(isTermInNotelinkOrURI('[[link without that tag]]', '#tag')))
+  logDebug('test4 -> false', String(isTermInNotelinkOrURI('string has #tag [[but link without]]', '#tag')))
+  logDebug('test5 -> false', String(isTermInNotelinkOrURI('string has [[but link without]] and  #tag after', '#tag')))
+  logDebug('test6 -> true', String(isTermInNotelinkOrURI('term is in URL http://bob.com/page#tag', '#tag')))
+  logDebug('test7 -> false', String(isTermInNotelinkOrURI('string has http://bob.com/page #tag', '#tag')))
+  logDebug('test8 -> false', String(isTermInNotelinkOrURI('string has #tag before not in http://bob.com/URL', '#tag')))
 }
 
 /**
@@ -431,4 +482,22 @@ export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $
     }
   })
   return [...syncedMap.values(), ...notSyncedArr]
+}
+
+/**
+ * Get number of consecutive '!' in 'content' that aren't at the start/end/middle of a word, or preceding a '['
+ * @param {string} content
+ * @returns {string} number of !, or 5 if line is flagged as 'working-on', or -1
+ */
+export function getTaskPriority(content: string): number {
+  let numExclamations = 0
+  if (content.match(/\B\!+\B(?!\[)/)) {
+    // $FlowIgnore[incompatible-use]
+    numExclamations = content.match(/\B\!+\B/)[0].length
+    return numExclamations
+  }
+  if (content.match(/^>>/)) {
+    return 5
+  }
+  return -1
 }

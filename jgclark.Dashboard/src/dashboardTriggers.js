@@ -8,7 +8,7 @@ import pluginJson from '../plugin.json'
 import { showDashboardHTML } from './dashboardHTML'
 import { clo, JSP, /*logDebug,*/ logError, logInfo, logWarn } from '@helpers/dev'
 import { rangeToString } from '@helpers/general'
-import { selectedLinesIndex } from '@helpers/NPparagraph'
+import { makeBasicParasFromContent, selectedLinesIndex } from '@helpers/NPparagraph'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { isOpen } from '@helpers/utils'
 import { formRegExForUsersOpenTasks } from '@helpers/regex'
@@ -91,37 +91,39 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
         return
       }
 
-      // // Get all open items from before and after
-      // const beforeOpenParas = noteReadOnly.versions[0].paragraphs.filter((p) => isOpen(p))
-      // const beforeOpenLines = beforeOpenParas.map((p) => p.rawContent)
-      // const afterOpenParas = Editor.paragraphs.filter((p) => isOpen(p))
-      // const afterOpenLines = afterOpenParas.map((p) => p.rawContent)
+      // Decide if this is a relevant change, TODO: now looking for edits in open items as well.
+      // V4: Get all open items from before and after
+      const beforeContent = noteReadOnly.versions[0].content
+      // logDebug('decideWhetherToUpdateDashboard', `beforeContent = ${beforeContent}`)
+      const beforeOpenParas = makeBasicParasFromContent(beforeContent).filter((p) => isOpen(p))
+      const beforeOpenLines = beforeOpenParas.map((p) => p.rawContent)
+      // logDebug('decideWhetherToUpdateDashboard', `${beforeOpenLines.length} beforeOpenLines = ${beforeOpenLines.join('\n')}`)
+      const afterOpenParas = Editor.paragraphs.filter((p) => isOpen(p))
+      const afterOpenLines = afterOpenParas.map((p) => p.rawContent)
+      // logDebug('decideWhetherToUpdateDashboard', `${afterOpenLines.length} afterOpenLines = ${afterOpenLines.join('\n')}`)
 
-      // // Sort them
-      // const beforeOpenSorted = beforeOpenLines.sort()
-      // logDebug('\nbefore = ', beforeOpenSorted.join('\n'))
-      // const afterOpenSorted = afterOpenLines.sort()
-      // logDebug('\nafter = ', afterOpenSorted.join('\n'))
+      // Sort them
+      const beforeOpenSorted = beforeOpenLines.sort()
+      const afterOpenSorted = afterOpenLines.sort()
 
-      // // Compare them
-      // const openItemsHaveChanged = (beforeOpenSorted.length > 0 && (beforeOpenSorted === afterOpenSorted))
+      // Compare them
+      const openItemsHaveChanged = (beforeOpenSorted.toString() !== afterOpenSorted.toString())
 
-      // Decide if there are more or fewer open items than before
-      // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
-      // (This avoids firing when simply moving task/checklist items around, or updating the text.)
-      const hasNumberOfOpenItemsChanged = changeToNumberOfOpenItems(previousContent, latestContent)
-
-      // TODO: now look for edits in open items
-      // Get changed ranges
-      const ranges = NotePlan.stringDiff(previousContent, latestContent)
-      if (!ranges || ranges.length === 0) {
-        logDebug('decideWhetherToUpdateDashboard', `No ranges returned, so stopping.`)
-        return
-      }
-      const earliestStart = ranges[0].start
-      let latestEnd = ranges[ranges.length - 1].end
-      const overallRange: TRange = Range.create(earliestStart, latestEnd)
-      logDebug('decideWhetherToUpdateDashboard', `- overall changed content from ${rangeToString(overallRange)}`)
+      // // Decide if there are more or fewer open items than before
+      // // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
+      // // (This avoids firing when simply moving task/checklist items around, or updating the text.)
+      let hasNumberOfOpenItemsChanged = false
+      // const hasNumberOfOpenItemsChanged = changeToNumberOfOpenItems(previousContent, latestContent)
+      // // Get changed ranges
+      // const ranges = NotePlan.stringDiff(previousContent, latestContent)
+      // if (!ranges || ranges.length === 0) {
+      //   logDebug('decideWhetherToUpdateDashboard', `No ranges returned, so stopping.`)
+      //   return
+      // }
+      // const earliestStart = ranges[0].start
+      // let latestEnd = ranges[ranges.length - 1].end
+      // const overallRange: TRange = Range.create(earliestStart, latestEnd)
+      // logDebug('decideWhetherToUpdateDashboard', `- overall changed content from ${rangeToString(overallRange)}`)
       // Get changed lineIndexes
 
       // earlier method for changedExtent based on character region, which didn't seem to always include all the changed parts.
@@ -129,22 +131,17 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
       // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
       // logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
 
-      // Newer method uses changed paragraphs: this will include more than necessary, but that's more useful in this case
-      let changedExtent = ''
-      const [startParaIndex, endParaIndex] = selectedLinesIndex(overallRange, Editor.paragraphs)
-      logDebug('decideWhetherToUpdateDashboard', `- changed lines ${startParaIndex}-${endParaIndex}`)
-      // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
-      for (let i = startParaIndex; i <= endParaIndex; i++) {
-        changedExtent += Editor.paragraphs[i].content
-      }
-      logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
+      // // Newer method uses changed paragraphs: this will include more than necessary, but that's more useful in this case
+      // let changedExtent = ''
+      // const [startParaIndex, endParaIndex] = selectedLinesIndex(overallRange, Editor.paragraphs)
+      // logDebug('decideWhetherToUpdateDashboard', `- changed lines ${startParaIndex}-${endParaIndex}`)
+      // // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
+      // for (let i = startParaIndex; i <= endParaIndex; i++) {
+      //   changedExtent += Editor.paragraphs[i].content
+      // }
+      // logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
 
-      // TODO: first get changed range
-      // TODO: then expand to get the paragraphs in the range
-      const openItemsChanged = false
-
-      if (hasNumberOfOpenItemsChanged || openItemsChanged) {
-      // if (openItemsHaveChanged) {
+      if (hasNumberOfOpenItemsChanged || openItemsHaveChanged) {
         // TODO: try await Editor.save()? to get latest version available
         // Editor.save() // FIXME: hanging with or without await
         // DataStore.updateCache(Editor.note)

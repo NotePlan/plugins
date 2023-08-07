@@ -9,7 +9,7 @@ import moment from 'moment/min/moment-with-locales'
 import { getDataForDashboard } from './dataGeneration'
 import { getDemoDataForDashboard } from './demoDashboard'
 import {
-  addNoteOpenLinkToString, getSettings, getTaskPriority,
+  addNoteOpenLinkToString, getSettings,
   makeParaContentToLookLikeNPDisplayInHTML,
   type Section, type SectionItem
 } from './dashboardHelpers'
@@ -19,6 +19,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { unsetPreference } from '@helpers/NPdev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { addTrigger } from '@helpers/NPFrontMatter'
+import { getTaskPriority } from '@helpers/paragraph'
 import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
@@ -185,7 +186,7 @@ for (const contentItem of allContentItems) {
     if (thisLink.className.match('content')) {
       console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisLink.className);
       thisLink.addEventListener('click', function (event) {
-        // event.preventDefault(); // TEST: disabling to ensure that externalLinks etc. can fire
+        // event.preventDefault(); // now disabled to ensure that externalLinks etc. can fire
         handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
       }, false);
     }
@@ -462,19 +463,13 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
         let maxPriority = -1
         for (const item of items) {
           const thisPriority = getTaskPriority(item.content)
-          const thisItemPriority = (thisPriority === 'W')
-            ? 0 : ['1', '2', '3'].includes(thisPriority)
-              ? Number(thisPriority) : -1
-          if (thisItemPriority > maxPriority) {
-            maxPriority = thisItemPriority
+          if (thisPriority > maxPriority) {
+            maxPriority = thisPriority
           }
         }
         for (const item of items) {
           const thisPriority = getTaskPriority(item.content)
-          const thisItemPriority = (thisPriority === 'W')
-            ? 0 : ['1', '2', '3'].includes(thisPriority)
-              ? Number(thisPriority) : -1
-          if (maxPriority === 0 || thisItemPriority >= maxPriority) {
+          if (maxPriority === 0 || thisPriority >= maxPriority) {
             filteredItems.push(item)
           } else {
             filteredOut++
