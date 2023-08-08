@@ -44,6 +44,7 @@ export function isTermInURL(term: string, searchString: string): boolean {
 
 /**
  * Is 'term' (typically a #tag) found in [[...]] or a URL in a string which may contain 0 or more notelinks and URLs?
+ * @tests are in a commented-out function in jest file
  * @param {string} input
  * @param {string} term
  * @returns {boolean} true if found
@@ -78,18 +79,6 @@ export function isTermInNotelinkOrURI(input: string, term: string): boolean {
   }
   // Check for URL ranges. Following isn't perfect, but close enough for URLs on their own or in a [markdown](link).
   return isTermInURL(term, input)
-}
-
-/** tests for above function */
-function testTermInNotelinkOrURI() {
-  logDebug('test1 -> false', String(isTermInNotelinkOrURI('[[link with#tag]] but empty search term', '')))
-  logDebug('test2 -> true', String(isTermInNotelinkOrURI('[[link with#tag]]', '#tag')))
-  logDebug('test3 -> false', String(isTermInNotelinkOrURI('[[link without that tag]]', '#tag')))
-  logDebug('test4 -> false', String(isTermInNotelinkOrURI('string has #tag [[but link without]]', '#tag')))
-  logDebug('test5 -> false', String(isTermInNotelinkOrURI('string has [[but link without]] and  #tag after', '#tag')))
-  logDebug('test6 -> true', String(isTermInNotelinkOrURI('term is in URL http://bob.com/page#tag', '#tag')))
-  logDebug('test7 -> false', String(isTermInNotelinkOrURI('string has http://bob.com/page #tag', '#tag')))
-  logDebug('test8 -> false', String(isTermInNotelinkOrURI('string has #tag before not in http://bob.com/URL', '#tag')))
 }
 
 /**
@@ -486,6 +475,7 @@ export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $
 
 /**
  * Get number of consecutive '!' in 'content' that aren't at the start/end/middle of a word, or preceding a '['
+ * From 3.9.4 there are also `>>` working-on markers, which are treated as priority 5.
  * @param {string} content
  * @returns {string} number of !, or 5 if line is flagged as 'working-on', or -1
  */
