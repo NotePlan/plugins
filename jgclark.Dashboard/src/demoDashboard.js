@@ -107,9 +107,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
       {
         "priority": 1,
         "type": "open",
-        "content": "! Respond on Repair Cafe things from last 2 meetings (and file notes) >today #win ^wazhht",
+        "content": "! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht",
         "blockId": "^wazhht",
-        "rawContent": "* ! Respond on Repair Cafe things from last 2 meetings (and file notes) >today #win ^wazhht",
+        "rawContent": "* ! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht",
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 8,
@@ -289,46 +289,6 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
       {
         "priority": -1,
         "type": "open",
-        "content": "Attempt method in [Automating podcast transcripts on my Mac with OpenAI Whisper – Six Colors](https://sixcolors.com/post/2023/02/automating-podcast-transcripts-on-my-mac-with-openai-whisper/) [[Information Capture#Capture of listening]]",
-        "rawContent": "* Attempt method in [Automating podcast transcripts on my Mac with OpenAI Whisper – Six Colors](https://sixcolors.com/post/2023/02/automating-podcast-transcripts-on-my-mac-with-openai-whisper/) [[Information Capture#Capture of listening]]",
-        "prefix": "* ",
-        "contentRange": {},
-        "lineIndex": 0,
-        "heading": "",
-        "headingLevel": -1,
-        "isRecurring": false,
-        "indents": 0,
-        "filename": thisFilename,
-        "noteType": "Calendar",
-        "linkedNoteTitles": [
-          "Information Capture"
-        ],
-        "subItems": [],
-        "referencedBlocks": [],
-        "note": {}
-      },
-      {
-        "priority": -1,
-        "type": "checklist",
-        "content": "Idea: Last listened NTW on authority",
-        "rawContent": "+ Idea: Last listened NTW on authority",
-        "prefix": "+ ",
-        "contentRange": {},
-        "lineIndex": 1,
-        "heading": "",
-        "headingLevel": -1,
-        "isRecurring": false,
-        "indents": 0,
-        "filename": thisFilename,
-        "noteType": "Calendar",
-        "linkedNoteTitles": [],
-        "subItems": [],
-        "referencedBlocks": [],
-        "note": {}
-      },
-      {
-        "priority": -1,
-        "type": "open",
         "content": " Get login for https://www.waverleyabbeyresources.org/resources-home/",
         "rawContent": "* Get login for https://www.waverleyabbeyresources.org/resources-home/",
         "prefix": "* ",
@@ -388,30 +348,6 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
       },
     ]
     const demoSortedWeekRefParas: Array<TParagraph> = [
-      {
-        "priority": -1,
-        "type": "open",
-        "content": "fix HC sheet typo → @RP for printing ^l7flz7 >2023-W09",
-        "blockId": "^l7flz7",
-        "rawContent": "* fix HC sheet typo → @RP for printing ^l7flz7 >2023-W09",
-        "prefix": "* ",
-        "contentRange": {},
-        "lineIndex": 13,
-        "date": "2023-02-27T00:00:00.000Z",
-        "heading": "Staff #meeting on Service Pattern",
-        "headingRange": {},
-        "headingLevel": 3,
-        "isRecurring": false,
-        "indents": 0,
-        "filename": "20230216.md",
-        "noteType": "Calendar",
-        "linkedNoteTitles": [],
-        "subItems": [],
-        "referencedBlocks": [
-          {}
-        ],
-        "note": {}
-      },
       {
         "priority": -1,
         "type": "checklist",

@@ -501,10 +501,11 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
           { displayString: "today", controlStr: "t", sectionDateTypes: ['W', 'M', 'Q'] }, // special controlStr to indicate change to '>today'
           { displayString: "+1d", controlStr: "+1d", sectionDateTypes: ['D'] },
           { displayString: "+1b", controlStr: "+1b", sectionDateTypes: ['D'] },
-          { displayString: "wk", controlStr: "+0w", sectionDateTypes: ['D', 'M'] },
+          { displayString: "→wk", controlStr: "+0w", sectionDateTypes: ['D', 'M'] },
           { displayString: "+1w", controlStr: "+1w", sectionDateTypes: ['D', 'W'] },
-          { displayString: "mon", controlStr: "+0m", sectionDateTypes: ['W', 'Q'] },
+          { displayString: "→mon", controlStr: "+0m", sectionDateTypes: ['W', 'Q'] },
           { displayString: "+1m", controlStr: "+1m", sectionDateTypes: ['M'] },
+          { displayString: "→qtr", controlStr: "+0q", sectionDateTypes: ['M>'] },
         ]
         const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
         let tooltipContent = ''

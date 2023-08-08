@@ -2,10 +2,10 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark
-// Last updated 5.8.2023 by @jgclark
+// Last updated 8.8.2023 by @jgclark
 // ---------------------------------------------------------
 
-import { clo, logDebug, logError, logWarn, JSP } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { getStoredWindowRect, isHTMLWindowOpen, setHTMLWindowId, storeWindowRect } from '@helpers/NPWindows'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
 import {
@@ -245,7 +245,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('p i', tempSel)) // not just 'i' as otherwise it can mess up the fontawesome icons
+      output.push(makeCSSSelector('p emph', tempSel)) // not 'i' as otherwise it can mess up the fontawesome icons
     }
     // Set bold text if present
     tempSel = []
@@ -255,13 +255,15 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('p b', tempSel))
     }
+
     // Can't easily set bold-italic in CSS ...
 
     // Set class for open tasks ('todo') if present
     tempSel = []
     styleObj = themeJSON.styles.todo
     if (styleObj) {
-      tempSel.push(`color: ${styleObj.color ? RGBColourConvert(styleObj.color) : 'var(--tint-color)'}`)
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'var(--tint-color)'}`)
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       output.push(makeCSSSelector('.todo', tempSel))
     }
 
@@ -270,7 +272,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles.checked
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#098308A0')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       output.push(makeCSSSelector('.checked', tempSel))
     }
 
@@ -280,7 +282,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles['checked-canceled']
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#E04F57A0')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       output.push(makeCSSSelector('.cancelled', tempSel))
     }
 
@@ -290,7 +292,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles['checked-scheduled']
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#7B7C86A0')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       output.push(makeCSSSelector('.task-scheduled', tempSel))
     }
 
@@ -404,15 +406,21 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
 /**
  * Convert NotePlan Theme style information to CSS equivalent(s)
- * Covers attributes: size, paragraphSpacingBefore, paragraphSpacing, font, strikethroughStyle, underlineStyle.
+ * Covers attributes: size, paragraphSpacingBefore, paragraphSpacing, lineSpacing, font, strikethroughStyle, underlineStyle.
  * @author @jgclark
  * @param {Object} style object from JSON theme
+ * @param {boolean} includeFontDetails? (default: false)
  * @returns {Array} CSS elements
  */
-function convertStyleObjectBlock(styleObject: any): Array<string> {
+function convertStyleObjectBlock(styleObject: any, includeFontDetails: boolean = true): Array<string> {
   let cssStyleLinesOutput: Array<string> = []
   if (styleObject?.size) {
     cssStyleLinesOutput.push(`font-size: ${pxToRem(styleObject?.size, baseFontSize)}`)
+  }
+  if (includeFontDetails) {
+    if (styleObject?.font) {
+      cssStyleLinesOutput = cssStyleLinesOutput.concat(fontPropertiesFromNP(styleObject?.font))
+    }
   }
   if (styleObject?.paragraphSpacingBefore) {
     cssStyleLinesOutput.push(`margin-top: ${pxToRem(styleObject?.paragraphSpacingBefore, baseFontSize)}`)
@@ -421,11 +429,8 @@ function convertStyleObjectBlock(styleObject: any): Array<string> {
     cssStyleLinesOutput.push(`margin-bottom: ${pxToRem(styleObject?.paragraphSpacing, baseFontSize)}`)
   }
   if (styleObject?.lineSpacing) {
-    const lineSpacingRem = Number(styleObject?.lineSpacing) * 1.5
+    const lineSpacingRem = Number(styleObject?.lineSpacing) * 1.4
     cssStyleLinesOutput.push(`line-height: ${String(lineSpacingRem)}rem`)
-  }
-  if (styleObject?.font) {
-    cssStyleLinesOutput = cssStyleLinesOutput.concat(fontPropertiesFromNP(styleObject?.font))
   }
   if (styleObject?.strikethroughStyle) {
     cssStyleLinesOutput.push(textDecorationFromNP('strikethroughStyle', Number(styleObject?.strikethroughStyle)))
@@ -1319,8 +1324,8 @@ export function convertBoldAndItalicToHTML(input: string): string {
   let captures = output.matchAll(RE_BOLD_ITALIC_PHRASE)
   if (captures) {
     for (const capture of captures) {
-      // logDebug('makeParaContet...', `- making bold-italic with [${String(capture)}]`)
-      output = output.replace(capture[0], `<b><i>${capture[1]}</i></b>`)
+      // logDebug('convertBoldAndItalicToHTML', `- making bold-italic with [${String(capture)}]`)
+      output = output.replace(capture[0], `<b><em>${capture[1]}</em></b>`)
     }
   }
 
@@ -1329,7 +1334,7 @@ export function convertBoldAndItalicToHTML(input: string): string {
   captures = output.matchAll(RE_BOLD_PHRASE)
   if (captures) {
     for (const capture of captures) {
-      // logDebug('makeParaContet...', `- making bold with [${String(capture)}]`)
+      // logDebug('convertBoldAndItalicToHTML', `- making bold with [${String(capture)}]`)
       output = output.replace(capture[0], `<b>${capture[2]}</b>`)
     }
   }
@@ -1340,8 +1345,8 @@ export function convertBoldAndItalicToHTML(input: string): string {
   captures = output.matchAll(RE_ITALIC_PHRASE)
   if (captures) {
     for (const capture of captures) {
-      // logDebug('makeParaContet...', `- making italic with [${String(capture)}]`)
-      output = output.replace(capture[0], `<i>${capture[2]}</i>`)
+      // logDebug('convertBoldAndItalicToHTML', `- making italic with [${String(capture)}]`)
+      output = output.replace(capture[0], `<em>${capture[2]}</em>`)
     }
   }
   return output
@@ -1367,13 +1372,16 @@ export function simplifyNPEventLinksForHTML(input: string): string {
 
 // Simplify embedded images of the form ![image](...) by replacing with an icon.
 // (This also helps remove false positives for ! priority indicator)
+// FIXME: the leading ! is not getting removed from output for some reason
 export function simplifyInlineImagesForHTML(input: string): string {
   let output = input
   const captures = output.match(/!\[image\]\([^\)]+\)/g)
   if (captures) {
     // clo(captures, 'results from embedded image match:')
     for (const capture of captures) {
+      logInfo(`simplifyInlineImagesForHTML`, capture)
       output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
+      logInfo(`simplifyInlineImagesForHTML`, `-> ${output}`)
     }
   }
   return output
@@ -1386,11 +1394,10 @@ export function convertHashtagsToHTML(input: string): string {
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d\'\"]+(\s|$))(#([^\'\"\s]|[\-_\/])+?\(.*?\)|#([^\'\"\s]|[\-_\/])+)/) // regex from @EduardMe's file without :punct:
   const captures = output.match(/\B(?:#|＃)((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/ug) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
-  // const captures = output.match(HASHTAG_STR_FOR_JS) // TODO: from EM
   if (captures) {
     // clo(captures, 'results from hashtag matches:')
     for (const capture of captures) {
-      logDebug('makeParaContet...', `capture: ${capture}`)
+      // logDebug('convertHashtagsToHTML', `capture: ${capture}`)
       if (!isTermInNotelinkOrURI(output, capture)) {
         output = output.replace(capture, `<span class="hashtag">${capture}</span>`)
       }
@@ -1407,7 +1414,6 @@ export function convertMentionsToHTML(input: string): string {
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/) // regex from @EduardMe's file, without [:punct:]
   const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/ug) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
-  // const captures = output.match(NP_RE_attag_G) // TODO: from EM
   if (captures) {
     // clo(captures, 'results from mention matches:')
     for (const capture of captures) {

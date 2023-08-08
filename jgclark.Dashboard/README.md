@@ -1,7 +1,7 @@
 # 🎛 Dashboard plugin
-![](dashboard-v0.5.0b1@2x.jpg)
+![](dashboard-0.6.0-RC5@2x.png)
 
-This plugin provides a **dashboard window** that in one place shows a compact list of just the:
+This plugin provides a **dashboard window** that in one place shows a compact list of just:
 - open tasks and checklists from today's note
 - scheduled open tasks and checklists from other notes to today
 - open tasks and checklists from this week's note
@@ -30,9 +30,9 @@ Other notes:
 - there's a UI toggle "Filter out lower-priority items?". If this is on, then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed. Priority items are currently indicated by having !!!, !! or ! at the beginning or end of the item.
 
 ### Updating automatically
-The dashboard window can automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly note(s). This is most easily done by using the **/add trigger to note** command from my [Note Helpers plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
+The dashboard window can automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly note(s). Turn on setting 'Add dashboard auto-update trigger when dashboard opened?' (details below).
 
-Or add the following by hand:
+Or you can use the **/add trigger to note** command from my [Note Helpers plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/) which adds this:
 ```yaml
 ---
 triggers: onEditorWillSave => jgclark.Dashboard.decideWhetherToUpdateDashboard
@@ -47,11 +47,14 @@ There are various other settings to change some of how it displays:
 - Ignore items with this phrase: If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control.
 - Folders to ignore when finding linked items: If set, the contents of these folder(s) will be ignored when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results.
 - Include context for tasks? Whether to show the note link for an open task or checklist
+- Add dashboard auto-update trigger when dashboard opened?: Whether to add the auto-update trigger to the frontmatter to the current note when the dashboard is opened.
+- Exclude tasks that include time blocks?: : Whether to stop display of open tasks that contain a time block.
+- Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block.
 - Include folder name? Whether to include the folder name when showing a note link
 - #tag/@mention to show: (if set) will show all open tasks/checklists that include this #tag or @mention. This is one way of showing all `#next` actions, for example.
 
 ## Known Issue
-I'm trying to solve a problem when using this with its trigger, that NP hasn't finished updating itself before it re-calculates the Dashboard display.
+When using this with its trigger, it's normally the case that NotePlan hasn't finished updating itself before the Dashboard display updates. Therefore it can appear one change behind.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

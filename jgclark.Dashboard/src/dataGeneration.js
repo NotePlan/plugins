@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 28.7.2023 for v0.6.0 by @jgclark
+// Last updated 8.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -30,7 +30,7 @@ import {
 import { stripMailtoLinks, convertMarkdownLinks } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isTimeBlockPara } from '@helpers/timeblocks'
-import { isDone, isOpen } from '@helpers/utils'
+import { isDone, isOpen, isScheduled, isOpenNotScheduled } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Constants
@@ -57,8 +57,8 @@ function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriod
     logDebug('getOpenItemParasForCurrentTimePeriod', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
     let parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
 
-    // Need to filter out non-open task types for following function, and any blank tasks
-    let openParas = parasToUse.filter(isOpen).filter((p) => p.content !== '')
+    // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
+    let openParas = parasToUse.filter(isOpenNotScheduled).filter((p) => p.content !== '')
 
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (dashboardConfig.ignoreTasksWithPhrase) {

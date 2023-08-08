@@ -62,7 +62,7 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 .pad-right {	/* add space after icon */
 	padding-right: 0.4em;
 }
-.space-under {	/* add space after icon */
+.space-under {	/* add space under icon */
 	padding-bottom: 0.1em;
 }
 .scheduledDate {
@@ -107,7 +107,7 @@ div.content:hover {
 .fadeOutAndHide { /* Class to fade out an item, from https://stackoverflow.com/a/20910008 */
 	visibility: hidden;
 	opacity: 0;
-	transition: visibility 0s 2s, opacity 2s linear;
+	transition: visibility 0s 1.5s, opacity 1.5s linear;
 }
 /* Some headings specified from measuring the colour of NP sidebar elements */
 .sidebarDaily { font-size: 1.0rem; color: #d0703c;  }
@@ -115,9 +115,11 @@ div.content:hover {
 .sidebarMonthly { font-size: 1.0rem; color: #f5528b; }
 .sidebarQuarterly { font-size: 1.0rem; color: #e08008; }
 .sidebarYearly { font-size: 1.0rem; color: #efba13; }
+
 #error {
 	background-color: red;
-	padding-left: 10px; }
+	padding-left: 10px;
+}
 
 /* For fancy toggle as checkbox */
 /* from [Pure CSS3 iOS switch checkbox. A switch allows the user to quickly… | by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)
@@ -193,6 +195,11 @@ input, label {
 }
 .tooltip .hoverExtraControls {
   visibility: hidden;
+  position: absolute; /* relative disrupts flow in different ways */
+  z-index: 1;
+	display: flex;
+  opacity: 0;
+	left: 3rem;
   /* width: 9rem; */ /* browser calculates better than I can */
   /* height: 1.2rem; */ /* browser calculates better than I can */
   line-height: 1.2rem;
@@ -202,13 +209,10 @@ input, label {
   /* color: rgb(113, 157, 171); */
   background: #88888820; /* hopefully OK for light and dark */
   border: 2px solid #88888820;
-  border-radius: 5px;
+  border-radius: 6px;
   /* text-shadow: rgba(0, 0, 0, 0.1) 1px 1px 1px; */
   /* box-shadow: rgba(0, 0, 0, 0.1) 1px 1px 2px 0px; */
-  position: absolute;
-  z-index: 1;
-  opacity: 0;
-  transition: opacity 250ms 1000ms; /* after 1s fade in quite quickly */
+  transition: opacity 200ms 750ms; /* after 0.75s fade in quite quickly */
 }
 
 .tooltip .hoverExtraControls::after {
@@ -219,12 +223,11 @@ input, label {
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
-  border-color: #88888820 transparent transparent transparent; /* downwards arrow */
+  /* border-color: #88888820 transparent transparent transparent; /* downwards arrow */
   border-color: transparent transparent #88888820 transparent; /* upwards arrow */
   top: -50%;
-  left: 50%;
+  left: 20%;
 }
-
 .tooltip:hover .hoverExtraControls {
   visibility: visible;
   opacity: 1;

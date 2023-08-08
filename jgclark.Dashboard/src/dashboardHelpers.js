@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 5.8.2023 for v0.6.0 by @jgclark
+// Last updated 8.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -24,7 +24,8 @@ import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import {
   getTaskPriority,
   isTermInNotelinkOrURI,
-  isTermInURL
+  isTermInURL,
+  removeTaskPriorityIndicators,
 } from '@helpers/paragraph'
 import {
   // RE_EVENT_LINK,
@@ -152,6 +153,12 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
     // Start with the content of the item
     let output = thisItem.content
 
+    // See if there's a !, !!, !!! or >> in the line, and if so set taskPriority accordingly
+    const taskPriority = getTaskPriority(output)
+    if (taskPriority > 0) {
+      output = removeTaskPriorityIndicators(output)
+    }
+
     if (noteTitle === '(error)') {
       logError('makeParaContent...', `starting with noteTitle '(error)' for '${thisItem.content}'`)
     }
@@ -244,11 +251,9 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
       logDebug('makeParaContet...', `- after: '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
     }
 
-    // If there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority5.
+    // If we already know (from above) there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority5.
     // Note: this wrapping needs to go last.
-    // (Uses simpler regex as the count comes later)
-    const taskPriority = getTaskPriority(output)
-    if (taskPriority > -1) {
+    if (taskPriority > 0) {
       output = '<span class="priority' + String(taskPriority) + '">' + output + '</span>'
     }
 
