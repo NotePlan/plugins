@@ -54,8 +54,16 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
  */
 function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, dashboardConfig: dashboardConfigType): [Array<TParagraph>, Array<TParagraph>] {
   try {
-    logDebug('getOpenItemParasForCurrentTimePeriod', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
-    let parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
+    let parasToUse: Array<TParagraph>
+    if (Editor?.note.filename === timePeriodNote.filename) {
+      // parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
+      logDebug('getOpenItemParasForCurrentTimePeriod', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras`)
+      parasToUse = Editor.paragraphs
+    } else {
+      logDebug('getOpenItemParasForCurrentTimePeriod', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
+      // parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
+      parasToUse = timePeriodNote.paragraphs
+    }
 
     // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     let openParas = parasToUse.filter(isOpenNotScheduled).filter((p) => p.content !== '')

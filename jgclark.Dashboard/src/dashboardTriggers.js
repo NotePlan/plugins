@@ -142,9 +142,10 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
       // logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
 
       if (hasNumberOfOpenItemsChanged || openItemsHaveChanged) {
-        // TODO: try await Editor.save()? to get latest version available
-        // Editor.save() // FIXME: hanging with or without await
-        // DataStore.updateCache(Editor.note)
+        // Note: had wanted to try using Editor.save() here, but seems to trigger an infinite loop
+        // Note: DataStore.updateCache(Editor.note) doesn't work either.
+        // Instead we test for Editor in the dataGeneration::getOpenItemParasForCurrentTimePeriod() function
+
         // Update the dashboard, but don't ask for focus
         logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard.`)
         showDashboardHTML(false)

@@ -12,6 +12,7 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 - support for coloured (and curved) backgrounds on #tags, @mentions, priority highlights, `code` fragments and ==highlights== (if set in the theme).
 
 ### Changed
+- (finally) **found a way for the very latest updates to be available to display, when using the auto-update trigger**
 - the auto-update trigger should now fire when an open task/checklist is edited, not just added
 - now ignores open tasks/checklists that are in the relevant calendar note, but have a scheduled `>date`
 - now will bring the Dashboard window to the front if run from the command bar or an x-callback, but will not take focus if it updates itself via a`` trigger.

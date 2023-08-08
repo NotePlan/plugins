@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 4.8.2023 for v0.6.0 by @jgclark
+// Last updated 8.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -10,6 +10,7 @@ import { getDataForDashboard } from './dataGeneration'
 import { getDemoDataForDashboard } from './demoDashboard'
 import {
   addNoteOpenLinkToString, getSettings,
+  makeNoteTitleWithOpenActionFromFilename,
   makeParaContentToLookLikeNPDisplayInHTML,
   type Section, type SectionItem
 } from './dashboardHelpers'
@@ -584,7 +585,8 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
 
               // do item details col (was col4): review note link as internal calls
               const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
-              let cell4 = `         <td id="${item.ID}" class="sectionItem">${folderNamePart}<a class="review noteTitle" data-encoded-filename="${encodedFilename}">${itemNoteTitle}</a></td>\n       </tr>`
+              // let cell4 = `         <td id="${item.ID}" class="sectionItem">${folderNamePart}<a class="noteTitle" data-encoded-filename="${encodedFilename}">${itemNoteTitle}</a></td>\n       </tr>`
+              let cell4 = `         <td id="${item.ID}" class="sectionItem">${folderNamePart}${makeNoteTitleWithOpenActionFromFilename(item, itemNoteTitle)}</td>\n       </tr>`
               outputArray.push(cell4)
               totalOpenItems++
               reviewNoteCount++
@@ -624,7 +626,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     // Add filter checkbox
     const filterCheckbox = `<span style="float: right;"><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? "checked" : "unchecked"}><label for="filterPriorityItems">Filter out lower-priority items?</label></input></span>\n`
 
-    const header = `<div class="body">${summaryStatStr}\n${refreshXCallbackButton}\n${filterCheckbox}</div>`
+    const header = `<div class="body space-under">${summaryStatStr}\n${refreshXCallbackButton}\n${filterCheckbox}</div>`
     outputArray.unshift(header)
 
     //--------------------------------------------------------------
