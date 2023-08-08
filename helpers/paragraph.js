@@ -491,3 +491,15 @@ export function getTaskPriority(content: string): number {
   }
   return -1
 }
+
+/**
+ * Get number of consecutive '!' in 'content' that aren't at the start/end/middle of a word, or preceding a '['
+ * From 3.9.4 there are also `>>` working-on markers, which are treated as priority 5.
+ * @param {string} content
+ * @returns {string} content minus any priority indicators
+ */
+export function removeTaskPriorityIndicators(content: string): string {
+  let output = content.replace(/\B\!+\B(?!\[)/g, '') // anywhere in line, but not starting an image tag
+  output = output.replace(/^>>\s?/, '') // start of line only
+  return output
+}
