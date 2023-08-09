@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.12.1",
-  "plugin.lastUpdateInfo": "0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.\n0.11.0: new 'skip project review' command, and its optional @nextReview() date. New 'How to show completed/cancelled projects?' setting.\n0.10.1: bugfix and more flexible 'Folders to Include' setting.\n0.10.0: new setting 'Folders to Include' and fix @reviewed() duplication.",
+  "plugin.version": "0.12.2",
+  "plugin.lastUpdateInfo": "0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.\n0.11.0: new 'skip project review' command, and its optional @nextReview() date. New 'How to show completed/cancelled projects?' setting.\n0.10.1: bugfix and more flexible 'Folders to Include' setting.\n0.10.0: new setting 'Folders to Include' and fix @reviewed() duplication.",
   "plugin.requiredFiles": [],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",

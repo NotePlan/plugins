@@ -2,8 +2,12 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
+## [0.12.2] - 2023-08-09
+- fix in /start reviews and /next project review commands
+
 ## [0.12.1] - 2023-07-22
 - under-the-hood change to help Dashboard plugin.
+
 ## [0.12.0] - 2023-06-24
 ### Added
 - new **/add progress update** command, that prompts for a short progress update (text) and current % complete (number). This is inserted into the metadata area of the current project note. It also updates the `@reviewed(...)` date and refresh the project list display.<!-- first part done in v0.11.1-->

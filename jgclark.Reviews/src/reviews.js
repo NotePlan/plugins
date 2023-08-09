@@ -263,7 +263,8 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
  */
 export async function renderProjectLists(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
-    logDebug('renderProjectLists', `Started with displayFinished? ${String(config.displayFinished)}`)
+    clo(config, 'config at start of renderProjectLists:')
+    logDebug('renderProjectLists', `Started with displayFinished? ${String(config.displayFinished ?? '(error)')}`)
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -273,7 +274,7 @@ export async function renderProjectLists(config: any, shouldOpen: boolean = true
       await renderProjectListsHTML(config, shouldOpen)
     }
   } catch (error) {
-    logError('renderProjectLists', error.message)
+    clo(config, 'config at start of renderProjectLists:')
   }
 }
 
@@ -700,7 +701,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // Try to make the full-review-list
-      // await makeFullReviewList(true)
+      // await makeFullReviewList(config, true)
       // reviewListContents = DataStore.loadData(fullReviewListFilename, true)
       // if (!reviewListContents) {
         // If still no luck, throw an error
@@ -974,7 +975,7 @@ export async function startReviews(): Promise<void> {
     const config = await getReviewSettings()
 
     // Make/update list of projects ready for review
-    await makeFullReviewList(true)
+    await makeFullReviewList(config, true)
 
     // Now offer first review
     const noteToReview = await getNextNoteToReview()
@@ -1170,7 +1171,7 @@ export async function updateReviewListAfterChange(
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // Try to make the full-review-list
-      await makeFullReviewList(true)
+      await makeFullReviewList(configIn, true)
       reviewListContents = DataStore.loadData(fullReviewListFilename, true)
       if (!reviewListContents) {
         // If still no luck, throw an error
@@ -1204,7 +1205,7 @@ export async function updateReviewListAfterChange(
     // update (or delete) the note's summary in the full-review-list
     if (isNaN(thisLineNum)) {
       logWarn('updateReviewListAfterChange', `- Can't find '${reviewedTitle}' to update in full-review-list, so will regenerate whole list.`)
-      await makeFullReviewList(false)
+      await makeFullReviewList(configIn, false)
       return
     } else {
       if (simplyDelete) {
@@ -1237,12 +1238,13 @@ export async function updateReviewListAfterChange(
 async function getNextNoteToReview(): Promise<?TNote> {
   try {
     logDebug('getNextNoteToReview', `Started`)
+    const config = await getReviewSettings()
 
     // Get contents of full-review-list
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // Try to make the full-review-list
-      await makeFullReviewList(true)
+      await makeFullReviewList(config, true)
       reviewListContents = DataStore.loadData(fullReviewListFilename, true)
       if (!reviewListContents) {
         // If still no luck, throw an error
