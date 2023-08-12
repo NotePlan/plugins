@@ -344,6 +344,14 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       output.push(makeCSSSelector('.highlighted', tempSel))
     }
 
+    // Set class for ~underlined~ ('underline') if present
+    tempSel = []
+    styleObj = themeJSON.styles.underline
+    if (styleObj) {
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, true))
+      output.push(makeCSSSelector('.underlined', tempSel))
+    }
+
     // Set class for 'flagged-1' (priority 1) if present
     tempSel = []
     styleObj = themeJSON.styles['flagged-1']
@@ -406,7 +414,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
 /**
  * Convert NotePlan Theme style information to CSS equivalent(s)
- * Covers attributes: size, paragraphSpacingBefore, paragraphSpacing, lineSpacing, font, strikethroughStyle, underlineStyle.
+ * Covers attributes within a theme item: size, paragraphSpacingBefore, paragraphSpacing, lineSpacing, font, strikethroughStyle, underlineStyle, underlineColor.
  * @author @jgclark
  * @param {Object} style object from JSON theme
  * @param {boolean} includeFontDetails? (default: false)
@@ -436,7 +444,44 @@ function convertStyleObjectBlock(styleObject: any, includeFontDetails: boolean =
     cssStyleLinesOutput.push(textDecorationFromNP('strikethroughStyle', Number(styleObject?.strikethroughStyle)))
   }
   if (styleObject?.underlineStyle) {
-    cssStyleLinesOutput.push(textDecorationFromNP('underlineStyle', Number(styleObject?.underlineStyle)))
+    const themeStyleNumber = Number(styleObject?.underlineStyle)
+    /**
+     * Values from 1-8 increase the thickness.
+     * The next bit values that have an effect are: 1...
+     * + 8: double (= 9)
+     * + 256: patternDot (= 257)
+     * + 512: patternDash (= 513)
+     * + 1024: patternDashDotDot (= 1025)
+     * + 8192: over line (= 8193)
+     * +32768: by Word (= 32769)
+     */
+    if (themeStyleNumber > 0 && themeStyleNumber <= 8) {
+      cssStyleLinesOutput.push('text-decoration: underline')
+      cssStyleLinesOutput.push(`text-decoration-style: solid`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber)}px`)
+    }
+    if (themeStyleNumber > 8 && themeStyleNumber <= 16) {
+      cssStyleLinesOutput.push('text-decoration: underline')
+      cssStyleLinesOutput.push(`text-decoration-style: double`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 8)}px`)
+    }
+    if (themeStyleNumber > 256 && themeStyleNumber <= 264) {
+      cssStyleLinesOutput.push('text-decoration: underline')
+      cssStyleLinesOutput.push(`text-decoration-style: dotted`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 256)}px`)
+    }
+    if (themeStyleNumber > 512 && themeStyleNumber <= 520) {
+      cssStyleLinesOutput.push('text-decoration: underline')
+      cssStyleLinesOutput.push(`text-decoration-style: dashed`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 512)}px`)
+    }
+    if (themeStyleNumber > 8192 && themeStyleNumber <= 8200) {
+      cssStyleLinesOutput.push(`text-decoration-style: overline`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 8192)}px`)
+    }
+  }
+  if (styleObject?.underlineColor) {
+    cssStyleLinesOutput.push(`text-decoration-color: ${RGBColourConvert(styleObject.underlineColor ?? 'var(--fg-main-color)')}`)
   }
   return cssStyleLinesOutput
 }
@@ -1451,6 +1496,21 @@ export function convertHighlightsToHTML(input: string): string {
     for (const capture of captures) {
       const match = capture
       output = output.replace(match, `<span class="highlighted">${match.slice(2, -2)}</span>`)
+    }
+  }
+  return output
+}
+
+// Display underlined with .underlined style
+// TODO: is regex tight enough?
+export function convertUnderlinedToHTML(input: string): string {
+  let output = input
+  const captures = output.match(/~.*?~/g)
+  if (captures) {
+    // clo(captures, 'results from underlined matches:')
+    for (const capture of captures) {
+      const match = capture
+      output = output.replace(match, `<span class="underlined">${match.slice(1, -1)}</span>`)
     }
   }
   return output
