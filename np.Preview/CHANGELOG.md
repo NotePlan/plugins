@@ -1,6 +1,11 @@
 # What's Changed in Previews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
+## [0.4.1] - 2023-08-12
+- added styling for tags, mentions, highlights, underlining to match the current theme
+- removed the brackets round `[[notelink]]`s, and underlined instead, to indicate it's some sort of wikilink
+- removed sync block markers
+
 ## [0.4.0] - 2023-07-10
 - new command **/start live preview** that adds a trigger to the note (if it doesn't already exist) to enable near-live update to the note preview, and then opens the preview window
 - fix to preview display of title and frontmatter for some notes
