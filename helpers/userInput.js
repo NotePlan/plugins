@@ -3,18 +3,25 @@
 // Specialised user input functions
 
 import json5 from 'json5'
-import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
+import {
+  getDateStringFromCalendarFilename,
+  RE_DATE, RE_DATE_INTERVAL
+} from './dateTime'
+import { getRelativeDates, type NotePlanWeekInfo } from './NPdateTime'
 import { clo, logDebug, logError, logWarn, JSP } from './dev'
+import {
+  allNotesSortedByChanged,
+  // calendarNotesSortedByChanged, projectNotesSortedByChanged
+} from './note'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
-async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
+function parseJSON5(contents: string): ?{ [string]: ?mixed } {
   try {
     const value = json5.parse(contents)
     return (value: any)
   } catch (error) {
     logError('userInput / parseJSON5', error.message)
-    await showMessage('Invalid JSON5 in your configuration. Please fix it to use configuration')
     return {}
   }
 }
@@ -379,7 +386,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
   // logDebug('askDateInterval', `starting with '${dateParams}':`)
   const dateParamsTrimmed = dateParams?.trim() || ''
   const paramConfig =
-    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
+    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? parseJSON5(`{${dateParams}}`) : {}
   // logDebug('askDateInterval', `param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
@@ -432,7 +439,7 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     clo(dateConfig, 'userInput / datePicker dateConfig object:')
     const dateParamsTrimmed = dateParams.trim()
     const paramConfig =
-      dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? await parseJSON5(dateParams) : dateParamsTrimmed !== '' ? await parseJSON5(`{${dateParams}}`) : {}
+      dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? parseJSON5(`{${dateParams}}`) : {}
     // $FlowIgnore[incompatible-type]
     logDebug('userInput / datePicker', `params: ${dateParams} -> ${JSON.stringify(paramConfig)}`)
     // '...' = "gather the remaining parameters into an array"
@@ -580,6 +587,32 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
   return answers
 }
 
+const relativeDates = getRelativeDates()
+
+/**
+ * V2 of displayTitle that optionally adds the relative date string after the calendar note titles, to make it easier to spot last/this/next D/W/M/Q
+ * Note: Local extended copy from helpers/general.js to avoid circular dependency
+ * @param {CoreNoteFields} noteIn
+ * @param {boolean} showRelativeDates? (default: false)
+ * @returns {string}
+ */
+function displayTitle(noteIn: CoreNoteFields, showRelativeDates: boolean = true): string {
+  if (noteIn.type === 'Calendar') {
+    let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
+    if (showRelativeDates) {
+      for (const rd of relativeDates) {
+        if (calNoteTitle === rd.dateStr) {
+          // console.log(`Found match with ${rd.relName}`)
+          calNoteTitle = `${rd.dateStr}\t(📆 ${rd.relName})`
+        }
+      }
+    }
+    return calNoteTitle
+  } else {
+    return noteIn.title ?? '(error)'
+  }
+}
+
 /**
  * Choose a particular note from a CommandBar list of notes
  * @author @dwertheimer
@@ -598,31 +631,14 @@ export async function chooseNote(
   currentNoteFirst?: boolean = false,
 ): Promise<TNote | null> {
   let noteList = []
-  const projectNotes = DataStore.projectNotes
-  const calendarNotes = DataStore.calendarNotes
-  if (includeProjectNotes) {
-    noteList = noteList.concat(projectNotes)
-  }
-  if (includeCalendarNotes) {
-    noteList = noteList.concat(calendarNotes)
-  }
-  let noteListFiltered = noteList.filter((note) => {
-    // filter out notes that are in folders to ignore
-    let isInIgnoredFolder = false
-    foldersToIgnore.forEach((folder) => {
-      if (note.filename.includes(`${folder}/`)) {
-        isInIgnoredFolder = true
-      }
-    })
-    isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
-    return !isInIgnoredFolder
-  })
+  const noteListFiltered = allNotesSortedByChanged(foldersToIgnore)
   let opts = noteListFiltered.map((note) => {
-    return note.title && note.title !== '' ? note.title : note.filename
+    return displayTitle(note)
   })
-  if (currentNoteFirst) {
-    noteListFiltered.unshift(Editor.note)
-    opts.unshift(`[Current note: "${Editor.title || ''}"]`)
+  const { note } = Editor
+  if (currentNoteFirst && note) {
+    noteListFiltered.unshift(note)
+    opts.unshift(`[Current note: "${displayTitle(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
   return noteListFiltered[index] ?? null
