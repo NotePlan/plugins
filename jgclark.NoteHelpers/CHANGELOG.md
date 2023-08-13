@@ -2,6 +2,12 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
+## [0.18.0] - 2023-08-13
+- new command "Show This Month" (alias /stm)
+- new command "Show This Quarter" (alias /stq)
+- new command "Show This Year" (alias /sty) (requested by @danieldanilov)
+- new command "update all indexes" that updates all the existing folder index notes
+- added more decoration to most-used calendar dates, when showing them in lists of notes (e.g. in "jump to note's heading" and "open note new window").
 
 ## [0.17.3] - 2023-07-01
 - added new setting 'Title to use for index notes' for "/index folders" command (requested by @dwertheimer)

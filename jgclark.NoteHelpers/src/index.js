@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last updated ?.7.2023 for v0.17.x, @jgclark
+// last updated 13.8.2023 for v0.18.0, @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -15,7 +15,10 @@ import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 export { countAndAddDays } from './countDays'
-export { indexFolders } from './indexFolders'
+export {
+  indexFolders,
+  updateAllIndexes
+} from './indexFolders'
 export {
   jumpToDone,
   jumpToHeading,
@@ -23,7 +26,10 @@ export {
   openCurrentNoteNewSplit,
   openNoteNewWindow,
   openNoteNewSplit,
-  openURLFromANote
+  openURLFromANote,
+  showMonth,
+  showQuarter,
+  showYear
 } from './noteNavigation'
 export {
   addTriggerToNote,

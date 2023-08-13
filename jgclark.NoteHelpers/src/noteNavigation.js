@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Navigation functions for Note Helpers plugin for NotePlan
 // Jonathan Clark
-// Last updated 12.6.2023 for v0.17.0, @jgclark
+// Last updated 13.8.2023 for v0.18.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,6 +13,7 @@ import { allNotesSortedByChanged } from '@helpers/note'
 import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import {
   chooseHeading,
+  chooseNote,
   showMessage
 } from '@helpers/userInput'
 import { findURLsInNote, findURLsInText, type LinkObject } from '@helpers/urls'
@@ -27,17 +28,20 @@ export async function openNoteNewWindow(): Promise<void> {
   try {
     // Ask for the note we want to open
     const notes = allNotesSortedByChanged()
-    const re = await CommandBar.showOptions(
-      notes.map((n) => displayTitle(n)),
-      'Select note to open in new window',
-    )
-    const note = notes[re.index]
-    const filename = note.filename
-    // work out where start of main content of the note is
-    const startOfMainContentLine = findStartOfActivePartOfNote(note)
-    const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
-    // open note, moving cursor to start of main content
-    await Editor.openNoteByFilename(filename, true, startOfMainContentCharIndex, startOfMainContentCharIndex, false)
+    // const re = await CommandBar.showOptions(
+    //   notes.map((n) => displayTitle(n)),
+    //   'Select note to open in new window',
+    // )
+    // const note = notes[re.index]
+    const note = await chooseNote(true, true, [], 'Select note to open in new window', false)
+    if (note) {
+      const filename = note.filename
+      // work out where start of main content of the note is
+      const startOfMainContentLine = findStartOfActivePartOfNote(note)
+      const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+      // open note, moving cursor to start of main content
+      const res = await Editor.openNoteByFilename(filename, true, startOfMainContentCharIndex, startOfMainContentCharIndex, false)
+    }
   } catch (e) {
     logError('openNoteNewWindow()', e.message)
   }
@@ -52,18 +56,21 @@ export async function openNoteNewWindow(): Promise<void> {
 export async function openNoteNewSplit(): Promise<void> {
   try {
     // Ask for the note we want to open
-    const notes = allNotesSortedByChanged()
-    const re = await CommandBar.showOptions(
-      notes.map((n) => displayTitle(n)),
-      'Select note to open in new split window',
-    )
-    const note = notes[re.index]
-    const filename = note.filename
-    // work out where start of main content of the note is
-    const startOfMainContentLine = findStartOfActivePartOfNote(note)
-    const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
-    // open note, moving cursor to start of main content
-    await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
+    // const notes = allNotesSortedByChanged()
+    // const re = await CommandBar.showOptions(
+    //   notes.map((n) => displayTitle(n)),
+    //   'Select note to open in new split window',
+    // )
+    // const note = notes[re.index]
+    const note = await chooseNote(true, true, [], 'Select note to open in new split window', false)
+    if (note) {
+      const filename = note.filename
+      // work out where start of main content of the note is
+      const startOfMainContentLine = findStartOfActivePartOfNote(note)
+      const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+      // open note, moving cursor to start of main content
+      const res = await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
+    }
   } catch (e) {
     logError('openNoteNewSplit()', e.message)
   }
@@ -125,12 +132,13 @@ export async function jumpToHeading(heading?: string): Promise<void> {
 export async function jumpToNoteHeading(): Promise<void> {
   try {
     // first jump to the note of interest, then to the heading
-    const notesList = allNotesSortedByChanged()
-    const re = await CommandBar.showOptions(
-      notesList.map((n) => displayTitle(n)),
-      'Select note to jump to',
-    )
-    const note = notesList[re.index]
+    // const notesList = allNotesSortedByChanged()
+    // const re = await CommandBar.showOptions(
+    //   notesList.map((n) => displayTitle(n)),
+    //   'Select note to jump to',
+    // )
+    // const note = notesList[re.index]
+    const note = await chooseNote(true, true, [], 'Select note to jump to', false)
 
     // Open the note in the Editor
     if (note != null && note.title != null) {
@@ -219,5 +227,53 @@ export async function openURLFromANote(): Promise<void> {
     await NotePlan.openURL(chosenURL)
   } catch (e) {
     logError('openURLFromANote()', e.message)
+  }
+}
+
+/**
+ * Open current month calendar note in current Editor.
+ */
+export async function showMonth(): Promise<void> {
+  try {
+    const res = await Editor.openNoteByDate(new Date(), false, 0, 0, false, "month")
+    if (!res) {
+      logWarn('showMonth', `Cannot show current month note for some reason`)
+    } else {
+      logDebug('showMonth', `Opened current month note ${displayTitle(res)}`)
+    }
+  } catch (err) {
+    logError('showMonth()', err.message)
+  }
+}
+
+/**
+ * Open current quarter calendar note in current Editor.
+ */
+export async function showQuarter(): Promise<void> {
+  try {
+    const res = await Editor.openNoteByDate(new Date(), false, 0, 0, false, "quarter")
+    if (!res) {
+      logWarn('showQuarter', `Cannot show current quarter note for some reason`)
+    } else {
+      logDebug('showQuarter', `Opened current quarter note ${displayTitle(res)}`)
+    }
+  } catch (err) {
+    logError('showQuarter()', err.message)
+  }
+}
+
+/**
+ * Open current year calendar note in current Editor.
+ */
+export async function showYear(): Promise<void> {
+  try {
+    const res = await Editor.openNoteByDate(new Date(), false, 0, 0, false, "year")
+    if (!res) {
+      logWarn('showYear', `Cannot show current year note for some reason`)
+    } else {
+      logDebug('showYear', `Opened current year note ${displayTitle(res)}`)
+    }
+  } catch (err) {
+    logError('showYear()', err.message)
   }
 }

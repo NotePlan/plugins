@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "0.17.3",
-  "plugin.lastUpdateInfo": "0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.\n0.16.1: mostly adding some settings.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.",
+  "plugin.version": "0.18.0",
+  "plugin.lastUpdateInfo": "0.18.0: Add '/Show This Month/Quarter/Year'  and '/update all indexes' commands.\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.\n0.16.0: New command '/add trigger to note'. Can now customise /indexFolders with new settings, a Refresh button, and also use from x-callbacks.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -110,7 +110,7 @@
       "name": "open note new window",
       "alias": [
         "onw",
-        "open",
+        "onnw",
         "window"
       ],
       "description": "Open a user-selected note in a new window.",
@@ -120,7 +120,7 @@
       "name": "open note new split",
       "alias": [
         "ons",
-        "open",
+        "onns",
         "window",
         "split"
       ],
@@ -164,6 +164,42 @@
       ],
       "description": "Reset NotePlan caches",
       "jsFunction": "resetCaches"
+    },
+    {
+      "name": "Show This Month",
+      "alias": [
+        "stm",
+        "month"
+      ],
+      "description": "Open the current Month note",
+      "jsFunction": "showMonth"
+    },
+    {
+      "name": "Show This Quarter",
+      "alias": [
+        "stq",
+        "quarter"
+      ],
+      "description": "Open the current Quarter note",
+      "jsFunction": "showQuarter"
+    },
+    {
+      "name": "Show This Year",
+      "alias": [
+        "sty",
+        "year"
+      ],
+      "description": "Open the current Year note",
+      "jsFunction": "showYear"
+    },
+    {
+      "name": "update all indexes",
+      "alias": [
+        "uai",
+        "index"
+      ],
+      "description": "Update all folder index notes",
+      "jsFunction": "updateAllIndexes"
     },
     {
       "name": "NoteHelpers: update plugin settings",

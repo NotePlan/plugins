@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 1.7.2023 for v0.17.2 by @jgclark
+// Last updated 13.8.2023 for v0.18.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -25,13 +25,12 @@ import {
   displayTitle,
   returnNoteLink,
 } from '@helpers/general'
-import { notesInFolderSortedByTitle, pastCalendarNotes } from '@helpers/note'
+import { notesInFolderSortedByTitle, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
+import { openNoteByFilename } from "@helpers/NPnote"
 import {
   chooseFolder,
   chooseOption,
-  // showMessage,
 } from '@helpers/userInput'
-import { openNoteByFilename } from "../../helpers/NPnote"
 
 const pluginID = 'jgclark.NoteHelpers'
 
@@ -160,7 +159,7 @@ function makeFolderIndex(folder: string, config: any, /* displayOrder: string, d
  */
 export async function indexFolders(folder: string = "", args: string = ''): Promise<void> {
   try {
-    let folderToUse = ''
+    let folderToUse: ?string = ''
     let fullFilename = ''
 
     // Use parameters if passed, otherwise fallback to the settings
@@ -179,12 +178,15 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
         ? getFolderFromFilename(Editor.filename)
         : (NotePlan.selectedSidebarFolder)
           ? NotePlan.selectedSidebarFolder
-          : undefined
+          : null
       logDebug('indexFolders', `folderToUse: ${folderToUse ?? '(undefined still)'}`)
       if (Editor.type === 'Calendar' || folderToUse === undefined) {
         logDebug('indexFolders', `Info: No valid current filename (or folder) found, so will ask instead.`)
         folderToUse = await chooseFolder(`Please pick folder to index`, true, true) // include @Archive as an option, and to create a new folder
       }
+    }
+    if (!folderToUse) {
+      throw new Error(`Could not find folderToUse for some reason`)
     }
     logDebug('indexFolders', `- values to use: folder:'${folderToUse}' / displayOrderToUse:${config.displayOrder} / dateDisplayTypeToUse:${config.dateDisplayType} / ${config.includeSubfolders ? 'with' : 'without'} subfolders`)
 
@@ -250,13 +252,10 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
         // outputFilename = `${pref_folderToStore}/${String(outputFilename)}` ?? '(error)'
         // NB: filename here = folder + filename
         if (outputFilename === '') {
-          logError('indexFolders', `couldn't make a new note in folder ${folderToUse}' for some reason. Stopping.`)
-          return
+          throw new Error(`couldn't make a new note in folder ${folderToUse}' for some reason. Stopping.`)
         }
         logInfo('indexFolders', `Writing index to new note '${outputFilename}'`)
-        // outputNote = await DataStore.projectNoteByFilename(outputFilename)
-        const options = { newWindow: false, newSplit: true, content: `# ${outString}`, highlightStart: 0, highlightEnd: 0 }
-        // $FlowFixMe[prop-missing]
+        const options = { newWindow: false, splitView: true, content: `# ${outString}`, highlightStart: 0, highlightEnd: 0 }
         outputNote = await openNoteByFilename(outputFilename, options)
       } else {
         logInfo('indexFolders', `Writing index to note '${outputFilename}'`)
@@ -266,8 +265,7 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
         outputNote.content = `# ${outString}` // overwrite what was there before
         // Note: this setter doesn't seem to be enough in some cases?
       } else {
-        logError('indexFolders', 'error after newNote(): no valid note to write to')
-        return
+        throw new Error(`error after newNote(): no valid note ${outputFilename} to write to`)
       }
     } else if (option.endsWith('current')) {
       // write out to the current file
@@ -276,8 +274,32 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
       // write out to the log
       logDebug('indexFolders', `Output:\n${outString}`)
     }
-
     logDebug('indexFolders', `Finished indexFolders.`)
+  }
+  catch (err) {
+    logError('indexFolders', err.message)
+  }
+}
+
+/**
+ * Command to update all existing index notes for folders.
+ */
+export async function updateAllIndexes(): Promise<void> {
+  try {
+    let config: noteHelpersConfigType = await getSettings()
+
+    // Find all existing index Notes
+    const allProjectNotesToCheck = projectNotesFromFilteredFolders([], true)
+    const indexNotes = allProjectNotesToCheck.filter((n) => n.filename.endsWith(`_index.${DataStore.defaultFileExtension}`))
+    logDebug('updateAllIndexes', `Will update .index files in [${indexNotes.length}] folders ...`)
+
+    // Update each in turn
+    for (const indexNote of indexNotes) {
+      const thisFolder = getFolderFromFilename(indexNote.filename)
+      logDebug('updateAllIndexes', `Recreating .index for folder [${thisFolder}]`)
+      await indexFolders(thisFolder)
+    }
+    return
   }
   catch (err) {
     logError('indexFolders', JSP(err))
