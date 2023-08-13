@@ -19,11 +19,10 @@ import {
   isYearlyNote,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFolderFromFilename } from '@helpers/folders'
+import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { sortListBy } from '@helpers/sorting'
-import { showMessage } from '@helpers/userInput'
 import { isOpen } from '@helpers/utils'
 
 // const pluginJson = 'helpers/note.js'
@@ -173,12 +172,10 @@ export async function getOrMakeNote(noteTitle: string, noteFolder: string, parti
       if (note != null) {
         return note
       } else {
-        showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
         logError('note / getOrMakeNote', `can't read new ${noteTitle} note`)
         return
       }
     } else {
-      showMessage(`Oops: I can't make new ${noteTitle} note`, 'OK')
       logError('note / getOrMakeNote', `empty filename of new ${noteTitle} note`)
       return
     }
@@ -269,12 +266,39 @@ export function getUniqueNoteTitle(title: string): string {
 }
 
 /**
+ * TODO: finish moving refs for this from NPnote to here.
+ * Return array of all project notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
+ * @author @jgclark
+ * @param {Array<string>} foldersToExclude
+ * @param {boolean} excludeSpecialFolders
+ * @returns {Array<TNote>} wanted notes
+ */
+function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
+  // Get list of wanted folders
+  const filteredFolders = getFilteredFolderList(foldersToExclude, excludeSpecialFolders)
+
+  // Iterate over all project notes and keep the notes in the wanted folders ...
+  const allProjectNotes = DataStore.projectNotes
+  const projectNotesToInclude = []
+  for (const pn of allProjectNotes) {
+    const thisFolder = getFolderFromFilename(pn.filename)
+    if (filteredFolders.includes(thisFolder)) {
+      projectNotesToInclude.push(pn)
+    } else {
+      // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
+    }
+  }
+  return projectNotesToInclude
+}
+
+/**
  * Return list of all notes, sorted by changed date (newest to oldest)
  * @author @jgclark
+ * @param {Array<string>} foldersToExclude? (default: [])
  * @return {Array<TNote>} - list of notes
  */
-export function allNotesSortedByChanged(): Array<TNote> {
-  const projectNotes = DataStore.projectNotes.slice()
+export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
+  const projectNotes = projectNotesFromFilteredFolders(foldersToIgnore, true)
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
   const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first

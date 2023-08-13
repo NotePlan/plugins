@@ -50,7 +50,7 @@ import {
   showHTMLV2
 } from '@helpers/HTMLView'
 import { clearNote, getOrMakeNote } from '@helpers/note'
-import { projectNotesFromFilteredFolders } from '@helpers/NPnote'
+import { projectNotesFromFilteredFolders } from '@helpers/note'
 import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
