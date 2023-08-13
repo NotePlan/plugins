@@ -78,7 +78,7 @@ const convertJavaScriptBlocksToTags = (templateData = '') => {
       if (!codeBlock.includes('<%')) {
         let newBlock = codeBlock.replace('```templatejs\n', '').replace('```', '')
         // newBlock = '```javascript\n' + `<% ${newBlock} %>` + '\n```'
-        newBlock = `<% ${newBlock} %>`
+        newBlock = `<% ${newBlock} -%>`
         result = result.replace(codeBlock, newBlock)
       }
     }
