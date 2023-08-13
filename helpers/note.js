@@ -273,7 +273,7 @@ export function getUniqueNoteTitle(title: string): string {
  * @param {boolean} excludeSpecialFolders
  * @returns {Array<TNote>} wanted notes
  */
-function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
+export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
   // Get list of wanted folders
   const filteredFolders = getFilteredFolderList(foldersToExclude, excludeSpecialFolders)
 
