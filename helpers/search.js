@@ -152,8 +152,6 @@ export function isMentionWanted(mentionToTest: string,
  */
 export function getLineMainContentPos(input: string): number {
   try {
-    // const trimmed = input.trim()
-    // const res = input.match(/^((?:#{1,5}\s+|[*\-]\s(?:\[[ x\->]\]\s+)?|>\s+)).*/) // regex which needs input left trimming first
     if (input && input !== '') {
       const res = input.match(/^(\s*(?:\#{1,5}\s+|(?:[*\-]\s(?:\[[ x\->]\])?|>))\s*)/) // regex which doesn't need input left trimming first
       if (res) {
@@ -162,7 +160,7 @@ export function getLineMainContentPos(input: string): number {
         return 0
       }
     } else {
-      logDebug('getLineMainContentPos', `input is null or empty`)
+      // logDebug('getLineMainContentPos', `input is null or empty`)
       return 0
     }
   } catch (error) {
