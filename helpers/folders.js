@@ -78,7 +78,7 @@ export function getFilteredFolderList(
     const outputList = reducedList.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
     // add root folder back in if wanted
     if (includeRoot) { outputList.unshift('/') }
-    logDebug('getFilteredFolderList', `-> outputList: ${outputList.length} items: [${outputList.toString()}] with includeRoot? ${String(includeRoot)}`)
+    // logDebug('getFilteredFolderList', `-> outputList: ${outputList.length} items: [${outputList.toString()}] with includeRoot? ${String(includeRoot)}`)
     return outputList
   } catch (error) {
     logError('folders/getFilteredFolderList', JSP(error))
