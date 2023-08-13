@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.9.9] (aka 2.0.0-beta.12): 2023-08-12 @dwertheimer
+
+- Fix templatejs code so it doesn't add extra spaces
+
 ## [1.9.8] (aka 2.0.0-beta.11): 2023-07-12 @dwertheimer
 
 - Fix web services intermittent bug
