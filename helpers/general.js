@@ -4,8 +4,7 @@
 //-------------------------------------------------------------------------------
 
 import json5 from 'json5'
-import { logError, logDebug, JSP } from './dev'
-import { showMessage } from './userInput'
+import { JSP, logError, logDebug } from './dev'
 import { getDateStringFromCalendarFilename } from './dateTime'
 
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
@@ -21,7 +20,7 @@ export type headingLevelType = 1 | 2 | 3 | 4 | 5
  */
 export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
   // This is how private keys work in actual Javascript now.
-  #keysMap = new Map<string, string>()
+  #keysMap: Map<string, string> = new Map < string, string > ()
 
   constructor(iterable?: Iterable<[string, TVal]>) {
     super()
@@ -96,9 +95,8 @@ export async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed 
   try {
     const value = json5.parse(contents)
     return (value: any)
-  } catch (e) {
-    logError('general/parseJSON5()', e)
-    await showMessage('Invalid data found when parsing JSON5 data.')
+  } catch (err) {
+    logError('general/parseJSON5()', err.message)
     return {}
   }
 }
@@ -156,8 +154,8 @@ export function displayTitle(n: ?CoreNoteFields): string {
   return !n
     ? '(error)'
     : n.type === 'Calendar'
-    ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-    : n.title ?? '(error)'
+      ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
+      : n.title ?? '(error)'
 }
 
 /**
