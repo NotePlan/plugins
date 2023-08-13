@@ -9,7 +9,39 @@ import { trimAnyQuotes } from './dataManipulation'
 import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, todaysDateISOString, toISOShortDateTimeString, isoWeekStartEndDates, RE_DATE } from './dateTime'
 import { logDebug, logError, logWarn, clo, JSP } from './dev'
 // import { getSetting } from './NPConfiguration'
-import { chooseOption, getInput } from './userInput'
+// import { chooseOption, getInput } from './userInput'
+
+//--------------------------------------------------------------------------------
+// Local copies of other helpers to avoid circular dependencies
+
+type Option<T> = $ReadOnly<{ label: string, value: T }>
+
+/**
+ * Ask user to choose from a set of options (from nmn.sweep) using CommandBar.
+ * From helpers/userInput.js
+ */
+async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnlyArray<Option<T>>, defaultValue: TDefault | null = null): Promise<T | TDefault> {
+  const { index } = await CommandBar.showOptions(
+    options.map((option) => option.label),
+    message,
+  )
+  return options[index]?.value ?? defaultValue ?? options[0].value
+}
+
+/**
+ * Ask user to give arbitary input using CommandBar.
+ * From helpers/userInput.js
+*/
+async function getInput(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<false | string> {
+  if (typeof CommandBar.textPrompt === 'function') {
+    // i.e. do we have .textPrompt available?
+    return await CommandBar.textPrompt(dialogTitle, message, defaultValue)
+  } else {
+    return await CommandBar.showInput(message, okLabel)
+  }
+}
+
+//--------------------------------------------------------------------------------
 
 // TODO: work out how to test these next few functions
 export function setMomentLocaleFromEnvironment(): void {
@@ -793,4 +825,63 @@ export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: bool
   }
   // logDebug('NPdateTime / localeRelativeDateFromNumber', `--> ${output}`)
   return output
+}
+
+/**
+ * Get array of relative dates for day, week and month.
+ * @author @jgclark
+ * @returns {Object} relative date name, relative date string, TNote for that relative date
+ */
+export function getRelativeDates(): Array<Object> {
+  try {
+    let relativeDates = []
+    const todayMom = moment()
+
+    // Calculate relative dates. Remember to clone todayMom first as moments aren't immutable
+    let thisDateStr = moment(todayMom).format('YYYYMMDD')
+    relativeDates.push({ relName: 'today', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format('YYYYMMDD')
+    relativeDates.push({ relName: 'yesterday', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format('YYYYMMDD')
+    relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+
+    // can't start with moment as NP weeks count differently
+    // $FlowIgnore[incompatible-type]
+    let thisNPWeekInfo: NotePlanWeekInfo = getNPWeekData(new Date())
+    thisDateStr = thisNPWeekInfo.weekString
+    relativeDates.push({ relName: 'this week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    // $FlowIgnore[incompatible-type]
+    thisNPWeekInfo = getNPWeekData(new Date(), -1)
+    // $FlowIgnore[incompatible-use]
+    thisDateStr = thisNPWeekInfo.weekString
+    relativeDates.push({ relName: 'last week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    // $FlowIgnore[incompatible-type]
+    thisNPWeekInfo = getNPWeekData(new Date(), 1)
+    // $FlowIgnore[incompatible-use]
+    thisDateStr = thisNPWeekInfo.weekString
+    relativeDates.push({ relName: 'next week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+
+    thisDateStr = moment(todayMom).startOf('month').format('YYYY-MM')
+    relativeDates.push({ relName: 'this month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).subtract(1, 'month').startOf('month').format('YYYY-MM')
+    relativeDates.push({ relName: 'last month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).add(1, 'month').startOf('month').format('YYYY-MM')
+    relativeDates.push({ relName: 'next month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+
+    thisDateStr = moment(todayMom).startOf('quarter').format('YYYY-[Q]Q')
+    relativeDates.push({ relName: 'this quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).subtract(1, 'quarter').startOf('quarter').format('YYYY-[Q]Q')
+    relativeDates.push({ relName: 'last quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).add(1, 'quarter').startOf('quarter').format('YYYY-[Q]Q')
+    relativeDates.push({ relName: 'next quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+
+    // for (const rd of relativeDates) {
+    //   const noteTitle = (rd.note) ? displayTitle(rd.note) : '(error)'
+    //   logDebug('getRelativeDates', `${rd.name ?? ''}: ${rd.dateStr ?? ''} / ${noteTitle}`)
+    // }
+    return relativeDates
+  } catch (err) {
+    logError('getRelativeDates', `${err.name}: ${err.message}`)
+    return [{}] // for completeness
+  }
 }
