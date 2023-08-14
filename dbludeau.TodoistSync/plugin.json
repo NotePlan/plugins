@@ -1,0 +1,40 @@
+{
+  "noteplan.minAppVersion": "3.0.21",
+  "macOS.minVersion": "10.15.7",
+  "iOS.minVersion": "14",
+  "plugin.id": "dbludeau.todoistsync",
+  "plugin.name": "Sync Todoist and Noteplan",
+  "plugin.description": "Sync tasks between todoist and noteplan",
+  "plugin.author": "Daniel Bludeau",
+  "plugin.url": "https://&hellip;",
+  "plugin.version": "0.0.1",
+  "plugin.dependencies": [ ],
+  "plugin.script": "script.js",
+  "plugin.lastUpdateInfo": "",
+  "plugin.requiredFiles": "",
+  "plugin.commands": [
+    {
+      "name": "todoist sync all",
+      "alias": ["tsa"],
+      "description": "Run sync on all notes",
+      "jsFunction": "syncAll",
+      "arguments": [""]
+    },
+  ],
+  "plugin.settings": [
+    {
+      "type": "string",
+      "key": "apiToken",
+      "title": "Todoist API token",
+      "description": "API token for your Todoist account.  See https://todoist.com/help/articles/find-your-api-token for more information.",
+      "required": true
+    },
+    {
+      "type": "string",
+      "key": "folderToUse",
+      "title": "Folder to use for syncing",
+      "description": "OPTIONAL. Folder where Todoist projects will sync to notes of same name.  If omitted, plugin will look for a folder named Todoist and create it if it does not exist",
+      "required": false
+    }
+  ]
+}
