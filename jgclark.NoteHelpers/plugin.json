@@ -83,6 +83,14 @@
       "jsFunction": "jumpToDone"
     },
     {
+      "name": "list notes with inconsistent filenames",
+      "alias": [
+        "listInconsistentNames"
+      ],
+      "description": "Lists the names of notes whose filenames are inconsistent with their titles.",
+      "jsFunction": "listInconsistentNames"
+    },
+    {
       "name": "move note",
       "alias": [
         "mn",
