@@ -7,12 +7,8 @@ import {
   getDateStringFromCalendarFilename,
   RE_DATE, RE_DATE_INTERVAL
 } from './dateTime'
-import { getRelativeDates, type NotePlanWeekInfo } from './NPdateTime'
+import { getRelativeDates } from './NPdateTime'
 import { clo, logDebug, logError, logWarn, JSP } from './dev'
-import {
-  allNotesSortedByChanged,
-  // calendarNotesSortedByChanged, projectNotesSortedByChanged
-} from './note'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
@@ -590,13 +586,13 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
 const relativeDates = getRelativeDates()
 
 /**
- * V2 of displayTitle that optionally adds the relative date string after the calendar note titles, to make it easier to spot last/this/next D/W/M/Q
- * Note: Local extended copy from helpers/general.js to avoid circular dependency
+ * V2 of displayTitle that optionally adds the relative date string after relevant calendar note titles, to make it easier to spot last/this/next D/W/M/Q
+ * Note: Forked from helpers/general.js, but needed here anyway to avoid a circular dependency
  * @param {CoreNoteFields} noteIn
  * @param {boolean} showRelativeDates? (default: false)
  * @returns {string}
  */
-function displayTitle(noteIn: CoreNoteFields, showRelativeDates: boolean = true): string {
+export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDates: boolean = true): string {
   if (noteIn.type === 'Calendar') {
     let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
     if (showRelativeDates) {
@@ -615,7 +611,7 @@ function displayTitle(noteIn: CoreNoteFields, showRelativeDates: boolean = true)
 
 /**
  * Choose a particular note from a CommandBar list of notes
- * @author @dwertheimer
+ * @author @dwertheimer extended by @jgclark to include 'relative date' indicators in displayed title
  * @param {boolean} includeProjectNotes
  * @param {boolean} includeCalendarNotes
  * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
@@ -631,15 +627,34 @@ export async function chooseNote(
   currentNoteFirst?: boolean = false,
 ): Promise<TNote | null> {
   let noteList = []
-  const noteListFiltered = allNotesSortedByChanged(foldersToIgnore)
-  let opts = noteListFiltered.map((note) => {
-    return displayTitle(note)
+  const projectNotes = DataStore.projectNotes
+  const calendarNotes = DataStore.calendarNotes
+  if (includeProjectNotes) {
+    noteList = noteList.concat(projectNotes)
+  }
+  if (includeCalendarNotes) {
+    noteList = noteList.concat(calendarNotes)
+  }
+  const noteListFiltered = noteList.filter((note) => {
+    // filter out notes that are in folders to ignore
+    let isInIgnoredFolder = false
+    foldersToIgnore.forEach((folder) => {
+      if (note.filename.includes(`${folder}/`)) {
+        isInIgnoredFolder = true
+      }
+    })
+    isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
+    return !isInIgnoredFolder
+  })
+  const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const opts = sortedNoteListFiltered.map((note) => {
+    return displayTitleWithRelDate(note)
   })
   const { note } = Editor
   if (currentNoteFirst && note) {
-    noteListFiltered.unshift(note)
-    opts.unshift(`[Current note: "${displayTitle(Editor)}"]`)
+    sortedNoteListFiltered.unshift(note)
+    opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
-  return noteListFiltered[index] ?? null
+  return sortedNoteListFiltered[index] ?? null
 }

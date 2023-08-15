@@ -3,22 +3,22 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last updated 13.8.2023 for v0.18.0, @jgclark
+// last updated 15.8.2023 for v0.18.1, @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 
 import { JSP, logDebug, logError } from '@helpers/dev'
-import { updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 export { countAndAddDays } from './countDays'
-export {
-  indexFolders,
-  updateAllIndexes
-} from './indexFolders'
+export { indexFolders, updateAllIndexes } from './indexFolders'
+export { listInconsistentNames } from './lib/commands/listInconsistentNames'
+export { titleToFilename } from './lib/commands/titleToFilename'
+export { renameInconsistentNames } from './lib/commands/renameInconsistentNames'
+export { addTriggerToNote, convertLocalLinksToPluginLinks, addFrontmatterToNote, moveNote, renameNoteFile } from './noteHelpers'
 export {
   jumpToDone,
   jumpToHeading,
@@ -31,13 +31,6 @@ export {
   showQuarter,
   showYear
 } from './noteNavigation'
-export {
-  addTriggerToNote,
-  convertLocalLinksToPluginLinks,
-  addFrontmatterToNote,
-  moveNote,
-  renameNoteFile,
-} from './noteHelpers'
 
 export function init(): void {
   // In the background, see if there is an update to the plugin to install, and if so let user know
@@ -56,9 +49,7 @@ export async function onUpdateOrInstall(): Promise<void> {
 
     // Tell user the plugin has been updated
     if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
-      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks',
-        `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`
-      )
+      await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks', `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`)
     }
   } catch (error) {
     logError(pluginJson, error)
