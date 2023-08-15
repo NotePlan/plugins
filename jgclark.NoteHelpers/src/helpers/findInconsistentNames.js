@@ -1,12 +1,13 @@
 // @flow
 
-import { logDebug } from '../../../helpers/dev'
 import pluginJson from '../../plugin.json'
 import { newNotePath } from './newNotePath'
+import { logDebug } from '@helpers/dev'
 
-export function findInconsistentNames(directory?: string = ''): Array<TNote> {
+export function findInconsistentNames(folder?: string = ''): Array<TNote> {
   const { projectNotes } = DataStore
 
+  // Note: there's a faster way to do this if folder is given ... (which it currently never is)
   return projectNotes
     .filter((note) => {
       const currentFullPath = note.filename
@@ -15,11 +16,11 @@ export function findInconsistentNames(directory?: string = ''): Array<TNote> {
         return false
       }
 
-      // If a directory is specified, only check notes in that directory, ignored if '/' is specified
-      if (directory.length > 0 && directory !== '/') {
-        // Only check notes in the specified directory
-        if (currentFullPath.indexOf(directory) !== 0) {
-          logDebug(pluginJson, `findInconsistentNames(): Ignoring note ${currentFullPath} as not in specified directory ${directory}`)
+      // If a folder is specified, only check notes in that folder, ignored if '/' is specified
+      if (folder.length > 0 && folder !== '/') {
+        // Only check notes in the specified folder
+        if (currentFullPath.indexOf(folder) !== 0) {
+          // logDebug(pluginJson, `findInconsistentNames(): Ignoring note ${currentFullPath} as not in specified folder ${folder}`)
           return false
         }
       }

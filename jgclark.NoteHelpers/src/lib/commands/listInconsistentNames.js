@@ -1,11 +1,11 @@
 // @flow
 
-import { showHTMLV2 } from '../../../../helpers/HTMLView'
-import { logDebug, logError } from '../../../../helpers/dev'
-import { displayTitle } from '../../../../helpers/general'
 import pluginJson from '../../../plugin.json'
 import { findInconsistentNames } from '../../helpers/findInconsistentNames'
 import { newNotePath } from '../../helpers/newNotePath'
+import { showHTMLV2 } from '@helpers/HTMLView'
+import { logDebug, logError } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 /**
  * Shows a list of notes with inconsistent names (i.e. where the note title and filename are different).
  * @returns void
@@ -31,9 +31,11 @@ export function listInconsistentNames(): void {
       </ol>
       `
 
-      showHTMLV2(htmlBody, {
+      const res = showHTMLV2(htmlBody, {
         windowTitle: 'Inconsistent note names',
         customId: 'inconsistent-names',
+        savedFilename: '../../jgclark.NoteHelpers/inconsistent-names.html',
+        shouldFocus: true
       })
     }
   } catch (error) {

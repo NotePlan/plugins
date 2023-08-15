@@ -2,15 +2,16 @@
 //-----------------------------------------------------------------------------
 // Functions to identify and fix where note names and their filenames are inconsistent.
 // Leo Melo, readied for the plugin by Jonathan Clark
-// Last updated 16.7.2023 for v0.18.0 by @jgclark
+// Last updated 15.8.2023 for v0.18.1 by @jgclark
 //-----------------------------------------------------------------------------
 // TODO:
 // - add a 'foldersToIgnore' option.
-import { chooseFolder, showMessage, showMessageYesNoCancel } from '../../../../helpers/userInput'
+
 import pluginJson from '../../../plugin.json'
 import { findInconsistentNames } from '../../helpers/findInconsistentNames'
-import { renameNote } from '../../helpers/renameNote'
+import { renameNoteToTitle } from '../../helpers/renameNotes'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { chooseFolder, showMessage, showMessageYesNoCancel } from '@helpers/userInput'
 
 /**
  * Renames all project notes with inconsistent names (i.e. where the note title and filename are different).
@@ -53,7 +54,7 @@ export async function renameInconsistentNames(): Promise<void> {
     const shouldPromptBeforeRenaming = response === 'Yes'
 
     for (const note of inconsistentNames) {
-      await renameNote(note, shouldPromptBeforeRenaming)
+      await renameNoteToTitle(note, shouldPromptBeforeRenaming)
     }
   } catch (error) {
     logError(pluginJson, `renameInconsistentNames() error: ${error.message}`)

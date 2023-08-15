@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "0.18.0",
-  "plugin.lastUpdateInfo": "0.18.0: 3 new commands about file naming\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.",
+  "plugin.version": "0.18.1",
+  "plugin.lastUpdateInfo": "0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: 3 new commands about file naming\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -81,14 +81,6 @@
       ],
       "description": "Jump to the '## Done' section. (Currently only works in main window)",
       "jsFunction": "jumpToDone"
-    },
-    {
-      "name": "list notes with inconsistent filenames",
-      "alias": [
-        "listInconsistentNames"
-      ],
-      "description": "Lists the names of notes whose filenames are inconsistent with their titles.",
-      "jsFunction": "listInconsistentNames"
     },
     {
       "name": "move note",
@@ -220,6 +212,9 @@
       "required": false
     },
     {
+      "type": "separator"
+    },
+    {
       "type": "heading",
       "title": "'indexFolders' command settings"
     },
@@ -252,7 +247,6 @@
     {
       "key": "includeSubfolders",
       "title": "Include Subfolders when making an index?",
-      "description": "",
       "type": "bool",
       "default": true,
       "required": true

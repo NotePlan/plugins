@@ -1,12 +1,11 @@
 // @flow
 
-import { logDebug, logWarn } from '../../../helpers/dev'
-import { showMessage, showMessageYesNo } from '../../../helpers/userInput'
-
 import pluginJson from '../../plugin.json'
 import { newNotePath } from './newNotePath'
+import { logDebug, logWarn } from '@helpers/dev'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
-export async function renameNote(note: Note, shouldPromptBeforeRenaming: boolean = true): Promise<void> {
+export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: boolean = true): Promise<void> {
   if (note == null || note.paragraphs.length < 1) {
     // No note open, so don't do anything.
     logDebug(pluginJson, 'No note open, or no content. Stopping.')
@@ -24,35 +23,35 @@ export async function renameNote(note: Note, shouldPromptBeforeRenaming: boolean
 
   if (newPath === '') {
     // No title found, so don't do anything.
-    logWarn(pluginJson, 'rename(): No title found. Stopping.')
+    logWarn(pluginJson, 'renameNoteToTitle(): No title found. Stopping.')
     return
   }
 
   if (currentFullPath === newPath) {
     // No need to rename
-    logDebug(pluginJson, 'rename(): Current path is the same as the new path. Stopping.')
+    logDebug(pluginJson, 'renameNoteToTitle(): Current path is the same as the new path. Stopping.')
     await showMessage('The note name is already consistent with its filename.')
     return
   }
 
   if (!shouldPromptBeforeRenaming) {
     const newFilename = note.rename(newPath)
-    logDebug(pluginJson, `rename(): ${currentFullPath} -> ${newFilename}`)
+    logDebug(pluginJson, `renameNoteToTitle(): ${currentFullPath} -> ${newFilename}`)
     return
   }
 
   const promptResponse = await showMessageYesNo(`
   Would you like to rename the note ${title} to match its filename?
-  
+
   Current path: ${currentFullPath}
   New path: ${newPath}
   `)
 
   if (promptResponse === 'Yes') {
     const newFilename = note.rename(newPath)
-    logDebug(pluginJson, `rename(): ${currentFullPath} -> ${newFilename}`)
+    logDebug(pluginJson, `renameNoteToTitle(): ${currentFullPath} -> ${newFilename}`)
     await showMessage(`Renamed note ${title} to ${newFilename}.`)
   } else {
-    logDebug(pluginJson, 'rename(): User chose not to rename.')
+    logDebug(pluginJson, 'renameNoteToTitle(): User chose not to rename.')
   }
 }

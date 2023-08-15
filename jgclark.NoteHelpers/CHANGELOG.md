@@ -2,13 +2,18 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
+## [0.18.1] - 2023-08-15
+- New commands by @Leo:
+  - "/list inconsistent note filenames": lists the names of notes whose filenames are inconsistent with their titles
+  - "/rename filename to title": renames the current filename to the title of the note
+- when the command bar shows list of notes to choose, it now includes Template files again.
 
-## [0.18.0] - 2023-07-???
-### Added
-New commands by @Leo:
-- "/list inconsistent note filenames": lists the names of notes whose filenames are inconsistent with their titles.
-- "/rename filename to title": renames the current filename to the title of the note.
-- "/rename inconsistent note filenames": renames the files of notes whose filenames are inconsistent with their titles.
+## [0.18.0] - 2023-08-13
+- new command **Show This Month** (alias /stm)
+- new command **Show This Quarter** (alias /stq)
+- new command **Show This Year** (alias /sty) (requested by @danieldanilov)
+- new command **update all indexes** that updates all the existing folder index notes
+- added more decoration to most-used calendar dates, when showing them in lists of notes (e.g. in "jump to note's heading" and "open note new window").
 
 ## [0.17.3] - 2023-07-01
 - added new setting 'Title to use for index notes' for "/index folders" command (requested by @dwertheimer)

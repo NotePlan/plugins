@@ -3,6 +3,7 @@
 // Paragraph and block-level helpers functions
 //-----------------------------------------------------------------------------
 
+import { getDateStringFromCalendarFilename } from './dateTime'
 import { clo, logDebug, logError, logWarn } from './dev'
 import {
   RE_SIMPLE_URI_MATCH,
@@ -95,10 +96,10 @@ export function rangeToString(r: TRange): string {
  */
 export function displayTitle(n: ?CoreNoteFields): string {
   return !n
-    ? 'error'
-    : n.type === 'Calendar' && ((n: $FlowFixMe): TNote).date != null
-      ? n.filename.split('.')[0] // without file extension
-      : n.title ?? ''
+    ? '(error)'
+    : n.type === 'Calendar'
+      ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
+      : n.title ?? '(error)'
 }
 
 /**

@@ -1,6 +1,6 @@
 // @flow
 
-import { renameNote } from '../../helpers/renameNote'
+import { renameNoteToTitle } from '../../helpers/renameNotes'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 
 /**
@@ -12,7 +12,7 @@ export function titleToFilename(): void {
     const { note } = Editor
 
     if (note) {
-      renameNote(note)
+      renameNoteToTitle(note)
     }
   } catch (error) {
     logError(error)

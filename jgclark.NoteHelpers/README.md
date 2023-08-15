@@ -18,9 +18,13 @@ This plugin provides commands to do things with notes that aren't yet provided i
 - **open url from a note**: asks for a note, and then presents a list of URLs found in that note. The selected one is then opened in your default browser. (There's a setting to ignore URLs in closed tasks.)
 - **rename note filename**: renames the currently open note. Note: this changes the underlying _filename_ not the visible _title_.
 - **reset caches**: this simply runs the command of that name in the NotePlan Help menu.
-- **list inconsistent note filenames**: lists the names of notes whose filenames are inconsistent with their titles.
-- **rename filename to title**: renames the current filename to the title of the note.
-- **rename inconsistent note filenames**: renames the files of notes whose filenames are inconsistent with their titles.
+- **Show This Month** (alias /stm)
+- **Show This Quarter** (alias /stq)
+- **Show This Year** (alias /sty)
+- **update all indexes**: updates all the existing folder index notes
+- **list inconsistent note filenames**: lists the names of notes whose filenames are inconsistent with their titles
+- **rename filename to title**: renames the current filename to the title of the note
+- **rename inconsistent note filenames**: renames the files of notes whose filenames are inconsistent with their titles
 
 **Tip**: some of these are even more helpful if you assign a keyboard shortcut to them, using macOS's Keyboard > Shortcuts > App Shortcuts system. For example I have mapped ⇧⌘H to `/jump to heading`.
 
@@ -37,8 +41,6 @@ Notes:
 - The matching of section headings in /qalh and /qath is done as an exact match, or (from v0.12) just the first part of it. This means it's possible to have a section such as `## Journal for 3.4.22` that changes every day, but still refer to it by the unchanging string `Journal`.
 - <!--from NotePlan v3.6.1 and plugin v0.12.0 -->it's possible to send one or more empty arguments, and that will cause the missing argument(s) be requested from the user, as it it were run interactively.
 
-<!--??? hopefully in time /qad adds yesterday, today, tomorrow terms -->
-<!--??? hopefully in time /qaw adds thisweek, nextweek terms -->
 | Command | x-callback start | arg0 | arg1 |
 |-----|-------------|-----|-----|
 | index folders | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=index%20folders&` | folder name | other args as a `key=value;key2=value` string. Possible keys are displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`),  dateDisplayType (`none` (default) or `timeSince`, `updateDate`), includeSubfolders (`true` or `false`) |

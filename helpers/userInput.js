@@ -5,7 +5,11 @@
 import json5 from 'json5'
 import { RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { clo, logDebug, logError, logWarn, JSP } from './dev'
-import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
+// import {
+  // allNotesSortedByChanged,
+  // calendarNotesSortedByChanged, projectNotesSortedByChanged
+// } from './note'
+import { displayTitle, findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
 async function parseJSON5(contents: string): Promise<?{ [string]: ?mixed }> {
@@ -582,7 +586,7 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
 
 /**
  * Choose a particular note from a CommandBar list of notes
- * @author @dwertheimer
+ * @author @dwertheimer extended by @jgclark
  * @param {boolean} includeProjectNotes
  * @param {boolean} includeCalendarNotes
  * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
@@ -606,7 +610,7 @@ export async function chooseNote(
   if (includeCalendarNotes) {
     noteList = noteList.concat(calendarNotes)
   }
-  let noteListFiltered = noteList.filter((note) => {
+  const noteListFiltered = noteList.filter((note) => {
     // filter out notes that are in folders to ignore
     let isInIgnoredFolder = false
     foldersToIgnore.forEach((folder) => {
@@ -617,13 +621,15 @@ export async function chooseNote(
     isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
     return !isInIgnoredFolder
   })
-  let opts = noteListFiltered.map((note) => {
-    return note.title && note.title !== '' ? note.title : note.filename
+  const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const opts = sortedNoteListFiltered.map((note) => {
+    return displayTitle(note)
   })
-  if (currentNoteFirst) {
-    noteListFiltered.unshift(Editor.note)
-    opts.unshift(`[Current note: "${Editor.title || ''}"]`)
+  const { note } = Editor
+  if (currentNoteFirst && note) {
+    sortedNoteListFiltered.unshift(note)
+    opts.unshift(`[Current note: "${displayTitle(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
-  return noteListFiltered[index] ?? null
+  return sortedNoteListFiltered[index] ?? null
 }
