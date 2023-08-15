@@ -10,7 +10,7 @@ import { replaceContentUnderHeading } from '@helpers/NPParagraph'
 import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { getOrMakeNote, replaceSection } from '@helpers/note'
-import { projectNotesFromFilteredFolders } from '@helpers/NPnote'
+import { projectNotesFromFilteredFolders } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import {
   chooseFolder,

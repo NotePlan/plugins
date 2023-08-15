@@ -162,6 +162,7 @@ export function getElementsFromTask(content: string, reSearch: RegExp): Array<st
 
 /*
  * Get numeric priority level based on !!! or (B)
+ * TODO: Extend to add 'working-on' support (W)
  * @author @dwertheimer
  * @param {SortableParagraphSubset} item
  * @returns {number} priority from 3, 2, 1, -1 (default)
@@ -180,6 +181,7 @@ export function getNumericPriority(item: SortableParagraphSubset): number {
 
 /*
  * Get numeric priority level based on !!! or (B)
+ * TODO: Extend to add 'working-on' support (W)
  * @author @jgclark wrapping @dwertheimer's work above
  * @param {TParagraph} input
  * @returns {number} priority from 3, 2, 1, -1 (default)

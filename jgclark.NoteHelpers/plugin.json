@@ -8,7 +8,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
   "plugin.version": "0.18.1",
-  "plugin.lastUpdateInfo": "0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: 3 new commands about file naming\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.",
+  "plugin.lastUpdateInfo": "0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: Add '/Show This Month/Quarter/Year'  and '/update all indexes' commands\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
@@ -110,7 +110,7 @@
       "name": "open note new window",
       "alias": [
         "onw",
-        "open",
+        "onnw",
         "window"
       ],
       "description": "Open a user-selected note in a new window.",
@@ -120,7 +120,7 @@
       "name": "open note new split",
       "alias": [
         "ons",
-        "open",
+        "onns",
         "window",
         "split"
       ],
@@ -188,6 +188,42 @@
       ],
       "description": "Renames the files of notes whose filenames are inconsistent with their titles.",
       "jsFunction": "renameInconsistentNames"
+    },
+    {
+      "name": "Show This Month",
+      "alias": [
+        "stm",
+        "month"
+      ],
+      "description": "Open the current Month note",
+      "jsFunction": "showMonth"
+    },
+    {
+      "name": "Show This Quarter",
+      "alias": [
+        "stq",
+        "quarter"
+      ],
+      "description": "Open the current Quarter note",
+      "jsFunction": "showQuarter"
+    },
+    {
+      "name": "Show This Year",
+      "alias": [
+        "sty",
+        "year"
+      ],
+      "description": "Open the current Year note",
+      "jsFunction": "showYear"
+    },
+    {
+      "name": "update all indexes",
+      "alias": [
+        "uai",
+        "index"
+      ],
+      "description": "Update all folder index notes",
+      "jsFunction": "updateAllIndexes"
     },
     {
       "name": "NoteHelpers: update plugin settings",

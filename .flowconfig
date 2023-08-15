@@ -5,7 +5,10 @@
 
 # This particular sub-folder should be ignored because it includes malformed JSON
 <PROJECT_ROOT>/node_modules/resolve/test/.*
-.*/.history/.*
+<PROJECT_ROOT>/flow-typed/**/*.*
+<PROJECT_ROOT>/flow-typed/Noteplan.js
+<PROJECT_ROOT>/private/**/*.*
+<PROJECT_ROOT>/**/.history/.*
 
 [include]
 
@@ -19,8 +22,9 @@ emoji=true
 exact_by_default=true
 experimental.const_params=true
 module.use_strict=true
-suppress_type=$FlowFixMe
-suppress_type=$FlowTODO
+suppress_type=$FlowIgnore
+# suppress_type=$FlowFixMe
+# suppress_type=$FlowTODO
 module.name_mapper='^@plugins' ->'<PROJECT_ROOT>'
 module.name_mapper='^@helpers' ->'<PROJECT_ROOT>/helpers'
 module.name_mapper='^@mocks' ->'<PROJECT_ROOT>/__mocks__'

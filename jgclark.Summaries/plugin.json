@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.19.1",
-  "plugin.lastUpdateInfo": "0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.\n0.18.0: offers full set of summary types in /periodStats as well as /progressUpdate. Bug fixes.\n0.17.3: fix edge case of malformed @mentions.\n0.17.2: fix edge cases in /periodStats\n0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.\n0.17.0 Will write /periodStats summaries to the new monthly/quarterly/yearly notes available from NP 3.7.2.",
+  "plugin.version": "0.19.3",
+  "plugin.lastUpdateInfo": "0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.\n0.18.0: offers full set of summary types in /periodStats as well as /progressUpdate. Bug fixes.\n0.17.3: fix edge case of malformed @mentions.\n0.17.2: fix edge cases in /periodStats\n0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -64,7 +64,7 @@
         "count"
       ],
       "description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a file",
-      "jsFunction": "weeklyStats2"
+      "jsFunction": "weeklyStats"
     },
     {
       "hidden": false,
@@ -385,15 +385,15 @@
     {
       "key": "weeklyStatsDuration",
       "title": "Chart Duration (in weeks)",
-      "description": "Number of weeks to look back when generating charts (including heatmaps), not including sparklines. If set to 0, the plugin will generate a sensible period between 6 months and 1 year.",
+      "description": "Number of completed weeks to look back when generating stats (including heatmaps), not including sparklines.\nIf set to 0, the plugin will generate a sensible period between 6 months and 1 year.",
       "type": "number",
-      "default": 26,
+      "default": 0,
       "required": true
     },
     {
       "key": "weeklyStatsItems",
       "title": "Items to Chart",
-      "description": "List of @mentions or #hashtags to chart.\nNote: they will share the same scaling on the Y-axis.",
+      "description": "List of @mentions or #hashtags to generate stats ready to chart.",
       "type": "[string]",
       "default": [],
       "required": false

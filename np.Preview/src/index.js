@@ -29,6 +29,10 @@ export {
 export {
   updatePreview
 } from './previewTriggers'
+export {
+  testCheckboxes,
+  toggle
+} from './testCheckboxes'
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'

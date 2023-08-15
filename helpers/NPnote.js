@@ -69,31 +69,6 @@ export function getNoteFilenameFromTitle(titleIn: string): string | null {
 }
 
 /**
- * Return array of all project notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
- * @author @jgclark
- * @param {Array<string>} foldersToExclude
- * @param {boolean} excludeSpecialFolders
- * @returns {Array<TNote>} wanted notes
- */
-export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
-  // Get list of wanted folders
-  const filteredFolders = getFilteredFolderList(foldersToExclude, excludeSpecialFolders)
-
-  // Iterate over all project notes and keep the notes in the wanted folders ...
-  const allProjectNotes = DataStore.projectNotes
-  const projectNotesToInclude = []
-  for (const pn of allProjectNotes) {
-    const thisFolder = getFolderFromFilename(pn.filename)
-    if (filteredFolders.includes(thisFolder)) {
-      projectNotesToInclude.push(pn)
-    } else {
-      // logDebug(pluginJson, `  excluded note '${pn.filename}'`)
-    }
-  }
-  return projectNotesToInclude
-}
-
-/**
  * Convert the note to using frontmatter Syntax
  * If optional default text is given, this is added to the frontmatter.
  * @author @jgclark

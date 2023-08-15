@@ -9,7 +9,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 23.6.2023 for v0.12.0, @jgclark
+// Last updated 22.7.2023 for v0.12.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -263,7 +263,8 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
  */
 export async function renderProjectLists(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
-    logDebug('renderProjectLists', `Started with displayFinished? ${String(config.displayFinished)}`)
+    clo(config, 'config at start of renderProjectLists:')
+    logDebug('renderProjectLists', `Started with displayFinished? ${String(config.displayFinished ?? '(error)')}`)
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -273,7 +274,7 @@ export async function renderProjectLists(config: any, shouldOpen: boolean = true
       await renderProjectListsHTML(config, shouldOpen)
     }
   } catch (error) {
-    logError('renderProjectLists', error.message)
+    clo(config, 'config at start of renderProjectLists:')
   }
 }
 
@@ -339,7 +340,7 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
     }
 
     const funcTimer = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-    logDebug('renderProjectListsHTML', `starting for ${config.noteTypeTags.toString()} tags`)
+    logDebug('renderProjectListsHTML', `starting for ${String(config.noteTypeTags)} tags`)
 
     // Test to see if we have the font resources we want
     if (!(await checkForWantedResources(pluginID))) {
@@ -558,7 +559,7 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
  */
 export async function renderProjectListsMarkdown(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
-    logDebug('renderProjectListsMarkdown', `Starting for ${config.noteTypeTags.toString()} tags`)
+    logDebug('renderProjectListsMarkdown', `Starting for ${String(config.noteTypeTags)} tags`)
     const funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // Set up x-callback URLs for various commands
@@ -700,7 +701,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // Try to make the full-review-list
-      // await makeFullReviewList(true)
+      // await makeFullReviewList(config, true)
       // reviewListContents = DataStore.loadData(fullReviewListFilename, true)
       // if (!reviewListContents) {
         // If still no luck, throw an error
@@ -790,7 +791,7 @@ export function logFullReviewList(): void {
 export async function makeFullReviewList(config: any, runInForeground: boolean = false): Promise<void> {
   try {
     // const config = await getReviewSettings() // get instead from passed config
-    logDebug('makeFullReviewList', `Starting for ${config.noteTypeTags.toString()} tags:`)
+    logDebug('makeFullReviewList', `Starting for ${String(config.noteTypeTags)} tags:`)
     let startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // Get list of folders, excluding @specials and our foldersToIgnore setting
@@ -871,6 +872,7 @@ export async function makeFullReviewList(config: any, runInForeground: boolean =
 
 /**
  * Take a set of machineSummaryLines, filter if required by 'displayFinished' setting, sort them according to config, and then add frontmatter
+ * TODO: this isn't a very sensible way of operating: in/out of TSV.
  * @param {Array<string>} linesIn
  * @param {any} config
  * @returns {Array<string>} outputArray
@@ -942,12 +944,12 @@ function filterAndSortReviewList(linesIn: Array<string>, config: any): Array<str
 
     // turn each lineArrayObj back to a TSV string
     for (let lineObj of sortedlineArrayObjs) {
-      outputArray.push(lineObj.reviewDays + '\t' + lineObj.dueDays + '\t' + lineObj.title + '\t' + lineObj.folder + '\t' + lineObj.tags)
+      outputArray.push(lineObj.reviewDays + '\t' + lineObj.dueDays + '\t' + lineObj.title + '\t' + lineObj.folder + '\t' + lineObj.tags + '\t' + lineObj.state)
     }
 
     // Write some metadata to start
     outputArray.unshift('---')
-    outputArray.unshift(`key: reviewDays\tdueDays\ttitle\tfolder\ttags`)
+    outputArray.unshift(`key: reviewDays\tdueDays\ttitle\tfolder\ttags\tstate`)
     outputArray.unshift(`date: ${moment().format()}`)
     outputArray.unshift('title: full-review-list')
     outputArray.unshift('---')
@@ -973,7 +975,7 @@ export async function startReviews(): Promise<void> {
     const config = await getReviewSettings()
 
     // Make/update list of projects ready for review
-    await makeFullReviewList(true)
+    await makeFullReviewList(config, true)
 
     // Now offer first review
     const noteToReview = await getNextNoteToReview()
@@ -1169,7 +1171,7 @@ export async function updateReviewListAfterChange(
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // Try to make the full-review-list
-      await makeFullReviewList(true)
+      await makeFullReviewList(configIn, true)
       reviewListContents = DataStore.loadData(fullReviewListFilename, true)
       if (!reviewListContents) {
         // If still no luck, throw an error
@@ -1203,23 +1205,21 @@ export async function updateReviewListAfterChange(
     // update (or delete) the note's summary in the full-review-list
     if (isNaN(thisLineNum)) {
       logWarn('updateReviewListAfterChange', `- Can't find '${reviewedTitle}' to update in full-review-list, so will regenerate whole list.`)
-      await makeFullReviewList(false)
+      await makeFullReviewList(configIn, false)
       return
     } else {
       if (simplyDelete) {
         // delete line 'thisLineNum'
         reviewLines.splice(thisLineNum, 1)
-        const outputLines = filterAndSortReviewList(reviewLines, configIn)
-        DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
         logDebug('updateReviewListAfterChange', `- Deleted '${reviewedTitle}' from line number ${thisLineNum}`)
       } else {
         // update this line in the full-review-list
         reviewLines[thisLineNum] = updatedMachineSummaryLine
-        // re-form the file
-        const outputLines = filterAndSortReviewList(reviewLines, configIn)
-        DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
         logDebug('updateReviewListAfterChange', `- Updated '${reviewedTitle}'  line number ${thisLineNum}`)
       }
+      // re-form the file
+      const outputLines = filterAndSortReviewList(reviewLines, configIn)
+      DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
     }
 
   } catch (error) {
@@ -1238,12 +1238,13 @@ export async function updateReviewListAfterChange(
 async function getNextNoteToReview(): Promise<?TNote> {
   try {
     logDebug('getNextNoteToReview', `Started`)
+    const config = await getReviewSettings()
 
     // Get contents of full-review-list
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // Try to make the full-review-list
-      await makeFullReviewList(true)
+      await makeFullReviewList(config, true)
       reviewListContents = DataStore.loadData(fullReviewListFilename, true)
       if (!reviewListContents) {
         // If still no luck, throw an error

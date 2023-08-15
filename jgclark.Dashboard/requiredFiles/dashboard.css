@@ -1,4 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
+/* Last updated 22.7.2023 for v0.6.0 by @jgclark */
 
 table { font-size: 1.0rem; /* used to make text a little smaller at 0.9rem */
 	border-collapse: collapse; /* always! */
@@ -41,12 +42,16 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	font-weight: 400;
 	text-align: center;
 }
+.review {
+	color: var(--tint-color);
+}
 .sectionItem { /* reduce vertical spacing and line below */
 	font-size: 1.0rem;
 	font-weight: 400;
-	padding: 2px 4px;
+	padding: 1px 4px;
 	border-bottom: 0px;
 	break-inside: avoid;
+	vertical-align: baseline;
 }
 .lowerPriority { /* show italic */
 	font-weight: 300;
@@ -58,21 +63,26 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 .pad-right {	/* add space after icon */
 	padding-right: 0.4em;
 }
-.space-under {	/* add space after icon */
-	padding-bottom: 0.1em;
+.space-under {	/* add space under item */
+	padding-bottom: 0.3em;
 }
-.scheduledDate { color: var(--tint-color); }
-a, a:visited, a:active { /* all links turn off text color and underlining by default */
+.scheduledDate {
+	color: var(--tint-color);
+}
+div.content, div.content:visited, div.content:active { /* all links turn off text color and underlining by default */
 	color: inherit;
 	text-decoration: none;
 	cursor: pointer;
 }
-a:hover {
+div.content:hover {
 	text-decoration: underline;
-	text-decoration-color: var(--tint-color); }
-.externalLink a, a:hover {
+	/* text-decoration-color: var(--tint-color); */
+}
+.externalLink {
 	text-decoration: underline;
-	cursor: pointer; }
+	cursor: pointer;
+	color: var(--tint-color);
+}
 .event-link {
 	font-weight: 400;
 	border-color: var(--bg-alt-color);
@@ -98,7 +108,7 @@ a:hover {
 .fadeOutAndHide { /* Class to fade out an item, from https://stackoverflow.com/a/20910008 */
 	visibility: hidden;
 	opacity: 0;
-	transition: visibility 0s 2s, opacity 2s linear;
+	transition: visibility 0s 1.5s, opacity 1.5s linear;
 }
 /* Some headings specified from measuring the colour of NP sidebar elements */
 .sidebarDaily { font-size: 1.0rem; color: #d0703c;  }
@@ -106,36 +116,39 @@ a:hover {
 .sidebarMonthly { font-size: 1.0rem; color: #f5528b; }
 .sidebarQuarterly { font-size: 1.0rem; color: #e08008; }
 .sidebarYearly { font-size: 1.0rem; color: #efba13; }
+
 #error {
 	background-color: red;
-	padding-left: 10px; }
+	padding-left: 10px;
+}
 
 /* For fancy toggle as checkbox */
 /* from [Pure CSS3 iOS switch checkbox. A switch allows the user to quickly… | by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)
  */
 input.apple-switch {
   position: relative;
-	margin-top: 1px;
   -webkit-appearance: none;
   outline: none;
   width: 2.0rem; /* 50px; */
   height: 1.1rem; /* 30px; */
-  background-color: #fff;
-  border: 1px solid #D9DADC;
+  background-color: #EEE;
+  border: 1px solid #DDD;
   border-radius: 2.0rem; /* 50px; */
-  box-shadow: inset -0.8rem 0 0 0 #fff; /* -20px */
+  /* box-shadow: inset -0.8rem 0 0 0 #fff; /* -20px */
+	margin-top: 0px;
+	margin-right: 4px;
 }
 
 input.apple-switch:after {
   content: "";
   position: absolute;
-  top: 1px;
+  top: 0px;
   left: 1px;
-  background: transparent;
+  background: #FFF;
   width: 1.0rem; /* 26px; */
   height: 1.0rem; /* 26px; */
   border-radius: 50%;
-  box-shadow: 2px 4px 6px rgba(0,0,0,0.2);
+  box-shadow: 1px 0px 1px rgba(0,0,0,0.3);
 	margin-right: 1.0rem;
 }
 
@@ -150,4 +163,73 @@ input.apple-switch:checked:after {
 }
 input, label {
 	vertical-align: top;
+}
+
+.mainButton { /* main UI buttons */
+	/* background-color: #FFF; /* should be inherited */
+	font-size: 1.0rem;
+	font-weight: 500;
+	/* border-radius: 4px; */
+	border: 1px var(--tint-color);
+	box-shadow: 0 1px 1px 0px #CBCBCB;
+	padding: 2px 5px 2px 5px;
+	margin: 2px 4px;
+}
+.mainButton:hover {
+	background-color: #EEE;
+	transition: 0.2s;
+}
+
+.moveButton, .changeDateButton { /* compact 'buttons' for hoverExtraControls */
+	font-size: 0.76rem;
+	font-weight: 400;
+	border-radius: 4px;
+	border: 1px solid var(--tint-color);
+	box-shadow: 0px 0px 1px 0px #CBCBCB;
+	padding: 0px 3px 0px 3px;
+	margin: 1px 1px;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+.tooltip .hoverExtraControls {
+  visibility: hidden;
+  position: absolute; /* relative disrupts flow in different ways */
+  z-index: 1;
+	display: flex;
+  opacity: 0;
+	left: 3rem;
+  /* width: 9rem; */ /* browser calculates better than I can */
+  /* height: 1.2rem; */ /* browser calculates better than I can */
+  line-height: 1.2rem;
+  padding: 2px;
+  /* font-size: 14px; */
+  text-align: left;
+  /* color: rgb(113, 157, 171); */
+  background: #88888820; /* hopefully OK for light and dark */
+  border: 2px solid #88888820;
+  border-radius: 6px;
+  /* text-shadow: rgba(0, 0, 0, 0.1) 1px 1px 1px; */
+  /* box-shadow: rgba(0, 0, 0, 0.1) 1px 1px 2px 0px; */
+  transition: opacity 200ms 750ms; /* after 0.75s fade in quite quickly */
+}
+
+.tooltip .hoverExtraControls::after {
+  content: "";
+  position: absolute;
+  /* width: 0;
+  height: 0; */
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  /* border-color: #88888820 transparent transparent transparent; /* downwards arrow */
+  border-color: transparent transparent #88888820 transparent; /* upwards arrow */
+  top: -50%;
+  left: 20%;
+}
+.tooltip:hover .hoverExtraControls {
+  visibility: visible;
+  opacity: 1;
 }

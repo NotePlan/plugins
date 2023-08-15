@@ -3,7 +3,7 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 6.11.2022 for v0.15.1+, @jgclark
+// Last updated 7.8.2023 for v0.19.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,12 +14,14 @@ import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
+  TMOccurrences,
   type SummariesConfig
 } from './summaryHelpers'
 import {
   calcWeekOffset,
   getDateObjFromDateString,
   getDateStringFromCalendarFilename,
+  getJSDateStartOfToday,
   getTodaysDateHyphenated,
   getWeek,
   hyphenatedDate,
@@ -27,20 +29,28 @@ import {
   RE_DONE_DATE_OPT_TIME,
   RE_DONE_DATE_OR_DATE_TIME_DATE_CAPTURE,
   // RE_DONE_DATE_TIME_CAPTURES,
+  todaysDateISOString, // const
   toISODateString,
   unhyphenatedDate,
-  weekStartEndDates,
+  isoWeekStartEndDates,
   withinDateRange,
 } from '@helpers/dateTime'
 import {
+  getNPWeekData,
   getUsersFirstDayOfWeekUTC,
+  type NotePlanWeekInfo,
+  localeDateStr,
+  pad,
   setMomentLocaleFromEnvironment,
 } from '@helpers/NPdateTime'
 import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { showHTML } from '@helpers/HTMLView'
+import {
+  // showHTML,
+  showHTMLV2
+} from '@helpers/HTMLView'
 import { clearNote, getOrMakeNote } from '@helpers/note'
-import { projectNotesFromFilteredFolders } from '@helpers/NPnote'
+import { projectNotesFromFilteredFolders } from '@helpers/note'
 import { chooseOption, getInput, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
@@ -64,6 +74,33 @@ export async function testGenStats(): Promise<void> {
 }
 
 /**
+ * Calculate first day at start of week 'numWeeksToGoBack' ago.
+ * Note: this uses the user's start-of-week setting.
+ * @param {number?} numWeeksToGoBack, or will default to 0
+ * @returns {string} YYYY-MM-DD
+ */
+function getFirstDateForWeeklyStats(numWeeksToGoBack?: number): [string, number] {
+  let numWeeks = numWeeksToGoBack ? numWeeksToGoBack : 0
+  if (numWeeksToGoBack === 0) {
+    const dayOfYear = moment().format('DDD')
+    if (dayOfYear > 182) {
+      numWeeks = Calendar.weekNumber(moment().toDate()) - 1
+    } else {
+      numWeeks = 23
+    }
+  }
+
+  let mom = moment().subtract(numWeeks, 'week')
+
+  // Now get the start of the week, using NP week information
+  const weekInfo = getNPWeekData(mom.toDate()) ?? {}
+  const fromDateStr = hyphenatedDateString(weekInfo.startDate)
+
+  logDebug('getFirstDateForWeeklyStats', `Will go back ${numWeeks} weeks, starting w/c ${fromDateStr}`)
+  return [fromDateStr, numWeeks]
+}
+
+/**
  * Create heatmap of task completion for last config.weeklyStatsDuration weeks (or if not specified, a sensible period between 6 and 12 months).
  * @author @jgclark
  */
@@ -71,22 +108,9 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
   const config = await getSummariesSettings()
 
   // Work out time interval to use
-  const toDateStr = moment().startOf('day').format('YYYY-MM-DD')
-  let fromDateStr = ''
-  if (config.weeklyStatsDuration !== null && config.weeklyStatsDuration > 0) {
-    // Look back the specified number of weeks
-    fromDateStr = moment().subtract(config.weeklyStatsDuration, 'week').format('YYYY-MM-DD')
-  }
-  else {
-    // If not specified, then up to 12 months ago ...
-    const dayOfYear = moment().format('DDD')
-    if (dayOfYear > 182) {
-      fromDateStr = moment().startOf('year').format('YYYY-MM-DD')
-    } else {
-      fromDateStr = moment().subtract(6, 'month').format('YYYY-MM-DD')
-    }
-  }
-  logDebug('generateHeatMap', `Generating heatmap for ${fromDateStr} to ${toDateStr} from c.WSD ${config.weeklyStatsDuration}...`)
+  const toDateStr = todaysDateISOString
+  let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration)
+  logDebug('generateHeatMap', `generateHeatMap: starting for ${String(numWeeks)} weeks (${fromDateStr} to ${toDateStr}) ...`)
 
   const statsMap = await generateTaskCompletionStats(config.foldersToExclude, 'day', fromDateStr) // to today
 
@@ -101,9 +125,8 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
     }
   }
 
-  // Set locale for momnet library
-  setMomentLocaleFromEnvironment()
-  const fromDateLocale = moment(fromDateStr, 'YYYY-MM-DD').format('L')
+  setMomentLocaleFromEnvironment() // not sure why this is needed as it is in the next function.
+  const fromDateLocale = localeDateStr(moment(fromDateStr, 'YYYY-MM-DD')) // uses moment's locale info
   await generateHeatMap(
     'NotePlan Task Completion Heatmap',
     `Task Completion Heatmap (${total.toLocaleString()} since ${fromDateLocale})`,
@@ -113,7 +136,8 @@ export async function showTaskCompletionHeatmap(): Promise<void> {
     'day',
     fromDateStr,
     toDateStr,
-    "task-completion-heatmap.html"
+    "task-completion-heatmap.html",
+    "task-completion-heatmap"
   )
 }
 
@@ -144,12 +168,13 @@ export async function generateHeatMap(
   intervalType: string,
   fromDateStr: string,
   toDateStr: string,
-  filenameToSave: string
+  filenameToSave: string,
+  windowID: string,
 ): Promise<void> {
   try {
     // const title = 'NotePlan Task Completion Heatmap'
     // const config = await getSummariesSettings()
-    let fromDateStr = ''
+    // let fromDateStr = ''
     logDebug('generateHeatMap', `Generating heatmap for ${fromDateStr} to ${toDateStr} with ${statsMap.size} statsMap elements...`)
 
     /**
@@ -165,9 +190,11 @@ export async function generateHeatMap(
       const value = item[1]
       // logDebug('', `- ${isoDate}: ${value}`)
       const mom = moment(isoDate, 'YYYY-MM-DD')
-      const weekNum = Number(mom.format('WW'))
+      // const weekNum = Number(mom.format('WW')) // moment week number
+      const weekInfo = getNPWeekData(mom.toDate()) ?? {}
+      const weekNum = weekInfo.weekNumber // NP week number
       // Get string for heatmap column title: week number, or year number if week 1
-      const weekTitle = (weekNum !== 1) ? mom.format('[W]WW') : mom.format('YYYY') // with this library the value needs to be identical all week
+      const weekTitle = (weekNum !== 1) ? 'W' + pad(weekNum) : mom.format('YYYY') // with this library the value needs to be identical all week
       const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
       let dataPointObj = { x: weekTitle, y: dayAbbrev, heat: value, isoDate: isoDate }
       if (!withinDateRange(isoDate, fromDateStr, toDateStr)) {
@@ -182,9 +209,11 @@ export async function generateHeatMap(
 
     const heatmapCSS = `html, body, #container {
     width: 100%;
-    height: 270px; //100%
+    height: 100%;
     margin: 0px;
     padding: 0px;
+    color: var(fg-main-color); /* doesn't do anything */
+    background-color: var(--bg-main-color); /* doesn't do anything */
   }
   `
     const preScript = `<script src="https://cdn.anychart.com/releases/8.7.1/js/anychart-core.min.js"></script>
@@ -235,19 +264,23 @@ export async function generateHeatMap(
     });
 </script>
 `
-    showHTML(windowTitle,
-      '',
-      body,
-      '', // generate CSS from theme
-      heatmapCSS,
-      false, // not modal
-      preScript,
-      '',
-      filenameToSave, // can be empty
-      600, 260
-    )
+    const winOpts = {
+      windowTitle: windowTitle,
+      width: 600,
+      height: 304,
+      generalCSSIn: '',
+      specificCSS: heatmapCSS,
+      preBodyScript: preScript,
+      postBodyScript: '',
+      customId: windowID,
+      savedFilename: filenameToSave,
+      makeModal: false,
+      reuseUsersWindowRect: true,
+      shouldFocus: true
+    }
+    const res = await showHTMLV2(body, winOpts)
 
-    logDebug('generateTaskCompletionStats', `Shown window '${chartTitle}'`)
+    logInfo('generateTaskCompletionStats', `Shown window '${chartTitle}'`)
 
   }
   catch (error) {
@@ -401,7 +434,7 @@ export async function generateTaskCompletionStats(foldersToExclude: Array<string
     const usersFirstDayOfWeek = getUsersFirstDayOfWeekUTC() // 0(Sun)-6(Sat); deals with undefined case
     logDebug('generateTaskCompletionStats', `- fromDateDayOfWeek = ${fromDateDayOfWeek}`)
     logDebug('generateTaskCompletionStats', `- usersFirstDayOfWeek = ${usersFirstDayOfWeek}`)
-    const numBlanksToAdd = (fromDateDayOfWeek - 1) // TODO: test other start-day-of-week options
+    const numBlanksToAdd = (fromDateDayOfWeek - 1) // Note: Haven't fully tested other start-day-of-week options
     logDebug('generateTaskCompletionStats', `- numBlanksToAdd = ${numBlanksToAdd}`)
     if (numBlanksToAdd > 0) {
       for (let i = numBlanksToAdd; i > 0; i--) {
@@ -475,7 +508,6 @@ function formatForGnuplotCSV(inArray: Array<string>): Array<string> {
   return outArray
 }
 
-
 /**
  * Transform CSV format into a simplified CSV ready for charting
  *
@@ -518,311 +550,85 @@ function formatForSimpleCSV(inArray: Array<string>): Array<string> {
 
 /**
  * Generate stats for the specified mentions and hashtags over a period of consecutive
- * weeks, and write as a CSV table, ready for charting by gnuplot.
+ * weeks, and write as a CSV table, ready for plotting (not gnuplot this time).
+ * CSV = term, startDateStr, count, total, average
  * Only the specifically 'included' hashtags or mentions are included, as given by those settings.
+ * V2 that uses gatherOccurrences()
  * @author @jgclark
  */
 export async function weeklyStats(): Promise<void> {
   try {
-    let config = await getSummariesSettings()
+    const daysInterval = 7 // in days
 
-    let period: number
-    let startWeek: number
-    let startYear: number
-    let endWeek: number
-    let endYear: number
-    const todaysDate = new Date()
-    const thisWeek = getWeek(todaysDate)
-    let thisYear = todaysDate.getFullYear()
-
-    // If preference for weekly stats duration is not given,
-    // ask user what time interval to do tag counts for
-    if (config.weeklyStatsDuration === null) {
-      period = await chooseOption < number > (
-        'Select which time period to cover',
-        [
-          {
-            label: 'This week so far',
-            value: 0,
-          },
-          {
-            label: 'Last Week to now',
-            value: 1,
-          },
-          {
-            label: 'Last Month',
-            value: 4,
-          },
-          {
-            label: 'Last 3 Months',
-            value: 13,
-          },
-          {
-            label: 'Last 6 Months',
-            value: 26,
-          },
-          {
-            label: 'Last 12 Months',
-            value: 52,
-          },
-          {
-            label: 'Other Interval',
-            value: NaN,
-          },
-        ],
-        52,
-    )
-    } else {
-      // but use pref if given
-      period = config.weeklyStatsDuration ?? 23 // should never need this fallback
-    }
-    endYear = thisYear
-    if (period === NaN) {
-      // Ask for more detailed week range, and calculate start/end dates
-      startYear = Number(await getInput('Choose starting year, e.g. 2021', 'OK'))
-      startWeek = Number(await getInput('Choose starting week number, 1-53', 'OK'))
-      endYear = Number(await getInput('Choose ending year, e.g. 2021', 'OK'))
-      endWeek = Number(await getInput('Choose ending week number, 1-53', 'OK'))
-      period = (endYear - startYear) * 52 + (endWeek - startWeek) // in weeks
-    } else {
-      // Calculate week range from answer, asking for date offset _before_ current week
-      const currentWeekNum = getWeek(todaysDate)
-      // First deal with edge case: after start of ordinal year but before first week starts
-      if (
-        currentWeekNum === 52 && // i.e. last week of the year AND
-        todaysDate.getMonth() == 0
-      ) {
-        // i.e. first month of the year (counting from 0)
-        thisYear -= 1
-      }
-      let answer = calcWeekOffset(thisWeek, thisYear, Number(-period))
-      startYear = answer.year
-      startWeek = answer.week
-      endYear = thisYear
-      endWeek = thisWeek
-    }
-    const periodString = `${startYear}W${startWeek} - ${endYear}W${endWeek}`
-    logInfo(pluginJson, `weeklyStats: calculating for ${periodString} (${period} weeks)`)
-
-    // Pop up UI wait dialog as this can be a long-running process
-    CommandBar.showLoading(true, `Calculating weekly stats over ${period} weeks`)
-    await CommandBar.onAsyncThread()
-
-    let hResultsArray = []
-    let mResultsArray = []
-    let hOccs = []
-    let mOccs = []
-
-    // For every week of interest calculate stats and add to the two output arrays
-    let w = startWeek
-    let y = startYear
-    let counter = 0
-    while (counter < period) {
-      // increment which week/year we're looking at, and get the actual dates to use
-      let answer = calcWeekOffset(w, y, +1)
-      w = answer.week
-      y = answer.year
-      counter++
-      logDebug(pluginJson, `${counter}: w ${w} y ${y}`)
-      const [weekStartDate, weekEndDate] = weekStartEndDates(w, y)
-
-      // Calc hashtags stats (returns two maps)
-      let weekResults = await calcHashtagStatsPeriod(unhyphenatedDate(weekStartDate), unhyphenatedDate(weekEndDate), config.includeHashtags, [])
-
-      const hCounts = weekResults?.[0]
-      const hSumTotals = weekResults?.[1]
-      if (hSumTotals == null || hCounts == null) {
-        logWarn(pluginJson, 'no hSumTotals / hCounts values')
-        continue
-      }
-
-      // First process more complex 'SumTotals', calculating appropriately
-      for (const [key, value] of hSumTotals) {
-        // .entries() implied
-        const hashtagString = key
-        const count = hCounts.get(key)
-        if (count != null) {
-          const total: string = value.toFixed(0)
-          const average: string = (value / count).toFixed(1)
-          hResultsArray.push(`${hashtagString},${hyphenatedDateString(weekStartDate)},${average},${count},${total}`)
-          hCounts.delete(key) // remove the entry from the next map, as not longer needed
-        }
-      }
-      // Then process simpler 'Counts'
-      for (const [key, value] of hCounts) {
-        // .entries() implied
-        const hashtagString = key
-        hResultsArray.push(`${hashtagString},${hyphenatedDateString(weekStartDate)},${value}`)
-      }
-
-      // ------------------------------------------------------------------
-      // Calc mentions stats (returns two maps)
-      weekResults = await calcMentionStatsPeriod(
-        unhyphenatedDate(weekStartDate),
-        unhyphenatedDate(weekEndDate),
-        // $FlowIgnore[invalid-tuple-arity]
-        config.includeMentions,
-        [],
-      )
-      const mCounts = weekResults?.[0]
-      const mSumTotals = weekResults?.[1]
-      if (mCounts == null || mSumTotals == null) {
-        continue
-      }
-      // First process more complex 'SumTotals', calculating appropriately
-      for (const [key, value] of mSumTotals) {
-        // .entries() implied
-        const mentionString = key
-        const count = mCounts.get(key)
-        if (count != null) {
-          const total = value.toFixed(0)
-          const average = (value / count).toFixed(1)
-          mResultsArray.push(`${mentionString},${hyphenatedDateString(weekStartDate)},${average},${count},${total}`)
-          mCounts.delete(key) // remove the entry from the next map, as not longer needed
-        }
-      }
-      // Then process simpler 'Counts'
-      for (const [key, value] of mCounts) {
-        const mentionString = key
-        mResultsArray.push(`${mentionString},${hyphenatedDateString(weekStartDate)},${value}`)
-      }
-
-      // Update UI wait dialog
-      CommandBar.showLoading(true, `Calculating weekly stats over ${period} weeks`, counter / period)
-    }
-    await CommandBar.onMainThread()
-    CommandBar.showLoading(false)
-
-    let hOutputArray: Array<string> = []
-    // If there are no Hashtags results, log warning, otherwise process ready for output
-    if (hResultsArray.length > 0) {
-      hResultsArray.sort()
-      // Reformat array to group into separate datasets (in the same file)
-      hOutputArray = formatForSimpleCSV(hResultsArray)
-    } else {
-      logInfo(pluginJson, `no Hashtags found in weekly summaries`)
-    }
-
-    let mOutputArray: Array<string> = []
-    // If there are no Mentions results, log warning, otherwise process ready for output
-    if (mResultsArray.length > 0) {
-      mResultsArray.sort()
-      // Reformat array to group into separate datasets (in the same file)
-      mOutputArray = formatForSimpleCSV(mResultsArray)
-    }
-    else {
-      logInfo(pluginJson, `no Mentions found in weekly summaries`)
-    }
-
-    // Get note to write out to
-    const thisTitle = `Weekly stats ${periodString}`
-    const noteTitle = 'weekly_stats'
-    const note = await getOrMakeNote(noteTitle, config.folderToStore)
-    if (note == null) {
-      logError(pluginJson, `Can't get new note`)
-      await showMessage('There was an error getting the new note ready to write')
-      return
-    }
-
-    // Unlike other Summary-type commands, just empty any previous note contents
-    clearNote(note)
-    const insertionLineIndex = 1
-    note.insertParagraph(mOutputArray.join('\n'), 1, 'text')
-  }
-  catch (err) {
-    logError(pluginJson, err.message)
-  }
-}
-
-/**
- * Generate stats for the specified mentions and hashtags over a period of consecutive
- * weeks, and write as a CSV table, ready for plotting (not gnuplot this time).
- * Only the specifically 'included' hashtags or mentions are included, as given by those settings.
- * @author @jgclark
- */
-export async function weeklyStats2(): Promise<void> {
-  try {
     let config = await getSummariesSettings()
 
     // Get number of weeks to look back over
-    let weeks = config.weeklyStatsDuration ?? 23 // should never need this fallback
-    // Calc range of dates this implies
-    const todayMom = moment()
-    // const endOfLastWeekMom = startOfThisWeekMom.subtract(1, 'days')
-    const toDateStr = todayMom.toISOString(true)
-    const toWeekStr = todayMom.format('YYYY-[W]WW')
-    let toWeek = todayMom.isoWeek()
-    let toYear = todayMom.year()
+    // const weeks = config.weeklyStatsDuration ?? 23 // should never need this fallback
 
-    // FIXME: decide whether to include current part-week or not (currently not it seems)
-    // FIXME: add separate setting for which ones to include
+    // Calculate week range from answer, asking for date offset _before_ current week.
+    // Note: This is horribly complicated given the mismatch between NP and moment, and translation from JS dates needs care re TZs.
+    // Note: toISODateString() isn't helpful as doesn't use local time. Instead use hyphenatedDateString().
+    const todaysDate = new Date()
+    let thisYear = todaysDate.getFullYear() // JS uses local time
+    const todayStartMom = moment().startOf('day')
 
-    const startOfThisWeekMom = todayMom.startOf('week')
-    const startOfPeriodMom = startOfThisWeekMom.subtract(weeks, 'weeks')
-    const fromDateStr = startOfPeriodMom.toISOString(true)
-    const fromWeekStr = startOfPeriodMom.format('YYYY-[W]WW')
-    let fromWeek = startOfPeriodMom.isoWeek()
-    let fromYear = startOfPeriodMom.year()
-    // const todaysDate = new Date()
-    // const thisWeek = getWeek(todaysDate)
-    // let thisYear = todaysDate.getFullYear()
+    // V2: use Moment for all calcs. Problem: different week defintions.
+    // V3: use NP's API for week calculations
+    // V4: use DW helper function 'getNPWeekData()'
+    let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration)
+    const firstWeekInfo = getNPWeekData(fromDateStr) ?? {}
+    logDebug('weeklyStats', `firstWeekInfo = ${JSON.stringify(firstWeekInfo)}`)
+    const lastWeekInfo = getNPWeekData(todaysDateISOString) ?? {}
+    const toDateStr = hyphenatedDateString(lastWeekInfo.endDate)
+    // let numWeeks = lastWeekInfo.weekNumber - firstWeekInfo.weekNumber
+    // if (numWeeks < 0) numWeeks += 52
 
-
-    // Calculate week range from answer, asking for date offset _before_ current week
-    // endYear = thisYear
-    // const currentWeekNum = getWeek(todaysDate)
-    // First deal with edge case: after start of ordinal year but before first week starts
-    // if (
-    //   currentWeekNum === 52 && // i.e. last week of the year AND
-    //   todaysDate.getMonth() == 0
-    // ) {
-    //   // i.e. first month of the year (counting from 0)
-    //   thisYear -= 1
-    // }
-    // let answer = calcWeekOffset(thisWeek, thisYear, Number(-period))
-    // fromYear = answer.year
-    // fromWeek = answer.week
-    // toYear = thisYear
-    // toWeek = thisWeek
-
-    const periodString = `${fromYear}W${fromWeek} - ${toYear}W${toWeek}`
-    logDebug(pluginJson, `weeklyStats: calculating for ${periodString} (${weeks} weeks)`)
-    logDebug(pluginJson, `${fromDateStr} - ${toDateStr}`)
+    // Prepare config for gatherOccurrences() call
+    const occConfig = {
+      GOYesNo: [],
+      GOHashtagsCount: [],
+      GOHashtagsAverage: [],
+      GOHashtagsTotal: config.weeklyStatsItems.filter((a) => a.startsWith('#')),
+      GOHashtagsExclude: [], // no exclusions used here
+      GOMentionsCount: [],
+      GOMentionsAverage: [],
+      GOMentionsTotal: config.weeklyStatsItems.filter((a) => a.startsWith('@')),
+      GOMentionsExclude: [], // no exclusions used here
+      GOHashtagsTotal: [],
+    }
 
     // Pop up UI wait dialog as this can be a long-running process
-    CommandBar.showLoading(true, `Preparing weekly stats over ${weeks} weeks`)
+    CommandBar.showLoading(true, `Preparing weekly stats over ${numWeeks} weeks`)
     await CommandBar.onAsyncThread()
 
     // Gather all the appropriate occurrences of the wanted terms
     CommandBar.showLoading(true, `Gathering relevant #hashtags and @mentions`)
-    // FIXME: need to specify three different items here to pick out total/count/average.
-    let occs = await gatherOccurrences(
+    let occs: Array<TMOccurrences> = await gatherOccurrences(
       'period',
       fromDateStr, toDateStr, // YYYY-MM-DD
-      [], [],
-      [], [],
-      [], config.weeklyStatsItems, [], [])
+      occConfig)
 
-    // For every week of interest calculate stats and add to the two output arrays
+    // For every week of interest calculate stats and add to the output array
     let outputArray = []
     let i = 0
     if (occs.length > 0) {
       for (let occ of occs) {
-        // Update UI wait dialog
         i++
+        // Update UI wait dialog
         CommandBar.showLoading(true, `Calculating stats for ${occs.length} terms of interest`, i / occs.length)
-        let w = fromWeek
-        let y = fromYear
-        let counter = 0
-        while (counter < weeks) {
-          // increment which week/year we're looking at, and get the actual dates to use
-          let answer = calcWeekOffset(w, y, +1)
-          w = answer.week
-          y = answer.year
+
+        let counter = -1
+        while (counter < numWeeks) {
           counter++
-          logDebug(pluginJson, `${counter}: w ${w} y ${y}`)
-          const [weekStartDate, weekEndDate] = weekStartEndDates(w, y)
-          const weekSummaryCSV = occ.summariseToInterval(toISODateString(weekStartDate), toISODateString(weekEndDate), 'week')
+          // Get the date info for the week of interest (counting up)
+          const thisWeekInfo = getNPWeekData(todaysDateISOString, counter - numWeeks, 'week') ?? {}
+          let weekStartDate = thisWeekInfo.startDate
+          let weekEndDate = thisWeekInfo.endDate
+
+          let weekStartDateStr = hyphenatedDateString(weekStartDate)
+          let weekEndDateStr = hyphenatedDateString(weekEndDate)
+          logDebug(pluginJson, `-> ${weekStartDateStr} -  ${weekEndDateStr} (V4)`)
+          const weekSummaryCSV = occ.summariseToInterval(weekStartDateStr, weekEndDateStr, 'week')
           outputArray.push(weekSummaryCSV)
         }
       }

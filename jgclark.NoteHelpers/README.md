@@ -29,7 +29,7 @@ This plugin provides commands to do things with notes that aren't yet provided i
 **Tip**: some of these are even more helpful if you assign a keyboard shortcut to them, using macOS's Keyboard > Shortcuts > App Shortcuts system. For example I have mapped ⇧⌘H to `/jump to heading`.
 
 ## Using from x-callback-url calls
-You can trigger some of these commands from [outside NotePlan using the **x-callback-url mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). This can be used in a template or shortcut, or any other place a URL can be accessed. Every call takes the same form:
+You can trigger these commands from [outside NotePlan using the **x-callback-url mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). This can be used in a template or shortcut, or any other place a URL can be accessed. Every call takes the same form:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=<encoded command name>&arg0=<encoded string>[&arg1=<encoded string>]...
 ```
@@ -38,8 +38,7 @@ Notes:
 - the number and order of arguments you pass is important
 - where an argument isn't valid (empty in the table below), don't include it
 - as with all x-callback-urls, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.  **Tip**: use @dwertheimer's Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you.
-- The matching of section headings in /qalh and /qath is done as an exact match, or (from v0.12) just the first part of it. This means it's possible to have a section such as `## Journal for 3.4.22` that changes every day, but still refer to it by the unchanging string `Journal`.
-- <!--from NotePlan v3.6.1 and plugin v0.12.0 -->it's possible to send one or more empty arguments, and that will cause the missing argument(s) be requested from the user, as it it were run interactively.
+- it's possible to send one or more empty arguments, and that will cause the missing argument(s) be requested from the user, as it it were run interactively.
 
 | Command | x-callback start | arg0 | arg1 |
 |-----|-------------|-----|-----|

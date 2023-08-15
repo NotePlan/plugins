@@ -1,14 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 12.4.2023 for v0.4.1 by @jgclark
+// Last updated 17.7.2023 for v0.5.1 by @jgclark
+// Note: to run this:noteplan://x-callback-url/runPlugin?pluginID=jgclark.Dashboard&command=test%3Ademo%20dashboard
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import {
   getSettings,
   type dashboardConfigType,
-  type SectionDetails, type SectionItem
+  type Section, type SectionItem
 } from './dashboardHelpers'
 import {
   getNPMonthStr,
@@ -23,14 +24,14 @@ import { clo, logDebug, logError, logInfo, timer } from '@helpers/dev'
 
 /**
  * Setup dummy data for the demo dashboard, using the same data structures as the main dataGeneration.js
- * @returns {[Array<SectionDetails>, Array<SectionItem>]}
+ * @returns {[Array<Section>, Array<SectionItem>]}
  */
-export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>, Array<SectionItem>]> {
+export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<SectionItem>]> {
   try {
     // Get settings
     const config: dashboardConfigType = await getSettings()
 
-    const sections: Array<SectionDetails> = []
+    const sections: Array<Section> = []
     const sectionItems: Array<SectionItem> = []
     let sectionCount = 0
     let doneCount = 0
@@ -45,13 +46,32 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
     // Note: in following, the filenames need to be real otherwise there will be 'error' in the display
     const openParas = [
       {
-        "priority": -1,
+        "priority": "W",
         "type": "open",
-        "content": "#editvideo from CFL visit",
-        "rawContent": "* #editvideo from CFL visit",
+        "content": ">> #editvideo from CFL visit",
+        "rawContent": ">> * #editvideo from CFL visit",
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 4,
+        "heading": "",
+        "headingLevel": -1,
+        "isRecurring": false,
+        "indents": 0,
+        "filename": thisFilename,
+        "noteType": "Calendar",
+        "linkedNoteTitles": [],
+        "subItems": [],
+        "referencedBlocks": [],
+        "note": {}
+      },
+      {
+        "priority": -1,
+        "type": "checklist",
+        "content": "check ==highlights== and `formatted` text work OK",
+        "rawContent": "+ check ==highlights== and `formatted` text work OK",
+        "prefix": "+ ",
+        "contentRange": {},
+        "lineIndex": 5,
         "heading": "",
         "headingLevel": -1,
         "isRecurring": false,
@@ -87,9 +107,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
       {
         "priority": 1,
         "type": "open",
-        "content": "! Respond on Repair Cafe things from last 2 meetings (and file notes) >today #win ^wazhht",
+        "content": "! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht",
         "blockId": "^wazhht",
-        "rawContent": "* ! Respond on Repair Cafe things from last 2 meetings (and file notes) >today #win ^wazhht",
+        "rawContent": "* ! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht",
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 8,
@@ -212,7 +232,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
       })
       // clo(combinedSortedParas, "daily sortedOpenParas")
       logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-      sections.push({ ID: sectionCount, name: 'Today', description: `from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'Today', dateType: 'D', description: `from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
       sectionCount++
 
       clo(sortedRefParas, "sortedRefParas")
@@ -223,7 +243,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
           sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
           itemCount++
         })
-        sections.push({ ID: sectionCount, name: 'Today', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+        sections.push({ ID: sectionCount, name: 'Today', dateType: 'D', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
         sectionCount++
       }
     } else {
@@ -235,7 +255,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
         itemCount++
       })
       // clo(sortedRefParas, "sortedRefParas")
-      sections.push({ ID: sectionCount, name: 'Today', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'Today', dateType: 'D', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
       sectionCount++
     }
     // Make up count of tasks/checklists done today
@@ -255,46 +275,6 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
         "prefix": "+ ",
         "contentRange": {},
         "lineIndex": 2,
-        "heading": "",
-        "headingLevel": -1,
-        "isRecurring": false,
-        "indents": 0,
-        "filename": thisFilename,
-        "noteType": "Calendar",
-        "linkedNoteTitles": [],
-        "subItems": [],
-        "referencedBlocks": [],
-        "note": {}
-      },
-      {
-        "priority": -1,
-        "type": "open",
-        "content": "Attempt method in [Automating podcast transcripts on my Mac with OpenAI Whisper – Six Colors](https://sixcolors.com/post/2023/02/automating-podcast-transcripts-on-my-mac-with-openai-whisper/) [[Information Capture#Capture of listening]]",
-        "rawContent": "* Attempt method in [Automating podcast transcripts on my Mac with OpenAI Whisper – Six Colors](https://sixcolors.com/post/2023/02/automating-podcast-transcripts-on-my-mac-with-openai-whisper/) [[Information Capture#Capture of listening]]",
-        "prefix": "* ",
-        "contentRange": {},
-        "lineIndex": 0,
-        "heading": "",
-        "headingLevel": -1,
-        "isRecurring": false,
-        "indents": 0,
-        "filename": thisFilename,
-        "noteType": "Calendar",
-        "linkedNoteTitles": [
-          "Information Capture"
-        ],
-        "subItems": [],
-        "referencedBlocks": [],
-        "note": {}
-      },
-      {
-        "priority": -1,
-        "type": "checklist",
-        "content": "Idea: Last listened NTW on authority",
-        "rawContent": "+ Idea: Last listened NTW on authority",
-        "prefix": "+ ",
-        "contentRange": {},
-        "lineIndex": 1,
         "heading": "",
         "headingLevel": -1,
         "isRecurring": false,
@@ -370,33 +350,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
     const demoSortedWeekRefParas: Array<TParagraph> = [
       {
         "priority": -1,
-        "type": "open",
-        "content": "Methodist HC sheet fix typo → @RP for printing ^l7flz7 >2023-W09",
-        "blockId": "^l7flz7",
-        "rawContent": "* Methodist HC sheet fix typo → @RP for printing ^l7flz7 >2023-W09",
-        "prefix": "* ",
-        "contentRange": {},
-        "lineIndex": 13,
-        "date": "2023-02-27T00:00:00.000Z",
-        "heading": "Staff #meeting on Service Pattern",
-        "headingRange": {},
-        "headingLevel": 3,
-        "isRecurring": false,
-        "indents": 0,
-        "filename": "20230216.md",
-        "noteType": "Calendar",
-        "linkedNoteTitles": [],
-        "subItems": [],
-        "referencedBlocks": [
-          {}
-        ],
-        "note": {}
-      },
-      {
-        "priority": -1,
         "type": "checklist",
-        "content": "Send Linda a link to welcome presentation >2023-W09",
-        "rawContent": "+ Send Linda a link to welcome presentation >2023-W09",
+        "content": "Send @Linda a link to welcome presentation >2023-W09",
+        "rawContent": "+ Send @Linda a link to welcome presentation >2023-W09",
         "prefix": "+ ",
         "contentRange": {},
         "lineIndex": 18,
@@ -448,7 +404,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
       })
       // clo(demoOpenWeekParas, "weekly demoOpenWeekParas")
       logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-      sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'This week', dateType: 'W', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
       sectionCount++
 
       // clo(demoSortedWeekRefParas, "demoSortedWeekRefParas")
@@ -459,7 +415,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
           sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
           itemCount++
         })
-        sections.push({ ID: sectionCount, name: 'This week', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly", filename: '' })
+        sections.push({ ID: sectionCount, name: 'This week', dateType: 'W', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly", filename: '' })
         sectionCount++
       }
     } else {
@@ -471,7 +427,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
         itemCount++
       })
       // clo(combinedSortedParas, "combinedSortedParas")
-      sections.push({ ID: sectionCount, name: 'This week', description: `from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'This week', dateType: 'W', description: `from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
       sectionCount++
     }
     // Get count of tasks/checklists done today
@@ -536,7 +492,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
       })
       // clo(openMonthParas, "monthly openMonthParas")
       logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} monthly items`)
-      sections.push({ ID: sectionCount, name: 'This Month', description: `from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'This Month', dateType: 'M', description: `from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
       sectionCount++
 
       // clo(sortedMonthRefParas, "monthly sortedMonthRefParas")
@@ -547,7 +503,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
           sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
           itemCount++
         })
-        sections.push({ ID: sectionCount, name: 'This month', description: `scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly", filename: '' })
+        sections.push({ ID: sectionCount, name: 'This month', dateType: 'M', description: `scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly", filename: '' })
         sectionCount++
       }
     } else {
@@ -559,10 +515,55 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
         itemCount++
       })
       // clo(combinedSortedParas, "monthly combinedSortedParas")
-      sections.push({ ID: sectionCount, name: 'This month', description: `from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'This month', dateType: 'M', description: `from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
       sectionCount++
     }
 
+    //-----------------------------------------------------------
+    // Demo data for TagToShow section
+    const tagToShow = '#next'
+    const isHashtag: boolean = tagToShow.startsWith('#')
+    const tagParasFromNote = [
+      {
+        "type": "checklist",
+        "content": "Open Deliveroo account #next",
+        "rawContent": "+ Open Deliveroo account #next",
+        "title": "Test Project A",
+        "filename": "TEST/DEMOs/Test Project A.md",
+      },
+      {
+        "type": "open",
+        "content": "Make expenses claim #next",
+        "rawContent": "* Make expenses claim #next",
+        "title": "Finance",
+        "filename": "CCC Areas/Finance.md",
+      }
+    ]
+    if (tagToShow !== '') {
+      let itemCount = 0
+      if (tagParasFromNote.length > 0) {
+        for (const p of tagParasFromNote) {
+          const thisID = `${sectionCount}-${itemCount}`
+          const thisFilename = p.note?.filename ?? ''
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename, type: p.type })
+          itemCount++
+        }
+      }
+
+      if (itemCount > 0) {
+        sections.push({
+          ID: sectionCount,
+          name: `${tagToShow}`,
+          description: `open task(s)`,
+          FAIconClass: (isHashtag) ? 'fa-solid fa-hashtag' : 'fa-solid fa-at',
+          sectionTitleClass: 'sidebarDaily',
+          filename: ''
+        })
+        sectionCount++
+      }
+    }
+
+    //-----------------------------------------------------------
     // Get completed count too
     doneCount += 2 // made up for demo purposes
 
@@ -580,7 +581,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
     // Notes to review
     const nextNotesToReview = [
       {
-        "filename": "CCC Areas/Staff/Staff Induction JM.md",
+        "filename": "CCC Areas/Staff/Staff Induction (JW).md",
         "type": "Notes",
         "title": "Staff Induction (JW)",
         "changedDate": "2023-02-28T13:11:30.000Z",
@@ -590,7 +591,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<SectionDetails>,
         ],
       },
       {
-        "filename": "CCC Projects/Streaming Platform.md",
+        "filename": "Home 🏠 Projects/Streamdeck setup.md",
         "type": "Notes",
         "title": "Streaming Platform",
         "changedDate": "2023-02-27T10:56:35.000Z",

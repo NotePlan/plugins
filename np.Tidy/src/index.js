@@ -31,6 +31,8 @@ export {
 export { listDuplicates } from './duplicates'
 export { resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion, listConflicts } from './conflicts'
 
+export { moveTopLevelTasksInEditor } from './topLevelTasks'
+
 /**
  * Other imports/exports
  */

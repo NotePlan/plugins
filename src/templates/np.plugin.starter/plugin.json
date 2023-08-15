@@ -16,6 +16,9 @@
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/{{pluginId}}/CHANGELOG.md",
   "plugin.commands": [
     {
+      "note": "================== COMMMANDS ========================"
+    },
+    {
       "name": "Say Hello from {{pluginId}}! (change this to your own command)",
       "description": "Your first plugin!",
       "jsFunction": "sayHello",
@@ -60,6 +63,9 @@
   ],
   "plugin.settings": [
     {
+      "note": "================== SETTINGS ========================"
+    },
+    {
       "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
       "type": "heading",
       "title": "{{pluginName}} Settings"
@@ -76,6 +82,9 @@
       "type": "string",
       "description": "Enter some string and see it change when the plugin is run",
       "default": "This default setting was set in plugin preferences!"
+    },
+    {
+      "note": "================== DEBUGGING SETTINGS ========================"
     },
     {
       "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",

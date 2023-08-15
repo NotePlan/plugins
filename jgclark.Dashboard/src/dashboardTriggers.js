@@ -8,8 +8,9 @@ import pluginJson from '../plugin.json'
 import { showDashboardHTML } from './dashboardHTML'
 import { clo, JSP, /*logDebug,*/ logError, logInfo, logWarn } from '@helpers/dev'
 import { rangeToString } from '@helpers/general'
-import { selectedLinesIndex } from '@helpers/NPparagraph'
+import { makeBasicParasFromContent, selectedLinesIndex } from '@helpers/NPparagraph'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
+import { isOpen } from '@helpers/utils'
 import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import plugin from "@babel/core/lib/config/plugin";
 
@@ -51,24 +52,26 @@ function numberOfOpenItems(content: string): number {
 }
 
 /**
- * Decide whether to update Dashboard, to be called by an onSave or onChange trigger
+ * Decide whether to update Dashboard, to be called by an onSave or onChange trigger.
+ * Decides whether the number of open items has changed, or if open item contents have changed.
+ * But ignore if open items have just moved around.
  * @returns {boolean}
  */
-export function decideWhetherToUpdateDashboard(): void {
+export async function decideWhetherToUpdateDashboard(): Promise<void> {
   try {
     // Only proceed if the dashboard window is open
     if (!isHTMLWindowOpen('Dashboard')) {
-      logDebug(pluginJson, `Dashboard window not open, so stopping.`)
+      logDebug('decideWhetherToUpdateDashboard', `Dashboard window not open, so stopping.`)
       return
     }
     // Check to stop it running on iOS
     if (NotePlan.environment.platform !== 'macOS') {
-      logDebug(pluginJson, `Designed only to run on macOS. Stopping.`)
+      logDebug('decideWhetherToUpdateDashboard', `Designed only to run on macOS. Stopping.`)
       return
     }
 
     if (!(Editor.content && Editor.note)) {
-      logWarn(pluginJson, `Cannot get Editor details. Please open a note.`)
+      logWarn('decideWhetherToUpdateDashboard', `Cannot get Editor details. Please open a note.`)
       return
     }
 
@@ -78,36 +81,83 @@ export function decideWhetherToUpdateDashboard(): void {
       const noteReadOnly: CoreNoteFields = Editor.note
       const previousContent = noteReadOnly.versions[0].content
       const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
-      logDebug(pluginJson, `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`)
-      logDebug(pluginJson, `- previous version: ${String(noteReadOnly.versions[0].date)} [${previousContent}]`)
-      logDebug(pluginJson, `- new version: ${String(Date.now())} [${latestContent}]`)
+      logDebug('decideWhetherToUpdateDashboard', `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`)
+      // logDebug('decideWhetherToUpdateDashboard', `- previous version: ${String(noteReadOnly.versions[0].date)} [${previousContent}]`)
+      // logDebug('decideWhetherToUpdateDashboard', `- new version: ${String(Date.now())} [${latestContent}]`)
 
       // first check to see if this has been called in the last 1000ms: if so don't proceed, as this could be a double call.
       if (timeSinceLastEdit <= 2000) {
-        logDebug(pluginJson, `decideWhetherToUpdateDashboard fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
+        logDebug('decideWhetherToUpdateDashboard', `decideWhetherToUpdateDashboard fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
         return
       }
 
-      // Decide if there are relevant changes
-      // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
-      // (This avoids firing when simply moving task/checklist items around, or updating the text.)
-      const isThisChangeSignificant = changeToNumberOfOpenItems(previousContent, latestContent)
+      // Decide if this is a relevant change, TODO: now looking for edits in open items as well.
+      // V4: Get all open items from before and after
+      const beforeContent = noteReadOnly.versions[0].content
+      // logDebug('decideWhetherToUpdateDashboard', `beforeContent = ${beforeContent}`)
+      const beforeOpenParas = makeBasicParasFromContent(beforeContent).filter((p) => isOpen(p))
+      const beforeOpenLines = beforeOpenParas.map((p) => p.rawContent)
+      // logDebug('decideWhetherToUpdateDashboard', `${beforeOpenLines.length} beforeOpenLines = ${beforeOpenLines.join('\n')}`)
+      const afterOpenParas = Editor.paragraphs.filter((p) => isOpen(p))
+      const afterOpenLines = afterOpenParas.map((p) => p.rawContent)
+      // logDebug('decideWhetherToUpdateDashboard', `${afterOpenLines.length} afterOpenLines = ${afterOpenLines.join('\n')}`)
 
-      if (isThisChangeSignificant) {
-        // TODO: try await Editor.save()? to get latest version available
-        // DataStore.updateCache(Editor.note)
-        // Update the dashboard
-        logDebug(pluginJson, `WILL update dashboard.`)
-        showDashboardHTML()
+      // Sort them
+      const beforeOpenSorted = beforeOpenLines.sort()
+      const afterOpenSorted = afterOpenLines.sort()
+
+      // Compare them
+      const openItemsHaveChanged = (beforeOpenSorted.toString() !== afterOpenSorted.toString())
+
+      // // Decide if there are more or fewer open items than before
+      // // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
+      // // (This avoids firing when simply moving task/checklist items around, or updating the text.)
+      let hasNumberOfOpenItemsChanged = false
+      // const hasNumberOfOpenItemsChanged = changeToNumberOfOpenItems(previousContent, latestContent)
+      // // Get changed ranges
+      // const ranges = NotePlan.stringDiff(previousContent, latestContent)
+      // if (!ranges || ranges.length === 0) {
+      //   logDebug('decideWhetherToUpdateDashboard', `No ranges returned, so stopping.`)
+      //   return
+      // }
+      // const earliestStart = ranges[0].start
+      // let latestEnd = ranges[ranges.length - 1].end
+      // const overallRange: TRange = Range.create(earliestStart, latestEnd)
+      // logDebug('decideWhetherToUpdateDashboard', `- overall changed content from ${rangeToString(overallRange)}`)
+      // Get changed lineIndexes
+
+      // earlier method for changedExtent based on character region, which didn't seem to always include all the changed parts.
+      // const changedExtent = latestContent?.slice(earliestStart, latestEnd)
+      // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
+      // logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
+
+      // // Newer method uses changed paragraphs: this will include more than necessary, but that's more useful in this case
+      // let changedExtent = ''
+      // const [startParaIndex, endParaIndex] = selectedLinesIndex(overallRange, Editor.paragraphs)
+      // logDebug('decideWhetherToUpdateDashboard', `- changed lines ${startParaIndex}-${endParaIndex}`)
+      // // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
+      // for (let i = startParaIndex; i <= endParaIndex; i++) {
+      //   changedExtent += Editor.paragraphs[i].content
+      // }
+      // logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
+
+      if (hasNumberOfOpenItemsChanged || openItemsHaveChanged) {
+        // Note: had wanted to try using Editor.save() here, but seems to trigger an infinite loop
+        // Note: DataStore.updateCache(Editor.note) doesn't work either.
+        // Instead we test for Editor in the dataGeneration::getOpenItemParasForCurrentTimePeriod() function
+
+        // Update the dashboard, but don't ask for focus
+        logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard.`)
+        showDashboardHTML(false)
       }
       else {
-        logDebug(pluginJson, `Won't update dashboard.`)
+        logDebug('decideWhetherToUpdateDashboard', `Won't update dashboard.`)
       }
     } else {
       throw new Error("Cannot get Editor details. Is there a note open in the Editor?")
     }
   }
   catch (error) {
-    logError(pluginJson, `${error.name}: ${error.message}`)
+    logError(pluginJson, `decideWhetherToUpdateDashboard: ${error.name}: ${error.message}`)
   }
 }

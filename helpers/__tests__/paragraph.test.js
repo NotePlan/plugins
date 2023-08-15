@@ -135,73 +135,6 @@ describe('paragraph.js', () => {
     })
   })
 
-  // describe('calcSmartPrependPoint()', () => {
-  //   const noteA = {
-  //     type: 'notes',
-  //     paragraphs: [
-  //       { type: 'title', lineIndex: 0, content: 'Note title' },
-  //       { type: 'empty', lineIndex: 1, content: '' },
-  //       { type: 'text', lineIndex: 2, content: 'First real content' },
-  //     ],
-  //   }
-  //   test('should return 1 for basic note with title', () => {
-  //     const result = p.calcSmartPrependPoint(noteA)
-  //     expect(result).toEqual(1)
-  //   })
-  //   const noteB = {
-  //     type: 'notes',
-  //     paragraphs: [
-  //       { type: 'separator', lineIndex: 0, content: '---' },
-  //       { type: 'text', lineIndex: 1, content: 'title: Note title' },
-  //       { type: 'text', lineIndex: 2, content: 'field: another' },
-  //       { type: 'separator', lineIndex: 3, content: '---' },
-  //       { type: 'empty', lineIndex: 4, content: '' },
-  //       { type: 'text', lineIndex: 5, content: 'First real content' },
-  //     ],
-  //   }
-  //   test('should return 4 for note with frontmatter', () => {
-  //     const result = p.calcSmartPrependPoint(noteB)
-  //     expect(result).toEqual(4)
-  //   })
-  //   const noteC = {
-  //     type: 'notes',
-  //     paragraphs: [
-  //       { type: 'title', lineIndex: 0, content: 'Note title' },
-  //       { type: 'text', lineIndex: 1, content: '#project metadata' },
-  //       { type: 'empty', lineIndex: 2, content: '' },
-  //       { type: 'text', lineIndex: 3, content: 'First real content' },
-  //     ],
-  //   }
-  //   test('should return 3 for basic note with title, metadata and blank line', () => {
-  //     const result = p.calcSmartPrependPoint(noteC)
-  //     expect(result).toEqual(3)
-  //   })
-  //   const noteE = {
-  //     type: 'Calendar',
-  //     paragraphs: [{ type: 'empty', lineIndex: 0, content: '' }],
-  //   }
-  //   test('should return 0 for single empty para', () => {
-  //     const result = p.calcSmartPrependPoint(noteE)
-  //     expect(result).toEqual(0)
-  //   })
-  //   const noteF = {
-  //     type: 'Calendar',
-  //     paragraphs: [{ type: 'text', lineIndex: 0, content: 'Single line only' }],
-  //   }
-  //   test('should return 0 for single text para', () => {
-  //     const result = p.calcSmartPrependPoint(noteF)
-  //     expect(result).toEqual(0)
-  //   })
-  //   const noteG = {
-  //     type: 'Calendar',
-  //     paragraphs: [],
-  //   }
-  //   test('should return 0 for no paras at all', () => {
-  //     const result = p.calcSmartPrependPoint(noteG)
-  //     expect(result).toEqual(0)
-  //   })
-  // })
-
   describe('findStartOfActivePartOfNote()', () => {
     // Note: needs to be created this way to trigger the mock required for the appendParagraph() function
     let paras = [new Paragraph()]
@@ -513,3 +446,16 @@ describe('paragraph.js', () => {
     })
   })
 })
+
+// TODO: turn into jest tests
+// /** tests for above function */
+// function testTermInNotelinkOrURI() {
+//   logDebug('test1 -> false', String(isTermInNotelinkOrURI('[[link with#tag]] but empty search term', '')))
+//   logDebug('test2 -> true', String(isTermInNotelinkOrURI('[[link with#tag]]', '#tag')))
+//   logDebug('test3 -> false', String(isTermInNotelinkOrURI('[[link without that tag]]', '#tag')))
+//   logDebug('test4 -> false', String(isTermInNotelinkOrURI('string has #tag [[but link without]]', '#tag')))
+//   logDebug('test5 -> false', String(isTermInNotelinkOrURI('string has [[but link without]] and  #tag after', '#tag')))
+//   logDebug('test6 -> true', String(isTermInNotelinkOrURI('term is in URL http://bob.com/page#tag', '#tag')))
+//   logDebug('test7 -> false', String(isTermInNotelinkOrURI('string has http://bob.com/page #tag', '#tag')))
+//   logDebug('test8 -> false', String(isTermInNotelinkOrURI('string has #tag before not in http://bob.com/URL', '#tag')))
+// }

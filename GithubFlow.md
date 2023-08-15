@@ -14,9 +14,13 @@ This will create a fork (copy) of the noteplan/plugins repository in your **pers
 
 <img width="494" alt="Screen Cap 2023-04-02 at 10 10 00@2x" src="https://user-images.githubusercontent.com/8949588/229368157-a02bc0e9-8f82-4c84-8a1e-1556bd2165d8.png">
 
+## Decide where you want to work on the code
+
+You will be working on your code in a directory outside of the NotePlan file sandbox, so you can put the plugin development code anywhere you want on your computer. You will then use the command line interface tool (`noteplan-cli`) in the plugin repository to automatically build and copy the plugin code from your development folder to your NotePlan Plugins folder so you can test/use your plugin. So now, find or create a directory where you want to start development (anywhere on your computer).
+
 ## Cloning the Repo to your Desktop
 
-Once you have your own fork (on Github.com), you'll need to create a **clone** of that code on your local computer so you can work on it. To do that, you can use any git client app (e.g. the [free Github Desktop app](https://desktop.github.com/) to clone your repo, or if you prefer, skip the app and just head straight to the command line in your terminal:
+Once you have your own fork (on Github.com) and a directory where you want to develop, you'll need to create a **clone** of that code on your local computer so you can work on it. To do that, you can use any git client app (e.g. the [free Github Desktop app](https://desktop.github.com/) to clone your repo, or if you prefer, skip the app and just head straight to the command line in your terminal:
 
 ```shell
 # Change directory to where you want to install the plugins project
@@ -25,7 +29,8 @@ cd DIR_PATH
 # Clone the fork we just created to your local machine
 git clone https://github.com/YOUR_GITHUB_USERNAME/plugins.git
 ```
-> **Note:** The URL above ^^^ is the one you copied in the previous step.
+> **Note**
+> The URL above ^^^ is the one you copied in the previous step.
 
 This will create a clone (aka "working copy") of the repository on your local computer
 

@@ -2,11 +2,17 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark
-// Last updated 9.5.2023 by @jgclark
+// Last updated 8.8.2023 by @jgclark
 // ---------------------------------------------------------
 
-import { clo, logDebug, logError, logWarn, JSP } from '@helpers/dev'
+import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { getStoredWindowRect, isHTMLWindowOpen, setHTMLWindowId, storeWindowRect } from '@helpers/NPWindows'
+import { isTermInNotelinkOrURI } from '@helpers/paragraph'
+import {
+  RE_EVENT_LINK,
+  RE_SYNC_MARKER
+} from '@helpers/regex'
+
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -118,7 +124,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
     // Set body:
     // - main font = styles.body.font
-    // const bodyFont = translateFontNameNPToCSS(themeJSON.styles.body.font)
+    const bodyFont = themeJSON.styles.body.font ?? ''
+    logDebug('generateCSSFromTheme', `bodyFont: ${bodyFont}`)
     // - main foreground colour (styles.body.color)
     // - main background colour (editor.backgroundColor)
     tempSel = []
@@ -128,7 +135,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       const thisColor = RGBColourConvert(themeJSON?.editor?.textColor ?? '#CC6666')
       tempSel.push(`color: var(--fg-main-color)`) //`color: ${thisColor}`
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('body', tempSel))
+      output.push(makeCSSSelector('body, .body', tempSel))
       // tempSel = styleObj.size // TEST:
       rootSel.push(`--fg-main-color: ${thisColor}`)
     }
@@ -182,11 +189,19 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set core button style from macOS based on dark or light:
     // Similarly for fake-buttons (i.e. from <a href ...>)
     if (isLightTheme) {
-      output.push(makeCSSSelector('button', ['background-color: #FFFFFF', 'font-size: 1.0rem', 'font-weight: 500']))
+      output.push(makeCSSSelector('button', [
+        'color: var(--fg-main-color)',
+        'background-color: #FFFFFF',
+        `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
+        // 'font-size: 1.0rem',
+        'font-weight: 500',
+        'border-radius: 4px',
+      ]))
       output.push(
         makeCSSSelector('.fake-button a', [
+          'color: var(--fg-main-color)',
           'background-color: #FFFFFF',
-          //          'font-size: 1.0rem',
+          // 'font-size: 1.0rem',
           'font-weight: 500',
           'text-decoration: none',
           'border-color: #DFE0E0',
@@ -199,18 +214,26 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       )
     } else {
       // dark theme
-      output.push(makeCSSSelector('button', ['background-color: #5E5E5E', 'font-size: 1.0rem', 'font-weight: 500']))
+      output.push(makeCSSSelector('button', [
+        'color: var(--fg-main-color)',
+        'background-color: #5E5E5E',
+        `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
+        // 'font-size: 1.0rem',
+        'font-weight: 500',
+        'border-radius: 4px',
+      ]))
       output.push(
         makeCSSSelector('.fake-button a', [
+          'color: var(--fg-main-color)',
           'background-color: #5E5E5E',
-          'font-size: 1.0rem',
+          // 'font-size: 1.0rem',
           'font-weight: 500',
           'text-decoration: none',
           'border-color: #5E5E5E',
           'border-radius: 4px',
           'box-shadow: 0 -1px 1px #6F6F6F',
           'padding: 1px 7px 1px 7px',
-          'margin: 1px 4px',
+          'margin: 2px 4px',
           'white-space: nowrap', // no wrapping (i.e. line break) within the button display
         ]),
       )
@@ -222,7 +245,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('p i', tempSel)) // not just 'i' as otherwise it can mess up the fontawesome icons
+      output.push(makeCSSSelector('p emph', tempSel)) // not 'i' as otherwise it can mess up the fontawesome icons
     }
     // Set bold text if present
     tempSel = []
@@ -232,13 +255,15 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('p b', tempSel))
     }
+
     // Can't easily set bold-italic in CSS ...
 
     // Set class for open tasks ('todo') if present
     tempSel = []
     styleObj = themeJSON.styles.todo
     if (styleObj) {
-      tempSel.push(`color: ${styleObj.color ? RGBColourConvert(styleObj.color) : 'var(--tint-color)'}`)
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'var(--tint-color)'}`)
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       output.push(makeCSSSelector('.todo', tempSel))
     }
 
@@ -247,7 +272,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles.checked
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#098308A0')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       output.push(makeCSSSelector('.checked', tempSel))
     }
 
@@ -257,7 +282,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles['checked-canceled']
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#E04F57A0')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       output.push(makeCSSSelector('.cancelled', tempSel))
     }
 
@@ -267,7 +292,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles['checked-scheduled']
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#7B7C86A0')}`)
-      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
       output.push(makeCSSSelector('.task-scheduled', tempSel))
     }
 
@@ -275,7 +300,10 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.hashtag
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
+      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.hashtag', tempSel))
     }
@@ -284,9 +312,44 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     tempSel = []
     styleObj = themeJSON.styles.attag
     if (styleObj) {
-      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#96CBFE')}`)
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
+      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.attag', tempSel))
+    }
+
+    // Set class for `pre-formatted text` ('code') if present
+    tempSel = []
+    styleObj = themeJSON.styles.code
+    if (styleObj) {
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
+      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      output.push(makeCSSSelector('.code', tempSel))
+    }
+
+    // Set class for ==highlights== ('highlighted') if present
+    tempSel = []
+    styleObj = themeJSON.styles.highlighted
+    if (styleObj) {
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
+      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? 'inherit')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      output.push(makeCSSSelector('.highlighted', tempSel))
+    }
+
+    // Set class for ~underlined~ ('underline') if present
+    tempSel = []
+    styleObj = themeJSON.styles.underline
+    if (styleObj) {
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, true))
+      output.push(makeCSSSelector('.underlined', tempSel))
     }
 
     // Set class for 'flagged-1' (priority 1) if present
@@ -295,6 +358,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
       tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFE5E5')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority1', tempSel))
     }
@@ -304,7 +369,9 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles['flagged-2']
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
-      tempSel.push(`background-color: ${RGBColourConvert(styleObj.color ?? '#FFC5C5')}`)
+      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFC5C5')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority2', tempSel))
     }
@@ -314,14 +381,28 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles['flagged-3']
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
-      tempSel.push(`background-color: ${RGBColourConvert(styleObj.color ?? '#FFA5A5')}`)
+      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFA5A5')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority3', tempSel))
     }
 
+    // Set class for 'working-on' if present
+    tempSel = []
+    styleObj = themeJSON.styles['working-on']
+    if (styleObj) {
+      tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'inherit'}`)
+      tempSel.push(`background-color: ${RGBColourConvert(styleObj.backgroundColor ?? '#FFA5A5')}`)
+      tempSel.push('border-radius: 5px')
+      tempSel.push('padding-inline: 3px')
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+      output.push(makeCSSSelector('.priority5', tempSel))
+    }
+
     // Now put the important info and rootSel at the start of the output
     output.unshift(makeCSSSelector(':root', rootSel))
-    output.unshift(`/* Generated by @jgclark's translateFontNameNPToCSS from NotePlan theme '${themeName}' by jgc */`)
+    output.unshift(`/* Generated from theme '${themeName}' by @jgclark's generateCSSFromTheme */`)
 
     // logDebug('generateCSSFromTheme', `Generated CSS:\n${output.join('\n')}`)
     return output.join('\n')
@@ -333,32 +414,74 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
 
 /**
  * Convert NotePlan Theme style information to CSS equivalent(s)
- * Covers attributes: size, paragraphSpacingBefore, paragraphSpacing, font, strikethroughStyle, underlineStyle.
+ * Covers attributes within a theme item: size, paragraphSpacingBefore, paragraphSpacing, lineSpacing, font, strikethroughStyle, underlineStyle, underlineColor.
  * @author @jgclark
  * @param {Object} style object from JSON theme
+ * @param {boolean} includeFontDetails? (default: false)
  * @returns {Array} CSS elements
  */
-function convertStyleObjectBlock(styleObject: any): Array<string> {
+function convertStyleObjectBlock(styleObject: any, includeFontDetails: boolean = true): Array<string> {
   let cssStyleLinesOutput: Array<string> = []
   if (styleObject?.size) {
     cssStyleLinesOutput.push(`font-size: ${pxToRem(styleObject?.size, baseFontSize)}`)
   }
+  if (includeFontDetails) {
+    if (styleObject?.font) {
+      cssStyleLinesOutput = cssStyleLinesOutput.concat(fontPropertiesFromNP(styleObject?.font))
+    }
+  }
   if (styleObject?.paragraphSpacingBefore) {
-    cssStyleLinesOutput.push(`line-height: ${pxToRem(styleObject?.paragraphSpacingBefore, baseFontSize)}`)
-    // `padding-top: ${themeJSON.styles.body.paragraphSpacingBefore}` ?? "0" + 'px', // TODO:
+    cssStyleLinesOutput.push(`margin-top: ${pxToRem(styleObject?.paragraphSpacingBefore, baseFontSize)}`)
   }
   if (styleObject?.paragraphSpacing) {
-    cssStyleLinesOutput.push(`padding-bottom: ${pxToRem(styleObject?.paragraphSpacing, baseFontSize)}`)
-    // `padding-bottom: ${themeJSON.styles.body.paragraphSpacing}` ?? "6" + 'px', // TODO:
+    cssStyleLinesOutput.push(`margin-bottom: ${pxToRem(styleObject?.paragraphSpacing, baseFontSize)}`)
   }
-  if (styleObject?.font) {
-    cssStyleLinesOutput = cssStyleLinesOutput.concat(fontPropertiesFromNP(styleObject?.font))
+  if (styleObject?.lineSpacing) {
+    const lineSpacingRem = Number(styleObject?.lineSpacing) * 1.4
+    cssStyleLinesOutput.push(`line-height: ${String(lineSpacingRem)}rem`)
   }
   if (styleObject?.strikethroughStyle) {
     cssStyleLinesOutput.push(textDecorationFromNP('strikethroughStyle', Number(styleObject?.strikethroughStyle)))
   }
   if (styleObject?.underlineStyle) {
-    cssStyleLinesOutput.push(textDecorationFromNP('underlineStyle', Number(styleObject?.underlineStyle)))
+    const themeStyleNumber = Number(styleObject?.underlineStyle)
+    /**
+     * Values from 1-8 increase the thickness.
+     * The next bit values that have an effect are: 1...
+     * + 8: double (= 9)
+     * + 256: patternDot (= 257)
+     * + 512: patternDash (= 513)
+     * + 1024: patternDashDotDot (= 1025)
+     * + 8192: over line (= 8193)
+     * +32768: by Word (= 32769)
+     */
+    if (themeStyleNumber > 0 && themeStyleNumber <= 8) {
+      cssStyleLinesOutput.push('text-decoration: underline')
+      cssStyleLinesOutput.push(`text-decoration-style: solid`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber)}px`)
+    }
+    if (themeStyleNumber > 8 && themeStyleNumber <= 16) {
+      cssStyleLinesOutput.push('text-decoration: underline')
+      cssStyleLinesOutput.push(`text-decoration-style: double`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 8)}px`)
+    }
+    if (themeStyleNumber > 256 && themeStyleNumber <= 264) {
+      cssStyleLinesOutput.push('text-decoration: underline')
+      cssStyleLinesOutput.push(`text-decoration-style: dotted`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 256)}px`)
+    }
+    if (themeStyleNumber > 512 && themeStyleNumber <= 520) {
+      cssStyleLinesOutput.push('text-decoration: underline')
+      cssStyleLinesOutput.push(`text-decoration-style: dashed`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 512)}px`)
+    }
+    if (themeStyleNumber > 8192 && themeStyleNumber <= 8200) {
+      cssStyleLinesOutput.push(`text-decoration-style: overline`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 8192)}px`)
+    }
+  }
+  if (styleObject?.underlineColor) {
+    cssStyleLinesOutput.push(`text-decoration-color: ${RGBColourConvert(styleObject.underlineColor ?? 'var(--fg-main-color)')}`)
   }
   return cssStyleLinesOutput
 }
@@ -838,8 +961,7 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
     }
     fullHTML.push(winOpts.headerTags)
     fullHTML.push('<style type="text/css">')
-    // If generalCSSIn is empty, then generate it from the current theme
-    // Note: ideally extend this to save CSS from theme, and then check if it can be reused.
+    // If generalCSSIn is empty, then generate it from the current theme. (Note: could extend this to save CSS from theme, and then check if it can be reused.)
     const generalCSS = winOpts.generalCSSIn && winOpts.generalCSSIn !== '' ? winOpts.generalCSSIn : generateCSSFromTheme('')
     fullHTML.push(generalCSS)
     fullHTML.push(winOpts.specificCSS)
@@ -1008,29 +1130,36 @@ export async function showHTMLV2(
       } else {
         let winOptions = {}
         // First set to the default values
-        logDebug('showHTMLV2', `- Using default Rect for window`)
         winOptions = {
           x: opts.x,
           y: opts.y,
           width: opts.width,
-          height: opts.height,
+          height: (opts.height > 56) ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
           shouldFocus: opts.shouldFocus,
           // Note: can't set customId, but only long UID ('id')
         }
         // Now override with saved x/y/w/h for this window if wanted, and if available
         if (opts.reuseUsersWindowRect && cId) {
-          logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
+          // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
           const storedRect = getStoredWindowRect(cId)
           if (storedRect) {
             winOptions = {
               x: storedRect.x,
               y: storedRect.y,
               width: storedRect.width,
-              height: storedRect.height,
+              height: (storedRect.height > 56) ? storedRect.height : 500, // to attempt to cope with bug where height can change to 28px
               shouldFocus: opts.shouldFocus
             }
             logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
+          } else {
+            logDebug('showHTMLV2', `- Couldn't read user's saved Rect from pref from ${cId}`)
           }
+        }
+        clo(winOptions, 'showHTMLV2 using winOptions:')
+        // $FlowIgnore[invalid-compare]
+        if (winOptions.height < 29) {
+          // $FlowIgnore[incompatible-type]
+          logWarn('showHTMLV2', `**** height to use = ${winOptions.height}px! ****`)
         }
 
         // clo(winOptions, 'subset of options for API call:')
@@ -1229,4 +1358,208 @@ export async function updateGlobalSharedData(data: any, mergeData: boolean = tru
  */
 export async function sendBannerMessage(message: string, color: string = 'w3-pale-red', border: string = 'w3-border-red'): Promise<any> {
   return await sendToHTMLWindow('SHOW_BANNER', { warn: true, msg: message, color, border })
+}
+
+// add basic ***bolditalic*** styling
+// add basic **bold** or __bold__ styling
+// add basic *italic* or _italic_ styling
+export function convertBoldAndItalicToHTML(input: string): string {
+  let output = input
+  const RE_BOLD_ITALIC_PHRASE = new RegExp(/\*\*\*\b(.*?)\b\*\*\*/, "g")
+  let captures = output.matchAll(RE_BOLD_ITALIC_PHRASE)
+  if (captures) {
+    for (const capture of captures) {
+      // logDebug('convertBoldAndItalicToHTML', `- making bold-italic with [${String(capture)}]`)
+      output = output.replace(capture[0], `<b><em>${capture[1]}</em></b>`)
+    }
+  }
+
+  // add basic **bold** or __bold__ styling
+  const RE_BOLD_PHRASE = new RegExp(/([_\*]{2})([^_*]+?)\1/, "g")
+  captures = output.matchAll(RE_BOLD_PHRASE)
+  if (captures) {
+    for (const capture of captures) {
+      // logDebug('convertBoldAndItalicToHTML', `- making bold with [${String(capture)}]`)
+      output = output.replace(capture[0], `<b>${capture[2]}</b>`)
+    }
+  }
+
+  // add basic *italic* or _italic_ styling
+  // Note: uses a simplified regex that needs to come after bold above
+  const RE_ITALIC_PHRASE = new RegExp(/([_\*])([^*]+?)\1/, "g")
+  captures = output.matchAll(RE_ITALIC_PHRASE)
+  if (captures) {
+    for (const capture of captures) {
+      // logDebug('convertBoldAndItalicToHTML', `- making italic with [${String(capture)}]`)
+      output = output.replace(capture[0], `<em>${capture[2]}</em>`)
+    }
+  }
+  return output
+}
+
+// Simplify NP event links
+// of the form `![📅](2023-01-13 18:00:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Contact X about Y:::#63DA38)`
+export function simplifyNPEventLinksForHTML(input: string): string {
+  let output = input
+  const captures = output.match(RE_EVENT_LINK)
+  if (captures) {
+    // clo(captures, 'results from NP event link matches:')
+    // Matches come in threes (plus full match), so process four at a time
+    for (let c = 0; c < captures.length; c = c + 3) {
+      const eventLink = captures[c]
+      const eventTitle = captures[c + 1]
+      const eventColor = captures[c + 2]
+      output = output.replace(eventLink, `<i class="fa-regular fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
+    }
+  }
+  return output
+}
+
+// Simplify embedded images of the form ![image](...) by replacing with an icon.
+// (This also helps remove false positives for ! priority indicator)
+// FIXME: the leading ! is not getting removed from output for some reason
+export function simplifyInlineImagesForHTML(input: string): string {
+  let output = input
+  const captures = output.match(/!\[image\]\([^\)]+\)/g)
+  if (captures) {
+    // clo(captures, 'results from embedded image match:')
+    for (const capture of captures) {
+      logInfo(`simplifyInlineImagesForHTML`, capture)
+      output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
+      logInfo(`simplifyInlineImagesForHTML`, `-> ${output}`)
+    }
+  }
+  return output
+}
+
+// Display hashtags with .hashtag style
+// Note: need to make only one capture group, and use 'g'lobal flag
+export function convertHashtagsToHTML(input: string): string {
+  let output = input
+  // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
+  // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d\'\"]+(\s|$))(#([^\'\"\s]|[\-_\/])+?\(.*?\)|#([^\'\"\s]|[\-_\/])+)/) // regex from @EduardMe's file without :punct:
+  const captures = output.match(/\B(?:#|＃)((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/ug) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+  if (captures) {
+    // clo(captures, 'results from hashtag matches:')
+    for (const capture of captures) {
+      // logDebug('convertHashtagsToHTML', `capture: ${capture}`)
+      if (!isTermInNotelinkOrURI(output, capture)) {
+        output = output.replace(capture, `<span class="hashtag">${capture}</span>`)
+      }
+    }
+  }
+  return output
+}
+
+// Display mentions with .attag style
+// Note: need to make only one capture group, and use 'g'lobal flag
+export function convertMentionsToHTML(input: string): string {
+
+  let output = input
+  // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
+  // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/) // regex from @EduardMe's file, without [:punct:]
+  const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/ug) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+  if (captures) {
+    // clo(captures, 'results from mention matches:')
+    for (const capture of captures) {
+      const match = capture//[2] // part from @
+      output = output.replace(match, `<span class="attag">${match}</span>`)
+    }
+  }
+  return output
+}
+
+/**
+ * Convert markdown `pre-formatted` fragments to HTML with .code class
+ * @param {string} input
+ * @returns {string} output
+ */
+export function convertPreformattedToHTML(input: string): string {
+  let output = input
+  const captures = output.match(/`.*?`/g)
+  if (captures) {
+    // clo(captures, 'results from code matches:')
+    for (const capture of captures) {
+      const match = capture
+      output = output.replace(match, `<span class="code">${match.slice(1, -1)}</span>`)
+    }
+  }
+  return output
+}
+
+// Display mentions with .code style
+export function convertHighlightsToHTML(input: string): string {
+  let output = input
+  const captures = output.match(/==.*?==/g)
+  if (captures) {
+    // clo(captures, 'results from highlight matches:')
+    for (const capture of captures) {
+      const match = capture
+      output = output.replace(match, `<span class="highlighted">${match.slice(2, -2)}</span>`)
+    }
+  }
+  return output
+}
+
+// Display underlined with .underlined style
+// TODO: is regex tight enough?
+export function convertUnderlinedToHTML(input: string): string {
+  let output = input
+  const captures = output.match(/~.*?~/g)
+  if (captures) {
+    // clo(captures, 'results from underlined matches:')
+    for (const capture of captures) {
+      const match = capture
+      output = output.replace(match, `<span class="underlined">${match.slice(1, -1)}</span>`)
+    }
+  }
+  return output
+}
+
+export function convertNPBlockIDToHTML(input: string): string {
+
+  // Replace blockID sync indicator with icon
+  // NB: needs to go after #hashtag change above, as it includes a # marker for colors.
+  let output = input
+  const captures = output.match(RE_SYNC_MARKER)
+  if (captures) {
+    // clo(captures, 'results from RE_SYNC_MARKER match:')
+    for (const capture of captures) {
+      output = output.replace(capture, '<i class="fa-solid fa-asterisk" style="color: #71b3c0;"></i>')
+    }
+  }
+  return output
+}
+
+/**
+ * Truncate visible part of HTML string, without breaking the HTML tags
+ * @param {string} htmlIn
+ * @param {number} maxLength of output
+ * @param {boolean} dots - add ellipsis to end?
+ * @returns {string} truncated HTML
+ */
+export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = true): string {
+  let holdCounter = false
+  let truncatedHTML = ''
+  let limit = maxLength
+  for (let index = 0; index < htmlIn.length; index++) {
+    if (!limit || limit === 0) {
+      break
+    }
+    if (htmlIn[index] === '<') {
+      holdCounter = true
+    }
+    if (!holdCounter) {
+      limit--
+    }
+    if (htmlIn[index] === '>') {
+      holdCounter = false
+    }
+    truncatedHTML += htmlIn[index]
+  }
+  if (dots) {
+    truncatedHTML = truncatedHTML + ' …'
+  }
+  // logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
+  return truncatedHTML
 }

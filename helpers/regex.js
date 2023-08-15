@@ -2,7 +2,7 @@
 // @flow
 //---------------------------------------------------------------------
 // Regex definitions for NotePlan and its plugins
-// @jgclark, last updated 15.1.2023
+// @jgclark, last updated 28.7.2023
 //---------------------------------------------------------------------
 //
 // This file holds definitions that don't live in more specific helper files, and also lists other files with useful regexes.
@@ -18,7 +18,7 @@
 //---------------------------------------------------------------------
 
 // Times, Dates
-export const RE_SCHEDULED_DATES_G: RegExp = /[>@](today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?))/g // from Eduard
+export const RE_SCHEDULED_DATES_G: RegExp = />(today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?))/g // from Eduard, but tweaked to ignore ones that start with @ rather than >
 // In helpers/dateTime.js:
 // - RE_TIME
 // - RE_DATE
@@ -95,6 +95,10 @@ export const RE_EVENT_LINK: RegExp = /!\[.*\]\(\d{4}-[01]\d-[0123]\d\s[0-2]\d:[0
 // - RE_TIMEBLOCK_APP
 // - RE_ALLOWED_TIME_BLOCK_LINE_START
 // - RE_TIMEBLOCK_FOR_THEMES
+
+// notelinks
+export const RE_NOTELINK_G: RegExp = /\[\[[^\[]+\]\]/g
+export const RE_NOTELINK_CAPTURE_TITLE_G: RegExp = /\[\[([^\[]+)\]\]/g
 
 // URLs and Links
 export const RE_MARKDOWN_LINKS_CAPTURE_G: RegExp = /\[([^\]]+)\]\(([^\)]+)\)/g

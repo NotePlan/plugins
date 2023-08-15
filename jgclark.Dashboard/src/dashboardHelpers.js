@@ -1,21 +1,40 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 9.7.2023 for v0.5.x by @jgclark
+// Last updated 8.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_EVENT_ID } from '@helpers/calendar'
+import { trimString } from '@helpers/dataManipulation'
 import { getDateStringFromCalendarFilename, toLocaleTime } from '@helpers/dateTime'
+import {
+  simplifyNPEventLinksForHTML,
+  simplifyInlineImagesForHTML,
+  convertHashtagsToHTML,
+  convertMentionsToHTML,
+  convertPreformattedToHTML,
+  convertHighlightsToHTML,
+  convertNPBlockIDToHTML,
+  convertBoldAndItalicToHTML,
+  truncateHTML
+} from '@helpers/HTMLView'
 import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import {
-  RE_EVENT_LINK,
+  getTaskPriority,
+  isTermInNotelinkOrURI,
+  isTermInURL,
+  removeTaskPriorityIndicators,
+} from '@helpers/paragraph'
+import {
+  // RE_EVENT_LINK,
   RE_MARKDOWN_LINKS_CAPTURE_G,
+  // RE_NOTELINK_G,
   RE_SCHEDULED_DATES_G,
-  RE_SYNC_MARKER
+  // RE_SYNC_MARKER
 } from '@helpers/regex'
-import { getLineMainContentPos } from '@helpers/search'
+// import { getLineMainContentPos } from '@helpers/search'
 import { getNumericPriority } from '@helpers/sorting'
 import {
   changeBareLinksToHTMLLink,
@@ -25,17 +44,17 @@ import {
   stripThisWeeksDateRefsFromString,
   stripTodaysDateRefsFromString
 } from '@helpers/stringTransforms'
-import { showMessage } from '@helpers/userInput'
-import { showMessageYesNo } from '@helpers/userInput'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 import { toLocaleDateTimeString } from "../../helpers/NPdateTime";
 
 //-----------------------------------------------------------------
 // Data types
 
-// details for a section heading
-export type SectionDetails = {
+// details for a section
+export type Section = {
   ID: number,
-  name: string,
+  name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
+  dateType: '' | 'D' | 'W' | 'M' | 'Q' | 'Y',
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,
@@ -62,10 +81,13 @@ export type dashboardConfigType = {
   ignoreFolders: Array<string>,
   includeFolderName: boolean,
   includeTaskContext: boolean,
-  // filterPriorityItems: boolean, // now kept in a DataStore.preference key
+  autoAddTrigger: boolean,
+  excludeTasksWithTimeblocks: boolean,
+  excludeChecklistsWithTimeblocks: boolean,
   tagToShow: string,
   _logLevel: string,
   triggerLogging: boolean,
+  // filterPriorityItems: boolean, // now kept in a DataStore.preference key
 }
 
 /**
@@ -90,11 +112,11 @@ export async function getSettings(): Promise<any> {
     // Set local pref Dashboard-filterPriorityItems to default false
     // if it doesn't exist already
     const savedValue = DataStore.preference('Dashboard-filterPriorityItems')
-    logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
+    // logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
     if (!savedValue) {
       DataStore.setPreference('Dashboard-filterPriorityItems', false)
     }
-    logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
+    // logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -113,35 +135,41 @@ export async function getSettings(): Promise<any> {
  * - turns #hashtags and @mentions the colour that the theme displays them
  * - turns >date markers the colour that the theme displays them
  * Further, if noteTitle is supplied, then either 'append' it as a active NP note title, or make it the active NP note link for 'all' the string.
+ * Note: the actual note link is added following load by adding click handler to all items with class "sectionItemContent" (which already have a basic <a>...</a> wrapper).
  * @author @jgclark
  * @param {SectionItem} thisItem
  * @param {string?} noteTitle
  * @param {string?} noteLinkStyle: "append" or "all"
+ * @param {string?} truncateLength (optional) length of string after which to truncate. Will not truncate if set to 0.
  * @returns {string} altered string
  */
-export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, noteTitle: string = "", noteLinkStyle: string = "all"): string {
+export function makeParaContentToLookLikeNPDisplayInHTML(
+  thisItem: SectionItem,
+  noteTitle: string = "",
+  noteLinkStyle: string = "all",
+  truncateLength: number = 0): string {
   try {
-    // logDebug(`makeParaCTLLNPDIH`, `for '${thisItem.ID}' / noteTitle '${noteTitle}' filename '${thisItem.filename}'`)
+    logDebug(`makeParaContent...`, `for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${thisItem.filename}'`)
     // Start with the content of the item
     let output = thisItem.content
 
-    if (noteTitle === '(error)') {
-      logError('makeParaCTLLNDIH', `starting with noteTitle '(error)' for '${thisItem.content}'`)
+    // See if there's a !, !!, !!! or >> in the line, and if so set taskPriority accordingly
+    const taskPriority = getTaskPriority(output)
+    if (taskPriority > 0) {
+      output = removeTaskPriorityIndicators(output)
     }
 
-    // TODO: Simplify NP event links
-    // of the form `![📅](2023-01-13 18:00:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Contact X about Y:::#63DA38)`
-    let captures = output.match(RE_EVENT_LINK)
-    if (captures) {
-      clo(captures, 'results from NP event link matches:')
-      // Matches come in threes (plus full match), so process four at a time
-      for (let c = 0; c < captures.length; c = c + 3) {
-        const eventLink = captures[c]
-        const eventTitle = captures[c + 1]
-        const eventColor = captures[c + 2]
-        output = output.replace(eventLink, `<i class="fa-regular fa-calendar" style="color: ${eventColor}"></i> <span class="event-link">${eventTitle}</span>`)
-      }
+    if (noteTitle === '(error)') {
+      logError('makeParaContent...', `starting with noteTitle '(error)' for '${thisItem.content}'`)
     }
+
+    // Simplify NP event links of the form
+    // `![📅](2023-01-13 18:00:::F9766457-9C4E-49C8-BC45-D8D821280889:::NA:::Contact X about Y:::#63DA38)` to HTML with icon
+    output = simplifyNPEventLinksForHTML(output)
+
+    // Simplify embedded images of the form ![image](...) by replacing with an icon.
+    // (This also helps remove false positives for ! priority indicator)
+    output = simplifyInlineImagesForHTML(output)
 
     // Display markdown links of the form [title](URI) as HTML links
     output = changeMarkdownLinksToHTMLLink(output)
@@ -150,42 +178,20 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
     output = changeBareLinksToHTMLLink(output)
 
     // Display hashtags with .hashtag style
-    // Note: need to make only one capture group, and use 'g'lobal flag
-    // captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
-    // captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d\'\"]+(\s|$))(#([^\'\"\s]|[\-_\/])+?\(.*?\)|#([^\'\"\s]|[\-_\/])+)/) // regex from @EduardMe's file without :punct:
-    captures = output.match(/(?:\s|^|\"|\(|\)|\')(#[A-Za-z]\w*)/g) // my too-simple version [needs to allow starting digit, just not all digits]
-    // captures = output.match(HASHTAG_STR_FOR_JS) // TODO: from EM
-    if (captures) {
-      // clo(captures, 'results from hashtag matches:')
-      for (const capture of captures) {
-        const match = capture.slice()
-        output = output.replace(match, `<span class="hashtag">${match}</span>`)
-      }
-    }
+    output = convertHashtagsToHTML(output)
 
     // Display mentions with .attag style
-    // Note: need to make only one capture group, and use 'g'lobal flag
-    // captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
-    // captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/) // regex from @EduardMe's file, without [:punct:]
-    captures = output.match(/(?:\s|^|\"|\(|\)\')(@[A-Za-z][\w\d\.\-\(\)]*)/g) // my too-simple version
-    // captures = output.match(NP_RE_attag_G) // TODO: from EM
-    if (captures) {
-      // clo(captures, 'results from mention matches:')
-      for (const capture of captures) {
-        const match = capture.slice()
-        output = output.replace(match, `<span class="attag">${match}</span>`)
-      }
-    }
+    output = convertMentionsToHTML(output)
+
+    // Display mentions with .code style
+    output = convertPreformattedToHTML(output)
+
+    // Display mentions with .code style
+    output = convertHighlightsToHTML(output)
 
     // Replace blockID sync indicator with icon
     // NB: needs to go after #hashtag change above, as it includes a # marker for colors.
-    captures = output.match(RE_SYNC_MARKER)
-    if (captures) {
-      // clo(captures, 'results from RE_SYNC_MARKER match:')
-      for (const capture of captures) {
-        output = output.replace(capture, '<i class="fa-solid fa-asterisk" style="color: #71b3c0;"></i>')
-      }
-    }
+    output = convertNPBlockIDToHTML(output)
 
     // Strip `>today` and scheduled dates of form `>YYYY-MM-DD` that point to today
     output = stripTodaysDateRefsFromString(output)
@@ -196,16 +202,13 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
     // Strip all `<YYYY-MM-DD` dates
     output = stripBackwardsDateRefsFromString(output)
 
-    // TODO: add basic ***bolditalic*** styling
-
-    // TODO: add basic **bold** styling
-
-    // TODO: add basic _italic_ styling
+    // add basic ***bolditalic*** styling
+    // add basic **bold** or __bold__ styling
+    // add basic *italic* or _italic_ styling
+    output = convertBoldAndItalicToHTML(output)
 
     // Add suitable colouring to remaining >date items
-    // Note: This is my attempt at finding all scheduled date links
-    // TODO(@EduardMe): send us his version of this
-    captures = output.match(RE_SCHEDULED_DATES_G)
+    let captures = output.match(RE_SCHEDULED_DATES_G)
     if (captures) {
       // clo(captures, 'results from >date match:')
       for (const capture of captures) {
@@ -218,16 +221,23 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
     captures = output.match(/\[\[(.*?)\]\]/)
     if (captures) {
       // clo(captures, 'results from [[notelinks]] match:')
-      for (const capturedTitle of captures) {
-        // logDebug('makeParaCTLLNDIH', `- making notelink with ${thisItem.filename}, ${capture}`)
+      for (let capturedTitle of captures) {
+        logDebug('makeParaContet...', `- making notelink with ${thisItem.filename}, ${capturedTitle}`)
+        // Replace [[notelinks]] with HTML equivalent, aware that this will interrupt the <a>...</a> that will come around the whole string, and so it needs to make <a>...</a> regions for the rest of the string before and after the capture.
         const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(capturedTitle)
-        output = output.replace('[[' + capturedTitle + ']]', noteTitleWithOpenAction)
+        output = output.replace('[[' + capturedTitle + ']]', '</a>' + noteTitleWithOpenAction + '<a>')
       }
+    }
+
+    // Truncate the HTML string if wanted (avoiding breaking in middle of HTML tags)
+    // Note: Best done before the note link is added
+    if (truncateLength > 0 && thisItem.content.length > truncateLength) {
+      output = truncateHTML(output, truncateLength, true)
     }
 
     // Now include an active link to the note, if 'noteTitle' is given
     if (noteTitle) {
-      // logDebug('makeParaContet...', `- before '${noteLinkStyle}' for <${noteTitle}> ${output}`)
+      // logDebug('makeParaContet...', `- before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
       switch (noteLinkStyle) {
         case 'append': {
           output = addNoteOpenLinkToString(thisItem, output) + ' ' + makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)
@@ -238,72 +248,45 @@ export function makeParaContentToLookLikeNPDisplayInHTML(thisItem: SectionItem, 
           break
         }
       }
-      // logDebug('makeParaContet...', `- after:  ${output}`)
+      logDebug('makeParaContet...', `- after: '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
     }
 
-    // If there's a ! !! or !!! add priorityN styling
-    // (Simpler regex possible as the count comes later)
-    // Note: this wrapping needs to go last
-    const numExclamations = getTaskPriority(output)
-    switch (numExclamations) {
-      case 1: {
-        output = '<span class="priority1">' + output + '</span>'
-        break
-      }
-      case 2: {
-        output = '<span class="priority2">' + output + '</span>'
-        break
-      }
-      case 3: {
-        output = '<span class="priority3">' + output + '</span>'
-        break
-      }
-      default: {
-        // Don't do anything
-        break
-      }
+    // If we already know (from above) there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority5.
+    // Note: this wrapping needs to go last.
+    if (taskPriority > 0) {
+      output = '<span class="priority' + String(taskPriority) + '">' + output + '</span>'
     }
 
+    // logDebug('makeParaContet...', `\n-> ${output}`)
     return output
   }
   catch (error) {
-    logError('makeParaContentToLookLikeNPDisplayInHTML', `${error.name} ${error.message}`)
+    logError('makeParaContentToLookLikeNPDisplayInHTML', error.message)
     return ''
   }
 }
 
-export function getTaskPriority(content: string): number {
-  let numExclamations = 0
-  if (content.match(/\B\!+\B/)) {
-    // $FlowFixMe(incompatible-use)
-    numExclamations = content.match(/\B\!+\B/)[0].length
-  }
-  return numExclamations
-}
-
 /**
- * v2: Make an HTML link showing displayStr, but with href onClick event to show open the 'item' in editor and select the given line content
- * v1: Used to use x-callback method to open a Note (via its 'noteTitle' parameter)
+ * Make an HTML link showing displayStr, but with href onClick event to show open the 'item' in editor and select the given line content
  * @param {SectionItem} item's details, with raw
  * @param {string} displayStr
  * @returns {string} transformed output
  */
-export function addNoteOpenLinkToString(item: SectionItem | SectionDetails, displayStr: string): string {
+export function addNoteOpenLinkToString(item: SectionItem | Section, displayStr: string): string {
   try {
-    // Method 1: x-callback
-    // return `<a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${displayStr}</a>`
-
     // Method 2: pass request back to plugin
     const filenameEncoded = encodeURIComponent(item.filename)
 
     if (item.rawContent) {
       // call showLineinEditor... with the filename and rawConetnt
       // return `<a class="" onClick="onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
-      return `<a>${displayStr}</a>`
+      // return `<a>${displayStr}</a>`
+      return `${displayStr}`
     } else {
       // call showNoteinEditor... with the filename
       // return `<a class="" onClick="onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')">${displayStr}</a>`
-      return `<a>${displayStr}</a>`
+      // return `<a>${displayStr}</a>`
+      return `${displayStr}`
     }
   }
   catch (error) {
@@ -313,8 +296,8 @@ export function addNoteOpenLinkToString(item: SectionItem | SectionDetails, disp
 }
 
 /**
- * v2: Wrap string with href onClick event to show note in editor
- * v1: Used to use x-callback method to open a Note (via ite 'noteTitle')
+ * Wrap string with href onClick event to show note in editor,
+ * using item.filename param.
  * @param {SectionItem} item's details
  * @param {string} noteTitle
  * @returns {string} output
@@ -322,14 +305,7 @@ export function addNoteOpenLinkToString(item: SectionItem | SectionDetails, disp
 export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteTitle: string): string {
   try {
     logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
-    // Method 1: x-callback
-    // const titleEncoded = encodeURIComponent(noteTitle)
-    // return `<span class="noteTitle sectionItem"><i class="fa-regular fa-file-lines"></i> <a href="noteplan://x-callback-url/openNote?noteTitle=${titleEncoded}">${noteTitle}</a></span>`
-
-    // Method 2: pass request back to plugin
-    // Note: not passing rawContent (param 4) as its not needed
-    // return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('${item.ID}','showNoteInEditorFromFilename','${item.filename}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
-    // Method 3: pass as a single object
+    // Pass request back to plugin, as a single object
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.filename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
   }
   catch (error) {
@@ -339,7 +315,8 @@ export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteT
 }
 
 /**
- * Wrap string with href onClick event to show note in editor
+ * Wrap string with href onClick event to show note in editor,
+ * using noteTitle param.
  * Note: based only on 'noteTitle', not a filename
  * @param {string} noteTitle
  * @returns {string} output
@@ -349,7 +326,6 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
     // Pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
-    // return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem('fake','showNoteInEditorFromTitle','${encodeURIComponent(noteTitle)}','')"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
   }
   catch (error) {

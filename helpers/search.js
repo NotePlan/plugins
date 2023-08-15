@@ -12,7 +12,7 @@ import { RE_SYNC_MARKER } from '@helpers/regex'
  * Case insensitive array.includes() match
  * @author @jgclark
  * @param {string} searchTerm
- * @param {Array<string>} arrayToSearch 
+ * @param {Array<string>} arrayToSearch
  * @returns {boolean}
  * TODO: @tests available in jest file
  */
@@ -32,8 +32,8 @@ export function caseInsensitiveIncludes(searchTerm: string, arrayToSearch: Array
 /**
  * Perform string exact match, ignoring case
  * @author @jgclark
- * @param {string} searchTerm 
- * @param {string} textToSearch 
+ * @param {string} searchTerm
+ * @param {string} textToSearch
  * @returns {boolean}
  * @tests available in jest file
  */
@@ -51,8 +51,8 @@ export function caseInsensitiveMatch(searchTerm: string, textToSearch: string): 
 /**
  * Perform substring match, ignoring case
  * @author @jgclark
- * @param {string} searchTerm 
- * @param {string} textToSearch 
+ * @param {string} searchTerm
+ * @param {string} textToSearch
  * @returns {boolean}
  * @tests available in jest file
  */
@@ -71,8 +71,8 @@ export function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: 
  * Returns true if A is a strict subset of B, starting from the beginning.
  * i.e. won't match if A===B
  * @author @jgclark
- * @param {string} searchTerm 
- * @param {string} textToSearch 
+ * @param {string} searchTerm
+ * @param {string} textToSearch
  * @returns {boolean}
  * @tests available in jest file
  */
@@ -91,7 +91,7 @@ export function caseInsensitiveStartsWith(searchTerm: string, textToSearch: stri
 /**
  * Check if 'searchTerm' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
  * @author @jgclark
- * @param {string} hashtagToTest 
+ * @param {string} hashtagToTest
  * @param {$ReadOnlyArray<string>} wantedHashtags
  * @param {$ReadOnlyArray<string>} excludedHashtags
  * @returns {boolean}
@@ -117,7 +117,7 @@ export function isHashtagWanted(hashtagToTest: string,
 /**
  * Check if 'searchTerm' is or isn't a member of wanted or excluded arrays. The check is done ignoring case
  * @author @jgclark
- * @param {string} mentionToTest 
+ * @param {string} mentionToTest
  * @param {$ReadOnlyArray<string>} wantedMentions
  * @param {$ReadOnlyArray<string>} excludedMentions
  * @returns {boolean}
@@ -147,7 +147,7 @@ export function isMentionWanted(mentionToTest: string,
  * Note: this is not quite the same as .content
  * @author @jgclark
  * @param {string} input
- * @returns {string} simplified output
+ * @returns {number} first main position
  * @tests in jest file
  */
 export function getLineMainContentPos(input: string): number {
@@ -162,7 +162,8 @@ export function getLineMainContentPos(input: string): number {
         return 0
       }
     } else {
-      throw new Error(`input is null or empty`)
+      logDebug('getLineMainContentPos', `input is null or empty`)
+      return 0
     }
   } catch (error) {
     logError('getLineMainContentPos', error.message)
@@ -174,7 +175,7 @@ export function getLineMainContentPos(input: string): number {
  * Take a line and simplify by removing blockIDs, and trim start/end.
  * Note: a different function deals with start-of-line Markdown markers (for open/closed/cancelled/sched tasks, quotes, lists, headings).
  * @author @jgclark
- * @param {string} input 
+ * @param {string} input
  * @returns {string} simplified output
  * @tests in jest file
  */
@@ -199,7 +200,7 @@ export function simplifyRawContent(input: string): string {
  *   - TODO: Ideally doesn't chop in the middle of a URI
  * - adds ==highlight== to matching terms if wanted (and if not already highlighted, and using 'Simplified' style)
  * @author @jgclark
- * 
+ *
  * @param {string} input this result content
  * @param {Array<string>} terms to find/highlight (without search operator prefixes)
  * @param {boolean} simplifyLine trim off leading markdown markers?

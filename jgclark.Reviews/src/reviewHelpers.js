@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 23.6.2023 for v0.12.0, @jgclark
+// Last updated 22.7.2023 for v0.12.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -370,10 +370,6 @@ export class Project {
         logDebug('Found nextReview()', `${this.nextReviewDateStr} / ${String(this.nextReviewDate)}`)
       }
 
-      // calculate the durations from these dates
-      this.calcDurations()
-      this.calcNextReviewDate() // not sure if this is needed
-
       // count tasks (includes both tasks and checklists)
       this.openTasks = paras.filter(isOpen).length
       this.completedTasks = paras.filter(isDone).length
@@ -389,7 +385,7 @@ export class Project {
       }
 
       if (this.title.includes('(TEST)')) {
-        logDebug('Project constructor', `- for '${this.title}' (${this.filename})`)
+        logDebug('Project constructor', `- for '${this.title}' (${this.filename}) in folder ${this.folder}`)
         logDebug('Project constructor', `  - metadataLine = ${metadataLine}`)
         logDebug('Project constructor', `  - mentions: ${String(mentions)}`)
         // logDebug('Project constructor', `  - altMentions: ${String(altMentions)}`)
@@ -413,6 +409,14 @@ export class Project {
         this.isPaused = true
         this.nextReviewDays = NaN
       }
+
+      // calculate the durations from these dates
+      this.calcDurations()
+      // if not finished, calculate next review dates
+      if (!this.isCancelled && !this.isCompleted) {
+        this.calcNextReviewDate()
+      }
+
       logDebug('Project constructor', `project(${this.title}) -> ID ${this.ID} / ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
 
       // Find progress field lines (if any) and process
@@ -717,7 +721,7 @@ export class Project {
   }
 
   /**
-   * v2: Returns TSV line with just the data needed to filter output lists
+   * v2: Returns TSV line to go in full-review-list with just the data needed to filter output lists
    * @return {string}
    */
   machineSummaryLine(): string {

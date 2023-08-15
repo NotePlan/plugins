@@ -14,12 +14,23 @@ import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
 export { countAndAddDays } from './countDays'
-export { indexFolders } from './indexFolders'
+export { indexFolders, updateAllIndexes } from './indexFolders'
 export { listInconsistentNames } from './lib/commands/listInconsistentNames'
 export { titleToFilename } from './lib/commands/titleToFilename'
 export { renameInconsistentNames } from './lib/commands/renameInconsistentNames'
-export { jumpToDone, jumpToHeading, jumpToNoteHeading, openCurrentNoteNewSplit, openNoteNewWindow, openNoteNewSplit, openURLFromANote } from './noteNavigation'
 export { addTriggerToNote, convertLocalLinksToPluginLinks, addFrontmatterToNote, moveNote, renameNoteFile } from './noteHelpers'
+export {
+  jumpToDone,
+  jumpToHeading,
+  jumpToNoteHeading,
+  openCurrentNoteNewSplit,
+  openNoteNewWindow,
+  openNoteNewSplit,
+  openURLFromANote,
+  showMonth,
+  showQuarter,
+  showYear
+} from './noteNavigation'
 
 export function init(): void {
   // In the background, see if there is an update to the plugin to install, and if so let user know

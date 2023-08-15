@@ -1,6 +1,6 @@
 /* globals describe, expect, jest, test, beforeEach, afterEach, beforeAll */
 
-// Last updated: 23.11.2022 by @jgclark
+// Last updated: 23.7.2023 by @jgclark
 
 import colors from 'chalk'
 import { CustomConsole } from '@jest/console' // see note below
@@ -236,8 +236,16 @@ describe(`${PLUGIN_NAME}`, () => {
     test('test 5', () => {
       expect(dt.withinDateRange('20210624', '20210501', '20210531')).toEqual(false)
     })
-    // TODO: add test over year boundary
-    // TODO: add test on a leap day
+    test('test 6 over year boundary', () => {
+      expect(dt.withinDateRange('20240101', '20231201', '20240201')).toEqual(true)
+    })
+    test('test 7 on a valid leap day', () => {
+      expect(dt.withinDateRange('20240229', '20240201', '20240301')).toEqual(true)
+    })
+    // TODO: fix this edge case
+    test.skip('test 8 on an invalid leap day', () => {
+      expect(dt.withinDateRange('20230229', '20230201', '20230301')).toEqual(false)
+    })
   })
 
   describe('daysBetween', () => {
@@ -318,7 +326,7 @@ describe(`${PLUGIN_NAME}`, () => {
       expect(dt.getISODateStringFromYYYYMMDD('2021123100.md')).toEqual('2021-12-31')
     })
     test('2021123.md fail', () => {
-      expect(dt.getISODateStringFromYYYYMMDD('2021123.md')).toEqual('(invalid date)')
+      expect(dt.getISODateStringFromYYYYMMDD('2021123.md')).toEqual('(not a YYYYMMDD date)')
     })
   })
 
@@ -437,9 +445,6 @@ describe(`${PLUGIN_NAME}`, () => {
       test('2022-01-01 +364d', () => {
         expect(dt.calcOffsetDateStr('2022-01-01', '364d')).toEqual('2022-12-31')
       })
-      test('2022-01-01 +2w', () => {
-        expect(dt.calcOffsetDateStr('2022-01-01', '2w')).toEqual('2022-01-15')
-      })
       test('2022-01-01 +4m', () => {
         expect(dt.calcOffsetDateStr('2022-01-01', '4m')).toEqual('2022-05-01')
       })
@@ -515,6 +520,12 @@ describe(`${PLUGIN_NAME}`, () => {
       test('2022-W52 +1w', () => {
         expect(dt.calcOffsetDateStr('2022-W52', '1w')).toEqual('2023-W01')
       })
+      test('2022-01-01 +2w', () => {
+        expect(dt.calcOffsetDateStr('2022-01-01', '2w')).toEqual('2022-01-15')
+      })
+      test('2023-07-24 +0w', () => {
+        expect(dt.calcOffsetDateStr('2023-07-24', '0w')).toEqual('2023-07-24')
+      })
       test('2022-W23 +2w', () => {
         expect(dt.calcOffsetDateStr('2022-W23', '2w')).toEqual('2022-W25')
       })
@@ -543,18 +554,52 @@ describe(`${PLUGIN_NAME}`, () => {
         expect(dt.calcOffsetDateStr('2022', '-2y')).toEqual('2020')
       })
     })
-    describe('adapting output to shorter durations than input', () => {
-      test('2023-07 +14d -> 2023-07-15', () => {
-        expect(dt.calcOffsetDateStr('2023-07', '14d')).toEqual('2023-07-15')
+    describe('adapting output to offset durations', () => {
+      beforeAll(() => {
+        DataStore.settings['_logLevel'] = "DEBUG"
       })
-      test('2023-07 +2w -> 2023-W28', () => {
-        expect(dt.calcOffsetDateStr('2023-07', '2w')).toEqual('2023-W28')
+      test('2023-07 +14d -> 2023-07-15', () => {
+        expect(dt.calcOffsetDateStr('2023-07', '14d', 'offset')).toEqual('2023-07-15')
+      })
+      test('2023-07 +10b -> 2023-07-14', () => {
+        expect(dt.calcOffsetDateStr('2023-07', '10b', 'offset')).toEqual('2023-07-14')
+      })
+      test('2023-W30 0d -> 2023-07-24', () => {
+        expect(dt.calcOffsetDateStr('2023-W30', '0d', 'offset')).toEqual('2023-07-24')
       })
       test('2023-Q3 +6w -> 2023-W32', () => {
-        expect(dt.calcOffsetDateStr('2023-Q3', '6w')).toEqual('2023-W32')
+        expect(dt.calcOffsetDateStr('2023-Q3', '6w', 'offset')).toEqual('2023-W32')
       })
       test('2023 +3q -> 2023-Q4', () => {
-        expect(dt.calcOffsetDateStr('2023', '3q')).toEqual('2023-Q4')
+        expect(dt.calcOffsetDateStr('2023', '3q', 'offset')).toEqual('2023-Q4')
+      })
+    })
+    describe('adapting output to shorter durations than base', () => {
+      test('2023-07 +14d -> 2023-07-15', () => {
+        expect(dt.calcOffsetDateStr('2023-07', '14d', 'shorter')).toEqual('2023-07-15')
+      })
+      test('2023-07 +2w -> 2023-W28', () => {
+        expect(dt.calcOffsetDateStr('2023-07', '2w', 'shorter')).toEqual('2023-W28')
+      })
+      test('2023-Q3 +6w -> 2023-W32', () => {
+        expect(dt.calcOffsetDateStr('2023-Q3', '6w', 'shorter')).toEqual('2023-W32')
+      })
+      test('2023 +3q -> 2023-Q4', () => {
+        expect(dt.calcOffsetDateStr('2023', '3q', 'shorter')).toEqual('2023-Q4')
+      })
+    })
+    describe('adapting output to longer durations than base', () => {
+      test('2023-07-24 +0w -> 2023-W30', () => {
+        expect(dt.calcOffsetDateStr('2023-07-24', '0w', 'longer')).toEqual('2023-W30')
+      })
+      test('2023-07+24 +2w -> 2023-W32', () => {
+        expect(dt.calcOffsetDateStr('2023-07-24', '2w', 'longer')).toEqual('2023-W32')
+      })
+      test('2023-W30 +1m -> 2023-W32', () => {
+        expect(dt.calcOffsetDateStr('2023-W30', '1m', 'longer')).toEqual('2023-08')
+      })
+      test('2023-02 +2q -> 2023-Q3', () => {
+        expect(dt.calcOffsetDateStr('2023-02', '2q', 'longer')).toEqual('2023-Q3')
       })
     })
     describe('should return errors', () => {
@@ -684,16 +729,15 @@ describe(`${PLUGIN_NAME}`, () => {
     })
   })
 
-  describe('weekStartEndDates()', () => {
-    // skipped, as I can't see why moment is right here
+  describe('isoWeekStartEndDates()', () => {
     test('2021W52 -> (2021-12-27, 2022-01-02)', () => {
-      expect(dt.weekStartEndDates(52, 2021)).toEqual([new Date(2021, 11, 27, 0, 0, 0), new Date(2022, 0, 2, 23, 59, 59)])
+      expect(dt.isoWeekStartEndDates(52, 2021)).toEqual([new Date(2021, 11, 27, 0, 0, 0), new Date(2022, 0, 2, 23, 59, 59)])
     })
     test('2022W1 -> (2022-01-03, 2022-01-09)', () => {
-      expect(dt.weekStartEndDates(1, 2022)).toEqual([new Date(2022, 0, 3, 0, 0, 0), new Date(2022, 0, 9, 23, 59, 59)])
+      expect(dt.isoWeekStartEndDates(1, 2022)).toEqual([new Date(2022, 0, 3, 0, 0, 0), new Date(2022, 0, 9, 23, 59, 59)])
     })
     test('2022W2 -> (2022-01-10, 2022-01-16)', () => {
-      expect(dt.weekStartEndDates(2, 2022)).toEqual([new Date(2022, 0, 10, 0, 0, 0), new Date(2022, 0, 16, 23, 59, 59)])
+      expect(dt.isoWeekStartEndDates(2, 2022)).toEqual([new Date(2022, 0, 10, 0, 0, 0), new Date(2022, 0, 16, 23, 59, 59)])
     })
   })
 
@@ -741,6 +785,10 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should return valid date for daily note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('20220101.md')
       expect(result).toEqual('20220101')
+    })
+    test('should return valid ISO date for daily note filename (with returnISODate)', () => {
+      const result = dt.getDateStringFromCalendarFilename('20220101.md', true)
+      expect(result).toEqual('2022-01-01')
     })
     test('should return valid date for weekly note filename', () => {
       const result = dt.getDateStringFromCalendarFilename('2022-W52.md')
@@ -869,6 +917,42 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = dt.isValidCalendarNoteDateStr(`2021-W00`)
         expect(result).toEqual(false)
       })
+    })
+  })
+
+  /* isValidCalendarNoteFilename() */
+  describe('isValidCalendarNoteFilename()' /* function */, () => {
+    test('should pass for daily note filename', () => {
+      const result = dt.isValidCalendarNoteFilename('20220101.md')
+      expect(result).toEqual(true)
+    })
+    test('should pass for weekly note filename', () => {
+      const result = dt.isValidCalendarNoteFilename('2022-W52.md')
+      expect(result).toEqual(true)
+    })
+    test('should pass for monthly note filename', () => {
+      const result = dt.isValidCalendarNoteFilename('2022-12.md')
+      expect(result).toEqual(true)
+    })
+    test('should pass for quarterly note filename', () => {
+      const result = dt.isValidCalendarNoteFilename('2022-Q2.md')
+      expect(result).toEqual(true)
+    })
+    test('should pass for yearly note filename', () => {
+      const result = dt.isValidCalendarNoteFilename('2022.txt')
+      expect(result).toEqual(true)
+    })
+    test('should fail for incomplete yearly note filename', () => {
+      const result = dt.isValidCalendarNoteFilename('2022')
+      expect(result).toEqual(false)
+    })
+    test('should fail for too-short date', () => {
+      const result = dt.isValidCalendarNoteFilename('2022033.md')
+      expect(result).toEqual(false)
+    })
+    test('should fail for non-date', () => {
+      const result = dt.isValidCalendarNoteFilename('today.md')
+      expect(result).toEqual(false)
     })
   })
 })

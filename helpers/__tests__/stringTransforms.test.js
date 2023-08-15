@@ -35,15 +35,20 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = st.changeMarkdownLinksToHTMLLink(input)
       expect(result).toEqual(input)
     })
-    test('should produce HTML link 1', () => {
+    test('should produce HTML link 1 without icon', () => {
+      const input = 'this has [text](brackets) with a valid link'
+      const result = st.changeMarkdownLinksToHTMLLink(input, false)
+      expect(result).toEqual('this has <a class="externalLink" href="brackets">text</a> with a valid link')
+    })
+    test('should produce HTML link 1 with icon', () => {
       const input = 'this has [text](brackets) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <span class="externalLink"><a href="brackets">text</a></span> with a valid link')
+      expect(result).toEqual('this has <a class="externalLink" href="brackets"><i class="fa-regular fa-globe"></i>text</a> with a valid link')
     })
     test('should produce HTML link 2', () => {
       const input = 'this has [title with spaces](https://www.something.com/with?various&chars%20ok) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <span class="externalLink"><a href="https://www.something.com/with?various&chars%20ok">title with spaces</a></span> with a valid link')
+      expect(result).toEqual('this has <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe"></i>title with spaces</a> with a valid link')
     })
   })
 
@@ -65,17 +70,22 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = st.changeBareLinksToHTMLLink(input)
       expect(result).toEqual('this has [a valid MD link](https://www.something.com/with?various&chars%20ok)')
     })
-    test('should produce HTML link 1', () => {
+    test('should produce HTML link 1 with icon', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
       const result = st.changeBareLinksToHTMLLink(input)
       expect(result).toEqual(
-        'this has a <span class="externalLink"><a href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a></span> valid bare link',
-      )
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe"></i>https://www.something.com/with?various&chars%20ok</a> valid bare link')
+    })
+    test('should produce HTML link 1 without icon', () => {
+      const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
+      const result = st.changeBareLinksToHTMLLink(input, false)
+      expect(result).toEqual(
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a> valid bare link')
     })
     test('should produce HTML link when a link takes up the whole line', () => {
       const input = 'https://www.something.com/with?various&chars%20ok'
       const result = st.changeBareLinksToHTMLLink(input)
-      expect(result).toEqual('<span class="externalLink"><a href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a></span>')
+      expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe"></i>https://www.something.com/with?various&chars%20ok</a>')
     })
   })
 
@@ -317,6 +327,18 @@ describe(`${PLUGIN_NAME}`, () => {
         const expected = 'aàáâäæãåāeèéêëēėęiîíoôölł'
         const result = st.decodeRFC3986URIComponent(input)
         expect(result).toEqual(expected)
+      })
+    })
+
+    describe('encode...-decode... match tests', () => {
+      test('long string from DW', () => {
+        const input = `'5m[CommandBar](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Review%20overdue%20tasks%20%28by%20Task%29) > [React](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Process%20Overdue%20Items%20in%20a%20Separate%20Window&arg0=Overdue)  !!!!`
+        const encoded = st.encodeRFC3986URIComponent(input)
+        const decoded = st.decodeRFC3986URIComponent(encoded)
+        console.log(input)
+        console.log(encoded)
+        console.log(decoded)
+        expect(decoded).toEqual(input)
       })
     })
   })

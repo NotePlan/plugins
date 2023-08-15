@@ -10,6 +10,15 @@ import { RE_IS_SCHEDULED } from './dateTime'
 export const isOpen = (t: TParagraph): boolean => t.type === 'open' || t.type === 'checklist'
 
 /**
+ * Test whether a task is open or not (type: 'open' or 'checklist') and doesn't have a scheduled date
+ * @param {Paragraph} t - the paragraph/task to check
+ * @returns {boolean} true if open, false if any other status/type
+ */
+export function isOpenNotScheduled(t: TParagraph): boolean {
+  return (t.type === 'open' || t.type === 'checklist') && !hasScheduledDate(t.content)
+}
+
+/**
  * Test whether a task is closed or not (types: 'done', 'cancelled', 'checklistDone', 'checklistCancelled').
  * Note: not the same as isDone(), which is tighter
  * @param {Paragraph} t - the paragraph/task to check

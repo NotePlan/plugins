@@ -873,23 +873,6 @@ describe('NPParagraphs()', () => {
       expect(result).toEqual(expected)
     })
   })
-  // DBW: commenting out for now. if you see this after March 2023, feel free to delete this comment
-  // /*
-  //  * getScheduledDateType()
-  //  */
-  // describe('getScheduledDateType()' /* function */, () => {
-  //   test('should return null if no overdues', () => {
-  //     const para = new Paragraph({ content: '* foo bar?' })
-  //     const result = p.getScheduledDateType(para)
-  //     expect(result).toEqual(null)
-  //   })
-  //   test('should return null if no overdues', () => {
-  //     const para = new Paragraph({ content: '* foo bar >2020-01-01', filename: '20200101.md', noteType: 'Calendar' })
-  //     const result = p.getScheduledDateType(para)
-  //     const expected = 'Daily'
-  //     expect(result).toEqual(expected)
-  //   })
-  // })
 
   /*
    * getDaysTilDue()
@@ -1035,3 +1018,45 @@ describe('NPParagraphs()', () => {
 //     expect(result).toEqual(1)
 //   })
 // })
+
+/*
+ * makeBasicParasFromContent()
+ * Note: skipped, as what it's testing isn't complete yet
+ */
+describe('makeBasicParasFromContent()', () => {
+  // TODO: delete next phrase when all is working
+  beforeEach(() => {
+    DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging | none for quiet
+  })
+  test.skip('should return block (with heading) when passed a heading string', () => {
+    const content = `# line 0 title
+* line 1 open task
+* [ ] line 2 open task
+- bullet line 3
+* [x] line 4 closed task
+* [-] line 5 cancelled task
+---
+
+line 8 ordinary para
+> line 9 quote
+1. line 10 numbered list
++ line 11 checklist`
+    const paragraphs = [
+      /*new Paragraph(*/{ type: 'title', content: 'line 0 title', rawContent: '# line 0 title', lineIndex: 0 },
+      /*new Paragraph(*/{ type: 'open', content: 'line 1 open task', rawContent: '* line 1 open task', lineIndex: 1 },
+      /*new Paragraph(*/{ type: 'open', content: 'line 2 open task', rawContent: '* [ ] line 2 open task', lineIndex: 2 },
+      /*new Paragraph(*/{ type: 'list', content: '- bullet line 3', rawContent: '- bullet line 3', lineIndex: 3 },
+      /*new Paragraph(*/{ type: 'done', content: 'line 4 closed task', rawContent: '* [x] line 4 closed task', lineIndex: 4 },
+      /*new Paragraph(*/{ type: 'cancelled', content: 'line 5 cancelled task', rawContent: '* [-] line 5 cancelled task', lineIndex: 5 },
+      /*new Paragraph(*/{ type: 'separator', content: '---', rawContent: '---', lineIndex: 6 },
+      /*new Paragraph(*/{ type: 'empty', content: '', rawContent: '', lineIndex: 7 },
+      /*new Paragraph(*/{ type: 'text', content: 'line 8 ordinary para', rawContent: 'line 8 ordinary para', lineIndex: 8 },
+      /*new Paragraph(*/{ type: 'quote', content: 'line 9 quote', rawContent: '> line 9 quote', lineIndex: 9 },
+      /*new Paragraph(*/{ type: 'list', content: 'line 10 numbered list', rawContent: '1. line 10 numbered list', lineIndex: 10 },
+      /*new Paragraph(*/{ type: 'checklist', content: 'line 11 checklist', rawContent: '+ line 11 checklist', lineIndex: 11 },
+    ]
+
+    const resultParas = p.makeBasicParasFromContent(content)
+    expect(resultParas).toEqual(paragraphs)
+  })
+})

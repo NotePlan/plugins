@@ -145,7 +145,7 @@ async function cancelChecklist(data) {
   replaceClassInID(`${itemID}I`, "fa-regular fa-square-xmark") // adds x-box icon
   addClassToID(itemID, "cancelled") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
-  await delay(2000)
+  await delay(1400)
   deleteHTMLItem(itemID)
   // update the totals
   decrementItemCount("totalOpenCount")
@@ -173,7 +173,7 @@ async function cancelTask(data) {
   replaceClassInID(`${itemID}I`, "fa-regular fa-circle-xmark") // adds x-circle icon
   addClassToID(itemID, "cancelled") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
-  await delay(2000)
+  await delay(1400)
   deleteHTMLItem(itemID)
   // update the totals
   decrementItemCount("totalOpenCount")
@@ -255,7 +255,7 @@ function onClickDashboardItem(data) {
  * @param {boolean} state that it now has
  */
 function onChangeCheckbox(settingName, state) {
-  // const data = { settingName, state }
+  const data = { settingName, state }
   // console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
   sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
 }
@@ -366,22 +366,3 @@ function showError(message) {
     div.innerText = message
   }
 }
-
-// /**
-//  * Reverse of encodeRFC3986URIComponent
-//  * Note: copy of function in helpers/stringTransforms.js, but without type information
-//  * @author @jgclark
-//  * @tests in jest file
-//  * @param {string} input
-//  * @returns {string}
-//  */
-// function decodeRFC3986URIComponent(input) {
-//   return decodeURIComponent(input)
-//     .replace(/%5B/g, "[")
-//     .replace(/%5D/g, "]")
-//     .replace(/%21/g, "!")
-//     .replace(/%27/g, "'")
-//     .replace(/%28/g, "(")
-//     .replace(/%29/g, ")")
-//     .replace(/%2A/g, "*")
-// }

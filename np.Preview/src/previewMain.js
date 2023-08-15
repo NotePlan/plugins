@@ -2,7 +2,7 @@
 
 //--------------------------------------------------------------
 // Main rendering function for Preview
-// by Jonathan Clark, last updated 24.6.2023 for v0.4.0
+// by Jonathan Clark, last updated 11.8.2023 for v0.4.?
 //--------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,9 +12,19 @@ import { getCodeBlocksOfType } from '@helpers/codeBlocks'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { addTrigger } from '@helpers/NPFrontMatter'
 import { displayTitle } from '@helpers/general'
-import { getFrontMatterParagraphs, hasFrontMatter } from '@helpers/NPFrontMatter'
-import { type HtmlWindowOptions, showHTMLV2 } from '@helpers/HTMLView'
-import { formRegExForUsersOpenTasks } from '@helpers/regex'
+import {
+  getFrontMatterParagraphs,
+  hasFrontMatter
+} from '@helpers/NPFrontMatter'
+import {
+  convertHashtagsToHTML,
+  convertHighlightsToHTML,
+  convertMentionsToHTML,
+  convertUnderlinedToHTML,
+  type HtmlWindowOptions,
+  showHTMLV2
+} from '@helpers/HTMLView'
+import { formRegExForUsersOpenTasks, RE_SYNC_MARKER } from '@helpers/regex'
 import { showMessageYesNo } from '@helpers/userInput'
 
 //--------------------------------------------------------------
@@ -104,8 +114,7 @@ export function previewNote(mermaidTheme?: string): void {
       }
     }
 
-    // TODO: Ideally build a frontmatter styler extension
-    // But for now ...
+
     // Update mermaid fenced code blocks to suitable <divs>
     // Note: did try to use getCodeBlocksOfType() helper but found it wasn't architected helpfully for this use case
     let includesMermaid = false
@@ -134,10 +143,6 @@ export function previewNote(mermaidTheme?: string): void {
       }
     }
 
-    for (let i = 0; i < 10; i++) {
-      logDebug('previewNote', `start ${i}: ${lines[i]}`)
-    }
-
     // Make this proper Markdown -> HTML via showdown library
     // Set some options to turn on various more advanced HTML conversions (see actual code at https://github.com/showdownjs/showdown/blob/master/src/options.js#L109):
     const converterOptions = {
@@ -154,8 +159,9 @@ export function previewNote(mermaidTheme?: string): void {
     const converter = new showdown.Converter(converterOptions)
     let body = converter.makeHtml(lines.join(`\n`))
 
-    logDebug(pluginJson, 'Converter produces:\n' + body)
+    // logDebug(pluginJson, 'Converter produces:\n' + body)
 
+    // TODO: Ideally build a frontmatter styler extension (to use above) but for now ...
     // Tweak body output to put frontmatter in a box if it exists
     if (hasFrontmatter) {
       // replace first '<hr />' with start of div
@@ -165,16 +171,54 @@ export function previewNote(mermaidTheme?: string): void {
     }
     // logDebug(pluginJson, body)
 
+    // Make other changes to the HTML to cater for NotePlan-specific syntax
+    lines = body.split('\n')
+    let modifiedLines = []
+    for (let line of lines) {
+      const origLine = line
+
+      // Display hashtags with .hashtag style
+      line = convertHashtagsToHTML(line)
+
+      // Display mentions with .attag style
+      line = convertMentionsToHTML(line)
+
+      // Display highlights with .highlight style
+      line = convertHighlightsToHTML(line)
+
+      // Replace [[notelinks]] with just underlined notelink
+      let captures = line.match(/\[\[(.*?)\]\]/)
+      if (captures) {
+        // clo(captures, 'results from [[notelinks]] match:')
+        for (let capturedTitle of captures) {
+          line = line.replace('[[' + capturedTitle + ']]', '~' + capturedTitle + '~')
+        }
+      }
+      // Display underlining with .underlined style
+      line = convertUnderlinedToHTML(line)
+
+      // Remove any blockIDs
+      line = line.replace(RE_SYNC_MARKER, '')
+
+      if (line !== origLine) {
+        logDebug('previewNote', `modified {${origLine}} -> {${line}}`)
+      }
+      modifiedLines.push(line)
+    }
+    const finalBody = modifiedLines.join('\n')
+
     // Add sticky button at top right offering to print
     // (But printing doesn't work on i(Pad)OS ...)
     if (NotePlan.environment.platform === 'macOS') {
       body = `	<div class="stickyButton"><button class="nonPrinting" type="printButton"><a href="preview.html" onclick="window.open(this.href).print(); return false;">Print (opens in system browser)</a></button></div>\n` + body // Note: seems to need the .print() even though it doesn't activate in the browser.
     }
+    const headerTags = `<meta name="generator" content="np.Preview plugin by @jgclark v${pluginJson['plugin.version'] ?? '?'}">
+<meta name="date" content="${new Date().toISOString()}">`
 
     body += (includesMermaid ? initMermaidScripts(mermaidTheme) : '')
     const windowOpts: HtmlWindowOptions = {
       windowTitle: `${displayTitle(Editor)} Preview`,
-      headerTags: '',
+      headerTags: headerTags,
       generalCSSIn: '', // get general CSS set automatically
       bodyOptions: '',
       specificCSS: extraCSS,
@@ -187,7 +231,7 @@ export function previewNote(mermaidTheme?: string): void {
       shouldFocus: true, // shouuld not focus, if Window already exists
       // not setting defaults for x, y, width, height
     }
-    showHTMLV2(body, windowOpts)
+    showHTMLV2(finalBody, windowOpts)
     // logDebug('preview', `written results to HTML`)
   }
   catch (error) {
