@@ -9,10 +9,7 @@ import {
 } from './dateTime'
 import { getRelativeDates, type NotePlanWeekInfo } from './NPdateTime'
 import { clo, logDebug, logError, logWarn, JSP } from './dev'
-import {
-  allNotesSortedByChanged,
-  // calendarNotesSortedByChanged, projectNotesSortedByChanged
-} from './note'
+import { displayTitle, findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
 
 // NB: This fn is a local copy from helpers/general.js, to avoid a circular dependency
@@ -615,7 +612,7 @@ function displayTitle(noteIn: CoreNoteFields, showRelativeDates: boolean = true)
 
 /**
  * Choose a particular note from a CommandBar list of notes
- * @author @dwertheimer
+ * @author @dwertheimer extended by @jgclark
  * @param {boolean} includeProjectNotes
  * @param {boolean} includeCalendarNotes
  * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
@@ -631,15 +628,34 @@ export async function chooseNote(
   currentNoteFirst?: boolean = false,
 ): Promise<TNote | null> {
   let noteList = []
-  const noteListFiltered = allNotesSortedByChanged(foldersToIgnore)
-  let opts = noteListFiltered.map((note) => {
+  const projectNotes = DataStore.projectNotes
+  const calendarNotes = DataStore.calendarNotes
+  if (includeProjectNotes) {
+    noteList = noteList.concat(projectNotes)
+  }
+  if (includeCalendarNotes) {
+    noteList = noteList.concat(calendarNotes)
+  }
+  const noteListFiltered = noteList.filter((note) => {
+    // filter out notes that are in folders to ignore
+    let isInIgnoredFolder = false
+    foldersToIgnore.forEach((folder) => {
+      if (note.filename.includes(`${folder}/`)) {
+        isInIgnoredFolder = true
+      }
+    })
+    isInIgnoredFolder = isInIgnoredFolder || !/(\.md|\.txt)$/i.test(note.filename) //do not include non-markdown files
+    return !isInIgnoredFolder
+  })
+  const sortedNoteListFiltered = noteListFiltered.sort((first, second) => second.changedDate - first.changedDate) // most recent first
+  const opts = sortedNoteListFiltered.map((note) => {
     return displayTitle(note)
   })
   const { note } = Editor
   if (currentNoteFirst && note) {
-    noteListFiltered.unshift(note)
+    sortedNoteListFiltered.unshift(note)
     opts.unshift(`[Current note: "${displayTitle(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
-  return noteListFiltered[index] ?? null
+  return sortedNoteListFiltered[index] ?? null
 }
