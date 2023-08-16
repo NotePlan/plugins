@@ -1,0 +1,162 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "dbludeau.TodoistNoteplanSync",
+  "plugin.name": "🧩 Todoist Noteplan Sync",
+  "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "Describe this update",
+  "plugin.description": "Import and sync tasks between Todoist and Noteplan",
+  "plugin.author": "dbludeau",
+  "plugin.requiredFiles-EDIT_ME": ["html-plugin-comms.js"],
+  "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dbludeau.TodoistNoteplanSync/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dbludeau.TodoistNoteplanSync/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "note": "================== COMMMANDS ========================"
+    },
+    {
+      "name": "todoist sync everything",
+      "alias": ["tose"],
+      "description": "Sycn all tasks in Todoist to folder set in settings",
+      "jsFunction": "syncEverything",
+      "arguments": [""]
+    },
+    {
+      "name": "todoist sync today",
+      "alias": ["tost"],
+      "description": "Sync Todoist tasks due today to the Noteplan daily note",
+      "jsFunction": "syncToday",
+      "arguments": [""]
+    }, 
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Todoist Noteplan Sync: Version",
+      "description": "Update + Check Version",
+      "jsFunction": "versionCheck"
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onOpen",
+      "jsFunction": "onOpen",
+      "hidden": true
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onEditorWillSave",
+      "jsFunction": "onEditorWillSave",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onMessageFromHTMLView",
+      "description": "dbludeau.TodoistNoteplanSync: Callback function to receive messages from HTML view",
+      "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Todoist Noteplan Sync: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "note": "================== SETTINGS ========================"
+    },
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Todoist Noteplan Sync Settings"
+    },
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "dbludeau.TodoistNoteplanSync",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "type": "heading",
+      "title": "Syncing Options"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "string",
+      "key": "apiToken",
+      "title": "Todoist API token",
+      "description": "API token for your Todoist account.  See https://todoist.com/help/articles/find-your-api-token for more information.",
+      "required": true
+    },
+    {
+      "type": "string",
+      "key": "headerToUse",
+      "title": "Header to use for tasks without Todoist section",
+      "description": "Todoist tasks that are note part of a section will be written under this heading.  If you leave it blank, they will be prepended to the top of the note."
+    },
+    {
+      "type": "heading",
+      "title": "Sync Everything Options"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "string",
+      "key": "folderToUse",
+      "title": "Folder to use for syncing everything",
+      "description": "OPTIONAL. Folder where Todoist projects will sync to notes of same name when you run [/todoist sync everything].  If omitted, plugin will look for a folder named Todoist and create it if it does not exist",
+      "required": false
+    },
+    {
+      "type": "heading",
+      "title": "Task Details"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "bool",
+      "key": "syncDue",
+      "title": "Sync due dates",
+      "default": true
+    },
+    {
+      "type": "bool",
+      "key": "syncPriority",
+      "title": "Sync priorities",
+      "default": true
+    },
+    {
+      "note": "================== DEBUGGING SETTINGS ========================"
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Todoist Noteplan Sync commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}
