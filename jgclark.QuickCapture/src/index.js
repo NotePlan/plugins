@@ -77,6 +77,7 @@ export async function updateSettings() {
  * Assumes a note titled 'Quick Capture qalh TEST'
  */
 export function tempAddParaTest(): void {
+  // $FlowIgnore[incompatible-use]
   const note: TNote = DataStore.projectNoteByTitle('Quick Capture qalh TEST', false, false)[0]
   note.addParagraphBelowHeadingTitle(
     "test_text_addeed_below_heading",

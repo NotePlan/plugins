@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update v0.14.0, 1.8.2023 by @jgclark
+// last update 17.8.2023 for v0.14.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,9 +14,8 @@ import {
   RE_YYYYMMDD_DATE,
   unhyphenateString,
 } from '@helpers/dateTime'
-import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
+import { getNPWeekData, getRelativeDates, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
-// import { displayTitle } from '@helpers/general' // use local one now
 import { allNotesSortedByChanged, calendarNotesSortedByChanged, projectNotesSortedByChanged, weeklyNotesSortedByChanged } from '@helpers/note'
 import {
   findEndOfActivePartOfNote,
@@ -25,7 +24,9 @@ import {
   smartPrependPara
 } from '@helpers/paragraph'
 import {
-  chooseFolder, chooseHeading, showMessage
+  chooseFolder, chooseHeading,
+  displayTitleWithRelDate,
+  showMessage,
 } from '@helpers/userInput'
 
 //----------------------------------------------------------------------------
@@ -40,6 +41,8 @@ export type QCConfigType = {
   shouldAppend: boolean, // special case set in getQuickCaptureSettings()
   _logLevel: string,
 }
+
+const relativeDates = getRelativeDates()
 
 /**
  * Get config settings
@@ -66,94 +69,11 @@ export async function getQuickCaptureSettings(): Promise<any> {
 }
 
 /**
- * Get array of relative dates for day, week and month.
- * @author @jgclark
- * @returns {Object} relative date name, relative date string, TNote for that relative date
- */
-export function getRelativeDates(): Array<Object> {
-  try {
-    let relativeDates = []
-    const todayMom = moment()
-
-    // Calculate relative dates. Remember to clone todayMom first as moments aren't immutable
-    let thisDateStr = moment(todayMom).format('YYYYMMDD')
-    relativeDates.push({ relName: 'today', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format('YYYYMMDD')
-    relativeDates.push({ relName: 'yesterday', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format('YYYYMMDD')
-    relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-
-    // can't start with moment as NP weeks count differently
-    // $FlowIgnore[incompatible-type]
-    let thisNPWeekInfo: NotePlanWeekInfo = getNPWeekData(new Date())
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'this week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    // $FlowIgnore[incompatible-type]
-    thisNPWeekInfo = getNPWeekData(new Date(), -1)
-    // $FlowIgnore[incompatible-use]
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'last week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    // $FlowIgnore[incompatible-type]
-    thisNPWeekInfo = getNPWeekData(new Date(), 1)
-    // $FlowIgnore[incompatible-use]
-    thisDateStr = thisNPWeekInfo.weekString
-    relativeDates.push({ relName: 'next week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-
-    thisDateStr = moment(todayMom).startOf('month').format('YYYY-MM')
-    relativeDates.push({ relName: 'this month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).subtract(1, 'month').startOf('month').format('YYYY-MM')
-    relativeDates.push({ relName: 'last month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'month').startOf('month').format('YYYY-MM')
-    relativeDates.push({ relName: 'next month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-
-    thisDateStr = moment(todayMom).startOf('quarter').format('YYYY-[Q]Q')
-    relativeDates.push({ relName: 'this quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).subtract(1, 'quarter').startOf('quarter').format('YYYY-[Q]Q')
-    relativeDates.push({ relName: 'last quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'quarter').startOf('quarter').format('YYYY-[Q]Q')
-    relativeDates.push({ relName: 'next quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-
-    // for (const rd of relativeDates) {
-    //   const noteTitle = (rd.note) ? displayTitle(rd.note) : '(error)'
-    //   logDebug('getRelativeDates', `${rd.name ?? ''}: ${rd.dateStr ?? ''} / ${noteTitle}`)
-    // }
-    return relativeDates
-  } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
-    return [{}] // for completeness
-  }
-}
-
-const relativeDates = getRelativeDates()
-
-/**
- * V2 of displayTitle that optionally adds the relative date string after the calendar note titles, to make it easier to spot last/this/next D/W/M/Q
- * @param {CoreNoteFields} n
- * @param {boolean} showRelativeDates? (default: false)
- * @returns {string}
- */
-function displayTitle(n: CoreNoteFields, showRelativeDates: boolean = false): string {
-  if (n.type === 'Calendar') {
-    let calNoteTitle = getDateStringFromCalendarFilename(n.filename, false) ?? '(error)'
-    if (showRelativeDates) {
-      for (const rd of relativeDates) {
-        if (calNoteTitle === rd.dateStr) {
-          // console.log(`Found match with ${rd.relName}`)
-          calNoteTitle = `${rd.dateStr}\t(📆 ${rd.relName})`
-        }
-      }
-    }
-    return calNoteTitle
-  } else {
-    return n.title ?? '(error)'
-  }
-}
-
-/**
- * Select note from matching to 'noteTitleArg' (if given) or else ask User to select from all note titles
+ * Returns TNote from DataStore matching 'noteTitleArg' (if given) to titles, or else ask User to select from all note titles.
+ * Now first matches against special 'relative date' (e.g. 'last month', 'next week', defined above).
  * @param {string} purpose to show to user
  * @param {string?} noteTitleArg
- * @param {boolean?} justCalendarNotes?
+ * @param {boolean?} justCalendarNotes? (default: false)
  * @returns {TNote} note
  */
 async function getNoteFromParamOrUser(
@@ -181,7 +101,7 @@ async function getNoteFromParamOrUser(
         const noteTitleToMatch = noteTitleArg.match(RE_ISO_DATE)
           ? unhyphenateString(noteTitleArg)
           : noteTitleArg // for regular note titles, and weekly notes
-        const wantedNotes = allNotesSortedByChanged().filter((n) => displayTitle(n) === noteTitleToMatch)
+        const wantedNotes = allNotesSortedByChanged().filter((n) => displayTitleWithRelDate(n) === noteTitleToMatch)
         note = wantedNotes != null ? wantedNotes[0] : null
         if (note != null) {
           if (wantedNotes.length > 1) {
@@ -202,8 +122,8 @@ async function getNoteFromParamOrUser(
         repeatLoop = false
         // NB: CommandBar.showOptions only takes [string] as input
         let notesList = (justCalendarNotes)
-          ? calendarNotes.map((n) => displayTitle(n, true)).filter(Boolean)
-          : allNotes.map((n) => displayTitle(n, true)).filter(Boolean)
+          ? calendarNotes.map((n) => displayTitleWithRelDate(n, true)).filter(Boolean)
+          : allNotes.map((n) => displayTitleWithRelDate(n, true)).filter(Boolean)
         // notesList.unshift('➡️ relative dates (will open new list)')
         const res1 = await CommandBar.showOptions(notesList, 'Select note for new ' + purpose)
         if (res1.index > 0) {
@@ -231,7 +151,7 @@ async function getNoteFromParamOrUser(
     if (note == null) {
       throw new Error("Couldn't get note")
     } else {
-      logDebug('getNoteFromParamOrUser', `-> note '${displayTitle(note)}'`)
+      logDebug('getNoteFromParamOrUser', `-> note '${displayTitleWithRelDate(note)}'`)
     }
     return note
   } catch (error) {
@@ -271,7 +191,7 @@ export async function prependTaskToNote(
     } else {
       const notes = projectNotesSortedByChanged()
 
-      const re = await CommandBar.showOptions(notes.map((n) => displayTitle(n)).filter(Boolean), 'Select note to prepend')
+      const re = await CommandBar.showOptions(notes.map((n) => displayTitleWithRelDate(n)).filter(Boolean), 'Select note to prepend')
       note = notes[re.index]
     }
 
@@ -281,7 +201,7 @@ export async function prependTaskToNote(
       : await CommandBar.showInput(`Type the task`, `Prepend '%@' ${config.textToAppendToTasks}`)
 
     const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
-    logDebug('prependTaskToNote', `- Prepending task '${text}' to '${displayTitle(note)}'`)
+    logDebug('prependTaskToNote', `- Prepending task '${text}' to '${displayTitleWithRelDate(note)}'`)
     smartPrependPara(note, text, 'open')
   } catch (err) {
     logError(pluginJson, `prependTaskToNote: ${err.name}: ${err.message}`)
@@ -316,7 +236,7 @@ export async function appendTaskToNote(
     } else {
       const notes = projectNotesSortedByChanged()
 
-      const re = await CommandBar.showOptions(notes.map((n) => displayTitle(n)).filter(Boolean), 'Select note to append')
+      const re = await CommandBar.showOptions(notes.map((n) => displayTitleWithRelDate(n)).filter(Boolean), 'Select note to append')
       note = notes[re.index]
     }
 
@@ -326,7 +246,7 @@ export async function appendTaskToNote(
       : await CommandBar.showInput(`Type the task`, `Append '%@' ${config.textToAppendToTasks}`)
 
     const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
-    logDebug('appendTaskToNote', `- Appending task '${text}' to '${displayTitle(note)}'`)
+    logDebug('appendTaskToNote', `- Appending task '${text}' to '${displayTitleWithRelDate(note)}'`)
     // note.appendTodo(text)
     smartAppendPara(note, text, 'open')
   } catch (err) {
@@ -375,7 +295,7 @@ export async function addTaskToNoteHeading(
     // then then user has chosen to append to end of note, without a heading
     if (heading !== '') {
       const matchedHeading = findHeadingStartsWith(note, heading)
-      logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to '${displayTitle(note)}' below '${heading}'`)
+      logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to '${displayTitleWithRelDate(note)}' below '${heading}'`)
       note.addTodoBelowHeadingTitle(
         taskText,
         (matchedHeading !== '') ? matchedHeading : heading,
@@ -383,7 +303,7 @@ export async function addTaskToNoteHeading(
         true, // create heading if needed (possible if supplied via headingArg)
       )
     } else {
-      logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to end of '${displayTitle(note)}'`)
+      logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to end of '${displayTitleWithRelDate(note)}'`)
       note.insertTodo(taskText, findEndOfActivePartOfNote(note))
     }
   } catch (err) {
@@ -433,7 +353,7 @@ export async function addTextToNoteHeading(
     // then then user has chosen to append to end of note, without a heading
     if (heading !== '') {
       const matchedHeading = findHeadingStartsWith(note, heading)
-      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to '${displayTitle(note)}' below matchedHeading '${matchedHeading}' (heading was '${heading}')`)
+      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to '${displayTitleWithRelDate(note)}' below matchedHeading '${matchedHeading}' (heading was '${heading}')`)
       note.addParagraphBelowHeadingTitle(
         textToAdd,
         'text',
@@ -442,7 +362,7 @@ export async function addTextToNoteHeading(
         true, // create heading if needed (possible if supplied via headingArg)
       )
     } else {
-      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to end of '${displayTitle(note)}'`)
+      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to end of '${displayTitleWithRelDate(note)}'`)
       note.insertParagraph(textToAdd, findEndOfActivePartOfNote(note) + 1, 'text')
     }
   }
@@ -483,11 +403,11 @@ export async function prependTaskToCalendarNote(
       note = DataStore.calendarNoteByDateString(dateArgToMatch)
     }
     if (note != null) {
-      logDebug('prependTaskToCalendarNote', `- from dateArg, daily note = '${displayTitle(note)}'`)
+      logDebug('prependTaskToCalendarNote', `- from dateArg, daily note = '${displayTitleWithRelDate(note)}'`)
     } else {
       // Get details interactively from user
       const allCalNotes = calendarNotesSortedByChanged()
-      const calendarNoteTitles = allCalNotes.map((f) => displayTitle(f, true)) ?? ['error: no calendar notes found']
+      const calendarNoteTitles = allCalNotes.map((f) => displayTitleWithRelDate(f, true)) ?? ['error: no calendar notes found']
       const res = await CommandBar.showOptions(calendarNoteTitles, 'Select calendar note for new todo')
       dateStr = getDateStringFromCalendarFilename(allCalNotes[res.index].filename)
       note = DataStore.calendarNoteByDateString(dateStr)
@@ -495,7 +415,7 @@ export async function prependTaskToCalendarNote(
 
     if (note != null) {
       const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
-      logDebug('prependTaskToCalendarNote', `- Prepending task '${text}' to '${displayTitle(note)}'`)
+      logDebug('prependTaskToCalendarNote', `- Prepending task '${text}' to '${displayTitleWithRelDate(note)}'`)
       smartPrependPara(note, text, 'open')
     } else {
       logError('prependTaskToCalendarNote', `- Can't get calendar note ${dateArg}`)
@@ -537,11 +457,11 @@ export async function appendTaskToCalendarNote(
       note = DataStore.calendarNoteByDateString(dateArgToMatch)
     }
     if (note != null) {
-      logDebug('appendTaskToCalendarNote', `- from dateArg, daily note = '${displayTitle(note)}'`)
+      logDebug('appendTaskToCalendarNote', `- from dateArg, daily note = '${displayTitleWithRelDate(note)}'`)
     } else {
       // Get details interactively from user
       const allCalNotes = calendarNotesSortedByChanged()
-      const calendarNoteTitles = allCalNotes.map((f) => displayTitle(f, true)) ?? ['error: no calendar notes found']
+      const calendarNoteTitles = allCalNotes.map((f) => displayTitleWithRelDate(f, true)) ?? ['error: no calendar notes found']
       const res = await CommandBar.showOptions(calendarNoteTitles, 'Select calendar note for new todo')
       dateStr = getDateStringFromCalendarFilename(allCalNotes[res.index].filename)
       note = DataStore.calendarNoteByDateString(dateStr)
@@ -549,7 +469,7 @@ export async function appendTaskToCalendarNote(
 
     if (note != null) {
       const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
-      logDebug('appendTaskToCalendarNote', `- Appending task '${text}' to ${displayTitle(note)}`)
+      logDebug('appendTaskToCalendarNote', `- Appending task '${text}' to ${displayTitleWithRelDate(note)}`)
       smartAppendPara(note, text, 'open')
     } else {
       logError('appendTaskToCalendarNote', `- Can't get calendar note for ${dateStr}`)
@@ -587,7 +507,7 @@ export async function appendTaskToWeeklyNote(
       note = DataStore.calendarNoteByDateString(dateArg)
     }
     if (note != null) {
-      logDebug(pluginJson, `- from dateArg, weekly note = '${displayTitle(note)}'`)
+      logDebug(pluginJson, `- from dateArg, weekly note = '${displayTitleWithRelDate(note)}'`)
     } else {
       // Get details interactively from user
       const weeklyNoteTitles = weeklyNotesSortedByChanged().map((f) => f.filename) ?? ['error: no weekly notes found']
@@ -598,7 +518,7 @@ export async function appendTaskToWeeklyNote(
 
     if (note != null) {
       const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
-      logDebug(pluginJson, `- appending task '${text}' to ${displayTitle(note)}`)
+      logDebug(pluginJson, `- appending task '${text}' to ${displayTitleWithRelDate(note)}`)
       smartAppendPara(note, text, 'open')
       // note.appendTodo(text)
     } else {
@@ -631,7 +551,7 @@ export async function appendTextToDailyJournal(textArg?: string = ''): Promise<v
     const note = DataStore.calendarNoteByDate(new Date(), 'day')
     if (note != null) {
       const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
-      logDebug(pluginJson, `Adding '${text}' to ${displayTitle(note)} under matchedHeading '${matchedHeading}'`)
+      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
       note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
     } else {
@@ -662,7 +582,7 @@ export async function appendTextToWeeklyJournal(textArg?: string = ''): Promise<
     const note = DataStore.calendarNoteByDate(new Date(), 'week')
     if (note != null) {
       const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
-      logDebug(pluginJson, `Adding '${text}' to ${displayTitle(note)} under matchedHeading '${matchedHeading}'`)
+      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
       note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
     } else {
