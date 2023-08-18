@@ -281,7 +281,7 @@ export async function prependTaskToCalendarNote(
     } else {
       // Get details interactively from user
       const allCalNotes = calendarNotesSortedByChanged()
-      const calendarNoteTitles = allCalNotes.map((f) => displayTitleWithRelDate(f, true)) ?? ['error: no calendar notes found']
+      const calendarNoteTitles = allCalNotes.map((f) => displayTitleWithRelDate(f)) ?? ['error: no calendar notes found']
       const res = await CommandBar.showOptions(calendarNoteTitles, 'Select calendar note for new todo')
       dateStr = getDateStringFromCalendarFilename(allCalNotes[res.index].filename)
       note = DataStore.calendarNoteByDateString(dateStr)
@@ -335,7 +335,7 @@ export async function appendTaskToCalendarNote(
     } else {
       // Get details interactively from user
       const allCalNotes = calendarNotesSortedByChanged()
-      const calendarNoteTitles = allCalNotes.map((f) => displayTitleWithRelDate(f, true)) ?? ['error: no calendar notes found']
+      const calendarNoteTitles = allCalNotes.map((f) => displayTitleWithRelDate(f)) ?? ['error: no calendar notes found']
       const res = await CommandBar.showOptions(calendarNoteTitles, 'Select calendar note for new todo')
       dateStr = getDateStringFromCalendarFilename(allCalNotes[res.index].filename)
       note = DataStore.calendarNoteByDateString(dateStr)

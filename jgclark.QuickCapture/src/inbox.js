@@ -89,7 +89,7 @@ export async function addTaskToInbox(
       logDebug('addTaskToInbox', `Title arg given: inboxTitleToUse=${inboxTitleToUse}`)
     }
 
-    inboxNote = await getNoteFromParamOrUser('Select note to use as inbox', inboxTitleToUse, false)
+    inboxNote = await getNoteFromParamOrUser('Inbox item', inboxTitleToUse, false)
 
     if (!inboxNote) {
       throw new Error("Quick Add to Inbox: Couldn't get or make valid Inbox note.")

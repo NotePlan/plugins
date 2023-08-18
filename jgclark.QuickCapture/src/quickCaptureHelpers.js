@@ -11,12 +11,14 @@ import {
   unhyphenateString,
 } from '@helpers/dateTime'
 import { getRelativeDates } from '@helpers/NPdateTime'
+import { displayTitle } from '@helpers/general'
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
 import { allNotesSortedByChanged, calendarNotesSortedByChanged } from '@helpers/note'
 import {
   displayTitleWithRelDate,
   showMessage,
 } from '@helpers/userInput'
+import plugin from "@babel/core/lib/config/plugin";
 
 //----------------------------------------------------------------------------
 // helpers
@@ -59,7 +61,7 @@ export async function getQuickCaptureSettings(): Promise<any> {
 
 /**
  * Returns TNote from DataStore matching 'noteTitleArg' (if given) to titles, or else ask User to select from all note titles.
- * Now first matches against special 'relative date' (e.g. 'last month', 'next week', defined above).
+ * Now first matches against special 'relative date' (e.g. 'last month', 'next week', defined above) as well as YYYY-MM-DD (etc.) calendar dates.
  * @param {string} purpose to show to user
  * @param {string?} noteTitleArg
  * @param {boolean?} justCalendarNotes? (default: false)
@@ -79,7 +81,7 @@ export async function getNoteFromParamOrUser(
       // First check if its a special 'relative date'
       for (const rd of relativeDates) {
         if (noteTitleArg === rd.relName) {
-          logDebug('getNoteFromParamOrUser', `- Found match with ${rd.relName}`)
+          logDebug('getNoteFromParamOrUser', `- Found match with '${rd.relName}'`)
           note = rd.note
         }
       }
@@ -87,10 +89,10 @@ export async function getNoteFromParamOrUser(
       if (!note) {
         // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
         // First change YYYY-MM-DD to YYYYMMDD format if needed.
-        const noteTitleToMatch = noteTitleArg.match(RE_ISO_DATE)
-          ? unhyphenateString(noteTitleArg)
-          : noteTitleArg // for regular note titles, and weekly notes
-        const wantedNotes = allNotesSortedByChanged().filter((n) => displayTitleWithRelDate(n) === noteTitleToMatch)
+        const noteTitleToMatch = noteTitleArg
+        // logDebug(pluginJson, `noteTitleToMatch = ${noteTitleToMatch}`)
+        const wantedNotes = allNotesSortedByChanged().filter((n) => displayTitleWithRelDate(n, false) === noteTitleToMatch)
+        // logDebug(pluginJson, `matchingNotes: ${String(wantedNotes.map((n) => displayTitleWithRelDate(n)))}`)
         note = wantedNotes != null ? wantedNotes[0] : null
         if (note != null) {
           if (wantedNotes.length > 1) {
@@ -111,8 +113,8 @@ export async function getNoteFromParamOrUser(
         repeatLoop = false
         // NB: CommandBar.showOptions only takes [string] as input
         let notesList = (justCalendarNotes)
-          ? calendarNotes.map((n) => displayTitleWithRelDate(n, true)).filter(Boolean)
-          : allNotes.map((n) => displayTitleWithRelDate(n, true)).filter(Boolean)
+          ? calendarNotes.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
+          : allNotes.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
         // notesList.unshift('➡️ relative dates (will open new list)')
         const res1 = await CommandBar.showOptions(notesList, 'Select note for new ' + purpose)
         if (res1.index > 0) {

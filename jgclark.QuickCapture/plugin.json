@@ -7,7 +7,7 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.14.0-RC2",
+  "plugin.version": "0.14.0",
   "plugin.lastUpdateInfo": "0.14.0: allow relative dates in '/quick append task/line under heading' and other commands.\n0.13.0: appending now comes before archive section, and prepending comes after any frontmatter. Some command name changes.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -22,7 +22,8 @@
       "description": "Quickly add a task to your chosen Inbox location",
       "jsFunction": "addTaskToInbox",
       "arguments": [
-        "text to add"
+        "text to add",
+        "title of destination note"
       ]
     },
     {
