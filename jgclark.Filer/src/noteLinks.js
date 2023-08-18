@@ -20,7 +20,7 @@ import { getNotesChangedInInterval } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote, parasToText } from '@helpers/paragraph'
 import { getParagraphBlock, selectedLinesIndex } from '@helpers/NPParagraph'
 import { NP_RE_note_title_link, RE_NOTE_TITLE_CAPTURE } from '@helpers/regex'
-import { chooseHeading, showMessage } from '@helpers/userInput'
+import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
@@ -264,14 +264,10 @@ async function fileNoteLinks(note: CoreNoteFields, config: FilerConfig, runInter
         logDebug(pluginJson, `- Added parasAsText after '${noteLinkHeading}`)
       } else {
 
-        // Note: can't use this API as it doesn't recognise front matter. As of 3.8.1
-        // noteToAddTo.prependParagraph(thisParaWithoutNotelink, thisPara.type)
-        // Alternative method: TODO: remove in time
-        // const index = findStartOfActivePartOfNote(noteToAddTo)
-        // noteToAddTo.insertParagraphBeforeParagraph(thisParaWithoutNotelink, noteToAddTo.paragraphs[index], thisPara.type)
+        // Note: can't use this API as it doesn't recognise front matter  (as of 3.8.1): noteToAddTo.prependParagraph(thisParaWithoutNotelink, thisPara.type)
 
         // work out what indicator to send to addParasAsText(), based on setting 'whereToAddInNote' (start or end)
-        const positionInNoteIndicator = (config.whereToAddInNote === 'start') ? '(top of note)' : ''
+        const positionInNoteIndicator = (config.whereToAddInNote === 'start') ? '<<top of note>>' : ''
         addParasAsText(noteToAddTo, selectedParasAsText, positionInNoteIndicator, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
 
         // // add after title or frontmatter

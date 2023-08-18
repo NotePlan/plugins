@@ -34,8 +34,8 @@ export type FilerConfig = {
 
 export async function getFilerSettings(): Promise<any> {
   try {
-    // // First get global setting 'useTightBlockDefinition'
     // // TODO: add to np.Shared
+    // // First get global setting 'useTightBlockDefinition'
     // let useTightBlockDefinition = getSetting('np.Shared', 'useTightBlockDefinition')
     // logDebug('getFilerSettings', `- useTightBlockDefinition: np.Globals: ${String(useTightBlockDefinition)}`)
 
@@ -47,7 +47,7 @@ export async function getFilerSettings(): Promise<any> {
       await showMessage(`Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
       return
     } else {
-      clo(config, `${pluginID} settings:`)
+      // clo(config, `${pluginID} settings:`)
       return config
     }
   } catch (err) {
@@ -62,9 +62,9 @@ export async function getFilerSettings(): Promise<any> {
  * but we can insert a raw text string.
  * Note: now can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports
  * @author @jgclark
- * 
- * @param {TNote} destinationNote 
- * @param {string} selectedParasAsText 
+ *
+ * @param {TNote} destinationNote
+ * @param {string} selectedParasAsText
  * @param {string} headingToFind if empty, means 'end of note'. Can also be the special string '(top of note)'
  * @param {string} whereToAddInSection to add after a heading: 'start' or 'end'
  * @param {boolean} allowNotePreambleBeforeHeading?
@@ -78,7 +78,7 @@ export function addParasAsText(
 ): void {
   const destinationNoteParas = destinationNote.paragraphs
   let insertionIndex: number
-  if (headingToFind === destinationNote.title || headingToFind.includes('(top of note)')) {
+  if (headingToFind === destinationNote.title || headingToFind === '<<top of note>>') {
     // i.e. the first line in project or calendar note
     insertionIndex = findStartOfActivePartOfNote(destinationNote, allowNotePreambleBeforeHeading)
     logDebug(pluginJson, `-> top of note, line ${insertionIndex}`)

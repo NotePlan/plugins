@@ -1,6 +1,11 @@
 # What's changed in 📦 Filer plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Filer) for more details, including the available settings.
 
+## [1.1.2] - 2023-08-15
+### Changed
+- improved the Heading selector to allow to add at the top of the note (under the title but before the first heading)
+- under-the-hood changes to use newer library versions
+
 ## [1.1.1] - 2023-06-10
 ### Added
 - now **/new note from clipboard** and **/new note from selection** commands offer option to create a new folder when selecting a folder (suggested by @dwertheimer)
