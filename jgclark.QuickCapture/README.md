@@ -49,7 +49,7 @@ TODO: mention new relative dates
 
 | Command | x-callback start | arg0 | arg1 | arg2 |
 |-----|-------------|-----|-----|-----|
-| /quick add task to inbox | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20task%20to%20inbox&` | text to add (to your pre-configured Inbox location) |  |  |
+| /quick add task to inbox | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20task%20to%20inbox&` | text to add | ??? title of the inbox note to use (optional; will fall back to normal settings if not given) |  |
 | /quick add task under heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20task%20under%20heading` | note title (can be YYYYMMDD, YYYY-MM-DD, YYYY-Wnn etc. or relative date for existing calendar notes) | note heading to add text under | text to add |
 | /quick add line under heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20line%20under%20heading` | note title (can be YYYYMMDD, YYYY-MM-DD, YYYY-Wnn etc. or relative date for an existing calendar notes) | note heading to add text under | text to add |
 | /quick add to calendar note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20calendar%20note` | note date (YYYYMMDD, YYYY-MM-DD, YYYY-Wnn etc.) or relative date | text to add |  |

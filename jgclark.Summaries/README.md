@@ -21,6 +21,8 @@ Remember: #visit to new CFL premises in K18, Festival Place #prayer #win #filmvi
 @work(10) #readbook
 ```
 
+You might find a simple 'Shortcut' for use on iOS/macOS helpful to make it quicker to add items like this to the daily note. Sean O'Kana has [shared a shortcut to do this](https://www.icloud.com/shortcuts/a5943c80c0f845eda6e70c811724de6e)  which you can add and customise.
+
 **What does the plugin do?** It provides commands, each described in more detail below, that read these tags and generates several different sorts of summaries and basic stats from your daily notes.
 
 **When to use the command**: It's up to you! I run  /appendProgressUpdate as part of my daily note (see [Calling from a Template](#calling-from-a-template) below), but you might want to do it at the end of a day/week/month in those notes.

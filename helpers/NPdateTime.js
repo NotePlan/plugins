@@ -602,6 +602,7 @@ export function pad(n: number) {
 /**
  * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
  * Week info is offset depending on the NotePlan setting for the first day of the week
+ * Note: requires API calls introduced in v3.7.0
  * @param {string} date - date string in format YYYY-MM-DD OR a Date object (default = today).
  *    NOTE:
  *    Make sure that if you send in a date that it's a date in the correct time/timezone you want.
@@ -624,28 +625,37 @@ export function pad(n: number) {
  * @test - available in jest file
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
-  let dateStrFormat = 'YYYY-MM-DD',
-    newMom
-  if (typeof dateIn === 'string') {
-    if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
-    newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
-  } else {
-    newMom = moment(dateIn).add(offsetIncrement, offsetType)
-  }
-  if (newMom) {
-    const date = newMom.toDate()
-    if (date) {
-      const weekNumber = Calendar.weekNumber(date)
-      const startDate = Calendar.startOfWeek(date)
-      const endDate = Calendar.endOfWeek(date)
-      const weekStartYear = startDate.getFullYear()
-      const weekEndYear = endDate.getFullYear()
-      const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
-      const weekString = `${weekYear}-W${pad(weekNumber)}`
-      return { weekNumber, startDate, endDate, weekYear, date, weekString }
+  try {
+    if (NotePlan.environment.buildVersion < 876) {
+      throw new Error("Sorry; week API calls requires NotePlan v3.7 or newer.")
     }
+
+    let dateStrFormat = 'YYYY-MM-DD',
+      newMom
+    if (typeof dateIn === 'string') {
+      if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
+      newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+    } else {
+      newMom = moment(dateIn).add(offsetIncrement, offsetType)
+    }
+    if (newMom) {
+      const date = newMom.toDate()
+      if (date) {
+        const weekNumber = Calendar.weekNumber(date)
+        const startDate = Calendar.startOfWeek(date)
+        const endDate = Calendar.endOfWeek(date)
+        const weekStartYear = startDate.getFullYear()
+        const weekEndYear = endDate.getFullYear()
+        const weekYear = weekStartYear === weekEndYear ? weekStartYear : weekNumber === 1 ? weekEndYear : weekStartYear
+        const weekString = `${weekYear}-W${pad(weekNumber)}`
+        return { weekNumber, startDate, endDate, weekYear, date, weekString }
+      }
+    }
+    return null
+  } catch (err) {
+    logError('NPdateTime::getNPWeekData', err.message)
+    return null
   }
-  return null
 }
 
 /**
