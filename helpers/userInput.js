@@ -587,6 +587,7 @@ const relativeDates = getRelativeDates()
 
 /**
  * V2 of displayTitle that optionally adds the relative date string after relevant calendar note titles, to make it easier to spot last/this/next D/W/M/Q
+ * Note: that this returns ISO title for daily notes (YYYY-MM-DD) not the one from the filename. This is different from the original displayTitle.
  * Note: Forked from helpers/general.js, but needed here anyway to avoid a circular dependency
  * @param {CoreNoteFields} noteIn
  * @param {boolean} showRelativeDates? (default: false)
@@ -594,7 +595,7 @@ const relativeDates = getRelativeDates()
  */
 export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDates: boolean = true): string {
   if (noteIn.type === 'Calendar') {
-    let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, false) ?? '(error)'
+    let calNoteTitle = getDateStringFromCalendarFilename(noteIn.filename, true) ?? '(error)'
     if (showRelativeDates) {
       for (const rd of relativeDates) {
         if (calNoteTitle === rd.dateStr) {
