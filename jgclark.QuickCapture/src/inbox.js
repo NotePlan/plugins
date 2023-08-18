@@ -2,9 +2,7 @@
 // ----------------------------------------------------------------------------
 // Inbox command for QuickCapture plugin
 // by Jonathan Clark
-// last update v0.12.0, 27.7.2022 by @jgclark
-// ----------------------------------------------------------------------------
-// TODO: Work the argument-handling changes in /qalh into rest of functions
+// last update 17.8.2023 for v0.14.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -22,11 +20,13 @@ import { chooseFolder, chooseHeading, showMessage } from '@helpers/userInput'
  * - add to the current Daily or Weekly note, or to a fixed note (through setting 'inboxLocation')
  * - append or prepend to the inbox note (default: append)
  * Extended in v0.9.0 to allow use from x-callback with single passed argument
- * TODO: use smartPrependPara etc.
  * @author @jgclark
  * @param {string?) taskArg
  */
-export async function addTaskToInbox(taskArg?: string = ''): Promise<void> {
+export async function addTaskToInbox(
+  taskArg?: string = '',
+  inboxTitleArg?: string = '',
+): Promise<void> {
   try {
     const config = await getQuickCaptureSettings()
     logDebug(pluginJson, `starting /addTaskToInbox with ${config.inboxLocation}`)
@@ -47,7 +47,7 @@ export async function addTaskToInbox(taskArg?: string = ''): Promise<void> {
       }
 
       default: {
-        // Get or make the inbox note from the Datastore
+        // Get or make the inbox note from the DataStore
         let newFilename: string
         if (config.inboxTitle === '') {
           throw new Error("Quick Capture to Inbox: please set the title of your chosen fixed Inbox note in Quick Capture preferences.")

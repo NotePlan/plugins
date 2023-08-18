@@ -1,6 +1,6 @@
 // @flow
 //-----------------------------------------------------------------------------
-// Last updated 9.6.2023 for v0.3.0, @jgclark
+// Last updated 15.8.2023 for v0.3.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -149,34 +149,34 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       //   }
       //   logDebug(pluginJson, `  newNote filename: ${noteFilename}`)
       //   note = DataStore.projectNoteByFilename(noteFilename)
-
-      if (note == null) {
-        logError(pluginJson, `Can't get new note (filename: ${noteFilename})`)
-        await showMessage('There was an error getting the new note ready to write')
-        return
-      } else {
-        noteFilename = note.filename
-      }
-      logDebug(pluginJson, `Will write MOC to note '${displayTitle(note)}'`)
       // }
     }
 
+    if (note == null) {
+      logError(pluginJson, `Can't get new note (filename: ${noteFilename})`)
+      await showMessage('There was an error getting the new note ready to write')
+      return
+    }
+    const noteToUse = note
+    noteFilename = noteToUse.filename
+    logDebug(pluginJson, `Will write MOC to note '${displayTitle(note)}'`)
+
     // Add an x-callback link under the title to allow this MOC to be re-created
-    const xCallbackURL = createRunPluginCallbackUrl('jgclark.MOCs', 'make MOC', [note.filename, termsToMatchStr])
+    const xCallbackURL = createRunPluginCallbackUrl('jgclark.MOCs', 'make MOC', [noteToUse.filename, termsToMatchStr])
     const xCallbackLine = `Last updated: ${nowLocaleShortDateTime()} [🔄 Click to refresh](${xCallbackURL})`
     // Either replace the existing line that starts the same way, or insert a new line after the title, so as not to disrupt any other section headings
-    const line1content = (note.paragraphs.length >= 2) ? note.paragraphs[1].content : ''
-    // logDebug(pluginJson, `line 1 of ${String(note.paragraphs.length)}: <${line1content}>`)
+    const line1content = (noteToUse.paragraphs.length >= 2) ? noteToUse.paragraphs[1].content : ''
+    // logDebug(pluginJson, `line 1 of ${String(noteToUse.paragraphs.length)}: <${line1content}>`)
     if (line1content?.includes('[🔄 Click to refresh](noteplan://x-callback-url/')) {
-      note.paragraphs[1].content = xCallbackLine
-      note.updateParagraph(note.paragraphs[1])
+      noteToUse.paragraphs[1].content = xCallbackLine
+      noteToUse.updateParagraph(noteToUse.paragraphs[1])
       // logDebug(pluginJson, `- updated xcallback at line 1`)
     } else {
-      note.insertParagraph(xCallbackLine, 1, 'text')
+      noteToUse.insertParagraph(xCallbackLine, 1, 'text')
       // DataStore.updateCache(note)
       // logDebug(pluginJson, `- inserted xcallback at line 1`)
     }
-    // logDebug(pluginJson, `line 1 of ${String(note.paragraphs.length)}: <${note.paragraphs[1].content}>`)
+    // logDebug(pluginJson, `line 1 of ${String(noteToUse.paragraphs.length)}: <${noteToUse.paragraphs[1].content}>`)
 
     // Main loop: find entries and then decide whether to add or not
     // Find matches in this set of notes
@@ -202,10 +202,10 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       const resultNotes = results.map((r) => r.note)
       if (resultNotes.length > 0) {
         // dedupe results by making and unmaking it into a set
-        let uniqNotes = resultNotes.filter((note, index, self) =>
+        let uniqNotes = resultNotes.filter((noteToUse, index, self) =>
           index === self.findIndex((t) => (
             // $FlowFixMe[incompatible-use]
-            t.filename === note.filename
+            t.filename === noteToUse.filename
           ))
         )
         logDebug(pluginJson, `-> ${uniqNotes.length} different notes`)
@@ -266,13 +266,13 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
               outputArray.push(`${config.resultPrefix} [[${uniqTitles[i]}]]`)
             }
             // Write new lines to end of active section of note
-            // await replaceContentUnderHeading(note, headingToUse, outputArray.join('\n'), true, config.headingLevel)
-            replaceSection(note, headingToUse, headingToUse, config.headingLevel, outputArray.join('\n'))
+            // await replaceContentUnderHeading(noteToUse, headingToUse, outputArray.join('\n'), true, config.headingLevel)
+            replaceSection(noteToUse, headingToUse, headingToUse, config.headingLevel, outputArray.join('\n'))
           }
         } else {
           if (config.showEmptyOccurrences) {
-            // await replaceContentUnderHeading(note, headingToUse, `No notes found`, true, config.headingLevel)
-            replaceSection(note, headingToUse, headingToUse, config.headingLevel, `No notes found`)
+            // await replaceContentUnderHeading(noteToUse, headingToUse, `No notes found`, true, config.headingLevel)
+            replaceSection(noteToUse, headingToUse, headingToUse, config.headingLevel, `No notes found`)
           } else {
             logWarn(pluginJson, `- no matches for search term '${searchTerm}'`)
           }
@@ -280,8 +280,8 @@ export async function makeMOC(filenameArg?: string, termsArg?: string): Promise<
       } else {
         CommandBar.showLoading(false)
         if (config.showEmptyOccurrences) {
-          // await replaceContentUnderHeading(note, headingToUse, `No notes found`, true, config.headingLevel)
-          replaceSection(note, headingToUse, headingToUse, config.headingLevel, `No notes found`)
+          // await replaceContentUnderHeading(noteToUse, headingToUse, `No notes found`, true, config.headingLevel)
+          replaceSection(noteToUse, headingToUse, headingToUse, config.headingLevel, `No notes found`)
         } else {
           logWarn(pluginJson, `- no matches for search term '${searchTerm}'`)
         }
