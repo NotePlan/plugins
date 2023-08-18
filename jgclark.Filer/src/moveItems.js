@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 28.11.2022, for v1.0.0-beta
+// last updated 28.11.2022, for v1.1.2
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -78,6 +78,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     const [firstSelLineIndex, lastSelLineIndex] = selectedLinesIndex(selection, paragraphs)
 
     // Get paragraphs for the selection or block
+    let firstStartIndex = 0
     let parasInBlock: Array<TParagraph>
     if (lastSelLineIndex !== firstSelLineIndex) {
       // use only the selected paras
@@ -98,7 +99,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
 
       // Now attempt to highlight them to help user check all is well (but only works from v3.6.2, build 844)
       if (NotePlan.environment.buildVersion > 844) {
-        const firstStartIndex = parasInBlock[0].contentRange?.start ?? null
+        firstStartIndex = parasInBlock[0].contentRange?.start ?? null
         const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
         if (firstStartIndex && lastEndIndex) {
           const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
@@ -118,7 +119,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
               : ''
       parasInBlock[0].content = `${parasInBlock[0].content} ${datePart}`
     }
-    // Note: When written, there was no API function to deal with multiple 
+    // Note: When written, there was no API function to deal with multiple
     // selectedParagraphs, qbut we can insert a raw text string.
     // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
     const selectedParasAsText = parasToText(parasInBlock)
@@ -139,11 +140,15 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     logDebug(pluginJson, `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // Add text to the new location in destination note
-    addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection)
+    addParasAsText(destNote, selectedParasAsText, headingToFind, config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
 
     // delete from existing location
     logDebug(pluginJson, `- Removing ${parasInBlock.length} paras from original note`)
     note.removeParagraphs(parasInBlock)
+
+    // unhighlight the previous selection, for safety's sake
+    const emptyRange: TRange = Range.create(firstStartIndex ?? 0, firstStartIndex ?? 0)
+    Editor.highlightByRange(emptyRange)
   }
   catch (error) {
     logError(pluginJson, error.message)
@@ -223,19 +228,13 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
       logDebug(pluginJson, `moveParas: move current para only`)
     }
 
-    // FIXME: check options here
-    // const parasInBlock: Array<TParagraph> = (lastSelParaIndex !== firstSelParaIndex)
-    //   ? selectedParagraphs.slice()   // copy to avoid $ReadOnlyArray problem
-    //   : getParagraphBlock(note, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
-
-
     // At the time of writing, there's no API function to work on multiple selectedParagraphs,
     // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
     // to a raw text version which we can include
     const selectedParasAsText = parasToText(parasInBlock)
 
     // Append text to the new location in destination note
-    addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection)
+    addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
 
     // delete from existing location
     logDebug(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
@@ -315,10 +314,6 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
       logDebug(pluginJson, `moveParas: move current para only`)
     }
 
-    // FIXME: update this
-    // const parasInBlock: Array<TParagraph> = (lastSelParaIndex !== firstSelParaIndex)
-    //   ? selectedParagraphs.slice()   // copy to avoid $ReadOnlyArray problem
-    //   : getParagraphBlock(note, firstSelParaIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
 
     // At the time of writing, there's no API function to work on multiple selectedParagraphs,
     // or one to insert an indented selectedParagraph, so we need to convert the selectedParagraphs
@@ -326,7 +321,7 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
     const selectedParasAsText = parasToText(parasInBlock)
 
     // Append text to the new location in destination note
-    addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection)
+    addParasAsText(destNote, selectedParasAsText, '', config.whereToAddInSection, config.allowNotePreambleBeforeHeading)
 
     // delete from existing location
     logDebug(pluginJson, `Removing ${parasInBlock.length} paras from original note`)
