@@ -5,7 +5,7 @@
   "plugin.id": "dbludeau.TodoistNoteplanSync",
   "plugin.name": "🧩 Todoist Noteplan Sync",
   "plugin.version": "0.1.0",
-  "plugin.lastUpdateInfo": "Describe this update",
+  "plugin.lastUpdateInfo": "First release",
   "plugin.description": "Import and sync tasks between Todoist and Noteplan",
   "plugin.author": "dbludeau",
   "plugin.requiredFiles-EDIT_ME": ["html-plugin-comms.js"],
@@ -21,7 +21,7 @@
     {
       "name": "todoist sync everything",
       "alias": ["tose"],
-      "description": "Sycn all tasks in Todoist to folder set in settings",
+      "description": "Sync all tasks in Todoist to folder set in settings",
       "jsFunction": "syncEverything",
       "arguments": [""]
     },
@@ -91,7 +91,7 @@
       "key": "apiToken",
       "title": "Todoist API token",
       "description": "API token for your Todoist account.  See https://todoist.com/help/articles/find-your-api-token for more information.",
-      "required": true
+      "required": false
     },
     {
       "type": "string",
@@ -128,9 +128,15 @@
     },
     {
       "type": "bool",
-      "key": "syncPriority",
+      "key": "syncPriorities",
       "title": "Sync priorities",
       "default": true
+    },
+    {
+      "type": "bool",
+      "key": "syncTags",
+      "title": "Sync Tags",
+      "default": false
     },
     {
       "note": "================== DEBUGGING SETTINGS ========================"
