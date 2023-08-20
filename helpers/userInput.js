@@ -3,10 +3,7 @@
 // Specialised user input functions
 
 import json5 from 'json5'
-import {
-  getDateStringFromCalendarFilename,
-  RE_DATE, RE_DATE_INTERVAL
-} from './dateTime'
+import { getDateStringFromCalendarFilename, RE_DATE, RE_DATE_INTERVAL } from './dateTime'
 import { getRelativeDates } from './NPdateTime'
 import { clo, logDebug, logError, logWarn, JSP } from './dev'
 import { findStartOfActivePartOfNote, findEndOfActivePartOfNote } from './paragraph'
@@ -381,8 +378,7 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
 export async function askDateInterval(dateParams: string): Promise<string> {
   // logDebug('askDateInterval', `starting with '${dateParams}':`)
   const dateParamsTrimmed = dateParams?.trim() || ''
-  const paramConfig =
-    dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? parseJSON5(`{${dateParams}}`) : {}
+  const paramConfig = dateParamsTrimmed.startsWith('{') && dateParamsTrimmed.endsWith('}') ? parseJSON5(dateParams) : dateParamsTrimmed !== '' ? parseJSON5(`{${dateParams}}`) : {}
   // logDebug('askDateInterval', `param config: ${dateParams} as ${JSON.stringify(paramConfig) ?? ''}`)
   // ... = "gather the remaining parameters into an array"
   const allSettings: { [string]: mixed } = { ...paramConfig }
@@ -586,6 +582,28 @@ export const multipleInputAnswersAsArray = async (question: string, submit: stri
 const relativeDates = getRelativeDates()
 
 /**
+ * Create a new note with a given title, content, and in a specified folder.
+ * If title, content, or folder is not provided, it will prompt the user for input.
+ *
+ * @param {string} [_title] - The title of the new note.
+ * @param {string} [_content] - The content of the new note.
+ * @param {string} [_folder] - The folder to create the new note in.
+ * @returns {Promise<Note | false>} - The newly created note, or false if the operation was cancelled.
+ */
+export async function createNewNote(_title?: string = '', _content?: string = '', _folder?: string = ''): Promise<Note | null> {
+  const title = _title || (await getInput('Title of new note', 'OK', 'New Note', ''))
+  const content = _content
+  if (title) {
+    const folder = _folder || (await chooseFolder('Select folder to add note in:', false, true))
+    const noteContent = `# ${title}\n${content}`
+    const filename = await DataStore.newNoteWithContent(noteContent, folder)
+    return DataStore.noteByFilename(filename, 'Notes') || null
+  } else {
+    return null
+  }
+}
+
+/**
  * V2 of displayTitle that optionally adds the relative date string after relevant calendar note titles, to make it easier to spot last/this/next D/W/M/Q
  * Note: that this returns ISO title for daily notes (YYYY-MM-DD) not the one from the filename. This is different from the original displayTitle.
  * Note: Forked from helpers/general.js, but needed here anyway to avoid a circular dependency
@@ -618,6 +636,7 @@ export function displayTitleWithRelDate(noteIn: CoreNoteFields, showRelativeDate
  * @param {Array<string>} foldersToIgnore - a list of folder names to ignore
  * @param {string} promptText - text to display in the CommandBar
  * @param {boolean} currentNoteFirst - add currently open note to the front of the list
+ * @param {boolean} allowNewNoteCreation - add option for user to create new note to return instead of choosing existing note
  * @returns {TNote | null} note
  */
 export async function chooseNote(
@@ -626,6 +645,7 @@ export async function chooseNote(
   foldersToIgnore?: Array<string> = [],
   promptText?: string = 'Choose a note',
   currentNoteFirst?: boolean = false,
+  allowNewNoteCreation?: boolean = false,
 ): Promise<TNote | null> {
   let noteList = []
   const projectNotes = DataStore.projectNotes
@@ -652,10 +672,18 @@ export async function chooseNote(
     return displayTitleWithRelDate(note)
   })
   const { note } = Editor
+  if (allowNewNoteCreation) {
+    opts.unshift('[New note]')
+    sortedNoteListFiltered.unshift('[New note]') // just keep the indexes matching
+  }
   if (currentNoteFirst && note) {
     sortedNoteListFiltered.unshift(note)
     opts.unshift(`[Current note: "${displayTitleWithRelDate(Editor)}"]`)
   }
   const { index } = await CommandBar.showOptions(opts, promptText)
-  return sortedNoteListFiltered[index] ?? null
+  let noteToReturn = sortedNoteListFiltered[index]
+  if (noteToReturn === '[New note]') {
+    noteToReturn = await createNewNote()
+  }
+  return noteToReturn ?? null
 }
