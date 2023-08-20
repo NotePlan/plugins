@@ -1049,18 +1049,19 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
       case 'shorter': {
         if (calendarTypeOrder.indexOf(offsetUnit) < calendarTypeOrder.indexOf(baseDateUnit)) {
           newDateStr = newDateStrFromOffsetDateType
-          logDebug('dateTime / cODS', `- needing to go 'smaller': changed format to ${baseDateMomentFormat} -> ${offsetMomentFormat}`)
+          // logDebug('dateTime / cODS', `- needing to go 'smaller': changed format to ${baseDateMomentFormat} -> ${offsetMomentFormat}`)
         }
         break
       }
       case 'longer': {
         if (calendarTypeOrder.indexOf(offsetUnit) > calendarTypeOrder.indexOf(baseDateUnit)) {
           newDateStr = newDateStrFromOffsetDateType
-          logDebug('dateTime / cODS', `- needing to go 'larger': changed format to ${baseDateMomentFormat} -> ${offsetMomentFormat}`)
+          // logDebug('dateTime / cODS', `- needing to go 'larger': changed format to ${baseDateMomentFormat} -> ${offsetMomentFormat}`)
         }
         break
       }
-      default: { // i.e. 'base'
+      default: {
+        // i.e. 'base'
         newDateStr = newDateStrFromBaseDateType
         break
       }
@@ -1076,7 +1077,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     //   logDebug('dateTime / cODS', `- needed to change format from ${baseDateMomentFormat} -> ${newerOutputFormat}`)
     // }
 
-    logDebug('dateTime / cODS', `for '${baseDateIn}' offsetInterval ${offsetInterval} using type ${adaptOutputInterval} -> '${newDateStr}'`)
+    // logDebug('dateTime / cODS', `for '${baseDateIn}' offsetInterval ${offsetInterval} using type ${adaptOutputInterval} -> '${newDateStr}'`)
     return newDateStr
   } catch (e) {
     logError('dateTime / cODS', `${e.message} for '${baseDateIn}' offsetInterval '${offsetInterval}'`)
