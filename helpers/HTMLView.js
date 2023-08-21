@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark
-// Last updated 8.8.2023 by @jgclark
+// Last updated 21.8.2023 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -115,11 +115,9 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // - main font size
     // set global variable
     baseFontSize = Number(DataStore.preference('fontSize')) ?? 14
-    // tempSel.push(`color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
     const bgMainColor = themeJSON?.editor?.backgroundColor ?? '#1D1E1F'
-    tempSel.push(`background: var(--bg-main-color)`) //`color: ${bgMainColor}`
+    tempSel.push(`background: var(--bg-main-color)`)
     output.push(makeCSSSelector('html', tempSel))
-    // rootSel.push(`--fg-main-color: ${themeJSON.styles.body.color ?? "#DAE3E8"}`)
     rootSel.push(`--bg-main-color: ${bgMainColor}`)
 
     // Set body:
@@ -133,11 +131,15 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles.body
     if (styleObj) {
       const thisColor = RGBColourConvert(themeJSON?.editor?.textColor ?? '#CC6666')
-      tempSel.push(`color: var(--fg-main-color)`) //`color: ${thisColor}`
+      tempSel.push(`color: var(--fg-main-color)`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('body, .body', tempSel))
-      // tempSel = styleObj.size // TEST:
       rootSel.push(`--fg-main-color: ${thisColor}`)
+      if (styleObj?.lineSpacing) {
+        // borrowed from convertStyleObjectBlock()
+        const lineSpacingRem = (Number(styleObj?.lineSpacing) * 1.5).toPrecision(3) // some fudge factor seems to be needed
+        rootSel.push(`--body-line-height: ${String(lineSpacingRem)}rem`)
+      }
     }
 
     // Set H1 from styles.title1
@@ -264,6 +266,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color) ?? 'var(--tint-color)'}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
+      // hack: easier to add second definition than to undo the last one
+      tempSel.push('line-height: var(--body-line-height)')
       output.push(makeCSSSelector('.todo', tempSel))
     }
 
@@ -273,6 +277,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#098308A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
+      tempSel.push('line-height: var(--body-line-height)')
       output.push(makeCSSSelector('.checked', tempSel))
     }
 
@@ -283,6 +288,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#E04F57A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
+      tempSel.push('line-height: var(--body-line-height)')
       output.push(makeCSSSelector('.cancelled', tempSel))
     }
 
@@ -293,6 +299,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(styleObj.color ?? '#7B7C86A0')}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, false))
+      tempSel.push('line-height: var(--body-line-height)')
       output.push(makeCSSSelector('.task-scheduled', tempSel))
     }
 
@@ -350,6 +357,13 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, true))
       output.push(makeCSSSelector('.underlined', tempSel))
+    }
+    // Set class for ~~strikethrough~~ ('strikethrough') if present
+    tempSel = []
+    styleObj = themeJSON.styles.strikethrough
+    if (styleObj) {
+      tempSel = tempSel.concat(convertStyleObjectBlock(styleObj, true))
+      output.push(makeCSSSelector('.strikethrough', tempSel))
     }
 
     // Set class for 'flagged-1' (priority 1) if present
@@ -437,11 +451,49 @@ function convertStyleObjectBlock(styleObject: any, includeFontDetails: boolean =
     cssStyleLinesOutput.push(`margin-bottom: ${pxToRem(styleObject?.paragraphSpacing, baseFontSize)}`)
   }
   if (styleObject?.lineSpacing) {
-    const lineSpacingRem = Number(styleObject?.lineSpacing) * 1.4
+    const lineSpacingRem = (Number(styleObject?.lineSpacing) * 1.5).toPrecision(3) // this fudge factor seems to be required
     cssStyleLinesOutput.push(`line-height: ${String(lineSpacingRem)}rem`)
   }
   if (styleObject?.strikethroughStyle) {
-    cssStyleLinesOutput.push(textDecorationFromNP('strikethroughStyle', Number(styleObject?.strikethroughStyle)))
+    const themeStyleNumber = Number(styleObject?.strikethroughStyle)
+    /**
+     * Values from 1-8 increase the thickness.
+     * The next bit values that have an effect are: 1...
+     * + 8: double (= 9)
+     * + 256: patternDot (= 257)
+     * + 512: patternDash (= 513)
+     * + 1024: patternDashDotDot (= 1025)
+     * + 8192: over line (= 8193)
+     * +32768: by Word (= 32769)
+     */
+    if (themeStyleNumber > 0 && themeStyleNumber <= 8) {
+      cssStyleLinesOutput.push('text-decoration: line-through')
+      cssStyleLinesOutput.push(`text-decoration-style: solid`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber)}px`)
+    }
+    if (themeStyleNumber > 8 && themeStyleNumber <= 16) {
+      cssStyleLinesOutput.push('text-decoration: line-through')
+      cssStyleLinesOutput.push(`text-decoration-style: double`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 8)}px`)
+    }
+    if (themeStyleNumber > 256 && themeStyleNumber <= 264) {
+      cssStyleLinesOutput.push('text-decoration: line-through')
+      cssStyleLinesOutput.push(`text-decoration-style: dotted`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 256)}px`)
+    }
+    if (themeStyleNumber > 512 && themeStyleNumber <= 520) {
+      cssStyleLinesOutput.push('text-decoration: line-through')
+      cssStyleLinesOutput.push(`text-decoration-style: dashed`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 512)}px`)
+    }
+    if (themeStyleNumber > 8192 && themeStyleNumber <= 8200) {
+      cssStyleLinesOutput.push(`text-decoration-style: overline`)
+      cssStyleLinesOutput.push(`text-decoration-thickness: ${String(themeStyleNumber - 8192)}px`)
+    }
+    // cssStyleLinesOutput.push(textDecorationFromNP('strikethroughStyle', Number(styleObject?.strikethroughStyle)))
+  }
+  if (styleObject?.strikethroughColor) {
+    cssStyleLinesOutput.push(`text-decoration-color: ${RGBColourConvert(styleObject.strikethroughColor ?? 'var(--fg-main-color)')}`)
   }
   if (styleObject?.underlineStyle) {
     const themeStyleNumber = Number(styleObject?.underlineStyle)
@@ -1424,9 +1476,9 @@ export function simplifyInlineImagesForHTML(input: string): string {
   if (captures) {
     // clo(captures, 'results from embedded image match:')
     for (const capture of captures) {
-      logInfo(`simplifyInlineImagesForHTML`, capture)
+      logDebug(`simplifyInlineImagesForHTML`, capture)
       output = output.replace(capture, `<i class="fa-regular fa-image"></i> `)
-      logInfo(`simplifyInlineImagesForHTML`, `-> ${output}`)
+      logDebug(`simplifyInlineImagesForHTML`, `-> ${output}`)
     }
   }
   return output
@@ -1511,6 +1563,21 @@ export function convertUnderlinedToHTML(input: string): string {
     for (const capture of captures) {
       const match = capture
       output = output.replace(match, `<span class="underlined">${match.slice(1, -1)}</span>`)
+    }
+  }
+  return output
+}
+
+// Display strike text with .strikethrough style
+//
+export function convertStrikethroughToHTML(input: string): string {
+  let output = input
+  const captures = output.match(/~~.*?~~/g)
+  if (captures) {
+    // clo(captures, 'results from strikethrough matches:')
+    for (const capture of captures) {
+      const match = capture
+      output = output.replace(match, `<span class="strikethrough">${match.slice(2, -2)}</span>`)
     }
   }
   return output
