@@ -1,10 +1,10 @@
 # 🗃 Filer plugin
-This plugin provides commands to help move or copy things around in NotePlan.
+This plugin provides extra commands to help move or copy things around in NotePlan. It handles individual lines, or the currently selected text, or a 'block' of text (any indented text, including sub-tasks). Most allow you to do the filing/moving _without having to lose your flow by switching to the other note_.
 
 It has some settings, which you review and change by clicking on the ⚙️ gear button on the 'Filer' line in the Plugin Preferences panel (on macOS) or by running the '/Filer: update plugin settings' command (on iOS).
 
 ## /move paragraph or selection
-The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files** (moves) lines to different notes in NotePlan, _without having to lose your flow by switching to the other note_. It works on any sort of lines, not just tasks.
+The **/move paragraph** command (aliased to **/mp** and **/fp**) quickly **files** (moves) lines to different notes in NotePlan, without having to lose your flow by switching to the other note. It works on any sort of lines, not just tasks.
 
 It pops up the command bar to choose the note you want to move it to, followed by the heading within that note to move it after. Where possible it will visually highlight the lines it will be moving (on NotePlan v3.6.2+). You can press Escape (on Mac) at any time to cancel.  The move happens in the background, leaving you in the current note.
 

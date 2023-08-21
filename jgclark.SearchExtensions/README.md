@@ -48,13 +48,14 @@ This is shown in the demo above.
 
 - put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
-- you can also use older search style: for example searching for terms X or Y using `X, Y` or `X OR Y`
+<!-- - you can also use older search style: for example searching for terms X or Y using `X, Y` or `X OR Y` -->
 - the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit`)
 - the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`), not using fuzzy matching or regular expressions
-- you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
+- currently, a search term must have at least two alphanumeric characters to be valid
 - all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be exluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
 - you can use an empty search term (from v1.1), which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
-- (from v1.2) to search for an exact multi-word phrases, put it in quotes (e.g. `"Holy Spirit"`).
+- (from v1.2) to search for an exact multi-word phrases, put it in quotes (e.g. `"Holy Spirit"`)
+- you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
 
 ## Settings
 To change the default **settings** on **macOS** click the gear button on the 'Search Extensions' line in the Plugin Preferences panel to configure this plugin. Each setting has an explanation.
@@ -106,10 +107,11 @@ Notes:
 - the number and order of arguments you pass is important
 - where an argument isn't valid, don't include it
 - as with all x-callback URLs, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.
+- the available 'paragraph types' are from the API: 'open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'quote', 'list', 'empty', 'text', 'code', 'separator'.
 - **Tip**: use the Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you ...
 
 | Command | x-callback start | arg0 | arg1 | arg2 | arg3 | arg4 |
-|-----|-----------|----------|----------|----------|
+|-----|-----------|----------|----------|----------|----------|----------|
 | /quickSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) | noteTypesToInclude either 'project','calendar' or 'both' | | |
 | /search | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchOverCalendar | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverCalendar&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
