@@ -13,7 +13,7 @@ beforeAll(() => {
   global.Editor = Editor
   global.Note = Note
   global.Paragraph = Paragraph
-  global.NotePlan = NotePlan
+  global.NotePlan = new NotePlan()
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
   DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging | none for quiet
 })
@@ -1042,18 +1042,18 @@ line 8 ordinary para
 1. line 10 numbered list
 + line 11 checklist`
     const paragraphs = [
-      /*new Paragraph(*/{ type: 'title', content: 'line 0 title', rawContent: '# line 0 title', lineIndex: 0 },
-      /*new Paragraph(*/{ type: 'open', content: 'line 1 open task', rawContent: '* line 1 open task', lineIndex: 1 },
-      /*new Paragraph(*/{ type: 'open', content: 'line 2 open task', rawContent: '* [ ] line 2 open task', lineIndex: 2 },
-      /*new Paragraph(*/{ type: 'list', content: '- bullet line 3', rawContent: '- bullet line 3', lineIndex: 3 },
-      /*new Paragraph(*/{ type: 'done', content: 'line 4 closed task', rawContent: '* [x] line 4 closed task', lineIndex: 4 },
-      /*new Paragraph(*/{ type: 'cancelled', content: 'line 5 cancelled task', rawContent: '* [-] line 5 cancelled task', lineIndex: 5 },
-      /*new Paragraph(*/{ type: 'separator', content: '---', rawContent: '---', lineIndex: 6 },
-      /*new Paragraph(*/{ type: 'empty', content: '', rawContent: '', lineIndex: 7 },
-      /*new Paragraph(*/{ type: 'text', content: 'line 8 ordinary para', rawContent: 'line 8 ordinary para', lineIndex: 8 },
-      /*new Paragraph(*/{ type: 'quote', content: 'line 9 quote', rawContent: '> line 9 quote', lineIndex: 9 },
-      /*new Paragraph(*/{ type: 'list', content: 'line 10 numbered list', rawContent: '1. line 10 numbered list', lineIndex: 10 },
-      /*new Paragraph(*/{ type: 'checklist', content: 'line 11 checklist', rawContent: '+ line 11 checklist', lineIndex: 11 },
+      /*new Paragraph(*/ { type: 'title', content: 'line 0 title', rawContent: '# line 0 title', lineIndex: 0 },
+      /*new Paragraph(*/ { type: 'open', content: 'line 1 open task', rawContent: '* line 1 open task', lineIndex: 1 },
+      /*new Paragraph(*/ { type: 'open', content: 'line 2 open task', rawContent: '* [ ] line 2 open task', lineIndex: 2 },
+      /*new Paragraph(*/ { type: 'list', content: '- bullet line 3', rawContent: '- bullet line 3', lineIndex: 3 },
+      /*new Paragraph(*/ { type: 'done', content: 'line 4 closed task', rawContent: '* [x] line 4 closed task', lineIndex: 4 },
+      /*new Paragraph(*/ { type: 'cancelled', content: 'line 5 cancelled task', rawContent: '* [-] line 5 cancelled task', lineIndex: 5 },
+      /*new Paragraph(*/ { type: 'separator', content: '---', rawContent: '---', lineIndex: 6 },
+      /*new Paragraph(*/ { type: 'empty', content: '', rawContent: '', lineIndex: 7 },
+      /*new Paragraph(*/ { type: 'text', content: 'line 8 ordinary para', rawContent: 'line 8 ordinary para', lineIndex: 8 },
+      /*new Paragraph(*/ { type: 'quote', content: 'line 9 quote', rawContent: '> line 9 quote', lineIndex: 9 },
+      /*new Paragraph(*/ { type: 'list', content: 'line 10 numbered list', rawContent: '1. line 10 numbered list', lineIndex: 10 },
+      /*new Paragraph(*/ { type: 'checklist', content: 'line 11 checklist', rawContent: '+ line 11 checklist', lineIndex: 11 },
     ]
 
     const resultParas = p.makeBasicParasFromContent(content)
