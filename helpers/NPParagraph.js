@@ -1,7 +1,5 @@
 // @flow
-// TODO: asd
-// FIXME asdas
-// TEST: WARNING:
+
 import moment from 'moment/min/moment-with-locales'
 import { trimString } from '@helpers/dataManipulation'
 import {
@@ -1193,7 +1191,7 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
  * Because a paragraph may have been deleted or changed, we need to find the paragraph in the note
  * @param { Array<TParagraph>} parasToLookIn - NP paragraph list to search
  * @param {any} paragraphDataToFind - object with the static data fields to match (e.g. filename, rawContent, type)
- * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex) -- these two fields are required. default is ['filename', 'rawContent']
+ * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex). default = ['filename', 'rawContent']
  * @returns {TParagraph | null } - the matching paragraph, or null if not found
  * @author @dwertheimer
  * @tests exist
@@ -1264,27 +1262,38 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
 
 /**
  * Highlight the given Paragraph details in the open editor.
- * The static object that's passed in must have at least the following TParagraph-type fields populated: filename, rawContent.
- * Note: Assumes the right note is already open.
+ * The static object that's passed in must have at least the following TParagraph-type fields populated: filename and rawContent (or content, though this is naturally less exact).
+ * If 'thenStopHighlight' is true, the cursor will be moved to the start of the paragraph after briefly flashing the whole line. This is to prevent starting to type and inadvertdently removing the whole line.
+ *
  * @author @jgclark
- * @param {string} rawContentToFind
- * @results {boolean}
+ * @param {any} objectToTest
+ * @param {boolean} thenStopHighlight?
+ * @results {boolean} success?
  */
-export function highlightParagraphInEditor(objectToTest: any): boolean {
+export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight: boolean = false): boolean {
   try {
+    logDebug('highlightParagraphInEditor', `Looking for <${objectToTest.rawContent ?? objectToTest.content}>`)
+
     const { paragraphs } = Editor
-    const res: TParagraph | null = findParagraph(paragraphs, objectToTest, ['filename', 'rawContent'])
-    if (res) {
-      const lineIndex = res.lineIndex
-      Editor.highlight(res)
-      logDebug(pluginJson, `Found para to highlight at lineIndex ${String(lineIndex)}`)
+    const resultPara: TParagraph | null = (objectToTest.rawContent)
+      ? findParagraph(paragraphs, objectToTest, ['filename', 'rawContent'])
+      : findParagraph(paragraphs, objectToTest, ['filename', 'content'])
+    if (resultPara) {
+      const lineIndex = resultPara.lineIndex
+      Editor.highlight(resultPara)
+      logDebug('highlightParagraphInEditor', `Found para to highlight at lineIndex ${String(lineIndex)}`)
+      const paraRange = resultPara.contentRange
+      if (thenStopHighlight && paraRange) {
+        logDebug('highlightParagraphInEditor', `Now moving cursor to highlight at charIndex ${String(paraRange.start)}`)
+        Editor.highlightByIndex(paraRange.start, 0)
+      }
       return true
     } else {
-      logWarn(pluginJson, `Sorry, couldn't find paragraph with rawContent <${objectToTest.rawContent}> to highlight in open note`)
+      logWarn('highlightParagraphInEditor', `Sorry, couldn't find paragraph with rawContent <${objectToTest.rawContent}> to highlight in open note`)
       return false
     }
   } catch (error) {
-    logError(pluginJson, JSP(error))
+    logError('highlightParagraphInEditor', `highlightParagraphInEditor: ${error.message}`)
     return false
   }
 }
@@ -1455,7 +1464,6 @@ export function cancelItem(filenameIn: string, content: string): boolean {
 /**
  * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
- * Appends a '@done(...)' date to the line if the user has selected to 'add completion date'.
  * @param {string} filenameIn to look in
  * @param {string} content to find
  * @returns {TParagraph | boolean} TParagraph if succesful, false if unsuccesful
