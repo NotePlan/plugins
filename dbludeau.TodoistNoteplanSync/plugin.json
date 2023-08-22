@@ -33,6 +33,20 @@
       "arguments": [""]
     }, 
     {
+      "name": "todoist sync project",
+      "alias": ["tosp"],
+      "description": "Sync Todoist project linked to this note",
+      "jsFunction": "syncProject",
+      "arguments": [""]
+    },
+    {
+      "name": "todoist sync all linked project",
+      "alias": ["tosa"],
+      "description": "Sync Todoist all noteplan notes linked directly to Todoist lists using Frontmatter",
+      "jsFunction": "syncAllProjects",
+      "arguments": [""]
+    },
+    {
       "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
       "name": "Todoist Noteplan Sync: Version",
       "description": "Update + Check Version",

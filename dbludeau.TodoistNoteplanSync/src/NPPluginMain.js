@@ -27,16 +27,12 @@
  * log(pluginJson,"Ordinary users will see these informational messages")
  * logWarn(pluginJson,"All users will see these warning/non-fatal messages")
  * logError(pluginJson,"All users will see these fatal/error messages")
- */ 
+ */
 
-import {
-  getTodaysDateAsArrowDate,
-  getTodaysDateUnhyphenated,
-} from "../../helpers/dateTime"
-import { logInfo } from "../../helpers/dev";
+import { getFrontMatterAttributes } from '../../helpers/NPFrontMatter'
+import { getTodaysDateAsArrowDate, getTodaysDateUnhyphenated } from '../../helpers/dateTime'
 import pluginJson from '../plugin.json'
-import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
-
+import { log, logInfo, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 
 const todo_api: string = 'https://api.todoist.com/rest/v2'
 
@@ -46,15 +42,15 @@ const setup: {
   folder: string,
   addDates: boolean,
   addPriorities: boolean,
-  addTags: bool,
+  addTags: boolean,
   header: string,
   newFolder: any,
   newToken: any,
   syncDates: any,
   syncPriorities: any,
   syncTags: any,
-  newHeader: any
-} = { 
+  newHeader: any,
+} = {
   token: '',
   folder: 'Todoist',
   addDates: false,
@@ -97,14 +93,14 @@ const setup: {
    */
   set newHeader(passedHeader: string) {
     this.header = passedHeader
-  }
+  },
 }
 
 const closed: Array<any> = []
 const existing: Array<any> = []
 const existingHeader: {
   exists: boolean,
-  headerExists: any
+  headerExists: any,
 } = {
   exists: false,
   /**
@@ -115,15 +111,13 @@ const existingHeader: {
   },
 }
 
-
-  /**
+/**
  * Synchronizes everything.
  *
  * @returns {Promise<void>} A promise that resolves once synchronization is complete.
  */
 // eslint-disable-next-line require-await
 export async function syncEverything() {
-
   setSettings()
 
   logDebug(pluginJson, `Folder for everything notes: ${setup.folder}`)
@@ -132,7 +126,7 @@ export async function syncEverything() {
   // if we can't find a matching folder, create it
   if (folders.length === 0) {
     try {
-      DataStore.createFolder(setup.folder);
+      DataStore.createFolder(setup.folder)
       logDebug(pluginJson, `New folder has been created (${setup.folder})`)
     } catch (error) {
       logError(pluginJson, `Unable to create new folder (${setup.folder}) in Noteplan (${JSON.stringify(error)})`)
@@ -142,10 +136,139 @@ export async function syncEverything() {
 
   // get the todoist projects and write out the new ones
   // needs to be broken into smaller functions, but could not get it to return correctly
-  getTodoistProjects()
+  const projects: Array<Object> = await getTodoistProjects()
 
+  if (projects.length > 0) {
+    for (let i = 0; i < projects.length; i++) {
+      // see if there is an existing note or create it if not
+      const note_info: ?Object = getExistingNote(projects[i].project_name)
+      if (note_info) {
+        //console.log(note_info.title)
+        const note: ?TNote = DataStore.projectNoteByFilename(note_info.filename)
+        //console.log(note?.filename)
+        if (note) {
+          // get the completed tasks in Noteplan and close them in Todoist
+          reviewExistingNoteplanTasks(note)
+
+          // grab the tasks and write them out with sections
+          const id: string = projects[i].project_id
+          //console.log(`-->${id}<--`)
+          const task_result = await pullTodoistTasksByProject(id)
+          //console.log(task_result)
+          const tasks: Array<Object> = JSON.parse(task_result)
+          if (tasks) {
+            for (let j = 0; j < tasks.length; j++) {
+              await writeOutTask(note, tasks[j])
+            }
+          }
+        }
+      }
+
+      //close the tasks in Todoist if they are complete in Noteplan`
+      closed.forEach(async (t) => {
+        await closeTodoistTask(t)
+      })
+    }
+  }
   // completed correctly (in theory)
   logDebug(pluginJson, 'Plugin completed without errors')
+}
+
+/**
+ * Synchronize the current linked project.
+ *
+ * @returns {Promise<void>} A promise that resolves once synchronization is complete
+ */
+// eslint-disable-next-line require-await
+export async function syncProject() {
+  setSettings()
+
+  const note: ?TNote = Editor.note
+  if (note) {
+    // check to see if this has any frontmatter
+    const frontmatter: ?Object = getFrontMatterAttributes(note)
+    let check: boolean = true
+    if (frontmatter) {
+      if ('todoist_id' in frontmatter) {
+        logDebug(pluginJson, `Frontmatter has link to Todoist project -> ${frontmatter.todoist_id}`)
+
+        const paragraphs: ?$ReadOnlyArray<TParagraph> = note.paragraphs
+        if (paragraphs) {
+          paragraphs.forEach((paragraph) => {
+            checkParagraph(paragraph)
+          })
+        }
+
+        const results = await pullTodoistTasksByProject(frontmatter.todoist_id)
+        const tasks: Array<Object> = JSON.parse(results)
+        for (let i = 0; i < tasks.length; i++) {
+          //console.log(tasks[i].content)
+          await writeOutTask(note, tasks[i])
+        }
+        //close the tasks in Todoist if they are complete in Noteplan`
+        closed.forEach(async (t) => {
+          await closeTodoistTask(t)
+        })
+      } else {
+        check = false
+      }
+    } else {
+      check = false
+    }
+    if (!check) {
+      logWarn(pluginJson, 'Current note has no Todoist project linked currently')
+    }
+  }
+}
+
+/**
+ * Syncronize all linked projects.
+ *
+ * @returns {Promise<void>} A promise that resolves once synchronization is complete
+ */
+export async function syncAllProjects() {
+  setSettings()
+
+  const search_string = 'todoist_id:'
+  const paragraphs: ?$ReadOnlyArray<TParagraph> = await DataStore.searchProjectNotes(search_string)
+
+  if (paragraphs) {
+    for (let i = 0; i < paragraphs.length; i++) {
+      const filename = paragraphs[i].filename
+      if (filename) {
+        logInfo(pluginJson, `Working on note: ${filename}`)
+        const note: ?TNote = DataStore.projectNoteByFilename(filename)
+
+        if (note) {
+          const paragraphs_to_check: $ReadOnlyArray<TParagraph> = note?.paragraphs
+          if (paragraphs_to_check) {
+            paragraphs_to_check.forEach((paragraph_to_check) => {
+              checkParagraph(paragraph_to_check)
+            })
+          }
+
+          // get the ID
+          const id: string = paragraphs[i].content.split(':')[1]
+          logInfo(pluginJson, `Matches up to Todoist project id: ${id}`)
+          const task_result = await pullTodoistTasksByProject(id.trim())
+          const tasks: Array<Object> = JSON.parse(task_result)
+          for (let j = 0; j < tasks.length; j++) {
+            await writeOutTask(note, tasks[j])
+          }
+          //close the tasks in Todoist if they are complete in Noteplan`
+          closed.forEach(async (t) => {
+            await closeTodoistTask(t)
+          })
+        } else {
+          logError(pluginJson, `Unable to open note asked requested by script (${filename})`)
+        }
+      } else {
+        logError(pluginJson, `Unable to find filename associated with search results`)
+      }
+    }
+  } else {
+    logInfo(pluginJson, `No results found in notes for term: todoist_id.  Make sure frontmatter is set according to plugin instructions`)
+  }
 }
 
 /**
@@ -168,48 +291,56 @@ export async function syncToday() {
       HTMLView.showSheet(`<html><body><p>Unable to find daily note for ${date_string}</p></body></html>`, 450, 50)
       process.exit(1)
     }
+    // check to see if that heading already exists and tab what tasks already exist
+    const paragraphs: ?$ReadOnlyArray<TParagraph> = note?.paragraphs
+    if (paragraphs) {
+      paragraphs.forEach((paragraph) => {
+        checkParagraph(paragraph)
+      })
+    }
+
     logInfo(pluginJson, `Todays note was found, pulling Today Todoist tasks...`)
-    // get the todoist tasks for today
-    fetch(`${todo_api}/tasks?filter=today`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${setup.token}`,
-        'Content-Type': 'application/json',
-      },
-    })
-    .then((response) => {
-      if (setup.header !== '') {
-        // check to see if that heading already exists and tab what tasks already exist
-        const paragraphs: ?$ReadOnlyArray<TParagraph> = note?.paragraphs
+    const response = await pullTodoistTasksForToday()
+    const tasks: Array<Object> = JSON.parse(response)
 
-        if (paragraphs) {
-          paragraphs.forEach((paragraph) => {
-            checkParagraph(paragraph)
-          })
-        }
-
-        if (!existingHeader.exists) {
-          logDebug(pluginJson, `Creating Heading: ${setup.header}`)
-          note?.insertHeading(setup.header, 100, 3)
-        }
+    if (tasks.length > 0 && note) {
+      for (let i = 0; i < tasks.length; i++) {
+        await writeOutTask(note, tasks[i])
       }
+
       //close the tasks in Todoist if they are complete in Noteplan`
       closed.forEach(async (t) => {
         await closeTodoistTask(t)
       })
-      const tasks: Array<Object> = JSON.parse(response)
-      tasks.forEach((task) => {
-        if (!existing.includes(task.id)) {
-          const fortmatted: string = formatTaskDetails(task)
-          logInfo(pluginJson, `Adding task form Todoist to Note`)
-          note?.addTodoBelowHeadingTitle(fortmatted, setup.header, true, true)
-        }
-      })
-    })
-    .catch((error) => {
-      logError(pluginJson, `Error getting today tasks from Todoist (${JSON.stringify(error)})`)
-    })
+    }
   }
+}
+
+/**
+ * Pull todoist tasks from list matching the ID provided
+ *
+ * @param {string} project_id - the id of the Todoist project
+ * @returns {Promise<any>} - promise that resolves into array of task objects or null
+ */
+async function pullTodoistTasksByProject(project_id: string): Promise<any> {
+  if (project_id !== '') {
+    const result = await fetch(`${todo_api}/tasks?project_id=${project_id}`, getRequestObject())
+    return result
+  }
+  return null
+}
+
+/**
+ * Pull todoist tasks with a due date of today
+ *
+ * @returns {Promise<any>} - promise that resolves into array of task objects or null
+ */
+async function pullTodoistTasksForToday(): Promise<any> {
+  const result = await fetch(`${todo_api}/tasks?filter=today`, getRequestObject())
+  if (result) {
+    return result
+  }
+  return null
 }
 
 /**
@@ -243,13 +374,7 @@ function checkParagraph(paragraph: TParagraph) {
     if (found && found.length > 1) {
       logInfo(pluginJson, `Todoist ID found in Noteplan note (${found[1]})`)
       // check to see if it is already closed in Todoist.
-      fetch(`${todo_api}/tasks/${found[1]}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${setup.token}`,
-          'Content-Type': 'application/json',
-        }
-      }).then((task_info: Object) => {
+      fetch(`${todo_api}/tasks/${found[1]}`, getRequestObject()).then((task_info: Object) => {
         const completed: boolean = task_info?.is_completed ?? false
         if (completed === true) {
           logDebug(pluginJson, `Going to mark this one closed in Noteplan: ${task_info.content}`)
@@ -267,18 +392,18 @@ function checkParagraph(paragraph: TParagraph) {
  * @param {Object} task - The task object to format.
  * @returns {string} The formatted task details.
  */
-function formatTaskDetails(task: Object) : string {
+function formatTaskDetails(task: Object): string {
   let task_write: string = ''
 
   // get the priority
   let priorities: string = ''
   if (setup.addPriorities) {
     if (task.priority === 4) {
-      priorities = "!!! "
+      priorities = '!!! '
     } else if (task.priority === 3) {
-      priorities = "!! "
+      priorities = '!! '
     } else if (task.priority === 2) {
-      priorities = "! "
+      priorities = '! '
     }
   }
 
@@ -346,164 +471,141 @@ function setSettings() {
 }
 
 /**
- * Get tasks from Todoist and write them to a note.
+ * Format and write task to correct noteplan note
  *
- * @param {string} project_id - The ID of the project to fetch tasks for.
- * @param {string} note_name - The name of the note to write tasks to.
- * @returns {void}
+ * @param {TNote} note - the note object that will get the task
+ * @param {Object} task - the task object that will be written
  */
-function getAndWriteTasks(project_id, note_name) {
-
-  try {
-    fetch(`${todo_api}/tasks?project_id=${project_id}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${setup.token}`,
-        'Content-Type': 'application/json',
-      },
-    }).then((response) => {
-      const tasks: Array<Object> = JSON.parse(response)
-      tasks.forEach((task) => {
-        const task_write: string = formatTaskDetails(task)
-
-        const note: ?TNote = DataStore.projectNoteByFilename(note_name)
-        if (note) {
-          if (task.section_id !== null) {
-            fetch(`${todo_api}/sections/${task.section_id}`, {
-              method: 'GET',
-              headers: {
-                Authorization: `Bearer ${setup.token}`,
-                'Content-Type': 'application/json',
-              },
-            }).then((response) => {
-              const section: ?Object = JSON.parse(response)
-              if (section) {
-               if (!existing.includes(task.id)) {
-                  logInfo(pluginJson, `Task will be added Noteplan (${task.id})`)
-                  note.addTodoBelowHeadingTitle(task_write, section.name, true, true)
-                } else {
-                  logInfo(pluginJson, `Task is already in Noteplan (${task.id})`)
-                }
-              } else {
-                // this one has a section ID but Todoist will not return a name
-                // Put it in with no heading
-                logWarn(pluginJson, `Section ID ${task.section_id} did not return a section name`)
-                if (!existing.includes(task.id)) {
-                  logInfo(pluginJson, `Task will be added to Noteplan (${task.id})`)
-                  note.prependTodo(task_write)
-                } else {
-                  logInfo(pluginJson, `Task is already in Noteplan (${task.id})`)
-                }
-              }
-            })
-          } else {
-            if (!existing.includes(task.id)) {
-              logInfo(pluginJson, `Task will be added to Noteplan (${task.id})`)
-              note.prependTodo(task_write)
-            } else {
-              logInfo(pluginJson, `Task is already in Noteplan (${task.id})`)
-            }
-          }
+async function writeOutTask(note: TNote, task: Object) {
+  if (note) {
+    //console.log(note.content)
+    //console.log(task.content)
+    const formatted = formatTaskDetails(task)
+    if (task.section_id !== null) {
+      let section = await fetch(`${todo_api}/sections/${task.section_id}`, getRequestObject())
+      section = JSON.parse(section)
+      if (section) {
+        if (!existing.includes(task.id)) {
+          logInfo(pluginJson, `Task will be added Noteplan (${task.id})`)
+          note.addTodoBelowHeadingTitle(formatted, section.name, true, true)
+        } else {
+          logInfo(pluginJson, `Task is already in Noteplan ${task.id}`)
         }
-      })
-    })
-  } catch (error) {
-    logError(pluginJson, `Error in getting tasks from Todoist (${JSON.stringify(error)})`)
+      } else {
+        // this one has a section ID but Todoist will not return a name
+        // Put it in with no heading
+        logWarn(pluginJson, `Section ID ${task.section_id} did not return a section name`)
+        if (!existing.includes(task.id)) {
+          logInfo(pluginJson, `Task will be added to Noteplan (${task.id})`)
+          note.appendTodo(formatted)
+        } else {
+          logInfo(pluginJson, `Task is already in Noteplan (${task.id})`)
+        }
+      }
+    } else {
+      // check for a default heading
+      // if there is a predefined header in settings
+      if (setup.header !== '') {
+        if (!existing.includes(task.id)) {
+          logInfo(pluginJson, `Adding task form Todoist to Note`)
+          note?.addTodoBelowHeadingTitle(formatted, setup.header, true, true)
+        }
+      } else {
+        if (!existing.includes(task.id)) {
+          logInfo(pluginJson, `Task will be added to Noteplan (${task.id})`)
+          note.appendTodo(formatted)
+        }
+      }
+    }
   }
-  logDebug(pluginJson, `Tasks synced for ${note_name}`)
 }
 
+/**
+ * Create the fetch parameters for a GET operation
+ *
+ * @returns {Object}
+ */
+function getRequestObject() {
+  const obj: Object = {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${setup.token}`,
+      'Content-Type': 'application/json',
+    },
+  }
+  return obj
+}
+
+/**
+ * Create the fetch parameters for a POST operation
+ *
+ * @returns {Object}
+ */
+function postRequestObject() {
+  const obj: Object = {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${setup.token}`,
+    },
+  }
+  return obj
+}
 
 /**
  * Will search Noteplan in the set folder for a note that matches the Todoist project name.
  * Will create if it does not exist
- * @param project_name
- * @return object
+ * @param {string} project_name
+ * @return {Object}
  */
-function getExistingNote(project_name: string) : Object {
-  let name = ''
-  let title = ''
+function getExistingNote(project_name: string): Object {
+  let filename = ''
   const existing_notes = DataStore.projectNotes.filter((n) => n.filename.startsWith(`${setup.folder}/${project_name}`))
   if (existing_notes.length > 0) {
     logDebug(pluginJson, `Pulling existing note matching project: ${project_name}.  Note found: ${existing_notes[0].filename}`)
-    name = existing_notes[0].filename
-    title = existing_notes[0].title
+    filename = existing_notes[0].filename
   } else {
     logDebug(pluginJson, `Creating note: ${project_name} in: ${setup.folder}`)
     try {
-      name = DataStore.newNote(project_name, setup.folder)
-      title = project_name
+      filename = DataStore.newNote(project_name, setup.folder)
     } catch (error) {
       logError(pluginJson, `Unable to create new note (${JSON.stringify(error)}`)
     }
   }
-  return { name: name, title: title }
+  return { filename: filename }
 }
 
 /**
  * Review existing tasks in Noteplan.
  *
- * @param {Object} note - The note to review tasks for.
+ * @param {TNote} note - The note to review tasks for.
  * @returns {void}
  */
-function reviewExistingNoteplanTasks(note: Object) {
-
+function reviewExistingNoteplanTasks(note: TNote) {
   // we only need to work on the ones that have a page associated with them
-  if ('name' in note) {
-    const note_to_check: ?TNote = DataStore.projectNoteByFilename(note.name)
-    const paragraphs: $ReadOnlyArray<TParagraph> = note_to_check?.paragraphs ?? []
-    if (paragraphs) {
-      paragraphs.forEach((paragraph) => {
-        checkParagraph(paragraph)
-      })
-    }
+  const paragraphs: $ReadOnlyArray<TParagraph> = note.paragraphs ?? []
+  if (paragraphs) {
+    paragraphs.forEach((paragraph) => {
+      checkParagraph(paragraph)
+    })
   }
 }
 
 /**
  * Get Todoist projects and synchronize tasks.
  *
- * @returns {void}
+ * @returns {Array<Object>}
  */
-function getTodoistProjects() {
-
-  fetch(`${todo_api}/projects`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${setup.token}`,
-      'Content-Type': 'application/json',
-    },
-  })
-    .then((response) => {
-      const projects: ?Array<Object> = JSON.parse(response)
-      if (projects) {
-        projects.forEach((project) => {
-          logDebug(pluginJson, `Project name: ${project.name} Project ID: ${project.id}`)
-
-          // see if there is an existing note or create it if not
-          const note: ?Object = getExistingNote(project.name)
-
-          if (note) {
-            // get the completed tasks in Noteplan and close them in Todoist
-            reviewExistingNoteplanTasks(note)
-            closed.forEach(async (t) => {
-              await closeTodoistTask(t)
-            })
-
-            // grab the tasks and write them out with sections
-            const id: string = project?.id ?? ''
-            const note_name: string = note?.name ?? ''
-            if (id !== '' && note_name !== '') {
-              getAndWriteTasks(id, note_name)
-            }
-          }
-        })
-      }
+async function getTodoistProjects() {
+  const project_list = []
+  const results = await fetch(`${todo_api}/projects`, getRequestObject())
+  const projects: ?Array<Object> = JSON.parse(results)
+  if (projects) {
+    projects.forEach((project) => {
+      logDebug(pluginJson, `Project name: ${project.name} Project ID: ${project.id}`)
+      project_list.push({ project_name: project.name, project_id: project.id })
     })
-    .catch((error) => {
-      logError(pluginJson, `Unable to retrieve project list from Todoist (${JSON.stringify(error)})`)
-      process.exit(1)
-    })
+  }
+  return project_list
 }
 
 /**
@@ -514,12 +616,7 @@ function getTodoistProjects() {
  */
 async function closeTodoistTask(task_id: string) {
   try {
-    await fetch(`${todo_api}/tasks/${task_id}/close`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${setup.token}`,
-      },
-    })
+    await fetch(`${todo_api}/tasks/${task_id}/close`, postRequestObject())
   } catch (error) {
     logError(pluginJson, `Unable to close task (${task_id}) ${JSON.stringify(error)}`)
   }

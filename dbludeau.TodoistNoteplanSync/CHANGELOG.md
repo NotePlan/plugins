@@ -5,7 +5,7 @@
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/dbludeau.TodoistNoteplanSync/README.md) for details on available commands and use case.
 
 ## [0.1.0] - 2023-08-18 (dbludeau)
-- Initial version with /todoist sync today and /todoist sync everything commands
+- Initial version with "/todoist sync today", "/todoist sync everything", "/todoist sync project" and "/todoist sync all projects" commands
 
 ### Added
 

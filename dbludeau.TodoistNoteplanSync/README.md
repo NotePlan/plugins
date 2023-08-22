@@ -21,23 +21,26 @@ NOTE: All sync actions (other then content and status) can be turned on and off 
 
 ## Available Commands
 - **/todoist sync everything** (alias **/tosa**): sync everything in Todoist to a folder in Noteplan.  Every list in todoist will become a note in Noteplan.  Use this if you want to use Todoist just as a conduit to get tasks into Noteplan.  The folder can be configured in settings.
-- **/todoist sync today** (alias **/tost): sync tasks due today from Todoist to your daily note in Noteplan. A header can be configured in settings.
+- **/todoist sync today** (alias **/tost**): sync tasks due today from Todoist to your daily note in Noteplan. A header can be configured in settings.
+- **/todoist sync project** (alias **/tosp**): link a single list from Todoist to a note in Note plan using Frontmatter.  This command will sync the current project you have open.
+- **/todoist sync all projects** (alias **/tosa**): this will sync all projects that have been linked using Frontmatter.
 
 ## Configuration
 - This plug in requires an API token from Todoist.  These are available on the free and paid plans. To get the token follow the instructions [here](https://todoist.com/help/articles/find-your-api-token)
 - You can configure a folder to use for syncing everything, headings that tasks will fall under and what details are synced.  
 - Currently the API token is required, everything else is optional.
+- To link a Todoist list to a Noteplan note, you need the list ID from Todoist.  To get the ID, open www.todoist.com in a web browser and sign in so you can see your lists.  Open the list you want to link to a Noteplan note.  The list ID is at the end of the URL.  For example, if the end of the Todoist.com URL is /app/project/2317353827, then you want the list ID of 2317353827. You would add frontmatter to the top of your note that would look like (see https://help.noteplan.co/article/136-templates for more information on frontmatter):
+```
+---
+todoist_id: 2317353827
+---
+```
 
 ## Caveats, Warnings and Notes
 - The sync relies on the Todoist ID being present in Noteplan.  This is stored at the end of a synced task in the form of a link to www.todoist.com.
   - These links can be used to view the Todoist task on the web.
   - WARNING: if the link is modified or deleted, the ability to sync will be lost.
-- This has not been tested on subtasks.  Noteplan does not really handle subtasks, so best not to use them in Todoist for anything you want to sync.
-- This will pull in the next instance of a repeating task.  The behaivor should mimic Todoist with those tasks.
+- There is no automated clean up of completed tasks in Noteplan.  They are just marked as completed.  We can see what people think is best and enhance clean up in the future.
 
 ## Coming Next
-- Syncing Tags from Todoist to Noteplan (will be optional)
-- Ability to link a note in Noteplan to a list in Todoist (probably using Frontmatter). 
-    - Command to sync just the current note that is linked
-    - command to sync all notes that are linked in this way (this will be different then the current sync everything, as this will sync just everything that is specifically linked)
-- Possible detailed sync back to Todoist.  Currently will only sync closed (or cancelled) status. If demand is there, can sync back changes in priorities, due dates, tags.
+- Possible detailed sync back to Todoist.  Currently will only sync closed (or cancelled) status. If demand is there, can sync back changes in priorities, due dates, tags. Will need to have a setting to decide which application is the source of truth.

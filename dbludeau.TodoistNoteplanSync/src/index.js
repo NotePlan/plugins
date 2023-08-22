@@ -15,8 +15,7 @@
 // So you need to add a line below for each function that you want NP to have access to.
 // Typically, listed below are only the top-level plug-in functions listed in plugin.json
 
-export { syncToday } from './NPPluginMain' 
-export { syncEverything } from './NPPluginMain'
+export { syncToday, syncEverything, syncProject, syncAllProjects } from './NPPluginMain' 
 
 // FETCH mocking for offline testing
 // If you want to use external server calls in your plugin, it can be useful to mock the server responses
@@ -31,5 +30,5 @@ export { syncEverything } from './NPPluginMain'
  */
 // eslint-disable-next-line import/order
 export { editSettings } from '@helpers/NPSettings'
-export { onUpdateOrInstall, init, onSettingsUpdated, versionCheck } from './NPTriggers-Hooks'
+export { onUpdateOrInstall, init, onSettingsUpdated } from './NPTriggers-Hooks'
 export { onOpen, onEditorWillSave } from './NPTriggers-Hooks'
