@@ -100,6 +100,23 @@ export async function getReviewSettings(): Promise<any> {
     DataStore.setPreference('reviewIntervalMentionStr', config.reviewIntervalMentionStr)
     DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr)
     DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
+
+    // Set local pref Reviews-DisplayOnlyOverdue to default false if it doesn't exist already
+    let savedValue = DataStore.preference('Reviews-DisplayOnlyOverdue')
+    // logDebug(pluginJson, `DisplayOnlyOverdue? savedValue: ${String(savedValue)}`)
+    if (!savedValue) {
+      DataStore.setPreference('Reviews-DisplayOnlyOverdue', false)
+    }
+    logDebug(pluginJson, `Reviews-DisplayOnlyOverdue? = ${String(DataStore.preference('Reviews-DisplayOnlyOverdue'))}`)
+
+    // Set local pref Reviews-DisplayFinished to default true if it doesn't exist already
+    savedValue = DataStore.preference('Reviews-DisplayFinished')
+    // logDebug(pluginJson, `DisplayFinished? savedValue: ${String(savedValue)}`)
+    if (!savedValue) {
+      DataStore.setPreference('Reviews-DisplayFinished', true)
+    }
+    logDebug(pluginJson, `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
+
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -301,17 +318,32 @@ export class Project {
   ID: string // required when making HTML views
 
   constructor(note: TNote, noteTypeTag?: string) {
+    logDebug('Project constructor', `Starting`)
     try {
-      // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
-      this.ID = String(Math.round((Math.random()) * 99999))
       if (note == null || note.title == null) {
         throw new Error('Error in constructor: invalid note passed')
       }
       this.note = note
       this.title = note.title
       this.filename = note.filename
+      logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag ?? '-'} ...`)
       this.folder = getFolderFromFilename(note.filename)
-      const paras = note.paragraphs
+
+      // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
+      this.ID = String(Math.round((Math.random()) * 99999))
+
+      // Sometimes we're called just after a note has been updated in the Editor. So check to see if note is open in Editor, and if so use that version, which could be newer.
+      let paras: $ReadOnlyArray<TParagraph>
+      if (Editor && Editor.note && (Editor?.note?.filename === note.filename)) {
+        const noteReadOnly: CoreNoteFields = Editor.note
+        paras = noteReadOnly.paragraphs
+        const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
+        logDebug('Project constructor', `Using EDITOR (${Editor.filename}) for this note, last updated ${String(timeSinceLastEdit)}ms ago.} `)
+      } else {
+        // read note from DataStore in the usual way
+        paras = note.paragraphs
+      }
+
       const metadataLineIndex = getOrMakeMetadataLine(note)
       this.metadataPara = paras[metadataLineIndex]
       let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
@@ -376,10 +408,11 @@ export class Project {
       this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length
       this.futureTasks = paras.filter(isOpen).filter((p) => includesScheduledFutureDate(p.content)).length
 
-      // Track percentComplete: either through calculation from counts ...
+      // Track percentComplete: either through calculation or through progress line (done later)
       const totalTasks = this.completedTasks + this.openTasks - this.futureTasks
       if (totalTasks > 0) {
-        this.percentComplete = Math.round((this.completedTasks / totalTasks) * 100)
+        // use 'floor' not 'round' to ensure we don't get to 100% unless really everything is done
+        this.percentComplete = Math.floor((this.completedTasks / totalTasks) * 100)
       } else {
         this.percentComplete = NaN
       }
@@ -465,11 +498,17 @@ export class Project {
       }
       else {
         if (this.completedDate != null) {
-          this.completedDuration = moment(this.completedDate).toNow(true) + ' ago'
+          this.completedDuration = moment(this.completedDate).fromNow() // ...ago
+          if (this.completedDuration.includes('hours')) {
+            this.completedDuration = 'today' // edge case
+          }
           // logDebug('calcDurations', `-> completedDuration = ${this.completedDuration}`)
         }
         else if (this.cancelledDate != null) {
-          this.cancelledDuration = moment(this.cancelledDate).toNow(true) + ' ago'
+          this.cancelledDuration = moment(this.cancelledDate).fromNow() // ...ago
+          if (this.cancelledDuration.includes('hours')) {
+            this.cancelledDuration = 'today' // edge case
+          }
           // logDebug('calcDurations', `-> completedDuration = ${this.cancelledDuration}`)
         }
         else {
@@ -558,7 +597,7 @@ export class Project {
       const newProgressLine = `Progress: ${percentStr}@${todaysDateISOString}: ${comment}`
       Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
       // Also updateCache otherwise the
-      await saveEditorToCache()
+      await saveEditorToCache(null)
     } catch (error) {
       logError(`Project::addProgressLine`, JSP(error))
     }
@@ -614,7 +653,7 @@ export class Project {
       // TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      await saveEditorToCache()
+      await saveEditorToCache(null)
       const newMSL = this.machineSummaryLine()
       logDebug('completeProject', `- returning mSL '${newMSL}'`)
       return newMSL
@@ -650,7 +689,7 @@ export class Project {
       // TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      await saveEditorToCache()
+      await saveEditorToCache(null)
       const newMSL = this.machineSummaryLine()
       logDebug('cancelProject', `- returning mSL '${newMSL}'`)
       return newMSL
@@ -686,7 +725,7 @@ export class Project {
       // TODO: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      await saveEditorToCache()
+      await saveEditorToCache(null)
       const newMSL = this.machineSummaryLine()
       logDebug('togglePauseProject', `- returning newMSL '${newMSL}'`)
       return newMSL
@@ -1020,21 +1059,24 @@ export function makeFakeButton(buttonText: string, commandName: string, commandA
 /**
  * Function to save changes to the Editor to the cache to be available elsewhere straight away.
  * Note: From 3.9.3 there's a function for this, but we need something else before then. Try having a basic 1s wait.
+ * FIXME: seems to just stop execution, but without error messages??
  */
 export async function saveEditorToCache(completed: function): Promise<void> {
   try {
     // If 3.9.3alpha or later call specific new function
     if (NotePlan.environment.buildVersion > 1049) {
-      logDebug('saveEditorToCache', '... waiting for Editor.save ...')
-      await Editor.save() // TEST: adding await
+      logDebug('saveEditorToCache', 'waiting for Editor.save ...')
+      await Editor.save()
+      logDebug('saveEditorToCache', '... done')
     }
     // else wait for 1 second
     else {
-      logDebug('saveEditorToCache', '... waiting for 1 second ...')
+      logDebug('saveEditorToCache', 'waiting for 1 second ...')
       setTimeout(() => {
         DataStore.updateCache(Editor.note, true)
         completed()
       }, 1000)
+      logDebug('saveEditorToCache', '... done')
     }
   } catch (error) {
     logError('saveEditorToCache', error.message)

@@ -4,7 +4,7 @@
 //-------------------------------------------------------
 
 import { generateCSSFromTheme, makeSVGPercentRing, redToGreenInterpolation, showHTML } from '@helpers/HTMLView'
-import { reviewListCSS, setPercentRingJSFunc } from './reviews'
+import { setPercentRingJSFunc } from './reviews'
 
 export function testGenerateCSSFromTheme(): void {
   let themeName = ''
@@ -28,6 +28,9 @@ export function testGenerateCSSFromTheme(): void {
 export function testCSSCircle(): void {
   HTMLView.showWindow(CSSCircleHTML, 'CSS Circle test', 300, 300)
 }
+
+const faLinksInHeader = `<link href="../requiredFiles/projectList.css" rel="stylesheet">
+`
 
 const CSSCircleHTML = `
 <html>
@@ -131,10 +134,10 @@ export function testRedToGreenInterpolation(): void {
   }
   showHTML(
     'Red to Green test',
-    '',
+    faLinksInHeader,
     body,
     '',
-    reviewListCSS,
+    '', // reviewListCSS is now in requiredFiles/projectList.css
     false, // not modal
     setPercentRingJSFunc,
     '',

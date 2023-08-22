@@ -1,0 +1,173 @@
+/* CSS specific to reviewList() from jgclark.Reviews plugin */
+
+body {
+  padding: 0rem 0.25rem; /* a little breathing room around whole content */
+}
+/* add space below to better balance with spacing around H3 headings */
+table {
+  font-size: 1.0rem; /* had been on 0.9rem to make text a little smaller */
+  border-collapse: collapse; /* always! */
+  width: 100%; /* keep wide to avoid different table widths */
+  empty-cells: show;
+  margin-bottom: 2rem;
+}
+/* turn off special colouring and underlining for links -- turn on later when desired */
+p {
+  margin-block-start: 0.5rem; margin-block-end: 0.5rem;
+}
+a, a:visited, a:active {
+  color: inherit; text-decoration-line: none
+}
+/* Keep a header stuck to top middle of window */
+.sticky-box-top-middle {
+  position: sticky; top: 0px; background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); line-height: 1.8rem; margin: auto; padding: 4px; align: middle; text-align: center;
+}
+/* removed L-R borders for now */
+th {
+  text-align: left; vertical-align: bottom; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color);
+}
+tr.section-header-row {
+  column-span: all; vertical-align: bottom; background-color: var(--bg-main-color); border-top: none; border-bottom: 1px solid var(--tint-color);
+}
+.section-header {
+  color: var(--h3-color);
+  font-size: 1.0rem;
+  font-weight: bold;
+  padding-top: 1.0rem;
+  padding-bottom: 0.3rem;
+}
+/* remove L-R borders for now */
+tbody td {
+  background-color: var(--bg-alt-color);
+  padding: 4px 0px;
+  border-left: 0px solid var(--tint-color);
+  border-right: 0px solid var(--tint-color);
+}
+/* turn on top border for tbody */
+table tbody tr:first-child {
+  border-top: 1px solid var(--tint-color);
+}
+/* turn on bottom border for tbody */
+table tbody tr:last-child {
+  border-bottom: 1px solid var(--tint-color);
+}
+table tr td:first-child, table tr th:first-child {
+  border-left: 0px; /* turn off outer table right borders */
+}
+/* turn off outer table right borders */
+table tr td:last-child, table tr th:last-child {
+  border-right: 0px;
+}
+/* make noteTitles bold */
+.noteTitle {
+  font-weight: 700; text-decoration: none;
+}
+/* make noteTitle links underlined on mouse hover */
+.noteTitle a:hover {
+  text-decoration: underline;
+}
+/* allow multi-column flow: set max columns and min width, and some other bits and pieces */
+.multi-cols {
+  column-count: 3; column-width: 30rem; column-gap: 2rem; column-rule: 1px dotted var(--tint-color);
+}
+/* set fa icon colour to tint color */
+i.fa-solid, i.fa-regular {
+  color: var(--tint-color);
+}
+/* a top-right fixed position */
+/* '.fix-top-right { position: absolute; top: 1.7rem; right: 1rem;
+}
+/* make checkbox display larger, and like in the app. TODO: is this needed? */
+.checkbox {
+  font-family: "noteplanstate"; font-size: 1.4rem;
+}
+/* use special 'noteplanstate' font */
+.np-task-state {
+  font-family: "noteplanstate";
+}
+/* Set size of percent-display rings */
+.percent-ring {
+  width: 2rem; height: 2rem;
+}
+/* details of ring-circle that can be set in CSS */
+.percent-ring-circle {
+  transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%;
+}
+/* details of ring text that can be set in CSS */
+.circle-percent-text {
+  font-family: "Avenir Next"; font-size: 2.5rem; font-weight: 500; color: var(--fg-main-color);
+}
+/* details for icon that can be set in CSS, including font size */
+.circle-icon {
+  font-size: 2.0rem;
+}
+/* Tooltip block */
+.tooltip { position: relative; display: inline-block; }
+/* Tooltip text */
+.tooltip .tooltiptext { visibility: hidden; width: 180px; font-weight: 400; font-style: normal; line-height: 1.0rem; color: var(--fg-main-color); background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); text-align: center; padding: 5px 0; border-radius: 6px; position: absolute; z-index: 1; bottom: 120%; left: 50%; margin-left: -90px; opacity: 0; transition: opacity 0.4s; }
+/* Fade in tooltip */
+.tooltip:hover .tooltiptext { opacity: 1; position: absolute; z-index: 1; }
+/* Make an arrow under tooltip */
+.tooltip .tooltiptext::after {
+    content: ""; position: absolute; top: 100%; /* At the bottom of the tooltip */ left: 50%; margin-left: -5px; border: 8px solid; border-color: var(--tint-color) transparent transparent transparent;
+}
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+/* For fancy toggle as checkbox */
+/* from [Pure CSS3 iOS switch checkbox.](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb) */
+input.apple-switch {
+  position: relative;
+  -webkit-appearance: none;
+  outline: none;
+  width: 2.0rem; /* 50px; */
+  height: 1.1rem; /* 30px; */
+  background-color: #EEE;
+  border: 1px solid #DDD;
+  border-radius: 2.0rem; /* 50px; */
+  /* box-shadow: inset -0.8rem 0 0 0 #fff; /* -20px */
+	margin-top: 0px;
+	margin-right: 4px;
+}
+input.apple-switch:after {
+  content: "";
+  position: absolute;
+  top: 0px;
+  left: 1px;
+  background: #FFF;
+  width: 1.0rem; /* 26px; */
+  height: 1.0rem; /* 26px; */
+  border-radius: 50%;
+  box-shadow: 1px 0px 1px rgba(0,0,0,0.2);
+  margin-right: 1.0rem;
+}
+input.apple-switch:checked {
+  box-shadow: inset 0.8rem 0 0 0 #4ed164; /* 20px; */
+  border-color: #4ed164;
+}
+input.apple-switch:checked:after {
+  left: 0.8rem; /* 20px; */
+  box-shadow: -2px 4px 3px rgba(0,0,0,0.05);
+}
+input, label {
+  vertical-align: top;
+}
+
+ul {
+  display: flex;
+  padding: 0.4rem;
+  margin: 0rem;
+}
+li {
+  break-inside: avoid;
+  display: block;
+  padding-inline: 0.4rem;
+}
+
+.fake-checkbox {
+  font-size: 1.0rem;
+  }
+.fake-checkbox::before {
+  content: '●';
+}

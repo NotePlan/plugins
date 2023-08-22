@@ -198,6 +198,8 @@ The name of the settings are taken from the `key`s from the plugin's `plugin.jso
 Particular thanks to George Crump, 'John1' and David Wertheimer for their suggestions and beta testing.
 
 ## Support
+There is what I consider to be a bug in the NotePlan API that means most of these commands **can only update a project note if it is open in the main  Editor**, not in a separate window, or the non-leftmost split window.
+
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
