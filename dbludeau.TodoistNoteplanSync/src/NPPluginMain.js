@@ -97,6 +97,7 @@ const setup: {
 }
 
 const closed: Array<any> = []
+const just_written: Array<any> = []
 const existing: Array<any> = []
 const existingHeader: {
   exists: boolean,
@@ -229,6 +230,33 @@ export async function syncProject() {
 export async function syncAllProjects() {
   setSettings()
 
+  // sync all projects
+  await syncThemAll()
+}
+
+/**
+ * Syncronize all linked projects and today note.  
+ * This will check for duplication between the projects and today.
+ * 
+ * @returns {Promise<void}
+ */
+export async function syncAllProjectsAndToday() {
+  setSettings()
+
+  // sync all projects
+  await syncThemAll()
+
+  // sync todays tasks 
+  await syncTodayTasks()
+}
+
+/**
+ * do the actual work of syncronizing all linked projects
+ * 
+ * @returns {Promise<void>}
+ */
+async function syncThemAll() {
+
   const search_string = 'todoist_id:'
   const paragraphs: ?$ReadOnlyArray<TParagraph> = await DataStore.searchProjectNotes(search_string)
 
@@ -279,41 +307,53 @@ export async function syncAllProjects() {
 // eslint-disable-next-line require-await
 export async function syncToday() {
   setSettings()
-  // get todays date in the correct format
-  const date: string = getTodaysDateUnhyphenated() ?? ''
-  const date_string: string = getTodaysDateAsArrowDate() ?? ''
-  logInfo(pluginJson, `Todays date is: ${date_string}`)
+  
+  // sync today tasks
+  await syncTodayTasks()
+}
 
-  if (date) {
-    const note: ?TNote = DataStore?.calendarNoteByDateString(date)
-    if (note === null) {
-      logError(pluginJson, 'unable to find todays note in Noteplan')
-      HTMLView.showSheet(`<html><body><p>Unable to find daily note for ${date_string}</p></body></html>`, 450, 50)
-      process.exit(1)
-    }
-    // check to see if that heading already exists and tab what tasks already exist
-    const paragraphs: ?$ReadOnlyArray<TParagraph> = note?.paragraphs
-    if (paragraphs) {
-      paragraphs.forEach((paragraph) => {
-        checkParagraph(paragraph)
-      })
-    }
+/**
+ * Do the actual work of getting and syncing today tasks
+ * 
+ * @returns {Promise<void>}
+ */
+async function syncTodayTasks() {
+  console.log(existing)
+ // get todays date in the correct format
+ const date: string = getTodaysDateUnhyphenated() ?? ''
+ const date_string: string = getTodaysDateAsArrowDate() ?? ''
+ logInfo(pluginJson, `Todays date is: ${date_string}`)
 
-    logInfo(pluginJson, `Todays note was found, pulling Today Todoist tasks...`)
-    const response = await pullTodoistTasksForToday()
-    const tasks: Array<Object> = JSON.parse(response)
+ if (date) {
+   const note: ?TNote = DataStore?.calendarNoteByDateString(date)
+   if (note === null) {
+     logError(pluginJson, 'unable to find todays note in Noteplan')
+     HTMLView.showSheet(`<html><body><p>Unable to find daily note for ${date_string}</p></body></html>`, 450, 50)
+     process.exit(1)
+   }
+   // check to see if that heading already exists and tab what tasks already exist
+   const paragraphs: ?$ReadOnlyArray<TParagraph> = note?.paragraphs
+   if (paragraphs) {
+     paragraphs.forEach((paragraph) => {
+       checkParagraph(paragraph)
+     })
+   }
 
-    if (tasks.length > 0 && note) {
-      for (let i = 0; i < tasks.length; i++) {
-        await writeOutTask(note, tasks[i])
-      }
+   logInfo(pluginJson, `Todays note was found, pulling Today Todoist tasks...`)
+   const response = await pullTodoistTasksForToday()
+   const tasks: Array<Object> = JSON.parse(response)
 
-      //close the tasks in Todoist if they are complete in Noteplan`
-      closed.forEach(async (t) => {
-        await closeTodoistTask(t)
-      })
-    }
-  }
+   if (tasks.length > 0 && note) {
+     for (let i = 0; i < tasks.length; i++) {
+       await writeOutTask(note, tasks[i])
+     }
+
+     //close the tasks in Todoist if they are complete in Noteplan`
+     closed.forEach(async (t) => {
+       await closeTodoistTask(t)
+     })
+   }
+ } 
 }
 
 /**
@@ -485,9 +525,11 @@ async function writeOutTask(note: TNote, task: Object) {
       let section = await fetch(`${todo_api}/sections/${task.section_id}`, getRequestObject())
       section = JSON.parse(section)
       if (section) {
-        if (!existing.includes(task.id)) {
+        if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `Task will be added Noteplan (${task.id})`)
           note.addTodoBelowHeadingTitle(formatted, section.name, true, true)
+          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
+          just_written.push(task.id)
         } else {
           logInfo(pluginJson, `Task is already in Noteplan ${task.id}`)
         }
@@ -495,9 +537,11 @@ async function writeOutTask(note: TNote, task: Object) {
         // this one has a section ID but Todoist will not return a name
         // Put it in with no heading
         logWarn(pluginJson, `Section ID ${task.section_id} did not return a section name`)
-        if (!existing.includes(task.id)) {
+        if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `Task will be added to Noteplan (${task.id})`)
           note.appendTodo(formatted)
+          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
+          just_written.push(task.id)
         } else {
           logInfo(pluginJson, `Task is already in Noteplan (${task.id})`)
         }
@@ -506,14 +550,18 @@ async function writeOutTask(note: TNote, task: Object) {
       // check for a default heading
       // if there is a predefined header in settings
       if (setup.header !== '') {
-        if (!existing.includes(task.id)) {
+        if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `Adding task form Todoist to Note`)
           note?.addTodoBelowHeadingTitle(formatted, setup.header, true, true)
+          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
+          just_written.push(task.id)
         }
       } else {
-        if (!existing.includes(task.id)) {
+        if (!existing.includes(task.id) && !just_written.includes(task.id)) {
           logInfo(pluginJson, `Task will be added to Noteplan (${task.id})`)
           note.appendTodo(formatted)
+          // add to just_written so they do not get duplicated in the Today note when updating all projects and today
+          just_written.push(task.id)
         }
       }
     }

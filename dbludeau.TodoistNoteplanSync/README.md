@@ -24,6 +24,7 @@ NOTE: All sync actions (other then content and status) can be turned on and off 
 - **/todoist sync today** (alias **/tost**): sync tasks due today from Todoist to your daily note in Noteplan. A header can be configured in settings.
 - **/todoist sync project** (alias **/tosp**): link a single list from Todoist to a note in Note plan using Frontmatter.  This command will sync the current project you have open.
 - **/todoist sync all projects** (alias **/tosa**): this will sync all projects that have been linked using Frontmatter.
+- **/todoist sync all projects and today** (alias **/tosat** **/toast**): this will sync all projects and the today note.  Running it as one comand instead of two will check for duplicates.  This command will sync all tasks from projects to their linked note, includeing tasks due today.  It will sync all tasks from all projects in Todoist that are due today except for those already in the project notes (to avoid duplication).
 
 ## Configuration
 - This plug in requires an API token from Todoist.  These are available on the free and paid plans. To get the token follow the instructions [here](https://todoist.com/help/articles/find-your-api-token)
@@ -41,6 +42,8 @@ todoist_id: 2317353827
   - These links can be used to view the Todoist task on the web.
   - WARNING: if the link is modified or deleted, the ability to sync will be lost.
 - There is no automated clean up of completed tasks in Noteplan.  They are just marked as completed.  We can see what people think is best and enhance clean up in the future.
+- Subtasks in Todoist will show up as first level tasks in Noteplan.  This can probably be fixed in an update if there is enough interest.
+
 
 ## Coming Next
 - Possible detailed sync back to Todoist.  Currently will only sync closed (or cancelled) status. If demand is there, can sync back changes in priorities, due dates, tags. Will need to have a setting to decide which application is the source of truth.

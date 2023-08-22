@@ -40,10 +40,17 @@
       "arguments": [""]
     },
     {
-      "name": "todoist sync all linked project",
+      "name": "todoist sync all linked projects",
       "alias": ["tosa"],
       "description": "Sync Todoist all noteplan notes linked directly to Todoist lists using Frontmatter",
       "jsFunction": "syncAllProjects",
+      "arguments": [""]
+    },
+    {
+      "name": "todoist sync all linked projects and today tasks",
+      "alias": ["tosat, toast"],
+      "description": "This will sync all linked projects as well as populate Todoist tasks due today to the today note. Will not add today tasks that are already in project notes",
+      "jsFunction": "syncAllProjectsAndToday",
       "arguments": [""]
     },
     {
