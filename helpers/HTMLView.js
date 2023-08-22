@@ -1036,7 +1036,7 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
 }
 
 /**
- * WARNING: Deprecated. Please use more advanced features in showHTMLV2() instead.
+ * WARNING: Deprecated. Please use more advanced features in showHTMLV2() instead. This version will also (probably) not allow use of multiple HTML windows from NP3.9.6.
  * Helper function to construct HTML to show in a new window.
  * Note: used up to v3.9.2 before more advanced window handling possible.
  * Note: if customID not passed, it will fall back to using windowTitle
@@ -1100,11 +1100,11 @@ export function showHTML(
       }
     }
 
+    // TEST: remove from 3.9.6
     // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
-    if (NotePlan.environment.buildVersion >= 976) {
-      // FIXME: Currently this is warning 0 HTML Windows
-      setHTMLWindowId(customId ?? windowTitle)
-    }
+    // if (NotePlan.environment.buildVersion >= 976) {
+    //   setHTMLWindowId(customId ?? windowTitle)
+    // }
 
     // If wanted, also write this HTML to a file so we can work on it offline.
     // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
@@ -1143,7 +1143,7 @@ export async function showHTMLV2(
 ): Promise<Window | boolean> {
   try {
     if (NotePlan.environment.buildVersion < 1037) {
-      logWarn('HTMLView / showHTMLV2', 'showHTMLV2() is only available on 3.9.2 build 1037 or newer. Will fall back to using simpler showHTML() instead ...')
+      logWarn('HTMLView / showHTMLV2', 'showHTMLV2() is only available on 3.9.2 build 1037 or newer. Will fall back to using older, simpler, showHTML() instead ...')
       await showHTML(opts.windowTitle,
         opts.headerTags ?? '',
         body,
@@ -1160,10 +1160,12 @@ export async function showHTMLV2(
 
     } else {
 
-      // clo(opts, 'showHTMLV2 starting with options:')
+      // clo(opts, 'HTMLView / showHTMLV2 starting with options:')
       // Assemble the parts of the HTML into a single string
       const fullHTMLStr = assembleHTMLParts(body, opts)
-      const cId = opts.customId ?? opts.windowTitle ?? ''
+
+      // Ensure we have a window ID to use
+      const cId = opts.customId ?? opts.windowTitle ?? 'fallback'
 
       // Before showing anything, see if the window is already open, and if so save its x/y/w/h (if requested)
       if (opts.reuseUsersWindowRect && isHTMLWindowOpen(cId)) {
@@ -1188,7 +1190,10 @@ export async function showHTMLV2(
           width: opts.width,
           height: (opts.height > 56) ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
           shouldFocus: opts.shouldFocus,
-          // Note: can't set customId, but only long UID ('id')
+        }
+        // From 3.9.6 can set window id directly through options
+        if (NotePlan.environment.buildVersion >= 1087) {
+          winOptions.id = cId
         }
         // Now override with saved x/y/w/h for this window if wanted, and if available
         if (opts.reuseUsersWindowRect && cId) {
@@ -1200,7 +1205,8 @@ export async function showHTMLV2(
               y: storedRect.y,
               width: storedRect.width,
               height: (storedRect.height > 56) ? storedRect.height : 500, // to attempt to cope with bug where height can change to 28px
-              shouldFocus: opts.shouldFocus
+              shouldFocus: opts.shouldFocus,
+              id: cId
             }
             logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
           } else {
@@ -1208,10 +1214,12 @@ export async function showHTMLV2(
           }
         }
         clo(winOptions, 'showHTMLV2 using winOptions:')
+
+        // Note: There's a bug somewhere in window height handling in NP. This is to try to gather data when its hit. Hopefully remove in time.
         // $FlowIgnore[invalid-compare]
         if (winOptions.height < 29) {
           // $FlowIgnore[incompatible-type]
-          logWarn('showHTMLV2', `**** height to use = ${winOptions.height}px! ****`)
+          logError('showHTMLV2', `**** height to use = ${winOptions.height}px! ****`)
         }
 
         // clo(winOptions, 'subset of options for API call:')
@@ -1232,14 +1240,17 @@ export async function showHTMLV2(
           }
         }
 
-        // Set customId for this window (with fallback to be windowTitle) Note: requires NP v3.8.1+
-        logDebug('showHTMLV2', `- opts.customId: '${opts.customId ?? '?'}'`)
-        const customIdToUse = opts.customId ?? opts.windowTitle
-        logDebug('showHTMLV2', `- customIdToUse: '${customIdToUse}'`)
-        win.customId = customIdToUse
-        // Read this back from the window itself
-        // logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
+        // Set customId for this window (with fallback to be windowTitle)
+        // Note: only required between NP v3.8.1 + and 3.9.5.After that its built in.
+        if (NotePlan.environment.buildVersion < 1087) {
+          logDebug('showHTMLV2', `- opts.customId: '${opts.customId ?? '?'}'`)
+          const customIdToUse = opts.customId ?? opts.windowTitle
+          logDebug('showHTMLV2', `- customIdToUse: '${customIdToUse}'`)
+          win.customId = customIdToUse
+        }
 
+        // Double-check: read back from the window itself
+        logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
         return win
       }
     }
