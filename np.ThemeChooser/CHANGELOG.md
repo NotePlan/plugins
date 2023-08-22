@@ -1,5 +1,9 @@
 # np.ThemeChooser Changelog
 
+## [1.7.0] 2023-08-22 @dwertheimer
+
+- Added frontmatter setting of theme on a per-note basis
+
 ## [1.6.2] 2023-07-09 @dwertheimer
 
 - Remove background color from code blocks which was causing selections to fail.
