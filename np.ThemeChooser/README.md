@@ -3,6 +3,7 @@
 [Click Here](https://discord.com/channels/763107030223290449/989752996583858217/989753000622977034) for Help/Support/Questions
 
 ## Overview
+
 This plugin is designed to make switching themes fast and easy without having to open the NotePlan Preferences Panel.
 
 <img src="https://user-images.githubusercontent.com/8949588/175463159-c7ef1aa9-6178-4853-90d6-9102dd306859.gif" width="500">
@@ -34,6 +35,7 @@ NotePlan.
 Use `/Change Theme Preset` again to change any preset you already set to another theme instead.
 
 ## Toggling Themes
+
 If you tend to go back/forth between light and dark themes and want a quick way to toggle, run the command:
 `Toggle Light/Dark`
 
@@ -49,3 +51,34 @@ NOTE: As you can see from the name, Light/Dark theme settings are set on a per-d
 so your Mac will have one set and your iPhone will have another (this is by design). 
 You will need to set the defaults on each device.
 ```
+
+## Changing Theme Per Note (from frontmatter)
+
+You can have NotePlan load a specific theme for any note by adding frontmatter to that note. The relevant fields are:
+
+```
+---
+triggers: onOpen => np.ThemeChooser.setTheme
+theme: Apple Spark
+---
+```
+
+The "triggers" line does not need to be changed and just calls the ThemeChooser plugin when the file is opened.
+
+The "theme" field should match the exact name of the theme you want to open with this document.
+
+It may make sense for you to include this in a template. The way to add frontmatter into a template is as follows:
+
+```
+---
+title: Template with Theme Setting
+type: meeting-note, empty-note 
+---
+--
+triggers: onOpen => np.ThemeChooser.setTheme
+theme: Apple Spark
+--
+
+```
+
+In this example, the top frontmatter is the frontmatter of the template itself. Note that the "trigger" frontmatter is at the very top of the template (under the template frontmatter) and has two dashes at the top and bottom (instead of 3). This is how you can add frontmatter that will be inserted by a template.
