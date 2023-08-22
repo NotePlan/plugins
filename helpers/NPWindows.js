@@ -56,13 +56,15 @@ export function logWindowsList(): void {
 
 /**
  * Set customId for the (single) HTML window
- * Note: requires NP v3.8.1+
- * Note: In time, this will be removed, when @EduardMe rolls it into .showWindow() API
+ * Note: for NP v3.8.1-3.9.5 only.
+ * Note: from 3.9.6 (build 1087) it is included in the .showWindowWithOptions() API
  * @author @jgclark
  * @param {string} customId
  */
 export function setHTMLWindowId(customId: string): void {
-  if (NotePlan.environment.buildVersion >= 973) {
+  if (NotePlan.environment.buildVersion >= 1087) {
+    logDebug('setHTMLWindowId', `Won't set customId '${customId}' for HTML window as not necessary from 3.9.6.`)
+  } else if (NotePlan.environment.buildVersion >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
     logDebug('setHTMLWindowId', `Starting with ${String(allHTMLWindows.length)} HTML windows`)
     const thisWindow = allHTMLWindows[0]
@@ -79,6 +81,7 @@ export function setHTMLWindowId(customId: string): void {
 
 /**
  * Is a given HTML window open? Tests by doing a case-insensitive-starts-with-match or case-insensitive-match using the supplied customId string.
+ * FIXME: fix up for 3.9.6?
  * @author @jgclark
  * @param {string} customId to look for
  * @returns {boolean}

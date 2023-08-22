@@ -19,7 +19,7 @@ import {
   Project,
 } from './reviewHelpers'
 import { hyphenatedDateString } from '@helpers/dateTime'
-import { logDebug, logInfo, logWarn, logError } from '@helpers/dev'
+import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getOrMakeNote } from '@helpers/note'
 import {
@@ -53,7 +53,7 @@ export async function addProgressUpdate(): Promise<void> {
 }
 
 /**
- * Complete a Project/Area note by
+ * Complete a Project/Area in the Editor, by:
  * - adding @completed(<today's date>) to the current note in the Editor
  * - add '#archive' flag to metadata line
  * - remove from this plugin's review list
@@ -64,10 +64,12 @@ export async function addProgressUpdate(): Promise<void> {
 export async function completeProject(): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
-    const { note, filename } = Editor
+    if (!Editor) {
+      throw new Error(`Cannot get details from Editor. stopping.`)
+    }
+    const { note } = Editor
     if (note == null || note.type === 'Calendar' || Editor.paragraphs.length < 2) {
-      logWarn(pluginJson, `Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
-      return
+      throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
     }
 
     // Construct a Project class object from this note
@@ -81,11 +83,8 @@ export async function completeProject(): Promise<void> {
       // Get settings
       const config = await getReviewSettings()
 
-      // TEST: now don't need to update cache for this Note, including .hashtags and .mentions
-      // DataStore.updateCache(note, true)
-
-      // and we need to re-load the note according to @Eduard
-      await Editor.openNoteByFilename(filename)
+      // we need to re-load the note according to @Eduard
+      await Editor.openNoteByFilename(note.filename)
       // logDebug('completeProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
       // delete the project line from the full-review-list
@@ -126,7 +125,7 @@ export async function completeProject(): Promise<void> {
 }
 
 /**
- * Cancel a Project/Area note by
+ * Cancel the Project/Area note in the Editor, by:
  * - adding @cancelled(<today's date>) to the current note in the Editor
  * - add '#archive' flag to metadata line
  * - remove from this plugin's review list
@@ -137,25 +136,29 @@ export async function completeProject(): Promise<void> {
 export async function cancelProject(): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
-    const { note, filename, } = Editor
+    if (!Editor) {
+      throw new Error(`Cannot get details from Editor. stopping.`)
+    }
+    const { note } = Editor
     if (note == null || note.type === 'Calendar' || Editor.paragraphs.length < 2) {
-      logWarn(pluginJson, `Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
-      return
+      throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
     }
 
     // Construct a Project class object from this note
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
+    logDebug('cancelProject', `before cancelProject`)
     const newMSL = await projectNote.cancelProject()
+    logDebug('cancelProject', `after cancelProject, newMSL=${newMSL}`)
 
     // If this has worked, then ...
     if (newMSL) {
       // Get settings
       const config = await getReviewSettings()
 
-      // and we need to re-load the note according to EM
-      await Editor.openNoteByFilename(filename)
+      // we need to re-load the note according to EM
+      await Editor.openNoteByFilename(note.filename)
       // logDebug('cancelProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
       // Ask whether to move it to the @Archive
@@ -211,10 +214,12 @@ export async function cancelProject(): Promise<void> {
 export async function togglePauseProject(): Promise<void> {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
-    const { note, filename } = Editor
+    if (!Editor) {
+      throw new Error(`Cannot get details from Editor. stopping.`)
+    }
+    const { note } = Editor
     if (note == null || note.type === 'Calendar' || Editor.paragraphs.length < 2) {
-      logWarn(pluginJson, `Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
-      return
+      throw new Error(`Not in a Project note (at least 2 lines long). (Note title = '${Editor.title ?? ''}')`)
     }
 
     // Construct a Project class object from the open note
@@ -228,11 +233,8 @@ export async function togglePauseProject(): Promise<void> {
       // Get settings
       const config = await getReviewSettings()
 
-      // TEST: now don't need to update cache for this Note, including .hashtags and .mentions
-      // DataStore.updateCache(note, true)
-
-      // and we need to re-load the note according to EM
-      await Editor.openNoteByFilename(filename)
+      // we need to re-load the note according to EM
+      await Editor.openNoteByFilename(note.filename)
       // logDebug('pauseProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
       // update the full-review-list, using the machineSummaryLine

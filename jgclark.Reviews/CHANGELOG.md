@@ -2,6 +2,13 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
+## [0.12.3] - 2023-08-22
+### Added
+- ability to run Project List window at the same time as the Dashboard window etc. (Requires NP v3.9.6.)
+### Changes
+- all the review actions (finish, skip, pause, complete and cancel) now properly update the summary list in the window, not just the underlying notes. (It had been _trying_ to do this, but I've now found the way around the problem of stale data being returned by the API 🥳.)
+- now keeps completion at 99% unless absolutely all tasks are done. Previously it rounded to the nearest %. (suggested by @bethv)
+
 ## [0.12.2] - 2023-08-09
 - fix in /start reviews and /next project review commands
 

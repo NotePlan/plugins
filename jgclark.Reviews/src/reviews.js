@@ -9,7 +9,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 22.7.2023 for v0.12.1, @jgclark
+// Last updated 9.8.2023 for v0.12.2, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -38,7 +38,7 @@ import { focusHTMLWindowIfAvailable, isHTMLWindowOpen, logWindowsList, noteOpenI
 const pluginID = 'jgclark.Reviews'
 const fullReviewListFilename = 'full-review-list.md'
 const windowTitle = `Review List`
-const filenameHTMLCopy = 'review_list.html'
+const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
 const customRichWinId = `rich-review-list`
 const customMarkdownWinId = `markdown-review-list`
 // const reviewListPref = 'jgclark.Reviews.reviewList'
@@ -47,133 +47,70 @@ const customMarkdownWinId = `markdown-review-list`
 //-------------------------------------------------------------------------------
 
 const faLinksInHeader = `
-  <!-- Load in fontawesome assets (licensed for NotePlan) -->
-  <link href="../np.Shared/fontawesome.css" rel="stylesheet">
-  <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
-  <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
-  <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
+<!-- Load in Project List-specific CSS -->
+<link href="projectList.css" rel="stylesheet">
+
+<!-- Load in fontawesome assets (licensed for NotePlan) -->
+<link href="../np.Shared/fontawesome.css" rel="stylesheet">
+<link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
+<link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+<link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
 `
 
-export const reviewListCSS: string = [
-  '\n/* CSS specific to reviewList() from jgclark.Reviews plugin */\n',
-  'body { padding: 0rem 0.25rem; }', // a little breathing room around whole content
-  'table { font-size: 1.0rem;', // had been on 0.9rem to make text a little smaller
-  '  border-collapse: collapse;', // always!
-  '  width: 100%;', // keep wide to avoid different table widths
-  '  empty-cells: show;',
-  '  margin-bottom: 2rem;}', // add space below to better balance with spacing around H3 headings
-  'p { margin-block-start: 0.5rem; margin-block-end: 0.5rem; }',
-  'a, a:visited, a:active { color: inherit; text-decoration-line: none }', // turn off special colouring and underlining for links -- turn on later when desired
-  '.sticky-box-top-middle { position: sticky; top: 0px; background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); line-height: 1.8rem; margin: auto; padding: 4px; align: middle; text-align: center; }', // Keep a header stuck to top middle of window
-  'th { text-align: left; vertical-align: bottom; padding: 4px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); border-bottom: 1px solid var(--tint-color); }', // removed L-R borders for now
-  'tr.section-header-row { column-span: all; vertical-align: bottom; background-color: var(--bg-main-color); border-top: none; border-bottom: 1px solid var(--tint-color); }',
-  '.section-header { color: var(--h3-color); font-size: 1.0rem; font-weight: bold; padding-top: 1.0rem; }',
-  'tbody td { background-color: var(--bg-alt-color); padding: 2px; border-left: 0px solid var(--tint-color); border-right: 0px solid var(--tint-color); }', // removed L-R borders for now
-  'table tbody tr:first-child { border-top: 1px solid var(--tint-color); }', // turn on top border for tbody
-  'table tbody tr:last-child { border-bottom: 1px solid var(--tint-color); }', // turn on bottom border for tbody
-  'table tr td:first-child, table tr th:first-child { border-left: 0px; }', // turn off outer table right borders
-  'table tr td:last-child, table tr th:last-child { border-right: 0px; }', // turn off outer table right borders
-  '.noteTitle { font-weight: 700; text-decoration: none; }', // make noteTitles bold
-  '.noteTitle a:hover { text-decoration: underline; }', // make noteTitle links underlined on mouse hover
-  '.multi-cols { column-count: 3; column-width: 30rem; column-gap: 2rem; column-rule: 1px dotted var(--tint-color); }', // allow multi-column flow: set max columns and min width, and some other bits and pieces
-  'i.fa-solid, i.fa-regular { color: var(--tint-color); }', // set fa icon colour to tint color
-  // '.fix-top-right { position: absolute; top: 1.7rem; right: 1rem; }', // a top-right fixed position
-  '.checkbox { font-family: "noteplanstate"; font-size: 1.4rem; }', // make checkbox display larger, and like in the app
-  '.np-task-state { font-family: "noteplanstate"; }', // use special 'noteplanstate' font
-  '.percent-ring { width: 2rem; height: 2rem; }', // Set size of percent-display rings
-  '.percent-ring-circle { transition: 0.5s stroke-dashoffset; transform: rotate(-90deg); transform-origin: 50% 50%; }', // details of ring-circle that can be set in CSS
-  '.circle-percent-text { font-family: "Avenir Next"; font-size: 2.2rem; font-weight: 600; color: var(--fg-main-color); }', // details of ring text that can be set in CSS
-  '.circle-icon { font-size: 1.9rem; }', // details for icon that can be set in CSS, including font size
-  `/* Tooltip block */
-  .tooltip { position: relative; display: inline-block; }
-  /* Tooltip text */
-  .tooltip .tooltiptext { visibility: hidden; width: 180px; font-weight: 400; font-style: normal; line-height: 1.0rem; color: var(--fg-main-color); background-color: var(--bg-alt-color); border: 1px solid var(--tint-color); text-align: center; padding: 5px 0; border-radius: 6px; position: absolute; z-index: 1; bottom: 120%; left: 50%; margin-left: -90px; opacity: 0; transition: opacity 0.4s; }
-  /* Fade in tooltip */
-  .tooltip:hover .tooltiptext { opacity: 1; position: absolute; z-index: 1; }
-  /* Make an arrow under tooltip */
-  .tooltip .tooltiptext::after { content: ""; position: absolute; top: 100%; /* At the bottom of the tooltip */ left: 50%; margin-left: -5px; border: 8px solid; border-color: var(--tint-color) transparent transparent transparent; }
-  /* Show the tooltip text when you mouse over the tooltip container */
-  .tooltip:hover .tooltiptext { visibility: visible; }`,
-  `/* For fancy toggle as checkbox */
-  /* from [Pure CSS3 iOS switch checkbox.](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb) */
-  input.apple-switch {
-    position: relative;
-    margin-top: 1px;
-    -webkit-appearance: none;
-    outline: none;
-    width: 2.0rem; /* 50px; */
-    height: 1.1rem; /* 30px; */
-    background-color: #fff;
-    border: 1px solid #D9DADC;
-    border-radius: 2.0rem; /* 50px; */
-    box-shadow: inset -0.8rem 0 0 0 #fff; /* -20px */
-  }
-  input.apple-switch:after {
-    content: "";
-    position: absolute;
-    top: 1px;
-    left: 1px;
-    background: transparent;
-    width: 1.0rem; /* 26px; */
-    height: 1.0rem; /* 26px; */
-    border-radius: 50%;
-    box-shadow: 2px 4px 6px rgba(0,0,0,0.2);
-    margin-right: 1.0rem;
-  }
-  input.apple-switch:checked {
-    box-shadow: inset 0.8rem 0 0 0 #4ed164; /* 20px; */
-    border-color: #4ed164;
-  }
-  input.apple-switch:checked:after {
-    left: 0.8rem; /* 20px; */
-    box-shadow: -2px 4px 3px rgba(0,0,0,0.05);
-  }
-  label {
-	  vertical-align: top;
-  }
-	ul {
-		display: flex;
-		padding: 0.4rem;
-		margin: 0rem;
-	}
-  li {
-		break-inside: avoid;
-		display: block;
-		padding-inline: 0.4rem;
-	}
-`
-].join('\n\t')
-
-// Note: Not currently used: instead all comms happens through x-callbacks
-// const startReviewsCommandCall = `(function() {
-//     DataStore.invokePluginCommandByName("start reviews", "jgclark.Reviews");
-//   })()`
-
-// const makeProjectListsCommandCall = `(function() {
-//     DataStore.invokePluginCommandByName("project lists", "jgclark.Reviews");
-//   })()`
-
-// function makeCommandCall(commandCallJSON: string): string {
-//   return `<script>
-//   const callCommand = () => {
-//     window.webkit.messageHandlers.jsBridge.postMessage({
-//       code: ${commandCallJSON},
-//       id: "1"
-//     });
-//   };
-// </script>`
-// }
+// FIXME: In Safari the fetch -> unsupported URL
+// Might want <i class="fa-regular fa-square-check"></i>
+// or fa-circle-check"></i>
+// or <i class="fa-duotone fa-toggle-large-on"></i>
+// and <i class="fa-duotone fa-toggle-large-off"></i>
 
 export const checkboxHandlerJSFunc: string = `
 <script type="text/javascript">
-function handleCheckboxClick(cb) {
+async function handleCheckboxClick(cb) {
+  try {
   console.log("Checkbox for " + cb.name + " clicked, new value = " + cb.checked);
-  const callbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggleDisplayFinished";
-  console.log("Will call URL " + callbackURL);
-  fetch(callbackURL);
+  const callbackURL = "noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggle"+cb.name;
+  console.log("Calling URL " + callbackURL + " ...");
+  // v1: use fetch() - doesn't work in plugin
+  // const res = await fetch(callbackURL);
+  // console.log("Result: " + res.status);
+  // v2: use window.open() - doesn't work in plugin
+  // window.open(callbackURL);
+  // v3: use window.location ... - doesn't work in plugin
+  // window.location.href = callbackURL;
+  // v4:
+  const options = {
+    method: 'GET',
+  }
+  fetch(callbackURL, options)
+  .then(response => {
+    console.log("Result: " + response.status);
+  })
+  .catch(error => {
+    console.log("Error Result: " + response.status);
+  });
+
+  // onChangeCheckbox(cb.name, cb.checked); // this uses handler func in commsSwitchboard.js
+  }
+  catch (err) {
+    console.error(err.message);
+  }
 }
 </script>
 `
+
+// TODO: this would need to go in commsSwitchboard.js
+/**
+ * Event handler for the 'change' event on a checkbox
+ * @param {string} settingName of checkbox
+ * @param {boolean} state that it now has
+ */
+function onChangeCheckbox(settingName, state) {
+  const data = { settingName, state }
+  // console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
+  sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
+}
+
+
 // TODO: in time make a 'timeago' relative display, e.g. using MOMENT moment.duration(-1, "minutes").humanize(true); // a minute ago
 // or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html
 // or https://theprogrammingexpert.com/javascript-count-up-timer/
@@ -203,30 +140,30 @@ function timeAgo() {
 
 export const setPercentRingJSFunc: string = `
 <script>
-  /**
-   * Sets the value of a SVG percent ring.
-   * @param {number} percent The percent value to set.
-   */
-  function setPercentRing(percent, ID) {
-    let svg = document.getElementById(ID);
-    let circle = svg.querySelector('circle');
-    const radius = circle.r.baseVal.value;
-    const circumference = radius * 2 * Math.PI;
-    circle.style.strokeDasharray = String(circumference) + ' ' + String(circumference);
-    circle.style.strokeDashoffset = String(circumference);
+/**
+ * Sets the value of a SVG percent ring.
+ * @param {number} percent The percent value to set.
+ */
+function setPercentRing(percent, ID) {
+  let svg = document.getElementById(ID);
+  let circle = svg.querySelector('circle');
+  const radius = circle.r.baseVal.value;
+  const circumference = radius * 2 * Math.PI;
+  circle.style.strokeDasharray = String(circumference) + ' ' + String(circumference);
+  circle.style.strokeDashoffset = String(circumference);
 
-    const offset = circumference - percent / 100 * circumference;
-    circle.style.strokeDashoffset = offset;  // Set to negative for anti-clockwise.
+  const offset = circumference - percent / 100 * circumference;
+  circle.style.strokeDashoffset = offset;  // Set to negative for anti-clockwise.
 
-    // let text = svg.querySelector('text');
-    // text.textContent = String(percent); // + '%';
-  }
-  </script>
-  `
+  // let text = svg.querySelector('text');
+  // text.textContent = String(percent); // + '%';
+}
+</script>
+`
 
-//---------------------------------------------------------------------
+//-------------------------------------------------------------------
 // Moved following from projectLists.js to avoid circular dependency
-//---------------------------------------------------------------------
+//-------------------------------------------------------------------
 
 /**
  * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
@@ -263,8 +200,8 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
  */
 export async function renderProjectLists(config: any, shouldOpen: boolean = true): Promise<void> {
   try {
-    clo(config, 'config at start of renderProjectLists:')
-    logDebug('renderProjectLists', `Started with displayFinished? ${String(config.displayFinished ?? '(error)')}`)
+    // clo(config, 'config at start of renderProjectLists:')
+    logDebug('renderProjectLists', `Started with displayOnlyOverdue? ${String(config.displayOnlyOverdue ?? '(error)')} displayFinished? ${String(config.displayFinished ?? '(error)')}`)
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -275,46 +212,6 @@ export async function renderProjectLists(config: any, shouldOpen: boolean = true
     }
   } catch (error) {
     clo(config, 'config at start of renderProjectLists:')
-  }
-}
-
-/**
- * Re-display the project list from saved HTML file, if available, or if not then render the project list.
- * Note: this is a test function that does not re-calculate the data.
- * @author @jgclark
- */
-export async function redisplayProjectListHTML(): Promise<void> {
-  try {
-    // Re-load the saved HTML if it's available.
-    // const config = await getReviewSettings()
-    // Try loading HTML saved copy
-    const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
-    if (savedHTML !== '') {
-      const winOptions = {
-        windowTitle: windowTitle,
-        headerTags: faLinksInHeader + `\n<meta name="startTime" content="${String(Date.now())}">`,
-        generalCSSIn: '', // get general CSS set automatically
-        specificCSS: reviewListCSS,
-        makeModal: false, // = not modal window
-        bodyOptions: '', // TODO: find a different way to get this working  'onload="timeAgo()"',
-        preBodyScript: setPercentRingJSFunc, // + checkboxHandlerJSFunc,
-        postBodyScript: '', // timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
-        savedFilename: savedHTML,
-        reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
-        width: 800, // = default width of window (px)
-        height: 1200, // = default height of window (px)
-        customId: customRichWinId,
-        shouldFocus: true, // shouuld not focus, if Window already exists
-      }
-      const thisWindow = await showHTMLV2(savedHTML, winOptions)
-      clo(thisWindow, 'created window')
-      logDebug('redisplayProjectListHTML', `Displayed HTML from saved file ${filenameHTMLCopy}`)
-      return
-    } else {
-      logWarn('redisplayProjectListHTML', `Couldn't read from saved HTML file ${filenameHTMLCopy}.`)
-    }
-  } catch (error) {
-    logError('redisplayProjectListHTML', error.message)
   }
 }
 
@@ -434,15 +331,24 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
     outputArray.push(`<div class="sticky-box-top-middle">\n${controlButtons}\n</div>\n`)
 
     // Show date + display settings
+    const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
+    const displayOnlyOverdue = DataStore.preference('Reviews-DisplayOnlyOverdue' ?? false)
     // v1: text labels
-    let togglesValues = (config.displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects projects/areas'
-    togglesValues += (config.displayFinished === 'hide') ? '' : ', plus finished ones'
+    let togglesValues = (displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects projects/areas'
+    togglesValues += (displayFinished === 'hide') ? '' : ', plus finished ones'
+    // v1: simple text
     outputArray.push(`<p>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> (${togglesValues})</p>`)
+
     // v2: TODO: working on HTML checkbox toggles
+    // // Note: capitalised start of checkbox names: to make it possible to simply prepend 'toggle' to get to name of controlling function.
     // outputArray.push(`<ul>`)
     // outputArray.push(`  <li>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span></li>`)
-    // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="showOnlyOverdueItems" ${config.displayOnlyOverdue ? "checked" : "unchecked"}><label for="showOnlyOverdueItems">Show only overdue items?</label></inpu></span></li>\n`)
-    // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="showFinishedItems" ${config.displayFinished ? "checked" : "unchecked"}><label for="showOnlyOverdueItems">Also show finished items?</label></inpu></span></li>\n`)
+    // // Proper checkboxes don't work at all easily ...
+    // // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="DisplayOnlyOverdue" ${displayOnlyOverdue ? "checked" : "unchecked"}><label for="DisplayOnlyOverdue">Show only overdue items?</label></input></span></li>\n`)
+    // // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="DisplayFinished" ${displayFinished ? "checked" : "unchecked"}><label for="DisplayFinished">Also show finished items?</label></input></span></li>\n`)
+    // // ... so will use fake ones
+    // outputArray.push(` <li><a class="fake-checkbox" id="DisplayOnlyOverdue" href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggleDisplayOnlyOverdue">Show only overdue items? (${displayOnlyOverdue ? "checked" : "unchecked"})</a></li>\n`)
+    // outputArray.push(` <li><a class="fake-checkbox" id="DisplayFinished" href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggleDisplayFinished">??? Show finished items? (${displayFinished ? "checked" : "unchecked"})</a></li>\n`)
     // outputArray.push(`</ul>`)
 
     // Allow multi-col working
@@ -527,11 +433,11 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
       windowTitle: windowTitle,
       headerTags: faLinksInHeader + `\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: '', // get general CSS set automatically
-      specificCSS: reviewListCSS,
+      specificCSS: '', // now in requiredFiles/reviewListCSS instead
       makeModal: false, // = not modal window
       bodyOptions: '', // TODO: find a different way to get this working 'onload="timeAgo()"',
-      preBodyScript: setPercentRingJSFunc, // + checkboxHandlerJSFunc,
-      postBodyScript: '', // timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
+      preBodyScript: setPercentRingJSFunc,
+      postBodyScript: checkboxHandlerJSFunc, // timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 800, // = default width of window (px)
@@ -605,8 +511,10 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           if (overdue > 0) {
             outputArray.unshift(`Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} Current open project note: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
-          let togglesValues = (config.displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects projects/areas'
-          togglesValues += (config.displayFinished === 'hide') ? '' : 'plus finished ones'
+          const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
+          const displayOnlyOverdue = DataStore.preference('Reviews-DisplayOnlyOverdue' ?? false)
+          let togglesValues = (displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects projects/areas'
+          togglesValues += (displayFinished === 'hide') ? '' : 'plus finished ones'
           outputArray.unshift(`Total ${noteCount} active projects${overdue > 0 ? `: **${startReviewButton}**` : '.'} (${togglesValues}.) Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
 
           if (!config.displayGroupedByFolder) {
@@ -675,6 +583,46 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
   }
 }
 
+/**
+ * Re-display the project list from saved HTML file, if available, or if not then render the project list.
+ * Note: this is a test function that does not re-calculate the data.
+ * @author @jgclark
+ */
+export async function redisplayProjectListHTML(): Promise<void> {
+  try {
+    // Re-load the saved HTML if it's available.
+    // const config = await getReviewSettings()
+    // Try loading HTML saved copy
+    const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
+    if (savedHTML !== '') {
+      const winOptions = {
+        windowTitle: windowTitle,
+        headerTags: faLinksInHeader + `\n<meta name="startTime" content="${String(Date.now())}">`,
+        generalCSSIn: '', // get general CSS set automatically
+        specificCSS: '', // now provided by separate projectList.css
+        makeModal: false, // = not modal window
+        bodyOptions: '', // TODO: find a different way to get this working  'onload="timeAgo()"',
+        preBodyScript: setPercentRingJSFunc,
+        postBodyScript: checkboxHandlerJSFunc, // timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
+        savedFilename: savedHTML,
+        reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
+        width: 800, // = default width of window (px)
+        height: 1200, // = default height of window (px)
+        customId: customRichWinId,
+        shouldFocus: true, // shouuld not focus, if Window already exists
+      }
+      const thisWindow = await showHTMLV2(savedHTML, winOptions)
+      clo(thisWindow, 'created window')
+      logDebug('redisplayProjectListHTML', `Displayed HTML from saved file ${filenameHTMLCopy}`)
+      return
+    } else {
+      logWarn('redisplayProjectListHTML', `Couldn't read from saved HTML file ${filenameHTMLCopy}.`)
+    }
+  } catch (error) {
+    logError('redisplayProjectListHTML', error.message)
+  }
+}
+
 //-------------------------------------------------------------------------------
 /**
  * Return summary of notes that contain a specified tag, for all relevant folders, in 'Markdown' or 'Rich' style.
@@ -721,8 +669,9 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
       const title = fields[2]
       const folder = fields[3] !== '' ? fields[3] : '(root folder)' // root is a special case
 
-      // If config.displayOnlyOverdue, then filter out non-overdue
-      if (config.displayOnlyOverdue && fields[0] >= 0) {
+      // If displayOnlyOverdue, then filter out non-overdue
+      const displayOnlyOverdue = DataStore.preference('Reviews-DisplayOnlyOverdue' ?? false)
+      if (displayOnlyOverdue && fields[0] >= 0) {
         logDebug('generateReviewSummaryLines', `ignoring ${title} as not overdue`)
         continue
       }
@@ -791,7 +740,7 @@ export function logFullReviewList(): void {
 export async function makeFullReviewList(config: any, runInForeground: boolean = false): Promise<void> {
   try {
     // const config = await getReviewSettings() // get instead from passed config
-    logDebug('makeFullReviewList', `Starting for ${String(config.noteTypeTags)} tags:`)
+    logDebug('makeFullReviewList', `Starting for ${String(config.noteTypeTags)} tags`)
     let startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // Get list of folders, excluding @specials and our foldersToIgnore setting
@@ -897,7 +846,8 @@ function filterAndSortReviewList(linesIn: Array<string>, config: any): Array<str
     }
 
     // Filter out finished projects if required
-    if (config.displayFinished === 'hide') {
+    const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
+    if (displayFinished === 'hide') {
       lineArrayObjs = lineArrayObjs.filter((lineObj) => !lineObj.state.match('finished'))
     }
 
@@ -922,7 +872,7 @@ function filterAndSortReviewList(linesIn: Array<string>, config: any): Array<str
         break
       }
     }
-    if (config.displayFinished === 'display at end') {
+    if (displayFinished === 'display at end') {
       sortingSpecification.push('state') // i.e. 'active' before 'finished'
     }
 
@@ -1008,7 +958,7 @@ export async function finishReview(): Promise<void> {
     const config = await getReviewSettings()
     const currentNote = Editor // note: not Editor.note
     if (currentNote && currentNote.type === 'Notes') {
-      logInfo(pluginJson, `finishReview: Starting for ${displayTitle(currentNote)}`)
+      logInfo(pluginJson, `finishReview: Starting with Editor ${displayTitle(currentNote)}`)
       const thisNoteAsProject = new Project(currentNote)
 
       const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
@@ -1017,13 +967,24 @@ export async function finishReview(): Promise<void> {
       // logDebug('finishReview', String(RE_REVIEWED_MENTION))
 
       // First update @review(date) on current open note
-      const openNote: ?TNote = await updateMetadataInEditor([reviewedTodayString])
+      let openNote: ?TNote = await updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
+      openNote = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
+      // logDebug('finishReview', `- after metadata updates`)
+
+      // Save Editor, so the latest changes can be picked up elsewhere
+      // Putting the Editor.save() here, rather than in the above functions, seems to work
+      // if (NotePlan.environment.buildVersion > 1049) {
+      //   await Editor.save()
+      // }
+      await saveEditorToCache(null)
+
+      // Note: I haven't tried loading a new Project instance here
+
       // Then update the Project instance
       thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
       thisNoteAsProject.calcNextReviewDate()
-      // logDebug('finishReview', `After metadata updates, mSL='${thisNoteAsProject.machineSummaryLine()}'`)
+      logDebug('finishReview', `- mSL='${thisNoteAsProject.machineSummaryLine()}'`)
 
       // Also update the full-review-list
       await updateReviewListAfterChange(currentNote.title ?? '', false, config, thisNoteAsProject.machineSummaryLine())
@@ -1089,12 +1050,12 @@ export async function skipReview(): Promise<void> {
     const thisNoteAsProject = new Project(currentNote)
 
     // Ask for new date
-    const reply = await getInputTrimmed('Next review date (YYYY-MM-DD or date interval) to skip until:', 'OK', 'Skip next review')
+    const reply = await getInputTrimmed("Next review date (YYYY-MM-DD) or date interval (e.g. '2w' or '3m') to skip until:", 'OK', 'Skip next review')
     if (!reply || typeof reply === 'boolean') {
       logDebug('skipReview', `User cancelled command.`)
       return
     }
-    // Process date into the common ISO format
+    // Get new date from input in the common ISO format, and create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)` below.
     let newDateStr: string = reply.match(RE_DATE)
       ? reply
       : reply.match(RE_DATE_INTERVAL)
@@ -1105,11 +1066,20 @@ export async function skipReview(): Promise<void> {
       return
     }
     const nextReviewDate = getDateObjFromDateString(newDateStr)
-    const extraMetadata = `${config.nextReviewMentionStr}(${newDateStr})`
-    logDebug('skipReview', `- nextReviewDate: ${String(nextReviewDate)} / extraMetadata: ${extraMetadata}`)
+    const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
+    logDebug('skipReview', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
+
+    // Following not wanted when skipping a review
+    // Form updated @review(date) for today
+    // const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
+    // const reviewedTodayMetadataStr = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
 
     // Update metadata in the current open note
-    const result = await updateMetadataInEditor([extraMetadata])
+    const result = await updateMetadataInEditor([nextReviewMetadataStr])
+
+    // Save Editor, so the latest changes can be picked up elsewhere
+    // Putting the Editor.save() here, rather than in the above functions, seems to work
+    await saveEditorToCache(null)
 
     // Update the full-review-list too
     thisNoteAsProject.nextReviewDateStr = newDateStr
@@ -1305,7 +1275,7 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
     const origLine: string = metadataPara.content
     let updatedLine = origLine
 
-    logDebug('updateMetadataInEditor', `starting for '${displayTitle(Editor)}' with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
+    logDebug('updateMetadataInEditor', `starting for '${displayTitle(thisNote)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
 
     for (const item of updatedMetadataArr) {
       // logDebug('updateMetadataInEditor', `Processing ${item} for ${mentionName}`)
@@ -1315,13 +1285,13 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
       updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
       // Then append this @mention
       updatedLine += ' ' + item
-      logDebug('updateMetadataInEditor', `-> ${updatedLine}`)
+      // logDebug('updateMetadataInEditor', `-> ${updatedLine}`)
     }
 
     // send update to Editor (removing multiple and trailing spaces)
     metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
     Editor.updateParagraph(metadataPara)
-    await saveEditorToCache()
+    // await saveEditorToCache() // might be stopping code execution here for unknown reasons
     logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
 
     // update this note in the review list
@@ -1371,7 +1341,7 @@ export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<s
     // send update to Editor (removing multiple and trailing spaces)
     metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
     Editor.updateParagraph(metadataPara)
-    await saveEditorToCache()
+    // await saveEditorToCache() // seems to stop here but without error
     logDebug('deleteMetadataMentionInEditor', `- After update ${metadataPara.content}`)
 
     // update this note in the review list
@@ -1385,10 +1355,11 @@ export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<s
 export async function toggleDisplayFinished(): Promise<void> {
   try {
     logDebug('toggleDisplayFinished', `starting ...`)
+    let savedValue = DataStore.preference('Reviews-DisplayFinished' ?? false)
+    let newValue = !savedValue
+    logDebug('toggleDisplayFinished', `displayFinished? toggled to ${String(newValue)}`)
+    DataStore.setPreference('Reviews-DisplayFinished', newValue)
     let config = await getReviewSettings()
-    config.displayFinished = !config.displayFinished
-    logDebug('toggleDisplayFinished', `displayFinished? toggled to ${String(!config.displayFinished)}`)
-    // TODO: write to settings file
     await renderProjectLists(config, true)
   }
   catch (error) {
@@ -1399,11 +1370,11 @@ export async function toggleDisplayFinished(): Promise<void> {
 export async function toggleDisplayOnlyOverdue(): Promise<void> {
   try {
     logDebug('toggleDisplayOnlyOverdue', `starting ...`)
+    let savedValue = DataStore.preference('Reviews-DisplayOnlyOverdue' ?? false)
+    let newValue = !savedValue
+    logDebug('toggleDisplayOnlyOverdue', `DisplayOnlyOverdue? toggled to ${String(newValue)}`)
+    DataStore.setPreference('Reviews-DisplayOnlyOverdue', newValue)
     let config = await getReviewSettings()
-    config.displayOnlyOverdue = !config.displayOnlyOverdue
-    logDebug('toggleDisplayOnlyOverdue', `displayOnlyOverdue? toggled to ${String(!config.displayOnlyOverdue)}`)
-
-    // TODO: write to settings file
     await renderProjectLists(config, true)
   }
   catch (error) {
