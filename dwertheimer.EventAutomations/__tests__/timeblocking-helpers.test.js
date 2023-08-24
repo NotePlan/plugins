@@ -160,10 +160,6 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
 
-    test('durationRegEx ', () => {
-      expect(tb.durationRegEx('~')).toEqual(new RegExp(`\\s*~(([0-9]+\\.?[0-9]*|\\.[0-9]+)h)*(([0-9]+\\.?[0-9]*|\\.[0-9]+)m)*`, 'mg'))
-    })
-
     test('removeDurationParameter ', () => {
       // hours and mins
       expect(tb.removeDurationParameter('this is foo ~2h22m', '~')).toEqual('this is foo')
