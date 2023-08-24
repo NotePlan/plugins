@@ -154,10 +154,11 @@ export async function savePluginCommand(pluginJson: any, fields: PresetCommand):
  */
 export async function presetChosen(pluginJson: any, jsFunction: string, callback: function, callbackArgs: ?Array<any> = []): Promise<void> {
   const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
-  logDebug(pluginJson, `presetChosen: ${jsFunction}`)
+  logDebug(pluginJson, `presetChosen: ${pluginJson['plugin.id']}::${jsFunction}`)
   const index = getCommandIndex(livePluginJson, jsFunction)
   if (index > -1) {
-    logDebug(pluginJson, `presetChosen Found ${jsFunction} calling callback`)
+    clo(livePluginJson['plugin.commands'][index], `presetChosen Found "${jsFunction}" details in plugin.json:`)
+    clo(callbackArgs, `presetChosen Found ${jsFunction} calling callback()" with args:`)
     await callback({ ...livePluginJson['plugin.commands'][index], index }, ...callbackArgs)
   } else {
     logError(pluginJson, `presetChosen: Could not find index for ${jsFunction}`)
