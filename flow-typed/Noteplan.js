@@ -286,6 +286,7 @@ declare interface TEditor extends CoreNoteFields {
   onMainThread(): Promise<void>;
   /**
    * Save content of Editor to file. This can be used before updateCache() to ensure latest changes are available quickly.
+   * Warning: beware possiblity of this causing an infinite loop, particularly if used in a function call be an onEditorWillSave trigger.
    * Note: Available from 3.9.3
    */
   save(): Promise<void>;
@@ -2005,14 +2006,15 @@ declare class HTMLView {
   /**
    * Open a non-modal window above the main window with the given html code and window title.
    * It returns a promise with the created window object.
-   * Optionally, supply an object as the 3rd parameter to set window options: { width, height, x, y, shouldFocus }
+   * Optionally, supply an object as the 3rd parameter to set window options: { width, height, x, y, shouldFocus, id }
    * By default, it will focus and bring to front the window on first launch.
    * If you are re-loading an existing HTML window's content, by default the window will not change z-order or focus (if it is in the back, it will stay in the back). You can override this by setting { shouldFocus: true } to bring to front on reload.
+   * Note: from v3.9.6 (build 1087) will open multiple windows if different 'id' is delivered. If set it is assigned as the `customId` to the returning window.
    * Run it with await window = showWindow(...), so you can adjust the window position and height later.
    * Note: Available from v3.9.1 (build 1020)
    * @param {string} HTML to show
    * @param {string} title for HTML window
-   * @param {Object} options { x: integer, y: integer, width: integer, height: integer, shouldFocus: boolean }
+   * @param {Object} options { x: integer, y: integer, width: integer, height: integer, shouldFocus: boolean, id: string }
    * @returns {Window} promise to window
    */
   static showWindowWithOptions(html: string, title: string, options: Object): HTMLView;
