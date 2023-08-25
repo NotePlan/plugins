@@ -105,6 +105,10 @@ export function cleanStringifiedResults(str: string): string {
  * @example clo(obj, 'myObj:')
  */
 export function clo(obj: any, preamble: string = '', space: string | number = 2): void {
+  if (!obj) {
+    logDebug(preamble, `null`)
+    return
+  }
   if (typeof obj !== 'object') {
     logDebug(preamble, `${obj}`)
   } else {
@@ -217,6 +221,9 @@ const _message = (message: any): string => {
   return logMessage
 }
 
+const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
+const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none']
+
 /**
  * Formats log output to include timestamp pluginId, pluginVersion
  * @author @codedungeon
@@ -226,8 +233,8 @@ const _message = (message: any): string => {
  * @returns {string}
  */
 export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): string {
-  const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none']
   const thisMessageLevel = LOG_LEVELS.indexOf(type)
+  const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel]
   let msg = ''
   let pluginId = ''
   let pluginVersion = ''
@@ -237,12 +244,14 @@ export function log(pluginInfo: any, message: any = '', type: string = 'INFO'): 
   if (isPluginJson) {
     pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID'
     pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION'
-    msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginId} v${pluginVersion} :: ${_message(message)}`
+    msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginId} v${pluginVersion} :: ${_message(message)}`
   } else {
     if (message.length > 0) {
-      msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${pluginInfo} :: ${_message(message)}`
+      // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${pluginInfo} :: ${_message(message)}`
+      msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginInfo} :: ${_message(message)}`
     } else {
-      msg = `${dt().padEnd(19)} | ${type.padEnd(5)} | ${_message(pluginInfo)}`
+      // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${_message(pluginInfo)}`
+      msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`
     }
   }
   let userLogLevel = 1

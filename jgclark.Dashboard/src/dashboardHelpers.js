@@ -1,20 +1,22 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 8.8.2023 for v0.6.0 by @jgclark
+// Last updated 21.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_EVENT_ID } from '@helpers/calendar'
 import { trimString } from '@helpers/dataManipulation'
-import { getDateStringFromCalendarFilename, toLocaleTime } from '@helpers/dateTime'
+import { getDateStringFromCalendarFilename, getAPIDateStrFromDisplayDateStr, toLocaleTime } from '@helpers/dateTime'
 import {
   simplifyNPEventLinksForHTML,
   simplifyInlineImagesForHTML,
   convertHashtagsToHTML,
   convertMentionsToHTML,
   convertPreformattedToHTML,
+  convertStrikethroughToHTML,
+  convertUnderlinedToHTML,
   convertHighlightsToHTML,
   convertNPBlockIDToHTML,
   convertBoldAndItalicToHTML,
@@ -28,6 +30,7 @@ import {
   removeTaskPriorityIndicators,
 } from '@helpers/paragraph'
 import {
+  RE_ARROW_DATES_G,
   // RE_EVENT_LINK,
   RE_MARKDOWN_LINKS_CAPTURE_G,
   // RE_NOTELINK_G,
@@ -183,10 +186,13 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
     // Display mentions with .attag style
     output = convertMentionsToHTML(output)
 
-    // Display mentions with .code style
+    // Display pre-formatted with .code style
     output = convertPreformattedToHTML(output)
 
-    // Display mentions with .code style
+    // Display strikethrough with .strikethrough style
+    output = convertStrikethroughToHTML(output)
+
+    // Display highlights with .code style
     output = convertHighlightsToHTML(output)
 
     // Replace blockID sync indicator with icon
@@ -207,8 +213,26 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
     // add basic *italic* or _italic_ styling
     output = convertBoldAndItalicToHTML(output)
 
+    // Display underline with .underlined style
+    output = convertUnderlinedToHTML(output)
+
+    // Add suitable colouring to 'arrow' >date< items
+    // (Needs to go before match on >date dates)
+    let captures = output.match(RE_ARROW_DATES_G)
+    if (captures) {
+      clo(captures, 'results from arrow >date< match:')
+      for (const capture of captures) {
+        // output = output.replace(capture, `<span style="color: var(--tint-color);">${capture}</span>`)
+        logDebug('makeParaContet...', `- making arrow date with ${capture}`)
+        // Replace >date< with HTML link, aware that this will interrupt the <a>...</a> that will come around the whole string, and so it needs to make <a>...</a> regions for the rest of the string before and after the capture.
+        const dateFilenamePart = capture.slice(1, -1)
+        const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromNPDateStr(dateFilenamePart, thisItem.ID)
+        output = output.replace(capture, '</a>' + noteTitleWithOpenAction + '<a class="content">')
+      }
+    }
+
     // Add suitable colouring to remaining >date items
-    let captures = output.match(RE_SCHEDULED_DATES_G)
+    captures = output.match(RE_SCHEDULED_DATES_G)
     if (captures) {
       // clo(captures, 'results from >date match:')
       for (const capture of captures) {
@@ -221,7 +245,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
     captures = output.match(/\[\[(.*?)\]\]/)
     if (captures) {
       // clo(captures, 'results from [[notelinks]] match:')
-      for (let capturedTitle of captures) {
+      for (const capturedTitle of captures) {
         logDebug('makeParaContet...', `- making notelink with ${thisItem.filename}, ${capturedTitle}`)
         // Replace [[notelinks]] with HTML equivalent, aware that this will interrupt the <a>...</a> that will come around the whole string, and so it needs to make <a>...</a> regions for the rest of the string before and after the capture.
         const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(capturedTitle)
@@ -248,7 +272,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
           break
         }
       }
-      logDebug('makeParaContet...', `- after: '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
+      // logDebug('makeParaContet...', `- after: '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
     }
 
     // If we already know (from above) there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority5.
@@ -330,6 +354,28 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
   }
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
+    return '(error)'
+  }
+}
+
+/**
+ * Wrap string with href onClick event to show note in editor,
+ * using item.filename param.
+ * @param {string} NPDateStr
+ * @param {string} noteTitle
+ * @returns {string} output
+ */
+export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, itemID: string): string {
+  try {
+    // TEST:
+    // TODO: use user's setting
+    const dateFilename = getAPIDateStrFromDisplayDateStr(NPDateStr) + "." + DataStore.defaultFileExtension
+    logDebug('makeNoteTitleWithOpenActionFromNPDateStr', `- making notelink with ${NPDateStr} / ${dateFilename}`)
+    // Pass request back to plugin, as a single object
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines"></i> ${NPDateStr}</a>`
+  }
+  catch (error) {
+    logError('makeNoteTitleWithOpenActionFromNPDateStr', `${error.message} for input '${NPDateStr}'`)
     return '(error)'
   }
 }

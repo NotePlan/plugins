@@ -1,5 +1,13 @@
 # np.ThemeChooser Changelog
 
+## [1.7.2] 2023-08-24 @dwertheimer
+
+- Fix presets bug where presets were empty - found by @clayrussell
+
+## [1.7.1] 2023-08-22 @dwertheimer
+
+- Add theme choosing to frontmatter-based theme setting
+
 ## [1.7.0] 2023-08-22 @dwertheimer
 
 - Added frontmatter setting of theme on a per-note basis

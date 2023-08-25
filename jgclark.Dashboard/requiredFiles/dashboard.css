@@ -1,5 +1,5 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 22.7.2023 for v0.6.0 by @jgclark */
+/* Last updated 12.8.2023 for v0.6.0 by @jgclark */
 
 table { font-size: 1.0rem; /* used to make text a little smaller at 0.9rem */
 	border-collapse: collapse; /* always! */
@@ -51,7 +51,7 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	padding: 1px 4px;
 	border-bottom: 0px;
 	break-inside: avoid;
-	vertical-align: baseline;
+	line-height: 1.2rem; /* get from a variable */
 }
 .lowerPriority { /* show italic */
 	font-weight: 300;
@@ -69,12 +69,12 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 .scheduledDate {
 	color: var(--tint-color);
 }
-div.content, div.content:visited, div.content:active { /* all links turn off text color and underlining by default */
+.content, .content:visited, .content:active { /* all links turn off text color and underlining by default */
 	color: inherit;
 	text-decoration: none;
 	cursor: pointer;
 }
-div.content:hover {
+.content:hover, .noteTitle:hover { /* except when hovering over a content item */
 	text-decoration: underline;
 	/* text-decoration-color: var(--tint-color); */
 }
@@ -161,6 +161,7 @@ input.apple-switch:checked:after {
   left: 0.8rem; /* 20px; */
   box-shadow: -2px 4px 3px rgba(0,0,0,0.05);
 }
+
 input, label {
 	vertical-align: top;
 }
@@ -200,7 +201,7 @@ input, label {
   z-index: 1;
 	display: flex;
   opacity: 0;
-	left: 3rem;
+	left: 2rem; /* how far to the right of the start of the TD to start the tooltip */
   /* width: 9rem; */ /* browser calculates better than I can */
   /* height: 1.2rem; */ /* browser calculates better than I can */
   line-height: 1.2rem;

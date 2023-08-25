@@ -5,15 +5,14 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { showDashboardHTML } from './dashboardHTML'
+import { showDashboardHTML } from './main'
 import { calcOffsetDateStr, getNPWeekStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated, RE_DATE_INTERVAL, RE_DATE_TIME, replaceArrowDatesInString } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
-import { cancelItem, completeItem, getParagraphFromStaticObject, highlightParagraphInEditor, moveItemBetweenCalendarNotes } from '@helpers/NPParagraph'
+import { cancelItem, completeItem, findParaFromStringAndFilename, getParagraphFromStaticObject, highlightParagraphInEditor, moveItemBetweenCalendarNotes } from '@helpers/NPParagraph'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString, storeWindowRect } from '@helpers/NPWindows'
-import { findParaFromStringAndFilename } from "../../helpers/NPParagraph";
 
 //-----------------------------------------------------------------
 // Data types + constants
@@ -85,8 +84,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const type = data.type
     const filename = decodeRFC3986URIComponent(data.encodedFilename)
     const content = decodeRFC3986URIComponent(data.encodedContent)
-    logDebug('', '-------------------------')
-    logDebug('bridgeClickDashboardItem', `- ID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
+    logDebug('', '------------------------- bridgeClickDashboardItem:')
+    logInfo('bridgeClickDashboardItem', `ID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     switch (type) {
       case 'completeTask': {
         const res = completeItem(filename, content)
@@ -164,6 +163,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'showNoteInEditorFromFilename': {
         // Handle a show note call simply by opening the note in the main Editor.
+        // Note: use the showLine... variant of this (below) where possible
         const note = await Editor.openNoteByFilename(filename)
         if (note) {
           logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor`)
@@ -174,6 +174,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'showNoteInEditorFromTitle': {
         // Handle a show note call simply by opening the note in the main Editor
+        // Note: use the showLine... variant of this (below) where possible
         // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
         const wantedTitle = filename
         const note = await Editor.openNoteByTitle(wantedTitle)
@@ -185,21 +186,25 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'showLineInEditorFromFilename': {
-        // Handle a show line call simply by opening the note in the main Editor, and then finding and highlighting the line.
+        // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
+        // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)
+        // FIXME: Error in this line
         const note = await Editor.openNoteByFilename(filename)
         if (note) {
-          const res = highlightParagraphInEditor({ filename: filename, content: content })
+          const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
           logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
+        } else {
+          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open filename ${filename} in Editor`)
         }
         break
       }
       case 'showLineInEditorFromTitle': {
-        // Handle a show line call simply by opening the note in the main Editor, and then finding and highlighting the line.
+        // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
         // Note: different from above as the third parameter is overloaded to pass wanted note title (encoded)
         const wantedTitle = decodeURIComponent(filename)
         const note = await Editor.openNoteByTitle(wantedTitle)
         if (note) {
-          const res = highlightParagraphInEditor({ filename: note.filename, content: content })
+          const res = highlightParagraphInEditor({ filename: note.filename, content: content }, true)
           logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
         } else {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)

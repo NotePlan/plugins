@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.6.0-RC7",
-  "plugin.lastUpdateInfo": "v0.6.0: adds tooltip on displayed tasks that allows task to be moved on to next day, week etc. Supports new '>>' working indicator in themes. Plus other visual polish and fixes.\nv0.5.1: display improvements + bug fixes.\nv0.5.0: Can now filter out lower-priority items. Can cancel or add tasks and checklists. New optional 'hastags/mentions to show' section.\nv0.4.2: various updates to window handling.v0.4.1: bug fix, polish and demo updates.",
+  "plugin.version": "0.6.0",
+  "plugin.lastUpdateInfo": "v0.6.0: adds tooltip on displayed tasks that allows task to be moved on to next day, week etc. Adds lots of new theming support. Plus other visual polish and fixes.\nv0.5.1: display improvements + bug fixes.\nv0.5.0: Can now filter out lower-priority items. Can cancel or add tasks and checklists. New optional 'hastags/mentions to show' section.\nv0.4.2: various updates to window handling.v0.4.1: bug fix, polish and demo updates.",
   "plugin.requiredFiles": [
     "commsSwitchboard.js",
     "dashboard.css",

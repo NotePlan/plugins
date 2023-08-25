@@ -3,19 +3,20 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 18.7.2023 for v0.5.1, @jgclark
+// last updated 24.8.2023 for v0.6.0, @jgclark
 // ----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
+import { showDashboardHTML } from "./main"
 import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getPluginJson, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
-export { logWindowsList } from '@helpers/NPWindows'
+import { isHTMLWindowOpen, logWindowsList } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
 
 export { getDemoDataForDashboard } from './demoDashboard'
-export { addTask, addChecklist, showDashboardHTML, showDemoDashboardHTML, resetDashboardWinSize } from './dashboardHTML'
+export { addTask, addChecklist, showDashboardHTML, showDemoDashboardHTML, resetDashboardWinSize } from './main'
 export { decideWhetherToUpdateDashboard } from './dashboardTriggers'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge'
 export { getDataForDashboard, logDashboardData } from './dataGeneration'
@@ -37,8 +38,13 @@ export async function init(): Promise<void> {
   }
 }
 
-export function onSettingsUpdated(): void {
+export async function onSettingsUpdated(): Promise<any> {
   // Placeholder only to stop error in logs
+  if (!isHTMLWindowOpen('Dashboard')) {
+    await showDashboardHTML(false, false) // don't need await in the case I think
+  }
+  // TEST: trying this empty return to see if stops console errors
+  return {}
 }
 
 export async function onUpdateOrInstall(): Promise<void> {
@@ -60,7 +66,7 @@ export async function onUpdateOrInstall(): Promise<void> {
 export async function updateSettings() {
   try {
     logDebug(pluginJson, `updateSettings running`)
-    await editSettings(pluginJson)
+    const res = await editSettings(pluginJson)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

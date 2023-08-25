@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 8.8.2023 for v0.6.0 by @jgclark
+// Last updated 25.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -18,7 +18,6 @@ import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { filterParasAgainstExcludeFolders } from '@helpers/note'
 import { findNotesMatchingHashtagOrMention, getReferencedParagraphs } from '@helpers/NPnote'
-// import { makeBasicParasFromContent } from '@helpers/NPParagraph'
 import {
   addPriorityToParagraphs,
   getNumericPriorityFromPara,
@@ -54,12 +53,13 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
  */
 function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, dashboardConfig: dashboardConfigType): [Array<TParagraph>, Array<TParagraph>] {
   try {
-    let parasToUse: Array<TParagraph>
-    if (Editor?.note.filename === timePeriodNote.filename) {
-      // parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
+    let parasToUse: $ReadOnlyArray<TParagraph>
+    if (Editor && (Editor?.note?.filename === timePeriodNote.filename)) {
+      // If note of interest is open in editor, then use latest version available, as the DataStore is probably stale.
       logDebug('getOpenItemParasForCurrentTimePeriod', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras`)
       parasToUse = Editor.paragraphs
     } else {
+      // read note from DataStore in the usual way
       logDebug('getOpenItemParasForCurrentTimePeriod', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
       // parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
       parasToUse = timePeriodNote.paragraphs
@@ -137,6 +137,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
     let sectionCount = 0
     let doneCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    const startTime = new Date() // for timing only
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists from daily note (if it exists)
@@ -359,7 +360,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       logDebug('getDataForDashboard', `No quarterly note found for filename '${currentQuarterlyNote?.filename ?? 'error'}'`)
     }
 
-    // Note: If we want to do yearly then the icon is fa-calendar-days (same as quarter)
+    // Note: If we want to do yearly in the future then the icon is fa-calendar-days (same as quarter)
 
     // Add a section for tagToShow, if set
     if (config.tagToShow) {
@@ -438,7 +439,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
     }
     // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
-    logDebug('getDataForDashboard', `getDataForDashboard finished, with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
+    logInfo('getDataForDashboard', `generated ${String(sections.length)} sections and ${String(sectionItems.length)} items in ${timer(startTime)}`)
     return [sections, sectionItems]
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -480,13 +481,13 @@ export async function logDashboardData(): Promise<void> {
  */
 async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> {
   try {
-    logDebug(pluginJson, `Starting dashboard::getNextNotesToReview())`)
+    logDebug(pluginJson, `Starting dashboard/getNextNotesToReview())`)
 
     // Get contents of full-review-list
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // If we get here, log error, as the file should exist and not be empty
-      logError('dashboard / getNextNotesToReview', `full-review-list note empty or missing`)
+      logError('dashboard/getNextNotesToReview', `full-review-list note empty or missing`)
       return []
     } else {
       const fileLines = reviewListContents.split('\n')
@@ -505,7 +506,7 @@ async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> 
         const thisNoteTitle = thisLine.split('\t')[2] // get third field = title
         const tags = thisLine.split('\t')[5] ?? '' // get last field = tags
         if (nextReviewDays < 0 && !tags.includes('finished')) {
-          // logDebug('dashboard / getNextNotesToReview', `- Next to review = '${thisNoteTitle}'`)
+          // logDebug('dashboard/getNextNotesToReview', `- Next to review = '${thisNoteTitle}'`)
           const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
           notesToReview.push(nextNotes[0]) // add first matching note
           if (notesToReview.length >= numToReturn) {
@@ -518,12 +519,12 @@ async function getNextNotesToReview(numToReturn: number): Promise<Array<TNote>> 
         return notesToReview // return array of ntoes
       } else {
         // If we get here then there are no projects needed for review
-        logInfo('getNextNotesToReview', `- No notes due for review 🎉`)
+        logDebug('dashboard/getNextNotesToReview', `- No notes due for review 🎉`)
         return []
       }
     }
   } catch (error) {
-    logError(pluginJson, `dashboard::getNextNotesToReview: ${error.message}`)
+    logError(pluginJson, `dashboard/getNextNotesToReview: ${error.message}`)
     return []
   }
 }

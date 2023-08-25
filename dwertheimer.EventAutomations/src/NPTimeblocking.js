@@ -276,10 +276,17 @@ export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TP
   logDebug(pluginJson, `Found ${backlinkParas.length} backlink paras`)
   let todosInNote = Editor.note ? findOpenTodosInNote(Editor.note, includeAllTodos) : []
   if (todosInNote.length > 0) {
-    logDebug(pluginJson, ` getTodaysFilteredTodos: todosInNote Found ${todosInNote.length} items in today's note. Adding them.`)
-    // eliminate linked lines (for synced lines on the page)
+    logDebug(pluginJson, ` getTodaysFilteredTodos: todosInNote Found ${todosInNote.length} items in today's note. Adding them to the possibilities.`)
+    // we want to eliminate linked lines (for synced lines on the page)
     // because these should be in the references from other pages
-    todosInNote = todosInNote.filter((todo) => !/\^[a-zA-Z0-9]{6}/.test(todo.content))
+    // but it's possible that this is a normal task in the note that is not in references, so for now, commenting this filter out
+    // because it should get deduped later in this function
+    // todosInNote = todosInNote.filter((todo) => !/\^[a-zA-Z0-9]{6}/.test(todo.content))
+    const todayTasksWithSyncedLines = todosInNote.filter((todo) => /\^[a-zA-Z0-9]{6}/.test(todo.content))
+    logDebug(
+      pluginJson,
+      ` getTodaysFilteredTodos: todosInNote had ${todayTasksWithSyncedLines.length} synced line items in today's note. If they are dupes in references, they should get deduped in the following steps.`,
+    )
     todosInNote = todosInNote.filter((todo) => !isTimeBlockLine(todo.content)) // if a user is using the todo character for timeblocks, eliminate those lines
     todosInNote = todosInNote.filter((todo) => !new RegExp(timeBlockTag).test(todo.content)) // just to be extra safe, make sure we're not adding our own timeblocks
   }
@@ -376,6 +383,7 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
       // logDebug(pluginJson, `sortedTodos[0]: ${sortedTodos[0].content}  Editor.paras=${Editor.paragraphs.length}`)
       // logDebug(pluginJson, `sortedParas[0]: ${sortedParas[0].content}`)
       const eventsToTimeblock = getTimeBlockTimesForEvents(calendarMapWithEvents, sortedTodos, config)
+      logDebug(`\n\n>>>>>>> after getTimeBlockTimesForEvents <<<<<<<<<<<<\n\n`)
       clo(eventsToTimeblock, `createTimeBlocksForTodaysTasks eventsToTimeblock`)
       const { blockList, noTimeForTasks } = eventsToTimeblock
       let { timeBlockTextList } = eventsToTimeblock
@@ -411,10 +419,12 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
             // removeContentUnderHeading(Editor, config.timeBlockHeading, false, true) -- too dangerous, will delete stuff people write underneath
             if (!timeBlockTextList) timeBlockTextList = []
             Object.keys(noTimeForTasks).forEach((key) =>
-              noTimeForTasks[key].forEach((p) =>
-                timeBlockTextList.push(
-                  `+ No time ${key === '_' ? 'available' : `in timeblock *${key}*`} for task: **- ${removeRepeats(removeDateTagsAndToday(p.content))}** ${config.timeBlockTag}`,
-                ),
+              noTimeForTasks[key].forEach(
+                (p) =>
+                  timeBlockTextList &&
+                  timeBlockTextList.push(
+                    `+ No time ${key === '_' ? 'available' : `in timeblock *${key}*`} for task: **- ${removeRepeats(removeDateTagsAndToday(p.content))}** ${config.timeBlockTag}`,
+                  ),
               ),
             )
           }
