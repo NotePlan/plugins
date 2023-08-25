@@ -121,6 +121,7 @@
   "dependencies": {
     "@codedungeon/gunner": "0.77.0",
     "@samverschueren/stream-to-observable": "0.3.1",
+    "@types/crypto-js": "4.1.1",
     "babel": "^6.23.0",
     "babel-cli": "^6.26.0",
     "babelify": "^10.0.0",
@@ -134,6 +135,7 @@
     "columnify": "^1.6.0",
     "commander": "^8.1.0",
     "contentful-html-rich-text-converter": "1.0.9",
+    "crypto-js": "3.1.9-1",
     "date-fns": "^2.23.0",
     "dayjs": "1.10.6",
     "enquirer": "^2.3.6",

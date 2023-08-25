@@ -1,0 +1,125 @@
+{
+  "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "aaronpoweruser.NoteProtector",
+  "plugin.name": "🧩 Note Protector",
+  "plugin.version": "0.1.0",
+  "plugin.lastUpdateInfo": "Initial Release",
+  "plugin.description": "Encrypt and decrypt notes with a token",
+  "plugin.author": "aaronpoweruser",
+  "plugin.dFiles-EDIT_ME": ["html-plugin-comms.js"],
+  "plugin.dFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.NoteProtector/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.NoteProtector/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "note": "================== COMMMANDS ========================"
+    },
+    {
+      "name": "Note Protector Lock Notes (npln)",
+      "description": "Encrypts notes with the given token",
+      "jsFunction": "noteProtectorLockNotes",
+      "alias": [
+        "npln"
+      ]
+    },
+    {
+      "name": "Note Protector Unlock Notes (npun)",
+      "description": "Decrypts notes with the given token",
+      "jsFunction": "noteProtectorUnlockNotes",
+      "alias": [
+        "npun"
+      ]
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Note Protector: Version",
+      "description": "Update + Check Version",
+      "jsFunction": "versionCheck"
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onOpen",
+      "jsFunction": "onOpen",
+      "hidden": true
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onEditorWillSave",
+      "jsFunction": "onEditorWillSave",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onMessageFromHTMLView",
+      "description": "aaronpoweruser.NoteProtector: Callback function to receive messages from HTML view",
+      "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Note Protector: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "note": "================== SETTINGS ========================"
+    },
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Note Protector Settings"
+    },
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "aaronpoweruser.NoteProtector",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "title": "To be be encypted token",
+      "key": "toBeEncryptedToken",
+      "type": "string",
+      "description": "Enter some string and see it change when the plugin is run",
+      "default": "#🔒"
+    },
+    {
+      "title": "To be decyrpted token",
+      "key": "toBeDecyrptedToken",
+      "type": "string",
+      "description": "Enter some string and see it change when the plugin is run",
+      "default": "#🔐"
+    },
+    {
+      "note": "================== DEBUGGING SETTINGS ========================"
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Note Protector commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "d": true
+    }
+  ]
+}
