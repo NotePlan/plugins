@@ -6,7 +6,11 @@
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-import { getStoredWindowRect, isHTMLWindowOpen, setHTMLWindowId, storeWindowRect } from '@helpers/NPWindows'
+import {
+  getStoredWindowRect, isHTMLWindowOpen,
+  setHTMLWindowId,
+  storeWindowRect
+} from '@helpers/NPWindows'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
 import {
   RE_EVENT_LINK,
@@ -45,7 +49,6 @@ export type HtmlWindowOptions = {
 
 /**
  * Generate CSS instructions from the given theme (or current one if not given, or 'dark' theme if that isn't available) to use as an embedded style sheet.
- * TODO: be smarter at getting priority task theming
  * @author @jgclark
  * @param {string?} themeNameIn
  * @returns {string} outputCSS
@@ -1165,7 +1168,7 @@ export async function showHTMLV2(
       const fullHTMLStr = assembleHTMLParts(body, opts)
 
       // Ensure we have a window ID to use
-      const cId = opts.customId ?? opts.windowTitle ?? 'fallback'
+      const cId = opts.customId ?? opts.windowTitle ?? ''
 
       // Before showing anything, see if the window is already open, and if so save its x/y/w/h (if requested)
       if (opts.reuseUsersWindowRect && isHTMLWindowOpen(cId)) {
@@ -1184,16 +1187,24 @@ export async function showHTMLV2(
       } else {
         let winOptions = {}
         // First set to the default values
-        winOptions = {
-          x: opts.x,
-          y: opts.y,
-          width: opts.width,
-          height: (opts.height > 56) ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
-          shouldFocus: opts.shouldFocus,
-        }
-        // From 3.9.6 can set window id directly through options
         if (NotePlan.environment.buildVersion >= 1087) {
-          winOptions.id = cId
+          // From 3.9.6 can set window id directly through options
+          winOptions = {
+            x: opts.x,
+            y: opts.y,
+            width: opts.width,
+            height: (opts.height > 56) ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
+            shouldFocus: opts.shouldFocus,
+            id: cId
+          }
+        } else {
+          winOptions = {
+            x: opts.x,
+            y: opts.y,
+            width: opts.width,
+            height: (opts.height > 56) ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
+            shouldFocus: opts.shouldFocus,
+          }
         }
         // Now override with saved x/y/w/h for this window if wanted, and if available
         if (opts.reuseUsersWindowRect && cId) {
