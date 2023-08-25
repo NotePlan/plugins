@@ -7,12 +7,12 @@ import { noteHasContent, moveParagraphToNote, getOverdueParagraphs } from '../..
 import { getNPWeekData, getWeekOptions } from '../../helpers/NPdateTime'
 import { filterNotesAgainstExcludeFolders, noteType } from '../../helpers/note'
 import { getReferencedParagraphs, getTodaysReferences } from '../../helpers/NPnote'
+import { chooseHeading, chooseNote, chooseOptionWithModifiers, showMessage } from '../../helpers/userInput'
 import { followUpSaveHere, followUpInFuture } from './NPFollowUp'
 import { filenameDateString } from './dateHelpers'
 import { isOpen } from '@helpers/utils'
 import { getDateOptions, replaceArrowDatesInString, RE_DATE, RE_WEEKLY_NOTE_FILENAME, getTodaysDateHyphenated, isWeeklyNote, isScheduled } from '@helpers/dateTime'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { chooseOptionWithModifiers, showMessage } from '@helpers/userInput'
 import { eliminateDuplicateSyncedParagraphs, textWithoutSyncedCopyTag } from '@helpers/syncedCopies'
 import { sortListBy } from '@helpers/sorting'
 
@@ -38,6 +38,9 @@ type RescheduleUserAction =
   | '__skip__'
   | '__xcl__'
   | '__list__'
+  | '__listMove__'
+  | '__checklist__'
+  | '__checklistMove__'
   | '__mdhere__'
   | '__mdfuture__'
   | '__newTask__'
@@ -103,6 +106,8 @@ export function getSharedOptions(origPara?: TParagraph | { note: TNote } | null,
     { label: `⌫ Remove the >date from the ${taskText}`, value: '__remove__' },
     { label: `⦿ Convert ${taskText} to a bullet/list item`, value: '__list__' },
     { label: `☑︎ Convert ${taskText} to a checklist item`, value: '__checklist__' },
+    { label: `⦿ Convert ${taskText} to a bullet/list item & move to another note`, value: '__listMove__' },
+    { label: `☑︎ Convert ${taskText} to a checklist item & move to another note`, value: '__checklistMove__' },
     { label: '❌ Cancel Review', value: '__xcl__' },
     { label: '------ Set Due Date To: -------', value: '-----' },
     ...dateOpts,
@@ -164,11 +169,25 @@ export async function prepareUserAction(origPara: TParagraph, updatedPara: TPara
       }
       case `__mark__`:
       case `__checklist__`:
+      case `__checklistMove__`:
+      case `__listMove__`:
       case '__canceled__':
       case '__list__': {
-        const tMap = { __mark__: 'done', __canceled__: 'cancelled', __list__: 'list', __checklist__: 'checklist' }
+        const tMap = { __mark__: 'done', __canceled__: 'cancelled', __list__: 'list', __checklist__: 'checklist', __listMove__: 'list', __checklistMove__: 'checklist' }
         origPara.type = tMap[userChoice]
         origPara.content = replaceArrowDatesInString(origPara.content)
+        if (/Move/.test(userChoice)) {
+          const noteToMoveTo = await chooseNote(true, true, [], 'Note to move to', true, true)
+          if (noteToMoveTo) {
+            const heading = await chooseHeading(noteToMoveTo, true, true, false)
+            if (heading) {
+              noteToMoveTo.addParagraphBelowHeadingTitle(origPara.content, origPara.type, heading, false, true)
+            } else {
+              noteToMoveTo.prependParagraph(origPara.content, origPara.type)
+            }
+            return { action: 'delete', changed: origPara }
+          }
+        }
         return { action: 'set', changed: origPara }
       }
       case '__remove__':

@@ -556,7 +556,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     describe('adapting output to offset durations', () => {
       beforeAll(() => {
-        DataStore.settings['_logLevel'] = "DEBUG"
+        // DataStore.settings['_logLevel'] = "DEBUG"
       })
       test('2023-07 +14d -> 2023-07-15', () => {
         expect(dt.calcOffsetDateStr('2023-07', '14d', 'offset')).toEqual('2023-07-15')

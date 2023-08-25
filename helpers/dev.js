@@ -105,6 +105,10 @@ export function cleanStringifiedResults(str: string): string {
  * @example clo(obj, 'myObj:')
  */
 export function clo(obj: any, preamble: string = '', space: string | number = 2): void {
+  if (!obj) {
+    logDebug(preamble, `null`)
+    return
+  }
   if (typeof obj !== 'object') {
     logDebug(preamble, `${obj}`)
   } else {

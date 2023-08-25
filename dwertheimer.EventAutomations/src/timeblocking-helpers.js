@@ -54,7 +54,7 @@ export function blockTimeFor(timeMap: IntervalMap, blockdata: BlockData, config:
 /**
  * Clean text using an array of regexes or strings to replace
  */
-export function cleanText(text: string, replacements: Array<RegExp | string>) {
+export function cleanText(text: string, replacements: Array<RegExp | string>): string {
   let cleanString = text
   replacements.forEach((r) => {
     cleanString = cleanString.replace(r, ' ')
@@ -151,27 +151,21 @@ export function makeAllItemsTodos(paras: Array<TParagraph>): Array<TParagraph> {
 }
 
 // $FlowIgnore - can't find a Flow type for RegExp
-export const durationRegEx = (durationMarker: string) => new RegExp(`\\s*${durationMarker}(([0-9]+\\.?[0-9]*|\\.[0-9]+)h)*(([0-9]+\\.?[0-9]*|\\.[0-9]+)m)*`, 'mg')
+export const durationRegEx = (durationMarker: string) =>
+  new RegExp(`\\s*${durationMarker}((?<hours>[0-9]+\\.?[0-9]*|\\.[0-9]+)(hours|hour|hr|h))?((?<minutes>[0-9]+\\.?[0-9]*|\\.[0-9]+)(minutes|mins|min|m))?`, 'mg')
 
 export const removeDurationParameter = (text: string, durationMarker: string): string => text.replace(durationRegEx(durationMarker), '').trim()
 
-/**
- * Scans a line for a delimiter and a time signature, e.g. '2h5m or '2.5h
- * @author @dwertheimer
- *
- *  @param {*} line - input line
- * @returns { Int } number of minutes in duration (or zero)
- */
 export function getDurationFromLine(line: string, durationMarker: string): number {
   const regex = durationRegEx(durationMarker)
   const match = regex.exec(line)
   let mins = 0
-  // const duration = match ? match[0] : 0
   if (match) {
-    const hours = match[2] ? Number(match[2]) : 0
-    const minutes = match[4] ? Number(match[4]) : 0
+    const hours = match.groups.hours ? Number(match.groups.hours) : 0
+    const minutes = match.groups.minutes ? Number(match.groups.minutes) : 0
     mins = Math.ceil(hours * 60 + minutes)
   }
+  clo(match, `+++++++ getDurationFromLine match - mins = ${mins} for "${line}":`)
   return mins
 }
 
@@ -390,7 +384,7 @@ export function processByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuratio
   const { blockList, timeMap } = tmb
   let newBlockList = blockList
   let unprocessedTasks = [...sortedTaskList]
-  let results = []
+  const results = []
   let noTimeForTasks = {}
   const namedBlocks = getNamedTimeBlocks(newBlockList ?? [])
   logDebug(`\n\nprocessByTimeBlockTag namedBlocks:${namedBlocks.reduce((acc, val) => `${acc}, ${val.title || ''}`, '')}`)

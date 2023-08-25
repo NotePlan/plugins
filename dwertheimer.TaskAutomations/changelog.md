@@ -5,6 +5,10 @@
 
 ## What's Changed in this Plugin?
 
+## [2.16.0] @dwertheimer 2023-08-23
+
+- Overdue processing: Add move-to-note as list/checklist option
+
 ## [2.15.0] @dwertheimer 2023-06-10
 
 - Removed URL opening commands and moved them to Link Creator
