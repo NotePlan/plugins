@@ -1,7 +1,7 @@
 # 🎛 Dashboard plugin
-![](dashboard-0.6.0-RC5@2x.png)
+![](Dashboard-0.6.0@2x.png)
 
-This plugin provides a **dashboard window** that in one place shows a compact list of just:
+This plugin provides a **dashboard window** that in one place shows a compact list of:
 - open tasks and checklists from today's note
 - scheduled open tasks and checklists from other notes to today
 - open tasks and checklists from this week's note
@@ -12,7 +12,7 @@ This plugin provides a **dashboard window** that in one place shows a compact li
 
 To open this run the **/show dashboard** command.
 
-<img width="500px" src="checking-off.gif" border="1pt solid" margin="8px"/>
+<img width="440px" src="complete+cancel.gif" border="1pt solid" margin="8px"/>
 
 All tasks and checklists shown in the Dashboard view can be marked as **complete** by clicking in its usual open circle or square. The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by press ⌘ (command) when clicking on the open circle or square.
 
