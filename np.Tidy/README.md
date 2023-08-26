@@ -13,7 +13,7 @@ This plugin provides commands to help tidy up your notes:
 - **/Remove time parts from @done() dates** (alias "rtp"): Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.
 - **/Remove @done() markers** (alias "rdm"): Remove @done(...) markers from recently-updated notes, optionally just from completed checklist items.
 - **/Remove >today tags from completed todos** (alias "removeToday" or "rmt"): Removes the ">today" tag still attached to completed/cancelled tasks that means they keep showing up in Today's references every day forever. Does not touch open tasks.
-- **/Remove triggers from recent calendar notes** (alias "rtcn"): Remove one or more triggers from recent (but past) calendar notes.
+- **/Remove triggers from recent calendar notes** (alias "rtcn"): Remove one or more triggers from recently changed calendar notes (in the past).
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. NOTE: this command does not work inside a template. See details below.
 
 Most can be used with parameters from a Template, or via an x-callback call.
@@ -44,7 +44,7 @@ For example, this will remove sections with the heading 'Habit Progress' from no
 This command rewrites the current document in the Editor, moving tasks from the top to underneath a specified heading. It cannot run like the other commands by itself or as part of TidyUp in a template, because the template processor is rewriting the document in parallel. You will get duplicate headings. There is a way to include this in your daily note, however. If you include some code like the following in your daily note template, it will run the command and include the output in the flow of writing the template, and so the document will not be getting written twice in parallel.
 ```
 ## Tasks
-* 
+*
 <% const tasks = await DataStore.invokePluginCommandByName("Tidy: Move top-level tasks in Editor to heading","np.Tidy",["Tasks",true,true]);  -%>
 <% if (tasks.length) { -%>
 <%- tasks %>

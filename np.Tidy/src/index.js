@@ -13,8 +13,6 @@ import { editSettings } from '@helpers/NPSettings'
 
 const pluginID = 'np.Tidy'
 
-export { fileRootNotes } from './fileRoot'
-
 export {
   logNotesChangedInInterval,
   removeDoneMarkers,
@@ -27,10 +25,9 @@ export {
   tidyUpAll,
   removeTodayTagsFromCompletedTodos,
 } from './tidyMain'
-
-export { listDuplicates } from './duplicates'
 export { resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion, listConflicts } from './conflicts'
-
+export { listDuplicates } from './duplicates'
+export { fileRootNotes } from './fileRoot'
 export { moveTopLevelTasksInEditor } from './topLevelTasks'
 
 /**
