@@ -153,17 +153,22 @@ export async function savePluginCommand(pluginJson: any, fields: PresetCommand):
  * NOTE: See function themePresetChosen in np.ThemeChooser for example callback
  */
 export async function presetChosen(pluginJson: any, jsFunction: string, callback: function, callbackArgs: ?Array<any> = []): Promise<void> {
-  const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
-  logDebug(pluginJson, `presetChosen: ${pluginJson['plugin.id']}::${jsFunction}`)
-  const index = getCommandIndex(livePluginJson, jsFunction)
-  if (index > -1) {
-    clo(livePluginJson['plugin.commands'][index], `presetChosen Found "${jsFunction}" details in plugin.json:`)
-    clo(callbackArgs, `presetChosen Found ${jsFunction} calling callback()" with args:`)
-    await callback({ ...livePluginJson['plugin.commands'][index], index }, ...callbackArgs)
-  } else {
-    logError(pluginJson, `presetChosen: Could not find index for ${jsFunction}`)
-    await showMessage(`Could not find preset: ${jsFunction}`)
-    await callback()
+  // need try/catch here so we can use this immediately after pluginFunction
+  try {
+    const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
+    logDebug(pluginJson, `presetChosen: ${pluginJson['plugin.id']}::${jsFunction}`)
+    const index = getCommandIndex(livePluginJson, jsFunction)
+    if (index > -1) {
+      clo(livePluginJson['plugin.commands'][index], `presetChosen Found "${jsFunction}" details in plugin.json:`)
+      clo(callbackArgs, `presetChosen Found ${jsFunction} calling callback()" with args:`)
+      await callback({ ...livePluginJson['plugin.commands'][index], index }, ...callbackArgs)
+    } else {
+      logError(pluginJson, `presetChosen: Could not find index for ${jsFunction}`)
+      await showMessage(`Could not find preset: ${jsFunction}`)
+      await callback()
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }
 
