@@ -7,19 +7,26 @@ This plugin provides a **dashboard window** that in one place shows a compact li
 - open tasks and checklists from this week's note
 - scheduled open tasks and checklists from other notes to this week
 - similarly for monthly and quarterly notes too
-- all open tasks and checklists that conain a particular @tag or #mention
+- all open tasks and checklists that conain a particular @tag or #mention of your choosing
 - next few notes to review (if you use the "Projects and Reviews" plugin)
 
 To open this run the **/show dashboard** command.
 
-<img width="440px" src="complete+cancel.gif" border="1pt solid" margin="8px"/>
+<img width="400px" src="complete+cancel.gif" border="1pt solid" margin="8px" align="right"/>All tasks and checklists shown in the Dashboard view can be marked as **complete** by clicking in its usual open circle or square. The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by press ⌘ (command) when clicking on the open circle or square.
 
-All tasks and checklists shown in the Dashboard view can be marked as **complete** by clicking in its usual open circle or square. The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by press ⌘ (command) when clicking on the open circle or square.
+<img src="move-buttons@2x.png" width="330px" border="1pt solid" margin="8px" align="right">
+All tasks and checklists can be **moved** to different days/weeks/months. After a short time hovering over an item a small box appears with a number of buttons that have short codes indicating which calendar note they'll be moved (not scheduled) to:
+
+- `+1d` moves to the next day
+- `+1b` moves to the next business day (ignoring weekends)
+- `+1w` moves to next week's note etc.
+- `→wk` moves to this week's note
+- `→mon` moves to this month's note
+(If you're wondering, this uses the same syntax as my Repeat Extensions plugin.)
 
 On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note:
 
 <img src="add-buttons@2x.png" width="170px">
-
 
 Other notes:
 - _It requires the separate 'Shared Resources' plugin to be installed_.
@@ -28,6 +35,7 @@ Other notes:
 - When the window is wide enough, it will switch to a multi-column display
 - It de-dupes items that would appear twice in a list where the lines are sync'd together.
 - there's a UI toggle "Filter out lower-priority items?". If this is on, then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed. Priority items are currently indicated by having !!!, !! or ! at the beginning or end of the item.
+- If you use the [Projects & Reviews Plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), the Dashboard will show up to the first 4 projects ready for review. It reads this from the hidden list thats updated every time its **/project lists** command is run, or you **/finish project review** on a project note.
 
 ### Updating automatically
 The dashboard window can automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly note(s). Turn on setting 'Add dashboard auto-update trigger when dashboard opened?' (details below).
