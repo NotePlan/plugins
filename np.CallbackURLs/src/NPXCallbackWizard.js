@@ -12,7 +12,7 @@ import { log, logError, logDebug, JSP } from '../../helpers/dev'
 import { createOpenOrDeleteNoteCallbackUrl, createAddTextCallbackUrl, createCallbackUrl } from '../../helpers/general'
 import pluginJson from '../plugin.json'
 import { getXcallbackForTemplate } from './NPTemplateRunner'
-import { chooseRunPluginXCallbackURL } from '@helpers/NPDev'
+import { chooseRunPluginXCallbackURL } from '@helpers/NPdev'
 import { chooseOption, showMessage, showMessageYesNo, chooseFolder, chooseNote, getInput, getInputTrimmed } from '@helpers/userInput'
 import { getSelectedParagraph } from '@helpers/NPParagraph'
 // import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
@@ -214,28 +214,30 @@ export async function runShortcut(): Promise<string> {
  * Get link to the current line's heading
  * @returns {string} the url - returns it and also puts it on the clipboard
  */
-export async function getHeadingLink(): Promise<string> {
+export async function getHeadingLink(allowPrettyLink: boolean = true): Promise<string> {
   const selectedPara = await getSelectedParagraph()
-  if (selectedPara && selectedPara?.note?.title !== null) {
+  if (selectedPara && selectedPara?.note?.title !== null && selectedPara.content) {
     // if a heading is selected, use that. otherwise look for the heading this note is in
     const heading = selectedPara.type === 'title' ? selectedPara.content : selectedPara.heading
     log(pluginJson, `selectedPara.heading: ${heading}`)
     // $FlowIgnore
     const url = createOpenOrDeleteNoteCallbackUrl(selectedPara.note.title, 'title', heading) || ''
-    Clipboard.string = url
-    const linkText = await getInputTrimmed(
-      `Link to this note and heading "${heading}" copied to clipboard (click Cancel). If you would like to create a pretty link for pasting inside of NotePlan\ne.g. [text](url), enter the text to display + OK/Enter and a pretty link will be copied to the clipboard instead.`,
-      'Copy Pretty Link',
-      'Link to Heading',
-      heading,
-    )
-    if (linkText && linkText !== '') {
-      Clipboard.string = `[${String(linkText) || ''}](${url})`
+    if (allowPrettyLink) {
+      Clipboard.string = url
+      const linkText = await getInputTrimmed(
+        `Link to this note and heading "${heading}" copied to clipboard (click Cancel). If you would like to create a pretty link for pasting inside of NotePlan\ne.g. [text](url), enter the text to display + OK/Enter and a pretty link will be copied to the clipboard instead.`,
+        'Copy Pretty Link',
+        'Link to Heading',
+        heading,
+      )
+      if (linkText && linkText !== '') {
+        Clipboard.string = `[${String(linkText) || ''}](${url})`
+      }
     }
     // await showMessage(`Link to this note and heading "${heading}" copied to clipboard`)
     return url
   } else {
-    await showMessage(`Paragraph info could not be ascertained`)
+    await showMessage(`Paragraph+Heading info could not be ascertained`)
   }
   return ''
 }
@@ -281,15 +283,16 @@ export async function headingLink() {
 
 /**
  * Walk user through creation of a xcallback url
- * @param {string} incoming - text coming in from a runPlugin link
+ * @param {string} _commandType - text coming in from a runPlugin link
+ * @param {boolean} passBackResults - whether to pass back the results to the caller (e.g. runPlugin)
  */
-export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
+export async function xCallbackWizard(_commandType: ?string = '', passBackResults?: boolean = false): Promise<string | void> {
   try {
     let url = '',
       canceled = false
     let commandType
-    if (incoming) {
-      commandType = incoming
+    if (_commandType) {
+      commandType = _commandType
     } else {
       const options = [
         { label: 'Copy URL to NOTE+Heading of current line', value: 'headingLink' },
@@ -328,8 +331,7 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
         url = await getFilter()
         break
       case 'headingLink':
-        url = getHeadingLink()
-        canceled = true //getHeadingLink copies to clipboard, so we can stop here
+        url = await getHeadingLink(!passBackResults) // don't allow pretty links if we're just trying to get a URL to pass back to the caller
         break
       case 'search':
         url = await search()
@@ -359,6 +361,10 @@ export async function xCallbackWizard(incoming: ?string = ''): Promise<void> {
     if (url === false) canceled = true // user hit cancel on one of the input prompts
 
     if (!canceled && typeof url === 'string') {
+      if (passBackResults) return url
+      if (commandType === 'headingLink') {
+        return url // copied to clipboard already
+      }
       url = commandType !== 'noteInfo' ? await getReturnCallback(url) : url
       const op = [
         { label: `Raw/long URL (${url})`, value: 'raw' },

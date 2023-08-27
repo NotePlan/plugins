@@ -198,23 +198,14 @@ export function getCommandIndex(pluginJson: any, functionName: string): number {
  */
 export async function rememberPresetsAfterInstall(pluginJson: any): Promise<void> {
   const settings = DataStore.settings
-  const keys = Object.keys(settings)
-  for (let index = 0; index < keys.length; index++) {
-    const key = keys[index]
-    if (key.includes('runPreset')) {
-      logDebug(pluginJson, `rememberPresetsAfterInstall: ${key}=${JSP(settings[key])}`)
-      const value =
-        typeof settings[key] === 'string'
-          ? {
-              jsFunction: key,
-              description: 'Switch Theme',
-              name: settings[key],
-              data: settings[key],
-              isPreset: true,
-              hidden: false,
-            }
-          : settings[key]
-      await savePluginCommand(pluginJson, value)
+  const settingsKeys = Object.keys(settings)
+  for (let index = 0; index < settingsKeys.length; index++) {
+    const setting = settingsKeys[index]
+    if (setting.includes('runPreset')) {
+      // settings will be empty strings until they are set by a user
+      if (settings[setting] === '') continue
+      logDebug(pluginJson, `rememberPresetsAfterInstall: ${setting} was prev set to: ${JSP(settings[setting])}`)
+      await savePluginCommand(pluginJson, settings[setting])
     }
   }
   // clo(pluginJson, `Before plugin update/install, pluginJson is:`)

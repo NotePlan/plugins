@@ -32,3 +32,9 @@ This will ask you for:
 - the URL or X-Callback that should be launched when someone selects the command
 
 After that, the commands you create will be available as if they are any other plugin command, simply by typing `/foo` (for example).
+
+## Settings
+
+### Setting: "Characters to Prepend to Command"
+
+If there are characters like “-⭐️” in front of each command, it will keep them together and float them to the top of the menu. So when you open the command bar and type the leading character (e.g. "-"), you will see all the favorite commands at a glance.  Whatever text you put here will be prepended to any command name you set. Blank this field out to not prepend any characters, and the command name will be exactly the text you enter. Thx @clayrussell for this idea!

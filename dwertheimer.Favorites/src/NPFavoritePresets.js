@@ -1,7 +1,7 @@
 // @flow
 
 import pluginJson from '../plugin.json'
-import { showMessage } from '@helpers/userInput'
+import { showMessage, chooseOption } from '@helpers/userInput'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { type PresetCommand, savePluginCommand, choosePreset, presetChosen } from '@helpers/NPPresets'
 import { getPluginJson } from '@helpers/NPConfiguration'
@@ -10,6 +10,28 @@ const COMMAND_NAME_TEMPLATE = 'Favorites: Set Preset '
 
 // check whether valid URL or xcallback URL
 const isValidURL = (url) => /^(https?|[a-z0-9\-]+):\/\/[a-z0-9\-]+/i.test(url)
+
+/**
+ * Get the URL either through the callback creator or hand-entered
+ */
+export async function getURL(commandName: string, defaultValue: string): Promise<string> {
+  const options = [
+    { label: 'Run Link Creator to get URL (e.g. a NotePlan X-Callback)', value: 'linkCreator' },
+    { label: 'Enter/Paste URL (you know or can paste the URL)', value: 'enter' },
+  ]
+  const choice = await chooseOption('How do you want to set the URL?', options, null)
+  let url = ''
+  if (choice) {
+    if (choice === 'linkCreator') {
+      url = await DataStore.invokePluginCommandByName('Get X-Callback-URL', 'np.CallbackURLs', ['', true])
+    } else {
+      url = await CommandBar.textPrompt('Set Preset X-Callback', `What X-Callback or URL do you want to run when the command\n"${commandName}"\nis selected?`, defaultValue || '')
+    }
+  } else {
+    logDebug(pluginJson, `getURL no choice made. Returning empty string.`)
+  }
+  return url || ''
+}
 
 /**
  * Each of the preset commands calls this function, as does set/reset a command
@@ -24,20 +46,22 @@ export async function favoritePresetChosen(commandDetails: PresetCommand | null 
   }
   clo(commandDetails, `favoritePresetChosen: overwrite:${String(overwrite)} commandDetails:`)
   if (commandDetails) {
-    const commandName = commandDetails.name.startsWith(COMMAND_NAME_TEMPLATE) ? '' : commandDetails.name
+    let commandName = commandDetails.name.startsWith(COMMAND_NAME_TEMPLATE) ? '' : commandDetails.name
+    commandName = DataStore.settings.charsToPrepend ? commandName.replace(DataStore.settings.charsToPrepend, '').trim() : commandName
     logDebug(pluginJson, `favoritePresetChosen: command.name = "${commandDetails.name}" overwrite?:${String(overwrite)}`)
     // Put the text of an unset command in the plugin.json here (how we tell if it's vanilla/unset)
-    const themeIsUnset = !commandDetails.name || commandDetails.name.match(/Theme Chooser: Set Preset/)
-    logDebug(pluginJson, `favoritePresetChosen: themeIsUnset=${String(themeIsUnset)}`)
-    if (themeIsUnset || overwrite) {
+    const favoriteIsUnset = !commandDetails.name || commandDetails.name.match(/Set Preset/)
+    logDebug(pluginJson, `favoritePresetChosen: favoriteIsUnset=${String(favoriteIsUnset)}`)
+    if (favoriteIsUnset || overwrite) {
       // SET THE PRESET COMMAND
-      const favoriteCommand = await CommandBar.textPrompt(
+      let favoriteCommand = await CommandBar.textPrompt(
         'Set Preset Text',
         'What human-readable text do you want to use for the command? (this is the text you will see in the Command Bar when you type slash)\n\nLeave blank to unset the command',
         commandName,
       )
       if (favoriteCommand && favoriteCommand !== '') {
-        const text = await CommandBar.textPrompt('Set Preset X-Callback', 'What X-Callback URL do you want to run when this command is selected?', commandDetails.data || '')
+        favoriteCommand = DataStore.settings.charsToPrepend ? `${DataStore.settings.charsToPrepend} ${favoriteCommand}` : favoriteCommand
+        const text = await getURL(favoriteCommand, commandDetails.data || '')
         if (text) {
           // validate x-callback URL
           if (!isValidURL(text)) {
@@ -79,7 +103,7 @@ export async function favoritePresetChosen(commandDetails: PresetCommand | null 
 
 /**
  * Change a preset to another one
- * Plugin entrypoint for command: "/Change Theme Preset"
+ * Plugin entrypoint for command: "/Change favorite Preset"
  * @param {*} incoming
  */
 export async function changePreset(incoming: string) {

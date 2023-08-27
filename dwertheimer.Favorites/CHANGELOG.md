@@ -1,5 +1,13 @@
 # Favorites Plugin Changelog
 
+## [1.2.0] - 2023-08-27 @dwertheimer
+
+- Add prepended characters for favorite saved commands & xcallback creator inline. Thx for the idea @clayrussell
+
+## [1.1.3] - 2023-08 @dwertheimer
+
+- Add remember-presets-after-update code
+
 ## [1.1.0] - 2023-08-25 @dwertheimer
 
 - Add capability to set a preset to run a favorite URL/X-Callback
