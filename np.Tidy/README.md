@@ -3,9 +3,10 @@
 This plugin provides commands to help tidy up your notes:
 
 - **/File root-level notes** (alias "frnl"): For each root-level note, asks which folder you'd like it moved to. (There's a setting for ones to permanently ignore.)
-- **/List conflicted notes**: creates a new NP note that lists all your notes on your current device with file-level conflicts, along with summary details about them.
-- **/List duplicate notes**: creates a new note that lists all your notes with identical titles, along with summary details about those potential duplicates:
+- **/List conflicted notes**: creates/updates a note that lists all your notes on your current device with file-level conflicts, along with summary details about them.
+- **/List duplicate notes**: creates/updates a note that lists all your notes with identical titles, along with summary details about those potential duplicates:
     ![](duplicate-note-display@2x.png)
+- **/List stubs**: creates a note that lists all your notes that have wikilinks that lead nowhere.
 - **/Remove blank notes**: deletes any completely blank notes, or just with a starting '#' character.
 - **/Remove orphaned blockIDs** (alias "rob"): Remove blockIDs from lines that had been sync'd, but have become 'orphans' as the other copies of the blockID have since been deleted.
 - **/Remove section from recent notes** (alias "rsfrn"): Remove a given section (heading + its content block) from recently-changed notes. Can be used with parameters from Template or x-callback.
@@ -19,6 +20,8 @@ This plugin provides commands to help tidy up your notes:
 Most can be used with parameters from a Template, or via an x-callback call.
 
 There's also the **/Tidy Up** (alias "tua"), which runs as many of the other commands in this plugin as you have configured in its Settings.
+
+(If these commands are useful to you, you'll probably find the [Note Helpers plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/) helpful too. It's rather arbitrary which commands live in which plugin.)
 
 ## Using from Templates
 If these commands are valuable to you, then you probably want to be running them regularly. NotePlan doesn't (yet) allow fully automatic running of commands, but you can get close by including the commands in your Daily Note Template that you run each day (e.g. via the separate /dayStart command from my [Daily Journal plugin](https://github.com/NotePlan/plugins/blob/main/jgclark.DailyJournal/README.md)).

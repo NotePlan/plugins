@@ -1,7 +1,5 @@
 // @flow
 
-
-
 type MatchResult = {
   fullMatch: string, // The full matched string.
   linkText: ?string, // The optional markdown link text (is null if match was not a markdown link)
@@ -22,9 +20,13 @@ export function findLineLinks(inputString: string): Array<MatchResult> {
 
   while ((matches = regex.exec(inputString)) !== null) {
     let result: MatchResult = {
+      // $FlowIgnore[incompatible-use]
       fullMatch: matches[0],
+      // $FlowIgnore[incompatible-use]
       linkText: matches[1] || null,
+      // $FlowIgnore[incompatible-use]
       noteTitle: matches[3],
+      // $FlowIgnore[incompatible-use]
       blockID: matches[4]
     }
     results.push(result)

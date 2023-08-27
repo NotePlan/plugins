@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 24.6.2023 for v0.6.0, @jgclark
+// Last updated 27.8.2023 for v0.9.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -17,12 +17,15 @@ import { findEndOfActivePartOfNote } from '@helpers/paragraph'
 const pluginID = 'np.Tidy'
 
 export type TidyConfig = {
-  duplicateNoteFilename: string,
-  foldersToExclude: Array<string>,
+  rootNotesToIgnore: Array<string>,
+  listFoldersToExclude: Array<string>,
   justRemoveFromChecklists: boolean,
   matchType: string,
   numDays: number,
-  rootNotesToIgnore: Array<string>,
+  conflictedNoteFilename: string,
+  duplicateNoteFilename: string,
+  stubsNoteFilename: string,
+  removeFoldersToExclude: Array<string>,
   runRemoveBlankNotes: boolean,
   runConflictFinderCommand: boolean,
   runDuplicateFinderCommand: boolean,

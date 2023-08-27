@@ -6,8 +6,8 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "0.8.1",
-  "plugin.lastUpdateInfo": "v0.8.1: fixes.\nv0.8.0: new command: Move top-level tasks in Editor to heading\nv0.7.0: new command: /Remove >today tags from completed todos\nv0.6.0: new commands 'Remove empty notes' 'List conflicted notes' + display improvements.\nv0.5.0: new 'list duplicate notes' command.\n0.4.0: adds command to tidy up triggers in older calendar notes, and way to change settings on iOS.",
+  "plugin.version": "0.9.0",
+  "plugin.lastUpdateInfo": "v0.9.0: new '/list stubs' command.\nv0.8.1: fixes.\nv0.8.0: new command: Move top-level tasks in Editor to heading\nv0.7.0: new command: /Remove >today tags from completed todos\nv0.6.0: new commands 'Remove empty notes' 'List conflicted notes' + display improvements.\nv0.5.0: new 'list duplicate notes' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -33,20 +33,30 @@
       ]
     },
     {
-      "name": "List duplicate notes",
-      "alias": [
-        "dupes"
-      ],
-      "description": "List (in a new NP note) potentially duplicate notes because they have identical titles",
-      "jsFunction": "listDuplicates"
-    },
-    {
       "name": "List conflicted notes",
       "alias": [
         "conflicts"
       ],
-      "description": "List (in a new NP note) all notes on this device that have conflicts. (Requires NP v3.9.3)",
+      "description": "Creates/updates a note that lists all notes on this device that have conflicts. (Requires NP v3.9.3)",
       "jsFunction": "listConflicts"
+    },
+    {
+      "name": "List duplicate notes",
+      "alias": [
+        "dupes"
+      ],
+      "description": "Creates/updates a note that lists potentially duplicate notes because they have identical titles",
+      "jsFunction": "listDuplicates"
+    },
+    {
+      "name": "List stubs",
+      "alias": [
+        "link",
+        "wiki",
+        "wikilink"
+      ],
+      "description": "Creates/updates a note that lists all your notes that have note links (wikilinks) that lead nowhere",
+      "jsFunction": "listStubs"
     },
     {
       "name": "Remove @done() markers",
@@ -205,7 +215,7 @@
       "title": "'/File root-level notes' command settings"
     },
     {
-      "title": "Which notes to ignore?",
+      "title": "Which root notes to ignore?",
       "key": "rootNotesToIgnore",
       "description": "Comma-separated list of note titles that you need or want to leave in the root folder. These will be ignored when running the command.\nNote: the '# ' is not part of the title, so don't include it.",
       "type": "[string]",
@@ -217,29 +227,43 @@
     },
     {
       "type": "heading",
-      "title": "'/List conflicted notes' command setting"
+      "title": "'/List ... commands settings"
+    },
+    {
+      "key": "listFoldersToExclude",
+      "title": "Folders to exclude for /List ... commands",
+      "description": "List of folders to ignore in the '/List ...' commands. May be empty.",
+      "type": "[string]",
+      "default": [
+        "Saved Searches",
+        "@Templates",
+        "@Archive",
+        "@Trash"
+      ],
+      "required": false
     },
     {
       "key": "conflictedNoteFilename",
-      "title": "Filepath for results note",
+      "title": "/List conflicted notes: Filepath for results note",
       "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Conflicted Notes.md')",
       "type": "string",
       "default": "Conflicted Notes.md",
       "required": true
     },
     {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "'/List duplicate notes' command setting"
-    },
-    {
       "key": "duplicateNoteFilename",
-      "title": "Filepath for results",
+      "title": "/List duplicate notes: Filepath for results",
       "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Duplicate Notes.md')",
       "type": "string",
       "default": "Duplicate Notes.md",
+      "required": true
+    },
+    {
+      "key": "stubsNoteFilename",
+      "title": "/List stubs: filepath for results note",
+      "description": "The filepath (including any NP folders) of which NotePlan note to use. (Default: 'Stubs.md')",
+      "type": "string",
+      "default": "Stubs.md",
       "required": true
     },
     {
@@ -258,7 +282,7 @@
       "required": false
     },
     {
-      "key": "foldersToExclude",
+      "key": "removeFoldersToExclude",
       "title": "Folders to exclude",
       "description": "List of folders to exclude in the '/Remove ...' commands. May be empty.",
       "type": "[string]",

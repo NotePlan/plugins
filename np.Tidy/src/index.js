@@ -28,6 +28,7 @@ export {
 export { resolveConflictWithCurrentVersion, resolveConflictWithOtherVersion, listConflicts } from './conflicts'
 export { listDuplicates } from './duplicates'
 export { fileRootNotes } from './fileRoot'
+export { listStubs } from './stubs'
 export { moveTopLevelTasksInEditor } from './topLevelTasks'
 
 /**
