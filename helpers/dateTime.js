@@ -1214,10 +1214,10 @@ export const isReallyAllDay = (parseDateReturnObj: any): boolean => {
  * Validate if a string could be used to pull up any calendar note (of all NP allowed calendar note durations)
  * Note: This is just a regex test: it doesn't test if such a note actually exists.
  * @param {string} text
- * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYYYMMDD not ISO), week, month, quarter or year.
+  * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYY-MM-DD not YYYYMMDD), week, month, quarter or year.
  */
-export function isValidCalendarNoteDateStr(text: string): boolean {
-  const combinedRE = new RegExp(`^(|${RE_NP_DAY_SPEC}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})$`)
+export function isValidCalendarNoteTitleStr(text: string): boolean {
+  const combinedRE = new RegExp(`^(${RE_ISO_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})$`)
   return combinedRE.test(text)
 }
 
@@ -1228,7 +1228,18 @@ export function isValidCalendarNoteDateStr(text: string): boolean {
  * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYYYMMDD not ISO), week, month, quarter or year.
  */
 export function isValidCalendarNoteFilename(text: string): boolean {
-  const combinedRE = new RegExp(`^(|${RE_NP_DAY_SPEC}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})\.(md|txt)$`)
+  const combinedRE = new RegExp(`^(${RE_NP_DAY_SPEC}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})\.(md|txt)$`)
+  return combinedRE.test(text)
+}
+
+/**
+ * Validate if a filename could be used to pull up any calendar note (of all NP allowed calendar note durations)
+ * Note: This is just a regex test: it doesn't test if such a note actually exists.
+ * @param {string} text
+ * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYYYMMDD not ISO), week, month, quarter or year.
+ */
+export function isValidCalendarNoteFilenameWithoutExtension(text: string): boolean {
+  const combinedRE = new RegExp(`^(${RE_NP_DAY_SPEC}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})$`)
   return combinedRE.test(text)
 }
 

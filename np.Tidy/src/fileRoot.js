@@ -2,12 +2,12 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 20.6.2023+ for v0.4.0, @jgclark
+// Last updated 20.6.2023+ for v0.8.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import pluginJson from '../plugin.json'
-import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
 import { getProjectNotesInFolder } from '@helpers/note'
 import { appendStringToSettingArray } from '@helpers/NPSettings'
@@ -26,14 +26,11 @@ export async function fileRootNotes(): Promise<void> {
     const rootNotes = getProjectNotesInFolder('/')
     // logDebug('rootNotes', rootNotes.map((n) => n.title))
 
-    // Remove any listed in config.rootNotesToIgnore
+    // Remove any listed in config.rootNotesToIgnore (by title)
     const excludedNotes = config.rootNotesToIgnore ?? []
     logDebug('excludedNotes', String(excludedNotes))
     const rootNotesToUse = rootNotes.filter((n) => !excludedNotes.includes(n.title))
-    logDebug(
-      'rootNotesToUse',
-      rootNotesToUse.map((n) => n.title),
-    )
+    logDebug('rootNotesToUse', rootNotesToUse.map((n) => n.title))
 
     // Make list of all folders (other than root!)
     const allFolders = getFilteredFolderList([], true, [], false)
@@ -50,14 +47,14 @@ export async function fileRootNotes(): Promise<void> {
       value: f,
     }))
 
-    // Save currently open note in Editor
+    // Keep a note of currently open note in Editor
     const openEditorNote = Editor?.note
 
     // Loop over the rest, asking where to move to
     let numMoved = 0
     for (const n of rootNotesToUse) {
-      if (n && n.title && n.title !== undefined) {
-        const thisTitle = n.title // to pacify flow
+      if (n && n.filename !== undefined) {
+        const thisTitle = (n.title && n.title !== '') ? n.title : 'Untitled' // to pacify flow
         const thisFilename = n.filename // to pacify flow
         // open the note we're going to move in the Editor to help user assess what to do
         const res = await Editor.openNoteByFilename(thisFilename)
@@ -69,11 +66,15 @@ export async function fileRootNotes(): Promise<void> {
             return
           }
           case '➡️ Ignore this note from now on': {
-            const ignoreRes = appendStringToSettingArray(pluginJson['plugin.id'], "rootNotesToIgnore", thisTitle, false)
-            if (ignoreRes) {
-              logInfo('fileRootNotes', `Ignoring '${thisTitle}' from now on; this note has been appended it to the plugin's settings`)
+            if (thisTitle === '<untitled note>' || thisTitle === '') {
+              logWarn('fileRootNotes', `Can't an untitled note to the plugin setting "rootNotesToIgnore"`)
             } else {
-              logError('fileRootNotes', `Error when trying to add '${thisTitle}' to the plugin setting "rootNotesToIgnore"`)
+              const ignoreRes = appendStringToSettingArray(pluginJson['plugin.id'], "rootNotesToIgnore", thisTitle, false)
+              if (ignoreRes) {
+                logInfo('fileRootNotes', `Ignoring '${thisTitle}' from now on; this note has been appended it to the plugin's settings`)
+              } else {
+                logError('fileRootNotes', `Error when trying to add '${thisTitle}' to the plugin setting "rootNotesToIgnore"`)
+              }
             }
             break
           }
@@ -82,7 +83,7 @@ export async function fileRootNotes(): Promise<void> {
             break
           }
           case '🗑️ Delete this note': {
-            logInfo('fileRootNotes', `User has asked for '${thisTitle}' to be deleted ...`)
+            logInfo('fileRootNotes', `User has asked for '${thisTitle}' note (filename '${thisFilename}') to be deleted ...`)
             const res = DataStore.moveNote(n.filename, '@Trash')
             if (res && res !== '') {
               logDebug('fileRootNotes', '... done')
@@ -93,7 +94,7 @@ export async function fileRootNotes(): Promise<void> {
             break
           }
           default: {
-            logDebug('fileRootNotes', `Moving '${thisTitle}' note to folder '${chosenFolder}' ...`)
+            logDebug('fileRootNotes', `Moving '${thisTitle}' note (filename '${thisFilename}') to folder '${chosenFolder}' ...`)
             const res = DataStore.moveNote(n.filename, chosenFolder)
             if (res && res !== '') {
               logDebug('fileRootNotes', `... filename now '${res}'`)

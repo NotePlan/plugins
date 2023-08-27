@@ -10,12 +10,14 @@ import {
   calcOffsetDateStrUsingCalendarType,
   getTodaysDateHyphenated,
   isScheduled,
-  isValidCalendarNoteDateStr,
+  isValidCalendarNoteFilenameWithoutExtension,
+  RE_ISO_DATE,
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
+  unhyphenateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
-import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
+import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { ensureFrontmatter } from '@helpers/NPFrontMatter'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
@@ -31,40 +33,47 @@ const pluginJson = 'NPnote.js'
 /**
  * Get a note's filename from (in order):
  * - its title (for a project note)
+ * - an ISO date (i.e. YYYY-MM-DD)
  * - for date intervals '{+/-N[dwmqy}' calculate the date string relative to today
- * - for calendar notes, from it's date string (e.g. YYYYMMDD, YYYY-Wnn etc.)
- * @param {string} title of project note, or NotePlan's (internal) calendar date string
+ * - for calendar notes, from it's NP date string (e.g. YYYY-MM-DD, YYYY-Wnn etc.)
+ * @param {string} input: project note, or NotePlan's (internal) calendar date string
  * @returns {string} filename of note if found, or null
  */
-export function getNoteFilenameFromTitle(titleIn: string): string | null {
+export function getNoteFilenameFromTitle(inputStr: string): string | null {
   let thisFilename = ''
-  const possibleProjectNotes = DataStore.projectNoteByTitle(titleIn) ?? []
+  const possibleProjectNotes = DataStore.projectNoteByTitle(inputStr) ?? []
   if (possibleProjectNotes.length > 0) {
     thisFilename = possibleProjectNotes[0].filename
     logDebug('NPnote/getNoteFilenameFromTitle', `-> found project note '${thisFilename}'`)
     return thisFilename
   }
   // Not a project note, so look at calendar notes
-  let dateString = titleIn
-  if (new RegExp(RE_OFFSET_DATE).test(dateString)) {
+  let possDateString = inputStr
+  if (new RegExp(RE_OFFSET_DATE).test(possDateString)) {
     // this is a date interval, so -> date string relative to today
-    const thisOffset = dateString.match(new RegExp(RE_OFFSET_DATE_CAPTURE))[1]
-    dateString = calcOffsetDateStrUsingCalendarType(thisOffset)
-    logDebug('NPnote/getNoteFilenameFromTitle', `found offset date ${thisOffset} -> '${dateString}'`)
+    // $FlowIgnore[incompatible-use]
+    const thisOffset = possDateString.match(new RegExp(RE_OFFSET_DATE_CAPTURE))[1]
+    possDateString = calcOffsetDateStrUsingCalendarType(thisOffset)
+    logDebug('NPnote/getNoteFilenameFromTitle', `found offset date ${thisOffset} -> '${possDateString}'`)
   }
-  if (isValidCalendarNoteDateStr(dateString)) {
-    const thisNote = DataStore.calendarNoteByDateString(dateString)
+  // If its YYYY-MM-DD then have to turn it into YYYYMMDD
+  if (new RegExp(RE_ISO_DATE).test(possDateString)) {
+    possDateString = unhyphenateString(possDateString)
+  }
+  // If this matches a calendar note by filename (YYYYMMDD or YYYY-Wnn etc.)
+  if (isValidCalendarNoteFilenameWithoutExtension(possDateString)) {
+    const thisNote = DataStore.calendarNoteByDateString(possDateString)
     if (thisNote) {
       thisFilename = thisNote.filename
-      logDebug('NPnote/getNoteFilenameFromTitle', `-> found calendar note '${thisFilename}' from ${dateString}`)
+      logDebug('NPnote/getNoteFilenameFromTitle', `-> found calendar note '${thisFilename}' from ${possDateString}`)
       return thisFilename
     } else {
-      logError('NPnote/getNoteFilenameFromTitle', `${dateString} doesn't seem to have a calendar note?`)
+      logError('NPnote/getNoteFilenameFromTitle', `${possDateString} doesn't seem to have a calendar note?`)
     }
   } else {
-    logError('NPnote/getNoteFilenameFromTitle', `${dateString} is not a valid date string`)
+    logError('NPnote/getNoteFilenameFromTitle', `${possDateString} is not a valid date string`)
   }
-  logError('NPnote/getNoteFilenameFromTitle', `-> no note found for '${titleIn}'`)
+  logError('NPnote/getNoteFilenameFromTitle', `-> no note found for '${inputStr}'`)
   return null
 }
 
@@ -445,7 +454,7 @@ export function findNotesMatchingHashtag(
 
   // If we care about the excluded tag, then further filter out notes where it is found
   if (tagsToExclude.length > 0) {
-    const doesNotMatchTagsToExclude = (e) => !tagsToExclude.includes(e)
+    const doesNotMatchTagsToExclude = (e: string) => !tagsToExclude.includes(e)
     const projectNotesWithTagWithoutExclusion = projectNotesWithTag.filter((n) => n.hashtags.some(doesNotMatchTagsToExclude))
     const removedItems = projectNotesWithTag.length - projectNotesWithTagWithoutExclusion.length
     if (removedItems > 0) {

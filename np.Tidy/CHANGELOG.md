@@ -1,8 +1,14 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [0.8.0] - 2023-07-18 @dwertheimer
+## [0.9.0] - 2023-08-27
+- new **/List stubs** command that creates/updates a note that lists all your notes that have note links (wikilinks) that lead nowhere.
+- new optional setting "Folders to exclude for /List ... commands" that instructs the "/List stubs", "/List conflicted notes" and "/List duplicate notes" commands to ignore specific folders.
 
+## [0.8.1] - 2023-08-26
+- fixed bug that stopped **/File root-level notes** working for notes without a title
+
+## [0.8.0] - 2023-07-18 @dwertheimer
 - new command: Move top-level tasks in Editor to heading]
 - fixed moving of files to proper folder name in Trash
 
