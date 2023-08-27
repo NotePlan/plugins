@@ -266,7 +266,7 @@ export async function chooseHeading(
     // const spacer = '    '
     const spacer = '#'
     // Decide whether to include all headings in note, or just those before the Done/Cancelled section.
-    let headingParas = []
+    let headingParas: Array<TParagraph> = []
     const indexEndOfActive = findEndOfActivePartOfNote(note)
     if (includeArchive) {
       headingParas = note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive) // = all headings in the active part of the note
