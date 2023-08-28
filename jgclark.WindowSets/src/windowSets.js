@@ -87,11 +87,11 @@ export type WindowSetsConfig = {
 const pluginID = 'jgclark.WindowSets'
 
 /**
- * Get config settings
- * @return {WindowSetsConfig} object with configuration
+ * Get general config settings for this plugin
+ * @return {any} object with configuration
  */
-export async function getWindowSetsSettings(): Promise<any> {
-  // logDebug(pluginJson, `Start of getWindowSetsSettings()`)
+export async function getPluginSettings(): Promise<any> {
+  // logDebug(pluginJson, `Start of getPluginSettings()`)
   try {
     // Get settings using ConfigV2
     const config: WindowSetsConfig = await DataStore.loadJSON('../jgclark.WindowSets/settings.json')
@@ -112,6 +112,7 @@ export async function getWindowSetsSettings(): Promise<any> {
 
 /**
  * Get the detailed Window Set object for the passed window set name.
+ * V1: reads from DataStore.preference('windowSets')
  * @author @jgclark
  * @param {string} name of window set to look up
  * @returns {WindowSet | null} window set, if found, otherwise null
@@ -139,6 +140,7 @@ function getDetailedWindowSetByName(name: string): WindowSet | null {
 
 /**
  * List user's available saved windows sets to console
+ * V1: reads from DataStore.preference('windowSets')
  * @author @jgclark
  */
 export function logWindowSets(): void {
@@ -187,12 +189,12 @@ export function logWindowSets(): void {
 
 /**
  * Save detailed set of windows/panes as a set to the preference store for the current device.
- * TODO: finish. (change to save parts to settings file?)
+ * V1: reads from DataStore.preference('windowSets')
  * @author @jgclark
  */
 export async function saveWindowSet(): Promise<void> {
   try {
-    const config = await getWindowSetsSettings()
+    const config = await getPluginSettings()
 
     if (NotePlan.environment.buildVersion < 1020 || NotePlan.environment.platform !== 'macOS') {
       logInfo('saveWindowSet', `Window Sets needs NotePlan v3.9.1 or later on macOS. Stopping.`)
@@ -321,14 +323,15 @@ export async function saveWindowSet(): Promise<void> {
   }
 }
 
+/**
+ * Save current NP Editor windows as a WindowSet, asking user for name of this set
+ * V1: writes to DataStore.preference('windowSets')
+ * Note: now minimum version v3.9.5
+ */
 export async function saveWindowSetV1(): Promise<void> {
   try {
-    const config = await getWindowSetsSettings()
+    const config = await getPluginSettings()
 
-    if (NotePlan.environment.buildVersion < 1020 || NotePlan.environment.platform !== 'macOS') {
-      logInfo('saveWindowSet', `Window Sets needs NotePlan v3.9.1 or later on macOS. Stopping.`)
-      return
-    }
     // Form this set.
     // Note: needs to use a cut-down set of attributes available in the window objects
     const editorWinDetails: Array<EditorWinDetails> = NotePlan.editors.map((win) => {
@@ -446,18 +449,17 @@ export async function saveWindowSetV1(): Promise<void> {
 }
 
 /**
- * Open a saved window set
+ * Open the saved window set named 'setName'
+ * V1: reads from DataStore.preference('windowSets')
+ * Note: now minimum version v3.9.5
  * @author @jgclark
  * @param {string} setName to open
  * @returns {boolean} success?
  */
 export async function openWindowSet(setName: string): Promise<boolean> {
   try {
-    if (NotePlan.environment.buildVersion < 1020 || NotePlan.environment.platform !== 'macOS') {
-      throw new Error(`Window Sets needs NotePlan v3.9.1 or later on macOS. Stopping.`)
-    }
     let success = false
-    const config = await getWindowSetsSettings()
+    const config = await getPluginSettings()
 
     // Get all available windowSets
     const savedWindowSets: Array<WindowSet> = []
@@ -618,12 +620,12 @@ export async function openWindowSet(setName: string): Promise<boolean> {
         if (openAction === 'floating') {
           // Open the window pane
           // TODO: if first listed, then open in main editor
-          // $FlowFixMe(incompatible-call)
+          // $FlowIgnore(incompatible-call)
           const res = await openNoteInNewWindowIfNeeded(ew.filename)
         } else if (openAction === 'split') {
           // Open the split window
           // TODO: if first listed, then open in main editor
-          // $FlowFixMe(incompatible-call)
+          // $FlowIgnore(incompatible-call)
           const res = await openNoteInNewSplitIfNeeded(ew.filename)
         }
       } else {
@@ -647,15 +649,13 @@ export async function openWindowSet(setName: string): Promise<boolean> {
 
 /**
  * Delete a saved window set
+ * V1: reads from/writes to DataStore.preference('windowSets')
  * @author @jgclark
  * @param {string} setName to open
  * @returns {boolean} success?
  */
 export async function deleteWindowSet(setName: string): Promise<boolean> {
   try {
-    if (NotePlan.environment.buildVersion < 1020 || NotePlan.environment.platform !== 'macOS') {
-      throw new Error(`Window Sets needs NotePlan v3.9.1 or later on macOS. Stopping.`)
-    }
     let success = false
 
     // Form list of window sets to choose from
@@ -694,6 +694,10 @@ export async function deleteWindowSet(setName: string): Promise<boolean> {
   }
 }
 
+/**
+ * Delete all saved window sets
+ * V1: writes to DataStore.preference('windowSets')
+ */
 export function deleteAllSavedWindowSets(): void {
   try {
     unsetPreference('windowSets')
