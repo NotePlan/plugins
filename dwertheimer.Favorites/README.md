@@ -22,9 +22,10 @@ You can also set up to 20 commands that can be called directly from the Command 
 
 You can use this functionality for quick access to:
 
-- A specific document
-- A heading or line inside a document
-- Inserting a particular template you use frequently
+- Your favorite plugin commands with names you choose in a list of favorite commands you can glance at
+- Open a specific document
+- Open to a heading or line inside a document
+- Inserting a particular template you use frequently with one command at your fingertips
 - Opening some website/page you frequently use when you are inside noteplan
 
 Favorite commands functionality is best used with the Link Creator plugin, which can be used to create URLs to launch a variety of functions inside NotePlan.
@@ -39,6 +40,66 @@ This will ask you for:
 - the URL or X-Callback that should be launched when someone selects the command (you will be asked whether you know the URL or you want the wizard to guide you through creating it)
 
 After that, the commands you create will be available as if they are any other plugin command, simply by typing `/foo` (for example).
+
+## Examples
+
+1. Create a command to insert a template (e.g. insert project metadata):
+
+a) create a template, e.g.:
+
+```
+---
+title: Project Metadata Snippet
+type: snippet 
+---
+#project @start(<%- promptDate('startDate', 'Enter start date') %>) @due(<%- promptDate('dueDate', 'Enter due date - or enter') %>) @review(<%- promptDateInterval('question', 'Enter review interval') %>)
+
+```
+
+b) And then use this plugin to `/Set/Change/Rename Preset Action`:
+- Use Link Creator to create a link (Run a plugin command + `np:insert`)
+- Pass the title of the template as the first argument/parameter: "Project Metadata Snippet"
+
+***Then insertion of this project metadata will always be just a few keystrokes away.***
+
+2. Use it to create functionality in NotePlan that is missing for your workflow. For me, it's creating a new note in a folder of my choosing without opening the sidebar. To do this:
+
+a) Create a Quick-note template, e.g.:
+
+```
+---
+title: New Blank Note in (Choose Folder) - qtn version
+type: quick-note 
+folder: <select>
+---
+```
+
+b) And then use this plugin to `/Set/Change/Rename Preset Action`:
+- Use Link Creator to create a link (Run a plugin command + `np:qtn`)
+- Pass the title of the template as the first argument/parameter: "New Blank Note in (Choose Folder) - qtn version"
+
+***Then a few keystrokes will create a new document in a folder of your choosing***
+
+3. Or combine the two ideas to create a new project note in a flash:
+
+
+```
+---
+title: New Project note (qtn version)
+type: quick-note
+folder: <select>
+---
+#project @start(<%- promptDate('startDate', 'Enter start date') %>) @due(<%- promptDate('dueDate', 'Enter due date - or enter') %>) @review(<%- promptDateInterval('question', 'Enter review interval') %>)
+```
+
+b) And then use this plugin to `/Set/Change/Rename Preset Action`:
+- Use Link Creator to create a link (Run a plugin command + `np:qtn`)
+- Pass the title of the template as the first argument/parameter: "New Project note (qtn version)"
+
+***Then a few keystrokes will create a new project note in a folder of your choosing***
+
+
+### let us know of other examples you have and use!
 
 ## Settings
 

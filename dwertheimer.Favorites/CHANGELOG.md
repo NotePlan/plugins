@@ -1,12 +1,16 @@
 # Favorites Plugin Changelog
 
-## [1.2.0] - 2023-08-27 @dwertheimer
+## [1.2.2] - 2023-08 @dwertheimer
 
-- Add prepended characters for favorite saved commands & xcallback creator inline. Thx for the idea @clayrussell
+- Bugfix: allow for escaping and leaving command intact.
 
 ## [1.2.1] - 2023-08 @dwertheimer
 
 - Add "rename" capability
+
+## [1.2.0] - 2023-08-27 @dwertheimer
+
+- Add prepended characters for favorite saved commands & xcallback creator inline. Thx for the idea @clayrussell
 
 ## [1.1.3] - 2023-08 @dwertheimer
 

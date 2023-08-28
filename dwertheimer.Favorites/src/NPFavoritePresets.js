@@ -62,7 +62,7 @@ export async function favoritePresetChosen(commandDetails: PresetCommand | null 
         'What human-readable text do you want to use for the command? (this is the text you will see in the Command Bar when you type slash)\n\nLeave blank to unset the command',
         commandName,
       )
-      logDebug(pluginJson, `favoritePresetChosen favoriteCommand entered=${favoriteCommand}`)
+      logDebug(pluginJson, `favoritePresetChosen favoriteCommand entered=${String(favoriteCommand)}`)
       if (favoriteCommand && favoriteCommand !== '') {
         favoriteCommand = DataStore.settings.charsToPrepend ? `${DataStore.settings.charsToPrepend} ${favoriteCommand}` : favoriteCommand
         const text = await getURL(favoriteCommand, commandDetails.data || '')
@@ -83,10 +83,12 @@ export async function favoritePresetChosen(commandDetails: PresetCommand | null 
           await showMessage(`Command not set. You must enter an X-Callback URL to set this command.`)
         }
       } else {
-        clo(commandDetails, `favoritePresetChosen: Unsetting commandDetails:`)
-        const numString = commandDetails.jsFunction.replace(/runPreset/, '')
-        await savePluginCommand(pluginJson, { ...commandDetails, name: `${COMMAND_NAME_TEMPLATE} ${numString}`, data: '' })
-        await showMessage(`Preset ${numString} has been deleted and can be reused.`)
+        if (favoriteCommand === '') {
+          clo(commandDetails, `favoritePresetChosen: Unsetting commandDetails:`)
+          const numString = commandDetails.jsFunction.replace(/runPreset/, '')
+          await savePluginCommand(pluginJson, { ...commandDetails, name: `${COMMAND_NAME_TEMPLATE} ${numString}`, data: '' })
+          await showMessage(`Preset ${numString} has been deleted and can be reused.`)
+        } // otherwise someone canceled the command
       }
     } else {
       // EXECUTE THE COMMAND CLICKED
