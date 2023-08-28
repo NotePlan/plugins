@@ -19,13 +19,16 @@ export async function getURL(commandName: string, defaultValue: string): Promise
     { label: 'Run Link Creator to get URL (e.g. a NotePlan X-Callback)', value: 'linkCreator' },
     { label: 'Enter/Paste URL (you know or can paste the URL)', value: 'enter' },
   ]
+  if (defaultValue) options.push({ label: `Keep Previous Value: "${defaultValue}"`, value: 'previous' })
   const choice = await chooseOption('How do you want to set the URL?', options, null)
   let url = ''
   if (choice) {
     if (choice === 'linkCreator') {
       url = await DataStore.invokePluginCommandByName('Get X-Callback-URL', 'np.CallbackURLs', ['', true])
-    } else {
+    } else if (choice === 'enter') {
       url = await CommandBar.textPrompt('Set Preset X-Callback', `What X-Callback or URL do you want to run when the command\n"${commandName}"\nis selected?`, defaultValue || '')
+    } else if (choice === 'previous') {
+      url = defaultValue
     }
   } else {
     logDebug(pluginJson, `getURL no choice made. Returning empty string.`)
@@ -59,6 +62,7 @@ export async function favoritePresetChosen(commandDetails: PresetCommand | null 
         'What human-readable text do you want to use for the command? (this is the text you will see in the Command Bar when you type slash)\n\nLeave blank to unset the command',
         commandName,
       )
+      logDebug(pluginJson, `favoritePresetChosen favoriteCommand entered=${favoriteCommand}`)
       if (favoriteCommand && favoriteCommand !== '') {
         favoriteCommand = DataStore.settings.charsToPrepend ? `${DataStore.settings.charsToPrepend} ${favoriteCommand}` : favoriteCommand
         const text = await getURL(favoriteCommand, commandDetails.data || '')

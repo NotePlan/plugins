@@ -4,6 +4,10 @@
 
 - Add prepended characters for favorite saved commands & xcallback creator inline. Thx for the idea @clayrussell
 
+## [1.2.1] - 2023-08 @dwertheimer
+
+- Add "rename" capability
+
 ## [1.1.3] - 2023-08 @dwertheimer
 
 - Add remember-presets-after-update code

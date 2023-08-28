@@ -20,16 +20,23 @@ Somewhere on the Noteplan roadmap is (hopefully) the concept of pinned notes (se
 
 You can also set up to 20 commands that can be called directly from the Command Bar to launch an X-Callback or a URL. If there are X-Callback commands you use frequently and want to have quick access to, this is a good way to get access to them by just typing `/<command name>`.
 
-This is best used with the Link Creator plugin, which can be used to create URLs to launch a variety of functions inside NotePlan.
+You can use this functionality for quick access to:
+
+- A specific document
+- A heading or line inside a document
+- Inserting a particular template you use frequently
+- Opening some website/page you frequently use when you are inside noteplan
+
+Favorite commands functionality is best used with the Link Creator plugin, which can be used to create URLs to launch a variety of functions inside NotePlan.
 
 Set your favorite commands by typing:
 
-`/Set/Change Preset Action`
+`/Set/Change/Rename Preset Action`
 
 This will ask you for:
 
 - the name you want to call it (this is the name that will show up in the CommandBar when you type "/")
-- the URL or X-Callback that should be launched when someone selects the command
+- the URL or X-Callback that should be launched when someone selects the command (you will be asked whether you know the URL or you want the wizard to guide you through creating it)
 
 After that, the commands you create will be available as if they are any other plugin command, simply by typing `/foo` (for example).
 

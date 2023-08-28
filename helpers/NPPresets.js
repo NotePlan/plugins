@@ -131,13 +131,28 @@ export function updateJSONForFunctionNamed(pluginJson: any, fields: PresetComman
 export async function savePluginCommand(pluginJson: any, fields: PresetCommand): Promise<any | false> {
   const { jsFunction } = fields
   if (jsFunction && jsFunction !== '') {
-    logDebug(pluginJson, `savePluginCommand: setting: ${String(jsFunction)} to: "${JSP(fields)}"; First will pull the existing plugin.json`)
+    logDebug(
+      pluginJson,
+      `savePluginCommand: running for plugin: ${pluginJson['plugin.id']}\nsetting: ${String(jsFunction)} to:\n\t"${JSP(fields)}"; First will pull the existing plugin.json`,
+    )
     const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
-    const newPluginJson = updateJSONForFunctionNamed(livePluginJson, fields, false)
-    // save command in settings so the command can be set there too when new plugin.json overwrites settings
-    const settings = DataStore.settings
-    DataStore.settings = { ...settings, ...{ [jsFunction]: fields } }
-    return await savePluginJson(pluginJson['plugin.id'], newPluginJson)
+    if (livePluginJson) {
+      const newPluginJson = updateJSONForFunctionNamed(livePluginJson, fields, false)
+      // save command in settings so the command can be set there too when new plugin.json overwrites settings
+      if (newPluginJson) {
+        const settings = DataStore.settings
+        if (settings) {
+          DataStore.settings = { ...settings, ...{ [jsFunction]: fields } }
+          return await savePluginJson(pluginJson['plugin.id'], newPluginJson)
+        } else {
+          logError(pluginJson, `savePluginCommand: Could not find settings for ${pluginJson['plugin.id']}`)
+        }
+      } else {
+        logError(pluginJson, `savePluginCommand: Could not update plugin.json for ${pluginJson['plugin.id']}`)
+      }
+    } else {
+      logError(pluginJson, `savePluginCommand: Could not find plugin.json for ${pluginJson['plugin.id']}`)
+    }
   }
   return false
 }

@@ -53,5 +53,5 @@ export function init(): void {
 }
 
 export function onSettingsUpdated(): void {
-  logDebug(pluginJson, 'dwertheimer.Favorites::onSettingsUpdated running (but doing nothing)')
+  logDebug(pluginJson, 'dwertheimer.Favorites::onSettingsUpdated called (but this plugin does not do anything after settings are updated)')
 }
