@@ -97,7 +97,7 @@ describe('helpers/folders', () => {
 
   describe('getFolderFromFilename tests', () => {
     test('root (no folder part) -> empty', () => {
-      expect(f.getFolderFromFilename('test-at-root.md')).toEqual('')
+      expect(f.getFolderFromFilename('test-at-root.md')).toEqual('/')
     })
     test('subfolder 1', () => {
       expect(f.getFolderFromFilename('one/two/three/four.md')).toEqual('one/two/three')
