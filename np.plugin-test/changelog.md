@@ -2,6 +2,11 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.plugin-test/README.md) for details on commands and how to use it
 
+
+## 1.3.0 2023-08-29
+
+- Add blank command that does nothing to override keyboard shortcuts you don't want to do anything (e.g. CMD-S)
+
 ## 1.2.0 2022-11-12 @dwertheimer
 
 - Added "/Generate Plugin Command Listing" and related commands
