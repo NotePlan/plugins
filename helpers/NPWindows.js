@@ -55,14 +55,40 @@ export function logWindowsList(): void {
 }
 
 /**
+ * Return list of all open window IDs (other than main Editor).
+ * Uses API introduced in NP 3.8.1, and extended in 3.9.1 to add .rect.
+ * @author @jgclark
+ */
+export function getNonMainWindowIds(): Array<string> {
+  const outputIDs = []
+  if (NotePlan.environment.buildVersion >= 973) {
+    let c = 0
+    for (const win of NotePlan.editors) {
+      if (c > 0) outputIDs.push(win.id)
+      c++
+    }
+    for (const win of NotePlan.htmlWindows) {
+      outputIDs.push(win.id)
+    }
+    logInfo('logWindowsList', outputIDs.join('\n'))
+    return outputIDs
+  } else {
+    logWarn('logWindowsList', `(Cannot list windows: needs NP v3.8.1+)`)
+    return []
+  }
+}
+
+/**
  * Set customId for the (single) HTML window
- * Note: requires NP v3.8.1+
- * Note: In time, this will be removed, when @EduardMe rolls it into .showWindow() API
+ * Note: for NP v3.8.1-3.9.5 only.
+ * Note: from 3.9.6 (build 1087) it is included in the .showWindowWithOptions() API
  * @author @jgclark
  * @param {string} customId
  */
 export function setHTMLWindowId(customId: string): void {
-  if (NotePlan.environment.buildVersion >= 973) {
+  if (NotePlan.environment.buildVersion >= 1087) {
+    logDebug('setHTMLWindowId', `Won't set customId '${customId}' for HTML window as not necessary from 3.9.6.`)
+  } else if (NotePlan.environment.buildVersion >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
     logDebug('setHTMLWindowId', `Starting with ${String(allHTMLWindows.length)} HTML windows`)
     const thisWindow = allHTMLWindows[0]
@@ -79,6 +105,7 @@ export function setHTMLWindowId(customId: string): void {
 
 /**
  * Is a given HTML window open? Tests by doing a case-insensitive-starts-with-match or case-insensitive-match using the supplied customId string.
+ * FIXME: fix up for 3.9.6?
  * @author @jgclark
  * @param {string} customId to look for
  * @returns {boolean}
@@ -246,6 +273,10 @@ export function getWindowFromCustomId(windowCustomId: string): TEditor | HTMLVie
   return false
 }
 
+/**
+ * Close an Editor or HTML window given its CustomId
+ * @param {string} windowCustomId
+ */
 export function closeWindowFromCustomId(windowCustomId: string): void {
   // First loop over all Editor windows
   let thisWin: TEditor | HTMLView
@@ -264,9 +295,37 @@ export function closeWindowFromCustomId(windowCustomId: string): void {
   }
   if (thisWin) {
     thisWin.close()
-    logDebug('getWindowFromCustomId', `Closed window '${windowCustomId}'`)
+    logDebug('closeWindowFromCustomId', `Closed window '${windowCustomId}'`)
   } else {
-    logWarn('getWindowFromCustomId', `Couldn't find window to close matching customId '${windowCustomId}'`)
+    logWarn('closeWindowFromCustomId', `Couldn't find window to close matching customId '${windowCustomId}'`)
+  }
+}
+
+/**
+ * Close an Editor or HTML window given its window Id
+ * @param {string} windowId
+ */
+export function closeWindowFromId(windowId: string): void {
+  // First loop over all Editor windows
+  let thisWin: TEditor | HTMLView
+  const allEditorWindows = NotePlan.editors
+  for (const thisWindow of allEditorWindows) {
+    if (thisWindow.id === windowId) {
+      thisWin = thisWindow
+    }
+  }
+  // And if not found so far, then all HTML windows
+  const allHTMLWindows = NotePlan.htmlWindows
+  for (const thisWindow of allHTMLWindows) {
+    if (thisWindow.id === windowId) {
+      thisWin = thisWindow
+    }
+  }
+  if (thisWin) {
+    thisWin.close()
+    logDebug('closeWindowFromId', `Closed window '${windowId}'`)
+  } else {
+    logWarn('closeWindowFromId', `Couldn't find window to close matching Id '${windowId}'`)
   }
 }
 

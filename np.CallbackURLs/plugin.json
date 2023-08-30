@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "np.CallbackURLs",
   "plugin.name": "🔗 Link Creator",
-  "plugin.version": "1.5.0",
-  "plugin.lastUpdateInfo": "1.5.0 Adding ability to open links in a note.",
+  "plugin.version": "1.6.0",
+  "plugin.lastUpdateInfo": "1.6.0 Adding passpack for /favorite commands (see Favorites Plugin).",
   "plugin.description": "Interactively helps you form links/x-callback-urls (and also Template Tags with runPlugin commands) to perform actions from within NotePlan or between other applications and NotePlan.",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -21,6 +21,10 @@
         "xcallback",
         "url",
         "link"
+      ],
+      "arguments": [
+        "Command Type",
+        "Pass Back Results (e.g. if calling from another plugin)"
       ]
     },
     {

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 8.8.2023 for v0.6.0 by @jgclark
+// Last updated 22.8.2023 for v0.6.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,7 +14,10 @@ import {
   makeParaContentToLookLikeNPDisplayInHTML,
   type Section, type SectionItem
 } from './dashboardHelpers'
-import { getDateStringFromCalendarFilename, getTodaysDateUnhyphenated } from '@helpers/dateTime'
+import {
+  getDateStringFromCalendarFilename, getTodaysDateUnhyphenated,
+  isValidCalendarNoteFilename
+} from '@helpers/dateTime'
 import { nowLocaleShortTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { unsetPreference } from '@helpers/NPdev'
@@ -47,6 +50,7 @@ const windowCustomId = 'Dashboard'
 export const resourceLinksInHeader = `
 <!-- Load in Dashboard-specific CSS -->
 <link href="dashboard.css" rel="stylesheet">
+
 <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
 <link href="../np.Shared/fontawesome.css" rel="stylesheet">
 <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
@@ -155,40 +159,41 @@ console.log(String(allChecklists.length) + ' sectionItemChecklist ELs added (to 
 /**
  * Add an event listener to all content items (not the icons),
  * except ones with class 'noteTitle', as they get their own onClick definition
+ * Uses [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
  */
 const addContentEventListenersScript = `
 <!-- addContentEventListenersScript -->
 <script type="text/javascript">
 console.log('add Event Listeners to Content...');
 // Add click handler to all sectionItemContent items (which already have a basic <a>...</a> wrapper)
-// Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
 let allContentItems = document.getElementsByClassName("sectionItemContent");
 for (const contentItem of allContentItems) {
   const thisID = contentItem.parentElement.id;
   const thisEncodedContent = contentItem.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
   const thisEncodedFilename = contentItem.dataset.encodedFilename; // contentItem.id;
-  // console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent);
+  console.log('- sIC on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent);
 
-  // // add event handler to each <a> (normally only 1 per item),
-  // // unless it's a noteTitle, which gets its own click handler.
-  // const theseLinks = contentItem.getElementsByTagName("A");
-  // for (const thisLink of theseLinks) {
-  //   console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className);
-  //   if (!thisLink.className.match('noteTitle')) {
-  //     thisLink.addEventListener('click', function (event) {
-  //       event.preventDefault();
-  //       handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
-  //     }, false);
-  //   }
-  // }
+  // add event handler to each <a> (normally only 1 per item),
+  // unless it's a noteTitle, which gets its own click handler.
+  const theseALinks = contentItem.getElementsByTagName("A");
+  for (const thisLink of theseALinks) {
+    console.log('- A on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className);
+    if (!thisLink.className.match('noteTitle')) {
+      thisLink.addEventListener('click', function (event) {
+        event.preventDefault();
+        handleContentClick(event, thisID, thisEncodedFilename, thisEncodedContent);
+      }, false);
+    }
+  }
+
   // add event handler to each "div.content" (normally only 1 per item),
-  const theseLinks = contentItem.getElementsByTagName("DIV");
-  for (const thisLink of theseLinks) {
-    if (thisLink.className.match('content')) {
-      console.log(thisID + ' / ' + thisEncodedFilename + ' / ' + thisLink.className);
+  const theseDIVLinks = contentItem.getElementsByTagName("DIV");
+  for (const thisLink of theseDIVLinks) {
+    if (thisLink.className.match('content') && !(thisLink.className.match('tooltip')))  {
+      console.log('DIV.content on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisLink.className);
       thisLink.addEventListener('click', function (event) {
         // event.preventDefault(); // now disabled to ensure that externalLinks etc. can fire
-        handleContentClick(thisID, thisEncodedFilename, thisEncodedContent);
+        handleContentClick(event, thisID, thisEncodedFilename, thisEncodedContent);
       }, false);
     }
   }
@@ -212,7 +217,7 @@ for (const reviewItem of allReviewItems) {
   const thisEncodedFilename = reviewItem.dataset.encodedFilename; // i.e. the "data-encoded-review" element, with auto camelCase transposition
   // add event handler
   reviewItem.addEventListener('click', function (event) {
-    event.preventDefault(); // TEST:
+    event.preventDefault();
     handleIconClick(thisID, 'review', thisEncodedFilename, '', event.metaKey);
   }, false);
 }
@@ -226,32 +231,46 @@ console.log(String(allReviewItems.length) + ' review ELs added (to review cells)
 const addButtonEventListenersScript = `
 <!-- addButtonEventListenersScript -->
 <script type="text/javascript">
+function findAncestor(startElement, tagName) {
+  let currentElem = startElement;
+  while (currentElem != document.body) {
+    if (currentElem.tagName.toLowerCase() == tagName.toLowerCase()) { return currentElem; }
+    currentElem = currentElem.parentElement;
+  }
+  return false;
+}
+
 // Add click handler to all hoverExtraControls' buttons
 // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
 let allMoveButtons = document.getElementsByClassName("moveButton");
 for (const button of allMoveButtons) {
-  const thisTD = button.parentElement.parentElement.parentElement;
+  // const thisTD = button.parentElement.parentElement.parentElement;
+  const thisTD = findAncestor(button, 'TD');
   const thisID = thisTD.parentElement.id;
   const thisControlStr = button.dataset.controlStr;
-  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-date-string" element, with auto camelCase transposition
+  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
+  // console.log('-', thisID, thisControlStr, thisEncodedContent);
   const thisFilename = button.parentElement.dataset.dateString;
   // add event handler
-  button.addEventListener('click', function () {
-    handleButtonClick(thisControlStr, 'moveFromCalToCal', thisFilename, thisEncodedContent, event.metaKey);
+  button.addEventListener('click', function (event) {
+    event.preventDefault();
+    handleButtonClick(thisControlStr, 'moveFromCalToCal', thisFilename, thisEncodedContent); // , event.metaKey
   }, false);
 }
 console.log(String(allMoveButtons.length) + ' moveButton ELs added');
 
 let allChangeDateButtons = document.getElementsByClassName("changeDateButton");
 for (const button of allChangeDateButtons) {
-  const thisTD = button.parentElement.parentElement.parentElement;
+  // const thisTD = button.parentElement.parentElement.parentElement;
+  const thisTD = findAncestor(button, 'TD');
   const thisID = thisTD.parentElement.id;
   const thisControlStr = button.dataset.controlStr;
-  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-date-string" element, with auto camelCase transposition
+  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
   const thisEncodedFilename = thisTD.dataset.encodedFilename;
   // add event handler
-  button.addEventListener('click', function () {
-    handleButtonClick(thisControlStr, 'updateTaskDate', thisEncodedFilename, thisEncodedContent, event.metaKey);
+  button.addEventListener('click', function (event) {
+    event.preventDefault();
+    handleButtonClick(thisControlStr, 'updateTaskDate', thisEncodedFilename, thisEncodedContent); // , event.metaKey
   }, false);
 }
 console.log(String(allChangeDateButtons.length) + ' dateChangeButton ELs added');
@@ -292,11 +311,12 @@ function handleIconClick(id, itemType, filename, content, metaModifier) {
 }
 
 // For clicking on main 'paragraph content'
-function handleContentClick(id, filename, content) {
-  console.log('handleContentClick( ' + id + ' / ' + filename + ' / ' +content + ' )');
+function handleContentClick(event, id, filename, content) {
+  console.log('handleContentClick( ' + id + ' / ' + filename + ' / ' +content + ' ) for event currentTarget: ' + event.currentTarget);
   const encodedFilename = filename; // already encoded at this point. Was: encodeRFC3986URIComponent(filename);
   const encodedContent = content; // already encoded at this point. Was: encodeRFC3986URIComponent(content);
-	onClickDashboardItem( { itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } );
+	// onClickDashboardItem( { itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } );
+	onClickDashboardItem( { itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } ); // TEST: change from openNote.. to openLine...
 }
 
 // For clicking on checkbox
@@ -370,7 +390,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
   try {
     // Check to stop it running on iOS
     if (NotePlan.environment.platform !== 'macOS') {
-      logDebug(pluginJson, `Dashboard is designed only to run on macOS. Stopping.`)
+      logDebug(pluginJson, `Sorry: Dashboard is designed only to run on macOS.`)
       return
     }
 
@@ -381,6 +401,9 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     let sections: Array<Section> = []
     let sectionItems: Array<SectionItem> = []
 
+    //---------------------------------------------------
+    // Main preparation work: do this in a background thread
+    await CommandBar.onAsyncThread()
     if (demoMode) {
       [sections, sectionItems] = await getDemoDataForDashboard()
     } else {
@@ -499,14 +522,14 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
 
         // Work out the extra controls that are relevant for this task, and set up as tooltips
         const possibleControlTypes = [
-          { displayString: "today", controlStr: "t", sectionDateTypes: ['W', 'M', 'Q'] }, // special controlStr to indicate change to '>today'
-          { displayString: "+1d", controlStr: "+1d", sectionDateTypes: ['D'] },
-          { displayString: "+1b", controlStr: "+1b", sectionDateTypes: ['D'] },
+          { displayString: "→today", controlStr: "t", sectionDateTypes: ['W', 'M', 'Q'] }, // special controlStr to indicate change to '>today'
+          { displayString: "+1d", controlStr: "+1d", sectionDateTypes: ['D', 'W', 'M'] },
+          { displayString: "+1b", controlStr: "+1b", sectionDateTypes: ['D', 'W', 'M'] },
           { displayString: "→wk", controlStr: "+0w", sectionDateTypes: ['D', 'M'] },
           { displayString: "+1w", controlStr: "+1w", sectionDateTypes: ['D', 'W'] },
-          { displayString: "→mon", controlStr: "+0m", sectionDateTypes: ['W', 'Q'] },
+          { displayString: "→mon", controlStr: "+0m", sectionDateTypes: ['D', 'W', 'Q'] },
           { displayString: "+1m", controlStr: "+1m", sectionDateTypes: ['M'] },
-          { displayString: "→qtr", controlStr: "+0q", sectionDateTypes: ['M>'] },
+          { displayString: "→qtr", controlStr: "+0q", sectionDateTypes: ['M'] },
         ]
         const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
         let tooltipContent = ''
@@ -514,19 +537,19 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
           tooltipContent = `\n           <span class="hoverExtraControls" data-date-string="${section.filename}">`
           // only want control types relevant for this section
           for (const ct of controlTypesForThisSection) {
+            // tooltipContent += `\n/<!-- ${ct.controlStr} / ${ct.sectionDateTypes.join('')} / ${section.dateType} / ${item.filename} / ${section.filename} -->\n`
             if (ct.sectionDateTypes.includes(section.dateType)) {
-              if (item.filename === section.filename) {
+              // if (item.filename === section.filename) {
+              if (isValidCalendarNoteFilename(item.filename)) {
                 tooltipContent += `<button class="moveButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
               } else {
-                logDebug('dashboardHTML', `- This needs to be updateTaskDate ${item.filename} as != ${section.filename}`)
+                logDebug('dashboardHTML', `- This needs to be updateTaskDate ${item.filename} as its not a calendar note`)
                 tooltipContent += `<button class="changeDateButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
               }
             }
           }
           tooltipContent += '</span>'
         }
-
-        // TODO: how does this need to change for non-calendar notes?
 
         // Do main work for the item
         switch (item.type) {
@@ -547,7 +570,8 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
             } else {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all', 140)
             }
-            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="content avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
+            // const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="content avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="avoidColumnBreakHere tooltip"><a class="content">${paraContent}</a>${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -566,7 +590,8 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 140)
             }
 
-            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="content avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
+            // const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="content avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
+            const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="avoidColumnBreakHere tooltip"><a class="content">${paraContent}</a>${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
@@ -629,11 +654,15 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     const header = `<div class="body space-under">${summaryStatStr}\n${refreshXCallbackButton}\n${filterCheckbox}</div>`
     outputArray.unshift(header)
 
-    //--------------------------------------------------------------
+    //------------------------------------------------
+    // come back to main thread
+    await CommandBar.onMainThread()
+
+    //------------------------------------------------
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
     const windowTitle = `Dashboard (${totalOpenItems} items)`
-    const filenameHTMLCopy = config._logLevel === 'DEBUG' ? '../../jgclark.Dashboard/dashboard.html' : ''
+    const filenameHTMLCopy = (config._logLevel === 'DEBUG' || config._logLevel === 'INFO') ? '../../jgclark.Dashboard/dashboard.html' : ''
 
     const winOptions = {
       windowTitle: windowTitle,
@@ -656,8 +685,11 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     // logDebug(`makeDashboard`, `written to HTML window with shouldFocus ${String(shouldFocus)}`)
 
     //--------------------------------------------------------------
-    // Finally, add auto-update trigger to open note (if wanted)
-    if (config.autoAddTrigger && !demoMode) {
+    // Finally, add auto-update trigger to open note if:
+    // - config.autoAddTrigger says so,
+    // - and if shouldFocus is true, indicating this was called by user action, not a trigger'd refresh
+    // - and not in demoMode
+    if (config.autoAddTrigger && shouldFocus && !demoMode) {
       const res = addTrigger(Editor, 'onEditorWillSave', 'jgclark.Dashboard', 'decideWhetherToUpdateDashboard')
       if (!res) {
         logWarn(pluginJson, 'Dashboard trigger could not be added for some reason.')
@@ -693,8 +725,40 @@ export async function addChecklist(calNoteFilename: string): Promise<void> {
   await showDashboardHTML()
 }
 
-export function resetDashboardWinSize(): void {
+/**
+ * Special command to resize dashboard window size to default
+ * Note: remove when Eduard finds the bug that means I needed to try this
+ */
+export async function resetDashboardWinSize(): Promise<void> {
   unsetPreference('WinRect_Dashboard')
   closeWindowFromCustomId('Dashboard')
-  showDashboardHTML()
+  await showDashboardHTML(true, false)
 }
+
+//------------------------------------------------------------------------------
+/**
+ * Details of HTML structure for section 0 items
+   TR class:no-borders id:0-0
+     TD class:sectionItemTodo sectionItem id=<filename> data-encoded-content
+     TD class:sectionItemContent sectionItem: data-encoded-content, data-encoded-filename
+       DIV class:content tooltip
+         SPAN class:priority1
+           [A class:noteTitle sectionItem onClick=...showNoteInEditorFromFilename...]
+         SPAN class:hoverExtraControls data-date-string
+           BUTTON class:changeDateButton
+           BUTTON class:changeDateButton
+           BUTTON class:changeDateButton
+           BUTTON class:changeDateButton
+
+       <tr class="no-borders" id="0-3">
+         <td id="CCC%20Areas%2FServices.md" class="sectionItemTodo sectionItem no-borders" data-encoded-content="%21%20Reply%20to%20Becky%20P%20with%20final%20details%20%3E2023-08-25"><i id="0-3I" class="todo fa-regular fa-circle"></i></td>
+
+         <td class="sectionItemContent sectionItem" data-encoded-filename="CCC%20Areas%2FServices.md" data-encoded-content="%21%20Reply%20to%20Becky%20P%20with%20final%20details%20%3E2023-08-25">
+
+          <div class="content avoidColumnBreakHere tooltip"><span class="priority1"> Reply to Becky P with final details <a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '0-3', type: 'showNoteInEditorFromFilename', encodedFilename: 'CCC%20Areas%2FServices.md', encodedContent: ''})"><i class="fa-regular fa-file-lines"></i> Services</a></span>
+
+           <span class="hoverExtraControls" data-date-string="20230825.md"><button class="changeDateButton" data-control-str="+1d">+1d</button><button class="changeDateButton" data-control-str="+1b">+1b</button><button class="changeDateButton" data-control-str="+0w">→wk</button><button class="changeDateButton" data-control-str="+1w">+1w</button><button class="changeDateButton" data-control-str="+0m">→mon</button></span>
+          </div>
+         </td>
+       </tr>
+ */

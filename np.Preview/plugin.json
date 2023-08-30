@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/np.Preview/",
-  "plugin.version": "0.4.1",
-  "plugin.lastUpdateInfo": "v0.4.1: improve display of [[notelinks]], ==highlights== and ~underlining~.\nv0.4.0: new command \"/start live preview\".\nv0.3.1: display improvements and turn off print button for iOS.\nv0.3.0: print button, trigger, updated Mermaid library, use appropriate Mermaid theme.",
+  "plugin.version": "0.4.2",
+  "plugin.lastUpdateInfo": "v0.4.2: fix regression stopping Mermaid rendering.\nv0.4.1: improve display of [[notelinks]], ==highlights== and ~underlining~.\nv0.4.0: new command \"/start live preview\".\nv0.3.1: display improvements and turn off print button for iOS.\nv0.3.0: print button, trigger, updated Mermaid library, use appropriate Mermaid theme.",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/np.Preview/CHANGELOG.md",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [

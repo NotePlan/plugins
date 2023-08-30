@@ -4,9 +4,14 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.16.3] 2023-08-24
+
+- Fix bug where synced lines in today's note were not being timeblocked. Thx @tiffsunbacon
+
 ## [1.16.2] 2023-07-13
 
 - Fix bug in non-ATB timeblocks getting deleted
+- Allow time to be '1hr or '5min instead of just "h" and "m"
 
 ## [1.16.1] 2023-07-05 @dwertheimer
 

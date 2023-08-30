@@ -28,6 +28,8 @@ This plugin provides commands to do things with notes that aren't yet provided i
 
 **Tip**: some of these are even more helpful if you assign a keyboard shortcut to them, using macOS's Keyboard > Shortcuts > App Shortcuts system. For example I have mapped ⇧⌘H to `/jump to heading`.
 
+(If these commands are useful to you, you'll probably find the [TidyUp plugin](https://github.com/NotePlan/plugins/blob/main/np.Tidy/) helpful too. It's rather arbitrary which commands live in which plugin.)
+
 ## Using from x-callback-url calls
 You can trigger these commands from [outside NotePlan using the **x-callback-url mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). This can be used in a template or shortcut, or any other place a URL can be accessed. Every call takes the same form:
 ```

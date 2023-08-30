@@ -838,21 +838,21 @@ export function localeRelativeDateFromNumber(diffIn: number, useShortStyle: bool
 }
 
 /**
- * Get array of relative dates for day, week and month.
+ * Get array of dates relative to today for day, week and month.
  * @author @jgclark
- * @returns {Object} relative date name, relative date string, TNote for that relative date
+ * @returns {Array<Object>} relative date name, relative date string, TNote for that relative date
  */
 export function getRelativeDates(): Array<Object> {
   try {
-    let relativeDates = []
+    const relativeDates = []
     const todayMom = moment()
 
     // Calculate relative dates. Remember to clone todayMom first as moments aren't immutable
-    let thisDateStr = moment(todayMom).format('YYYYMMDD')
+    let thisDateStr = moment(todayMom).format('YYYY-MM-DD')
     relativeDates.push({ relName: 'today', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format('YYYYMMDD')
+    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format('YYYY-MM-DD')
     relativeDates.push({ relName: 'yesterday', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format('YYYYMMDD')
+    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format('YYYY-MM-DD')
     relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
 
     // can't start with moment as NP weeks count differently

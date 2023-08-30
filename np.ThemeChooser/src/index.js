@@ -1,6 +1,6 @@
 // @flow
 
-export { chooseTheme, setDefaultLightDarkTheme, toggleTheme, copyCurrentTheme } from './NPThemeChooser' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
+export { chooseTheme, setDefaultLightDarkTheme, toggleTheme, copyCurrentTheme, changeThemeFromFrontmatter, addThemeFrontmatter } from './NPThemeChooser' // add one of these for every command specifified in plugin.json (the function could be in any file as long as it's exported)
 export { copyThemeStyle, editStyleAttribute, createThemeSamples, setColor, removeStyle } from './NPThemeCustomizer'
 export { changePreset, runPreset01, runPreset02, runPreset03, runPreset04, runPreset05 } from './NPThemePresets'
 export { onOpenTheme, onOpenRefreshPage, onEdit, onSave, onUpdateOrInstall, init, onSettingsUpdated } from './NPThemeHooks'

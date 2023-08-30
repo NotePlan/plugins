@@ -246,27 +246,39 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
 }
 
 /**
- * Ask user to select a heading from those in a given note (regular or calendar), or optionally create a new heading at top or bottom of note to use.
- * TODO: Better handle case where note has no headings
+ * Ask user to select a heading from those in a given note (regular or calendar), or optionally create a new heading at top or bottom of note to use, or the top or bottom of the note.
  * @author @jgclark
  *
  * @param {TNote} note - note to draw headings from
- * @param {boolean} optionAddAtBottom - whether to add '(bottom of note)' option. Default: true.
+ * @param {boolean} optionAddATopAndtBottom - whether to add 'top of note' and 'bottom of note' options. Default: true.
  * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top or bottom of the note. Default: false.
  * @param {boolean} includeArchive - whether to include headings in the Archive section of the note (i.e. after 'Done'). Default: false.
- * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note.
+ * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note. Special string '<<top>>' implies to write to the top (after any preamble or frontmatter).
  */
-export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = true, optionCreateNewHeading: boolean = false, includeArchive: boolean = false): Promise<string> {
+export async function chooseHeading(
+  note: TNote,
+  optionAddATopAndtBottom: boolean = true, optionCreateNewHeading: boolean = false,
+  includeArchive: boolean = false
+): Promise<string> {
   try {
     let headingStrings = []
     const headingLevel = 2
-    const spacer = '    '
-    // Decide whether to include all headings in note, or just those
-    // before the Done/Cancelled section
+    // const spacer = '    '
+    const spacer = '#'
+    // Decide whether to include all headings in note, or just those before the Done/Cancelled section.
+    let headingParas: Array<TParagraph> = []
     const indexEndOfActive = findEndOfActivePartOfNote(note)
-    const headingParas = includeArchive
-      ? note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'Title'
-      : note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive) // = all headings in the active part of the note
+    if (includeArchive) {
+      headingParas = note.paragraphs.filter((p) => p.type === 'title' && p.lineIndex < indexEndOfActive) // = all headings in the active part of the note
+    } else {
+      headingParas = note.paragraphs.filter((p) => p.type === 'title') // = all headings, not just the top 'Title'
+    }
+    if (headingParas.length > 0) {
+      // Now remove first heading if its H1 and matches the title, as that's not a heading in this meaning
+      if (headingParas[0].content === note.title) {
+        headingParas = headingParas.slice(1)
+      }
+    }
     if (headingParas.length > 0) {
       headingStrings = headingParas.map((p) => {
         let prefix = ''
@@ -274,18 +286,18 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
           prefix += spacer
         }
         // return `${prefix}➡️ ${p.content}` // an experiment that didn't look great
-        return `${prefix}${p.content}`
+        // return `${prefix}${p.content}`
+        return `${prefix} ${p.content}`
       })
     }
     if (optionCreateNewHeading) {
       // Add options to add new heading at top or bottom of note
       if (note.type === 'Calendar') {
-        headingStrings.unshift('➕#️⃣ (first insert new heading at the start of the note)') // insert at start
+        headingStrings.unshift('➕#️⃣ (first insert new heading at the start of the note)')
       } else {
-        headingStrings.splice(1, 0, `➕#️⃣ (first insert new heading under the title)`) // insert as second item, after title
+        headingStrings.unshift(`➕#️⃣ (first insert new heading under the title)`)
       }
 
-      // headingStrings.unshift('➕#️⃣ (first insert new heading at the start of the note)') // insert at second item
       headingStrings.push(`➕#️⃣ (first insert new heading at the end of the note)`)
     }
 
@@ -294,9 +306,10 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
     //   headingStrings.unshift('⬆️ (top of note)') // add at start (as it has no title heading)
     // }
 
-    if (optionAddAtBottom) {
+    if (optionAddATopAndtBottom) {
       // Ensure we can always add at bottom of note
-      headingStrings.push('⏬ (bottom of note)') // add at end
+      headingStrings.unshift('⏫ (top of note)') // insert as top item
+      headingStrings.push('⏬ (bottom of note)') // add as last item
     }
 
     // If there are no heading options to present, then just return '' = end of note
@@ -306,7 +319,8 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
 
     // Present heading options to user and ask for choice
     const result = await CommandBar.showOptions(headingStrings, `Select a heading from note '${note.title ?? 'Untitled'}'`)
-    let headingToReturn = headingStrings[result.index].trimLeft() // don't trim right as there can be valid traillng spaces
+    // Get the underlying heading back by removing added # marks and trimming left. We don't trim right as there can be valid traillng spaces.
+    let headingToReturn = headingStrings[result.index].replace(/^#{1,5}\s*/, '')
     let newHeading
 
     switch (headingToReturn) {
@@ -347,6 +361,11 @@ export async function chooseHeading(note: TNote, optionAddAtBottom: boolean = tr
         } else {
           throw new Error(`user cancelled operation`)
         }
+        break
+
+      case '⏫ (top of note)':
+        logDebug('userInput / chooseHeading', `selected top of note, rather than a heading`)
+        headingToReturn = '<<top of note>>' // hopefully won't ever be used as an actual title!
         break
 
       case '⏬ (bottom of note)':

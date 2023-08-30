@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.7.2",
   "plugin.id": "np.ThemeChooser",
   "plugin.name": "🎨 Theme Chooser",
-  "plugin.version": "1.6.2",
-  "plugin.lastUpdateInfo": "1.6.2: Remove background color from code blocks which was causing selections to fail.\n1.6.1: improve inline comment hide.\n1.6.0: add end of line comments. Thx @antony.skylar!.\n1.5.10: Added messaging about shouldOverwriteFont.\n1.5.9: Fix bug with boolean settings.\n1.5.8: Add underline style to all titles.\n1.5.7: Fix dark/light toggle command.\n1.5.x: Adding '/Customize Themes' (beta)",
+  "plugin.version": "1.7.2",
+  "plugin.lastUpdateInfo": "1.7.2: Fix theme presets bug found by @clayrussell...thank you!\n1.7.1: Add theme choosing to frontmatter-based theme setting",
   "plugin.description": "Choose from your favorite themes",
   "plugin.author": "dwertheimer",
   "plugin.dependencies": [],
@@ -111,6 +111,27 @@
       "alias": [],
       "arguments": [],
       "hidden": true
+    },
+    {
+      "name": "setTheme",
+      "description": "Change the theme based on frontmatter field 'theme'",
+      "jsFunction": "changeThemeFromFrontmatter",
+      "alias": [
+        "themefromfrontmatter"
+      ],
+      "arguments": [
+        "frontmatter key"
+      ],
+      "hidden": true
+    },
+    {
+      "name": "Add/Change This Note’s Theme in Frontmatter",
+      "description": "Add frontmatter fields to have this note displayed using a specific theme",
+      "jsFunction": "addThemeFrontmatter",
+      "alias": [],
+      "arguments": [
+        "Theme name"
+      ]
     },
     {
       "name": "Theme Chooser: Set Preset 01",

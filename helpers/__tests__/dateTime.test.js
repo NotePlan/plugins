@@ -556,7 +556,7 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     describe('adapting output to offset durations', () => {
       beforeAll(() => {
-        DataStore.settings['_logLevel'] = "DEBUG"
+        // DataStore.settings['_logLevel'] = "DEBUG"
       })
       test('2023-07 +14d -> 2023-07-15', () => {
         expect(dt.calcOffsetDateStr('2023-07', '14d', 'offset')).toEqual('2023-07-15')
@@ -845,76 +845,80 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   /*
-   * isValidCalendarNoteDateStr()
+   * isValidCalendarNoteTitleStr()
    */
-  describe('isValidCalendarNoteDateStr()' /* function */, () => {
+  describe('isValidCalendarNoteTitleStr()' /* function */, () => {
     describe('passes', () => {
       test('should work for iso date 01-01', () => {
-        const result = dt.isValidCalendarNoteDateStr(`20200101`)
-        expect(result).toEqual(true)
-      })
-      test('should work for iso date with 12-31', () => {
-        const result = dt.isValidCalendarNoteDateStr(`20201231`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-01-01`)
         expect(result).toEqual(true)
       })
       test('should work for week date W01', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-W01`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-W01`)
         expect(result).toEqual(true)
       })
       test('should work for week date W52', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-W52`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-W52`)
         expect(result).toEqual(true)
       })
       test('should work for week date W49', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-W49`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-W49`)
         expect(result).toEqual(true)
       })
       test('should work for week date W53', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-W53`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-W53`)
         expect(result).toEqual(true)
       })
       test('should work for week 10', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2021-W10`)
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W10`)
         expect(result).toEqual(true)
       })
       test('should work for week 21', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2021-W21`)
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W21`)
         expect(result).toEqual(true)
       })
       test('should work for week 39', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2021-W39`)
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W39`)
         expect(result).toEqual(true)
       })
     })
     describe('fails', () => {
       test('should fail for iso date 01-01', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-01-01`)
+        const result = dt.isValidCalendarNoteTitleStr(`20200101`)
+        expect(result).toEqual(false)
+      })
+      test('should fail for iso date with 12-31', () => {
+        const result = dt.isValidCalendarNoteTitleStr(`20201231`)
         expect(result).toEqual(false)
       })
       test('should fail for iso date 01-1', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-01-1`)
-        expect(result).toEqual(false)
-      })
-      test('should fail for iso date with 13-31', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-13-31`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-01-1`)
         expect(result).toEqual(false)
       })
       test('should fail for week date W1', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2020-W1`)
+        const result = dt.isValidCalendarNoteTitleStr(`2020-W1`)
         expect(result).toEqual(false)
       })
       test('should fail for week date 21-W52', () => {
-        const result = dt.isValidCalendarNoteDateStr(`21-W52`)
+        const result = dt.isValidCalendarNoteTitleStr(`21-W52`)
         expect(result).toEqual(false)
       })
-      // skip as this is a regex-only test, that can't distinguish some edge cases
+      test('should fail for week date 2021-W62', () => {
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W62`)
+        expect(result).toEqual(false)
+      })
+
+      // skip following as these are regex-only tests, that can't distinguish some edge cases
+      test.skip('should fail for iso date with 13-31', () => {
+        const result = dt.isValidCalendarNoteTitleStr(`2020-13-31`)
+        expect(result).toEqual(false)
+      })
       test.skip('should fail for week 54', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2021-W54`)
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W54`)
         expect(result).toEqual(false)
       })
-      // skip as this is a regex-only test, that can't distinguish some edge cases
       test.skip('should fail for week 00', () => {
-        const result = dt.isValidCalendarNoteDateStr(`2021-W00`)
+        const result = dt.isValidCalendarNoteTitleStr(`2021-W00`)
         expect(result).toEqual(false)
       })
     })
@@ -952,6 +956,38 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     test('should fail for non-date', () => {
       const result = dt.isValidCalendarNoteFilename('today.md')
+      expect(result).toEqual(false)
+    })
+  })
+
+  /* isValidCalendarNoteFilenameWithoutExtension() */
+  describe('isValidCalendarNoteFilenameWithoutExtension()' /* function */, () => {
+    test('should pass for daily note filename', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('20220101')
+      expect(result).toEqual(true)
+    })
+    test('should pass for weekly note filename', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('2022-W52')
+      expect(result).toEqual(true)
+    })
+    test('should pass for monthly note filename', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('2022-12')
+      expect(result).toEqual(true)
+    })
+    test('should pass for quarterly note filename', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('2022-Q2')
+      expect(result).toEqual(true)
+    })
+    test('should pass for yearly note filename', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('2022')
+      expect(result).toEqual(true)
+    })
+    test('should fail for too-short date', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('2022033')
+      expect(result).toEqual(false)
+    })
+    test('should fail for non-date', () => {
+      const result = dt.isValidCalendarNoteFilenameWithoutExtension('today')
       expect(result).toEqual(false)
     })
   })

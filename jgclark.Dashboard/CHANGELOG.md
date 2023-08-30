@@ -1,27 +1,32 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [0.6.0] - 2023-08-???
+## [0.6.0] - 2023-08-22
 ### Added
-- adds tooltip on displayed tasks that allows task to be moved on to next day (`+1d`), next business day (`+1b`), this week's note (`wk`), next week's note (`+1w`). (If you're wondering, this uses the same syntax as my Repeat Extensions plugin.)
-- now truncates very long task/checklist items in the display
-- new setting 'Add dashboard auto-update trigger when dashboard opened?' that controls whether to add the auto-update trigger to the frontmatter to the current note when the dashboard is opened
+- adds tooltip on displayed tasks that allows task to be moved on to next day (`+1d`), next business day (`+1b`), this week's note (`wk`), next week's note (`+1w`) etc. (If you're wondering, this uses the same syntax as my Repeat Extensions plugin.)
+- new setting 'Add dashboard auto-update trigger when dashboard opened?' which controls whether to add the auto-update trigger to the frontmatter to the current note in the Editor when you open the dashboard
 - new setting 'Exclude tasks that include time blocks?' that controls whether to stop display of open tasks that contain a time block
-- new setting 'Exclude checklists that include time blocks?' that controls whether to stop display of open checklists that contain a time block
+- new setting 'Exclude checklists that include time blocks?' that controls whether to stop display of open checklists that contain a time block (for @dwertheimer)
 - support for new NP theme item 'working-on' (invoked with a `>>` at the start of a task or checklist line)
-- support for coloured (and curved) backgrounds on #tags, @mentions, priority highlights, `code` fragments and ==highlights== (if set in the theme).
+- support for coloured (and curved) backgrounds on #tags, @mentions, priority !, !!, !!!, >> highlights, `code` fragments, ~underlining~, ~~strikethrough~~ and ==highlights== (if set in the theme)
+- now renders ~underlining~, ~~strikethrough~~ and ==highlights== (if set in the theme)
+- support for 'arrow date' references (e.g. `>2032-08-22<`).
 
 ### Changed
 - (finally) **found a way for the very latest updates to be available to display, when using the auto-update trigger**
 - the auto-update trigger should now fire when an open task/checklist is edited, not just added
+- now truncates very long task/checklist items in the display
 - now ignores open tasks/checklists that are in the relevant calendar note, but have a scheduled `>date`
 - now will bring the Dashboard window to the front if run from the command bar or an x-callback, but will not take focus if it updates itself via a`` trigger.
 - better translation of NP theme vertical spacing to the HTML display
-- now hides the !, !!, !!! or >> 'priority markers'
+- now hides the `!``, `!!``, `!!!`` or ``>>`` priority markers
 
 ### Fixed
 - background of tasks with !! or !!! priority markers sometimes wrong
 - tasks that include x-callbacks can now be checked off in the dashboard
+
+### Todo
+Note: - this plugin has *lots* of moving parts, and many of them have changed in this release. So there are some rough edges still. The main one being HTML layout issues with multiple columns and the floating buttons that I can't figure out (yet). There's also a bug somewhere in NP that means the window occasionally shrinks to zero height and can't be resized ...  Please raise any problems in the Discord `#dashboard-plugin` channel.
 
 ## [0.5.1] - 2023-07-21 (unreleased)
 ### Added

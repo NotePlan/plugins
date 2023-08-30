@@ -1,6 +1,12 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
+## [0.14.1] - 2023-08-27
+### Fixed
+- /quick add line under heading: first note in list wouldn't work (thanks to report by @phenix)
+- some relative dates not annotated in command bar lists
+<!-- - re-hide a test command -->
+
 ## [0.14.0] - 2023-08-19
 ### Added
 - _relative dates_ `today`, `yesterday`, `tomorrow`, `this week`, `last week`, `next week`, `this month`, `last month`, `next month`, `this quarter`, `last quarter`, `next quarter` are available when using x-callback-url mechanism to invoke the "/quick add to calendar note", "/quick prepend task to calendar note", "/quick add task under heading" and "/quick add line under heading" commands. Pass in in place of the 'note title' or 'note date' argument (suitably URL encoded, of course).

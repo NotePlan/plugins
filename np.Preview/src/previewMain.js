@@ -42,16 +42,18 @@ const initMathJaxScripts = `
 // Set up for Mermaid, using live copy of the Mermaid library (for now)
 // is current NP theme dark or light?
 const isDarkTheme = (Editor.currentTheme.mode === 'dark')
+
 // Note: using CDN version of mermaid.js, because whatever we tried for a packaged local version didn't work for Gantt charts.
-// TODO: add a setting to specify other Mermaid colour schemes
-function initMermaidScripts(theme?: string): string {
-  const themeToUse = theme || isDarkTheme ? 'dark' : 'default'
+function initMermaidScripts(mermaidTheme?: string): string {
+  const mermaidThemeToUse = mermaidTheme
+    ? mermaidTheme : isDarkTheme
+      ? 'dark' : 'default'
   return `
 <script type="module">
 import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
 // import merm from "./mermaid@10.1.0.min.mjs";
 // var mermaid = merm.default;
-mermaid.initialize({ startOnLoad: true, theme: '${themeToUse}' });
+mermaid.initialize({ startOnLoad: true, theme: '${mermaidThemeToUse}' });
 </script>
 `
 }
@@ -205,7 +207,9 @@ export function previewNote(mermaidTheme?: string): void {
       }
       modifiedLines.push(line)
     }
-    const finalBody = modifiedLines.join('\n')
+    // Add mermaid script if needed
+    const finalBody = modifiedLines.join('\n') + (includesMermaid ? initMermaidScripts(mermaidTheme) : '')
+    console.log(initMermaidScripts("green"))
 
     // Add sticky button at top right offering to print
     // (But printing doesn't work on i(Pad)OS ...)
@@ -215,7 +219,6 @@ export function previewNote(mermaidTheme?: string): void {
     const headerTags = `<meta name="generator" content="np.Preview plugin by @jgclark v${pluginJson['plugin.version'] ?? '?'}">
 <meta name="date" content="${new Date().toISOString()}">`
 
-    body += (includesMermaid ? initMermaidScripts(mermaidTheme) : '')
     const windowOpts: HtmlWindowOptions = {
       windowTitle: `${displayTitle(Editor)} Preview`,
       headerTags: headerTags,

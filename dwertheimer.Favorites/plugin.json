@@ -6,7 +6,8 @@
   "plugin.name": "⭐️ Favorites",
   "plugin.description": "Get fast access to commonly-used notes. Set any Project Note(s) as a Favorites and have quick access to choose/open the file",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "1.0.1",
+  "plugin.version": "1.2.2",
+  "plugin.lastUpdateInfo": "1.2.2: Usability fix: allow for escaping and leaving command intact.\n1.2.1: Add rename capability.\n1.2.0: Add prepended characters for favorite saved commands & xcallback creator inline. Thx for the idea @clayrussell!\n1.1.0: Add capability to set a preset to run a favorite URL/X-Callback",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "Put a link to a web page or your github readme file here, and it will be displayed as the 'website' in the plugin preference pane to give users more info on the plugin before/after install, e.g.  https://github.com/dwertheimer/Noteplan-plugins/blob/main/np.plugin-flow-skeleton/readme.md",
@@ -16,7 +17,8 @@
       "description": "Open one of the saved Favorites",
       "jsFunction": "openFavorite",
       "alias": [
-        "faves","favorites"
+        "faves",
+        "favorites"
       ]
     },
     {
@@ -31,8 +33,338 @@
       "name": "unfave - Remove this Note from Favorites List (⭐️)",
       "description": "Remove this Note from saved Favorites (remove ⭐️ from name)",
       "jsFunction": "removeFavorite",
-      "alias": [ "unfave"
+      "alias": [
+        "unfave"
       ]
+    },
+    {
+      "note": "****************************************************",
+      "not1": "**********  PRESETS BELOW THIS LINE      ***********",
+      "not2": "****************************************************"
+    },
+    {
+      "name": "Set/Change/Rename Preset Action",
+      "description": "Add or edit a preset to run a favorite URL/X-Callback",
+      "jsFunction": "changePreset"
+    },
+    {
+      "name": "x-Test Preset Settings Migration",
+      "description": "Test auto migration of presets; use this URL to test:",
+      "URL": "noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.Favorites&command=x-Test%20Preset%20Settings%20Migration",
+      "jsFunction": "onUpdateOrInstall",
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 01",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset01",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 02",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset02",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 03",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset03",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 04",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset04",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 05",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset05",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 06",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset06",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 07",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset07",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 08",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset08",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 09",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset09",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 10",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset10",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 11",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset11",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 12",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset12",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 13",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset13",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 14",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset14",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 15",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset15",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 16",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset16",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 17",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset17",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 18",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset18",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 19",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset19",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "name": "Favorites: Set Preset 20",
+      "description": "Run Favorite Action",
+      "jsFunction": "runPreset20",
+      "isPreset": true,
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Favorites: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
+    }
+  ],
+  "notes": {
+    "note": "****************************************************",
+    "not1": "**********  SETTINGS BELOW THIS LINE      **********",
+    "not2": "****************************************************"
+  },
+  "plugin.settings": [
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Favorites Settings"
+    },
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "dwertheimer.Favorites",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "key": "charsToPrepend",
+      "title": "Characters to Prepend to Command",
+      "description": "If there are characters like “-☆” in front of each command, it will keep them together and float them to the top of the menu. Whatever text you put here will be prepended to any command name you set. Blank this field out to not prepend any characters.",
+      "type": "string",
+      "default": "-☆",
+      "required": false
+    },
+    {
+      "key": "runPreset01",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 01",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset02",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 02",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset03",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 03",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset04",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 04",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset05",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 05",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset06",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 06",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset07",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 07",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset08",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 08",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset09",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 09",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset10",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 10",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset11",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 11",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset12",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 12",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset13",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 13",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset14",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 14",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset15",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 15",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset16",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 16",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset17",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 17",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset18",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 18",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset19",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 19",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
+    },
+    {
+      "key": "runPreset20",
+      "type": "hidden",
+      "default": "",
+      "title": "Preset 20",
+      "description": "Do not change this setting manually. Use the \"/Change Favorite Preset\" command."
     }
   ]
 }

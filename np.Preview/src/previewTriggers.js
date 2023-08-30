@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Preview triggering
-// Last updated 1.6.2023 for v0.3.x by @jgclark
+// Last updated 21.8.2023 for v0.3.x by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -18,12 +18,12 @@ export function updatePreview(): void {
   try {
     // Only proceed if the preview window is open
     if (!isHTMLWindowOpen('Preview')) {
-      logDebug(pluginJson, `Dashboard window not open, so stopping.`)
+      logDebug(pluginJson, `Preview window not open, so stopping.`)
       return
     }
     // Check to stop it running on iOS
     if (NotePlan.environment.platform !== 'macOS') {
-      logDebug(pluginJson, `Designed only to run on macOS. Stopping.`)
+      logInfo(pluginJson, `Designed only to run on macOS. Stopping.`)
       return
     }
 

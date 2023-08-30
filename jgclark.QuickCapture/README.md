@@ -43,7 +43,7 @@ Notes:
 - where an argument isn't valid (empty in the table below), don't include it
 - as with all x-callback URLs, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.
 - The matching of section headings in /qalh and /qath is done as an exact match, or (from v0.12) just the first part of it. This means it's possible to have a section such as `## Journal for 3.4.22` that changes every day, but still refer to it by the unchanging string `Journal`.
-- from NotePlan v3.6.1 and plugin v0.12.0 it's possible to send one or more empty arguments, and that will cause the missing argument(s) be requested from the user, as it it were run interactively.
+- from NotePlan v3.6.1 and plugin v0.12.0 it's possible to send one or more empty arguments, and that will cause the missing argument(s) be requested from the user, as if it were run interactively.
 
 | Command | x-callback start | arg0 | arg1 | arg2 |
 |-----|-------------|-----|-----|-----|

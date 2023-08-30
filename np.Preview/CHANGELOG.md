@@ -1,6 +1,9 @@
 # What's Changed in Previews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
+## [0.4.2] - 2023-08-21
+- fixed regression stopping Mermaid charts rendering.
+
 ## [0.4.1] - 2023-08-12
 - added styling for tags, mentions, highlights, underlining to match the current theme
 - removed the brackets round `[[notelink]]`s, and underlined instead, to indicate it's some sort of wikilink

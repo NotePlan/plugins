@@ -131,13 +131,28 @@ export function updateJSONForFunctionNamed(pluginJson: any, fields: PresetComman
 export async function savePluginCommand(pluginJson: any, fields: PresetCommand): Promise<any | false> {
   const { jsFunction } = fields
   if (jsFunction && jsFunction !== '') {
-    logDebug(pluginJson, `savePluginCommand: setting: ${String(jsFunction)} to: "${JSP(fields)}"; First will pull the existing plugin.json`)
+    logDebug(
+      pluginJson,
+      `savePluginCommand: running for plugin: ${pluginJson['plugin.id']}\nsetting: ${String(jsFunction)} to:\n\t"${JSP(fields)}"; First will pull the existing plugin.json`,
+    )
     const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
-    const newPluginJson = updateJSONForFunctionNamed(livePluginJson, fields, false)
-    // save command in settings so the command can be set there too when new plugin.json overwrites settings
-    const settings = DataStore.settings
-    DataStore.settings = { ...settings, ...{ [jsFunction]: fields } }
-    return await savePluginJson(pluginJson['plugin.id'], newPluginJson)
+    if (livePluginJson) {
+      const newPluginJson = updateJSONForFunctionNamed(livePluginJson, fields, false)
+      // save command in settings so the command can be set there too when new plugin.json overwrites settings
+      if (newPluginJson) {
+        const settings = DataStore.settings
+        if (settings) {
+          DataStore.settings = { ...settings, ...{ [jsFunction]: fields } }
+          return await savePluginJson(pluginJson['plugin.id'], newPluginJson)
+        } else {
+          logError(pluginJson, `savePluginCommand: Could not find settings for ${pluginJson['plugin.id']}`)
+        }
+      } else {
+        logError(pluginJson, `savePluginCommand: Could not update plugin.json for ${pluginJson['plugin.id']}`)
+      }
+    } else {
+      logError(pluginJson, `savePluginCommand: Could not find plugin.json for ${pluginJson['plugin.id']}`)
+    }
   }
   return false
 }
@@ -153,16 +168,22 @@ export async function savePluginCommand(pluginJson: any, fields: PresetCommand):
  * NOTE: See function themePresetChosen in np.ThemeChooser for example callback
  */
 export async function presetChosen(pluginJson: any, jsFunction: string, callback: function, callbackArgs: ?Array<any> = []): Promise<void> {
-  const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
-  logDebug(pluginJson, `presetChosen: ${jsFunction}`)
-  const index = getCommandIndex(livePluginJson, jsFunction)
-  if (index > -1) {
-    logDebug(pluginJson, `presetChosen Found ${jsFunction} calling callback`)
-    await callback({ ...livePluginJson['plugin.commands'][index], index }, ...callbackArgs)
-  } else {
-    logError(pluginJson, `presetChosen: Could not find index for ${jsFunction}`)
-    await showMessage(`Could not find preset: ${jsFunction}`)
-    await callback()
+  // need try/catch here so we can use this immediately after pluginFunction
+  try {
+    const livePluginJson = await getPluginJson(pluginJson['plugin.id'])
+    logDebug(pluginJson, `presetChosen: ${pluginJson['plugin.id']}::${jsFunction}`)
+    const index = getCommandIndex(livePluginJson, jsFunction)
+    if (index > -1) {
+      clo(livePluginJson['plugin.commands'][index], `presetChosen Found "${jsFunction}" details in plugin.json:`)
+      clo(callbackArgs, `presetChosen Found ${jsFunction} calling callback()" with args:`)
+      await callback({ ...livePluginJson['plugin.commands'][index], index }, ...callbackArgs)
+    } else {
+      logError(pluginJson, `presetChosen: Could not find index for ${jsFunction}`)
+      await showMessage(`Could not find preset: ${jsFunction}`)
+      await callback()
+    }
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }
 
@@ -192,23 +213,14 @@ export function getCommandIndex(pluginJson: any, functionName: string): number {
  */
 export async function rememberPresetsAfterInstall(pluginJson: any): Promise<void> {
   const settings = DataStore.settings
-  const keys = Object.keys(settings)
-  for (let index = 0; index < keys.length; index++) {
-    const key = keys[index]
-    if (key.includes('runPreset')) {
-      logDebug(pluginJson, `rememberPresetsAfterInstall: ${key}=${JSP(settings[key])}`)
-      const value =
-        typeof settings[key] === 'string'
-          ? {
-              jsFunction: key,
-              description: 'Switch Theme',
-              name: settings[key],
-              data: settings[key],
-              isPreset: true,
-              hidden: false,
-            }
-          : settings[key]
-      await savePluginCommand(pluginJson, value)
+  const settingsKeys = Object.keys(settings)
+  for (let index = 0; index < settingsKeys.length; index++) {
+    const setting = settingsKeys[index]
+    if (setting.includes('runPreset')) {
+      // settings will be empty strings until they are set by a user
+      if (settings[setting] === '') continue
+      logDebug(pluginJson, `rememberPresetsAfterInstall: ${setting} was prev set to: ${JSP(settings[setting])}`)
+      await savePluginCommand(pluginJson, settings[setting])
     }
   }
   // clo(pluginJson, `Before plugin update/install, pluginJson is:`)

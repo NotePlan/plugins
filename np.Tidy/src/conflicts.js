@@ -43,10 +43,10 @@ type conflictDetails = {
  * Private function to generate list of conflicted notes
  * NB: Only available from NP 3.9.3
  * @author @jgclark
- *
+ * @param {Array<string>} foldersToExclude
  * @returns {Array<conflictDetails>} array of strings, one for each output line
 */
-async function getConflictedNotes(): Promise<Array<conflictDetails>> {
+async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise<Array<conflictDetails>> {
   try {
     if (NotePlan.environment.buildVersion < 1053) {
       await showMessage("Command '/list conflicted notes' is only available from NP 3.9.3")
@@ -55,7 +55,7 @@ async function getConflictedNotes(): Promise<Array<conflictDetails>> {
     logDebug(pluginJson, `getConflictedNotes() starting`)
 
     const outputArray: Array<conflictDetails> = []
-    let folderList = getFilteredFolderList([], true, [], true)
+    let folderList = getFilteredFolderList(foldersToExclude, true, [], true)
     logDebug('getConflictedNotes', `- Found ${folderList.length} folders to check`)
     // Get all notes to check
     let notes: Array<TNote> = []
@@ -110,7 +110,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
     CommandBar.showLoading(true, `Finding notes with conflicts`)
     await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const conflictedNotes: Array<conflictDetails> = await getConflictedNotes()
+    const conflictedNotes: Array<conflictDetails> = await getConflictedNotes(config.listFoldersToExclude)
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 

@@ -164,6 +164,16 @@ export async function installPlugin(pluginName: string): Promise<void> {
   }
 }
 
+/**
+ * Do absolutely nothing
+ * Plugin entrypoint for command: "/doNothing"
+ * @author @dwertheimer
+ * @param {*} incoming
+ */
+export function doNothing() {
+  return
+}
+
 /** SAMPLES
  
 2022-11-12 16:37:30 | DEBUG | generatePluginCommandList installedPlugins[0] :: {

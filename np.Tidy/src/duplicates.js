@@ -10,7 +10,6 @@ import {
   daysBetween,
   relativeDateFromDate,
 } from '@helpers/dateTime'
-import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import {
   getFilteredFolderList,
@@ -24,8 +23,9 @@ import {
   getTagParamsFromString,
 } from '@helpers/general'
 import { getProjectNotesInFolder } from '@helpers/note'
+import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
-import { showMessage } from "../../helpers/userInput";
+import { showMessage } from "@helpers/userInput"
 
 const pluginID = 'np.Tidy'
 
@@ -41,15 +41,15 @@ type dupeDetails = {
 /**
  * Private function to generate list of potentially duplicate notes
  * @author @jgclark
- *
+ * @param {Array<string>} foldersToExclude
  * @returns {Array<dupeDetails>} array of strings, one for each output line
 */
-function getDuplicateNotes(): Array<dupeDetails> {
+function getDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDetails> {
   try {
     logDebug(pluginJson, `getDuplicateNotes() starting`)
 
     const outputArray: Array<dupeDetails> = []
-    let folderList = getFilteredFolderList([], true, [], true)
+    let folderList = getFilteredFolderList(foldersToExclude, true, [], true)
     logDebug('getDuplicateNotes', `- Found ${folderList.length} folders to check`)
     // Get all notes to check
     let notes: Array<TNote> = []
@@ -60,6 +60,7 @@ function getDuplicateNotes(): Array<dupeDetails> {
 
     // Get all dupes
     const counter = {}
+    // $FlowIgnore[prop-missing]
     const dupes = notes.filter(n => (counter[displayTitle(n)] = counter[displayTitle(n)] + 1 || 1) === 2)
     const dupeTitles = dupes.map(n => n.title ?? '')
 
@@ -81,6 +82,7 @@ function getDuplicateNotes(): Array<dupeDetails> {
 /**
  * Command to show details of duplicates in a NP note (replacing any earlier version of the note)
  * @author @jgclark
+ * @params {string?} params
  */
 export async function listDuplicates(params: string = ''): Promise<void> {
   try {
@@ -95,7 +97,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
     CommandBar.showLoading(true, `Finding duplicates`)
     await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const dupes: Array<dupeDetails> = getDuplicateNotes()
+    const dupes: Array<dupeDetails> = getDuplicateNotes(config.listFoldersToExclude)
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 

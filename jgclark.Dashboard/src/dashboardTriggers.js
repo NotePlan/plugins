@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { showDashboardHTML } from './dashboardHTML'
+import { showDashboardHTML } from './main'
 import { clo, JSP, /*logDebug,*/ logError, logInfo, logWarn } from '@helpers/dev'
 import { rangeToString } from '@helpers/general'
 import { makeBasicParasFromContent, selectedLinesIndex } from '@helpers/NPparagraph'
@@ -59,19 +59,21 @@ function numberOfOpenItems(content: string): number {
  */
 export async function decideWhetherToUpdateDashboard(): Promise<void> {
   try {
-    // Only proceed if the dashboard window is open
-    if (!isHTMLWindowOpen('Dashboard')) {
-      logDebug('decideWhetherToUpdateDashboard', `Dashboard window not open, so stopping.`)
-      return
-    }
     // Check to stop it running on iOS
     if (NotePlan.environment.platform !== 'macOS') {
       logDebug('decideWhetherToUpdateDashboard', `Designed only to run on macOS. Stopping.`)
       return
     }
 
+    // Do we have the Editor open? If not, stop;
     if (!(Editor.content && Editor.note)) {
       logWarn('decideWhetherToUpdateDashboard', `Cannot get Editor details. Please open a note.`)
+      return
+    }
+
+    // Only proceed if the dashboard window is open
+    if (!isHTMLWindowOpen('Dashboard')) {
+      logDebug('decideWhetherToUpdateDashboard', `Dashboard window not open, so stopping.`)
       return
     }
 
@@ -91,7 +93,7 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
         return
       }
 
-      // Decide if this is a relevant change, TODO: now looking for edits in open items as well.
+      // Decide if this is a relevant change, now looking for edits in open items as well.
       // V4: Get all open items from before and after
       const beforeContent = noteReadOnly.versions[0].content
       // logDebug('decideWhetherToUpdateDashboard', `beforeContent = ${beforeContent}`)

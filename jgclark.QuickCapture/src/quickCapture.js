@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 17.8.2023 for v0.14.0 by @jgclark
+// last update 27.8.2023 for v0.14.2 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -21,10 +21,12 @@ import {
 } from '@helpers/dateTime'
 import { getNPWeekData, getRelativeDates, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged, calendarNotesSortedByChanged, projectNotesSortedByChanged, weeklyNotesSortedByChanged } from '@helpers/note'
 import {
   findEndOfActivePartOfNote,
   findHeadingStartsWith,
+  findStartOfActivePartOfNote,
   smartAppendPara,
   smartPrependPara
 } from '@helpers/paragraph'
@@ -147,18 +149,22 @@ export async function addTaskToNoteHeading(
   try {
     logDebug(pluginJson, `starting /qath with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
     const config = await getQuickCaptureSettings()
-    const notes: Array<TNote> = allNotesSortedByChanged()
 
-    let note = await getNoteFromParamOrUser('task', noteTitleArg, false)
-    if (note == null) {
-      return // stop if can't get note
-    }
+    // Start a longer-running lookup in the background?
+    // TODO: requires more work than expected
 
     // Get text details from arg2 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
       : await CommandBar.showInput(`Type the task`, `Add task '%@' ${config.textToAppendToTasks}`)
     const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
+
+    // Get note details from arg0 or user
+    const notes: Array<TNote> = allNotesSortedByChanged()
+    let note = await getNoteFromParamOrUser('task', noteTitleArg, false)
+    if (note == null) {
+      return // stop if can't get note
+    }
 
     // Get heading details from arg1 or user
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
@@ -167,7 +173,16 @@ export async function addTaskToNoteHeading(
       : await chooseHeading(note, true, true, false)
     // Add todo to the heading in the note, or if blank heading,
     // then then user has chosen to append to end of note, without a heading
-    if (heading !== '') {
+    if (heading === '<<top of note>>') {
+      // Handle this special case
+      logDebug('addTaskToNoteHeading', `Adding line '${taskText}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
+      note.insertParagraph(taskText, findStartOfActivePartOfNote(note), 'text')
+    }
+    else if (heading === '') {
+      // Handle bottom of note
+      logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to end of '${displayTitleWithRelDate(note)}'`)
+      note.insertTodo(taskText, findEndOfActivePartOfNote(note))
+    } else {
       const matchedHeading = findHeadingStartsWith(note, heading)
       logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to '${displayTitleWithRelDate(note)}' below '${heading}'`)
       note.addTodoBelowHeadingTitle(
@@ -176,9 +191,6 @@ export async function addTaskToNoteHeading(
         config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
         true, // create heading if needed (possible if supplied via headingArg)
       )
-    } else {
-      logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to end of '${displayTitleWithRelDate(note)}'`)
-      note.insertTodo(taskText, findEndOfActivePartOfNote(note))
     }
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -208,15 +220,28 @@ export async function addTextToNoteHeading(
     logDebug(pluginJson, `starting /qalh with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
     const config = await getQuickCaptureSettings()
 
-    let note = await getNoteFromParamOrUser('Select note to add to', noteTitleArg, false)
-    if (note == null) {
-      return // stop if can't get note
-    }
+    // Start a longer-running lookup in the background
+    // await CommandBar.onAsyncThread()
+    // const allNotes: Array<TNote> = allNotesSortedByChanged()
+    // const resultsProm: resultOutputTypeV3 = // Note: deliberately no await: this is resolved later
+    // await CommandBar.onMainThread()
+    // let resultSet = await resultsProm // here's where we resolve the promise
+
+    // TODO: requires more work than expected. See @DW idea https://discord.com/channels/763107030223290449/1142962518344597604/1143310962112340049 etc.
 
     // Get text details from arg2 or user
     const textToAdd = (textArg != null && textArg !== '')
       ? textArg
       : await CommandBar.showInput('Type the text to add', `Add text '%@' ${config.textToAppendToTasks}`)
+
+    // Get note details from arg0 or user
+    logDebug('addTextToNoteHeading(qalh)', `Starting with noteTitleArg '${noteTitleArg}'`)
+    let note = await getNoteFromParamOrUser('Select note to add to', noteTitleArg, false)
+    if (note == null) {
+      return // stop if can't get note
+    }
+    logDebug('addTextToNoteHeading(qalh)', `-> '${displayTitle(note)}'`)
+
 
     // Get heading details from arg1 or user
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
@@ -225,7 +250,17 @@ export async function addTextToNoteHeading(
       : await chooseHeading(note, true, true, false)
     // Add todo to the heading in the note, or if blank heading,
     // then then user has chosen to append to end of note, without a heading
-    if (heading !== '') {
+    if (heading === '<<top of note>>') {
+      // Handle this special case
+      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
+      note.insertParagraph(textToAdd, findStartOfActivePartOfNote(note), 'text')
+    }
+    else if (heading === '') {
+      // Handle bottom of note
+      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to end of '${displayTitleWithRelDate(note)}'`)
+      note.insertParagraph(textToAdd, findEndOfActivePartOfNote(note) + 1, 'text')
+    }
+    else {
       const matchedHeading = findHeadingStartsWith(note, heading)
       logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to '${displayTitleWithRelDate(note)}' below matchedHeading '${matchedHeading}' (heading was '${heading}')`)
       note.addParagraphBelowHeadingTitle(
@@ -235,9 +270,6 @@ export async function addTextToNoteHeading(
         config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
         true, // create heading if needed (possible if supplied via headingArg)
       )
-    } else {
-      logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to end of '${displayTitleWithRelDate(note)}'`)
-      note.insertParagraph(textToAdd, findEndOfActivePartOfNote(note) + 1, 'text')
     }
   }
   catch (err) {

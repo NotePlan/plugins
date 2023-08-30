@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 23.3.23 for v0.13.0, @jgclark
+// Last updated 23.3.23 for v0.14.1, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -78,9 +78,9 @@ export async function updateSettings() {
  */
 export function tempAddParaTest(): void {
   // $FlowIgnore[incompatible-use]
-  const note: TNote = DataStore.projectNoteByTitle('Quick Capture qalh TEST', false, false)[0]
+  const note: TNote = DataStore.projectNoteByTitle('Quick Capture callback TESTs', false, false)[0]
   note.addParagraphBelowHeadingTitle(
-    "test_text_addeed_below_heading",
+    "test_text_addeed_below_heading by tempAddParaTest()",
     'text',
     'Head C',
     true,

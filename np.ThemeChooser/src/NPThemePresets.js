@@ -19,11 +19,12 @@ export async function themePresetChosen(commandDetails: PresetCommand | null = n
     showMessage(`You must be in the Editor with a document open to run this command`)
     return
   }
-  if (commandDetails?.name) {
+  clo(commandDetails, `themePresetChosen: overwrite:${String(overwrite)} commandDetails:`)
+  if (commandDetails) {
     const commandName = commandDetails.name
     logDebug(pluginJson, `themePresetChosen: command.name = "${commandDetails.name}" overwrite?:${String(overwrite)}`)
     // Put the text of an unset command in the plugin.json here (how we tell if it's vanilla/unset)
-    const themeIsUnset = commandDetails.name.match(/Theme Chooser: Set Preset/)
+    const themeIsUnset = !commandDetails.name || commandDetails.name.match(/Theme Chooser: Set Preset/)
     logDebug(pluginJson, `themePresetChosen: themeIsUnset=${String(themeIsUnset)}`)
     if (themeIsUnset || overwrite) {
       // SET THE PRESET COMMAND
@@ -51,7 +52,7 @@ export async function themePresetChosen(commandDetails: PresetCommand | null = n
       }
     }
   } else {
-    logError(pluginJson, `themePresetChosen: no command details sent`)
+    logError(pluginJson, `themePresetChosen: no command details object sent. Cannot continue.`)
   }
 }
 
