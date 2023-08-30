@@ -44,13 +44,7 @@ export function init(): void {
 }
 
 export function onSettingsUpdated(): void {
-  // Placeholder only to stop error in logs
-}
-
-
-// test the update mechanism, including display to user
-export function testUpdate(): void {
-  onUpdateOrInstall(true) // force update mechanism to fire
+  return // Placeholder only to try to stop error in logs
 }
 
 export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<void> {
@@ -71,4 +65,5 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
     logError(pluginID, error.message)
   }
   logInfo(pluginID, `- finished`)
+  return // Placeholder only to try to stop error in logs
 }
