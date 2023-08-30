@@ -2,6 +2,11 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
+## [0.12.4] - 2023-08-30
+### Fixes
+- re-write to allow comment lines to work again when running on macOS Big Sur
+- fix regression that meant setting "How to show completed/cancelled projects?" to "hide" didn't work.
+
 ## [0.12.3] - 2023-08-22
 ### Added
 - ability to run Project List window at the same time as the Dashboard window etc. (Requires NP v3.9.6.)

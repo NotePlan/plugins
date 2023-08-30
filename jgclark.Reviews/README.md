@@ -114,12 +114,14 @@ Notes about the displays:
 Other settings:
 - Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders). This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.
 - Folders to Ignore (optional): Specify which folders to ignore (which includes any of their sub-folders too).  This match is done anywhere in the folder name.
+- Confirm next Review?: When running '/next project review' it asks whether to start the next review.
+- Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
+- Display projects grouped by folder? Whether to group the projects by their folder.
+- Hide top level folder in output? Whether to suppress higher-level folder names in project list headings.
+- How to show completed/cancelled projects?: The options are 'display at end', 'display' or 'hide'.
+- Only display overdue projects/areas?: If not ticked then it will display all project/area notes, not just overdue ones.
 - Display project dates?  Whether to display the project's review and due dates (where set).
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If some lines have a specific 'Progress:' field. (See above for details.)
-- Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
-- Display grouped by folder? Whether to group the projects by their folder.
-- How to show completed/cancelled projects?: The options are 'display at end', 'display' or 'hide'.
-- Hide top level folder? Whether to suppress higher-level folder names in project list headings.
 - Display archived projects? Whether to display project notes marked as `#archive`.
 
 ### "/start reviews" command

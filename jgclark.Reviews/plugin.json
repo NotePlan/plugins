@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.12.3",
-  "plugin.lastUpdateInfo": "0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.\n0.11.0: new 'skip project review' command, and its optional @nextReview() date. New 'How to show completed/cancelled projects?' setting.",
+  "plugin.version": "0.12.4",
+  "plugin.lastUpdateInfo": "0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.",
   "plugin.requiredFiles": [
     "projectList.css"
   ],
@@ -293,6 +293,14 @@
       "required": true
     },
     {
+      "key": "hideTopLevelFolder",
+      "title": "Hide top-level folder in output?",
+      "description": "If 'Display projects grouped by folder?' (above) is set, this hides all but the lowest-level subfolder name in output.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "key": "displayFinished",
       "title": "How to show completed/cancelled projects?",
       "description": "If you do not want to see completed/cancelled projects in your Rich dashboard, change this setting to something other than Displayed.",
@@ -300,15 +308,15 @@
       "default": "display at end",
       "required": true,
       "choices": [
-        "display at end",
         "display",
+        "display at end",
         "hide"
       ]
     },
     {
       "key": "displayOnlyOverdue",
-      "title": "Display only overdue projects/areas?",
-      "description": "If not ticked then it will display all project/area notes?",
+      "title": "Only display overdue projects/areas?",
+      "description": "If not ticked then it will display all project/area notes, not just overdue ones.",
       "type": "bool",
       "default": false,
       "required": true
@@ -316,7 +324,7 @@
     {
       "key": "displayDates",
       "title": "Display project dates?",
-      "description": "Whether to display the project's review and due dates (where set)",
+      "description": "Whether to display the project's review and due dates (where set).",
       "type": "bool",
       "default": true,
       "required": true
@@ -327,14 +335,6 @@
       "description": "Whether to show the project's latest progress (where available). If a specific 'Progress:' field is set it will use that, otherwise it will calculate %completion based on the number of completed and open tasks.",
       "type": "bool",
       "default": true,
-      "required": true
-    },
-    {
-      "key": "hideTopLevelFolder",
-      "title": "Hide top-level folder in output?",
-      "description": "If 'Display projects grouped by folder?' above is set, this hides all but the lowest-level subfolder name in output.",
-      "type": "bool",
-      "default": false,
       "required": true
     },
     {
