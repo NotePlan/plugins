@@ -1,5 +1,5 @@
 // @flow
-export { pluginTester, generatePluginCommandList, installPlugin, testOutputEditorContents } from './pluginTester'
+export { pluginTester, generatePluginCommandList, installPlugin, testOutputEditorContents, doNothing } from './pluginTester'
 
 // Do not change this line. This is here so your plugin will get recompiled every time you change your plugin.json file
 import pluginJson from '../plugin.json'
