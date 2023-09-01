@@ -328,7 +328,6 @@ export class Project {
   ID: string // required when making HTML views
 
   constructor(note: TNote, noteTypeTag?: string) {
-    logDebug('Project constructor', `Starting`)
     try {
       if (note == null || note.title == null) {
         throw new Error('Error in constructor: invalid note passed')
@@ -494,7 +493,7 @@ export class Project {
         : NaN
 
       // Calculate durations or time since cancel/complete
-      logDebug('calcDurations', String(this.startDate))
+      logDebug('calcDurations', String(this.startDate ?? 'no startDate'))
       if (this.startDate) {
         const momTSD = moment(this.startDate)
         if (this.completedDate != null) {
@@ -1093,8 +1092,8 @@ export async function saveEditorToCache(completed: function): Promise<void> {
   }
 }
 
-// FIXME: error message "NotePlan_Beta.JSPromiseConstructor is not a constructor (evaluating 'new Promise((resolve => setTimeout(resolve, milliseconds)))')"
-// TODO: Looks like this doesn't work in NP. See some Discord chat @EduardMe, 19.6.2023
+// TODO(later): Looks like this doesn't work in NP. See some Discord chat @EduardMe, 19.6.2023
+// Error message "NotePlan_Beta.JSPromiseConstructor is not a constructor (evaluating 'new Promise((resolve => setTimeout(resolve, milliseconds)))')"
 // function delay(milliseconds: number) {
 //   try {
 //     // $FlowIgnore - @EduardMe says NP overrides the Promise mechanism

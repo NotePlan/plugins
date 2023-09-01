@@ -171,9 +171,9 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
     let config = await getReviewSettings()
     if (args !== '') {
       config = overrideSettingsWithEncodedTypedArgs(config, args)
-      clo(config, 'Review settings updated with args:')
+      // clo(config, 'Review settings updated with args:')
     } else {
-      clo(config, 'Review settings with no args:')
+      // clo(config, 'Review settings with no args:')
     }
 
     // Re-calculate the full-review-list (in foreground)
@@ -686,9 +686,10 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
 
       // Write new folder header (if change of folder)
       if (config.displayGroupedByFolder && lastFolder !== folder) {
-        const folderPart = config.hideTopLevelFolder
+        let folderPart = config.hideTopLevelFolder
           ? String(folder.split('/').slice(-1)) // just last part. String(...) to satisfy flow
           : folder
+        if (folderPart === '/') folderPart = '(root folder)'
         if (style.match(/rich/i)) {
           outputArray.push(`<thead>\n <tr class="section-header-row">  <td colspan=2 class="h3 section-header">${folderPart}</td>`)
           if (config.displayDates) {
@@ -738,7 +739,7 @@ export async function makeFullReviewList(config: any, runInForeground: boolean =
     let startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // Get list of folders, excluding @specials and our foldersToIgnore setting
-    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude, false).sort()
+    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude, true).sort()
     // For filtering DataStore, no need to look at folders which are in other folders on the list already
     const filteredFolderListWithoutSubdirs = filteredFolderList.reduce((acc, f) => {
       const exists = acc.some((s) => f.startsWith(s))
@@ -750,12 +751,17 @@ export async function makeFullReviewList(config: any, runInForeground: boolean =
     // filter DataStore one time, searching each item to see if it startsWith an item in filterFolderList
     // but need to deal with ignores here because of this optimization (in case an ignore folder is inside an included folder)
     // TODO: make the excludes an includes not startsWith
-    const m = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-    const filteredDataStore = DataStore.projectNotes.filter(
+    let filteredDataStore = DataStore.projectNotes.filter(
       (f) => filteredFolderListWithoutSubdirs.some((s) => f.filename.startsWith(s)) && !config.foldersToIgnore.some((s) => f.filename.includes(`${s}/`.replace('//', '/')))
     )
+    // Above ignores root notes, so now need to add them (if we have '/' folder)
+    if (filteredFolderListWithoutSubdirs.includes('/')) {
+      const rootNotes = DataStore.projectNotes.filter((f) => !f.filename.includes('/'))
+      filteredDataStore = filteredDataStore.concat(rootNotes)
+      // logDebug('', `Added root folder notes: ${rootNotes.map((n) => n.title).join(' / ')}`)
+    }
 
-    logDebug(`makeFullReviewList`, `>> filteredDataStore ${filteredDataStore.length} potential project notes in ${timer(m)}`)
+    logDebug(`makeFullReviewList`, `>> filteredDataStore: ${filteredDataStore.length} potential project notes in ${timer(startTime)}`)
     // filteredDataStore.map((n, i) => logDebug(`makeFullReviewList filteredDataStore[${i}]: ${n.filename}`))
     // logDebug(pluginJson, `<filteredDataStore/> \n`)
 
@@ -774,7 +780,7 @@ export async function makeFullReviewList(config: any, runInForeground: boolean =
       // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
       for (const tag of tags) {
         let funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-        const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, [], true, filteredDataStore)
+        const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, [], true, filteredDataStore, false)
         logDebug('makeFullReviewList', `>> findNotesMatchingHashtag(${tag}, ${folder}): ${timer(funcTimer)}`)
         if (projectNotesArr.length > 0) {
           // Get Project class representation of each note.
