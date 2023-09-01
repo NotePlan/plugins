@@ -30,7 +30,6 @@ import {
   openNoteInNewWindowIfNeeded
 } from "@helpers/NPWindows";
 import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
-import json from "documentation/src/output/json";
 
 //-----------------------------------------------------------------
 // Data types
@@ -114,9 +113,9 @@ Note: the JSON has to be well-formatted to be usable. In particular check that t
 		}
   ]
 }
-```
+\`\`\`
 
-  ```json
+\`\`\`json
 {
   "name": "Weeks (Last+This+Next)",
   "closeOtherWindows": true,
@@ -278,14 +277,14 @@ export function readWindowSetDefinitions(folderForDefinitions: string): Array<Wi
  * @param {string} name of window set to look up
  * @returns {WindowSet | null} window set, if found, otherwise null
  */
-function getDetailedWindowSetByName(name: string): WindowSet | null {
+function getDetailedWindowSetByName(name: string, folderForDefinitions: string): WindowSet | null {
   try {
     if (NotePlan.environment.platform !== 'macOS') {
       logWarn('logWindowSets', `Window Sets only runs on macOS. Stopping.`)
       return null
     }
 
-    const windowSets = readWindowSetDefinitions(config.folderForDefinitions)
+    const windowSets = readWindowSetDefinitions(folderForDefinitions)
     if (!windowSets) {
       logInfo('logWindowSets', `No saved windowSets object found.`)
       return null
@@ -309,14 +308,15 @@ function getDetailedWindowSetByName(name: string): WindowSet | null {
  * V2: reads from @WindowSets folder of files.
  * @author @jgclark
  */
-export function logWindowSets(): void {
+export async function logWindowSets(): Promise<void> {
   try {
     if (NotePlan.environment.platform !== 'macOS') {
       logWarn('logWindowSets', `Window Sets only runs on macOS. Stopping.`)
       return
     }
+    const config = await getPluginSettings()
 
-    const windowSets = readWindowSetDefinitions()
+    const windowSets = readWindowSetDefinitions(config.folderForDefinitions)
     if (!windowSets) {
       logInfo('logWindowSets', `No saved windowSets object found.`)
       return
@@ -525,17 +525,16 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
         logInfo('logWindowSets', `No saved windowSets object found.`)
 
         // TEST: Offer to make two default sets
-        let res = await showMessageYesNoCancel(`There are no Window Set definitions in folder '${folderForDefinitions}'. Shall I add some example ones?`, ['Yes', 'No', 'Cancel'], "Window Sets")
-        switch res: {
+        let res = await showMessageYesNoCancel(`There are no Window Set definitions in folder '${config.folderForDefinitions}'. Shall I add some example ones?`, ['Yes', 'No', 'Cancel'], "Window Sets")
+        switch (res) {
           case 'Yes': {
             // create two default sets
             const filename1 = config.folderForDefinitions + '/Day + Week Window Sets.md'
             const n1 = await Editor.openNoteByFilename(filename1, false, 0, 0, false, true, exampleContent1)
             const filename2 = config.folderForDefinitions + '/Staff Meeting.md'
-            const n1 = await Editor.openNoteByFilename(filename1, false, 0, 0, true, true, exampleContent1)
+            const n2 = await Editor.openNoteByFilename(filename1, false, 0, 0, true, true, exampleContent1)
             await showMessage(`Written 2 example Window Sets. Please run the command again to try them out.`)
-            return []
-            break
+            return false
           }
           case 'No': {
             break
@@ -543,8 +542,7 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
           case 'Cancel': {
             // Stop execution
             logDebug(pluginJson, `User cancelled operation.`)
-            return []
-            break
+            return false
           }
         }
       }

@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Smarter archiving commands, part of Filer plugin
 // Jonathan Clark
-// last updated 18.4.2023 for v1.1.0-beta
+// last updated 18.4.2023 for v1.1.0
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -46,16 +46,10 @@ export function archiveNoteUsingFolder(): string | void {
 
     // Move note to this new location.
     // (Handily, NP does the work of creating any necessary missing folders.)
+    // Good news: creation date now doesn't change here
     const newFilename = DataStore.moveNote(currentFilename, archiveFolderToMoveTo)
     if (newFilename) {
       logDebug('archiveNoteUsingFolder', `- Note -> ${newFilename}`)
-
-      // Check creation date hasn't changed. 
-      // Good news: it doesn't change. TODO: remove next time.
-      // const archivedNote = DataStore.projectNoteByFilename(newFilename)
-      // const archivedNoteCreationDateStr = String(note.createdDate)
-      // logDebug('archiveNoteUsingFolder', `- archivedNoteCreationDateStr: ${archivedNoteCreationDateStr}`)
-
       return newFilename
     } else {
       throw new Error(`archiveNoteUsingFolder(): Failed when moving '${displayTitle(note)}' to folder ${archiveFolderToMoveTo}`)

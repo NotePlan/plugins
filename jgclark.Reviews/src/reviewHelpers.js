@@ -101,20 +101,26 @@ export async function getReviewSettings(): Promise<any> {
     DataStore.setPreference('reviewedMentionStr', config.reviewedMentionStr)
     DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
 
-    // Set local pref Reviews-DisplayOnlyOverdue to default false if it doesn't exist already
-    let savedValue = DataStore.preference('Reviews-DisplayOnlyOverdue')
-    // logDebug(pluginJson, `DisplayOnlyOverdue? savedValue: ${String(savedValue)}`)
-    if (!savedValue) {
-      DataStore.setPreference('Reviews-DisplayOnlyOverdue', false)
-    }
+    // TODO(later): remove this when checkboxes do work
+    DataStore.setPreference('Reviews-DisplayOnlyOverdue', config.displayOnlyOverdue)
+    // TODO(later): include this when checkboxes do work
+    // // Set local pref Reviews-DisplayOnlyOverdue to default false if it doesn't exist already
+    // let savedValue = DataStore.preference('Reviews-DisplayOnlyOverdue')
+    // // logDebug(pluginJson, `DisplayOnlyOverdue? savedValue: ${String(savedValue)}`)
+    // if (!savedValue) {
+    //   DataStore.setPreference('Reviews-DisplayOnlyOverdue', false)
+    // }
     logDebug(pluginJson, `Reviews-DisplayOnlyOverdue? = ${String(DataStore.preference('Reviews-DisplayOnlyOverdue'))}`)
 
+    // TODO(later): remove this when checkboxes do work
+    DataStore.setPreference('Reviews-DisplayFinished', config.displayFinished)
     // Set local pref Reviews-DisplayFinished to default true if it doesn't exist already
-    savedValue = DataStore.preference('Reviews-DisplayFinished')
-    // logDebug(pluginJson, `DisplayFinished? savedValue: ${String(savedValue)}`)
-    if (!savedValue) {
-      DataStore.setPreference('Reviews-DisplayFinished', true)
-    }
+    // TODO(later): include this when checkboxes do work
+    // savedValue = DataStore.preference('Reviews-DisplayFinished')
+    // // logDebug(pluginJson, `DisplayFinished? savedValue: ${String(savedValue)}`)
+    // if (!savedValue) {
+    //   DataStore.setPreference('Reviews-DisplayFinished', true)
+    // }
     logDebug(pluginJson, `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
 
     return config
@@ -232,6 +238,7 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
       // if (progressParaParts.length >= 1) {
       // const thisDatePart = progressParaParts[1]
       const progressLine = progressPara.content
+      logInfo('mostRecentProgressParagraph', progressLine)
       const thisDate: Date = (new RegExp(RE_ISO_DATE).test(progressLine))
         // $FlowIgnore[incompatible-type]
         ? getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
@@ -239,10 +246,14 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
           // $FlowIgnore[incompatible-type]
           ? getDateFromUnhyphenatedDateString(progressLine.match(RE_YYYYMMDD_DATE)[0])
           : new Date('0001-01-01')
-      const comment = progressLine.split(/[:@]/).at(-1) ?? ''
-      const percent: number = (/\d{1,2}[:@]/.test(progressLine))
-        // $FlowIgnore[incompatible-use]
-        ? Number(progressLine.match(/(\d{1,2})[:@]/).at(1))
+      const tempSplitParts = progressLine.split(/[:@]/)
+      // logDebug('mostRecentProgressParagraph', `tempSplitParts: ${String(tempSplitParts)}`)
+      const comment = tempSplitParts[3] ?? ''
+
+      const tempNumberMatches = progressLine.match(/(\d{1,2})@/)
+      // logDebug('mostRecentProgressParagraph', `tempNumberMatches: ${String(tempNumberMatches)}`)
+      const percent: number = (tempNumberMatches && tempNumberMatches.length > 0)
+        ? Number(tempNumberMatches[1])
         : NaN
 
       if (thisDate > lastDate) {
@@ -254,14 +265,13 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
           date: thisDate,
           comment: comment
         }
-        // clo(outputProgress, 'Project::mostRecentProgressParagraph -> ')
       }
       lastDate = thisDate
 
       // }
       i++
     }
-    // clo(outputProgress, 'mostRecentProgressParagraph ->')
+    clo(outputProgress, 'mostRecentProgressParagraph ->')
     return outputProgress
   } catch (e) {
     logError('Project::mostRecentProgressParagraph', e.message)

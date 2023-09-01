@@ -57,12 +57,6 @@ const faLinksInHeader = `
 <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
 `
 
-// FIXME: In Safari the fetch -> unsupported URL
-// Might want <i class="fa-regular fa-square-check"></i>
-// or fa-circle-check"></i>
-// or <i class="fa-duotone fa-toggle-large-on"></i>
-// and <i class="fa-duotone fa-toggle-large-off"></i>
-
 export const checkboxHandlerJSFunc: string = `
 <script type="text/javascript">
 async function handleCheckboxClick(cb) {
@@ -334,7 +328,7 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
     const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
     const displayOnlyOverdue = DataStore.preference('Reviews-DisplayOnlyOverdue' ?? false)
     // v1: text labels
-    let togglesValues = (displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects projects/areas'
+    let togglesValues = (displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects/areas'
     togglesValues += (displayFinished === 'hide') ? '' : ', plus finished ones'
     // v1: simple text
     outputArray.push(`<p>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> (${togglesValues})</p>`)
@@ -513,7 +507,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           }
           const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
           const displayOnlyOverdue = DataStore.preference('Reviews-DisplayOnlyOverdue' ?? false)
-          let togglesValues = (displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects projects/areas'
+          let togglesValues = (displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects/areas'
           togglesValues += (displayFinished === 'hide') ? '' : 'plus finished ones'
           outputArray.unshift(`Total ${noteCount} active projects${overdue > 0 ? `: **${startReviewButton}**` : '.'} (${togglesValues}.) Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
 

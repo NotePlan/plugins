@@ -8,7 +8,7 @@
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import {
   getStoredWindowRect, isHTMLWindowOpen,
-  setHTMLWindowId,
+  // setHTMLWindowId,
   storeWindowRect
 } from '@helpers/NPWindows'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
@@ -1647,7 +1647,7 @@ export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = 
     truncatedHTML += htmlIn[index]
   }
   if (dots) {
-    truncatedHTML = truncatedHTML + ' …'
+    truncatedHTML = `${truncatedHTML} …`
   }
   // logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
   return truncatedHTML
