@@ -9,6 +9,8 @@ This plugin provides commands to more quickly add tasks/todos or general text to
 <!-- - **/quick add to weekly note** (alias **/qaw**): Quickly add a task to a chosen weekly note -->
 - **/quick add to journal today** (alias **/qajd**): Quickly add text to the Journal section of today's daily note
 - **/quick add to journal this week** (alias **/qajw**): Quickly add text to the Journal section of this week's note
+- **/quick add to this month's journal** (alias **/qajm**): Quickly add text to the Journal section of this month's note
+- **/quick add to this year's journal** (alias **/qajy**): Quickly add text to the Journal section of this year's note
 - **/quick prepend task to calendar note** (alias **/qpc**): Quickly prepend a task to a chosen calendar note
 - **/quick prepend task to note** (alias **/qpt**): Quickly prepend a task to a chosen project note. (Inserts after title or YAML frontmatter, or starting metadata lines.)
 
