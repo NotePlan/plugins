@@ -18,7 +18,6 @@ import {
   displayTitleWithRelDate,
   showMessage,
 } from '@helpers/userInput'
-import plugin from "@babel/core/lib/config/plugin";
 
 //----------------------------------------------------------------------------
 // helpers
@@ -62,19 +61,33 @@ export async function getQuickCaptureSettings(): Promise<any> {
 /**
  * Returns TNote from DataStore matching 'noteTitleArg' (if given) to titles, or else ask User to select from all note titles.
  * Now first matches against special 'relative date' (e.g. 'last month', 'next week', defined above) as well as YYYY-MM-DD (etc.) calendar dates.
+ * Note: Send param 'allNotesIn' if the generation of that list can be more efficiently done before now. Otherwise it will generated a sorted list of all notes.
  * @param {string} purpose to show to user
  * @param {string?} noteTitleArg
  * @param {boolean?} justCalendarNotes? (default: false)
+ * @param {Array<TNote>?} allNotesIn
  * @returns {TNote} note
  */
 export async function getNoteFromParamOrUser(
   purpose: string,
   noteTitleArg?: string = '',
-  justCalendarNotes: boolean = false
+  justCalendarNotes: boolean = false,
+  allNotesIn?: Array<TNote>
 ): Promise<TNote | null> {
   try {
     let startTime = new Date()
     let note: TNote | null
+
+    // Preferably use 4th parameter, but if not calculate the list [This is the lengthy bit: ~1020ms for me]
+    let allNotes: Array<TNote> = []
+    if (allNotesIn) {
+      allNotes = allNotesIn
+    }
+    else {
+      allNotes = allNotesSortedByChanged()
+      logDebug('getNoteFromParamOrUser', `Got large note array: ${timer(startTime)})`)
+    }
+    logDebug('getNoteFromParamOrUser', `allNotes has ${allNotes.length ?? '?'} entries`)
 
     // First get note from arg or User
     if (noteTitleArg != null && noteTitleArg !== '') {
@@ -82,67 +95,44 @@ export async function getNoteFromParamOrUser(
       // First check if its a special 'relative date'
       for (const rd of relativeDates) {
         if (noteTitleArg === rd.relName) {
-          logDebug('getNoteFromParamOrUser', `- Found match with '${rd.relName}'`)
           note = rd.note
+          logDebug('getNoteFromParamOrUser', `found match with relative date '${rd.relName}' = filename ${note.filename}`)
         }
       }
 
-      if (!note) {
+      if (!note && allNotes) {
         // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
-        // First change YYYY-MM-DD to YYYYMMDD format if needed.
         const noteTitleToMatch = noteTitleArg
-        // logDebug(pluginJson, `noteTitleToMatch = ${noteTitleToMatch}`)
-        const wantedNotes = allNotesSortedByChanged().filter((n) => displayTitleWithRelDate(n, false) === noteTitleToMatch)
-        // logDebug(pluginJson, `matchingNotes: ${String(wantedNotes.map((n) => displayTitleWithRelDate(n)))}`)
+        logDebug('getNoteFromParamOrUser', `noteTitleToMatch = ${noteTitleToMatch}`)
+        // Change YYYY-MM-DD to YYYYMMDD format if needed.
+        const wantedNotes = allNotes.filter((n) => displayTitleWithRelDate(n, false) === noteTitleToMatch)
+        // logDebug('getNoteFromParamOrUser', `matchingNotes: ${String(wantedNotes.map((n) => displayTitleWithRelDate(n)))}`)
         note = wantedNotes != null ? wantedNotes[0] : null
         if (note != null) {
           if (wantedNotes.length > 1) {
             logDebug('getNoteFromParamOrUser', `Found ${wantedNotes.length} matching notes with title '${noteTitleArg}'. Will use most recently changed note.`)
           } else if (wantedNotes.length === 0) {
-            logWarn('getNoteFromParamOrUser', `Couldn't find note with title '${noteTitleArg}' (after ${timer(startTime)}). Will prompt user instead.`)
+            logWarn('getNoteFromParamOrUser', `Couldn't find note with title '${noteTitleArg}'. Will prompt user instead.`)
           }
         }
       }
     }
 
     // We don't have a note by now, so ask user to select one
-    if (note == null) {
-      let repeatLoop: boolean
-      // TODO: This is the lengthy bit: ~1020ms for me
-      const allNotes: Array<TNote> = allNotesSortedByChanged()
+    if (!note && allNotes) {
+      logDebug('getNoteFromParamOrUser', 'No note found. Prompting user to select one.')
       const calendarNotes: Array<TNote> = allNotes.filter((n) => n.type === "Calendar")
-      logDebug('getNoteFromParamOrUser', `Getting large note arrays: ${timer(startTime)})`)
 
-      // do { // this went with sub-menu for relative dates
-      //   repeatLoop = false
-        // NB: CommandBar.showOptions only takes [string] as input
-        // This only took 20ms
-        let notesList = (justCalendarNotes)
-          ? calendarNotes.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
-          : allNotes.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
-        // notesList.unshift('➡️ relative dates (will open new list)')
-      logDebug('getNoteFromParamOrUser', `formed noteList (after ${timer(startTime)})`)
-        const res1 = await CommandBar.showOptions(notesList, 'Select note for new ' + purpose)
+      let notesList = (justCalendarNotes)
+        ? calendarNotes.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
+        : allNotes.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
+      // notesList.unshift('➡️ relative dates (will open new list)')
+      const res1 = await CommandBar.showOptions(notesList, 'Select note for new ' + purpose)
       if (typeof res1 !== 'boolean') {
-          note = (justCalendarNotes)
-            ? calendarNotes[res1.index]
-            : allNotes[res1.index]
-
-          // Note: Had tried a sub-menu for relative dates
-          //   note = allNotes[res1.index - 1]
-          // } else if (res1.index === 0) {
-          //   // Now ask user to select which relative date they'd like
-          //   notesList = relativeDates.map((n) => n.relName)
-          //   notesList.unshift('⬅️ back to main notes list')
-          //   const res2 = await CommandBar.showOptions(notesList, 'Select relative date for new text')
-          //   if (res2.index > 0) {
-          //     note = relativeDates[res2.index - 1].note
-          //   } else {
-          //     // go back to main list by setting repeatLoop to true
-          //     repeatLoop = true
-          //   }
-        }
-    //   } while (repeatLoop)
+        note = (justCalendarNotes)
+          ? calendarNotes[res1.index]
+          : allNotes[res1.index]
+      }
     }
     // Double-check this is a valid note
     if (note == null) {
@@ -152,7 +142,7 @@ export async function getNoteFromParamOrUser(
     }
     return note
   } catch (error) {
-    logError('getNoteFromParamOrUser', error.message)
+    logError(pluginJson, `getNoteFromParamOrUser: ${error.message}`)
     return null
   }
 }

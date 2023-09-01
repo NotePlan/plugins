@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 27.8.2023 for v0.14.2 by @jgclark
+// last update 1.9.2023 for v0.15.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,6 +14,7 @@ import {
 import moment from 'moment'
 import {
   getDateStringFromCalendarFilename,
+  getDisplayDateStrFromFilenameDateStr,
   getTodaysDateUnhyphenated,
   RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
@@ -150,8 +151,12 @@ export async function addTaskToNoteHeading(
     logDebug(pluginJson, `starting /qath with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
     const config = await getQuickCaptureSettings()
 
-    // Start a longer-running lookup in the background?
-    // TODO: requires more work than expected
+    // Start a longish sort job in the background
+    CommandBar.onAsyncThread()
+    // logDebug('', `on async thread`)
+    const allCalNotesProm: Array<TNote> = allNotesSortedByChanged() // Note: deliberately no await: this is resolved later
+    CommandBar.onMainThread()// no await
+    // logDebug('', `back on main thread`)
 
     // Get text details from arg2 or user
     const taskText = (textArg != null && textArg !== '')
@@ -160,8 +165,8 @@ export async function addTaskToNoteHeading(
     const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
 
     // Get note details from arg0 or user
-    const notes: Array<TNote> = allNotesSortedByChanged()
-    let note = await getNoteFromParamOrUser('task', noteTitleArg, false)
+    let allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
+    let note = await getNoteFromParamOrUser('task', noteTitleArg, false, allNotes)
     if (note == null) {
       return // stop if can't get note
     }
@@ -220,14 +225,12 @@ export async function addTextToNoteHeading(
     logDebug(pluginJson, `starting /qalh with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
     const config = await getQuickCaptureSettings()
 
-    // Start a longer-running lookup in the background
-    // await CommandBar.onAsyncThread()
-    // const allNotes: Array<TNote> = allNotesSortedByChanged()
-    // const resultsProm: resultOutputTypeV3 = // Note: deliberately no await: this is resolved later
-    // await CommandBar.onMainThread()
-    // let resultSet = await resultsProm // here's where we resolve the promise
-
-    // TODO: requires more work than expected. See @DW idea https://discord.com/channels/763107030223290449/1142962518344597604/1143310962112340049 etc.
+    // Start a longish sort job in the background
+    CommandBar.onAsyncThread()
+    // logDebug('', `on async thread`)
+    const allNotesProm: Array<TNote> = allNotesSortedByChanged() // Note: deliberately no await: this is resolved later
+    CommandBar.onMainThread()// no await
+    // logDebug('', `back on main thread`)
 
     // Get text details from arg2 or user
     const textToAdd = (textArg != null && textArg !== '')
@@ -235,13 +238,13 @@ export async function addTextToNoteHeading(
       : await CommandBar.showInput('Type the text to add', `Add text '%@' ${config.textToAppendToTasks}`)
 
     // Get note details from arg0 or user
+    let allNotes = await allNotesProm // here's where we resolve the promise and have the sorted list
     logDebug('addTextToNoteHeading(qalh)', `Starting with noteTitleArg '${noteTitleArg}'`)
-    let note = await getNoteFromParamOrUser('Select note to add to', noteTitleArg, false)
+    let note = await getNoteFromParamOrUser('Select note to add to', noteTitleArg, false, allNotes)
     if (note == null) {
       return // stop if can't get note
     }
     logDebug('addTextToNoteHeading(qalh)', `-> '${displayTitle(note)}'`)
-
 
     // Get heading details from arg1 or user
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
@@ -295,6 +298,13 @@ export async function prependTaskToCalendarNote(
     let note: ?TNote
     let dateStr = ''
 
+    // Start a longish sort job in the background
+    CommandBar.onAsyncThread()
+    // logDebug('', `on async thread`)
+    const allCalNotesProm: Array<TNote> = calendarNotesSortedByChanged() // Note: deliberately no await: this is resolved later
+    CommandBar.onMainThread()// no await
+    // logDebug('', `back on main thread`)
+
     // Get text to use from arg0 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
@@ -312,7 +322,7 @@ export async function prependTaskToCalendarNote(
       logDebug('prependTaskToCalendarNote', `- from dateArg, daily note = '${displayTitleWithRelDate(note)}'`)
     } else {
       // Get details interactively from user
-      const allCalNotes = calendarNotesSortedByChanged()
+      const allCalNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
       const calendarNoteTitles = allCalNotes.map((f) => displayTitleWithRelDate(f)) ?? ['error: no calendar notes found']
       const res = await CommandBar.showOptions(calendarNoteTitles, 'Select calendar note for new todo')
       dateStr = getDateStringFromCalendarFilename(allCalNotes[res.index].filename)
@@ -349,6 +359,13 @@ export async function appendTaskToCalendarNote(
     let note: ?TNote
     let dateStr = ''
 
+    // Start a longish sort job in the background
+    CommandBar.onAsyncThread()
+    // logDebug('', `on async thread`)
+    const allCalNotesProm: Array<TNote> = calendarNotesSortedByChanged() // Note: deliberately no await: this is resolved later
+    CommandBar.onMainThread()// no await
+    // logDebug('', `back on main thread`)
+
     // Get text to use from arg0 or user
     const taskText = (textArg != null && textArg !== '')
       ? textArg
@@ -366,7 +383,7 @@ export async function appendTaskToCalendarNote(
       logDebug('appendTaskToCalendarNote', `- from dateArg, daily note = '${displayTitleWithRelDate(note)}'`)
     } else {
       // Get details interactively from user
-      const allCalNotes = calendarNotesSortedByChanged()
+      const allCalNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
       const calendarNoteTitles = allCalNotes.map((f) => displayTitleWithRelDate(f)) ?? ['error: no calendar notes found']
       const res = await CommandBar.showOptions(calendarNoteTitles, 'Select calendar note for new todo')
       dateStr = getDateStringFromCalendarFilename(allCalNotes[res.index].filename)
@@ -461,10 +478,10 @@ export async function appendTextToDailyJournal(textArg?: string = ''): Promise<v
       // Add text to the heading in the note (and add the heading if it doesn't exist)
       note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
     } else {
-      logError(pluginJson, `Cannot find daily note for ${todaysDateStr}`)
+      throw new Error(`Cannot find daily note for ${todaysDateStr}`)
     }
   } catch (err) {
-    logWarn(pluginJson, `${err.name}: ${err.message}`)
+    logWarn(pluginJson, `appendTextToDailyJournal: ${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
 }
@@ -477,25 +494,87 @@ export async function appendTextToDailyJournal(textArg?: string = ''): Promise<v
 export async function appendTextToWeeklyJournal(textArg?: string = ''): Promise<void> {
   logDebug(pluginJson, `starting /qajw with arg0='${textArg}'`)
   try {
-    const todaysDateStr = getTodaysDateUnhyphenated()
-    const config = await getQuickCaptureSettings()
-
-    // Get input either from passed argument or ask user
-    const text = (textArg != null && textArg !== '')
-      ? textArg
-      : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${todaysDateStr}`)
-
     const note = DataStore.calendarNoteByDate(new Date(), 'week')
     if (note != null) {
+      const todaysDateStr = getTodaysDateUnhyphenated()
+      const config = await getQuickCaptureSettings()
+
+      // Get input either from passed argument or ask user
+      const text = (textArg != null && textArg !== '')
+        ? textArg
+        : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${todaysDateStr}`)
+
       const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
       logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
       // Add text to the heading in the note (and add the heading if it doesn't exist)
       note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
     } else {
-      logError(pluginJson, `Cannot find daily note for ${todaysDateStr}`)
+      throw new Error(`Cannot find current weekly note`)
     }
   } catch (err) {
-    logWarn(pluginJson, `${err.name}: ${err.message}`)
+    logWarn(pluginJson, `appendTextToWeeklyJournal: ${err.name}: ${err.message}`)
+    await showMessage(err.message)
+  }
+}
+
+/** /qajm
+ * Quickly append text to this month's journal
+ * @author @jgclark
+ * @param {string?} textArg
+ */
+export async function appendTextToMonthlyJournal(textArg?: string = ''): Promise<void> {
+  logDebug(pluginJson, `starting /qajm with arg0='${textArg}'`)
+  try {
+    const note = DataStore.calendarNoteByDate(new Date(), 'month')
+    if (note != null) {
+      const dateStr = getDisplayDateStrFromFilenameDateStr(note.filename) ?? ''
+      const config = await getQuickCaptureSettings()
+
+      // Get input either from passed argument or ask user
+      const text = (textArg != null && textArg !== '')
+        ? textArg
+        : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${dateStr}`)
+
+      const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
+      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
+      // Add text to the heading in the note (and add the heading if it doesn't exist)
+      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
+    } else {
+      throw new Error(`Cannot find current monthly note`)
+    }
+  } catch (err) {
+    logWarn(pluginJson, `appendTextToMonthlyJournal: ${err.name}: ${err.message}`)
+    await showMessage(err.message)
+  }
+}
+
+/** /qajy
+ * Quickly append text to this year's journal
+ * @author @jgclark
+ * @param {string?} textArg
+ */
+export async function appendTextToYearlyJournal(textArg?: string = ''): Promise<void> {
+  logDebug(pluginJson, `starting /qajy with arg0='${textArg}'`)
+  try {
+    const note = DataStore.calendarNoteByDate(new Date(), 'year')
+    if (note != null) {
+      const dateStr = getDisplayDateStrFromFilenameDateStr(note.filename) ?? ''
+      const config = await getQuickCaptureSettings()
+
+      // Get input either from passed argument or ask user
+      const text = (textArg != null && textArg !== '')
+        ? textArg
+        : await CommandBar.showInput('Type the text to add', `Add text '%@' to ${dateStr}`)
+
+      const matchedHeading = findHeadingStartsWith(note, config.journalHeading)
+      logDebug(pluginJson, `Adding '${text}' to ${displayTitleWithRelDate(note)} under matchedHeading '${matchedHeading}'`)
+      // Add text to the heading in the note (and add the heading if it doesn't exist)
+      note.addParagraphBelowHeadingTitle(text, 'empty', matchedHeading ? matchedHeading : config.journalHeading, true, true)
+    } else {
+      throw new Error(`Cannot find current yearly note`)
+    }
+  } catch (err) {
+    logWarn(pluginJson, `appendTextToYearlyJournal: ${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
 }

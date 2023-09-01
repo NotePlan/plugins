@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 23.3.23 for v0.14.1, @jgclark
+// Last updated 1.9.23 for v0.15.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -21,6 +21,8 @@ export {
   appendTaskToWeeklyNote,
   appendTextToDailyJournal,
   appendTextToWeeklyJournal,
+  appendTextToMonthlyJournal,
+  appendTextToYearlyJournal,
   prependTaskToCalendarNote,
   appendTaskToNote,
   prependTaskToNote

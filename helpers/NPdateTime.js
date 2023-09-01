@@ -6,7 +6,14 @@
 import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
-import { RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, getWeek, todaysDateISOString, toISOShortDateTimeString, isoWeekStartEndDates, RE_DATE } from './dateTime'
+import {
+  MOMENT_FORMAT_NP_ISO, MOMENT_FORMAT_NP_DAY, MOMENT_FORMAT_NP_MONTH, MOMENT_FORMAT_NP_QUARTER,
+  RE_DATE, RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC,
+  getWeek,
+  todaysDateISOString,
+  toISOShortDateTimeString,
+  isoWeekStartEndDates,
+} from './dateTime'
 import { logDebug, logError, logWarn, clo, JSP } from './dev'
 // import { getSetting } from './NPConfiguration'
 // import { chooseOption, getInput } from './userInput'
@@ -779,19 +786,19 @@ export function getWeekOptions(): $ReadOnlyArray<{ label: string, value: string 
   const weeks = eachWeekOfInterval({ start: now, end: add(now, { months: 6 }) })
   const weekOpts = weeks?.length
     ? weeks.map((w) => {
-        const weekData = getNPWeekData(w)
-        if (weekData) {
-          const start = weekData.startDate
-          const end = weekData.endDate
-          const arrowWeek = `>${weekData.weekString}`
-          const arrowWeekLabel = `>${weekData.weekString} Weekly Note`
-          return {
-            label: `${arrowWeekLabel} (${format(start, formats.noDay)} - ${format(end, formats.noDay)})`,
-            // $FlowIgnore
-            value: arrowWeek,
-          }
+      const weekData = getNPWeekData(w)
+      if (weekData) {
+        const start = weekData.startDate
+        const end = weekData.endDate
+        const arrowWeek = `>${weekData.weekString}`
+        const arrowWeekLabel = `>${weekData.weekString} Weekly Note`
+        return {
+          label: `${arrowWeekLabel} (${format(start, formats.noDay)} - ${format(end, formats.noDay)})`,
+          // $FlowIgnore
+          value: arrowWeek,
         }
-      })
+      }
+    })
     : []
   if (weekOpts && weekOpts?.length && weekOpts[0]?.label && weekOpts[1]?.label) {
     const extras = [
@@ -848,12 +855,13 @@ export function getRelativeDates(): Array<Object> {
     const todayMom = moment()
 
     // Calculate relative dates. Remember to clone todayMom first as moments aren't immutable
-    let thisDateStr = moment(todayMom).format('YYYY-MM-DD')
-    relativeDates.push({ relName: 'today', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format('YYYY-MM-DD')
-    relativeDates.push({ relName: 'yesterday', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format('YYYY-MM-DD')
-    relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    const thisDateStrDisplay = moment(todayMom).format(MOMENT_FORMAT_NP_ISO)
+    let thisDateStr = moment(todayMom).format(MOMENT_FORMAT_NP_DAY)
+    relativeDates.push({ relName: 'today', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).subtract(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+    relativeDates.push({ relName: 'yesterday', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(thisDateStr) })
+    thisDateStr = moment(todayMom).add(1, 'days').startOf('day').format(MOMENT_FORMAT_NP_DAY)
+    relativeDates.push({ relName: 'tomorrow', dateStr: thisDateStrDisplay, note: DataStore.calendarNoteByDateString(thisDateStr) })
 
     // can't start with moment as NP weeks count differently
     // $FlowIgnore[incompatible-type]
@@ -871,18 +879,18 @@ export function getRelativeDates(): Array<Object> {
     thisDateStr = thisNPWeekInfo.weekString
     relativeDates.push({ relName: 'next week', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
 
-    thisDateStr = moment(todayMom).startOf('month').format('YYYY-MM')
+    thisDateStr = moment(todayMom).startOf('month').format(MOMENT_FORMAT_NP_MONTH)
     relativeDates.push({ relName: 'this month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).subtract(1, 'month').startOf('month').format('YYYY-MM')
+    thisDateStr = moment(todayMom).subtract(1, 'month').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
     relativeDates.push({ relName: 'last month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'month').startOf('month').format('YYYY-MM')
+    thisDateStr = moment(todayMom).add(1, 'month').startOf('month').format(MOMENT_FORMAT_NP_MONTH)
     relativeDates.push({ relName: 'next month', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
 
-    thisDateStr = moment(todayMom).startOf('quarter').format('YYYY-[Q]Q')
+    thisDateStr = moment(todayMom).startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
     relativeDates.push({ relName: 'this quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).subtract(1, 'quarter').startOf('quarter').format('YYYY-[Q]Q')
+    thisDateStr = moment(todayMom).subtract(1, 'quarter').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
     relativeDates.push({ relName: 'last quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
-    thisDateStr = moment(todayMom).add(1, 'quarter').startOf('quarter').format('YYYY-[Q]Q')
+    thisDateStr = moment(todayMom).add(1, 'quarter').startOf('quarter').format(MOMENT_FORMAT_NP_QUARTER)
     relativeDates.push({ relName: 'next quarter', dateStr: thisDateStr, note: DataStore.calendarNoteByDateString(thisDateStr) })
 
     // for (const rd of relativeDates) {
