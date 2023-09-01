@@ -337,15 +337,15 @@ export async function gatherMatchingLines(
       n.date == null
         ? `[[${n.title ?? ''}]]`
         : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
-        ? // $FlowIgnore(incompatible-call)
+          ? // $FlowIgnore(incompatible-call)
           ` > ${hyphenatedDate(n.date)} `
-        : dateStyle === 'date'
-        ? // $FlowIgnore(incompatible-call)
-          ` (${toLocaleDateTimeString(n.date)})`
-        : dateStyle === 'at'
-        ? // $FlowIgnore(incompatible-call)
-          ` @${hyphenatedDate(n.date)} `
-        : ''
+          : dateStyle === 'date'
+            ? // $FlowIgnore(incompatible-call)
+            ` (${toLocaleDateTimeString(n.date)})`
+            : dateStyle === 'at'
+              ? // $FlowIgnore(incompatible-call)
+              ` @${hyphenatedDate(n.date)} `
+              : ''
 
     // set up regex for searching, now with word boundaries on either side
     // find any matches
@@ -432,8 +432,8 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
   if (endParaRange.start === endParaRange.end) {
     endParaRange = Editor.paragraphRangeAtCharacterIndex(selection.end - 1)
   }
-  clo(startParaRange, `selectedLinesIndex: startParaRange`)
-  clo(endParaRange, `selectedLinesIndex: endParaRange`)
+  // clo(startParaRange, `selectedLinesIndex: startParaRange`)
+  // clo(endParaRange, `selectedLinesIndex: endParaRange`)
 
   // Get the set of selected paragraphs (which can be different from selection),
   // and work out what selectedPara number(index) this selected selectedPara is
@@ -454,7 +454,7 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
   if (lastSelParaIndex === 0) {
     lastSelParaIndex = firstSelParaIndex
   }
-  // console.log(`\t-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
+  // logDebug('selectedLinesIndex', `\t-> paraIndexes ${firstSelParaIndex}-${lastSelParaIndex}`)
   return [firstSelParaIndex, lastSelParaIndex]
 }
 
@@ -937,10 +937,10 @@ export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false, 
   } else {
     return Boolean(
       hasOverdueDayTag(para, false, asOfDayString) ||
-        hasOverdueWeekTag(para, false, asOfDayString) ||
-        hasOverdueMonthTag(para, false, asOfDayString) ||
-        hasOverdueQuarterTag(para, false, asOfDayString) ||
-        hasOverdueYearTag(para, false, asOfDayString),
+      hasOverdueWeekTag(para, false, asOfDayString) ||
+      hasOverdueMonthTag(para, false, asOfDayString) ||
+      hasOverdueQuarterTag(para, false, asOfDayString) ||
+      hasOverdueYearTag(para, false, asOfDayString),
     )
   }
 }
