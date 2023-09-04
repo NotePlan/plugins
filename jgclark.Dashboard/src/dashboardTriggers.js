@@ -12,7 +12,6 @@ import { makeBasicParasFromContent, selectedLinesIndex } from '@helpers/NPparagr
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { isOpen } from '@helpers/utils'
 import { formRegExForUsersOpenTasks } from '@helpers/regex'
-import plugin from "@babel/core/lib/config/plugin";
 
 /**
  * Local version of log, turned on only if we have a special local pref set

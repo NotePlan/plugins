@@ -11,8 +11,8 @@ import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
 import { cancelItem, completeItem, findParaFromStringAndFilename, getParagraphFromStaticObject, highlightParagraphInEditor, moveItemBetweenCalendarNotes } from '@helpers/NPParagraph'
-import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString, storeWindowRect } from '@helpers/NPWindows'
+import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 
 //-----------------------------------------------------------------
 // Data types + constants
