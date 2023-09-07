@@ -5,6 +5,11 @@
 
 ## What's Changed in this Plugin?
 
+## [2.17.0] @dwertheimer 2023-08-29
+
+- change edit to allow for 
+- opt-click a date return you to edit
+
 ## [2.16.0] @dwertheimer 2023-08-23
 
 - Overdue processing: Add move-to-note as list/checklist option

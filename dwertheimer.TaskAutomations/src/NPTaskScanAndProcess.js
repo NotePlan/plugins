@@ -32,7 +32,7 @@ export type OverdueSearchOptions = {
 
 type RescheduleUserAction =
   | '__today__'
-  | '__mark__'
+  | '__done__'
   | '__canceled__'
   | '__remove__'
   | '__skip__'
@@ -74,6 +74,9 @@ export async function processModifierKey(para: TParagraph, keyModifiers: Array<s
       } else {
         logDebug(pluginJson, `processModifierKey could not open: ${filename}. Leaving task in place (${para.content})`)
       }
+    } else if (keyModifiers.includes('opt')) {
+      // option key pressed so should allow editing after new date is appended
+      return true
     }
   } else {
     // non-date commands
@@ -130,13 +133,17 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
     { label: `➡️ Leave "${content}" (and continue)`, value: '__skip__' },
     ...todayLines,
     { label: `✏️ Edit this task in note: "${origPara.note?.title || ''}"`, value: '__edit__' },
-    { label: `✓ Mark task done/complete`, value: '__mark__' },
+    { label: `✓ Mark task done/complete`, value: '__done__' },
     { label: `✓⏎ Mark done and add follow-up in same note`, value: '__mdhere__' },
     { label: `✓📆 Mark done and add follow-up in future note`, value: '__mdfuture__' },
     { label: `💡 This reminds me...(create new task then continue)`, value: '__newTask__' },
     ...sharedOpts,
     { label: `␡ Delete this line (be sure!)`, value: '__delete__' },
   ]
+  if (NotePlan.environment.platform === 'macOS') {
+    // splice in option in 2nd position
+    opts.splice(1, 0, { label: `====== [CMD+click = move task to chosen date; OPT+click = multi-action] ======`, value: '__skip__' })
+  }
   const weektext = />\d{4}-W/i.test(origPara.content) ? 'Week ' : ''
   const res = await chooseOptionWithModifiers(`${weektext}Task: "${content}"`, opts)
   logDebug(pluginJson, `promptUserToActOnLine user selection: ${JSP(res)}`)
@@ -159,7 +166,7 @@ export async function prepareUserAction(origPara: TParagraph, updatedPara: TPara
     logDebug(pluginJson, `prepareUserAction on content: "${content}" res= "${userChoice}"`)
     switch (userChoice) {
       case '__edit__': {
-        const input = await CommandBar.textPrompt('Edit task contents', `Change text:\n"${content}" to:\n`, updatedPara.content)
+        const input = await CommandBar.textPrompt('Edit task contents', `Change text:\n"${content}" to:\n`, content)
         if (input) {
           origPara.content = input
           return { action: 'set', changed: origPara }
@@ -167,13 +174,13 @@ export async function prepareUserAction(origPara: TParagraph, updatedPara: TPara
           return { action: 'cancel', changed: origPara }
         }
       }
-      case `__mark__`:
+      case `__done__`:
       case `__checklist__`:
       case `__checklistMove__`:
       case `__listMove__`:
       case '__canceled__':
       case '__list__': {
-        const tMap = { __mark__: 'done', __canceled__: 'cancelled', __list__: 'list', __checklist__: 'checklist', __listMove__: 'list', __checklistMove__: 'checklist' }
+        const tMap = { __done__: 'done', __canceled__: 'cancelled', __list__: 'list', __checklist__: 'checklist', __listMove__: 'list', __checklistMove__: 'checklist' }
         origPara.type = tMap[userChoice]
         origPara.content = replaceArrowDatesInString(origPara.content)
         if (/Move/.test(userChoice)) {
@@ -259,7 +266,7 @@ async function showOverdueNote(note: TNote, updates: Array<TParagraph>, index: n
     { label: '>> SELECT A TASK INDIVIDUALLY OR MARK THEM ALL (below) <<', value: '-----' },
     ...options,
     { label: '----------------------------------------------------------------', value: '-----' },
-    { label: `✓ Mark done/complete`, value: '__mark__' },
+    { label: `✓ Mark done/complete`, value: '__done__' },
     ...getSharedOptions({ note }, false),
   ]
   const res = await chooseOptionWithModifiers(`Note (${index + 1}/${totalNotesToUpdate}): "${note?.title || ''}"`, opts)
@@ -327,6 +334,11 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                     if (choice && choice.keyModifiers.length) {
                       logDebug('NPTaskScan::reviewNote', `received set+cmd key; index= ${index}`)
                       await processModifierKey(updates[index], choice.keyModifiers, result.userChoice || '')
+                      if (choice.keyModifiers.includes('opt')) {
+                        // option key pressed so should allow editing after new date is appended
+                        note.updateParagraph(updates[index])
+                        return noteIndex - 1
+                      }
                       // TODO: check if this works and delete this code
                       // I don't think checking success should be necessary now with the DataStore.updateCache implemented
                       // const success = await processModifierKey(updates[index], choice.keyModifiers, result.userChoice || '')
@@ -399,10 +411,10 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
               case '__today__':
                 makeChanges = true
                 break
-              case '__mark__':
+              case '__done__':
               case '__canceled__':
               case '__list__': {
-                const tMap = { __mark__: 'done', __canceled__: 'cancelled', __list__: 'list' }
+                const tMap = { __done__: 'done', __canceled__: 'cancelled', __list__: 'list' }
                 updates = updates.map((p) => {
                   p.type = tMap[res]
                   p.content = replaceArrowDatesInString(p.content)

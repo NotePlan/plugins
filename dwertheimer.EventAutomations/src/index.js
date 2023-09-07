@@ -3,6 +3,8 @@ import pluginJson from '../plugin.json'
 import { updateSettingData, pluginUpdated } from '../../helpers/NPConfiguration'
 import { log, logDebug, clo } from '../../helpers/dev'
 
+export { editSettings } from '@helpers/NPSettings'
+
 export {
   insertTodosAsTimeblocks,
   insertTodosAsTimeblocksWithPresets,
@@ -17,7 +19,7 @@ export {
   onEditorWillSave,
 } from './NPTimeblocking'
 
-export { createEvents } from './NPEventBlocks'
+export { createEvents, createEventPrompt } from './NPEventBlocks'
 
 const PLUGIN_ID = 'autoTimeBlocking' // the key that's used in _configuration note
 
