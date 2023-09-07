@@ -269,7 +269,7 @@ declare interface TEditor extends CoreNoteFields {
    * Use this together with `showLoading`, so that the work you do is not blocking the user interface.
    * Otherwise the loading window will be also blocked.
    *
-   * Warning: Don't use any user interface calls (other than showLoading) on an asynchronous thread. The app might crash.
+   * Warning: Don't use any user interface calls (including Editor.* calls, other than showLoading) on an asynchronous thread. The app might crash.
    * You need to return to the main thread before you change anything in the window (such as Editor functions do).
    * Use `onMainThread()` to return to the main thread.
    * Note: Available from v3.0.26
@@ -2050,13 +2050,14 @@ declare class HTMLView {
    */
   close(): void;
   /**
-   * After opening an html window, make changes to the contents of the window by running JS code directly inside the opened window.
+   * After opening an HTML window, make changes to the contents of the window by running JS code directly inside the opened window.
    * Returns a promise you can wait for with the return value, if any (depends if you added one to the JS code that is supposed to be executed).
-   * Note: Available in v3.8
-   * @param { String }
+   * Note: Available in v3.8. Second parameter added in build 1089.
+   * @param { string } code JS to execute
+   * @param { string } windowId ID of the HTML window to execute it in.
    * @return { Promise | void }
    */
-  static runJavaScript(code: string): Promise | void;
+  static runJavaScript(code: string, windowId: string): Promise | void;
   /**
    * Set / get the position and size of an HTMLView window. Returns an object with x, y, width, height values.
    * If you want to change the coordinates or size, save the rect in a variable, modify the variable, then assign it to windowRect.
