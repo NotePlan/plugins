@@ -28,7 +28,9 @@ If you remember to do that work every day and check those items, then bully for 
 
 ### Command `/Review overdue tasks (by Task)`
 
-Find all overdue tasks (tasks which have a >date of yesterday or earlier), and will ask you how you want to deal with that task. By default, the task will stay where it is but the new date you choose will be appended to it (so it will show up in that day's references). However, if you are on the desktop app, you also have the option of holding down the CMD key when you choose the new date, and the task in question will be moved to the daily or weekly note chosen. 
+Find all overdue tasks (tasks which have a >date of yesterday or earlier), and will ask you how you want to deal with that task. By default, the task will stay where it is but the new date you choose will be appended to it (so it will show up in that day's references). However, if you are on the desktop app, you also have the option of holding down the CMD key when you choose the new date/week, and the task in question will be moved to the daily or weekly note chosen. 
+
+>**NOTE**: If you want to edit a task and also reschedule it, hold down the OPT key (on Mac only) when making your selection (e.g. edit or set a new date) and the task will be updated per your choice and you will then get another pop-up to take further action (e.g. edit task or convert to another type or whatever)
 
 > X-Callback link to call this command: `noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.TaskAutomations&command=Review%20overdue%20tasks%20%28by%20Task%29`
 

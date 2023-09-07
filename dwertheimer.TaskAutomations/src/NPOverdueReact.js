@@ -115,10 +115,10 @@ export async function finalizeChanges(result: any): Promise<TParagraph | null> {
     case '__today__':
       makeChanges = true
       break
-    case '__mark__':
+    case '__done__':
     case '__canceled__':
     case '__list__': {
-      const tMap = { __mark__: 'done', __canceled__: 'cancelled', __list__: 'list' }
+      const tMap = { __done__: 'done', __canceled__: 'cancelled', __list__: 'list' }
       updates = updates.map((p) => {
         p.type = tMap[res]
         p.content = replaceArrowDatesInString(p.content)
@@ -314,7 +314,7 @@ export function getSpecializedOptions(isSingleLine: boolean): Array<any> {
   const todayLines = sharedOpts.splice(0, 2) // this is probably not necessary anymore
   const opts = [
     ...todayLines,
-    { label: `✓ Mark task done/complete`, value: '__mark__' },
+    { label: `✓ Mark task done/complete`, value: '__done__' },
     { label: `✓⏎ Mark done and add follow-up in same note`, value: '__mdhere__' },
     { label: `✓📆 Mark done and add follow-up in future note`, value: '__mdfuture__' },
     { label: `⇑ Open this task in NotePlan`, value: '__opentask__' },

@@ -4,6 +4,15 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.17.1] 2023-09-06 @dwertheimer 2023-09-06
+
+- Add argument for heading to put it under
+
+## [1.17.0] 2023-09-06 @dwertheimer 2023-09-06
+
+- Add interactive plugin settings for iOS
+- Added /pevt command for creating a single task using natural language
+
 ## [1.16.3] 2023-08-24
 
 - Fix bug where synced lines in today's note were not being timeblocked. Thx @tiffsunbacon
@@ -135,7 +144,9 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 - Remove the requirement for Synced lines to run only on today's note (@Stacey's suggestion)
 
 - added: added command "/Insert Synced Today Todos at Cursor" to add synced lines without timeblocks
+
 ## [1.2.0] 2022-07-10 @dwertheimer
+
 - added: added command "/Insert Synced Today Todos at Cursor" to add synced lines without timeblocks
 - changed plugin name to "AutoTimeBlocking & Synced Today Todos"
 

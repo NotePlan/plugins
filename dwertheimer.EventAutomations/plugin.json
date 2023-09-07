@@ -5,13 +5,18 @@
   "plugin.name": "🗓 AutoTimeBlocking / Events",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for >today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.16.3",
-  "plugin.lastUpdateInfo": "1.16.3: Fix bug where synced lines in today's note were not being timeblocked. Thx @tiffsunbacon",
+  "plugin.version": "1.17.1",
+  "plugin.lastUpdateInfo": "1.17.0: Added /pevt command for creating a single task using natural language.\nAlso added interactive plugin settings for iOS",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.EventAutomations/CHANGELOG.md",
   "plugin.commands": [
+    {
+      "name": "Event Automations: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
+    },
     {
       "name": "atb - Create AutoTimeBlocks for >today's Tasks",
       "description": "Read >today todos and insert them into today's calendar note as timeblocks",
@@ -110,7 +115,7 @@
       ]
     },
     {
-      "name": "cevt - Create Events From Text",
+      "name": "cevt - Create Events From Text under heading",
       "description": "Create calendar events by writing (natural language) text under a heading",
       "jsFunction": "createEvents",
       "alias": [
@@ -123,6 +128,18 @@
       ]
     },
     {
+      "name": "pevt - Prompt for Natural Language Event text",
+      "description": "Create calendar events by writing (natural language) via prompt",
+      "jsFunction": "createEventPrompt",
+      "alias": [
+        "pevt",
+        "promptevents"
+      ],
+      "arguments": [
+        "Name of the heading to place the created event under"
+      ]
+    },
+    {
       "name": "onEditorWillSave",
       "description": "onEditorWillSave",
       "jsFunction": "onEditorWillSave",
@@ -131,6 +148,11 @@
     }
   ],
   "plugin.settings": [
+    {
+      "type": "hidden",
+      "key": "plugin_ID",
+      "default": "dwertheimer.EventAutomations"
+    },
     {
       "type": "heading",
       "title": "AutoTimeBlocking Settings: General"

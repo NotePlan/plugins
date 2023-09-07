@@ -199,7 +199,7 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
       .trim()
   }
   // $FlowIgnore[incompatible-type]
-  logDebug(`replaceArrowDatesInString: AFTER str=${str}, replaceWith=${replaceWith}, repl=${repl}`)
+  logDebug(`replaceArrowDatesInString: AFTER will return ${repl && repl.length > 0 ? `${str} ${repl}` : str}`)
   return repl && repl.length > 0 ? `${str} ${repl}` : str
 }
 
@@ -1230,7 +1230,7 @@ export const isReallyAllDay = (parseDateReturnObj: any): boolean => {
  * Validate if a string could be used to pull up any calendar note (of all NP allowed calendar note durations)
  * Note: This is just a regex test: it doesn't test if such a note actually exists.
  * @param {string} text
-  * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYY-MM-DD not YYYYMMDD), week, month, quarter or year.
+ * @returns {boolean} whether it passes the @jgclark RegEx texts for day (note YYY-MM-DD not YYYYMMDD), week, month, quarter or year.
  */
 export function isValidCalendarNoteTitleStr(text: string): boolean {
   const combinedRE = new RegExp(`^(${RE_ISO_DATE}|${RE_NP_WEEK_SPEC}|${RE_NP_MONTH_SPEC}|${RE_NP_QUARTER_SPEC}|${RE_NP_YEAR_SPEC})$`)

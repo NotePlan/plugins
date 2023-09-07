@@ -3,8 +3,9 @@
 import { addMinutes } from 'date-fns'
 import pluginJson from '../plugin.json'
 import { log, logError, JSP, clo, logWarn, logDebug } from '@helpers/dev'
-import { chooseHeading, chooseOption } from '@helpers/userInput'
+import { chooseHeading, chooseOption, showMessage, showMessageYesNoCancel } from '@helpers/userInput'
 import { findHeading, getBlockUnderHeading } from '@helpers/NPParagraph'
+import { smartPrependPara, smartAppendPara } from '@helpers/paragraph'
 import { isReallyAllDay } from '@helpers/dateTime'
 import { checkOrGetCalendar } from '@helpers/NPCalendar'
 
@@ -280,6 +281,61 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
     logError(pluginJson, `processTimeLines error=${JSP(error)}`)
   }
   return timeLines
+}
+
+/**
+ * Create calendar events by writing (natural language) via prompt
+ * Plugin entrypoint for command: "/pevt - Prompt for Natural Language Event text"
+ * @author @dwertheimer
+ * @param {*} incoming
+ */
+export async function createEventPrompt(_heading?: string) {
+  try {
+    logDebug(pluginJson, `createEventPrompt running; heading set to: "${_heading || ''}"`)
+    // prompt user for event text
+    const eventText = await CommandBar.showInput('Event text:', 'Process Text')
+    if (eventText) {
+      // parse event text
+      const config = getPluginSettings()
+      config.confirm = true
+      // $FlowIgnore
+      const timeLines = await processTimeLines([{ content: eventText, type: 'text' }], config)
+      if (timeLines.length) {
+        // Editor.updateParagraphs(timeLines)
+        clo(timeLines, `createEventPrompt timeLines after creation:\n${timeLines.length}`)
+        const answer = _heading
+          ? 'Yes'
+          : await showMessageYesNoCancel(
+              `Created ${timeLines.length} event. Insert a link to the new event in the active note under a heading?`,
+              ['Yes', 'No'],
+              'Insert Event Link',
+            )
+        if (answer === 'Yes') {
+          const title = _heading ?? (Editor.note ? await chooseHeading(Editor, true, true, false) : '')
+          logDebug(pluginJson, `heading: "${title}"`)
+          switch (title) {
+            case '<<top of note>>':
+              smartPrependPara(Editor, timeLines[0].content, 'text')
+              break
+            case '':
+              smartAppendPara(Editor, timeLines[0].content, 'text')
+              break
+            default:
+              Editor.addParagraphBelowHeadingTitle(timeLines[0].content, 'text', title, false, true)
+              break
+          }
+        }
+      } else {
+        logError(pluginJson, `No time lines found in "${eventText}"`)
+        await showMessage(
+          `Was not able to parse definitive date/time info for the text: "${eventText}". Have placed the text on the clipboard in case you want to edit and try it again.`,
+        )
+        Clipboard.string = eventText
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, `processTimeLines error=${JSP(error)}`)
+  }
 }
 
 /**
