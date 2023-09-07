@@ -148,6 +148,17 @@ export const isQuarterlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_
 
 export const isYearlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_YEARLY_NOTE_FILENAME).test(note.filename)
 
+// See getNoteType in note.js to get the type of a note
+export const isDailyDateStr = (dateStr: string): boolean => new RegExp(RE_DATE).test(dateStr)
+
+export const isWeeklyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_WEEK_SPEC).test(dateStr)
+
+export const isMonthlyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_MONTH_SPEC).test(dateStr)
+
+export const isQuarterlyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_QUARTER_SPEC).test(dateStr)
+
+export const isYearlyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_YEAR_SPEC).test(dateStr)
+
 /**
  * Test if a string has a date (e.g. was scheduled for a specific date/week or has a >today tag)
  * @author @dwertheimer
@@ -715,9 +726,9 @@ export function relativeDateFromDate(date: Date): string {
 }
 
 /**
- * Get week number for supplied date.
- * Uses the ISO 8601 definition for week: 01 is the week with the first Thursday of the Gregorian
- * year (i.e. of January) in it.  The following definitions based on properties of this week
+ * Get week number for supplied date, using the ISO 8601 definition for week:
+ * 01 is the week with the first Thursday of the Gregorian year (i.e. of January) in it.
+ * The following definitions based on properties of this week
  * are mutually equivalent, since the ISO week starts with Monday:
  * - It is the first week with a majority (4 or more) of its days in January.
  * - Its first day is the Monday nearest to 1 January.
@@ -765,6 +776,11 @@ export function getWeek(inDate: Date): number {
   // return 1 + Math.ceil((n1stThursday - date) / 604800000)
 }
 
+/**
+ * WARNING: Does this really produce NP week numbers?
+ * @param {Date} inDate
+ * @returns string
+ */
 export function getNPWeekStr(inDate: Date): string {
   // Using 'moment' library, with Monday first day of week
   const dateMoment = moment(inDate)
