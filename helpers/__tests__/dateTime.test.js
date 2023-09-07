@@ -1,6 +1,6 @@
 /* globals describe, expect, jest, test, beforeEach, afterEach, beforeAll */
 
-// Last updated: 23.7.2023 by @jgclark
+// Last updated: 6.9.2023 by @jgclark
 
 import colors from 'chalk'
 import { CustomConsole } from '@jest/console' // see note below
@@ -15,7 +15,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = new NotePlan()
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging
+  DataStore.settings['_logLevel'] = 'none' // change this to DEBUG to get more logging, or 'none' for quiet
 })
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`

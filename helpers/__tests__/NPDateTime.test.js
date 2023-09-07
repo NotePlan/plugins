@@ -1,6 +1,7 @@
-/* global jest, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
-import * as f from '../NPDateTime'
+/* global describe, test, expect, beforeAll, beforeEach */
+import moment from 'moment/min/moment-with-locales'
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
+import * as f from '../NPdateTime'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
 
 // const PLUGIN_NAME = `helpers`
@@ -18,7 +19,7 @@ beforeAll(() => {
   global.Editor = Editor
   global.NotePlan = NotePlan
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 /* Samples:
@@ -65,6 +66,7 @@ describe(`${FILENAME}`, () => {
       expect(result.monthString).toEqual('2020-01')
     })
   })
+
   /*
    * getYearData()
    */
@@ -92,6 +94,7 @@ describe(`${FILENAME}`, () => {
       expect(result.yearString).toEqual('2020')
     })
   })
+
   /*
    * getQuarterData()
    */
@@ -122,4 +125,55 @@ describe(`${FILENAME}`, () => {
       expect(result.quarterString).toEqual('2020-Q1')
     })
   })
+
+  /**
+   * relativeDateCodeFromDateString()
+   */
+  describe('relativeDateCodeFromDateString', () => {
+    const toDateStr = moment([2023, 8, 6, 0, 0, 0]).format('YYYY-MM-DD') // = 2023-09-06
+    describe('invalid inputs should fail', () => {
+      test('fail on 2023-09-0 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-09-0', toDateStr)).toEqual("(error)")
+      })
+      test('fail on 2023-09-06 to 20230910', () => {
+        expect(f.relativeDateCodeFromDateString('2023-09-06', '20230910')).toEqual("(error)")
+      })
+    })
+    describe('valid inputs should work', () => {
+      test('2023-09-06 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-09-06', toDateStr)).toEqual('0d')
+      })
+      test('2023-09-05 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-09-05', toDateStr)).toEqual('-1d')
+      })
+      test('2023-09-07 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-09-07', toDateStr)).toEqual('1d')
+      })
+      test('2023-W36 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-W36', toDateStr)).toEqual('0w')
+      })
+      test('2023-W34 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-W34', toDateStr)).toEqual('-2w')
+      })
+      test('2023-W38 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-W38', toDateStr)).toEqual('2w')
+      })
+      test('2023-09 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-09', toDateStr)).toEqual('0m')
+      })
+      test('2023-Q3 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-Q3', toDateStr)).toEqual('0q')
+      })
+      test('2023-Q1 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-Q1', toDateStr)).toEqual('-2q')
+      })
+      test('2023-Q4 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023-Q4', toDateStr)).toEqual('1q')
+      })
+      test('2023 to 2023-09-06', () => {
+        expect(f.relativeDateCodeFromDateString('2023', toDateStr)).toEqual('0y')
+      })
+    })
+  })
+
 })

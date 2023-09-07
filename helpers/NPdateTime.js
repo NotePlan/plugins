@@ -7,16 +7,20 @@ import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekOfInterval } from 'date-fns'
 import { trimAnyQuotes } from './dataManipulation'
 import {
+  getWeek,
+  isoWeekStartEndDates,
+  isDailyDateStr,
+  isMonthlyDateStr,
+  isQuarterlyDateStr,
+  isWeeklyDateStr,
+  isYearlyDateStr,
+  isValidCalendarNoteTitleStr,
   MOMENT_FORMAT_NP_ISO, MOMENT_FORMAT_NP_DAY, MOMENT_FORMAT_NP_MONTH, MOMENT_FORMAT_NP_QUARTER,
   RE_DATE, RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC,
-  getWeek,
   todaysDateISOString,
   toISOShortDateTimeString,
-  isoWeekStartEndDates,
 } from './dateTime'
 import { logDebug, logError, logWarn, clo, JSP } from './dev'
-// import { getSetting } from './NPConfiguration'
-// import { chooseOption, getInput } from './userInput'
 
 //--------------------------------------------------------------------------------
 // Local copies of other helpers to avoid circular dependencies
@@ -611,7 +615,7 @@ export function pad(n: number) {
  * Week info is offset depending on the NotePlan setting for the first day of the week
  * Note: requires API calls introduced in v3.7.0
  * @param {string} date - date string in format YYYY-MM-DD OR a Date object (default = today).
- *    NOTE:
+ * Note:
  *    Make sure that if you send in a date that it's a date in the correct time/timezone you want.
  *    If you create a new date of your own without a time (e.g. new Date("2022-01-01")) it could produce a date
  *    in a previous or next day depending on your timezone. So if you are creating the date, just send through
@@ -633,7 +637,7 @@ export function pad(n: number) {
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
   try {
-    if (NotePlan.environment.buildVersion < 876) {
+    if (NotePlan?.environment?.buildVersion < 876 ?? true) { // to allow NPDateTime.test.js to run
       throw new Error("Sorry; week API calls requires NotePlan v3.7 or newer.")
     }
 
@@ -733,11 +737,11 @@ export function getYearData(dateIn: string | Date = new Date(), offsetIncrement:
 }
 
 /**
- * Get all the month details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * Get all the quarter details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
  * NOTE: Returns results in local timezone (which is good), but make sure you expect that!
  * @param {string | Date} dateIn
  * @param {number} offsetIncrement (optional) - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
- * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'month'
+ * @param {string} offsetType (optional) - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'quarter'
  * @returns {
   quarterIndex: number  0-indexed ,
   quarterString: number 2022-Q1 (1-indexed) ,
@@ -817,6 +821,7 @@ export function getWeekOptions(): $ReadOnlyArray<{ label: string, value: string 
  * Returns just the most significant unit ("in 2 months", "a week ago" etc.)
  * Note: uses the moment library (instead of my original), but if 'useShortStyle' set then tweaks output slightly (in English), to match my original.
  * Note: non-locale original version at dateTime::relativeDateFromNumber()
+ * TODO: this could move to ./dateTime
  * @author @jgclark
  * @param {number} diffIn - number of days difference (positive or negative)
  * @param {boolean?} shortStyle?
@@ -901,5 +906,86 @@ export function getRelativeDates(): Array<Object> {
   } catch (err) {
     logError('getRelativeDates', `${err.name}: ${err.message}`)
     return [{}] // for completeness
+  }
+}
+
+/**
+ * Return rough relative string version of difference between 'dateStr' date and today.
+ * Don't return all the detail, but just the most significant unit (year, month, week, day)
+ * Returns a short code (e.g. "0d" = today, "-3w", "2m", "-4y" etc.)
+ * FIXME: doesn't do the expected thing for weeks yet (the usual problem of NP weeks being different from ISO/moment weeks)
+ * @author @jgclark
+ * @param {string} dateStrA - date to calculate relative for (in NP display form)
+ * @param {string?} dateStrB - day to calculate relative to (in YYYY-MM-DD)
+ * @returns {string} - relative date code (e.g. "0d" = today, "-3w", "2m", "-4y" etc.)
+ */
+export function relativeDateCodeFromDateString(dateStrA: string, dateStrB: string = ''): string {
+  try {
+    if (!isValidCalendarNoteTitleStr(dateStrA)) {
+      throw new Error(`${dateStrA} doesn't seem to be a valid NP date`)
+    }
+    if (!isDailyDateStr(dateStrB)) {
+      throw new Error(`${dateStrB} doesn't seem to be a valid YYYY-MM-DD date`)
+    }
+
+    let output = ''
+    let diff = NaN
+    const momB = (dateStrB !== '') ? moment(dateStrB) : moment()
+    logDebug('dateTime / relativeDateCodeFromDateString', `Starting for ${dateStrA} relative to ${dateStrB}`)
+    // Need to tailor it to date type of dateStr
+    if (isDailyDateStr(dateStrA)) {
+      logDebug('dateTime / relativeDateCodeFromDateString', `dailyNote`)
+      const momA = moment(dateStrA)
+      // diff = momB.startOf('day').diff(dateStrA, 'days')
+      diff = momA.diff(momB.startOf('day'), 'days')
+      output = `${diff}d`
+
+    } else if (isWeeklyDateStr(dateStrA)) {
+      // TODO:
+      // const momA = moment(dateStrA, "YYYY-[W]WW") // not NP weeks, but as we're working with relative weeks it doesn't matter
+      // diff = momB.startOf('week').diff(dateStrA, 'weeks')
+      // const BISOSOW = getISODateStringFromYYYYMMDD(weekStartDateStr(dateStrB))
+      // diff = momA.diff(moment(BISOSOW), 'weeks')
+
+      // change to use moment not NP weeks, but as the output are relative weeks it doesn't matter
+      const momA = moment(dateStrA, "YYYY-[W]WW")
+      const dateStrBToUse = dateStrB ?? todaysDateISOString
+      logDebug('dateTime / relativeDateCodeFromDateString', dateStrBToUse)
+      const BNPWeekData = getNPWeekData(dateStrBToUse)
+      clo(BNPWeekData, 'BNPWeekData')
+      const momB = moment(BNPWeekData?.weekString, "YYYY-[W]WW")
+      diff = momA.diff(momB, 'weeks')
+      logDebug('dateTime / relativeDateCodeFromDateString', `weeklyNote with momA ${momA} and momB ${momB}`)
+      output = `${diff}w`
+
+    } else if (isMonthlyDateStr(dateStrA)) {
+      logDebug('dateTime / relativeDateCodeFromDateString', `monthlyNote`)
+      const momA = moment(dateStrA, "YYYY-MM")
+      // diff = momB.startOf('month').diff(dateStrA, 'months')
+      diff = momA.diff(momB.startOf('month'), 'months')
+      output = `${diff}m`
+
+    } else if (isQuarterlyDateStr(dateStrA)) {
+      const momA = moment(dateStrA, "YYYY-[Q]Q")
+      logDebug('dateTime / relativeDateCodeFromDateString', `quarterlyNote`)
+      // diff = Math.floor(momB.startOf('quarter').diff(dateStrA, 'months')/3.0) // moment can't diff quarters
+      diff = Math.floor(momA.diff(momB.startOf('quarter'), 'months') / 3.0) // moment can't diff quarters
+      output = `${diff}q`
+
+    } else if (isYearlyDateStr(dateStrA)) {
+      const momA = moment(dateStrA, "YYYY")
+      logDebug('dateTime / relativeDateCodeFromDateString', `yearlyNote`)
+      // diff = momB.startOf('year').diff(dateStrA, 'years')
+      diff = momA.diff(momB.startOf('year'), 'years')
+      output = `${diff}y`
+
+    } else {
+      throw new Error(`${dateStrA} doesn't seem to be a valid NP date`)
+    }
+    logDebug('dateTime / relativeDateCodeFromDateString', `--> ${output}`)
+    return output
+  } catch (e) {
+    logError('dateTime / relativeDateCodeFromDateString', e.message)
+    return '(error)'
   }
 }
