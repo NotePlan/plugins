@@ -9,6 +9,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_EVENT_ID } from '@helpers/calendar'
 import { trimString } from '@helpers/dataManipulation'
 import { getDateStringFromCalendarFilename, getAPIDateStrFromDisplayDateStr, toLocaleTime } from '@helpers/dateTime'
+// import { toLocaleDateTimeString } from "@helpers/NPdateTime"
 import {
   simplifyNPEventLinksForHTML,
   simplifyInlineImagesForHTML,
@@ -48,7 +49,6 @@ import {
   stripTodaysDateRefsFromString
 } from '@helpers/stringTransforms'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
-import { toLocaleDateTimeString } from "../../helpers/NPdateTime";
 
 //-----------------------------------------------------------------
 // Data types

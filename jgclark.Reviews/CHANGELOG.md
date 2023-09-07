@@ -2,6 +2,10 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
+## [0.12.5] - 2023-09-01 (@@@unreleased)
+### Fixes
+- now includes relevant files from the root folder too
+
 ## [0.12.4] - 2023-08-30
 ### Fixes
 - re-write to allow comment lines to work again when running on macOS Big Sur

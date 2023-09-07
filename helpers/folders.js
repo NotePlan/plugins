@@ -9,6 +9,7 @@ import { JSP, logDebug, logError, logInfo, logWarn } from './dev'
  * - including only those that contain one of the strings on the inclusions list (so will include any sub-folders) if given
  * - excluding those on the 'exclusions' list, and any of their sub-folders (other than root folder ('/') which would then exclude everything).
  * - optionally exclude all special @... folders as well.
+ * - optionally exclude root folder
  * @author @jgclark, improved by @dwertheimer
  * @param {Array<string>} exclusions - if these (sub)strings match then exclude this folder
  * @param {boolean} excludeSpecialFolders? (default: true)
@@ -88,12 +89,17 @@ export function getFilteredFolderList(
 
 /**
  * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
+ * Except for items in root folder -> '/'.
  * @author @jgclark
  * @param {string} fullFilename - full filename to get folder name part from
  * @returns {string} folder/subfolder name
  */
 export function getFolderFromFilename(fullFilename: string): string {
   try {
+    // First deal with special case of file in root -> '/'
+    if (!fullFilename.includes('/')) {
+      return '/'
+    }
     // drop first character if it's a slash
     const filename = fullFilename.startsWith('/') ? fullFilename.substr(1) : fullFilename
     const filenameParts = filename.split('/')

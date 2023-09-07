@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 28.11.2022, for v1.1.2
+// last updated 28.11.2022, for v1.1.4+
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -101,7 +101,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
 
       // Now attempt to highlight them to help user check all is well (but only works from v3.6.2, build 844)
       if (NotePlan.environment.buildVersion > 844) {
-        firstStartIndex = parasInBlock[0].contentRange?.start ?? null
+        firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
         const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
         if (firstStartIndex && lastEndIndex) {
           const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
@@ -156,7 +156,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     Editor.highlightByRange(emptyRange)
   }
   catch (error) {
-    logError(pluginJson, error.message)
+    logError(pluginJson, `moveParas(): ${error.message}`)
   }
 }
 

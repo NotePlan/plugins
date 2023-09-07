@@ -1,6 +1,14 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
+## [0.15.0] - 2023-09-01
+### Added
+- new "/**quick add to this month's journal** and **/quick add to this year's journal** commands
+### Improved
+- speeded up the slower /quick... commands
+### Fixed
+- fixed bug using relative dates with x-callbacks (reported by @phenix)
+
 ## [0.14.1] - 2023-08-27
 ### Fixed
 - /quick add line under heading: first note in list wouldn't work (thanks to report by @phenix)

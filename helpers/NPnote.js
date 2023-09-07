@@ -384,8 +384,9 @@ export function findNotesMatchingHashtagOrMention(
  * @param {string?} folder - optional folder to limit to
  * @param {boolean?} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @param {Array<string>?} tagsToExclude - optional list of tags that if found in the note, excludes the note
- * @param {boolean?} caseInsensitiveMatch - whether to ignore case when matching (default true)
+ * @param {boolean?} caseInsensitiveMatch - whether to ignore case when matching (optional, defaults to true)
  * @param {Array<TNote>?} notesToSearchIn - optional array of notes to search in
+ * @param {boolean?} alsoSearchMentions - whether to search @mentions as well (optional, defaults to false)
  * @return {Array<TNote>}
  */
 export function findNotesMatchingHashtag(
@@ -397,35 +398,31 @@ export function findNotesMatchingHashtag(
   notesToSearchIn?: Array<TNote>,
   alsoSearchMentions: boolean = false
 ): Array<TNote> {
-  // logDebug(
-  //   `NPNote::findNotesMatchingHashtag`,
-  //   `tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
-  // )
   // Check for special conditions first
   if (tag === '') {
     logError('NPnote/findNotesMatchingHashtag', `No hashtag given. Stopping`)
     return [] // for completeness
   }
   const notesToSearch = notesToSearchIn ?? DataStore.projectNotes
-  // logDebug(pluginJson, `findNotesMatchingHashtag ${notesToSearchIn ? ' limited to ' : ''} ${notesToSearch.length} Notes`)
+  logDebug(pluginJson, `findNotesMatchingHashtag() starting with ${notesToSearch.length} notes${notesToSearchIn ? ' (from the notesToSearchIn param)' : ' (from DataStore.projectNotes)'}`)
+  const startTime = new Date()
 
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder != null) {
     if (includeSubfolders) {
       // use startsWith as filter to include subfolders
-      // FIXME: not working for root-level notes
       projectNotesInFolder = notesToSearch.slice().filter((n) => n.filename.startsWith(`${folder}/`))
     } else {
-      // const t = new Date()
       // use match as filter to exclude subfolders
       projectNotesInFolder = notesToSearch.slice().filter((n) => getFolderFromFilename(n.filename) === folder)
-      // logDebug('findNotesMatchingHashtag', `>> DataStore.projectNotes.filtering took: ${timer(t)}`)
     }
   } else {
     // no folder specified, so grab all notes from DataStore
     projectNotesInFolder = notesToSearch.slice()
   }
+  // logDebug(`NPNote::findNotesMatchingHashtag`,`tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
+  logDebug('findNotesMatchingHashtag', `>> projectNotes filtering took ${timer(startTime)}`)
 
   // Filter by tag (and now mentions as well, if requested)
   let projectNotesWithTag: Array<TNote>
@@ -469,14 +466,19 @@ export function findNotesMatchingHashtag(
 
 /**
  * Return array of array of notes with particular hashtags (plural), optionally from the given folder.
+ * Note: Currently unused!
  * @author @jgclark
  *
- * @param {Array<string>} tag - tags to look for
+ * @param {Array<string>} tags - tags to look for
  * @param {?string} folder - optional folder to limit to
  * @param {?boolean} includeSubfolders - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @return {Array<Array<TNote>>} array of list of notes
  */
-export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, includeSubfolders: ?boolean = false): Array<Array<TNote>> {
+export function findNotesMatchingHashtags(
+  tags: Array<string>,
+  folder: ?string,
+  includeSubfolders: ?boolean = false
+): Array<Array<TNote>> {
   if (tags.length === 0) {
     logError('NPnote/findNotesMatchingHashtags', `No hashtags supplied. Stopping`)
     return []
@@ -487,7 +489,7 @@ export function findNotesMatchingHashtags(tags: Array<string>, folder: ?string, 
   if (folder != null) {
     if (includeSubfolders) {
       // use startsWith as filter to include subfolders
-      // FIXME: not working for root-level notes
+      // TEST: does this need same update for root-level notes as findNotesMatchingHashtag() above?
       projectNotesInFolder = DataStore.projectNotes.slice().filter((n) => n.filename.startsWith(`${folder}/`))
     } else {
       // use match as filter to exclude subfolders
