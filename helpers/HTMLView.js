@@ -6,20 +6,10 @@
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
-import {
-  getStoredWindowRect, isHTMLWindowOpen,
-  storeWindowRect
-} from '@helpers/NPWindows'
-import {
-  generateCSSFromTheme,
-  RGBColourConvert
-} from '@helpers/NPThemeToCSS'
+import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers/NPWindows'
+import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
-import {
-  RE_EVENT_LINK,
-  RE_SYNC_MARKER
-} from '@helpers/regex'
-
+import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -347,6 +337,7 @@ export function showHTML(
   filenameForSavedFileVersion: string = '',
   width?: number,
   height?: number,
+  // eslint-disable-next-line no-unused-vars
   customId: string = '', // Note: now unused
 ): void {
   try {
@@ -418,14 +409,12 @@ export function showHTML(
  * @param {string} body
  * @param {HtmlWindowOptions} opts
  */
-export async function showHTMLV2(
-  body: string,
-  opts: HtmlWindowOptions,
-): Promise<Window | boolean> {
+export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise<Window | boolean> {
   try {
     if (NotePlan.environment.buildVersion < 1037) {
       logWarn('HTMLView / showHTMLV2', 'showHTMLV2() is only available on 3.9.2 build 1037 or newer. Will fall back to using older, simpler, showHTML() instead ...')
-      await showHTML(opts.windowTitle,
+      await showHTML(
+        opts.windowTitle,
         opts.headerTags ?? '',
         body,
         opts.generalCSSIn ?? '',
@@ -436,11 +425,10 @@ export async function showHTMLV2(
         opts.savedFilename ?? '',
         opts.width,
         opts.height,
-        opts.customId)
+        opts.customId,
+      )
       return true // for completeness
-
     } else {
-
       // clo(opts, 'HTMLView / showHTMLV2 starting with options:')
       // Assemble the parts of the HTML into a single string
       const fullHTMLStr = assembleHTMLParts(body, opts)
@@ -471,16 +459,16 @@ export async function showHTMLV2(
             x: opts.x,
             y: opts.y,
             width: opts.width,
-            height: (opts.height > 56) ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
+            height: opts.height && opts.height > 56 ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
             shouldFocus: opts.shouldFocus,
-            id: cId
+            id: cId,
           }
         } else {
           winOptions = {
             x: opts.x,
             y: opts.y,
             width: opts.width,
-            height: (opts.height > 56) ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
+            height: opts.height && opts.height > 56 ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
             shouldFocus: opts.shouldFocus,
           }
         }
@@ -493,9 +481,9 @@ export async function showHTMLV2(
               x: storedRect.x,
               y: storedRect.y,
               width: storedRect.width,
-              height: (storedRect.height > 56) ? storedRect.height : 500, // to attempt to cope with bug where height can change to 28px
+              height: storedRect.height > 56 ? storedRect.height : 500, // to attempt to cope with bug where height can change to 28px
               shouldFocus: opts.shouldFocus,
-              id: cId
+              id: cId,
             }
             logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
           } else {
@@ -619,7 +607,7 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
 /**
  * Message action types
  * SET_TITLE - update the title of the HTML window (send {title: 'new title'} in the payload)
- * SHOW_BANNER - display a message in the top of the page (use the helper sendBannerMessage('message'))
+ * SHOW_BANNER - display a message in the top of the page (use the helper sendBannerMessage(pluginJson['plugin.id'],'message'))
  * SET_DATA - tell the HTML window to update its state with the data passed
  * RETURN_VALUE - the async return value of a call that came in fron the React Window to the Plugin
  */
@@ -629,6 +617,7 @@ export function replaceMarkdownLinkWithHTMLLink(str: string): string {
  * Note: we can (and do) write to globalSharedData directly, but we should try to use this function
  * to do so, because it will allow us to use message passing to update the state in the HTML window
  * which gives us more visibility into what's happening on the HTML side
+ * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
  * @param {string - see above} actionType - the reducer-type action to be dispatched (tells the app how to act on the data passed)
  * @param {any} data - the data to be passed to the app (and ultimately to be written to globalSharedData)
  * @param {string} updateInfo - the message to be sent to the app
@@ -640,13 +629,16 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
     const dataWithUpdated = { ...data, ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } } }
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
     logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" to ${windowId}`)
-    const result = await HTMLView.runJavaScript(`window.postMessage(
+    const result = await HTMLView.runJavaScript(
+      `window.postMessage(
         {
           type: '${actionType}',
           payload: ${JSON.stringify(dataWithUpdated)}
         },
         '*'
-      );`, windowId)
+      );`,
+      windowId,
+    )
     // logDebug(`Bridge::sendToHTMLWindow`, `result from the window: ${JSON.stringify(result)}`)
     return result
   } catch (error) {
@@ -661,11 +653,13 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
  * NOTE: this function should only be called after the window has fully set up, the global var has been set
  * @author @dwertheimer
  * @param {string} varName - the name of the global variable to be updated (by default "globalSharedData")
+ * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
  * @returns {Object} - the current state of globalSharedData
  */
-export async function getGlobalSharedData(varName: string = 'globalSharedData'): any {
+export async function getGlobalSharedData(windowId: string, varName: string = 'globalSharedData'): any {
   try {
-    const currentValue = await HTMLView.runJavaScript(`${varName};`)
+    logDebug(pluginJson, `getGlobalSharedData getting var:${varName} from window:${windowId}`)
+    const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
     // if (currentValue !== undefined) logDebug(`getGlobalSharedData`, `got ${varName}: ${JSON.stringify(currentValue)}`)
     return currentValue
   } catch (error) {
@@ -676,18 +670,19 @@ export async function getGlobalSharedData(varName: string = 'globalSharedData'):
 /**
  * Generally, we will try not to update the global shared object directly, but instead use message passing to let React update the state. But there will be times we need to update the state from here (e.g. when we hit limits of message passing).
  * @author @dwertheimer
+ * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
  * @param {any} data - the full object to be written to globalSharedData (SHARED DATA MUST BE OBJECTS)
  * @param {boolean} mergeData - if true (default), will merge the new data with the existing data, if false, will fully overwrite
  * @param {string} varName - the name of the global variable to be updated (by default "globalSharedData")
  * @returns {any} returns the result of the runJavaScript call, which in this case is typically identical to the data passed
  * ...and so can probably be ignored
  */
-export async function updateGlobalSharedData(data: any, mergeData: boolean = true, varName: string = 'globalSharedData'): any {
+export async function updateGlobalSharedData(windowId: string, data: any, mergeData: boolean = true, varName: string = 'globalSharedData'): any {
   let newData
-  const currentData = await getGlobalSharedData(varName)
+  const currentData = await getGlobalSharedData(windowId, varName)
   if (currentData === undefined) {
     logDebug(`updateGlobalSharedData`, `Variable ${varName} was not defined (creating it now)...ignore the WebView error above ^^^`)
-    await HTMLView.runJavaScript(`let ${varName} = {};`) // create the global var if it doesn't exist
+    await HTMLView.runJavaScript(`let ${varName} = {};`, windowId) // create the global var if it doesn't exist
   }
   if (mergeData) {
     newData = { ...currentData, ...data }
@@ -697,19 +692,19 @@ export async function updateGlobalSharedData(data: any, mergeData: boolean = tru
   // logDebug(`updateGlobalSharedData`, `writing globalSharedData (merged=${String(mergeData)}) to ${JSON.stringify(newData)}`)
   const code = `${varName} = JSON.parse(${JSON.stringify(newData)});`
   logDebug(pluginJson, `updateGlobalSharedData code=\n${code}\n`)
-  //FIXME: Is this still throwing an error?
   logDebug(pluginJson, `updateGlobalSharedData FIXME: Is this still throwing an error? ^^^`)
-  return await HTMLView.runJavaScript(code)
+  return await HTMLView.runJavaScript(code, windowId)
 }
 
 /**
  * Send a warning message to the HTML window (displays a warning message at the top of page)
- * @param {string} message
+ * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
+ * @param {string} message - the message to be displayed
  * @param {string} color https://www.w3schools.com/w3css/w3css_colors.asp
  * @param {string} border (left vertical stripe border of box) https://www.w3schools.com/w3css/w3css_colors.asp
  */
-export async function sendBannerMessage(message: string, color: string = 'w3-pale-red', border: string = 'w3-border-red'): Promise<any> {
-  return await sendToHTMLWindow('SHOW_BANNER', { warn: true, msg: message, color, border })
+export async function sendBannerMessage(windowId: string, message: string, color: string = 'w3-pale-red', border: string = 'w3-border-red'): Promise<any> {
+  return await sendToHTMLWindow(windowId, 'SHOW_BANNER', { warn: true, msg: message, color, border })
 }
 
 // add basic ***bolditalic*** styling
@@ -717,7 +712,7 @@ export async function sendBannerMessage(message: string, color: string = 'w3-pal
 // add basic *italic* or _italic_ styling
 export function convertBoldAndItalicToHTML(input: string): string {
   let output = input
-  const RE_BOLD_ITALIC_PHRASE = new RegExp(/\*\*\*\b(.*?)\b\*\*\*/, "g")
+  const RE_BOLD_ITALIC_PHRASE = new RegExp(/\*\*\*\b(.*?)\b\*\*\*/, 'g')
   let captures = output.matchAll(RE_BOLD_ITALIC_PHRASE)
   if (captures) {
     for (const capture of captures) {
@@ -727,7 +722,7 @@ export function convertBoldAndItalicToHTML(input: string): string {
   }
 
   // add basic **bold** or __bold__ styling
-  const RE_BOLD_PHRASE = new RegExp(/([_\*]{2})([^_*]+?)\1/, "g")
+  const RE_BOLD_PHRASE = new RegExp(/([_\*]{2})([^_*]+?)\1/, 'g')
   captures = output.matchAll(RE_BOLD_PHRASE)
   if (captures) {
     for (const capture of captures) {
@@ -738,7 +733,7 @@ export function convertBoldAndItalicToHTML(input: string): string {
 
   // add basic *italic* or _italic_ styling
   // Note: uses a simplified regex that needs to come after bold above
-  const RE_ITALIC_PHRASE = new RegExp(/([_\*])([^*]+?)\1/, "g")
+  const RE_ITALIC_PHRASE = new RegExp(/([_\*])([^*]+?)\1/, 'g')
   captures = output.matchAll(RE_ITALIC_PHRASE)
   if (captures) {
     for (const capture of captures) {
@@ -790,7 +785,7 @@ export function convertHashtagsToHTML(input: string): string {
   let output = input
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d[:punct:]]+(\s|$))(#([^[:punct:]\s]|[\-_\/])+?\(.*?\)|#([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!#[\d\'\"]+(\s|$))(#([^\'\"\s]|[\-_\/])+?\(.*?\)|#([^\'\"\s]|[\-_\/])+)/) // regex from @EduardMe's file without :punct:
-  const captures = output.match(/\B(?:#|＃)((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/ug) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+  const captures = output.match(/\B(?:#|＃)((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
   if (captures) {
     // clo(captures, 'results from hashtag matches:')
     for (const capture of captures) {
@@ -806,15 +801,14 @@ export function convertHashtagsToHTML(input: string): string {
 // Display mentions with .attag style
 // Note: need to make only one capture group, and use 'g'lobal flag
 export function convertMentionsToHTML(input: string): string {
-
   let output = input
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/) // regex from @EduardMe's file, without [:punct:]
-  const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/ug) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+  const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
   if (captures) {
     // clo(captures, 'results from mention matches:')
     for (const capture of captures) {
-      const match = capture//[2] // part from @
+      const match = capture //[2] // part from @
       output = output.replace(match, `<span class="attag">${match}</span>`)
     }
   }
@@ -884,7 +878,6 @@ export function convertStrikethroughToHTML(input: string): string {
 }
 
 export function convertNPBlockIDToHTML(input: string): string {
-
   // Replace blockID sync indicator with icon
   // NB: needs to go after #hashtag change above, as it includes a # marker for colors.
   let output = input

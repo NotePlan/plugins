@@ -9,15 +9,14 @@ import moment from 'moment/min/moment-with-locales'
 import { getDataForDashboard } from './dataGeneration'
 import { getDemoDataForDashboard } from './demoDashboard'
 import {
-  addNoteOpenLinkToString, getSettings,
+  addNoteOpenLinkToString,
+  getSettings,
   makeNoteTitleWithOpenActionFromFilename,
   makeParaContentToLookLikeNPDisplayInHTML,
-  type Section, type SectionItem
+  type Section,
+  type SectionItem,
 } from './dashboardHelpers'
-import {
-  getDateStringFromCalendarFilename, getTodaysDateUnhyphenated,
-  isValidCalendarNoteFilename
-} from '@helpers/dateTime'
+import { getDateStringFromCalendarFilename, getTodaysDateUnhyphenated, isValidCalendarNoteFilename } from '@helpers/dateTime'
 import { nowLocaleShortTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { unsetPreference } from '@helpers/NPdev'
@@ -37,14 +36,14 @@ import {
   getLiveWindowRectFromWin,
   getStoredWindowRect,
   getWindowFromCustomId,
-  rectToString
+  rectToString,
 } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // HTML resources
 
-const windowCustomId = 'Dashboard'
+const windowCustomId = pluginJson['plugin.id']
 
 // Note: this "../np.Shared" path works to the flattened np.Shared structure, but it does *not* work when running the locally-written copy of the HTML output file.
 export const resourceLinksInHeader = `
@@ -405,9 +404,9 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     // Main preparation work: do this in a background thread
     await CommandBar.onAsyncThread()
     if (demoMode) {
-      [sections, sectionItems] = await getDemoDataForDashboard()
+      ;[sections, sectionItems] = await getDemoDataForDashboard()
     } else {
-      [sections, sectionItems] = await getDataForDashboard()
+      ;[sections, sectionItems] = await getDataForDashboard()
     }
 
     // logDebug('showDashboardHTML', `Starting with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
@@ -441,7 +440,13 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
       if (items.length === 0) {
         if (sectionNumber === 0) {
           // If there are no items in first section, then add a congratulatory message
-          items.push({ ID: '0-Congrats', type: 'congrats', content: `Nothing to do: take a break! <i class="fa-regular fa-face-party fa-face-sleeping"></i>`, rawContent: ``, filename: '' })
+          items.push({
+            ID: '0-Congrats',
+            type: 'congrats',
+            content: `Nothing to do: take a break! <i class="fa-regular fa-face-party fa-face-sleeping"></i>`,
+            rawContent: ``,
+            filename: '',
+          })
         } else {
           // don't add this section: go on to next section
           logDebug('showDashboardHTML', `Section ${String(sectionNumber)} (${section.name}) is empty so will skip it`)
@@ -454,10 +459,10 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
       // Now prepend a sectionNCount ID and populate it. This needs a span with an ID so that it can be updated later.
       const sectionCountID = `section${String(section.ID)}Count`
       const sectionCountPrefix = `<span id="${sectionCountID}">${String(items.length)}</span>`
-      const sectionNameWithPossibleLink = (section.filename)
-        ? addNoteOpenLinkToString(section, section.name)
-        : section.name
-      outputArray.push(` <tr>\n  <td style="min-width:8rem; max-width: 10rem;"><p class="${section.sectionTitleClass} sectionName"><i class="${section.FAIconClass} pad-right"></i>${sectionNameWithPossibleLink}</p>`)
+      const sectionNameWithPossibleLink = section.filename ? addNoteOpenLinkToString(section, section.name) : section.name
+      outputArray.push(
+        ` <tr>\n  <td style="min-width:8rem; max-width: 10rem;"><p class="${section.sectionTitleClass} sectionName"><i class="${section.FAIconClass} pad-right"></i>${sectionNameWithPossibleLink}</p>`,
+      )
 
       if (items.length > 0) {
         outputArray.push(`   <p class="sectionDescription">${sectionCountPrefix} ${section.description}`)
@@ -506,7 +511,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
             content: `There are also ${filteredOut} lower-priority items not shown.`,
             rawContent: 'Filtered out',
             filename: '',
-            type: 'filterIndicator'
+            type: 'filterIndicator',
           })
         }
       }
@@ -518,18 +523,18 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
         outputArray.push(`       <tr class="no-borders" id="${item.ID}">`)
 
         // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-        const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString((item.filename).split(".")[0]))
+        const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString(item.filename.split('.')[0]))
 
         // Work out the extra controls that are relevant for this task, and set up as tooltips
         const possibleControlTypes = [
-          { displayString: "→today", controlStr: "t", sectionDateTypes: ['W', 'M', 'Q'] }, // special controlStr to indicate change to '>today'
-          { displayString: "+1d", controlStr: "+1d", sectionDateTypes: ['D', 'W', 'M'] },
-          { displayString: "+1b", controlStr: "+1b", sectionDateTypes: ['D', 'W', 'M'] },
-          { displayString: "→wk", controlStr: "+0w", sectionDateTypes: ['D', 'M'] },
-          { displayString: "+1w", controlStr: "+1w", sectionDateTypes: ['D', 'W'] },
-          { displayString: "→mon", controlStr: "+0m", sectionDateTypes: ['D', 'W', 'Q'] },
-          { displayString: "+1m", controlStr: "+1m", sectionDateTypes: ['M'] },
-          { displayString: "→qtr", controlStr: "+0q", sectionDateTypes: ['M'] },
+          { displayString: '→today', controlStr: 't', sectionDateTypes: ['W', 'M', 'Q'] }, // special controlStr to indicate change to '>today'
+          { displayString: '+1d', controlStr: '+1d', sectionDateTypes: ['D', 'W', 'M'] },
+          { displayString: '+1b', controlStr: '+1b', sectionDateTypes: ['D', 'W', 'M'] },
+          { displayString: '→wk', controlStr: '+0w', sectionDateTypes: ['D', 'M'] },
+          { displayString: '+1w', controlStr: '+1w', sectionDateTypes: ['D', 'W'] },
+          { displayString: '→mon', controlStr: '+0m', sectionDateTypes: ['D', 'W', 'Q'] },
+          { displayString: '+1m', controlStr: '+1m', sectionDateTypes: ['M'] },
+          { displayString: '→qtr', controlStr: '+0q', sectionDateTypes: ['M'] },
         ]
         const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
         let tooltipContent = ''
@@ -556,7 +561,9 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
           case 'open': {
             logDebug('showDashboardHTML', `- adding open taskContent for ${item.content} / ${itemNoteTitle}`)
             // do icon col (was col3)
-            outputArray.push(`         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`)
+            outputArray.push(
+              `         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`,
+            )
 
             // do col 4: whole note link is clickable.
             // If context is wanted, and linked note title
@@ -579,7 +586,9 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
           case 'checklist': {
             logDebug('showDashboardHTML', `- adding checklist taskContent for ${item.content} / ${itemNoteTitle}`)
             // do icon col (was col3)
-            outputArray.push(`         <td id="${encodedFilename}" class="sectionItemChecklist sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-square"></i></td>`)
+            outputArray.push(
+              `         <td id="${encodedFilename}" class="sectionItemChecklist sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-square"></i></td>`,
+            )
 
             // do item details col (was col4):
             let paraContent = ''
@@ -606,10 +615,12 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
           case 'review': {
             if (itemNoteTitle) {
               // do icon col (was col3)
-              outputArray.push(`         <td id="${item.ID}I" class="review sectionItem no-borders" data-encoded-filename="${encodedFilename}"><i class="fa-solid fa-calendar-check"></i></td>`)
+              outputArray.push(
+                `         <td id="${item.ID}I" class="review sectionItem no-borders" data-encoded-filename="${encodedFilename}"><i class="fa-solid fa-calendar-check"></i></td>`,
+              )
 
               // do item details col (was col4): review note link as internal calls
-              const folderNamePart = config.includeFolderName && (getFolderFromFilename(item.filename) !== '') ? getFolderFromFilename(item.filename) + ' / ' : ''
+              const folderNamePart = config.includeFolderName && getFolderFromFilename(item.filename) !== '' ? getFolderFromFilename(item.filename) + ' / ' : ''
               // let cell4 = `         <td id="${item.ID}" class="sectionItem">${folderNamePart}<a class="noteTitle" data-encoded-filename="${encodedFilename}">${itemNoteTitle}</a></td>\n       </tr>`
               let cell4 = `         <td id="${item.ID}" class="sectionItem">${folderNamePart}${makeNoteTitleWithOpenActionFromFilename(item, itemNoteTitle)}</td>\n       </tr>`
               outputArray.push(cell4)
@@ -639,7 +650,9 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     outputArray.push(`</table>`)
 
     // write header lines before first table
-    const summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; <span id="totalDoneCount">${String(totalDoneItems)}</span> closed. Last updated ${nowLocaleShortTime()}`
+    const summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; <span id="totalDoneCount">${String(
+      totalDoneItems,
+    )}</span> closed. Last updated ${nowLocaleShortTime()}`
 
     // Write time and refresh info
     const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', '')
@@ -649,7 +662,9 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     // const refreshXCallbackButton = `<form action="${refreshXCallbackURL}" style="display: inline;"><button class="mainButton" type="submit"></form><i class="fa-solid fa-arrow-rotate-right"></i> Refresh</button>`
 
     // Add filter checkbox
-    const filterCheckbox = `<span style="float: right;"><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? "checked" : "unchecked"}><label for="filterPriorityItems">Filter out lower-priority items?</label></input></span>\n`
+    const filterCheckbox = `<span style="float: right;"><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${
+      filterPriorityItems ? 'checked' : 'unchecked'
+    }><label for="filterPriorityItems">Filter out lower-priority items?</label></input></span>\n`
 
     const header = `<div class="body space-under">${summaryStatStr}\n${refreshXCallbackButton}\n${filterCheckbox}</div>`
     outputArray.unshift(header)
@@ -662,7 +677,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
     const windowTitle = `Dashboard (${totalOpenItems} items)`
-    const filenameHTMLCopy = (config._logLevel === 'DEBUG' || config._logLevel === 'INFO') ? '../../jgclark.Dashboard/dashboard.html' : ''
+    const filenameHTMLCopy = config._logLevel === 'DEBUG' || config._logLevel === 'INFO' ? '../../jgclark.Dashboard/dashboard.html' : ''
 
     const winOptions = {
       windowTitle: windowTitle,
@@ -673,13 +688,20 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
       makeModal: false,
       shouldFocus: shouldFocus, // shouuld focus window?
       preBodyScript: '', // no extra pre-JS
-      postBodyScript: encodeDecodeScript + commsBridge + addIconEventListenersScript + addContentEventListenersScript + addButtonEventListenersScript + addReviewEventListenersScript + clickHandlersScript, // + resizeListenerScript, // + unloadListenerScript,
+      postBodyScript:
+        encodeDecodeScript +
+        commsBridge +
+        addIconEventListenersScript +
+        addContentEventListenersScript +
+        addButtonEventListenersScript +
+        addReviewEventListenersScript +
+        clickHandlersScript, // + resizeListenerScript, // + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 1000, // = default width of window (px)
       height: 500, // = default height of window (px)
       x: 409, // default, normally overriden from last position
-      y: 0 // default, normally overriden from last position
+      y: 0, // default, normally overriden from last position
     }
     await showHTMLV2(outputArray.join('\n'), winOptions)
     // logDebug(`makeDashboard`, `written to HTML window with shouldFocus ${String(shouldFocus)}`)
@@ -731,7 +753,7 @@ export async function addChecklist(calNoteFilename: string): Promise<void> {
  */
 export async function resetDashboardWinSize(): Promise<void> {
   unsetPreference('WinRect_Dashboard')
-  closeWindowFromCustomId('Dashboard')
+  closeWindowFromCustomId(pluginJson['plugin.id'])
   await showDashboardHTML(true, false)
 }
 

@@ -8,7 +8,7 @@
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { showDashboardHTML } from "./main"
+import { showDashboardHTML } from './main'
 import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getPluginJson, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
@@ -40,7 +40,7 @@ export async function init(): Promise<void> {
 
 export async function onSettingsUpdated(): Promise<any> {
   // Placeholder only to stop error in logs
-  if (!isHTMLWindowOpen('Dashboard')) {
+  if (!isHTMLWindowOpen(pluginJson['plugin.id'])) {
     await showDashboardHTML(false, false) // don't need await in the case I think
   }
   // TEST: trying this empty return to see if stops console errors

@@ -7,6 +7,7 @@
  * The function onClickStatus below is just an example of a function that could be called from the HTML view
  */
 
+import { getWindowIdFromCustomId } from '../../../../helpers/NPWindows'
 import pluginJson from '../plugin.json'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { getParagraphFromStaticObject } from '@helpers/NPParagraph'
@@ -50,7 +51,11 @@ export function onClickStatus(data: ClickStatus) {
     para.type = statusWas === 'open' ? 'done' : 'checklistDone'
     para.note?.updateParagraph(para)
     const newDivContent = `<td>"${para.type}"</td><td>Paragraph status was updated by the plugin!</td>`
-    sendToHTMLWindow('updateDiv', { divID: lineID, html: newDivContent, innerText: false })
+    // const windowId = getWindowIdFromCustomId(pluginJson['plugin.id'])
+    const windowId = pluginJson['plugin.id']
+    if (windowId) {
+      sendToHTMLWindow(windowId, 'updateDiv', { divID: lineID, html: newDivContent, innerText: false })
+    }
     // NOTE: in this particular case, it might have been easier to just call the refresh-page command, but I thought it worthwhile
     // to show how to update a single div in the HTML view
   } else {

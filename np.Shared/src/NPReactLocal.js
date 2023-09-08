@@ -48,6 +48,7 @@ export async function onMessageFromHTMLView(incoming: string) {
       `onMessageFromHTMLView: incoming: ${incoming}. This is just a comms bridge test. Does not do anything. But at least you know the React window can talk to NotePlan. Use the function 'onMessageFromHTMLView' in the plugin you are building to do something useful.`,
     )
     await sendBannerMessage(
+      pluginJson['plugin.id'],
       `np.Shared successfully received and executed command onMessageFromHTMLView(). This message is coming from NotePlan and confirms bilateral communications are functional. Use the function 'onMessageFromHTMLView' in the plugin you are building to do something useful.`,
     )
     return {} // return blank to keep NotePlan from throwing an error
