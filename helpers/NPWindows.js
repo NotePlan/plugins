@@ -104,20 +104,19 @@ export function setHTMLWindowId(customId: string): void {
 }
 
 /**
- * Is a given HTML window open? Tests by doing a case-insensitive-starts-with-match or case-insensitive-match using the supplied customId string.
- * FIXME: fix up for 3.9.6?
- * @author @jgclark
- * @param {string} customId to look for
- * @returns {boolean}
+ * Search open HTML windows and return the window object that matches a given customId (if available)
+ * @param {string} customId - to look for
+ * @returns {string} the matching open HTML window's ID or false if not found
  */
-export function isHTMLWindowOpen(customId: string): boolean {
+export function getWindowIdFromCustomId(customId: string): string | false {
   if (NotePlan.environment.buildVersion >= 973) {
     const allHTMLWindows = NotePlan.htmlWindows
     for (const thisWin of allHTMLWindows) {
+      // clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
       if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
         thisWin.customId = customId
-        // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)
-        return true
+        logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)
+        return thisWin.id
       } else {
         // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
       }
@@ -126,6 +125,17 @@ export function isHTMLWindowOpen(customId: string): boolean {
     logDebug('isHTMLWindowOpen', `Could not run: needs NP v3.8.1+`)
   }
   return false
+}
+
+/**
+ * Is a given HTML window open? Tests by doing a case-insensitive-starts-with-match or case-insensitive-match using the supplied customId string.
+ * FIXME: fix up for 3.9.6?
+ * @author @jgclark
+ * @param {string} customId to look for
+ * @returns {boolean}
+ */
+export function isHTMLWindowOpen(customId: string): boolean {
+  return !!getWindowIdFromCustomId(customId)
 }
 
 /**
@@ -387,7 +397,7 @@ export function getLiveWindowRect(windowId: string): Rect | false {
     logWarn('getLiveWindowRect', `Cannot get window rect as not running v3.9.1 or later.`)
     return false
   }
-  const windowToUse = (windowId !== '') ? getWindowFromId(windowId) : NotePlan.htmlWindows[0]
+  const windowToUse = windowId !== '' ? getWindowFromId(windowId) : NotePlan.htmlWindows[0]
   if (windowToUse) {
     const windowRect: Rect = windowToUse.windowRect
     clo(windowRect, `getLiveWindowRect(): Retrieved ${rectToString(windowRect)} from win id '${windowId}'`)

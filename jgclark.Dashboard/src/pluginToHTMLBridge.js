@@ -6,12 +6,28 @@
 
 import pluginJson from '../plugin.json'
 import { showDashboardHTML } from './main'
-import { calcOffsetDateStr, getNPWeekStr, getDateStringFromCalendarFilename, getTodaysDateHyphenated, getTodaysDateUnhyphenated, RE_DATE_INTERVAL, RE_DATE_TIME, replaceArrowDatesInString } from '@helpers/dateTime'
+import {
+  calcOffsetDateStr,
+  getNPWeekStr,
+  getDateStringFromCalendarFilename,
+  getTodaysDateHyphenated,
+  getTodaysDateUnhyphenated,
+  RE_DATE_INTERVAL,
+  RE_DATE_TIME,
+  replaceArrowDatesInString,
+} from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
-import { cancelItem, completeItem, findParaFromStringAndFilename, getParagraphFromStaticObject, highlightParagraphInEditor, moveItemBetweenCalendarNotes } from '@helpers/NPParagraph'
-import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString, storeWindowRect } from '@helpers/NPWindows'
+import {
+  cancelItem,
+  completeItem,
+  findParaFromStringAndFilename,
+  getParagraphFromStaticObject,
+  highlightParagraphInEditor,
+  moveItemBetweenCalendarNotes,
+} from '@helpers/NPParagraph'
+import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString, storeWindowRect, getWindowIdFromCustomId } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 
 //-----------------------------------------------------------------
@@ -20,7 +36,7 @@ import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 type MessageDataObject = { itemID: string, type: string, encodedFilename: string, encodedContent: string }
 type SettingDataObject = { settingName: string, state: string }
 
-const windowCustomId = 'Dashboard'
+const windowCustomId = pluginJson['plugin.id']
 
 //-----------------------------------------------------------------
 
@@ -32,19 +48,19 @@ const windowCustomId = 'Dashboard'
  * @param {string} type - the type of action the HTML view wants the plugin to perform
  * @param {any} data - the data that the HTML view sent to the plugin
  */
-export function onMessageFromHTMLView(type: string, data: any): any {
+export async function onMessageFromHTMLView(type: string, data: any): any {
   try {
     logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${type}:`)
     // clo(data, 'onMessageFromHTMLView dispatching data object:')
     switch (type) {
       case 'onClickDashboardItem':
-        bridgeClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
+        await bridgeClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
         break
       case 'onChangeCheckbox':
-        bridgeChangeCheckbox(data) // data is a string
+        await bridgeChangeCheckbox(data) // data is a string
         break
       case 'refresh':
-        showDashboardHTML() // no await needed, I think
+        await showDashboardHTML() // no await needed, I think
         break
       default:
         logError(pluginJson, `onMessageFromHTMLView(): unknown ${type} cannot be dispatched`)
@@ -80,6 +96,12 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 export async function bridgeClickDashboardItem(data: MessageDataObject) {
   try {
     // clo(data, 'bridgeClickDashboardItem received data object')
+    // const windowId = getWindowIdFromCustomId(pluginJson['plugin.id'])
+    const windowId = pluginJson['plugin.id']
+    if (!windowId) {
+      logError('bridgeClickDashboardItem', `Can't find windowId for ${windowCustomId}`)
+      return
+    }
     const ID = data.itemID
     const type = data.type
     const filename = decodeRFC3986URIComponent(data.encodedFilename)
@@ -94,7 +116,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow('completeTask', data)
+          sendToHTMLWindow(windowId, 'completeTask', data)
         } else {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
           await showDashboardHTML()
@@ -107,7 +129,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         DataStore.updateCache(getNoteByFilename(filename), false)
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow('cancelTask', data)
+          sendToHTMLWindow(windowId, 'cancelTask', data)
         } else {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
           await showDashboardHTML()
@@ -120,7 +142,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         DataStore.updateCache(getNoteByFilename(filename), false)
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow('completeChecklist', data)
+          sendToHTMLWindow(windowId, 'completeChecklist', data)
         } else {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
           await showDashboardHTML()
@@ -133,7 +155,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         DataStore.updateCache(getNoteByFilename(filename), false)
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
-          sendToHTMLWindow('cancelChecklist', data)
+          sendToHTMLWindow(windowId, 'cancelChecklist', data)
         } else {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
           await showDashboardHTML()
@@ -192,7 +214,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         const note = await Editor.openNoteByFilename(filename)
         if (note) {
           const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
-          logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
+          logDebug(
+            'bridgeClickDashboardItem',
+            `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`,
+          )
         } else {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open filename ${filename} in Editor`)
         }
@@ -205,7 +230,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         const note = await Editor.openNoteByTitle(wantedTitle)
         if (note) {
           const res = highlightParagraphInEditor({ filename: note.filename, content: content }, true)
-          logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`)
+          logDebug(
+            'bridgeClickDashboardItem',
+            `-> successful call to open filename ${filename} in Editor, followed by ${res ? 'succesful' : 'unsuccessful'} call to highlight the paragraph in the editor`,
+          )
         } else {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)
         }
@@ -227,9 +255,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = getTodaysDateHyphenated()
           logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> 'today'`)
-
-        }
-        else if (dateInterval.match(RE_DATE_INTERVAL)) {
+        } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           // Get the (ISO) current date on the task
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'offset') // 'longer'
@@ -262,8 +288,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = 'today'
           logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> 'today'`)
-        }
-        else if (dateInterval.match(RE_DATE_INTERVAL)) {
+        } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           // Get today's date, ignoring current date on task
           startDateStr = getTodaysDateHyphenated()
           newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'longer') // TEST: longer?
@@ -273,7 +298,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         const thePara = findParaFromStringAndFilename(filename, content)
         if (typeof thePara !== 'boolean') {
           const theLine = thePara.content
-          const changedLine = replaceArrowDatesInString(thePara.content, '>' + newDateStr)
+          const changedLine = replaceArrowDatesInString(thePara.content, `>${newDateStr}`)
           logDebug('bridgeClickDashboardItem', `Found line {${theLine}}\n-> changed line: {${changedLine}}`)
           thePara.content = changedLine
           const thisNote = thePara.note
@@ -304,13 +329,13 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     //   para.type = statusWas === 'open' ? 'done' : 'checklistDone'
     //   para.note?.updateParagraph(para)
     //   const newDivContent = `<td>"${para.type}"</td><td>Paragraph status was updated by the plugin!</td>`
-    //   sendToHTMLWindow('updateDiv', { divID: lineID, html: newDivContent, innerText: false })
+    //   sendToHTMLWindow(windowId,'updateDiv', { divID: lineID, html: newDivContent, innerText: false })
     //   // NOTE: in this particular case, it might have been easier to just call the refresh-page command, but I thought it worthwhile
     //   // to show how to update a single div in the HTML view
     // } else {
     //   logError('bridgeClickDashboardItem', `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
     // }
   } catch (error) {
-    logError(pluginJson, 'pluginToHTMLBridge / bridgeClickDashboardItem:' + error.message)
+    logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem:${error.message}`)
   }
 }

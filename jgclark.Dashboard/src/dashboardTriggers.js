@@ -35,7 +35,7 @@ function changeToNumberOfOpenItems(previousContent: string, currentContent: stri
   const prevOpenNum = numberOfOpenItems(previousContent)
   const currentOpenNum = numberOfOpenItems(currentContent)
   logDebug(pluginJson, `prevOpenNum: ${prevOpenNum} / currentOpenNum: ${currentOpenNum} ->  ${String(prevOpenNum - currentOpenNum)}`)
-  return (prevOpenNum != currentOpenNum)
+  return prevOpenNum != currentOpenNum
 }
 
 /**
@@ -71,7 +71,7 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
     }
 
     // Only proceed if the dashboard window is open
-    if (!isHTMLWindowOpen('Dashboard')) {
+    if (!isHTMLWindowOpen(pluginJson['plugin.id'])) {
       logDebug('decideWhetherToUpdateDashboard', `Dashboard window not open, so stopping.`)
       return
     }
@@ -82,7 +82,10 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
       const noteReadOnly: CoreNoteFields = Editor.note
       const previousContent = noteReadOnly.versions[0].content
       const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
-      logDebug('decideWhetherToUpdateDashboard', `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`)
+      logDebug(
+        'decideWhetherToUpdateDashboard',
+        `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`,
+      )
       // logDebug('decideWhetherToUpdateDashboard', `- previous version: ${String(noteReadOnly.versions[0].date)} [${previousContent}]`)
       // logDebug('decideWhetherToUpdateDashboard', `- new version: ${String(Date.now())} [${latestContent}]`)
 
@@ -108,7 +111,7 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
       const afterOpenSorted = afterOpenLines.sort()
 
       // Compare them
-      const openItemsHaveChanged = (beforeOpenSorted.toString() !== afterOpenSorted.toString())
+      const openItemsHaveChanged = beforeOpenSorted.toString() !== afterOpenSorted.toString()
 
       // // Decide if there are more or fewer open items than before
       // // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
@@ -150,15 +153,13 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
         // Update the dashboard, but don't ask for focus
         logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard.`)
         showDashboardHTML(false)
-      }
-      else {
+      } else {
         logDebug('decideWhetherToUpdateDashboard', `Won't update dashboard.`)
       }
     } else {
-      throw new Error("Cannot get Editor details. Is there a note open in the Editor?")
+      throw new Error('Cannot get Editor details. Is there a note open in the Editor?')
     }
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, `decideWhetherToUpdateDashboard: ${error.name}: ${error.message}`)
   }
 }

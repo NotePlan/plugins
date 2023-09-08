@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.6.2] - 2023-09-07
+
+- Conform code with NotePlan's new multiple-HTML windows capability
+
 ## [0.6.1] - 2023-08-???
 
 ## [0.6.0] - 2023-08-25

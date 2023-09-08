@@ -352,6 +352,7 @@ declare interface TEditor extends CoreNoteFields {
   +id: string;
   /**
    * Set / get a custom identifier, so you don't need to cache the unique id.
+   * Generally speaking you should set (or at least start) this string with the plugin's ID, e.g. pluginJson['plugin.id']
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */
@@ -2027,6 +2028,7 @@ declare class HTMLView {
   /**
    * Set / get a custom identifier, so you don't need to cache the unique id.
    * Example: NotePlan.editors[0].customId = "test"
+   * Generally speaking you should set (or at least start) this string with the plugin's ID, e.g. pluginJson['plugin.id']
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */
