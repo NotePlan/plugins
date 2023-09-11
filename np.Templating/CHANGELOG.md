@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.9.10] (aka 2.0.0-bet1.13): 2023-09-11 @dwertheimer
+
+- add folder attribute to np:new for xcallback creation inside a specific folder]
+
 ## [1.9.9] (aka 2.0.0-beta.12): 2023-08-12 @dwertheimer
 
 - Fix templatejs code so it doesn't add extra spaces
