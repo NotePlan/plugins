@@ -66,6 +66,11 @@
       ],
       "description": "Log local preference",
       "jsFunction": "logPreferenceAskUser"
+    },
+    {
+      "name": "test:Unset preference",
+      "description": "Unset local preference",
+      "jsFunction": "unsetPreferenceAskUser"
     }
   ],
   "plugin.commands_unused": [
@@ -76,11 +81,6 @@
       ],
       "description": "Delete a saved set of windows/panes",
       "jsFunction": "deleteWindowSet"
-    },
-    {
-      "name": "test:Unset preference",
-      "description": "Unset local preference",
-      "jsFunction": "unsetPreferenceAskUser"
     }
   ],
   "plugin.settings": [

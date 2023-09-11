@@ -109,20 +109,21 @@ export function setHTMLWindowId(customId: string): void {
  * @returns {string} the matching open HTML window's ID or false if not found
  */
 export function getWindowIdFromCustomId(customId: string): string | false {
-  if (NotePlan.environment.buildVersion >= 973) {
-    const allHTMLWindows = NotePlan.htmlWindows
-    for (const thisWin of allHTMLWindows) {
-      // clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
-      if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
-        thisWin.customId = customId
-        logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)
-        return thisWin.id
-      } else {
-        // logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
-      }
-    }
-  } else {
+  if (NotePlan.environment.buildVersion < 973) {
     logDebug('isHTMLWindowOpen', `Could not run: needs NP v3.8.1+`)
+    return false
+  }
+
+  const allHTMLWindows = NotePlan.htmlWindows
+  for (const thisWin of allHTMLWindows) {
+    clo(thisWin, `getWindowIdFromCustomId(): thisWin=`)
+    if (caseInsensitiveMatch(customId, thisWin.customId) || caseInsensitiveStartsWith(customId, thisWin.customId)) {
+      thisWin.customId = customId
+      logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' matching requested customID '${customId}'`)
+      return thisWin.id
+    } else {
+      logDebug('isHTMLWindowOpen', `Found window '${thisWin.customId}' *NOT* matching requested customID '${customId}'`)
+    }
   }
   return false
 }
