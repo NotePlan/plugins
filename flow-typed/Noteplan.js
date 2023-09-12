@@ -358,13 +358,13 @@ declare interface TEditor extends CoreNoteFields {
    */
   customId: string;
   /**
-   * Type of window where the editor is embedded in.
+   * Get the type of window where the editor is embedded in.
    * Possible values: main|split|floating|unsupported
    * It's unsupported on iOS at the moment.
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */
-  +type: string;
++windowType: string;
   /**
    * Get the cursor into a specific editor and send the window to the front.
    * Note: Available from NotePlan v3.8.1 build 973
@@ -2028,7 +2028,7 @@ declare class HTMLView {
   /**
    * Set / get a custom identifier, so you don't need to cache the unique id.
    * Example: NotePlan.editors[0].customId = "test"
-   * Generally speaking you should set (or at least start) this string with the plugin's ID, e.g. pluginJson['plugin.id']
+   * Generally speaking you should start this string with the plugin's ID, e.g. pluginJson['plugin.id'], and append '.name' if you need to have more than 1 HTML window type in the same plugin.
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */
