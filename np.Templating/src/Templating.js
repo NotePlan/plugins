@@ -186,10 +186,10 @@ export async function templateInvoke(): Promise<void> {
   }
 }
 
-export async function templateNew(templateTitle: string = ''): Promise<void> {
+export async function templateNew(templateTitle: string = '', _folder?: string): Promise<void> {
   try {
     let selectedTemplate // will be a filename
-    if (templateTitle?.length) {
+    if (templateTitle?.trim().length) {
       const options = await NPTemplating.getTemplateList()
       const chosenOpt = options.find((option) => option.label === templateTitle)
       if (chosenOpt) {
@@ -203,12 +203,12 @@ export async function templateNew(templateTitle: string = ''): Promise<void> {
     const templateData = await NPTemplating.getTemplate(selectedTemplate)
     const templateAttributes = await NPTemplating.getTemplateAttributes(templateData)
 
-    let folder = ''
+    let folder = _folder ?? ''
     let noteTitle = ''
 
     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
 
-    if (frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
+    if (!folder && frontmatterAttributes?.folder && frontmatterAttributes.folder.length > 0) {
       folder = await NPTemplating.getFolder(frontmatterAttributes.folder, 'Select Destination Folder')
     }
 

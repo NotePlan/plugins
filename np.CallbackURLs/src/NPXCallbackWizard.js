@@ -352,6 +352,8 @@ export async function xCallbackWizard(_commandType: ?string = '', passBackResult
         runplugin = await chooseRunPluginXCallbackURL()
         if (runplugin) {
           url = runplugin.url || ''
+        } else {
+          return
         }
         break
       default:
