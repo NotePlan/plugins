@@ -650,23 +650,20 @@ declare class DataStore {
 
   /**
    * Loads all available plugins asynchronously from the GitHub repository and returns a list.
-   * You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
-   * Set `showHidden` to true if it should also load hidden plugins. Hidden plugins have a flag `isHidden`.
-   * Set the third parameter `skipMatchingLocalPlugins` to true if you want to see only the available plugins from GitHub and not merge the data with the locally available plugins. Then the version will always be that of the plugin that is available online.
    * Note: Available from NotePlan v3.5.2; 'skipMatchingLocalPlugins' added v3.7.2 build 926
-   * @param {boolean} showLoading?
-   * @param {boolean} showHidden?
-   * @param {boolean} skipMatchingLocalPlugins?
+   * @param {boolean} showLoading? - You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
+   * @param {boolean} showHidden? - Set `showHidden` to true if it should also load hidden plugins. Hidden plugins have a flag `isHidden`
+   * @param {boolean} skipMatchingLocalPlugins? - Set the third parameter `skipMatchingLocalPlugins` to true if you want to see only the available plugins from GitHub and not merge the data with the locally available plugins. Then the version will always be that of the plugin that is available online.
    * @return {Promise<any>} pluginList
    */
-  static listPlugins(showLoading, showHidden, skipMatchingLocalPlugins): Promise<Array<PluginObject>>;
+  static listPlugins(showLoading?: boolean, showHidden?: boolean, skipMatchingLocalPlugins?: boolean): Promise<Array<PluginObject>>;
   /**
    * Installs a given plugin (load a list of plugins using `.listPlugins` first). If this is part of a user interfaction, pass "true" for `showLoading` to show a loading indicator.
    * Note: Available from v3.5.2
    * @param {PluginObject}
    * @param {boolean}
    */
-  static installPlugin(pluginObject: PluginObject, showLoading: boolean): Promise<void>;
+  static installPlugin(pluginObject: PluginObject, showLoading?: boolean): Promise<void>;
   /**
    * Returns all installed plugins as PluginObject(s).
    * Note: Available from v3.5.2

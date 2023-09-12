@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.CallbackURLs/README.md) for details on available commands and use cases.
 
+## [1.6.1] - 2023-09-12 @dwertheimer
+
+- Bug fix for calling np.Templating (can't pull plugin.json)
+
 ## [1.6.0] - 2023-08-27 @dwertheimer
 
 - Adding passpack for /favorite commands (see Favorites Plugin)
