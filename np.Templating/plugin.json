@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.5.0",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 np.Templating",
-  "plugin.version": "1.9.9",
-  "plugin.lastUpdateInfo": "1.9.9 (aka 2.0.0-beta.12): Fix templatejs blocks adding a space",
+  "plugin.version": "1.9.10",
+  "plugin.lastUpdateInfo": "1.9.10: add folder attribute to np:new for xcallback creation inside a specific folder",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -60,7 +60,8 @@
       "description": "Create new note with title, using folder attribute",
       "jsFunction": "templateNew",
       "arguments": [
-        "template title to run"
+        "template title to run (or if you know the folder but want to be prompted at run-time for the template, enter a single space for this argument)",
+        "folder to create note in (optional-leave empty to be prompted for it)"
       ]
     },
     {

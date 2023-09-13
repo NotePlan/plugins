@@ -358,13 +358,13 @@ declare interface TEditor extends CoreNoteFields {
    */
   customId: string;
   /**
-   * Type of window where the editor is embedded in.
+   * Get the type of window where the editor is embedded in.
    * Possible values: main|split|floating|unsupported
    * It's unsupported on iOS at the moment.
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */
-  +type: string;
++windowType: string;
   /**
    * Get the cursor into a specific editor and send the window to the front.
    * Note: Available from NotePlan v3.8.1 build 973
@@ -650,23 +650,20 @@ declare class DataStore {
 
   /**
    * Loads all available plugins asynchronously from the GitHub repository and returns a list.
-   * You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
-   * Set `showHidden` to true if it should also load hidden plugins. Hidden plugins have a flag `isHidden`.
-   * Set the third parameter `skipMatchingLocalPlugins` to true if you want to see only the available plugins from GitHub and not merge the data with the locally available plugins. Then the version will always be that of the plugin that is available online.
    * Note: Available from NotePlan v3.5.2; 'skipMatchingLocalPlugins' added v3.7.2 build 926
-   * @param {boolean} showLoading?
-   * @param {boolean} showHidden?
-   * @param {boolean} skipMatchingLocalPlugins?
+   * @param {boolean} showLoading? - You can show a loading indicator using the first parameter (true) if this is part of some user interaction. Otherwise, pass "false" so it happens in the background.
+   * @param {boolean} showHidden? - Set `showHidden` to true if it should also load hidden plugins. Hidden plugins have a flag `isHidden`
+   * @param {boolean} skipMatchingLocalPlugins? - Set the third parameter `skipMatchingLocalPlugins` to true if you want to see only the available plugins from GitHub and not merge the data with the locally available plugins. Then the version will always be that of the plugin that is available online.
    * @return {Promise<any>} pluginList
    */
-  static listPlugins(showLoading, showHidden, skipMatchingLocalPlugins): Promise<Array<PluginObject>>;
+  static listPlugins(showLoading?: boolean, showHidden?: boolean, skipMatchingLocalPlugins?: boolean): Promise<Array<PluginObject>>;
   /**
    * Installs a given plugin (load a list of plugins using `.listPlugins` first). If this is part of a user interfaction, pass "true" for `showLoading` to show a loading indicator.
    * Note: Available from v3.5.2
    * @param {PluginObject}
    * @param {boolean}
    */
-  static installPlugin(pluginObject: PluginObject, showLoading: boolean): Promise<void>;
+  static installPlugin(pluginObject: PluginObject, showLoading?: boolean): Promise<void>;
   /**
    * Returns all installed plugins as PluginObject(s).
    * Note: Available from v3.5.2
@@ -2028,7 +2025,7 @@ declare class HTMLView {
   /**
    * Set / get a custom identifier, so you don't need to cache the unique id.
    * Example: NotePlan.editors[0].customId = "test"
-   * Generally speaking you should set (or at least start) this string with the plugin's ID, e.g. pluginJson['plugin.id']
+   * Generally speaking you should start this string with the plugin's ID, e.g. pluginJson['plugin.id'], and append '.name' if you need to have more than 1 HTML window type in the same plugin.
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */

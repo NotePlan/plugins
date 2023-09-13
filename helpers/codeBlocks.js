@@ -1,7 +1,51 @@
 // @flow
-import {clo,logError} from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 
 export type CodeBlock = { type: string, code: string, paragraphs: Array<TParagraph> }
+
+export function addCodeBlock(destNote: CoreNoteFields, textToAdd: string, codeBlockType: string): boolean {
+  try {
+    logDebug('addCodeBlock', `starting for note ${displayTitle(destNote)}`)
+    const codeBlock = `\`\`\` ${codeBlockType}\n${textToAdd}\n\`\`\`\n`
+    destNote.appendParagraph(codeBlock, 'code')
+    return true
+  } catch (err) {
+    logError('addCodeBlock()', JSP(err))
+    return false
+  }
+}
+
+/**
+ * INCOMPLETE: so not exported. I had a better idea when I was part-way through it.
+ * @param {CoreNoteFields} note
+ * @param {string} textToAdd
+ * @param {string} codeBlockType, e.g. 'json'
+ * @returns {boolean} success?
+ */
+export function updateCodeBlock(note: CoreNoteFields, textToAdd: string, codeBlockType: string): boolean {
+  try {
+    const updatedCodeBlock = `\`\`\` ${codeBlockType}\n${textToAdd}\n\`\`\`\n`
+    const existingCodeBlocks: Array<$ReadOnly<CodeBlock>> = getCodeBlocks(note).slice() // copy
+
+    // Find match to existingCodeBlocks by having the same codeBlockType and the same WindowSet.name item in the JSON object
+    const RE_FOR_THIS_SET_NAME = new RegExp(`"name":\s*"${codeBlockType}"`)
+    const matchedCodeBlocks = existingCodeBlocks.filter((cb) => cb.type === codeBlockType && RE_FOR_THIS_SET_NAME.test(cb.code)) // un-tested
+    clo(matchedCodeBlocks, 'matchedCodeBlocks')
+    if (matchedCodeBlocks.length > 0) {
+      // TODO:
+      existingCodeBlocks.delete({ type: codeBlockType, code: matchedCodeBlocks[0].code })
+      existingCodeBlocks.push({ type: codeBlockType, code: updatedCodeBlock, paragraphs: [] })
+      return true
+    }
+    // clo(codeBlocks, 'codeBlocks')
+    return true
+  } catch (err) {
+    logError('updateCodeBlock()', JSP(err))
+    return false
+  }
+}
+
 export function getCodeBlocks(note: CoreNoteFields): $ReadOnlyArray<$ReadOnly<CodeBlock>> {
   const paragraphs = note.paragraphs ?? []
 
@@ -45,7 +89,7 @@ export function getCodeBlocks(note: CoreNoteFields): $ReadOnlyArray<$ReadOnly<Co
 /**
  * Get all Code Blocks of a given type (or multiple types like ["javascript","js"])
  * Whatever is listed behind the ```nameHere in the code block
- * @param {CoreNoteFields} note 
+ * @param {CoreNoteFields} note
  * @param {Array<string>|string} types -- either a single string type to look for or an array of them
  * @returns {$ReadOnlyArray<$ReadOnly<{ type: string, code: string }>>} an array of {type:string, code:string}
  */
