@@ -24,7 +24,7 @@ import {
 } from '@helpers/general'
 import { getProjectNotesInFolder } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
-import { showMessage } from "@helpers/userInput";
+import { showMessage } from "@helpers/userInput"
 
 const pluginID = 'np.Tidy'
 

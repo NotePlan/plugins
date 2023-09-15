@@ -47,7 +47,10 @@ type stubDetails = {
  * @param {Array<string>} foldersToExclude
  * @returns {Array<stubDetails>} array of strings, one for each output line
 */
-function getStubs(foldersToExclude: Array<string> = []): Array<stubDetails> {
+function getStubs(
+  foldersToExclude: Array<string> = [],
+  filenamesToExclude: Array<string> = [],
+): Array<stubDetails> {
   try {
     logDebug(pluginJson, `getStubs() starting`)
     const outputArray: Array<stubDetails> = []
@@ -64,10 +67,12 @@ function getStubs(foldersToExclude: Array<string> = []): Array<stubDetails> {
     }
     const numNotes = notes.length
 
-    //
     let stubs = 0
     let i = 0
     for (const thisNote of notes) {
+      if (filenamesToExclude.includes(thisNote.filename)) {
+        continue
+      }
       i++
       CommandBar.showLoading(true, `Checking note ${String(i)}`, i / numNotes)
       const thisContent = thisNote.content ?? ''
@@ -117,7 +122,7 @@ export async function listStubs(params: string = ''): Promise<void> {
     CommandBar.showLoading(true, `Finding wikilink stubs`)
     await CommandBar.onAsyncThread()
     const startTime = new Date()
-    const stubs: Array<stubDetails> = getStubs(config.listFoldersToExclude)
+    const stubs: Array<stubDetails> = getStubs(config.listFoldersToExclude, [config.stubsNoteFilename])
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
 

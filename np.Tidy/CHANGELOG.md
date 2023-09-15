@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.9.1] - 2023-09-15
+- /List stubs now ignores its own output note when finding stubs
+
 ## [0.9.0] - 2023-08-27
 - new **/List stubs** command that creates/updates a note that lists all your notes that have note links (wikilinks) that lead nowhere.
 - new optional setting "Folders to exclude for /List ... commands" that instructs the "/List stubs", "/List conflicted notes" and "/List duplicate notes" commands to ignore specific folders.
