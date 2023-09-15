@@ -153,15 +153,7 @@ export async function syncEverything() {
 
           // grab the tasks and write them out with sections
           const id: string = projects[i].project_id
-          //console.log(`-->${id}<--`)
-          const task_result = await pullTodoistTasksByProject(id)
-          //console.log(task_result)
-          const tasks: Array<Object> = JSON.parse(task_result)
-          if (tasks) {
-            for (let j = 0; j < tasks.length; j++) {
-              await writeOutTask(note, tasks[j])
-            }
-          }
+          await projectSync(note, id)
         }
       }
 
@@ -188,6 +180,7 @@ export async function syncProject() {
   if (note) {
     // check to see if this has any frontmatter
     const frontmatter: ?Object = getFrontMatterAttributes(note)
+    clo(frontmatter)
     let check: boolean = true
     if (frontmatter) {
       if ('todoist_id' in frontmatter) {
@@ -200,12 +193,8 @@ export async function syncProject() {
           })
         }
 
-        const results = await pullTodoistTasksByProject(frontmatter.todoist_id)
-        const tasks: Array<Object> = JSON.parse(results)
-        for (let i = 0; i < tasks.length; i++) {
-          //console.log(tasks[i].content)
-          await writeOutTask(note, tasks[i])
-        }
+        await projectSync(note, frontmatter.todoist_id)
+  
         //close the tasks in Todoist if they are complete in Noteplan`
         closed.forEach(async (t) => {
           await closeTodoistTask(t)
@@ -276,13 +265,12 @@ async function syncThemAll() {
           }
 
           // get the ID
-          const id: string = paragraphs[i].content.split(':')[1]
+          let id: string = paragraphs[i].content.split(':')[1]
+          id = id.trim()
+
           logInfo(pluginJson, `Matches up to Todoist project id: ${id}`)
-          const task_result = await pullTodoistTasksByProject(id.trim())
-          const tasks: Array<Object> = JSON.parse(task_result)
-          for (let j = 0; j < tasks.length; j++) {
-            await writeOutTask(note, tasks[j])
-          }
+          await projectSync(note, id)
+   
           //close the tasks in Todoist if they are complete in Noteplan`
           closed.forEach(async (t) => {
             await closeTodoistTask(t)
@@ -354,6 +342,23 @@ async function syncTodayTasks() {
      })
    }
  } 
+}
+
+/**
+ * Get Todoist project tasks and write them out one by one
+ * 
+ * @param {TNote} note - note that will be written to
+ * @param {string} id - Todoist project ID
+ * @returns {Promise<void>}
+ */
+async function projectSync(note: TNote, id: string): Promise<void> {
+  console.log(`ID is ${id}`)
+  const task_result = await pullTodoistTasksByProject(id)
+  console.log(task_result)
+  const tasks: Array<Object> = JSON.parse(task_result)
+  for (let j = 0; j < tasks.length; j++) {
+    await writeOutTask(note, tasks[j])
+  }
 }
 
 /**
