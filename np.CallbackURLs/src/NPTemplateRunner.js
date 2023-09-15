@@ -4,7 +4,7 @@ import pluginJson from '../plugin.json'
 import { chooseOption, showMessage, showMessageYesNo, getInputTrimmed, chooseNote } from '../../helpers/userInput'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import NPTemplating from 'NPTemplating'
-import { getAttributes } from '@templating/support/modules/FrontmatterModule'
+import { getAttributes } from '@helpers/NPFrontMatter'
 import { createRunPluginCallbackUrl } from '@helpers/general'
 
 // getNoteTitled, location, writeUnderHeading, replaceNoteContents

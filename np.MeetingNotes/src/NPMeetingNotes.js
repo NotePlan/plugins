@@ -5,7 +5,7 @@ import moment from 'moment-business-days'
 import pluginJson from '../plugin.json'
 import { log, logDebug, logError, clo, JSP } from '@helpers/dev'
 import { showMessage, chooseFolder } from '@helpers/userInput'
-import { getAttributes } from '@templatingModules/FrontmatterModule'
+import { getAttributes } from '@helpers/NPFrontMatter'
 import NPTemplating from 'NPTemplating'
 
 /**

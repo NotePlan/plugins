@@ -13,7 +13,6 @@ import fm from 'front-matter'
 // import { showMessage } from './userInput'
 import { clo, JSP, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { getAttributes } from '@templating/support/modules/FrontmatterModule'
 const pluginJson = 'helpers/NPFrontMatter.js'
 
 // Note: update these for each new trigger that gets added
@@ -21,12 +20,14 @@ export type TriggerTypes = 'onEditorWillSave' | 'onOpen'
 export const TRIGGER_LIST = ['onEditorWillSave', 'onOpen']
 
 /**
- * Frontmatter cannot have colons in the content (specifically ": "), so we need to wrap that in quotes
+ * Frontmatter cannot have colons in the content (specifically ": " or ending in colon or values starting in @ or #), so we need to wrap that in quotes
  * @param {string} text
  * @returns {string} quotedText (if required)
  */
 export function quoteText(text: string): string {
-  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#/.test(text) || /^@/.test(text) || text === ''
+  // create a regex that looks for a leading "#" char and any non whitespace char
+
+  const needsQuoting = text.includes(': ') || /:$/.test(text) || /^#\S/.test(text) || /^@/.test(text) || text === ''
   const isWrappedInQuotes = /^".*"$/.test(text) // pass it through if already wrapped in quotes
   return needsQuoting && !isWrappedInQuotes ? `"${text}"` : text
 }
@@ -428,4 +429,143 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
     logError('NPFrontMatter/addTrigger()', JSP(error))
     return false
   }
+}
+
+/**
+ * [Internal function used by frontmatter sanitization functions -- should not be used directly]
+ * For pre-processing illegal characters in frontmatter, we must first get the frontmatter text the long way (instead of calling fm() which will error out)
+ * Gets the text that represents frontmatter. The first line must be a "---" separator, and include everything until another "---" separator is reached. Include the separators in the output.
+ * Returns empty string if no frontmatter found
+ * @param {*} text
+ */
+export function _getFMText(text: string) {
+  const lines = text.split('\n')
+  if (lines.length >= 2 && lines[0] === '---') {
+    let fmText = ''
+    let i = 0
+    while (i < lines.length) {
+      fmText += `${lines[i]}\n`
+      i++
+      if (lines[i] === '---') {
+        return `${fmText}---\n`
+      }
+    }
+  }
+  return ''
+}
+
+/**
+ * [Internal function used by frontmatter sanitization functions -- should not be used directly]
+ * Fix the frontmatter text by quoting values that need it
+ * Should always be run after _getFMText() because assumes there is frontmatter
+ * @param {string} fmText - the text of the frontmatter (including the separators but not the note text)
+ * @returns {string} - the fixed frontmatter text
+ * @example fixFrontmatter('---\nfoo: bar:\nbaz: @qux\n---\n') => '---\nfoo: "bar:"\nbaz: "@qux"\n---\n'
+ */
+export function _fixFrontmatter(fmText: string): string {
+  const varLines = fmText.trim().split('\n').slice(1, -1)
+  let output = '',
+    isMultiline = false
+  varLines.forEach((line) => {
+    if (isMultiline && !line.trim().startsWith('-')) {
+      isMultiline = false
+    }
+    if (!isMultiline && line.trim().endsWith(':') && line.split(':').length === 2) {
+      isMultiline = true
+      output += `${line}\n`
+      return
+    }
+    if (isMultiline) {
+      output += `${line.trimEnd()}\n`
+      return
+    }
+    const [varName, ...varValue] = line.split(':')
+    const value = varValue.join(':').trim()
+    const fixedValue = quoteText(value)
+    output += `${varName}: ${fixedValue}\n`
+  })
+  return `---\n${output}---\n`
+}
+
+/**
+ * [Internal function used by frontmatter sanitization functions -- should not be used directly]
+ * Typically is run after a parse error from the frontmatter library
+ * Sanitizes the frontmatter text by quoting illegal values that need quoting (e.g. colons, strings that start with: @, #)
+ * Returns sanitized text as a string
+ * @param {string} originalText
+ * @returns
+ */
+export function _sanitizeFrontmatterText(originalText: string): string {
+  const fmText = _getFMText(originalText)
+  if (fmText === '') return originalText
+  // needs to return full note after sanitizing frontmatter
+  // get the text between the separators
+  const fixedText = _fixFrontmatter(fmText)
+  return originalText.replace(fmText, fixedText)
+}
+
+export type FrontMatterDocumentObject = { attributes: { [string]: string }, body: string, frontmatter: string }
+
+/**
+ * Get an object representing the document with or without frontmatter
+ * Do pre-processing to ensure that the most obvious user-entered illegal character sequences in frontmatter are avoided
+ * @param {string} noteText  - full text of note (perhaps starting with frontmatter)
+ * @returns {Object} - the frontmatter object (or empty object if none)
+ */
+export function getSanitizedFmParts(noteText: string): FrontMatterDocumentObject {
+  let fmData = { attributes: {}, body: noteText, frontmatter: '' } //default
+  // we need to pre-process the text to sanitize it instead of running fm because we need to
+  // preserve #hashtags and fm will blank those lines  out as comments
+  const sanitizedText = _sanitizeFrontmatterText(noteText || '')
+  try {
+    fmData = fm(sanitizedText, { allowUnsafe: true })
+  } catch (error) {
+    logError(`Frontmatter getAttributes error. COULD NOT SANITIZE CONTENT: "${error.message}". Stopping.`)
+  }
+  return fmData
+}
+
+/**
+ * Sanitize the frontmatter text by quoting illegal values that need quoting (e.g. colons, strings that start with: @, #)
+ * Returns frontmatter object (or empty object if none)
+ * Optionally writes the sanitized (quoted) text back to the note
+ * @param {*} note
+ * @param {*} writeBackToNote - whether to write the sanitized text back to the note
+ * @returns {Object} - the frontmatter object (or empty null if none)
+ */
+export function getSanitizedFrontmatterInNote(note: CoreNoteFields, writeBackToNote: boolean = false): FrontMatterDocumentObject | null {
+  const fmData = getSanitizedFmParts(note.content || '') || null
+  if (writeBackToNote && fmData?.attributes) {
+    if (_getFMText(note.content || '') !== `---\n${fmData.frontmatter}\n---\n`) {
+      writeFrontMatter(note, fmData.attributes)
+    }
+  }
+  return fmData
+}
+
+/**
+ * Get the frontmatter attributes from a note, sanitizing the frontmatter text by quoting illegal values that need quoting (e.g. colons, strings that start with: @, #)
+ * (moved from '@templating/support/modules/FrontmatterModule')
+ * // import { getAttributes } from '@templating/support/modules/FrontmatterModule'
+ * @param {string} templateData
+ * @returns {Object} - the frontmatter object (or empty object if none)
+ */
+export function getAttributes(templateData: string = ''): Object {
+  const fmData = getSanitizedFmParts(templateData)
+  Object.keys(fmData?.attributes).forEach((key) => {
+    fmData.attributes[key] || typeof fmData.attributes[key] === 'boolean' ? fmData.attributes[key] : (fmData.attributes[key] = '')
+  })
+  return fmData && fmData?.attributes ? fmData.attributes : {}
+}
+
+/**
+ *  Get the body of the note (without frontmatter)
+ *  (moved from '@templating/support/modules/FrontmatterModule')
+ * @param {string} templateData
+ * @returns {string} - the body of the note (without frontmatter)
+ */
+export function getBody(templateData: string = ''): string {
+  if (!templateData) return ''
+  const fmData = getSanitizedFmParts(templateData)
+  return fmData && fmData?.body ? fmData.body : ''
 }

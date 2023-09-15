@@ -38,7 +38,7 @@ import { getParagraphContainingPosition, getSelectedParagraphLineIndex } from '@
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { createRunPluginCallbackUrl, formatWithFields, CreateUUID } from '@helpers/general'
 import { getCodeBlocksOfType } from '@helpers/codeBlocks'
-import { getAttributes } from '@templating/support/modules/FrontmatterModule'
+import { getAttributes } from '@helpers/NPFrontMatter'
 
 /**
  * Get the frontmatter variables for this document
