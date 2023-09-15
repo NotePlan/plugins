@@ -196,6 +196,18 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.quoteText('')
         expect(result).toEqual('""')
       })
+      test('should quote text with leading hashtag', () => {
+        const result = f.quoteText('#foo')
+        expect(result).toEqual('"#foo"')
+      })
+      test('should not quote text with hashtag in the middle', () => {
+        const result = f.quoteText('bar #foo')
+        expect(result).toEqual('bar #foo')
+      })
+      test('should not quote hash with whitespace following (e.g. a comment that will get wiped out)', () => {
+        const result = f.quoteText('# comment')
+        expect(result).toEqual('# comment')
+      })
     })
     /*
      * writeFrontMatter()
@@ -569,6 +581,154 @@ describe(`${PLUGIN_NAME}`, () => {
     })
 
     /*
+     * _getFMText()
+     */
+    describe('_getFMText()' /* function */, () => {
+      test('should return blank string if blank note', () => {
+        const result = f._getFMText('')
+        expect(result).toEqual('')
+      })
+      test('should return blank string if no frontmatter', () => {
+        const result = f._getFMText('this\nis\na test')
+        expect(result).toEqual('')
+      })
+      test('should return blank string if incomplete frontmatter', () => {
+        const result = f._getFMText('---\nis\na test')
+        expect(result).toEqual('')
+      })
+      test('should return blank string if incomplete frontmatter2', () => {
+        const result = f._getFMText('--\nis\na test\n--')
+        expect(result).toEqual('')
+      })
+      test('should return frontmatter text even if blank', () => {
+        const result = f._getFMText('---\n---\n')
+        expect(result).toEqual('---\n---\n')
+      })
+      test('should return frontmatter text', () => {
+        const result = f._getFMText('---\nfoo: bar\n---\n')
+        expect(result).toEqual('---\nfoo: bar\n---\n')
+      })
+    })
+
+    /*
+     * _fixFrontmatter()
+     */
+    describe('_fixFrontmatter()' /* function */, () => {
+      test('should not change text with no issues', () => {
+        const before = `---\nfoo: bar\n---\n`
+        const result = f._fixFrontmatter(before)
+        expect(result).toEqual(before)
+      })
+      test('should not change text with no issues', () => {
+        const before = `---\nfoo: bar\n---\n`
+        const result = f._fixFrontmatter(before)
+        expect(result).toEqual(before)
+      })
+      test('should change text with colon at end', () => {
+        const before = `---\nfoo: bar:\n---\n`
+        const result = f._fixFrontmatter(before)
+        expect(result).toEqual(`---\nfoo: "bar:"\n---\n`)
+      })
+      test('should change text with colon space', () => {
+        const before = `---\nfoo: bar: baz\n---\n`
+        const result = f._fixFrontmatter(before)
+        expect(result).toEqual(`---\nfoo: "bar: baz"\n---\n`)
+      })
+      test('should change text with hashtag', () => {
+        const before = `---\nfoo: #bar\n---\n`
+        const result = f._fixFrontmatter(before)
+        expect(result).toEqual(`---\nfoo: "#bar"\n---\n`)
+      })
+      test('should change text with hashtag', () => {
+        const before = `---\nfoo: @bar\n---\n`
+        const result = f._fixFrontmatter(before)
+        expect(result).toEqual(`---\nfoo: "@bar"\n---\n`)
+      })
+      test('should not touch indented text', () => {
+        const indented = `---\ntitle: indented\nkey:\n - value1\n - value2\n---\n`
+        const before = indented
+        const result = f._fixFrontmatter(before)
+        expect(result).toEqual(before)
+      })
+    })
+
+    /*
+     * _sanitizeFrontmatterText()
+     */
+    describe('_sanitizeFrontmatterText()' /* function */, () => {
+      test('should do nothing if no frontmatter', () => {
+        const result = f._sanitizeFrontmatterText('')
+        expect(result).toEqual('')
+      })
+      test('should change text with colon at end', () => {
+        const before = `---\nfoo: bar:\n---\n`
+        const result = f._sanitizeFrontmatterText(before)
+        expect(result).toEqual(`---\nfoo: "bar:"\n---\n`)
+      })
+      test('should change text with colon in middle of value', () => {
+        const before = `---\nfoo: bar: bizzle\n---\n`
+        const result = f._sanitizeFrontmatterText(before)
+        expect(result).toEqual(`---\nfoo: "bar: bizzle"\n---\n`)
+      })
+      test('should change text with attag', () => {
+        const before = `---\nfoo: @bar\n---\n`
+        const result = f._sanitizeFrontmatterText(before)
+        expect(result).toEqual(`---\nfoo: "@bar"\n---\n`)
+      })
+      test('should change text with hashtag', () => {
+        const before = `---\nfoo: #bar\n---\n`
+        const result = f._sanitizeFrontmatterText(before)
+        expect(result).toEqual(`---\nfoo: "#bar"\n---\n`)
+      })
+      test('should not change comments (space after #) which will be wiped out later by fm()', () => {
+        const before = `---\nfoo: # bar\n---\n`
+        const result = f._sanitizeFrontmatterText(before)
+        expect(result).toEqual(`---\nfoo: # bar\n---\n`)
+      })
+      // all other tests are done in _fixFrontmatter()
+    })
+
+    /*
+     * getSanitizedFmParts()
+     */
+    describe('getSanitizedFmParts()' /* function */, () => {
+      test('should make no changes if none are necessary', () => {
+        const before = `---\nfoo: bar\n---\nbaz`
+        const result = f.getSanitizedFmParts(before)
+        const expected = { attributes: { foo: 'bar' }, body: 'baz', bodyBegin: 4, frontmatter: 'foo: bar' }
+        expect(result).toEqual(expected)
+      })
+      test('should make change to sanitized @text and return legal value', () => {
+        const before = `---\nfoo: @bar\n---\nbaz`
+        const result = f.getSanitizedFmParts(before)
+        const expected = { attributes: { foo: '@bar' }, body: 'baz', bodyBegin: 4, frontmatter: 'foo: "@bar"' }
+        expect(result).toEqual(expected)
+      })
+      test('should make change to sanitized #text and return legal value', () => {
+        const before = `---\nfoo: #bar\n---\nbaz`
+        const result = f.getSanitizedFmParts(before)
+        const expected = { attributes: { foo: '#bar' }, body: 'baz', bodyBegin: 4, frontmatter: 'foo: "#bar"' }
+        expect(result).toEqual(expected)
+      })
+      // the other tests should be well covered by the underlying functions
+    })
+
+    /*
+     * sanitizeFrontmatterInNote()
+     */
+    describe('sanitizeFrontmatterInNote()' /* function */, () => {
+      test.skip('should do nothing if none are necesary', () => {
+        const note = new Note({ content: 'baz' })
+        const result = f.getSanitizedFrontmatterInNote(note)
+        expect(result).toEqual(true)
+      })
+      test.skip('should do nothing if none are necesary', () => {
+        const note = new Note({ content: '---\nfoo: bar\n---\nbaz' })
+        const result = f.getSanitizedFrontmatterInNote(note)
+        expect(result).toEqual(true)
+      })
+    })
+    /*
      * formatTriggerString()
      */
     describe('formatTriggerString()' /* function */, () => {
@@ -595,6 +755,24 @@ describe(`${PLUGIN_NAME}`, () => {
         }
         const result = f.formatTriggerString(obj)
         expect(result).toEqual('onEditorWillSave => np.test.onEditorWillSaveFunc, onEditorWillSave => np.test2.onEditorWillSaveFunc2')
+      })
+    })
+    // moved from FrontMatterModule. Needs to be updated here
+    describe('Frontmatter helpers', () => {
+      test(`should return attributes using getAttributes()`, () => {
+        const data = `---\ntitle: Test Sample\nname: Mike Erickson\n---\n<%= name %>`
+        const result = f.getAttributes(data)
+        expect(typeof result).toEqual('object')
+        expect(result?.title).toEqual('Test Sample')
+        expect(result?.name).toEqual('Mike Erickson')
+      })
+      // moved from FrontMatterModule
+      test(`should return attributes using getBody()`, () => {
+        const data = `---\ntitle: Test Sample\nname: Mike Erickson\n---\n<%= name %>`
+        const result = f.getBody(data)
+        expect(typeof result).toEqual('string')
+        expect(result).toContain('<%= name %>')
+        expect(result).not.toContain('title: Test Sample')
       })
     })
   })

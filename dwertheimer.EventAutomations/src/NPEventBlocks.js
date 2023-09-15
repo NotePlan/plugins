@@ -331,7 +331,14 @@ export async function createEventPrompt(_heading?: string) {
           `Was not able to parse definitive date/time info for the text: "${eventText}". Have placed the text on the clipboard in case you want to edit and try it again.`,
         )
         Clipboard.string = eventText
-      }
+
+      } else     {
+      logError(pluginJson, `Event text is empty. Please provide valid event text.`)
+    }
+  } catch (error) {
+    logError(pluginJson, `createEventPrompt error=${JSP(error)}`)
+  }
+}  }
     }
   } catch (error) {
     logError(pluginJson, `processTimeLines error=${JSP(error)}`)
