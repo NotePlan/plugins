@@ -180,6 +180,7 @@ export async function createEvent(title: string, range: { start: Date, end: Date
 /**
  * Find the paragraphs that contain event text which needs to be created. If time/date text is ambiguous
  * then ask the user to choose the correct one. Return the ConfirmedEvent data for each line to be turned into an event
+ * NOTE: Calendar.parseDateText does not correctly return "today at" so we try to fix that here
  * @param {Array<TParagraph>} paragraphBlock
  * @param {EventBlocksConfig} config
  * @returns {Promise<Array<ConfirmedEvent>>} - the list of unambiguous event info to create
@@ -192,7 +193,10 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
     if (hasCalendarLink(line.content)) {
       logDebug(pluginJson, `Skipping line with calendar link: ${line.content}`)
     } else {
-      const potentials = Calendar.parseDateText(line.content) //returns {start: Date, end: Date}
+      // create a regex to replace the words "today at" (or today @) with or whithout spaces around the @ with " at "
+      const lineText = line.content.replace(/today ?(at|\@) ?/gi, ' at  ') // Calendar.parseDateText does not correctly return "today at" so we try to fix that here
+      const potentials = Calendar.parseDateText(lineText) //returns {start: Date, end: Date}
+      clo(potentials, `confirmEventTiming Calendar.parseDateText responses for "${line.content}"`)
       if (potentials.length > 0) {
         let chosenDateRange = { ...potentials[0] }
         if (potentials.length > 1) {
@@ -331,14 +335,7 @@ export async function createEventPrompt(_heading?: string) {
           `Was not able to parse definitive date/time info for the text: "${eventText}". Have placed the text on the clipboard in case you want to edit and try it again.`,
         )
         Clipboard.string = eventText
-
-      } else     {
-      logError(pluginJson, `Event text is empty. Please provide valid event text.`)
-    }
-  } catch (error) {
-    logError(pluginJson, `createEventPrompt error=${JSP(error)}`)
-  }
-}  }
+      }
     }
   } catch (error) {
     logError(pluginJson, `processTimeLines error=${JSP(error)}`)

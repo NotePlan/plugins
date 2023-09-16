@@ -364,7 +364,7 @@ declare interface TEditor extends CoreNoteFields {
    * Note: Available from NotePlan v3.8.1 build 973
    * @returns {string}
    */
-+windowType: string;
+  +windowType: string;
   /**
    * Get the cursor into a specific editor and send the window to the front.
    * Note: Available from NotePlan v3.8.1 build 973
@@ -1060,8 +1060,9 @@ declare class Calendar {
    *    Calendar.parseDateText("* Next F1 race is Sun June 19 (Canadian GP)")
    * -> [{"index":18,"start":"2023-06-19T17:00:00.000Z","text":"Sun June 19 ","end":"2023-06-19T17:00:00.000Z"}]
    * Under the hood this uses the Chrono library.
-   * IMPORTANT NOTE:
-   * when .parseDate thinks something is an all-day event, it puts it at noon (both start/end at noon).
+   * IMPORTANT NOTES:
+   * This API does not work correctly when the input string is "today at" something (so make sure to remove the word today from your string)
+   * When .parseDate thinks something is an all-day event, it puts it at noon (both start/end at noon).
    * That means that these two (quite different) lines look identical in the return:
    *   - on Friday
    *   - on Friday at 12

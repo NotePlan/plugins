@@ -4,6 +4,10 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.17.2] 2023-09-16 @dwertheimer
+
+- EventBlocks - work around NP limitation that doesn't process "today at 5pm" correctly
+
 ## [1.17.1] 2023-09-06 @dwertheimer 2023-09-06
 
 - Add argument for heading to put it under
