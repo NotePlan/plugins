@@ -535,7 +535,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
             logDebug('removeTriggersFromRecentCalendarNotes', `removed frontmatter trigger field from ${displayTitle(note)}`)
             countRemoved++
           } else {
-            logWarn('removeTriggersFromRecentCalendarNotes', `failed to remove frontmatter trigger field from ${displayTitle(note)} for some reason`)
+            logDebug('removeTriggersFromRecentCalendarNotes', `failed to remove frontmatter trigger field from ${displayTitle(note)} for some reason`)
           }
         } else {
           // logDebug('removeTriggersFromRecentCalendarNotes', `no frontmatter in ${displayTitle(note)}`)

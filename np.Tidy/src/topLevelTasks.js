@@ -75,7 +75,12 @@ export async function moveTopLevelTasksInNote(
         }
         const reversedParas = topLevelParas.sort((a, b) => (b.lineIndex > a.lineIndex ? 1 : -1))
         reversedParas.forEach((para) => {
-          logDebug(pluginJson, `moveTopLevelTasks: Moving paragraph ${para.lineIndex}: "${para.rawContent}" to heading ${heading}`)
+          logDebug(
+            pluginJson,
+            `moveTopLevelTasks: Moving paragraph ${para.lineIndex}: "${para.rawContent}" ${
+              returnContentAsText ? `(removing for now - will return as text)` : `to heading ${heading}`
+            }`,
+          )
           returnContentAsText ? returnTextArr.push(para.rawContent) : note.addParagraphBelowHeadingTitle(para.content, para.type, heading || '', false, true)
           // delete the paragraph at the top of the note
           para.content = removeRepeats(para.content)
@@ -87,7 +92,7 @@ export async function moveTopLevelTasksInNote(
         })
         // Deal with bug in NP API where top row in note is not actually removed
         // when the bug is fixed in NP this code will not run
-        if (note.paragraphs[0].type === 'empty') {
+        if (note?.paragraphs?.length && note?.paragraphs[0].type === 'empty') {
           logDebug(pluginJson, 'moveTopLevelTasks: Removing empty paragraph at top of note.')
           const contentArr = note.content?.split('\n') || []
           note.content = contentArr.slice(1).join('\n')

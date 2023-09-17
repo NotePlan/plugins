@@ -53,6 +53,13 @@ This command rewrites the current document in the Editor, moving tasks from the 
 <%- tasks %>
 <% } -%>
 ```
+This piece of my daily note template:
+- creates a "Tasks" heading
+- creates a blank task underneath for me to enter tasks during the day
+- scans note and gets a list of task content that was at the top of the note (saves in "tasks" variable)
+- outputs any tasks that were pre-existing in the note under that new Tasks heading that was just created
+NOTE: (thx @phenix): The order is important because the task header needs to be added before the tasks are inserted underneath.
+
 > **NOTE:** If you also run the `Tidy Up` command in your template, you should uncheck this command in the TidyUp settings.
 
 <!-- but if not ??? list params -->

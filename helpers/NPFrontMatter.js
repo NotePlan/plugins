@@ -158,7 +158,7 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
       }
     })
     if (!removed) {
-      logDebug('rFMF', `didn't find '${fieldToRemove}' to remove in note '${displayTitle(note)}'`)
+      logDebug('rFMF', `Note had frontmatter, but didn't find key:'${fieldToRemove}' to remove in note '${displayTitle(note)}'`)
     }
     return removed
   } catch (err) {
@@ -467,6 +467,10 @@ export function _fixFrontmatter(fmText: string): string {
   let output = '',
     isMultiline = false
   varLines.forEach((line) => {
+    if (line.trim() === '') {
+      output += '\n'
+      return
+    }
     if (isMultiline && !line.trim().startsWith('-')) {
       isMultiline = false
     }
