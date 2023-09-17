@@ -516,6 +516,7 @@ export function createArrayOfNotesAndTasks(tasks: Array<TParagraph>): Array<Arra
  * @author @dwertheimer
  */
 export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<Array<TParagraph>> {
+  const startTime = new Date()
   const { foldersToIgnore = [], overdueAsOf, /* openOnly = true, datePlusOnly = true, replaceDate = true, */ noteTaskList = null, noteFolder = false } = options
   // if (replaceDate) logDebug('getNotesAndTasksToReview: replaceDate is legacy and no longer supported. David u need to fix this')
   logDebug(`NPNote::getNotesAndTasksToReview`, `noteTaskList.length: ${noteTaskList?.length || 'undefined'} Looking in: ${noteFolder || 'all notes'}`)
@@ -559,7 +560,7 @@ export function getNotesAndTasksToReview(options: OverdueSearchOptions): Array<A
     logDebug(pluginJson, `getNotesAndTasksToReview using supplied task list: ${noteTaskList.length} tasks`)
     notesToUpdate = noteTaskList
   }
-  logDebug(`NPNote::getNotesAndTasksToReview`, `total notesToUpdate: ${notesToUpdate.length}`)
+  logDebug(`NPNote::getNotesAndTasksToReview took:${timer(startTime)}`, `total notesToUpdate: ${notesToUpdate.length}`)
   return dedupeSyncedLines(notesToUpdate)
 }
 
@@ -613,6 +614,7 @@ export function getNotesWithOpenTasks(
   const lookInNotes = noteType === 'Notes' || noteType === 'both'
   const endDate = new moment(endingDateString).toDate()
   const todayFileName = `${filenameDateString(endDate)}.${DataStore.defaultFileExtension}`
+  const startTime = new Date()
 
   const { num, unit } = timePeriod
   const afterDate = Calendar.addUnitToDate(endDate, unit, -num)
@@ -663,7 +665,7 @@ export function getNotesWithOpenTasks(
   logDebug(`getNotesWithOpenTasks`, `Project Notes after filtering for open tasks: ${recentProjNotesWithOpens.length}`)
 
   const notesWithOpenTasks: Array<Array<TParagraph>> = [...recentCalNotesWithOpens, ...recentProjNotesWithOpens]
-  logDebug(`getNotesWithOpenTasks`, `Combined Notes after filtering for open tasks: ${notesWithOpenTasks.length}`)
+  logDebug(`getNotesWithOpenTasks took:${timer(startTime)}`, `Combined Notes after filtering for open tasks:${notesWithOpenTasks.length}`)
 
   return notesWithOpenTasks
 }
