@@ -23,6 +23,11 @@ export async function moveTopLevelTasksInEditor(headingName: string | null = nul
       pluginJson,
       `moveTopLevelTasksInEditor running with headingName: ${String(headingName)}, runSilently: ${String(runSilently)} returnContentAsText: ${String(returnContentAsText)}`,
     )
+    if (headingName && !returnContentAsText) {
+      const msg = `It appears you are running the moveTopLevelTasksInEditor from an xcallback or template tag. When invoked this way, you must set the final argument (returnContentAsText) to true to return the content to be moved as text to output the results. Otherwise, concurrent edits by the templating engine could cause unexpected results. See the README for more information. Skipping this function.`
+      logError(pluginJson, msg)
+      return ''
+    }
     return await moveTopLevelTasksInNote(Editor, headingName, runSilently, returnContentAsText)
   } catch (error) {
     logError(pluginJson, JSP(error))

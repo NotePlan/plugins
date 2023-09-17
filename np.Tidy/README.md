@@ -49,7 +49,7 @@ This command rewrites the current document in the Editor, moving tasks from the 
 ## Tasks
 *
 <% const tasks = await DataStore.invokePluginCommandByName("Tidy: Move top-level tasks in Editor to heading","np.Tidy",["Tasks",true,true]);  -%>
-<% if (tasks.length) { -%>
+<% if (tasks?.length) { -%>
 <%- tasks %>
 <% } -%>
 ```
