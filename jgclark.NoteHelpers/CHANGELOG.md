@@ -2,6 +2,9 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
+## [0.18.2] - 2023-09-18
+- fix edge case with /add trigger command.
+
 ## [0.18.1] - 2023-08-15
 - New commands by @Leo:
   - "/list inconsistent note filenames": lists the names of notes whose filenames are inconsistent with their titles

@@ -7,8 +7,8 @@
   "plugin.author": "Jonathan Clark & Eduard Metzger",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.NoteHelpers/CHANGELOG.md",
-  "plugin.version": "0.18.1",
-  "plugin.lastUpdateInfo": "0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: Add '/Show This Month/Quarter/Year'  and '/update all indexes' commands\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.",
+  "plugin.version": "0.18.2",
+  "plugin.lastUpdateInfo": "0.18.2: fix edge case with /add trigger command.\n0.18.1: Add 3 file naming commands (by @leo)\n.0.18.0: Add '/Show This Month/Quarter/Year'  and '/update all indexes' commands\n0.17.3: fix bugs in '/index folders'. New setting 'Title to use for Index notes'. 0.17.0: new command '/open url from a note'.\n0.16.2: added ability to create new folders when selecting a folder.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.commands": [
