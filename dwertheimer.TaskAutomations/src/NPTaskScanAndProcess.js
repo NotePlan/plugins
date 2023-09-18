@@ -477,7 +477,7 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
  */
 function dedupeSyncedLines(notesWithTasks: Array<Array<TParagraph>>): Array<Array<TParagraph>> {
   logDebug(pluginJson, `dedupeSyncedLines  notesWithTasks ${notesWithTasks.length}`)
-  const flatTasks = notesWithTasks.reduce((acc, n) => acc.concat(n), [])
+  const flatTasks = notesWithTasks.reduce((acc, n) => acc.concat(n), []) //flatten the array
   // clo(flatTasks, `dedupeSyncedLines  flatTasks`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length BEFORE deduping ${flatTasks.length}`)
   const noDupes = eliminateDuplicateSyncedParagraphs(flatTasks)
@@ -647,7 +647,7 @@ export function getNotesWithOpenTasks(
   if (lookInNotes) {
     recentProjNotes = DataStore.projectNotes.filter(isInFolder).filter((note) => note.changedDate >= afterDate)
     logDebug(`getNotesWithOpenTasks`, `Total Project Notes in date range: ${recentProjNotes.length}`)
-    recentProjNotes = filterNotesAgainstExcludeFolders(recentProjNotes, overdueFoldersToIgnore, true)
+    recentProjNotes = filterNotesAgainstExcludeFolders(recentProjNotes, overdueFoldersToIgnore || [], true)
     logDebug(`getNotesWithOpenTasks`, `Project Notes after exclude folder filter: ${recentProjNotes.length}`)
   }
 
