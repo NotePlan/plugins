@@ -35,11 +35,11 @@ export function quoteText(text: string): string {
 /**
  * Test whether a string contains front matter using the front-matter library which has a bug/limitation
  * Note: underlying library doesn't actually check whether the YAML comes at the start of the string. @jgclark has raised an issue to fix that.
+ * Will allow nonstandard YAML (e.g. contain colons, value starts with @) by sanitizing it first
  * @param {string} text - the text to test (typically the content of a note -- note.content)
  * @returns {boolean} true if it has front matter
  */
-// export const hasFrontMatter = (text: string): boolean => fm.test(text)
-export const hasFrontMatter = (text: string): boolean => fm.test(text) && text.split('\n', 1)[0] === '---'
+export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] === '---' && fm.test(_sanitizeFrontmatterText(text))
 
 /**
  * Test whether a Note contains front matter
@@ -143,13 +143,13 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
               removed = true
               if (fmParas.length <= 2) {
                 // logDebug('rFMF', `- this was the only field in the FM`)
-                const res = removeFrontMatter(note, removeSeparators)
+                removeFrontMatter(note, removeSeparators)
                 // logDebug('rFMF', `removeFrontMatter -> ${String(res)}`)
               } else {
                 // logDebug('rFMF', `- now ${fmParas.length} FM paras remain`)
-                const res1 = removeFrontMatter(note, false)
+                removeFrontMatter(note, false)
                 // logDebug('rFMF', `removeFrontMatter -> ${String(res1)}`)
-                const res2 = writeFrontMatter(note, fmFields, false) // don't mind if there isn't a title; that's not relevant to this operation
+                writeFrontMatter(note, fmFields, false) // don't mind if there isn't a title; that's not relevant to this operation
                 // logDebug('rFMF', `writeFrontMatter -> ${String(res2)}`)
               }
             }
@@ -168,18 +168,42 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
 }
 
 /**
+ * Recursive helper function used to write multi-line-indented frontmatter keys/values
+ * @param {*} obj
+ * @param {*} indent - level for recursive indent
+ * @returns
+ */
+function _objectToYaml(obj, indent = ' ') {
+  let output = ''
+  for (const prop in obj) {
+    output += `\n${indent}${prop}:`
+    if (Array.isArray(obj[prop])) {
+      obj[prop].forEach((el) => {
+        output += `\n${indent} - ${el}`
+      })
+    } else if (typeof obj[prop] === 'object' && obj[prop] !== null && Object.keys(obj[prop]).length) {
+      output += _objectToYaml(obj[prop], `${indent} `)
+    } else {
+      output += ` ${obj[prop]}`
+    }
+  }
+  return output
+}
+
+/**
  * Write the frontmatter vars to a note which already has frontmatter
  * Note: this is a helper function called by setFrontMatterVars and probably won't need to be called directly
  * You should use setFrontMatterVars instead
  * will add fields for whatever attributes you send in the second argument (could be duplicates)
  * so delete the frontmatter first (using removeFrontMatter()) if you want to add/remove/change fields
  * @param {CoreNoteFields} note
- * @param {*} attributes
- * @param {boolean?} alsoEnsureTitle?
+ * @param {Object} attributes - key/value pairs for frontmatter values
+ * @param {boolean?} alsoEnsureTitle - ensure that the frontmatter has a title (and set it to the note title if not). Default: true.
+ * @param {boolean?} quoteNonStandardYaml - quote any values that are not standard YAML (e.g. contain colons, value starts with @). Default: false.
  * @returns {boolean} was frontmatter written OK?
  * @author @dwertheimer
  */
-export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: string }, alsoEnsureTitle: boolean = true): boolean {
+export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: string }, alsoEnsureTitle: boolean = true, quoteNonStandardYaml: boolean = false): boolean {
   if (!noteHasFrontMatter(note)) {
     logError(pluginJson, `writeFrontMatter: no frontmatter already found in note, so stopping.`)
     return false
@@ -189,7 +213,15 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
     Object.keys(attributes).forEach((key) => {
       const value = attributes[key]
       if (value !== null) {
-        outputArr.push(`${key}: ${quoteText(value)}`)
+        if (typeof value === 'string') {
+          outputArr.push(quoteNonStandardYaml ? `${key}: ${quoteText(value)}` : `${key}: ${value}`)
+        } else {
+          if (typeof value === 'object') {
+            logDebug(pluginJson, `writeFrontMatter: value for key '${key}' is an object (e.g. multi-level list). Converting to multi-line string.`)
+            const yamlString = _objectToYaml(value)
+            outputArr.push(`${key}:${yamlString}`)
+          }
+        }
       }
     })
     const output = outputArr.join('\n')
@@ -438,7 +470,7 @@ export function addTrigger(note: CoreNoteFields, trigger: string, pluginID: stri
  * Returns empty string if no frontmatter found
  * @param {*} text
  */
-export function _getFMText(text: string) {
+export function _getFMText(text: string): string {
   const lines = text.split('\n')
   if (lines.length >= 2 && lines[0] === '---') {
     let fmText = ''
