@@ -36,7 +36,7 @@ export {
 } from './projects'
 export {
   generateCSSFromTheme
-} from '@helpers/HTMLView'
+} from '@helpers/NPThemeToCSS'
 // export {
 //   setHTMLWinHeight,
 // } from '@helpers/NPWindows'

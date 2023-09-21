@@ -198,7 +198,7 @@
     {
       "key": "inboxTitle",
       "title": "Inbox note title",
-      "description": "If the previous setting is set to 'Fixed', this is wherre you set the Title of that note. Default \"📥 Inbox\"",
+      "description": "If the previous setting is set to 'Fixed', this is where you set the Title of that note. Default \"📥 Inbox\"",
       "type": "string",
       "default": "📥 Inbox",
       "required": false
