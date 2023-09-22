@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 22.8.2023 for v0.6.0 by @jgclark
+// Last updated 22.9.2023 for v0.6.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -43,7 +43,7 @@ import { showMessage } from '@helpers/userInput'
 //-----------------------------------------------------------------
 // HTML resources
 
-const windowCustomId = pluginJson['plugin.id']
+const windowCustomId = pluginJson['plugin.id'] + '.main'
 
 // Note: this "../np.Shared" path works to the flattened np.Shared structure, but it does *not* work when running the locally-written copy of the HTML output file.
 export const resourceLinksInHeader = `
@@ -371,6 +371,13 @@ window.addEventListener("beforeunload", function(){
  * Show the dashboard HTML window, _but with some pre-configured demo data_.
  */
 export async function showDemoDashboardHTML(): Promise<void> {
+  // Check to stop it running on iOS
+  if (NotePlan.environment.platform === 'iOS') {
+    logWarn(pluginJson, `Sorry: Dashboard won't run on the small screen of iPhones.`)
+    await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
+    return
+  }
+
   await showDashboardHTML(true, true)
 }
 
@@ -388,8 +395,9 @@ export async function showDemoDashboardHTML(): Promise<void> {
 export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: boolean = false): Promise<void> {
   try {
     // Check to stop it running on iOS
-    if (NotePlan.environment.platform !== 'macOS') {
-      logDebug(pluginJson, `Sorry: Dashboard is designed only to run on macOS.`)
+    if (NotePlan.environment.platform === 'iOS') {
+      logWarn(pluginJson, `Sorry: Dashboard won't run on the small screen of iPhones.`)
+      await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
       return
     }
 
@@ -401,8 +409,8 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     let sectionItems: Array<SectionItem> = []
 
     //---------------------------------------------------
-    // Main preparation work: do this in a background thread
-    await CommandBar.onAsyncThread()
+    // Main preparation Work
+
     if (demoMode) {
       ;[sections, sectionItems] = await getDemoDataForDashboard()
     } else {
@@ -670,10 +678,6 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     outputArray.unshift(header)
 
     //------------------------------------------------
-    // come back to main thread
-    await CommandBar.onMainThread()
-
-    //------------------------------------------------
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
     const windowTitle = `Dashboard (${totalOpenItems} items)`
@@ -704,7 +708,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
       y: 0, // default, normally overriden from last position
     }
     await showHTMLV2(outputArray.join('\n'), winOptions)
-    // logDebug(`makeDashboard`, `written to HTML window with shouldFocus ${String(shouldFocus)}`)
+    logDebug(`makeDashboard`, `written to HTML window with shouldFocus ${String(shouldFocus)}`)
 
     //--------------------------------------------------------------
     // Finally, add auto-update trigger to open note if:

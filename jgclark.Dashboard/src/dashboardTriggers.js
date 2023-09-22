@@ -64,14 +64,14 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
       return
     }
 
-    // Do we have the Editor open? If not, stop;
+    // Do we have the Editor open? If not, stop
     if (!(Editor.content && Editor.note)) {
       logWarn('decideWhetherToUpdateDashboard', `Cannot get Editor details. Please open a note.`)
       return
     }
 
     // Only proceed if the dashboard window is open
-    if (!isHTMLWindowOpen(pluginJson['plugin.id'])) {
+    if (!isHTMLWindowOpen(pluginJson['plugin.id'] + '.main')) {
       logDebug('decideWhetherToUpdateDashboard', `Dashboard window not open, so stopping.`)
       return
     }

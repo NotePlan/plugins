@@ -32,9 +32,10 @@
     {
       "name": "show dashboard",
       "alias": [
-        "dbh"
+        "db",
+        "sdb"
       ],
-      "description": "Show Dashboard (in HTML view)",
+      "description": "Show Dashboard window",
       "jsFunction": "showDashboardHTML"
     },
     {
@@ -44,7 +45,7 @@
       "hidden": true
     },
     {
-      "name": "test:demo dashboard",
+      "name": "show demo dashboard",
       "alias": [
         "ddb"
       ],

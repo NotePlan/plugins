@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 25.8.2023 for v0.6.0 by @jgclark
+// Last updated 22.9.2023 for v0.6.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -51,9 +51,14 @@ const fullReviewListFilename = `../${reviewPluginID}/full-review-list.md`
  * @param {dashboardConfigType} dashboardConfig
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
-function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, dashboardConfig: dashboardConfigType): [Array<TParagraph>, Array<TParagraph>] {
+async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, dashboardConfig: dashboardConfigType): Promise<[Array<TParagraph>, Array<TParagraph>]> {
   try {
     let parasToUse: $ReadOnlyArray<TParagraph>
+
+    //------------------------------------------------
+    // Get paras from calendar note
+    // Note: this takes 100-110ms for me
+    let startTime = new Date() // for timing only
     if (Editor && (Editor?.note?.filename === timePeriodNote.filename)) {
       // If note of interest is open in editor, then use latest version available, as the DataStore is probably stale.
       logDebug('getOpenItemParasForCurrentTimePeriod', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras`)
@@ -64,36 +69,43 @@ function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriod
       // parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
       parasToUse = timePeriodNote.paragraphs
     }
+    logInfo('getOpenItemParasForCurrentTimePeriod', `Got ${parasToUse.length} parasToUse (after ${timer(startTime)})`)
+
+    // Run following in background thread
+    // NB: Has to wait until after Editor has been accessed to start this
+    await CommandBar.onAsyncThread()
 
     // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
-    let openParas = parasToUse.filter(isOpenNotScheduled).filter((p) => p.content !== '')
+    // FIXME: This is where 100ms goes -- why?
+    let openParas = parasToUse.filter((p) => isOpenNotScheduled(p) && p.content !== '')
+    logInfo('getOpenItemParasForCurrentTimePeriod', `After 'isOpenNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (dashboardConfig.ignoreTasksWithPhrase) {
-      logDebug('getOpenItemParasForCurrentTimePeriod', `Before 'ignore' filter: ${openParas.length} paras`)
       openParas = openParas.filter((p) => !p.content.includes(dashboardConfig.ignoreTasksWithPhrase))
     }
-    logDebug('getOpenItemParasForCurrentTimePeriod', `After 'ignore' filter: ${openParas.length} paras`)
+    // logInfo('getOpenItemParasForCurrentTimePeriod', `After 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out tasks with timeblocks, if wanted
     if (dashboardConfig.excludeTasksWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'open' && isTimeBlockPara(p)))
     }
-    logDebug('getOpenItemParasForCurrentTimePeriod', `After 'exclude task timeblocks' filter: ${openParas.length} paras`)
+    // logInfo('getOpenItemParasForCurrentTimePeriod', `After 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out checklists with timeblocks, if wanted
     if (dashboardConfig.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
     }
-    logDebug('getOpenItemParasForCurrentTimePeriod', `After 'exclude checklist timeblocks' filter: ${openParas.length} paras`)
-
-    // openParas.map((p) => console.log(`\t<${p.content}>`))
+    // logInfo('getOpenItemParasForCurrentTimePeriod', `After 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Temporarily extend TParagraph with the task's priority
     openParas = addPriorityToParagraphs(openParas)
+    // logInfo('getDataForDashboard', `  - finding cal items took ${timer(startTime)} for ${timePeriodName}`)
 
     // -------------------------------------------------------------
-    // Get list of open tasks/checklists scheduled to today from other notes, and of the right paragraph type
+    // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
+    // (This is 2-3x quicker than part above)
+    // startTime = new Date() // for timing only
     let refParas = timePeriodNote ? getReferencedParagraphs(timePeriodNote, false).filter(isOpen).filter((p) => p.content !== '') : []
     // Remove items referenced from items in 'ignoreFolders'
     refParas = filterParasAgainstExcludeFolders(refParas, dashboardConfig.ignoreFolders, true)
@@ -101,17 +113,23 @@ function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriod
     refParas = eliminateDuplicateSyncedParagraphs(refParas)
     // Temporarily extend TParagraph with the task's priority
     refParas = addPriorityToParagraphs(refParas)
-    logDebug('', `found ${String(refParas.length ?? 0)} references to ${timePeriodName}`)
-    // sort the list only by priority, otherwise leaving order the same
+    // logDebug('', `found ${String(refParas.length ?? 0)} references to ${timePeriodName}`)
+    // logDebug('getDataForDashboard', `  - finding refs took ${timer(startTime)} for ${timePeriodName}`)
 
-    // Decide whether to return two separate arrays, or one combined one
+    // Sort the list only by priority, otherwise leaving order the same
+    // Then decide whether to return two separate arrays, or one combined one
+    // (This takes less than 1ms)
     if (dashboardConfig.separateSectionForReferencedNotes) {
       const sortedOpenParas = sortListBy(openParas, ['-priority'])
       const sortedRefParas = sortListBy(refParas, ['-priority'])
+      // come back to main thread
+      await CommandBar.onMainThread()
       return [sortedOpenParas, sortedRefParas]
     } else {
       const combinedParas = sortListBy(openParas.concat(refParas), ['-priority'])
       const combinedSortedParas = sortListBy(combinedParas, ['-priority'])
+      // come back to main thread
+      await CommandBar.onMainThread()
       return [combinedSortedParas, []]
     }
   } catch (err) {
@@ -146,7 +164,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       const thisFilename = currentDailyNote?.filename ?? '(error)'
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config)
+      const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -192,6 +210,8 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       doneCount += currentDailyNote.paragraphs.filter(isDone).length
 
       // Note: ideally also add completed count for today from referenced notes as well
+
+      logInfo('getDataForDashboard', `- finished finding daily items after ${timer(startTime)}`)
     } else {
       logDebug('getDataForDashboard', `No daily note found for filename '${currentDailyNote?.filename ?? 'error'}'`)
     }
@@ -206,7 +226,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       const dateStr = getDateStringFromCalendarFilename(thisFilename)
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("week", currentWeeklyNote, config)
+      const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("week", currentWeeklyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -247,21 +267,23 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       }
       // Get count of tasks/checklists done this week
       doneCount += currentWeeklyNote.paragraphs.filter(isDone).length
+
+      // Note: ideally also add completed count for today from referenced notes as well
+
+      logInfo('getDataForDashboard', `- finished finding week items after ${timer(startTime)}`)
     } else {
       logDebug('getDataForDashboard', `No weekly note found for filename '${currentWeeklyNote?.filename ?? 'error'}'`)
     }
 
     //-----------------------------------------------------------
     // Get list of open tasks/checklists from monthly note (if it exists)
-    let currentCalendarNote = DataStore.calendarNoteByDate(today, 'month')
-    if (currentCalendarNote) {
-      const thisFilename = currentCalendarNote?.filename ?? '(error)'
+    const currentMonthlyNote = DataStore.calendarNoteByDate(today, 'month')
+    if (currentMonthlyNote) {
+      const thisFilename = currentMonthlyNote?.filename ?? '(error)'
       const dateStr = getDateStringFromCalendarFilename(thisFilename)
-      logDebug('getDataForDashboard', `Processing ${thisFilename} (${dateStr}) which has ${String(currentCalendarNote?.paragraphs?.length ?? NaN)} paras`)
-      let parasToUse: $ReadOnlyArray<any> = []
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("month", currentCalendarNote, config)
+      const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("month", currentMonthlyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -302,20 +324,22 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       }
 
       // Get completed count too
-      doneCount += currentCalendarNote.paragraphs.filter(isDone).length
+      doneCount += currentMonthlyNote.paragraphs.filter(isDone).length
+
+      logInfo('getDataForDashboard', `- finished finding monthly items after ${timer(startTime)}`)
     } else {
-      logDebug('getDataForDashboard', `No monthly note found for filename '${currentCalendarNote?.filename ?? 'error'}'`)
+      logDebug('getDataForDashboard', `No monthly note found for filename '${currentMonthlyNote?.filename ?? 'error'}'`)
     }
 
     //-----------------------------------------------------------
     // Get list of open tasks/checklists from quarterly note (if it exists)
     const currentQuarterlyNote = DataStore.calendarNoteByDate(today, 'quarter')
     if (currentQuarterlyNote) {
-      const thisFilename = currentCalendarNote?.filename ?? '(error)'
+      const thisFilename = currentQuarterlyNote?.filename ?? '(error)'
       const dateStr = getDateStringFromCalendarFilename(thisFilename)
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("quarter", currentQuarterlyNote, config)
+      const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("quarter", currentQuarterlyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -356,12 +380,16 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       }
       // Get count of tasks/checklists done this quarter
       doneCount += currentQuarterlyNote.paragraphs.filter(isDone).length
+
+      logInfo('getDataForDashboard', `- finished finding quarterly items after ${timer(startTime)}`)
     } else {
       logDebug('getDataForDashboard', `No quarterly note found for filename '${currentQuarterlyNote?.filename ?? 'error'}'`)
     }
 
+    //-----------------------------------------------------------
     // Note: If we want to do yearly in the future then the icon is fa-calendar-days (same as quarter)
 
+    //-----------------------------------------------------------
     // Add a section for tagToShow, if set
     if (config.tagToShow) {
       const isHashtag: boolean = config.tagToShow.startsWith('#')
@@ -397,6 +425,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
       } else {
         logWarn(`getDataForDashboard`, `tagToShow '${config.tagToShow}' is not a hashtag or mention`)
       }
+      logInfo('getDataForDashboard', `- finished finding tagged items after ${timer(startTime)}`)
     }
 
     // Send doneCount through as a special type item:
@@ -439,7 +468,7 @@ export async function getDataForDashboard(): Promise<[Array<Section>, Array<Sect
     }
     // logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} items`)
 
-    logInfo('getDataForDashboard', `generated ${String(sections.length)} sections and ${String(sectionItems.length)} items in ${timer(startTime)}`)
+    logInfo('getDataForDashboard', `finished generating ${String(sections.length)} sections and ${String(sectionItems.length)} items in ${timer(startTime)}`)
     return [sections, sectionItems]
   } catch (error) {
     logError(pluginJson, JSP(error))

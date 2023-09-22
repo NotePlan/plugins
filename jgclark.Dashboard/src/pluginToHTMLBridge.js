@@ -36,7 +36,7 @@ import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 type MessageDataObject = { itemID: string, type: string, encodedFilename: string, encodedContent: string }
 type SettingDataObject = { settingName: string, state: string }
 
-const windowCustomId = pluginJson['plugin.id']
+const windowCustomId = pluginJson['plugin.id'] + '.main'
 
 //-----------------------------------------------------------------
 
@@ -96,8 +96,8 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
 export async function bridgeClickDashboardItem(data: MessageDataObject) {
   try {
     // clo(data, 'bridgeClickDashboardItem received data object')
-    // const windowId = getWindowIdFromCustomId(pluginJson['plugin.id'])
-    const windowId = pluginJson['plugin.id']
+    // const windowId = getWindowIdFromCustomId(windowCustomId);
+    const windowId = windowCustomId
     if (!windowId) {
       logError('bridgeClickDashboardItem', `Can't find windowId for ${windowCustomId}`)
       return
