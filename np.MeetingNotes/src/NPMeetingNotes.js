@@ -3,8 +3,8 @@
 import moment from 'moment-business-days'
 
 import pluginJson from '../plugin.json'
+import { showMessageYesNo, showMessage, chooseFolder, chooseOption } from '../../helpers/userInput'
 import { log, logDebug, logError, clo, JSP } from '@helpers/dev'
-import { showMessage, chooseFolder } from '@helpers/userInput'
 import { getAttributes } from '@helpers/NPFrontMatter'
 import NPTemplating from 'NPTemplating'
 
@@ -118,23 +118,73 @@ export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFi
       result = `# ${newNoteTitle}\n${result}`
     }
 
-    let newTitle = null
+    const meetingNoteTitleSpecified = (append || prepend || cursor).trim()
+    if (meetingNoteTitleSpecified && newNoteTitle) {
+      logError(
+        pluginJson,
+        `Error: Your template has a newNoteTitle attribute, but you also have a append || prepend || cursor title: "${meetingNoteTitleSpecified}" attribute. You can only use one of these. newNoteTitle from the template will be ignored`,
+      )
+    }
+    let noteTitle = (append || prepend || cursor).trim()
+    logDebug(pluginJson, `noteTitle: ${noteTitle} | newNoteTitle: ${newNoteTitle}`)
+    noteTitle = noteTitle.length ? noteTitle : newNoteTitle
+
     if (append || prepend || cursor) {
-      logDebug(pluginJson, 'append/prepend template')
-      const noteTitle = (append || prepend || cursor).trim()
+      logDebug(pluginJson, 'template contains: append/prepend/cursor: ${append||prepend||cursor}}')
       const location = append.length ? 'append' : cursor.length ? 'cursor' : 'prepend'
       if (location === 'cursor' && noteTitle !== '<current>') {
-        showMessage(`Error: Your template has a cursor attribute, but the cursor attribute must only be used with the value "<current>", e.g. cursor: "<current>"`)
+        await showMessage(`Error: Your template has a cursor attribute, but the cursor attribute must only be used with the value "<current>", e.g. cursor: "<current>"`)
       }
-      newTitle = (await appendPrependNewNote(noteTitle, location, folder, result)) ?? '<error>'
+      noteTitle = (await appendPrependNewNote(noteTitle, location, folder, result)) ?? '<error>'
     } else {
-      logDebug(pluginJson, 'create a new note with the rendered template')
-      newTitle = (await newNoteWithFolder(result, folder)) ?? '<error>'
-    }
-
-    logDebug(pluginJson, 'write the note-link into the event')
-    if (selectedEvent) {
-      writeNoteLinkIntoEvent(selectedEvent, newTitle)
+      if (!noteTitle) {
+        // grab the first line of the result as the title
+        noteTitle = result
+          .split('\n')[0]
+          .trim()
+          .replace(/(^#*\s*)/, '')
+          .trim()
+        // FIXME: this is not stripping the # at the front of the note title
+        logDebug(pluginJson, `No title specified directly. Trying to infer it from the content: "${result}" => "${noteTitle}"`)
+      }
+      if (noteTitle) {
+        logDebug(pluginJson, `No append/prepend/cursor - check for pre-existing meeting note with this title: "${noteTitle}"`)
+        const existingNotes = await DataStore.projectNoteByTitle(noteTitle, false, false)
+        if (existingNotes?.length) {
+          await Editor.openNoteByFilename(existingNotes[0].filename)
+          logDebug(pluginJson, `Found ${existingNotes.length} pre-existing note(s) with the title "${noteTitle}"`)
+          const options = [
+            { label: `Open the existing note (no changes)`, value: `open` },
+            { label: `Prepend meeting info to note`, value: `prepend` },
+            { label: `Append meeting info to note`, value: `append` },
+            { label: `Create a new note with same title`, value: `new` },
+          ]
+          const res = await chooseOption(`Note exists: "${noteTitle}".`, options)
+          // const res = await showMessageYesNo(
+          //   `A note with the title "${noteTitle}" already exists. Do you want to open it? (Yes), otherwise a new note will be created if you select 'No'`,
+          // )
+          switch (res) {
+            case 'new':
+              break
+            case 'append':
+            case 'prepend':
+              noteTitle = (await appendPrependNewNote(noteTitle, res, folder, result)) ?? '<error>'
+              break
+            case 'open':
+            case false:
+              return
+          }
+        }
+        logDebug(pluginJson, 'No append/prepend/cursor - create a new note with the rendered template')
+        noteTitle = (await newNoteWithFolder(result, folder)) ?? '<error>'
+      } else {
+        logDebug(pluginJson, 'No title specified directly. Could not infer it from the first line of the content:\n${result}')
+        noteTitle = (await newNoteWithFolder(result, folder)) ?? '<error>'
+      }
+      logDebug(pluginJson, 'write the note-link into the event')
+      if (selectedEvent && noteTitle !== '<error>') {
+        writeNoteLinkIntoEvent(selectedEvent, noteTitle)
+      }
     }
   } catch (error) {
     logError(pluginJson, `error in newMeetingNote: ${error}`)
