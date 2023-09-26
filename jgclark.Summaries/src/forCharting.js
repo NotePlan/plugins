@@ -3,7 +3,7 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 7.8.2023 for v0.19.3, @jgclark
+// Last updated 7.8.2023 for v0.19.3+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -94,6 +94,7 @@ function getFirstDateForWeeklyStats(numWeeksToGoBack?: number): [string, number]
 
   // Now get the start of the week, using NP week information
   const weekInfo = getNPWeekData(mom.toDate()) ?? {}
+  // $FlowIgnore[incompatible-call]
   const fromDateStr = hyphenatedDateString(weekInfo.startDate)
 
   logDebug('getFirstDateForWeeklyStats', `Will go back ${numWeeks} weeks, starting w/c ${fromDateStr}`)
@@ -194,6 +195,7 @@ export async function generateHeatMap(
       const weekInfo = getNPWeekData(mom.toDate()) ?? {}
       const weekNum = weekInfo.weekNumber // NP week number
       // Get string for heatmap column title: week number, or year number if week 1
+      // $FlowIgnore[incompatible-call]
       const weekTitle = (weekNum !== 1) ? 'W' + pad(weekNum) : mom.format('YYYY') // with this library the value needs to be identical all week
       const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
       let dataPointObj = { x: weekTitle, y: dayAbbrev, heat: value, isoDate: isoDate }
@@ -579,6 +581,7 @@ export async function weeklyStats(): Promise<void> {
     const firstWeekInfo = getNPWeekData(fromDateStr) ?? {}
     logDebug('weeklyStats', `firstWeekInfo = ${JSON.stringify(firstWeekInfo)}`)
     const lastWeekInfo = getNPWeekData(todaysDateISOString) ?? {}
+    // $FlowIgnore[incompatible-call]
     const toDateStr = hyphenatedDateString(lastWeekInfo.endDate)
     // let numWeeks = lastWeekInfo.weekNumber - firstWeekInfo.weekNumber
     // if (numWeeks < 0) numWeeks += 52
@@ -625,7 +628,9 @@ export async function weeklyStats(): Promise<void> {
           let weekStartDate = thisWeekInfo.startDate
           let weekEndDate = thisWeekInfo.endDate
 
+          // $FlowIgnore[incompatible-call]
           let weekStartDateStr = hyphenatedDateString(weekStartDate)
+          // $FlowIgnore[incompatible-call]
           let weekEndDateStr = hyphenatedDateString(weekEndDate)
           logDebug(pluginJson, `-> ${weekStartDateStr} -  ${weekEndDateStr} (V4)`)
           const weekSummaryCSV = occ.summariseToInterval(weekStartDateStr, weekEndDateStr, 'week')

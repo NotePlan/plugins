@@ -22,28 +22,29 @@ import {
 import { getPeriodStartEndDates } from '@helpers/NPDateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { logDebug, logError, logInfo, timer } from '@helpers/dev'
-import { CaseInsensitiveMap, displayTitle } from '@helpers/general'
+import { CaseInsensitiveMap, displayTitle, createRunPluginCallbackUrl } from '@helpers/general'
 import { getOrMakeNote, printNote, replaceSection } from '@helpers/note'
 import { caseInsensitiveCompare } from '@helpers/sorting'
-import {
-  chooseOption,
-  // getInput,
-  showMessage,
-} from '@helpers/userInput'
+import { chooseOption, showMessage } from '@helpers/userInput'
 
 //-------------------------------------------------------------------------------
 
 /**
  * Ask user which period to cover, call main stats function accordingly, and present results
  * @author @jgclark
+ * @param {string?} periodTypeArg
  */
-export async function statsPeriod(): Promise<void> {
+export async function statsPeriod(periodTypeArg: string = ''): Promise<void> {
   try {
-    // Get config settings
-    const config = await getSummariesSettings()
+    // Get config from settings
+    let config = await getSummariesSettings()
 
-    // Get time period of interest
-    const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('Create stats for which period?', config.excludeToday)
+    // TODO: set and parse 3 parameters: calendarTimeFrame, year, itemNumber.  Not now 'periodType', as the meaning changes over time.
+
+    const isRunningFromXCallback = periodTypeArg && periodTypeArg !== ''
+
+    // Get time period of interest, from asking user or from periodTypeArg
+    const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('Create stats for which period?', config.excludeToday, periodTypeArg)
     if (fromDate == null || toDate == null) {
       throw new Error(`Error: failed to calculate dates`)
     }
@@ -87,27 +88,32 @@ export async function statsPeriod(): Promise<void> {
 
     CommandBar.showLoading(true, `Creating Period Stats`)
     startTime = new Date()
-    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.periodStatsShowSparklines, true).join('\n')
+    let output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.periodStatsShowSparklines, true).join('\n')
 
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
     logInfo('statsPeriod', `Created period stats in ${timer(startTime)}`)
 
     // --------------------------------------------------------------------------
-    // Ask where to save this summary to
-    // Start by tailoring the set of options to present
-    const outputOptions = [
-      { label: '🖊 Update/append to the open note', value: 'current' },
-      { label: '📋 Write to plugin console log', value: 'log' },
-      { label: '❌ Cancel', value: 'cancel' },
-    ]
-    if (config.folderToStore && config.folderToStore !== '') {
-      outputOptions.unshift({ label: `🖊 Create/update a note in folder '${config.folderToStore}'`, value: 'note' })
+    // Ask where to save this summary to, unless isRunningFromXCallback
+    let destination = ''
+    if (isRunningFromXCallback) {
+      destination = 'current'
+    } else {
+      // Start by tailoring the set of options to present
+      const outputOptions = [
+        { label: '🖊 Update/append to the open note', value: 'current' },
+        { label: '📋 Write to plugin console log', value: 'log' },
+        { label: '❌ Cancel', value: 'cancel' },
+      ]
+      if (config.folderToStore && config.folderToStore !== '') {
+        outputOptions.unshift({ label: `🖊 Create/update a note in folder '${config.folderToStore}'`, value: 'note' })
+      }
+      if (NotePlan.environment.buildVersion >= 917) { // = 3.7.2 beta
+        outputOptions.unshift({ label: `📅 Add/Update the ${calendarTimeframe}ly calendar note '${periodString}'`, value: 'calendar' })
+      }
+      destination = await chooseOption(`Where to save the summary for ${periodString}?`, outputOptions, 'note')
     }
-    if (NotePlan.environment.buildVersion >= 917) { // = 3.7.2 beta
-      outputOptions.unshift({ label: `📅 Add/Update the ${calendarTimeframe}ly calendar note '${periodString}'`, value: 'calendar' })
-    }
-    const destination = await chooseOption(`Where to save the summary for ${periodString}?`, outputOptions, 'note')
 
     // Output the results to the selected place
     switch (destination) {
@@ -117,6 +123,11 @@ export async function statsPeriod(): Promise<void> {
           logError('statsPeriod', `No note is open in the Editor, so I can't write to it.`)
         } else {
           // logDebug('statsPeriod', `- about to update section '${config.statsHeading}' in weekly note '${currentNote.filename}' for ${periodAndPartStr}`)
+          // add a refresh button if it can work with just a single extra parameter
+          if (periodType.endsWith('td')) {
+            const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodType)
+            output = `[🔄 Refresh](${refreshXCallbackURL})\n${output}`
+          }
           // Replace or add output section
           replaceSection(currentNote, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
           logDebug('statsPeriod', `Written results to note '${periodString}'`)
@@ -131,8 +142,14 @@ export async function statsPeriod(): Promise<void> {
           logError('statsPeriod', `Cannot get new note`)
           await showMessage('There was an error getting the new note ready to write')
         } else {
-
           // logDebug('statsPeriod', `- about to update section '${config.statsHeading}' in note '${note.filename}' for ${periodAndPartStr}`)
+
+          // add a refresh button if it can work with just a single extra parameter
+          if (periodType.endsWith('td')) {
+            const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodType)
+            output = `[🔄 Refresh](${refreshXCallbackURL})\n${output}`
+          }
+
           // Replace or add output section
           replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
           logDebug('statsPeriod', `Written results to note '${periodString}'`)
@@ -150,7 +167,7 @@ export async function statsPeriod(): Promise<void> {
         // Weekly note (from v3.6) or Monthly / Quarterly / Yearly (from v3.7.2)
         const todaysDate = getJSDateStartOfToday()
         // TODO: when API makes this possible, make it only open a new window if not already open.
-        const calNoteAtFromDate = DataStore.calendarNoteByDate(fromDate, calendarTimeframe)
+        const calNoteAtFromDate = DataStore.calendarNoteByDate(fromDate, periodType)
         if (!calNoteAtFromDate) {
           throw new Error(`Couldn't get calendar note for ${periodString}`)
         }
@@ -171,11 +188,12 @@ export async function statsPeriod(): Promise<void> {
           logError('statsPeriod', `cannot get Calendar note for ${filenameForCalDate}`)
           await showMessage(`There was an error getting the Calendar note ${filenameForCalDate} ready to write`)
         } else {
-          // // If note doesn't appear to have a title, then insert one
-          // if (note.paragraphs.length === 0 || note.paragraphs[0].headingLevel !== 1) {
-          //   logDebug('statsPeriod', `- needing to add H1 title before existing p0 '${note.paragraphs[0]?.content ?? ''}'`)
-          //   note.insertHeading(periodString, 0, 1)
-          // }
+          // add a refresh button if it can work with just a single extra parameter
+          if (periodType.endsWith('td')) {
+            const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodType)
+            output = `[🔄 Refresh](${refreshXCallbackURL})\n${output}`
+          }
+
           // Replace or add output section
           replaceSection(note, config.statsHeading, `${config.statsHeading} ${periodAndPartStr}`, config.headingLevel, output)
           logDebug('statsPeriod', `Written results to note '${periodString}' (filename=${note.filename})`)
@@ -192,6 +210,9 @@ export async function statsPeriod(): Promise<void> {
 
       case 'cancel': {
         break
+      }
+      default: {
+        throw new Error(`Invalid save destination '${destination}'`)
       }
     }
   }
