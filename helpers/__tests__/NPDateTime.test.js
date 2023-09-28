@@ -19,7 +19,7 @@ beforeAll(() => {
   global.Editor = Editor
   global.NotePlan = NotePlan
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 /* Samples:
@@ -133,10 +133,10 @@ describe(`${FILENAME}`, () => {
     const toDateStr = moment([2023, 8, 6, 0, 0, 0]).format('YYYY-MM-DD') // = 2023-09-06
     describe('invalid inputs should fail', () => {
       test('fail on 2023-09-0 to 2023-09-06', () => {
-        expect(f.relativeDateCodeFromDateString('2023-09-0', toDateStr)).toEqual("(error)")
+        expect(f.relativeDateCodeFromDateString('2023-09-0', toDateStr)).toEqual('(error)')
       })
       test('fail on 2023-09-06 to 20230910', () => {
-        expect(f.relativeDateCodeFromDateString('2023-09-06', '20230910')).toEqual("(error)")
+        expect(f.relativeDateCodeFromDateString('2023-09-06', '20230910')).toEqual('(error)')
       })
     })
     describe('valid inputs should work', () => {
@@ -175,5 +175,4 @@ describe(`${FILENAME}`, () => {
       })
     })
   })
-
 })
