@@ -1,10 +1,11 @@
 // @flow
+const scriptLoad = new Date()
 
 import moment from 'moment-business-days'
 
 import pluginJson from '../plugin.json'
-import { log, logDebug, logError, clo, JSP } from '@helpers/dev'
-import { showMessage, chooseFolder } from '@helpers/userInput'
+import { showMessage, chooseFolder, chooseOption } from '../../helpers/userInput'
+import { log, logDebug, logError, clo, JSP, timer } from '@helpers/dev'
 import { getAttributes } from '@helpers/NPFrontMatter'
 import NPTemplating from 'NPTemplating'
 
@@ -62,12 +63,246 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
  * @param {string} template
  */
 export async function newMeetingNoteFromID(eventID: string, template?: string): Promise<void> {
-  logDebug(pluginJson, `newMeetingNoteFromID id:${eventID} template:${String(template)}`)
-  const selectedEvent = await Calendar.eventByID(eventID)
-  if (selectedEvent) {
-    clo(selectedEvent, 'newMeetingNoteFromID: selectedEvent')
-    await newMeetingNote(selectedEvent, template)
+  try {
+    logDebug(pluginJson, `newMeetingNoteFromID id:${eventID} template:${String(template)}`)
+    const selectedEvent: TCalendarItem = await Calendar.eventByID(eventID)
+    logDebug(pluginJson, `${timer(scriptLoad)} - selectedEvent selectedEvent:${JSP(selectedEvent)}`)
+    if (selectedEvent) {
+      clo(selectedEvent, `${timer(scriptLoad)} - newMeetingNoteFromID: selectedEvent`)
+      await newMeetingNote(selectedEvent, template)
+    }
+  } catch (error) {
+    logError(pluginJson, `error in newMeetingNoteFromID: ${JSP(error)}`)
   }
+}
+
+// /**
+//  * Create a meeting note for a calendar event
+//  * This function is called when the user right-clicks a calendar event and selects "New Meeting Note" (NP passes the CalendarItem to the function)
+//  * Can also be called via newMeetingNoteFromID() when it receives an x-callback-url (with or without arguments)
+//  * If arguments are not provided, the user will be prompted to select an event and a template
+//  * @param {TCalendarItem} _selectedEvent
+//  * @param {string?} _templateTitle
+//  */
+// export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
+//   logDebug(pluginJson, 'newMeetingNote')
+//   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
+
+//   const templateFilename: ?string = await chooseTemplateIfNeededFromTemplateTitle(_templateFilename, true) //await chooseTemplateIfNeeded(_templateFilename, true)
+
+//   try {
+//     let templateData, templateContent
+//     if (selectedEvent) {
+//       logDebug(pluginJson, 'generateTemplateData')
+//       templateData = generateTemplateData(selectedEvent)
+//     }
+//     if (templateFilename) {
+//       templateContent = DataStore.projectNoteByFilename(templateFilename)?.content || ''
+//       // logDebug(pluginJson, `template content: <${templateContent}>`)
+//     }
+
+//     logDebug(pluginJson, 'preRender template')
+//     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
+//     // JGC: TODO: why is this commented out? This looks the 'right' way to do it ...
+//     // const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent, templateData])
+//     // logDebug(pluginJson, `-> <${frontmatterBody}>`)
+
+//     const attrs = frontmatterAttributes
+//     const folder = attrs?.folder || ''
+//     const append = attrs?.append || ''
+//     const prepend = attrs?.prepend || ''
+//     const cursor = attrs?.cursor || ''
+//     const newNoteTitle = attrs?.newNoteTitle || ''
+
+//     logDebug(pluginJson, 'render template')
+//     let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+//     // JGC: TODO: why is this commented out? This looks the 'right' way to do it ...
+//     // let result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
+//     logDebug(pluginJson, `-> <${result}>`)
+
+//     if (newNoteTitle.length > 0) {
+//       result = `# ${newNoteTitle}\n${result}`
+//     }
+
+//     const meetingNoteTitleSpecified = (append || prepend || cursor).trim()
+//     if (meetingNoteTitleSpecified && newNoteTitle) {
+//       logError(
+//         pluginJson,
+//         `Error: Your template has a newNoteTitle attribute, but you also have a append || prepend || cursor title: "${meetingNoteTitleSpecified}" attribute. You can only use one of these. newNoteTitle from the template will be ignored`,
+//       )
+//     }
+//     let noteTitle = (append || prepend || cursor).trim()
+//     logDebug(pluginJson, `noteTitle: ${noteTitle} | newNoteTitle: ${newNoteTitle}`)
+//     noteTitle = noteTitle.length ? noteTitle : newNoteTitle
+
+//     if (append || prepend || cursor) {
+//       logDebug(pluginJson, 'template contains: append/prepend/cursor: ${append||prepend||cursor}}')
+//       const location = append.length ? 'append' : cursor.length ? 'cursor' : 'prepend'
+//       if (location === 'cursor' && noteTitle !== '<current>') {
+//         await showMessage(`Error: Your template has a cursor attribute, but the cursor attribute must only be used with the value "<current>", e.g. cursor: "<current>"`)
+//       }
+//       noteTitle = (await appendPrependNewNote(noteTitle, location, folder, result)) ?? '<error>'
+//     } else {
+//       if (!noteTitle) {
+//         // grab the first line of the result as the title
+//         noteTitle = result
+//           .split('\n')[0]
+//           .trim()
+//           .replace(/(^#*\s*)/, '')
+//           .trim()
+//         // FIXME: this is not stripping the # at the front of the note title
+//         logDebug(pluginJson, `No title specified directly. Trying to infer it from the content: "${result}" => "${noteTitle}"`)
+//       }
+//       if (noteTitle) {
+//         logDebug(pluginJson, `No append/prepend/cursor - check for pre-existing meeting note with this title: "${noteTitle}"`)
+//         const existingNotes = await DataStore.projectNoteByTitle(noteTitle, false, false)
+//         if (existingNotes?.length) {
+//           await Editor.openNoteByFilename(existingNotes[0].filename)
+//           logDebug(pluginJson, `Found ${existingNotes.length} pre-existing note(s) with the title "${noteTitle}"`)
+//           const options = [
+//             { label: `Open the existing note (no changes)`, value: `open` },
+//             { label: `Prepend meeting info to note`, value: `prepend` },
+//             { label: `Append meeting info to note`, value: `append` },
+//             { label: `Create a new note with same title`, value: `new` },
+//           ]
+//           const res = await chooseOption(`Note exists: "${noteTitle}".`, options)
+//           // const res = await showMessageYesNo(
+//           //   `A note with the title "${noteTitle}" already exists. Do you want to open it? (Yes), otherwise a new note will be created if you select 'No'`,
+//           // )
+//           switch (res) {
+//             case 'new':
+//               break
+//             case 'append':
+//             case 'prepend':
+//               noteTitle = (await appendPrependNewNote(noteTitle, res, folder, result)) ?? '<error>'
+//               break
+//             case 'open':
+//             case false:
+//               return
+//           }
+//         }
+//         logDebug(pluginJson, 'No append/prepend/cursor - create a new note with the rendered template')
+//         noteTitle = (await newNoteWithFolder(result, folder)) ?? '<error>'
+//       } else {
+//         logDebug(pluginJson, 'No title specified directly. Could not infer it from the first line of the content:\n${result}')
+//         noteTitle = (await newNoteWithFolder(result, folder)) ?? '<error>'
+//       }
+//       logDebug(pluginJson, 'write the note-link into the event')
+//       if (selectedEvent && noteTitle !== '<error>') {
+//         writeNoteLinkIntoEvent(selectedEvent, noteTitle)
+//       }
+//     }
+//   } catch (error) {
+//     logError(pluginJson, `error in newMeetingNote: ${error}`)
+//   }
+// }
+
+/**
+ * Selects an event and a template.
+ * @param {TCalendarItem} _selectedEvent
+ * @param {string} _templateFilename
+ * @returns {Promise<{selectedEvent: TCalendarItem, templateFilename: string}>}
+ */
+async function selectEventAndTemplate(
+  _selectedEvent?: TCalendarItem | null = null,
+  _templateFilename?: string,
+): Promise<{ selectedEvent: TCalendarItem | null, templateFilename: string }> {
+  const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
+  const templateFilename = await chooseTemplateIfNeededFromTemplateTitle(_templateFilename, true)
+  return { selectedEvent, templateFilename }
+}
+
+/**
+ * Pre-renders and renders the template for a selected event.
+ * @param {TCalendarItem} selectedEvent
+ * @param {string} templateFilename
+ * @returns {Promise<{result: string, attrs: any}>}
+ */
+async function renderTemplateForEvent(selectedEvent, templateFilename): Object {
+  let templateData, templateContent
+  if (selectedEvent) {
+    templateData = generateTemplateData(selectedEvent)
+  }
+  if (templateFilename) {
+    templateContent = DataStore.projectNoteByFilename(templateFilename)?.content || ''
+  }
+  const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
+  const result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
+  return { result, attrs: frontmatterAttributes }
+}
+
+/**
+ * Gets the note title from the template or the first line of the rendered template.
+ * @param {string} _noteTitle - newNotetitle specified in the template (may be empty)
+ * @param {string} renderedTemplateContent - rendered template content
+ * @returns {string} note title or ''
+ */
+function getNoteTitle(_noteTitle: string, renderedTemplateContent: string): string {
+  if (_noteTitle) return _noteTitle
+  // grab the first line of the result as the title
+  const lines = renderedTemplateContent.split('\n')
+  const headingLine = lines.find((l) => l.startsWith('#'))
+  const noteTitle = headingLine ? headingLine.replace(/(^#*\s*)/, '').trim() : ''
+  logDebug(pluginJson, `No title specified directly. Trying to infer it from the headingLine: "${headingLine || ''}" => "${noteTitle}"`)
+  return noteTitle
+}
+
+/**
+ * Creates a new note and links it to the event itself
+ * If the template has a "cursor, append, prepend" then the template will be inserted into the note specified
+ * If the template has a "newNoteTitle" then a new note will be created with that title
+ * If the template has no "cursor, append, prepend, newNoteTitle" then the template will be inserted into a new note with the title of the first line of the template
+ * If the note to be created already exists, the user will be asked if they want to open it, append/prepend to it, or create a new note with the same title
+ * @param {TCalendarItem} selectedEvent
+ * @param {string} result
+ * @param {Object} attrs
+ * @returns {Promise<void>}
+ */
+async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, renderedContent: string, attrs: Object): Promise<void> {
+  const folder = attrs?.folder || ''
+  const append = attrs?.append || ''
+  const prepend = attrs?.prepend || ''
+  const cursor = attrs?.cursor || ''
+  const newNoteTitle = attrs?.newNoteTitle || ''
+
+  let noteTitle = (append || prepend || cursor).trim()
+  const location = append.length ? 'append' : cursor.length ? 'cursor' : 'prepend'
+  noteTitle = noteTitle.length ? noteTitle : newNoteTitle
+
+  if (append || prepend || cursor) {
+    noteTitle = (await appendPrependNewNote(noteTitle, location, folder, renderedContent)) ?? '<error>'
+  } else {
+    noteTitle = getNoteTitle(noteTitle, renderedContent)
+    if (selectedEvent && noteTitle) {
+      const existingNotes = await DataStore.projectNoteByTitle(noteTitle, false, false)
+      if (existingNotes?.length) {
+        await Editor.openNoteByFilename(existingNotes[0].filename)
+        const options = [
+          { label: `Open the existing note (no changes)`, value: `open` },
+          { label: `Prepend meeting info to note`, value: `prepend` },
+          { label: `Append meeting info to note`, value: `append` },
+          { label: `Create a new note with same title`, value: `new` },
+        ]
+        const res = await chooseOption(`Note exists: "${noteTitle}".`, options)
+        switch (res) {
+          case 'new':
+            noteTitle = (await newNoteWithFolder(`# ${noteTitle}\n${renderedContent}`, folder)) ?? '<error>'
+            break
+          case 'append':
+          case 'prepend':
+            noteTitle = (await appendPrependNewNote(noteTitle, res, folder, renderedContent)) ?? '<error>'
+            break
+          case 'open':
+          case null:
+            return
+        }
+      }
+    } else {
+      logDebug(pluginJson, `Could not ${selectedEvent ? 'find selected event' : 'determine note title'}`)
+      return
+    }
+  }
+  selectedEvent ? writeNoteLinkIntoEvent(selectedEvent, noteTitle) : null
 }
 
 /**
@@ -76,69 +311,16 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
  * Can also be called via newMeetingNoteFromID() when it receives an x-callback-url (with or without arguments)
  * If arguments are not provided, the user will be prompted to select an event and a template
  * @param {TCalendarItem} _selectedEvent
- * @param {string?} _templateTitle
+ * @param {string?} _templateFilename
+ * @returns {Promise<void>}
  */
 export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
-  logDebug(pluginJson, 'newMeetingNote')
-  const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
-
-  const templateFilename: ?string = await chooseTemplateIfNeededFromTemplateTitle(_templateFilename, true) //await chooseTemplateIfNeeded(_templateFilename, true)
-
-  try {
-    let templateData, templateContent
-    if (selectedEvent) {
-      logDebug(pluginJson, 'generateTemplateData')
-      templateData = generateTemplateData(selectedEvent)
-    }
-    if (templateFilename) {
-      templateContent = DataStore.projectNoteByFilename(templateFilename)?.content || ''
-      // logDebug(pluginJson, `template content: <${templateContent}>`)
-    }
-
-    logDebug(pluginJson, 'preRender template')
-    const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
-    // JGC: TODO: why is this commented out? This looks the 'right' way to do it ...
-    // const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent, templateData])
-    // logDebug(pluginJson, `-> <${frontmatterBody}>`)
-
-    const attrs = frontmatterAttributes
-    const folder = attrs?.folder || ''
-    const append = attrs?.append || ''
-    const prepend = attrs?.prepend || ''
-    const cursor = attrs?.cursor || ''
-    const newNoteTitle = attrs?.newNoteTitle || ''
-
-    logDebug(pluginJson, 'render template')
-    let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
-    // JGC: TODO: why is this commented out? This looks the 'right' way to do it ...
-    // let result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
-    logDebug(pluginJson, `-> <${result}>`)
-
-    if (newNoteTitle.length > 0) {
-      result = `# ${newNoteTitle}\n${result}`
-    }
-
-    let newTitle = null
-    if (append || prepend || cursor) {
-      logDebug(pluginJson, 'append/prepend template')
-      const noteTitle = (append || prepend || cursor).trim()
-      const location = append.length ? 'append' : cursor.length ? 'cursor' : 'prepend'
-      if (location === 'cursor' && noteTitle !== '<current>') {
-        showMessage(`Error: Your template has a cursor attribute, but the cursor attribute must only be used with the value "<current>", e.g. cursor: "<current>"`)
-      }
-      newTitle = (await appendPrependNewNote(noteTitle, location, folder, result)) ?? '<error>'
-    } else {
-      logDebug(pluginJson, 'create a new note with the rendered template')
-      newTitle = (await newNoteWithFolder(result, folder)) ?? '<error>'
-    }
-
-    logDebug(pluginJson, 'write the note-link into the event')
-    if (selectedEvent) {
-      writeNoteLinkIntoEvent(selectedEvent, newTitle)
-    }
-  } catch (error) {
-    logError(pluginJson, `error in newMeetingNote: ${error}`)
-  }
+  const { selectedEvent, templateFilename } = await selectEventAndTemplate(_selectedEvent, _templateFilename)
+  logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: got selectedEvent and templateFilename`)
+  const { result, attrs } = await renderTemplateForEvent(selectedEvent, templateFilename)
+  logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: rendered template`)
+  await createNoteAndLinkEvent(selectedEvent, result, attrs)
+  logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: created note and linked event`)
 }
 
 /**
@@ -349,16 +531,17 @@ const errorReporter = async (error: any, note: TNote) => {
  */
 async function chooseTemplateIfNeededFromTemplateTitle(templateTitle?: string, onlyMeetingNotes: boolean = false): Promise<?string> {
   // Get the filename and then pass to the main function
-  logDebug(pluginJson, `chooseTemplateIfNeededFromTemplateTitle starting`)
+  logDebug(pluginJson, `${timer(scriptLoad)} - chooseTemplateIfNeededFromTemplateTitle starting`)
   if (templateTitle) {
     const matchingTemplates = DataStore.projectNotes.filter((n) => n.title === templateTitle)
-    logDebug(pluginJson, `- got ${matchingTemplates.length} template matches from '${templateTitle}'`)
+    logDebug(pluginJson, `${timer(scriptLoad)}- got ${matchingTemplates.length} template matches from '${templateTitle}'`)
     if (matchingTemplates && matchingTemplates.length > 0) {
       return await chooseTemplateIfNeeded(matchingTemplates[0].filename, onlyMeetingNotes)
     } else {
       return await chooseTemplateIfNeeded(templateTitle, onlyMeetingNotes)
     }
   }
+  logDebug(pluginJson, `${timer(scriptLoad)} - chooseTemplateIfNeededFromTemplateTitle ending`)
   return await chooseTemplateIfNeeded('', onlyMeetingNotes)
 }
 
@@ -373,14 +556,14 @@ async function chooseTemplateIfNeededFromTemplateTitle(templateTitle?: string, o
 async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNotes: boolean = false): Promise<?string> {
   try {
     if (!templateFilename) {
-      logDebug(pluginJson, `no template was defined, find all available templates and show them`)
+      logDebug(pluginJson, `${timer(scriptLoad)} - no template was defined, find all available templates and show them`)
       const allTemplates = DataStore.projectNotes.filter((n) => n.filename.startsWith(NotePlan.environment.templateFolder))
 
       if (!allTemplates || allTemplates.length === 0) {
         await showMessage(`Couldn't find any templates in the template folder (${NotePlan.environment.templateFolder})})`)
         throw new Error(`Couldn't find any templates`)
       } else {
-        logDebug(pluginJson, `${allTemplates.length} templates found`)
+        logDebug(pluginJson, `${timer(scriptLoad)} - ${allTemplates.length} templates found`)
       }
 
       const templates = []
@@ -403,10 +586,10 @@ async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNote
         await showMessage(`Couldn't find any templates in the template folder (${NotePlan.environment.templateFolder})})`)
         throw new Error(`Couldn't find any meeting-note templates`)
       } else {
-        logDebug(pluginJson, `of those, ${templates.length} are ${onlyMeetingNotes ? 'meeting-note' : 'non-ignore'} templates`)
+        logDebug(pluginJson, `${timer(scriptLoad)} - of those, ${templates.length} are ${onlyMeetingNotes ? 'meeting-note' : 'non-ignore'} templates`)
       }
 
-      logDebug(pluginJson, `asking user to select from ${templates.length} ${onlyMeetingNotes ? 'meeting-note' : ''} templates ...`)
+      logDebug(pluginJson, `${timer(scriptLoad)} - asking user to select from ${templates.length} ${onlyMeetingNotes ? 'meeting-note' : ''} templates ...`)
       const selectedTemplate =
         templates.length > 1
           ? await CommandBar.showOptions(
@@ -432,7 +615,7 @@ async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNote
  * @param {TCalendarItem} selectedEvent - the event that has already been selected (optional)
  * @returns {Promise<TCalendarItem>} the selected event
  */
-async function chooseEventIfNeeded(selectedEvent?: TCalendarItem): Promise<?TCalendarItem | null> {
+async function chooseEventIfNeeded(selectedEvent?: TCalendarItem | null): Promise<?TCalendarItem | null> {
   try {
     if (!selectedEvent) {
       let events = null
@@ -469,8 +652,13 @@ async function chooseEventIfNeeded(selectedEvent?: TCalendarItem): Promise<?TCal
 /**
  * Creates template data as input for np.Templating to parse a template.
  * @param {TCalendarItem} selectedEvent
+ * @returns {Object} data and methods for the template
  */
-function generateTemplateData(selectedEvent: TCalendarItem) {
+function generateTemplateData(selectedEvent: TCalendarItem): { data: Object, methods: Object } {
+  if (!selectedEvent) {
+    logError(pluginJson, 'generateTemplateData: no event provided')
+    return { data: {}, methods: {} }
+  }
   logDebug(pluginJson, `generateTemplateData running for event titled: "${selectedEvent.title}"`)
   return {
     data: {
