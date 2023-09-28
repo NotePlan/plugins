@@ -39,7 +39,7 @@ export function quoteText(text: string): string {
  * @param {string} text - the text to test (typically the content of a note -- note.content)
  * @returns {boolean} true if it has front matter
  */
-export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] === '---' && fm.test(_sanitizeFrontmatterText(text))
+export const hasFrontMatter = (text: string): boolean => text.split('\n', 1)[0] === '---' && fm.test(_sanitizeFrontmatterText(text, true))
 
 /**
  * Test whether a Note contains front matter
@@ -529,15 +529,23 @@ export function _fixFrontmatter(fmText: string): string {
  * Sanitizes the frontmatter text by quoting illegal values that need quoting (e.g. colons, strings that start with: @, #)
  * Returns sanitized text as a string
  * @param {string} originalText
+ * @param {boolean} removeTemplateTagsInFM - if true, remove any lines from the template frontmatter that contain template tags themselves (default: false)
  * @returns
  */
-export function _sanitizeFrontmatterText(originalText: string): string {
-  const fmText = _getFMText(originalText)
-  if (fmText === '') return originalText
+export function _sanitizeFrontmatterText(originalText: string, removeTemplateTagsInFM?: boolean = false): string {
+  const unfilteredFmText = _getFMText(originalText)
+  // remove any lines in fmText which contain <%
+  const fmTextWithoutTags = removeTemplateTagsInFM
+    ? unfilteredFmText
+        .split('\n')
+        .filter((line) => !line.includes('<%'))
+        .join('\n')
+    : unfilteredFmText
+  if (fmTextWithoutTags === '') return originalText
   // needs to return full note after sanitizing frontmatter
   // get the text between the separators
-  const fixedText = _fixFrontmatter(fmText)
-  return originalText.replace(fmText, fixedText)
+  const fixedText = _fixFrontmatter(fmTextWithoutTags)
+  return originalText.replace(unfilteredFmText, fixedText)
 }
 
 export type FrontMatterDocumentObject = { attributes: { [string]: string }, body: string, frontmatter: string }
@@ -546,13 +554,14 @@ export type FrontMatterDocumentObject = { attributes: { [string]: string }, body
  * Get an object representing the document with or without frontmatter
  * Do pre-processing to ensure that the most obvious user-entered illegal character sequences in frontmatter are avoided
  * @param {string} noteText  - full text of note (perhaps starting with frontmatter)
+ * @param {boolean} removeTemplateTagsInFM - if true, remove any lines from the template frontmatter that contain template tags themselves (default: false)
  * @returns {Object} - the frontmatter object (or empty object if none)
  */
-export function getSanitizedFmParts(noteText: string): FrontMatterDocumentObject {
+export function getSanitizedFmParts(noteText: string, removeTemplateTagsInFM?: boolean = false): FrontMatterDocumentObject {
   let fmData = { attributes: {}, body: noteText, frontmatter: '' } //default
   // we need to pre-process the text to sanitize it instead of running fm because we need to
   // preserve #hashtags and fm will blank those lines  out as comments
-  const sanitizedText = _sanitizeFrontmatterText(noteText || '')
+  const sanitizedText = _sanitizeFrontmatterText(noteText || '', removeTemplateTagsInFM)
   try {
     fmData = fm(sanitizedText, { allowUnsafe: true })
   } catch (error) {
@@ -581,13 +590,16 @@ export function getSanitizedFrontmatterInNote(note: CoreNoteFields, writeBackToN
 
 /**
  * Get the frontmatter attributes from a note, sanitizing the frontmatter text by quoting illegal values that need quoting (e.g. colons, strings that start with: @, #)
+ * Note that templates may include templates (<%) in their frontmatter, which will stop the parser, so if you are trying to getAttributes of a note that could have templates in
+ * the frontmatter, set the second param to true to strip those tags out
  * (moved from '@templating/support/modules/FrontmatterModule')
  * // import { getAttributes } from '@templating/support/modules/FrontmatterModule'
  * @param {string} templateData
+ * @param {boolean} removeTemplateTagsInFM - if true, remove any lines from the template frontmatter that contain template tags themselves (default: false)
  * @returns {Object} - the frontmatter object (or empty object if none)
  */
-export function getAttributes(templateData: string = ''): Object {
-  const fmData = getSanitizedFmParts(templateData)
+export function getAttributes(templateData: string = '', removeTemplateTagsInFM?: boolean = false): Object {
+  const fmData = getSanitizedFmParts(templateData, removeTemplateTagsInFM)
   Object.keys(fmData?.attributes).forEach((key) => {
     fmData.attributes[key] || typeof fmData.attributes[key] === 'boolean' ? fmData.attributes[key] : (fmData.attributes[key] = '')
   })
@@ -602,6 +614,6 @@ export function getAttributes(templateData: string = ''): Object {
  */
 export function getBody(templateData: string = ''): string {
   if (!templateData) return ''
-  const fmData = getSanitizedFmParts(templateData)
+  const fmData = getSanitizedFmParts(templateData, true)
   return fmData && fmData?.body ? fmData.body : ''
 }

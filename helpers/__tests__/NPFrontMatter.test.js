@@ -759,15 +759,23 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     // moved from FrontMatterModule. Needs to be updated here
     describe('Frontmatter helpers', () => {
-      test(`should return attributes using getAttributes()`, () => {
+      test(`getAttributes(): should return attributes using getAttributes()`, () => {
         const data = `---\ntitle: Test Sample\nname: Mike Erickson\n---\n<%= name %>`
         const result = f.getAttributes(data)
         expect(typeof result).toEqual('object')
         expect(result?.title).toEqual('Test Sample')
         expect(result?.name).toEqual('Mike Erickson')
       })
+      test(`getAttributes(): should return only non-template code when second param is true`, () => {
+        const data = `---\ntitle: Test Sample\n<%- foo\nname: Mike Erickson\n---\n<%= name %>`
+        const result = f.getAttributes(data, true)
+        expect(typeof result).toEqual('object')
+        expect(Object.keys(result).length).toEqual(2)
+        expect(result?.title).toEqual('Test Sample')
+        expect(result?.name).toEqual('Mike Erickson')
+      })
       // moved from FrontMatterModule
-      test(`should return attributes using getBody()`, () => {
+      test(`getBody(): should return attributes using getBody()`, () => {
         const data = `---\ntitle: Test Sample\nname: Mike Erickson\n---\n<%= name %>`
         const result = f.getBody(data)
         expect(typeof result).toEqual('string')
