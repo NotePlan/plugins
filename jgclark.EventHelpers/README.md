@@ -7,7 +7,7 @@ This plugin provides commands to help you do useful things with Events and Calen
 - **process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.)
 - **shift dates**: takes dates _in the selected lines_ and shifts them forwards or backwards by a given date interval. It works on both `>YYYY-MM-DD` and `>YYYY-Wnn` style dates.  (User George Crump (@george65) has created a [video showing how this command works](https://storone.zoom.us/rec/play/tzI6AreYeKvoyHRw11HX93IGVf2OI-U7WgKXYn2rmGJvbFHXZp8PSr6ajmOrtWymOU5jFIItScSJnL9U.tboBQEXjdw1uRTqu).)
 
-Most of these commands require configuration, described in the sections below. Click the gear button on the 'Event Helpers' line in the Plugin Preferences panel to access the settings.  Also see [Theme customisation](#theme-customisation) below for more on how to customise display of time blocks and events.
+Most of these commands require configuration, described in the sections below. On macOS, click the gear button on the 'Event Helpers' line in the Plugin Preferences panel to access the settings. Or on on iOS/iPadOS devices, use the **Events: update plugin settings** command instead.
 
 ## "insert day's events as list"  and "insert matching events" commands
 Settings:

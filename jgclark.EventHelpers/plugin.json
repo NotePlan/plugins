@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
-  "plugin.version": "0.20.3",
-  "plugin.lastUpdateInfo": "0.20.3: new 'STOPMATCHING' placeholder for '/insert matching events'.\n0.20.2: upper-case letters allowed in offsets.\n0.20.1: adds support for time blocks in Checklists (available from NP 3.8). 0.20.0: can now insert a 'MEETINGNOTE' link next to each item. Please read important note in the README file on how to enable it.\n0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.",
+  "plugin.version": "0.20.4",
+  "plugin.lastUpdateInfo": "0.20.4: '/shift dates' now deals with checklists and cancelled items.\n0.20.3: new 'STOPMATCHING' placeholder for '/insert matching events'.\n0.20.2: upper-case letters allowed in offsets.\n0.20.1: adds support for time blocks in Checklists (available from NP 3.8). 0.20.0: can now insert a 'MEETINGNOTE' link next to each item. Please read important note in the README file on how to enable it.\n0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -56,6 +56,11 @@
       "description": "function to list events for the current open Calendar note that match string defined in the settings (for use in Templating)",
       "hidden": true,
       "jsFunction": "listMatchingDaysEvents"
+    },
+    {
+      "name": "Events: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
     },
     {
       "name": "test:eventsUpdateSettings",

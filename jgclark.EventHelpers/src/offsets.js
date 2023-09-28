@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 13.2.2023 for v0.20.2, by @jgclark
+// Last updated 28.9.2023 for v0.20.4, by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -30,7 +30,7 @@ import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@hel
  * Go through currently selected lines in the open note and shift YYYY-MM-DD dates by an interval given by the user.
  * And now supports YYYY-Www dates too.
  * Note: can remove @done(...) dates if wanted, but doesn't touch other others than don't have whitespace or newline before them.
- * Will also un-complete completed tasks.
+ * Will also un-complete completed tasks/checklists.
  * @author @jgclark
  */
 export async function shiftDates(): Promise<void> {
@@ -74,40 +74,54 @@ export async function shiftDates(): Promise<void> {
       let originalDateStr = ''
       let shiftedDateStr = ''
       // logDebug(pluginJson, `${c}`)
-      if (c.match(RE_BARE_DATE)) {
+      if (c.match(RE_BARE_DATE)) { // find YYYY-MM-DD or >YYYY-MM-DD strings, but not following (</-
         // Process this YYYY-MM-DD date
         dates = c.match(RE_BARE_DATE_CAPTURE) ?? []
         originalDateStr = dates[1]
         shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
       }
-      else if (c.match(RE_BARE_WEEKLY_DATE)) {
-        // Process this YYYY-Www date TEST:
+      else if (c.match(RE_BARE_WEEKLY_DATE)) { // find YYYY-Wnn or >YYYY-Wnn strings, but not following (</-
+        // Process this YYYY-Www date
         dates = c.match(RE_BARE_WEEKLY_DATE_CAPTURE) ?? []
         originalDateStr = dates[1]
         shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
       }
 
+      let updatedP = c
       if (shiftedDateStr !== '') {
         logDebug(pluginJson, `- ${originalDateStr}: match found -> ${shiftedDateStr}`)
         // Replace date part with the new shiftedDateStr
-        let updatedP = c.replace(originalDateStr, shiftedDateStr)
-
-        // If wanted, also remove @done(...) part
-        const doneDatePart = (updatedP.match(RE_DONE_DATE_OPT_TIME)) ?? ['']
-        if (config.removeDoneDates && doneDatePart[0] !== '') {
-          updatedP = updatedP.replace(doneDatePart[0], '')
-        }
-
-        p.content = updatedP.trimEnd()
-        logDebug(pluginJson, `-> '${p.content}'`)
-
-        // If wanted, also set any complete tasks to not complete ('open')
-        if (config.uncompleteTasks && p.type === 'done') {
-          p.type = 'open'
-        }
-        note.updateParagraph(p)
-        updatedCount += 1
+        updatedP = c.replace(originalDateStr, shiftedDateStr)
       }
+
+      // If wanted, also remove @done(...) part
+      const doneDatePart = (updatedP.match(RE_DONE_DATE_OPT_TIME)) ?? ['']
+      // logDebug(pluginJson, `>> ${String(doneDatePart)}`)
+      if (config.removeDoneDates && doneDatePart[0] !== '') {
+        updatedP = updatedP.replace(doneDatePart[0], '')
+      }
+
+      p.content = updatedP.trimEnd()
+      logDebug(pluginJson, `-> '${p.content}'`)
+
+      // If wanted, also set any complete or cancelled tasks/checklists to not complete
+      if (config.uncompleteTasks) {
+        if (p.type === 'done') {
+      // logDebug(pluginJson, `>> changed done -> open`)
+          p.type = 'open'
+        } else if (p.type === 'cancelled') {
+          // logDebug(pluginJson, `>> changed cancelled -> open`)
+          p.type = 'open'
+        } else if (p.type === 'checklistDone') {
+          // logDebug(pluginJson, `>> changed checklistDone -> checklist`)
+          p.type = 'checklist'
+        } else if (p.type === 'checklistCancelled') {
+          // logDebug(pluginJson, `>> changed checklistCancelled -> checklist`)
+          p.type = 'checklist'
+        }
+      }
+      note.updateParagraph(p)
+      updatedCount += 1
     })
     logDebug(pluginJson, `Shifted ${updatedCount} dates`)
 

@@ -64,7 +64,7 @@ export async function getEventsSettings(): Promise<any> {
     }
     v2Config.locale = getLocale(v2Config)
     v2Config.timeOptions = getTimeOptions(v2Config)
-    clo(v2Config, `${configKey} settings from V2:`)
+    // clo(v2Config, `${configKey} settings from V2:`)
     return v2Config
   }
   catch (err) {

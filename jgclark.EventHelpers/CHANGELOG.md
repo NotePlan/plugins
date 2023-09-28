@@ -1,6 +1,10 @@
 # What's changed in 🕓 Event Helpers?
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
+## [0.20.4] - 2023-09-28 @jgclark (unreleased)
+- "/shift dates" now deals with checklists as well as tasks, and cancelled items too.
+- new "/Events: update plugin settings" command to allow updating settings on iOS/iPadOS devices
+
 ## [0.20.3] - 2023-06-12 @jgclark
 ### Changed
 - added 'STOPMATCHING' as a possible placeholder for "/insert matching events". If present it will not process a given event further, so only the first match in the "Events match list" list will be used. (This does not stop remaining events in the day being matched.)
