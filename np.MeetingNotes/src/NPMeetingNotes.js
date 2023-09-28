@@ -64,7 +64,7 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
  */
 export async function newMeetingNoteFromID(eventID: string, template?: string): Promise<void> {
   try {
-    logDebug(pluginJson, `newMeetingNoteFromID id:${eventID} template:${String(template)}`)
+    logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNoteFromID id:${eventID} template:${String(template)}`)
     const selectedEvent: TCalendarItem = await Calendar.eventByID(eventID)
     logDebug(pluginJson, `${timer(scriptLoad)} - selectedEvent selectedEvent:${JSP(selectedEvent)}`)
     if (selectedEvent) {
