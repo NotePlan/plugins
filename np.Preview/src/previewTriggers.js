@@ -1,20 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Preview triggering
-// Last updated 21.8.2023 for v0.3.x by @jgclark
+// Last updated 29.9.2023 for v0.3.x+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { previewNote } from './previewMain'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-// import { rangeToString } from '@helpers/general'
-// import { selectedLinesIndex } from '@helpers/NPparagraph'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 
 /**
  * Decide whether to update Dashboard, to be called by an onSave or onChange trigger
  */
-export function updatePreview(): void {
+export async function updatePreview(): Promise<void> {
   try {
     // Only proceed if the preview window is open
     if (!isHTMLWindowOpen('Preview')) {
