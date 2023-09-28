@@ -233,6 +233,8 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
   return false
 }
 
+export const hasTemplateTagsInFM = (fmText: string) => fmText.includes('<%')
+
 /**
  * Set/update the front matter attributes for a note.
  * Whatever key:value pairs you pass in will be set in the front matter.
@@ -534,13 +536,20 @@ export function _fixFrontmatter(fmText: string): string {
  */
 export function _sanitizeFrontmatterText(originalText: string, removeTemplateTagsInFM?: boolean = false): string {
   const unfilteredFmText = _getFMText(originalText)
+  const hasTags = hasTemplateTagsInFM(unfilteredFmText)
+  if (hasTags && !removeTemplateTagsInFM) {
+    logWarn(
+      `FYI: _sanitizeFrontmatterText: getAttributes was called for a template which has template tags in the frontmatter. This is generally only advisable if you send getAttributes with the second param set to true. Ignore this warning if you meant to do this and it's working fine for you. Template text was: "${originalText}"`,
+    )
+  }
   // remove any lines in fmText which contain <%
-  const fmTextWithoutTags = removeTemplateTagsInFM
-    ? unfilteredFmText
-        .split('\n')
-        .filter((line) => !line.includes('<%'))
-        .join('\n')
-    : unfilteredFmText
+  const fmTextWithoutTags =
+    removeTemplateTagsInFM && hasTags
+      ? unfilteredFmText
+          .split('\n')
+          .filter((line) => !line.includes('<%'))
+          .join('\n')
+      : unfilteredFmText
   if (fmTextWithoutTags === '') return originalText
   // needs to return full note after sanitizing frontmatter
   // get the text between the separators
