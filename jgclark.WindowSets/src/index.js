@@ -3,25 +3,33 @@
 //---------------------------------------------------------------
 // Window Sets commands
 // Jonathan Clark
-// Last updated 28.8.23 for v0.2.x by @jgclark
+// Last updated 26.9.23 for v0.3.0 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
+import * as ws from './windowSets'
+import * as wsh from './WSHelpers'
 import { JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
-import { showMessage } from '@helpers/userInput'
+import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const pluginID = 'jgclark.WindowSets'
 
 export {
-  logWindowSets,
   saveWindowSet,
   openWindowSet,
   deleteWindowSet,
   deleteAllSavedWindowSets,
-  readWindowSetDefinitions,
 } from './windowSets'
+
+export {
+  logWindowSets,
+  readWindowSetDefinitions,
+  syncWSNoteToPrefs,
+  writeWSNoteToPrefs,
+  writeWSsToNote,
+} from './WSHelpers'
 
 export {
   logPreferenceAskUser,
@@ -43,8 +51,13 @@ export function init(): void {
   }
 }
 
-export function onSettingsUpdated(): void {
+export async function onSettingsUpdated(): Promise<void> {
   return // Placeholder only to try to stop error in logs
+}
+
+export async function testUpdate(): Promise<void> {
+  onUpdateOrInstall(true)
+  return
 }
 
 export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<void> {
@@ -61,9 +74,14 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
 
+    // Test to see if we have any saved window sets (if this is an upgrade)
+    const savedWindowSets = await wsh.readWindowSetDefinitions()
+    if (savedWindowSets.length === 0) {
+      logInfo('onUpdateOrInstall', `No saved windowSets object found. Will offer to add some example ones.`)
+      await wsh.offerToAddExampleWSs()
+    }
+    return // Placeholder only to try to stop error in logs
   } catch (error) {
-    logError(pluginID, error.message)
+    logError(pluginID, `onUpdateOrInstall: ${error.message}`)
   }
-  logInfo(pluginID, `- finished`)
-  return // Placeholder only to try to stop error in logs
 }

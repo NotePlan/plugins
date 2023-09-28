@@ -2,24 +2,38 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 10.9.2022 for v0.2.0 by @jgclark
+// last update 27.9.2022 for v0.3.0 by @jgclark
+//---------------------------------------------------------------
+// ARCHITECTURE:
+// - 1 local preference 'windowSets' that contains JS Array<WindowSet>
+// - 1 global user-visible note (by default @WindowSets/Window Sets) that is updated to stay in sync with the local pref
+//   - writeWSNoteToPrefs() sends note to pref -- and can be run manually by /wnp
+//   - syncWSNoteToPrefs() is run by trigger to decide whether to run writeWSNoteToPrefs
+//   - writeWSsToNote() sends pref to note -- and can be run manually by /wpn
+// - if no window sets found in pref, plugin offers to write 2 example sets
+//
+// Minimum version 3.9.6 to use API updates
+//---------------------------------------------------------------
+// Next version: Minimum version 3.9.8 to use some special new API features
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { addCodeBlock, getCodeBlocksOfType, updateCodeBlock } from '@helpers/codeBlocks'
+import * as wsh from './WSHelpers'
+import { offerToAddExampleWSs } from "./WSHelpers";
+import { addCodeBlock, getCodeBlocksOfType } from '@helpers/codeBlocks'
 import {
   calcOffsetDateStr,
   daysBetween,
-  // getDateStringFromCalendarFilename,
-  // getDateStrForStartofPeriodFromCalendarFilename,
+  getDateStrForStartofPeriodFromCalendarFilename,
   getDateStringFromCalendarFilename,
+  getFilenameDateStrFromDisplayDateStr,
   getISODateStringFromYYYYMMDD,
   getTodaysDateHyphenated,
   isValidCalendarNoteFilename,
   RE_OFFSET_DATE_CAPTURE,
   RE_OFFSET_DATE,
+  toLocaleDateTimeString,
   unhyphenateString,
-  // unhyphenatedDate,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { logPreference, unsetPreference } from '@helpers/NPdev'
@@ -40,359 +54,36 @@ import {
 import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
-// Plugin lookup list
-type PluginWindowCommand = {
-  pluginWindowId: string,
-  pluginID: string,
-  pluginCommandName: string
-}
-const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
-  { pluginWindowId: 'jgclark.Dashboard.main', pluginID: 'jgclark.Dashboard', pluginCommandName: 'Show Dashboard window' },
-  { pluginWindowId: 'Review List', pluginID: 'jgclark.Reviews', pluginCommandName: 'project lists' },
-]
-
-//-----------------------------------------------------------------
-// Data types
-type EditorWinDetails = {
-  noteType: string, // "Calendar" | "Note"
-  filename: string,
-  openAction: string, // "main" | "floating" | "split"
-  title?: string, // optional, but persist it where used
-  x?: number,
-  y?: number,
-  width?: number,
-  height?: number,
-}
-
-type HTMLWinDetails = {
-  type: string, // "Plugin" is the only type supported so far
-  pluginID: string,
-  pluginCommand: string,
-  customId?: string, // If set to the same as the plugin sets, then you can override the last-stored x/y/width/height of the window
-  x?: number,
-  y?: number,
-  width?: number,
-  height?: number,
-  // filename, customID are set by the plugin command itself so aren't needed here
-}
-
-type WindowSet = {
-  name: string,
-  closeOtherWindows: boolean,
-  editorWindows: Array<EditorWinDetails>,
-  htmlWindows: Array<HTMLWinDetails>,
-}
-
-/**
- * Note: from v3.9.1 we also use
- * type Rect = {
- *   x: Integer,
- *   y: Integer,
- *   width: Integer,
- *   height: integer
- * }
- */
-
-const exampleContent1 = `# Day + Week Window Sets
-
-This is an example of:
-- use of a 'json' code block to specify a Window Set
-- more than 1 Window Set definition in separate code blocks in the same note
-- specifying "Calendar" note types
-- use of relative dates to define dates that work relative to today's date (see the [Plugin's README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md) for more details)
-- the ability to "closeOtherWindows" before the Window Set is activated
-- "htmlWindows", "x", "y", "width", "height" should be left out if you don't want to define them
-- these can have "title"s, though currently they're only used to help you identify different windows.
-
-Note: the JSON has to be well-formatted to be usable. In particular check that there aren't any extra commas after the final item of any section.
-
-\`\`\`json
-{
-  "name": "Days (Yesterday+Today+Tomorrow)",
-  "closeOtherWindows": true,
-  "editorWindows": [
-		{
-		"noteType": "Calendar",
-		"openAction": "split",
-		"filename": "{-1d}",
-		"title": "yesterday"
-		},
-		{
-		"noteType": "Calendar",
-		"openAction": "split",
-		"filename": "{0d}",
-		"title": "today"
-		},
-		{
-		"noteType": "Calendar",
-		"openAction": "split",
-		"filename": "{+1d}",
-		"title": "tomorrow"
-		}
-  ]
-}
-\`\`\`
-
-\`\`\`json
-{
-  "name": "Weeks (Last+This+Next)",
-  "closeOtherWindows": true,
-  "editorWindows": [
-		{
-		"noteType": "Calendar",
-		"openAction": "split",
-		"filename": "{-1w}",
-		"title": "last week"
-		},
-		{
-		"noteType": "Calendar",
-		"openAction": "split",
-		"filename": "{0w}",
-		"title": "this week"
-		},
-		{
-		"noteType": "Calendar",
-		"openAction": "split",
-		"filename": "{+1w}",
-		"title": "next week"
-		}
-  ]
-}
-\`\`\`
-`
-
-const exampleContent2 = `# Staff Meeting Window Sets
-
-This is an example of:
-- specifying regular type "Note" notes. Note that the full filepath (including extension) needs to be given, not just the filename or title.
-- specifying they should be opened in new 'floating' windows. If x/y/width/height aren't given, NotePlan will determine them.
-- specifying a plugin window to be run, by its command name. Note: this should *not* be URI-encoded.
-- use of x/y/wdith/height can override the last-used settings of the plugin window.
-
-Note: the JSON has to be well-formatted to be usable. In particular check that there aren't any extra commas after the final item of any section.
-
-\`\`\`json
-{
-  "name": "Staff Meeting",
-  "closeOtherWindows": false,
-  "editorWindows": [
-    {
-      "type": "Note",
-      "openAction": "floating",
-      "filename": "CCC Areas/Admin (Work).md",
-      "title": "Admin (Work)"
-    },
-    {
-      "type": "Note",
-      "openAction": "floating",
-      "filename": "Saved Searches/RP Search Results.md",
-      "title": "@RP Search Results"
-    }
-  ],
-  "htmlWindows": [
-    {
-      "type": "Plugin",
-      "pluginID": "jgclark.Dashboard",
-      "pluginCommand": "show dashboard",
-      "customId": "Dashboard",
-      "x": 416, "y": 515, "width": 990, "height": 360
-    }
-  ]
-}
-\`\`\`
-`
-
-//---------------------------------------------------------------
-// Settings
-
-export type WindowSetsConfig = {
-  folderForDefinitions: string,
-  _logDebug: String,
-}
 
 const pluginID = 'jgclark.WindowSets'
-
-/**
- * Get general config settings for this plugin
- * @return {any} object with configuration
- */
-export async function getPluginSettings(): Promise<any> {
-  // logDebug(pluginJson, `Start of getPluginSettings()`)
-  try {
-    // Get settings using ConfigV2
-    const config: WindowSetsConfig = await DataStore.loadJSON('../jgclark.WindowSets/settings.json')
-    // clo(config, `${pluginID} settings:`)
-
-    if (config == null || Object.keys(config).length === 0) {
-      throw new Error(`Cannot find settings for '${pluginID}' plugin`)
-    }
-
-    return config
-  } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
-    return null // for completeness
-  }
-}
-
-/**
- * Read current WindowSet definitions
- * V2: read from 'folderForDefinitions' folder of files. In each the JSON code block(s) define(s) the WS.
- * @param {string} folderForDefinitions
- * @returns {Array<WindowSet>} JSON configuration object for all window sets
- */
-export function readWindowSetDefinitions(folderForDefinitions: string): Array<WindowSet> {
-  try {
-    logDebug(pluginJson, `readWindowSetDefinitions() starting for folder '${folderForDefinitions}'`)
-    let windowSets: Array<WindowSet> = []
-    // Read all files in @WindowSets folder
-    const folderFiles = getProjectNotesInFolder(folderForDefinitions)
-    if (folderFiles.length > 0) {
-      for (const file of folderFiles) {
-        logDebug('readWindowSetDefinitions', `file: ${file.filename}: `)
-        // Get the contents of code blocks ot type JSON
-        const codeBlocks = getCodeBlocksOfType(file, ['json'])
-        if (codeBlocks.length === 0) {
-          logWarn('readWindowSetDefinitions', `No JSON code blocks found in '${file.filename}'`)
-          continue
-        } else {
-          // Process the codeblock(s)
-          let cbCount = 0
-          for (const cb of codeBlocks) {
-            cbCount++
-            // logDebug('readWindowSetDefinitions', `code block ${String(cbCount)}:\n${cb.code}`)
-            const thisJSON = JSON.parse(cb.code)
-            // clo(thisJSON, `thisJSON:`)
-
-            let thisWS: WindowSet = {
-              name: thisJSON.name ?? '(no name supplied)',
-              closeOtherWindows: thisJSON.closeOtherWindows ?? false,
-              editorWindows: thisJSON.editorWindows ?? [],
-              htmlWindows: thisJSON.htmlWindows ?? [],
-            }
-            // clo(thisWS, `thisWS:`)
-            windowSets.push(thisWS)
-          }
-        }
-      }
-      logDebug('readWindowSetDefinitions', `Read ${String(windowSets.length)} window sets`)
-    } else {
-      logInfo('readWindowSetDefinitions', `No Window Set definition files found in folder '${folderForDefinitions}'`)
-    }
-    return windowSets
-  } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
-    return [] // for completeness
-  }
-}
-
 
 //---------------------------------------------------------------
 // WindowSet functions
 
 /**
- * Get the detailed Window Set object for the passed window set name.
- * V2: reads from @WindowSets folder of files.
- * TEST: me.
- * @author @jgclark
- * @param {string} name of window set to look up
- * @returns {WindowSet | null} window set, if found, otherwise null
- */
-function getDetailedWindowSetByName(name: string, folderForDefinitions: string): WindowSet | null {
-  try {
-    if (NotePlan.environment.platform !== 'macOS') {
-      logWarn('logWindowSets', `Window Sets only runs on macOS. Stopping.`)
-      return null
-    }
-
-    const windowSets = readWindowSetDefinitions(folderForDefinitions)
-    if (!windowSets) {
-      logInfo('logWindowSets', `No saved windowSets object found.`)
-      return null
-    }
-    for (const set of windowSets) {
-      if (set.name === name) {
-        logDebug('logWindowSets', `Found saved windowSet '${name}'.`)
-        return set
-      }
-    }
-    logWarn(pluginJson, `getDetailedWindowSetByName('${name}'): no such detailed windowSet object found`)
-    return null
-  } catch (error) {
-    logError(pluginJson, `${error.name}: ${error.message}`)
-    return null
-  }
-}
-
-/**
- * List user's available saved windows sets to console
- * V2: reads from @WindowSets folder of files.
- * @author @jgclark
- */
-export async function logWindowSets(): Promise<void> {
-  try {
-    if (NotePlan.environment.platform !== 'macOS') {
-      logWarn('logWindowSets', `Window Sets only runs on macOS. Stopping.`)
-      return
-    }
-    const config = await getPluginSettings()
-
-    const windowSets = readWindowSetDefinitions(config.folderForDefinitions)
-    if (!windowSets) {
-      logInfo('logWindowSets', `No saved windowSets object found.`)
-      return
-    }
-    const outputLines = []
-    outputLines.push(`Window Sets:`)
-    for (const set of windowSets) {
-      let c = 0
-      outputLines.push(`${set.name}:`)
-      if (set.editorWindows) {
-        for (const ws of set.editorWindows) {
-          outputLines.push(`- ${String(c)}: ${ws.noteType}: title:'${ws.title ?? ''}' filename:${ws.filename ?? ''} x:${ws.x ?? '-'} y:${ws.y ?? '-'} w:${ws.width ?? '-'} h:${ws.height ?? '-'}`)
-          c++
-        }
-      } else {
-        logInfo('logWindowSets', `WindowSet #${String(c)} has no editorWindows array`)
-      }
-      if (set.htmlWindows) {
-        for (const ws of set.htmlWindows) {
-          outputLines.push(`- ${String(c)}: ${ws.type}: customId:'${ws.customId ?? ''}' plugin.id:${ws.pluginID ?? '?'} x:${ws.x ?? '-'} y:${ws.y ?? '-'} w:${ws.width ?? '-'} h:${ws.height ?? '-'}`)
-          c++
-        }
-      } else {
-        logInfo('logWindowSets', `WindowSet #${String(c)} has no htmlWindows array`)
-      }
-    }
-    // logDebug('', String(outputLines))
-    logInfo('logWindowSets', (outputLines.length > 0) ? outputLines.join('\n') : '**none**')
-  }
-  catch (error) {
-    logError('logWindowSets', JSP(error))
-  }
-}
-
-/**
- * Save detailed set of windows/panes as a set to the preference store for the current device.
- * V2: reads from @WindowSets folder of files.
+ * Save detailed set of windows/panes as a set to the preference store for the current machine.
+ * V3: writes to prefs
  * @author @jgclark
  */
 export async function saveWindowSet(): Promise<void> {
   try {
-    const config = await getPluginSettings()
-
-    if (NotePlan.environment.platform !== 'macOS') {
-      logInfo('saveWindowSet', `Window Sets needs NotePlan v3.9.1 or later on macOS. Stopping.`)
+    if (NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 1100) {
+      logInfo('saveWindowSet', `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
       return
     }
+
+    const config = await wsh.getPluginSettings()
+    const thisMachineName = NotePlan.environment.machineName
+
     // Form this set from open windows
     // Note: needs to use a cut-down set of attributes available in the window objects
-    const editorWinDetails: Array<EditorWinDetails> = NotePlan.editors.map((win) => {
+    const editorWinDetails: Array<wsh.EditorWinDetails> = NotePlan.editors.map((win) => {
       const winRect = win.windowRect
       return {
         noteType: win.type,
-        openAction: '', // set later
+        windowType: win.windowType,
         filename: win.filename,
-        title: undefined, // potentially gets defined later
+        title: undefined, // gets set later
         x: winRect.x,
         y: winRect.y,
         width: winRect.width,
@@ -401,12 +92,12 @@ export async function saveWindowSet(): Promise<void> {
     })
     // logDebug('saveWindowSet', `Found ${String(editorWinDetails.length)} editor windows`)
 
-    const htmlWinDetails: Array<HTMLWinDetails> = NotePlan.htmlWindows.map((win) => {
+    const htmlWinDetails: Array<wsh.HTMLWinDetails> = NotePlan.htmlWindows.map((win) => {
       const winRect = win.windowRect
       return {
         type: win.type,
-        pluginID: '???', // gets set later
-        pluginCommand: '???', // gets set later
+        pluginID: '?', // gets set later
+        pluginCommandName: '?', // gets set later
         customId: win.customId,
         x: winRect.x,
         y: winRect.y,
@@ -424,15 +115,15 @@ export async function saveWindowSet(): Promise<void> {
     }
 
     // Get current saved set names
-    const savedWindowSets: Array<WindowSet> = readWindowSetDefinitions(config.folderForDefinitions) ?? []
+    let savedWindowSets = await wsh.readWindowSetDefinitions()
+    // clo(savedWindowSets, 'savedWindowSets')
     let choice = 0
     let setName = ''
     let isNewSet = false
-    let windowSets: Array<WindowSet> = []
 
     // Offer current set names and/or offer to create new one
-    if (savedWindowSets) {
-      logDebug('saveWindowSet', `found ${String(savedWindowSets.length)} windowSets`)
+    if (savedWindowSets.length > 0) {
+      logDebug('saveWindowSet', `found ${String(savedWindowSets.length)} existing windowSets`)
       const nameOptions: Array<Object> = []
       nameOptions.push({ value: 0, label: "+ New window set" })
       for (let i = 0; i < savedWindowSets.length; i++) {
@@ -454,8 +145,8 @@ export async function saveWindowSet(): Promise<void> {
         setName = String(newName) // to satisfy flow
         isNewSet = true
       } else {
-        setName = nameOptions[res]
-        logDebug('saveWindowSet', `User selected existing WS '${setName}'`)
+        setName = nameOptions[res].label
+        logDebug('saveWindowSet', `User selected existing WS '${setName}' from ${String(res)}`)
       }
     } else {
       // No current saved window sets
@@ -469,17 +160,19 @@ export async function saveWindowSet(): Promise<void> {
     }
 
     // Start making WS object to save
-    let thisWSToSave: WindowSet = {
+    let thisWSToSave: wsh.WindowSet = {
       name: setName,
       closeOtherWindows: true,
       editorWindows: [],
       htmlWindows: [],
+      machineName: thisMachineName
     }
 
     // First process Editor windows
     let ewCount = 0
     const firstWindow = editorWinDetails[0]
     for (const ew of editorWinDetails) {
+      // clo(ew, String(ewCount))
       let tempFilename = ''
       const thisNote = DataStore.projectNoteByFilename(ew.filename)
       let tempTitle = displayTitle(thisNote)
@@ -488,20 +181,14 @@ export async function saveWindowSet(): Promise<void> {
       if (ew.noteType === 'Calendar') {
         // Offer to make them a relative date to today/this week etc.
         // Turn this into a daily date at start of period
-        const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(ew.filename))
-        // const thisDateStr = getISODateStringFromYYYYMMDD(getDateStrForStartofPeriodFromCalendarFilename(ew.filename))
-        // Get number of days between today and the calendar filename
-        logDebug('getDateStringFromCalendarFilename(ew.filename)', getDateStringFromCalendarFilename(ew.filename)) // 2023-W36
-        logDebug('thisDateStr', thisDateStr) // FIXME: error
-        // const daysDiff = daysBetween(getTodaysDateHyphenated(), thisDateStr)
-        // logDebug('daysDiff', String(daysDiff))
+        const thisDateStr = getDateStringFromCalendarFilename(ew.filename, true)
 
-        const relativeDateStr = `{${relativeDateCodeFromDateString(thisDateStr)}}`
-        logDebug('relativeDateStr', relativeDateStr)
-        const res = await showMessageYesNoCancel(`Open window '${thisDateStr}' is a calendar note. Do you want to make it a relative date '${relativeDateStr}'?`)
+        const relativeDateCode = `{${relativeDateCodeFromDateString(thisDateStr)}}`
+        logDebug('relativeDateCode', relativeDateCode)
+        const res = await showMessageYesNoCancel(`Open window '${thisDateStr}' is a calendar note. Do you want to make it a relative date '${relativeDateCode}'?`)
         if (res === 'Yes') {
-          tempFilename = relativeDateStr
-          tempTitle = `relative date ${relativeDateStr}` // TODO: make proper relative name
+          tempFilename = relativeDateCode
+          tempTitle = `relative date ${relativeDateCode}` // TODO: make proper relative name
         } else if (res === 'No') {
           tempFilename = ew.filename
           // title from calendar note already set
@@ -512,35 +199,24 @@ export async function saveWindowSet(): Promise<void> {
       } else {
         // A project note: nothing particular to do
       }
-    // Get type of window by looking at the second open window (the first always being 'main')
+      // Get type of window (ensuring the first will always be 'main')
+      const windowType = (ewCount === 0)
+        ? 'main'
+        : editorWinDetails[ewCount].windowType
 
-      // Note: API docs say Editor.type can be main | split | floating | unsupported
-      // FIXME(Eduard): but I'm only getting Notes | Calendar
-      // const actionType = (editorWinDetails.length > 1 && editorWinDetails[1].type === 'split') ? 'split' : 'floating'
-
-      // TODO(later): remove this workaround
-      let actionType = 'floating'
-      if (ewCount === 0) {
-        actionType = 'main'
-      } else {
-        if (ew.x === firstWindow.x && ew.y === firstWindow.y && ew.width === firstWindow.width && ew.height === firstWindow.height) {
-          actionType = 'split'
-        }
-      }
       // Save other details
-      let thisEWToSave: EditorWinDetails = {
+      let thisEWToSave: wsh.EditorWinDetails = {
         noteType: ew.noteType,
+        filename: tempFilename,
+        windowType: windowType,
         x: ew.x,
         y: ew.y,
         width: ew.width,
         height: ew.height,
-        openAction: actionType,
-        filename: tempFilename,
       }
       if (tempTitle) {
         thisEWToSave.title = tempTitle
       }
-      clo(thisWSToSave, 'thisWSToSave')
       thisWSToSave.editorWindows.push(thisEWToSave)
       ewCount++
     }
@@ -549,129 +225,99 @@ export async function saveWindowSet(): Promise<void> {
     // Currently works from lookup list defined at top
     for (const thisHtmlWinDetails of htmlWinDetails) {
       const thisWindowId = thisHtmlWinDetails.customId ?? 'n/a'
-      logDebug('saveWindowSet', `for thisHtmlWinDetails: ${thisWindowId}`)
-      const thisPWAC = pluginWindowsAndCommands.filter((p) => thisWindowId === p.pluginWindowId)
-      const thisHWPluginID = (thisPWAC)
-        ? thisHtmlWinDetails.pluginID : '? needs to be set from plugin'
-      const thisHWPluginCommand = (thisPWAC)
-        ? thisHtmlWinDetails.pluginCommand : '? needs to be set from ' + thisWindowId
+      logDebug('saveWindowSet', `- plugin: ${thisWindowId}`)
+      const thisPWAC = wsh.pluginWindowsAndCommands.filter((p) => thisWindowId === p.pluginWindowId)[0]
+      const thisHWPluginID = thisPWAC?.pluginID ?? '? needs to be set from plugin'
+      const thisHWPluginCommandName = thisPWAC?.pluginCommandName ?? '? needs to be set from ' + thisWindowId
       const thisHWToSave = {
         type: thisHtmlWinDetails.type,
         pluginID: thisHWPluginID,
-        pluginCommand: thisHWPluginCommand,
+        pluginCommandName: thisHWPluginCommandName,
         customId: thisHtmlWinDetails.customId,
         x: thisHtmlWinDetails.x,
         y: thisHtmlWinDetails.y,
         width: thisHtmlWinDetails.width,
         height: thisHtmlWinDetails.height,
       }
-      clo(thisHWToSave, 'thisHWToSave')
       thisWSToSave.htmlWindows.push(thisHWToSave)
     }
+    clo(thisWSToSave, `saveWindowSet: thisWSToSave after EWs and HWs. (${isNewSet ? 'new set' : 'updated'})`) // OK
 
     // Save to preferences store
     // Add or update this WS
-    // if (isNewSet) {
-    //   // Add this one
-    //   windowSets.push(thisWSToSave)
-    // } else {
-    //   let c = 0
-    //   let found = false
-    //   for (const set of windowSets) {
-    //     clo(set, 'set')
-    //     if (set.name === setName) {
-    //       // Update this one
-    //       windowSets[c] = thisWSToSave
-    //       found = true
-    //       break
-    //     }
-    //     c++
-    //   }
-    // }
-    // clo(windowSets, 'windowSets')
-    // DataStore.setPreference('windowSets', windowSets)
-
-    // Save to WS note
-    // Add or update this WS
-    const WSNoteTitle = `Window Sets`
-    let res = false
+    const WSsToSave = savedWindowSets.slice()
     if (isNewSet) {
-      // Prepend to WS note
-      logDebug('saveWindowSet', `About to prepend window set '${setName}' to WindowSet note ...`)
-      res = await writeWSToNote('insert', config.folderForDefinitions, WSNoteTitle, thisWSToSave)
+      // Add this one
+      WSsToSave.push(thisWSToSave)
+      logDebug('saveWindowSet', `Added window set '${setName}'. Number WSs now = ${String(WSsToSave.length)}`)
     } else {
-      // Replace in WS note
-      // FIXME: fails for existing note, as 'setName' undefined
-      logDebug('saveWindowSet', `About to replace window set '${setName}' in WindowSet note ...`)
-      res = await writeWSToNote('update', config.folderForDefinitions, WSNoteTitle, thisWSToSave)
+      // Find the right one to update
+      let c = 0
+      let found = false
+      for (const set of WSsToSave) {
+        // clo(set, 'set')
+        if (set.name === setName) {
+          logDebug('saveWindowSet', `Updating window set ${String(c)}: ${setName}`)
+          WSsToSave[c] = thisWSToSave
+          found = true
+          break
+        }
+        c++
+      }
+      if (!found) {
+        logError('saveWindowSet', `Couldn't find window set '${setName}' to update.`)
+      }
     }
-    // Report success/failure
-    if (res) {
-      logDebug('saveWindowSet', `Saved window set '${setName}' to WindowSet note`)
-    } else {
-      logError('saveWindowSet', `Failed to save window set '${setName}' to WindowSet note`)
+    clo(WSsToSave, 'saveWindowSet: all current windowSets to save')
+
+    DataStore.setPreference('windowSets', WSsToSave)
+    logDebug('saveWindowSet', `Saved window sets to local pref`)
+    await wsh.logWindowSets()
+    const res = wsh.writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, WSsToSave)
+    logDebug('saveWindowSet', `Saved window sets to note`)
+
+    // TEST: If we have htmlWindows not in our lookup list, then tell user to update the list with the plugin command Name
+    let askUserToComplete = false
+    for (const thisHtmlWinDetails of htmlWinDetails) {
+      const thisWindowId = thisHtmlWinDetails.customId ?? 'n/a'
+      logDebug('saveWindowSet', `for thisHtmlWinDetails: ${thisWindowId}`)
+      const thisPWAC = wsh.pluginWindowsAndCommands.filter((p) => thisWindowId === p.pluginWindowId)[0]
+      if (thisPWAC.pluginID.startsWith('?')) {
+        askUserToComplete = true
+      }
     }
-  } catch (error) {
+    if (askUserToComplete) {
+      const res = await showMessage(`I couldn't identify some HTML (plugin) window commands from my existing list. Please complete their details in the WindowSet note before trying to open this window set.`, 'OK', 'Window Sets', false)
+    }
+
+    // TODO: success message?
+  }
+  catch (error) {
     logError('saveWindowSet', JSP(error))
   }
 }
 
 /**
- * Write the supplied WindowSet to the specified NP note, either 'insert'ing or 'update'ing
- * @param {string} operation: 'insert' or 'update'
- * @param {string} noteTitle to write to
- * @param {WindowSet} thisWSToSave
- * @returns
- */
-export async function writeWSToNote(operation: string, noteFolder: string, noteTitle: string, thisWSToSave: WindowSet): Promise<boolean> {
-  try {
-    logDebug(pluginJson, `writeWSToNote() starting '${operation}' for '${thisWSToSave.name}' to folder '${noteFolder}' title '${noteTitle}'`)
-    const WSNote: ?TNote = await getOrMakeNote(noteTitle, noteFolder)
-    if (!WSNote) {
-      throw new Error(`writeWSToNote() no note found for '${noteTitle}' in folder '${noteFolder}'`)
-    }
-    logDebug('writeWSToNote', `- ${displayTitle(WSNote)} / ${noteTitle}`)
-
-    // Make string from WindowSet object
-    const thisWindowSetStr = JSON.stringify(thisWSToSave, null, 2)
-    // logDebug('writeWSToNote', `writeWSToNote() thisWindowSetStr:\n${thisWindowSetStr}`)
-    // Add or update to note
-    let res = false
-    if (operation === 'update') {
-      res = updateCodeBlock(WSNote, thisWindowSetStr, 'json')
-    }
-    else {
-      res = addCodeBlock(WSNote, thisWindowSetStr, 'json')
-    }
-
-    return res
-  } catch (error) {
-    logError(pluginJson, `writeWSToNote: ${error.message}`)
-    return false
-  }
-}
-
-/**
- * Open the saved window set named 'setName'
- * V2: reads from @WindowSets folder of files
- * Note: minimum version v3.9.5
+ * Open the saved window set named 'setName' (if given) or ask user to select from list from this machine.
+ * V3: reads from local preferences
  * @author @jgclark
  * @param {string?} setName to open; if not given, will ask user
  * @returns {boolean} success?
  */
 export async function openWindowSet(setName: string = ''): Promise<boolean> {
   try {
-    if (NotePlan.environment.platform !== 'macOS') {
-      logInfo('saveWindowSet', `Window Sets only runs on macOS. Stopping.`)
+    if (NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 1100) {
+      logInfo('saveWindowSet', `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
       return false
     }
 
-    const config = await getPluginSettings()
+    const config = await wsh.getPluginSettings()
+    const thisMachineName = NotePlan.environment.machineName
     let success = false
-    let thisWS: WindowSet
+    let thisWS: wsh.WindowSet
     let res = false
     if (setName !== '') {
-      res = getDetailedWindowSetByName(setName, config.folderForDefinitions)
+      res = wsh.getDetailedWindowSetByName(setName)
     }
     if (res) {
       // Use this one
@@ -680,42 +326,19 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
     }
     else {
       // Form list of window sets to choose from
-      // Get all available windowSets
-      const savedWindowSets = readWindowSetDefinitions(config.folderForDefinitions)
-      if (!savedWindowSets) {
-        logInfo('logWindowSets', `No saved windowSets object found.`)
-
-        // TEST: Offer to make two default sets
-        let res = await showMessageYesNoCancel(`There are no Window Set definitions in folder '${config.folderForDefinitions}'. Shall I add some example ones?`, ['Yes', 'No', 'Cancel'], "Window Sets")
-        switch (res) {
-          case 'Yes': {
-            // create two default sets
-            const filename1 = config.folderForDefinitions + '/Day + Week Window Sets.md'
-            const n1 = await Editor.openNoteByFilename(filename1, false, 0, 0, false, true, exampleContent1)
-            const filename2 = config.folderForDefinitions + '/Staff Meeting.md'
-            const n2 = await Editor.openNoteByFilename(filename1, false, 0, 0, true, true, exampleContent1)
-            await showMessage(`Written 2 example Window Sets. Please run the command again to try them out.`)
-            return false
-          }
-          case 'No': {
-            break
-          }
-          case 'Cancel': {
-            // Stop execution
-            logDebug(pluginJson, `User cancelled operation.`)
-            return false
-          }
-        }
-      }
-      // clo(savedWindowSets, 'savedWindowSets')
+      // Get all available windowSets for this machine
+      const savedWindowSets = await wsh.readWindowSetDefinitions(thisMachineName)
+      // if (savedWindowSets.length === 0) {
+      //   logInfo('logWindowSets', `No saved windowSets object found for machine '${thisMachineName}'.`)
 
       let c = -1
       const setChoices = savedWindowSets.map((sws) => {
         c++
-        return { label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} windows)`, value: c }
+        return {
+          label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} note${sws.htmlWindows?.length > 0 ? ' + ' + String(sws.htmlWindows?.length) + ' plugin' : ''} windows)`, value: c
+        }
       })
       const num = await chooseOption("Which Window Set to open?", setChoices)
-      logDebug(pluginJson, `${String(num)}, ${typeof num}`)
       if (isNaN(num)) {
         logInfo(pluginJson, `No valid set chosen, so stopping.`)
         return false
@@ -725,28 +348,28 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
       logDebug('openWindowSet', `User requests window set '${setName}'`)
     }
 
-    clo(thisWS)
+    clo(thisWS, 'thisWS')
 
     // First close other windows (if requested)
     if (thisWS.closeOtherWindows) {
-      // logDebug('openWindowSet', `Attempting to close any other windows that aren't part of the set`)
+      logDebug('openWindowSet', `Attempting to close any other windows that aren't part of the set`)
 
-      // Get list of currently open windows
+      // Get list of currently open non-main windows
       const openWindowIds = getNonMainWindowIds()
       for (const winId of openWindowIds) {
-        // logDebug('openWindowSet', `Attempting to close window ID ${winId}`)
         closeWindowFromId(winId)
+        logDebug('openWindowSet', `- closed window ID ${winId}`)
       }
     }
 
     // Now open new windows/splits
     let openCount = 0
-    // First any HTMLWindows (currently just plugins)
+    // First any HTMLView windows (currently just plugins)
     for (const hw of thisWS.htmlWindows) {
       switch (hw.type) {
-        case 'Plugin': {
-          logDebug('openWindowSet', `- Calling Plugin '${hw.pluginID}::${hw.pluginCommand}'  ...`)
-          await DataStore.invokePluginCommandByName(hw.pluginCommand, hw.pluginID)
+        case 'html': {
+          logDebug('openWindowSet', `- Calling Plugin '${hw.pluginID}::${hw.pluginCommandName}' ...`)
+          await DataStore.invokePluginCommandByName(hw.pluginCommandName, hw.pluginID)
           // If x,y,w,h given the override now
           if (hw.x && hw.y && hw.width && hw.height) {
             const rect = { x: hw.x, y: hw.y, width: hw.width, height: hw.height }
@@ -756,7 +379,7 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
           break
         }
         default: {
-          logError('openWindowSet', `- WS '${thisWS.name}' is empty`)
+          logError('openWindowSet', `- WS '${thisWS.name}' has unsupported HTMLView type '${hw.type}'`)
         }
       }
     }
@@ -767,9 +390,12 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
         continue
       }
 
+      // Decide which 'resource' (project note/calendar note/plugin) to open
       let resourceToOpen = ew.filename
-      logDebug('openWindowSet', `- trying note filename '${ew.filename}' with openAction ${ew.openAction}`)
-      if (ew.openAction === 'floating') {
+      // FIXME: This needs to cope with 'main' type too. Move resourceToOpen setting logic before here?
+
+      // FIXME: Then save this as WS 0.3.0.
+      if (ew.windowType === 'floating') {
         // Open in a full window pane
         switch (ew.noteType) {
           case 'Calendar': {
@@ -778,10 +404,13 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
               const dateOffsetStrings = resourceToOpen.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
               logDebug('dateOffsetStrings', String(dateOffsetStrings))
               const dateOffsetString = dateOffsetStrings[1] // first capture group
-              logDebug('dateOffsetString', dateOffsetString)
+              logDebug('dateOffsetStrings', `- calculated relative date ${dateOffsetString}`)
               resourceToOpen = calcOffsetDateStr(getTodaysDateHyphenated(), dateOffsetString, 'offset')
-              logDebug('resourceToOpen', resourceToOpen)
+              // Grr, need to change back to YYYYMMDD if daily note
+              resourceToOpen = getFilenameDateStrFromDisplayDateStr(resourceToOpen)
+              logDebug('dateOffsetStrings', `- resourceToOpen = ${resourceToOpen}`)
             }
+            logDebug('openWindowSet', `- will open Calendar '${resourceToOpen}' in split`)
             const res = await Editor.openNoteByDateString(resourceToOpen, (openCount > 0), 0, 0, false)
             openCount++
             break
@@ -792,29 +421,46 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
             break
           }
         }
-      } else if (ew.openAction === 'split') {
+        logDebug('openWindowSet', `- opened '${resourceToOpen}' in float`)
+      }
+      else if (ew.windowType === 'split') {
         // Open in a split window
         switch (ew.noteType) {
           case 'Calendar': {
             // if this is a relative date, calculate the actual date
             if (resourceToOpen.match(RE_OFFSET_DATE)) {
+              logDebug('openWindowSet', `  - trying note filename '${ew.filename}' with windowType ${ew.windowType}`)
               const dateOffsetStrings = resourceToOpen.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
-              logDebug('dateOffsetStrings', String(dateOffsetStrings))
               const dateOffsetString = dateOffsetStrings[1] // first capture group
-              logDebug('dateOffsetString', dateOffsetString)
+              logDebug('dateOffsetStrings', `  - calculated relative date ${dateOffsetString}`)
               resourceToOpen = calcOffsetDateStr(getTodaysDateHyphenated(), dateOffsetString, 'offset')
-              logDebug('resourceToOpen', resourceToOpen)
+              // Grr, need to change back to YYYYMMDD if daily note TEST: weeks etc.
+              // TODO: move this logic into the above func with new parameter
+              resourceToOpen = getFilenameDateStrFromDisplayDateStr(resourceToOpen)
+              logDebug('dateOffsetStrings', `  - resourceToOpen = ${resourceToOpen}`)
             }
             const res = await Editor.openNoteByDateString(resourceToOpen, false, 0, 0, true)
-            openCount++
+            if (res) {
+              openCount++
+              logDebug('openWindowSet', `- opened Calendar note ${resourceToOpen} in split`)
+            } else {
+              logError('openWindowSet', `- problem opening Calendar note ${resourceToOpen} in split`)
+            }
             break
           }
           default: { // 'Note'
             const res = await Editor.openNoteByFilename(resourceToOpen, false, 0, 0, (openCount > 0), false)
-            openCount++
+            if (res) {
+              openCount++
+              logDebug('openWindowSet', `- opened Note ${resourceToOpen} in split`)
+            } else {
+              logError('openWindowSet', `- problem opening Note ${resourceToOpen} in split`)
+            }
             break
           }
         }
+      } else {
+        logError('openWindowSet', `- unsupported ew.windowType '${ew.windowType}' found`)
       }
     }
 
@@ -863,7 +509,7 @@ export async function deleteWindowSet(setName: string): Promise<boolean> {
     windowSets.splice(num, 1)
     DataStore.setPreference('windowSets', windowSets)
     logDebug('deleteWindowSet', `Window set '${setName}'`)
-    logWindowSets()
+    wsh.logWindowSets()
 
     return true
   }
@@ -877,7 +523,7 @@ export async function deleteWindowSet(setName: string): Promise<boolean> {
  * Delete all saved window sets
  * V1: writes to DataStore.preference('windowSets')
  */
-export function deleteAllSavedWindowSets(): void {
+export async function deleteAllSavedWindowSets(): Promise<void> {
   try {
     unsetPreference('windowSets')
     logInfo('deleteAllSavedWindowSets', `Deleted all Window Sets`)
