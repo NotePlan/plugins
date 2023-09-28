@@ -556,7 +556,7 @@ export function getSanitizedFmParts(noteText: string): FrontMatterDocumentObject
   try {
     fmData = fm(sanitizedText, { allowUnsafe: true })
   } catch (error) {
-    logError(`Frontmatter getAttributes error. COULD NOT SANITIZE CONTENT: "${error.message}". Stopping.`)
+    logError(`Frontmatter getAttributes error. COULD NOT SANITIZE CONTENT: "${error.message}". Returning empty values for this note: "${JSON.stringify(noteText)}"`)
   }
   return fmData
 }
