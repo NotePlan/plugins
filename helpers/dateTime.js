@@ -371,6 +371,19 @@ export function getDisplayDateStrFromFilenameDateStr(dateStrIn: string): string 
 }
 
 /**
+ * Take a date string from calendar note filename, and convert to NP display string. In practice this leaves week, month, quarter, year dates alone, but changes YYYYMMDD to YYYY-MM-DD.
+ * @param {string} dateStrIn from filename
+ * @returns {string}
+ */
+export function getFilenameDateStrFromDisplayDateStr(dateStrIn: string): string {
+  if (dateStrIn.match(RE_ISO_DATE)) {
+    return unhyphenateString(dateStrIn)
+  } else {
+    return dateStrIn
+  }
+}
+
+/**
  * Take a NP display date string and convert to one to use in API calls. In practice this leaves week, month, quarter, year dates alone, but changes YYYY-MM-DD to YYYYMMDD.
  * @param {string} dateStrIn from filename
  * @returns {string}

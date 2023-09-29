@@ -1,14 +1,18 @@
 # 🖥️ Window Sets
-This plugin Allows you to save particular window sets or layouts on macOS, and then **restore** them in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins.
+This plugin allows you to save particular 'sets' or layouts of your NotePlan windows on macOS, and then **restore** them in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins.
 
 The commands are simple:
 - **/open window set** (alias **/ows**): Open a saved set of windows/panes. You're shown a list of all saved window sets to choose from.
-- **/save window set** (alias **/sws**): Save the currently open set of windows/panes as a windows set, complete with size and position of non-split windows.  Note: This doesn't include being able to save the precise Plugin window details.
+- **/save window set** (alias **/sws**): Save the currently open set of windows/panes as a set, complete with size and position of 'floating' windows.  Note: This doesn't include being able to save the precise Plugin window details.
+
+??? machineName
+
+The Plugin requires NotePlan version 3.9.8 or higher.
 
 (There are currently some other commands for testing.)
 
 ## Defining Window Sets
-These are defined in notes in a special folder (by default `@Window Sets` but can be changed in the plugin Settings). Each Window Set is defined in a code block in JSON format. When first run it will offer to write out some examples for you to copy from.
+These are defined in a special note; by default this is `@Window Sets/Windows Sets` but can be changed in the plugin Settings. All Window Sets are defined in a code block in JSON format. When first run it will offer to write out some examples for you to use or modify.
 
 In more detail:
 ??? - tbd
@@ -28,6 +32,7 @@ For example, `{-1w}`, `{0w}`,`{1w}` means last week, this week and next week's n
 
 ### Specifiying Plugin Windows
 ???
+It will do its best to ... however ...
 
 ## Other Configuration
 Click the gear button on the **Window Sets** line in the Plugin Preferences panel, and fill in the settings accordingly:

@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.9.5",
+  "noteplan.minAppVersion": "3.9.8",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.WindowSets",
   "plugin.name": "🖥️ Window Sets",
@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/CHANGELOG.md",
-  "plugin.version": "0.2.0",
-  "plugin.lastUpdateInfo": "v0.2: Window Set definitions now in user-editable notes, allowing an arbitrary number of them.\nv0.1: First version, with basic save and restore functions.",
+  "plugin.version": "0.3.0",
+  "plugin.lastUpdateInfo": "v0.3.0: Window Set definitions now in a hidden data file, that can be sync'd with a user-editable note.\nv0.2: Window Set definitions now in user-editable notes, allowing an arbitrary number of them.\nv0.1: First version, with basic save and restore functions.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -50,12 +50,36 @@
       "jsFunction": "logWindowsList"
     },
     {
-      "name": "test:readWindowSetDefinitions",
-      "description": "readWindowSetDefinitions",
-      "jsFunction": "readWindowSetDefinitions"
+      "name": "write window set pref to note",
+      "alias": [
+        "wpn"
+      ],
+      "description": "Write WS local preference to note",
+      "jsFunction": "writeWSPrefsToNote"
     },
     {
-      "name": "test:deleteAllSavedWindowSets",
+      "name": "write window set note to pref",
+      "alias": [
+        "wnp"
+      ],
+      "description": "Write WS note to local preference",
+      "jsFunction": "writeWSNoteToPrefs"
+    },
+    {
+      "name": "sync window set note to pref",
+      "alias": [
+        "snp"
+      ],
+      "description": "Sync WS note to local WS preference",
+      "jsFunction": "syncWSNoteToPrefs"
+    },
+    {
+      "name": "WS:test Update or install",
+      "description": "test WindowSets update/install",
+      "jsFunction": "testUpdate"
+    },
+    {
+      "name": "WS:delete all saved Window Sets",
       "description": "Delete all saved window sets",
       "jsFunction": "deleteAllSavedWindowSets"
     },
@@ -89,9 +113,17 @@
       "title": "Window Sets settings"
     },
     {
+      "key": "noteTitleForDefinitions",
+      "title": "Note title for Window Set definitions",
+      "description": "Note title for where Window Set definitions are visible.",
+      "type": "string",
+      "default": "Window Sets",
+      "required": true
+    },
+    {
       "key": "folderForDefinitions",
-      "title": "Folder where Window Set definitions are stored",
-      "description": "",
+      "title": "Folder name for Window Set definitions",
+      "description": "Folder where Window Set definitions are visible.",
       "type": "string",
       "default": "@Window Sets",
       "required": true

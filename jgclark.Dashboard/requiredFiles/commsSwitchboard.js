@@ -84,7 +84,7 @@ async function completeTask(data) {
   // const { ID } = data
   const itemID = data.itemID
   console.log(`completeTask: for ID: ${itemID}`)
-  replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked box icon
+  replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked circle icon
   // addClassToID(itemID, "checked") // adds colour + line-through
   addClassToID(itemID, "fadeOutAndHide")
   await delay(2000)
@@ -265,35 +265,39 @@ function onChangeCheckbox(settingName, state) {
  *****************************************************************************/
 
 function deleteHTMLItem(ID) {
-  console.log(`deleteHTMLItem: ID: ${ID}`)
+  console.log(`deleteHTMLItem(${ID}) ...`)
   const div = document.getElementById(ID)
   if (div) {
     // console.log(`innerHTML was: ${div.innerHTML}`)
     div.innerHTML = ''
   } else {
-    console.log(`Couldn't find item with ID ${ID}`)
+    console.log(`- error: couldn't find an elem for this ID`)
   }
 }
 
 function addClassToID(ID, newerClass) {
-  console.log(`addClassToID: ID: ${ID}`)
+  console.log(`addClassToID(${ID}, '${newerClass}') ...`)
   const elem = document.getElementById(ID)
   if (elem) {
     const origClass = elem.getAttribute("class")
     elem.setAttribute("class", `${origClass} ${newerClass}`)
+  } else {
+    console.log(`- error: couldn't find an elem for this ID`)
   }
 }
 
 function replaceClassInID(ID, replacementClass) {
-  console.log(`replaceClassInID: for ${ID}`)
+  console.log(`replaceClassInID(${ID}, '${replacementClass}') ...`)
   const elem = document.getElementById(ID)
   if (elem) {
     elem.setAttribute("class", replacementClass)
+  } else {
+    console.log(`- error: couldn't find an elem for this ID`)
   }
 }
 
 function replaceHTML(ID, html, innerText) {
-  console.log(`replaceHTML: ID: ${ID}, html: ${html}`)
+  console.log(`replaceHTML(${ID}, '${html}', '${innerText}') ...`)
   const div = document.getElementById(ID)
   if (div) {
     if (innerText) {
@@ -301,29 +305,35 @@ function replaceHTML(ID, html, innerText) {
     } else {
       div.innerHTML = html
     }
+  } else {
+    console.log(`- error: couldn't find a div for this ID`)
   }
 }
 
 function setCounter(counterID, value) {
-  console.log(`setCounter '${counterID}' to ${value}`)
+  console.log(`setCounter('${counterID}', ${value}) ...`)
   replaceHTML(counterID, String(value), true)
 }
 
 function incrementItemCount(counterID) {
-  console.log(`incrementItemCount: '${counterID}'`)
+  console.log(`incrementItemCount('${counterID}') ...`)
   const div = document.getElementById(counterID)
   if (div) {
     const value = parseInt(div.innerText)
     replaceHTML(counterID, String(value + 1), true)
+  } else {
+    console.log(`- error: couldn't find a div for this counterID`)
   }
 }
 
 function decrementItemCount(counterID) {
-  console.log(`decrementItemCount: '${counterID}'`)
+  console.log(`decrementItemCount('${counterID}') ...`)
   const div = document.getElementById(counterID)
   if (div) {
     const value = parseInt(div.innerText)
     replaceHTML(counterID, String(value - 1), true)
+  } else {
+    console.log(`- error: couldn't find a div for this counterID`)
   }
 }
 

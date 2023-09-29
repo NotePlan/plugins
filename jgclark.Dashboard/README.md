@@ -10,19 +10,19 @@ This plugin provides a **dashboard window** that in one place shows a compact li
 - all open tasks and checklists that conain a particular @tag or #mention of your choosing
 - next few notes to review (if you use the "Projects and Reviews" plugin)
 
-To open this run the **/show dashboard** command.
+To open this run the **/show dashboard** command (aliases 'db' or 'sdb').
 
 <img width="400px" src="complete+cancel.gif" border="1pt solid" margin="8px" align="right"/>All tasks and checklists shown in the Dashboard view can be marked as **complete** by clicking in its usual open circle or square. The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by press ⌘ (command) when clicking on the open circle or square.
 
 <img src="move-buttons@2x.png" width="330px" border="1pt solid" margin="8px" align="right">
 All tasks and checklists can be **moved** to different days/weeks/months. After a short time hovering over an item a small box appears with a number of buttons that have short codes indicating which calendar note they'll be moved (not scheduled) to:
 
-- `+1d` moves to the next day
-- `+1b` moves to the next business day (ignoring weekends)
+- `→today` moves to today's note
+- `+1d` moves to the next day's note
+- `+1b` moves to the next business day's note (which ignores weekends)
 - `+1w` moves to next week's note etc.
 - `→wk` moves to this week's note
 - `→mon` moves to this month's note
-(If you're wondering, this uses the same syntax as my Repeat Extensions plugin.)
 
 On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note:
 
