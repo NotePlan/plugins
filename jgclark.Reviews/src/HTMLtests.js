@@ -3,7 +3,8 @@
 // Tests for various HTML developments
 //-------------------------------------------------------
 
-import { generateCSSFromTheme, makeSVGPercentRing, redToGreenInterpolation, showHTML } from '@helpers/HTMLView'
+import { makeSVGPercentRing, redToGreenInterpolation, showHTML } from '@helpers/HTMLView'
+import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { setPercentRingJSFunc } from './reviews'
 
 export function testGenerateCSSFromTheme(): void {
