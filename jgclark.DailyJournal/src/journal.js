@@ -52,7 +52,7 @@ export async function monthStart(): Promise<void> {
     }
     // Work out where to insert it in the note, by reading the template, and checking
     // the frontmatter attributes for a 'location' field (append/insert/cursor)
-    const attrs = getAttributes(templateData)
+    const attrs = getAttributes(templateData, true)
     const requestedTemplateLocation = attrs.location ?? 'insert'
     let pos = 0
     switch (requestedTemplateLocation) {
@@ -116,7 +116,7 @@ export async function weekStart(): Promise<void> {
     }
     // Work out where to insert it in the note, by reading the template, and checking
     // the frontmatter attributes for a 'location' field (append/insert/cursor)
-    const attrs = getAttributes(templateData)
+    const attrs = getAttributes(templateData, true)
     const requestedTemplateLocation = attrs.location ?? 'insert'
     let pos = 0
     switch (requestedTemplateLocation) {
@@ -183,7 +183,7 @@ export async function dayStart(workToday: boolean = false): Promise<void> {
     }
     // Work out where to insert it in the note, by reading the template, and checking
     // the frontmatter attributes for a 'location' field (append/insert/cursor)
-    const attrs = getAttributes(templateData)
+    const attrs = getAttributes(templateData, true)
     const requestedTemplateLocation = attrs.location ?? 'insert'
     let pos = 0
     switch (requestedTemplateLocation) {

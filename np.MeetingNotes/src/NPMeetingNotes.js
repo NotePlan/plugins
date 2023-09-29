@@ -64,7 +64,7 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
  */
 export async function newMeetingNoteFromID(eventID: string, template?: string): Promise<void> {
   try {
-    logDebug(pluginJson, `newMeetingNoteFromID id:${eventID} template:${String(template)}`)
+    logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNoteFromID id:${eventID} template:${String(template)}`)
     const selectedEvent: TCalendarItem = await Calendar.eventByID(eventID)
     logDebug(pluginJson, `${timer(scriptLoad)} - selectedEvent selectedEvent:${JSP(selectedEvent)}`)
     if (selectedEvent) {
@@ -75,127 +75,6 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
     logError(pluginJson, `error in newMeetingNoteFromID: ${JSP(error)}`)
   }
 }
-
-// /**
-//  * Create a meeting note for a calendar event
-//  * This function is called when the user right-clicks a calendar event and selects "New Meeting Note" (NP passes the CalendarItem to the function)
-//  * Can also be called via newMeetingNoteFromID() when it receives an x-callback-url (with or without arguments)
-//  * If arguments are not provided, the user will be prompted to select an event and a template
-//  * @param {TCalendarItem} _selectedEvent
-//  * @param {string?} _templateTitle
-//  */
-// export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
-//   logDebug(pluginJson, 'newMeetingNote')
-//   const selectedEvent = await chooseEventIfNeeded(_selectedEvent)
-
-//   const templateFilename: ?string = await chooseTemplateIfNeededFromTemplateTitle(_templateFilename, true) //await chooseTemplateIfNeeded(_templateFilename, true)
-
-//   try {
-//     let templateData, templateContent
-//     if (selectedEvent) {
-//       logDebug(pluginJson, 'generateTemplateData')
-//       templateData = generateTemplateData(selectedEvent)
-//     }
-//     if (templateFilename) {
-//       templateContent = DataStore.projectNoteByFilename(templateFilename)?.content || ''
-//       // logDebug(pluginJson, `template content: <${templateContent}>`)
-//     }
-
-//     logDebug(pluginJson, 'preRender template')
-//     const { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateContent, templateData)
-//     // JGC: TODO: why is this commented out? This looks the 'right' way to do it ...
-//     // const { frontmatterBody, frontmatterAttributes } = await DataStore.invokePluginCommandByName('preRender', 'np.Templating', [templateContent, templateData])
-//     // logDebug(pluginJson, `-> <${frontmatterBody}>`)
-
-//     const attrs = frontmatterAttributes
-//     const folder = attrs?.folder || ''
-//     const append = attrs?.append || ''
-//     const prepend = attrs?.prepend || ''
-//     const cursor = attrs?.cursor || ''
-//     const newNoteTitle = attrs?.newNoteTitle || ''
-
-//     logDebug(pluginJson, 'render template')
-//     let result = await NPTemplating.render(frontmatterBody, frontmatterAttributes)
-//     // JGC: TODO: why is this commented out? This looks the 'right' way to do it ...
-//     // let result = await DataStore.invokePluginCommandByName('render', 'np.Templating', [frontmatterBody, frontmatterAttributes])
-//     logDebug(pluginJson, `-> <${result}>`)
-
-//     if (newNoteTitle.length > 0) {
-//       result = `# ${newNoteTitle}\n${result}`
-//     }
-
-//     const meetingNoteTitleSpecified = (append || prepend || cursor).trim()
-//     if (meetingNoteTitleSpecified && newNoteTitle) {
-//       logError(
-//         pluginJson,
-//         `Error: Your template has a newNoteTitle attribute, but you also have a append || prepend || cursor title: "${meetingNoteTitleSpecified}" attribute. You can only use one of these. newNoteTitle from the template will be ignored`,
-//       )
-//     }
-//     let noteTitle = (append || prepend || cursor).trim()
-//     logDebug(pluginJson, `noteTitle: ${noteTitle} | newNoteTitle: ${newNoteTitle}`)
-//     noteTitle = noteTitle.length ? noteTitle : newNoteTitle
-
-//     if (append || prepend || cursor) {
-//       logDebug(pluginJson, 'template contains: append/prepend/cursor: ${append||prepend||cursor}}')
-//       const location = append.length ? 'append' : cursor.length ? 'cursor' : 'prepend'
-//       if (location === 'cursor' && noteTitle !== '<current>') {
-//         await showMessage(`Error: Your template has a cursor attribute, but the cursor attribute must only be used with the value "<current>", e.g. cursor: "<current>"`)
-//       }
-//       noteTitle = (await appendPrependNewNote(noteTitle, location, folder, result)) ?? '<error>'
-//     } else {
-//       if (!noteTitle) {
-//         // grab the first line of the result as the title
-//         noteTitle = result
-//           .split('\n')[0]
-//           .trim()
-//           .replace(/(^#*\s*)/, '')
-//           .trim()
-//         // FIXME: this is not stripping the # at the front of the note title
-//         logDebug(pluginJson, `No title specified directly. Trying to infer it from the content: "${result}" => "${noteTitle}"`)
-//       }
-//       if (noteTitle) {
-//         logDebug(pluginJson, `No append/prepend/cursor - check for pre-existing meeting note with this title: "${noteTitle}"`)
-//         const existingNotes = await DataStore.projectNoteByTitle(noteTitle, false, false)
-//         if (existingNotes?.length) {
-//           await Editor.openNoteByFilename(existingNotes[0].filename)
-//           logDebug(pluginJson, `Found ${existingNotes.length} pre-existing note(s) with the title "${noteTitle}"`)
-//           const options = [
-//             { label: `Open the existing note (no changes)`, value: `open` },
-//             { label: `Prepend meeting info to note`, value: `prepend` },
-//             { label: `Append meeting info to note`, value: `append` },
-//             { label: `Create a new note with same title`, value: `new` },
-//           ]
-//           const res = await chooseOption(`Note exists: "${noteTitle}".`, options)
-//           // const res = await showMessageYesNo(
-//           //   `A note with the title "${noteTitle}" already exists. Do you want to open it? (Yes), otherwise a new note will be created if you select 'No'`,
-//           // )
-//           switch (res) {
-//             case 'new':
-//               break
-//             case 'append':
-//             case 'prepend':
-//               noteTitle = (await appendPrependNewNote(noteTitle, res, folder, result)) ?? '<error>'
-//               break
-//             case 'open':
-//             case false:
-//               return
-//           }
-//         }
-//         logDebug(pluginJson, 'No append/prepend/cursor - create a new note with the rendered template')
-//         noteTitle = (await newNoteWithFolder(result, folder)) ?? '<error>'
-//       } else {
-//         logDebug(pluginJson, 'No title specified directly. Could not infer it from the first line of the content:\n${result}')
-//         noteTitle = (await newNoteWithFolder(result, folder)) ?? '<error>'
-//       }
-//       logDebug(pluginJson, 'write the note-link into the event')
-//       if (selectedEvent && noteTitle !== '<error>') {
-//         writeNoteLinkIntoEvent(selectedEvent, noteTitle)
-//       }
-//     }
-//   } catch (error) {
-//     logError(pluginJson, `error in newMeetingNote: ${error}`)
-//   }
-// }
 
 /**
  * Selects an event and a template.
@@ -232,71 +111,104 @@ async function renderTemplateForEvent(selectedEvent, templateFilename): Object {
 }
 
 /**
+ * Get the pre-existing title of this note as defined in the content itself
+ * There are multiple ways to define a note's title: in frontmatter, as the first line of text
+ * @param {string} content
+ * @param {Object} attributes
+ * @returns {string|null} the title if it exists
+ */
+function titleExistsInNote(content: string, attributes: Object): string | null {
+  // logDebug(pluginJson, `titleExistsInNote attributes?.title=${attributes?.title}`)
+  // if (attributes?.title) return attributes.title // commenting this out because attributes is the template's attributes, not the resulting doc
+  const lines = content.split('\n')
+  const headingLine = lines.find((l) => l.startsWith('# '))
+  logDebug(pluginJson, `titleExistsInNote headingLine || null=${headingLine || 'null (no title in content)'}`)
+  return headingLine || null
+}
+
+/**
  * Gets the note title from the template or the first line of the rendered template.
  * @param {string} _noteTitle - newNotetitle specified in the template (may be empty)
  * @param {string} renderedTemplateContent - rendered template content
+ * @param {Object} attributes - attributes of the note
  * @returns {string} note title or ''
  */
-function getNoteTitle(_noteTitle: string, renderedTemplateContent: string): string {
+function getNoteTitle(_noteTitle: string, renderedTemplateContent: string, attributes: Object): string {
   if (_noteTitle) return _noteTitle
+  // if (attributes?.title) return attributes.title
   // grab the first line of the result as the title
   const lines = renderedTemplateContent.split('\n')
-  const headingLine = lines.find((l) => l.startsWith('#'))
+  const headingLine = lines.find((l) => l.startsWith('#')) // may need to infer the title from a ## title etc.
   const noteTitle = headingLine ? headingLine.replace(/(^#*\s*)/, '').trim() : ''
   logDebug(pluginJson, `No title specified directly. Trying to infer it from the headingLine: "${headingLine || ''}" => "${noteTitle}"`)
   return noteTitle
 }
 
 /**
- * Creates a new note and links it to the event itself
- * If the template has a "cursor, append, prepend" then the template will be inserted into the note specified
- * If the template has a "newNoteTitle" then a new note will be created with that title
- * If the template has no "cursor, append, prepend, newNoteTitle" then the template will be inserted into a new note with the title of the first line of the template
- * If the note to be created already exists, the user will be asked if they want to open it, append/prepend to it, or create a new note with the same title
- * @param {TCalendarItem} selectedEvent
- * @param {string} result
- * @param {Object} attrs
+ * Handles existing notes.
+ * @param {string} noteTitle - The title of the note.
+ * @param {string} renderedContent - The rendered content.
+ * @param {string} folder - The folder.
+ * @param {Object} attributes
+ * @returns {Promise<string>} The note title.
+ */
+async function handleExistingNotes(_noteTitle: string, renderedContent: string, folder: string, attributes: Object): Promise<string> {
+  let noteTitle = _noteTitle
+  const existingNotes = await DataStore.projectNoteByTitle(noteTitle, false, false)
+  const noteContent = titleExistsInNote(renderedContent, attributes) ? renderedContent : `# ${noteTitle}\n${renderedContent}`
+  logDebug(pluginJson, `handleExistingNotes: Found ${String(existingNotes?.length)} existing notes with title ${noteTitle}`)
+  if (existingNotes?.length) {
+    await Editor.openNoteByFilename(existingNotes[0].filename)
+    const options = [
+      { label: `Open the existing note (no changes)`, value: `open` },
+      { label: `Prepend meeting info to note`, value: `prepend` },
+      { label: `Append meeting info to note`, value: `append` },
+      { label: `Create a new note with same title`, value: `new` },
+    ]
+    const res = await chooseOption(`Note exists: "${noteTitle}".`, options)
+    switch (res) {
+      case 'new':
+        noteTitle = (await newNoteWithFolder(noteContent, folder)) ?? '<error>'
+        break
+      case 'append':
+      case 'prepend':
+        noteTitle = (await appendPrependNewNote(noteTitle, res, folder, renderedContent)) ?? '<error>'
+        break
+      case 'open':
+      case null:
+        return ''
+    }
+  } else {
+    logDebug(pluginJson, `handleExistingNotes: creating note with content:"${noteContent}"`)
+    noteTitle = (await newNoteWithFolder(noteContent, folder)) ?? '<error>'
+  }
+  return noteTitle
+}
+
+/**
+ * Creates a new note and links it to the event itself.
+ * @param {TCalendarItem | null} selectedEvent - The selected event.
+ * @param {string} renderedContent - The rendered content.
+ * @param {Object} attrs - The attributes.
  * @returns {Promise<void>}
  */
 async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, renderedContent: string, attrs: Object): Promise<void> {
-  const folder = attrs?.folder || ''
-  const append = attrs?.append || ''
-  const prepend = attrs?.prepend || ''
-  const cursor = attrs?.cursor || ''
-  const newNoteTitle = attrs?.newNoteTitle || ''
+  const folder: string = attrs?.folder || ''
+  const append: string = attrs?.append || ''
+  const prepend: string = attrs?.prepend || ''
+  const cursor: string = attrs?.cursor || ''
+  const newNoteTitle: string = attrs?.newNoteTitle || ''
 
-  let noteTitle = (append || prepend || cursor).trim()
-  const location = append.length ? 'append' : cursor.length ? 'cursor' : 'prepend'
+  let noteTitle: string = (append || prepend || cursor).trim()
+  const location: string = append.length ? 'append' : cursor.length ? 'cursor' : 'prepend'
   noteTitle = noteTitle.length ? noteTitle : newNoteTitle
 
   if (append || prepend || cursor) {
     noteTitle = (await appendPrependNewNote(noteTitle, location, folder, renderedContent)) ?? '<error>'
   } else {
-    noteTitle = getNoteTitle(noteTitle, renderedContent)
+    noteTitle = getNoteTitle(noteTitle, renderedContent, attrs)
     if (selectedEvent && noteTitle) {
-      const existingNotes = await DataStore.projectNoteByTitle(noteTitle, false, false)
-      if (existingNotes?.length) {
-        await Editor.openNoteByFilename(existingNotes[0].filename)
-        const options = [
-          { label: `Open the existing note (no changes)`, value: `open` },
-          { label: `Prepend meeting info to note`, value: `prepend` },
-          { label: `Append meeting info to note`, value: `append` },
-          { label: `Create a new note with same title`, value: `new` },
-        ]
-        const res = await chooseOption(`Note exists: "${noteTitle}".`, options)
-        switch (res) {
-          case 'new':
-            noteTitle = (await newNoteWithFolder(`# ${noteTitle}\n${renderedContent}`, folder)) ?? '<error>'
-            break
-          case 'append':
-          case 'prepend':
-            noteTitle = (await appendPrependNewNote(noteTitle, res, folder, renderedContent)) ?? '<error>'
-            break
-          case 'open':
-          case null:
-            return
-        }
-      }
+      noteTitle = await handleExistingNotes(noteTitle, renderedContent, folder, attrs)
     } else {
       logDebug(pluginJson, `Could not ${selectedEvent ? 'find selected event' : 'determine note title'}`)
       return
@@ -354,109 +266,146 @@ function writeNoteLinkIntoEvent(selectedEvent: TCalendarItem, newTitle: string):
 }
 
 /**
- * Appends or prepends a string to a note. Used for meeting note templates to append the meeting note to the current or a selected note for example.
- * @param {string} append
- * @param {string} prepend
- * @param {string?} folder
- * @param {string} content
- * @returns {Promise<string?>} title (or null)
+ * Get a note based on its name.
+ * @param {string} noteName - The name of the note.
+ * @param {string} folder - The folder where the note is located.
+ * @returns {Promise<CoreNoteFields>} The note.
  */
-async function appendPrependNewNote(noteName: string, location: string, folder: string = '', content: string): Promise<?string> {
-  try {
-    let note: CoreNoteFields
-    if (noteName === '<select>') {
-      logDebug(pluginJson, 'load project notes (sorted) to display for selection')
-      let notes = [...DataStore.projectNotes].sort((a, b) => (a.changedDate < b.changedDate ? 1 : -1))
+async function getNoteBasedOnName(noteName: string, folder: string): Promise<CoreNoteFields> {
+  if (noteName === '<select>') {
+    return await getNoteFromSelection(folder)
+  } else if (noteName === '<current>') {
+    return getNoteFromEditor()
+  } else {
+    return getNoteByTitle(noteName, folder)
+  }
+}
 
-      // If a folder was defined, filter down the options
-      if (folder) {
-        logDebug(pluginJson, 'a folder was defined, so filter the available notes')
-        const filteredNotes = notes.filter((n) => n.filename.startsWith(folder))
-        if (filteredNotes.length > 0) {
-          // If it's empty, show all notes
-          notes = filteredNotes
-        }
-      }
+/**
+ * Get a note from the user's selection.
+ * @param {string} folder - The folder where the note is located.
+ * @returns {Promise<CoreNoteFields>} The note.
+ */
+async function getNoteFromSelection(folder: string): Promise<CoreNoteFields> {
+  let notes = [...DataStore.projectNotes].sort((a, b) => (a.changedDate < b.changedDate ? 1 : -1))
 
-      logDebug(pluginJson, 'display notes for selection')
-      const selection = await CommandBar.showOptions(
-        notes.map((n) => n.title ?? 'Untitled Note'),
-        'Select a note',
-      )
-      note = notes[selection.index]
-    } else if (noteName === '<current>') {
-      logDebug(pluginJson, 'use the current note (Editor)')
-      if (Editor.note) {
-        note = Editor.note
-      } else {
-        logError(pluginJson, 'want to use <current> note, but no note is open in the editor')
-        throw new Error('There is no note open in the editor, so cannot apply the Template')
+  if (folder) {
+    const filteredNotes = notes.filter((n) => n.filename.startsWith(folder))
+    if (filteredNotes.length > 0) {
+      notes = filteredNotes
+    }
+  }
+  const selection = await CommandBar.showOptions(
+    notes.map((n) => n.title ?? 'Untitled Note'),
+    'Select a note',
+  )
+  return notes[selection.index]
+}
+
+/**
+ * Get the note that is currently open in the editor.
+ * @returns {CoreNoteFields} The note.
+ */
+function getNoteFromEditor(): CoreNoteFields {
+  if (Editor.note) {
+    return Editor.note
+  } else {
+    logError(pluginJson, 'want to use <current> note, but no note is open in the editor')
+    throw new Error('There is no note open in the editor, so cannot apply the Template')
+  }
+}
+
+/**
+ * Get a note by its title.
+ * @param {string} noteName - The name of the note.
+ * @param {string} folder - The folder where the note is located.
+ * @returns {CoreNoteFields} The note.
+ */
+function getNoteByTitle(noteName: string, folder: string): CoreNoteFields {
+  const availableNotes = DataStore.projectNoteByTitle(noteName)
+  if (availableNotes && availableNotes.length > 0) {
+    if (folder) {
+      const filteredNotes = availableNotes?.filter((n) => n.filename.startsWith(folder)) ?? []
+      if (filteredNotes.length > 0) {
+        return filteredNotes[0]
       }
+    }
+    return availableNotes[0]
+  }
+  return null
+}
+
+/**
+ * Create a new note if no note was found.
+ * @param {string} noteName - The name of the note.
+ * @param {string} folder - The folder where the note is located.
+ * @returns {Promise<CoreNoteFields>} The note.
+ */
+// eslint-disable-next-line require-await
+async function createNewNoteIfNotFound(noteName: string, folder: string): Promise<CoreNoteFields | null> {
+  const filename = DataStore.newNote(noteName, folder)
+  if (filename) {
+    if (DataStore.projectNoteByFilename(filename)) {
+      return DataStore.projectNoteByFilename(filename) || null
     } else {
-      // TODO: We don't know if its a title or a filename, so try first looking for a filename, then title
-      logDebug(pluginJson, 'find the note by title')
-      const availableNotes = DataStore.projectNoteByTitle(noteName)
-      if (availableNotes && availableNotes.length > 0) {
-        note = availableNotes[0]
-      }
+      logError(pluginJson, `can't find project note '${filename}' so stopping`)
+      throw new Error(`can't find project note '${filename}' so stopping`)
+    }
+  }
+  return null
+}
 
-      if (folder) {
-        // Look for the note in the defined folder
-        logDebug(pluginJson, 'a folder was defined, check for the note there first')
-        const filteredNotes = availableNotes?.filter((n) => n.filename.startsWith(folder)) ?? []
-        if (filteredNotes.length > 0) {
-          note = filteredNotes[0]
-        }
-      }
+/**
+ * Update the content of a note.
+ * @param {CoreNoteFields} note - The note to update.
+ * @param {string} location - The location where to update the note.
+ * @param {string} content - The new content.
+ * @param {number} originalContentLength - The original content length.
+ * @returns {Promise<void>}
+ */
+async function updateNoteContent(note: CoreNoteFields, location: string, content: string, originalContentLength: number): Promise<void> {
+  if (location === 'append') {
+    note.appendParagraph(content, 'text')
+  } else if (location === 'cursor') {
+    const cursorPosition = Editor.selection
+    Editor.insertTextAtCursor(content)
+    Editor.select(cursorPosition?.start || 0 + content.length + 3, 0)
+  } else {
+    note.prependParagraph(content, 'text')
+  }
+
+  if (location !== 'cursor') {
+    await Editor.openNoteByFilename(note.filename)
+  }
+
+  if (location === 'append') {
+    Editor.select(originalContentLength + 3, 0)
+  }
+}
+
+/**
+ * Appends or prepends a string to a note. Used for meeting note templates to append the meeting note to the current or a selected note for example.
+ * @param {string} noteName - The name of the note.
+ * @param {string} location - The location where to update the note.
+ * @param {string} folder - The folder where the note is located.
+ * @param {string} content - The new content.
+ * @returns {Promise<string|null>} The title of the note or null.
+ */
+async function appendPrependNewNote(noteName: string, location: string, folder: string = '', content: string): Promise<string | null> {
+  try {
+    let note = await getNoteBasedOnName(noteName, folder)
+    if (!note) {
+      note = await createNewNoteIfNotFound(noteName, folder)
     }
 
     if (!note) {
-      logDebug(pluginJson, 'note not found, create a new one')
-
-      const filename = DataStore.newNote(noteName, folder)
-      if (filename) {
-        logDebug(pluginJson, 'note created, now get the Note object')
-        if (DataStore.projectNoteByFilename(filename)) {
-          // $FlowIgnore[incompatible-type]
-          note = DataStore.projectNoteByFilename(filename)
-        } else {
-          logError(pluginJson, `can't find project note '${filename}' so stopping`)
-          throw new Error(`can't find project note '${filename}' so stopping`)
-        }
-      }
-
-      if (!note) {
-        CommandBar.prompt(`Could not find or create the note '${noteName}'`, '')
-        return null
-      }
+      CommandBar.prompt(`Could not find or create the note '${noteName}'`, '')
+      return null
     }
 
     const originalContentLength = note.content?.length ?? 0
-
-    if (location === 'append') {
-      logDebug(pluginJson, 'append the template')
-      note.appendParagraph(content, 'text')
-    } else if (location === 'cursor') {
-      const cursorPosition = Editor.selection
-      logDebug(pluginJson, 'insert at cursor')
-      Editor.insertTextAtCursor(content)
-      Editor.select(cursorPosition?.start || 0 + content.length + 3, 0)
-    } else {
-      logDebug(pluginJson, 'prepend the template')
-      note.prependParagraph(content, 'text')
-    }
-
-    logDebug(pluginJson, 'open the note')
-    if (location !== 'cursor') {
-      await Editor.openNoteByFilename(note.filename)
-    }
-
-    // Scroll to the paragraph if we appended it
-    if (location === 'append') {
-      logDebug(pluginJson, 'scroll down to the appended template text')
-      Editor.select(originalContentLength + 3, 0)
-    }
-    return note.title
+    await updateNoteContent(note, location, content, originalContentLength)
+    return note?.title || ''
   } catch (error) {
     logDebug(pluginJson, `error in appendPrependNewNote: ${error}`)
   }
@@ -554,22 +503,29 @@ async function chooseTemplateIfNeededFromTemplateTitle(templateTitle?: string, o
  * @returns {Promise<string>} filename of the template
  */
 async function chooseTemplateIfNeeded(templateFilename?: string, onlyMeetingNotes: boolean = false): Promise<?string> {
+  logDebug(pluginJson, `${timer(scriptLoad)} - chooseTemplateIfNeeded`)
   try {
     if (!templateFilename) {
       logDebug(pluginJson, `${timer(scriptLoad)} - no template was defined, find all available templates and show them`)
-      const allTemplates = DataStore.projectNotes.filter((n) => n.filename.startsWith(NotePlan.environment.templateFolder))
 
+      const templateFolder = NotePlan.environment.templateFolder
+      logDebug(pluginJson, `${timer(scriptLoad)} templateFolder ${templateFolder}`)
+      const notes = DataStore.projectNotes
+      logDebug(pluginJson, `${timer(scriptLoad)} notes ${notes.length}`)
+      const allTemplates = notes.filter((n) => n.filename.startsWith(templateFolder))
+      logDebug(pluginJson, `${timer(scriptLoad)} allTemplates ${allTemplates.length}`)
+
+      // const allTemplates = DataStore.projectNotes.filter((n) => n.filename.startsWith(NotePlan.environment.templateFolder))
+      logDebug(pluginJson, `${timer(scriptLoad)} - ${allTemplates.length} templates found`)
       if (!allTemplates || allTemplates.length === 0) {
         await showMessage(`Couldn't find any templates in the template folder (${NotePlan.environment.templateFolder})})`)
         throw new Error(`Couldn't find any templates`)
-      } else {
-        logDebug(pluginJson, `${timer(scriptLoad)} - ${allTemplates.length} templates found`)
       }
 
       const templates = []
       for (const template of allTemplates) {
         try {
-          const attributes = getAttributes(template.content)
+          const attributes = getAttributes(template.content, true)
           if (attributes) {
             // logDebug(pluginJson, `chooseTemplateIfNeeded ${template.filename}: type:${attributes.type} (${typeof attributes.type})`)
             if ((onlyMeetingNotes && attributes.type && attributes.type.includes('meeting-note')) || (!onlyMeetingNotes && (!attributes.type || attributes.type !== 'ignore'))) {
