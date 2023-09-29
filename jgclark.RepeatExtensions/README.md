@@ -35,11 +35,11 @@ Tip: This is most easily done by using the **/add trigger to note** command from
 ## Running it Manually
 On the _currently open note_, open the command bar and type the **/generate repeats** command.
 - When run on a _Project note_, it creates the new repeated task straight before the completed task.
-- When run on a (daily or weekly) _Calendar note_, it creates the new repeated task on the date of the new repeat.
+- When run on a _Calendar note_, it creates the new repeated task on the date of the new repeat. This uses the same calendar note type: so a repeat in a weekly note will go to the appropriate weekly note, etc.
 
 ## Specifiying the Intervals
 The time intervals have two parts: number and then a character. The **character** is one of:
-- `b` or `B`: business days (ignore weekends, but doesn't ignore public holidays, as they're different for each country.)
+- `b` or `B`: business days (ignore weekends, but doesn't ignore public holidays, as they're different for each country)
 - `d` or `D`: days
 - `w` or `W`: weeks
 - `m` or `M`: months
