@@ -8,8 +8,8 @@
   "plugin.author": "jgclark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers",
   "plugin.changelog": "https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers/CHANGELOG.md",
-  "plugin.version": "0.20.4",
-  "plugin.lastUpdateInfo": "0.20.4: '/shift dates' now deals with checklists and cancelled items.\n0.20.3: new 'STOPMATCHING' placeholder for '/insert matching events'.\n0.20.2: upper-case letters allowed in offsets.\n0.20.1: adds support for time blocks in Checklists (available from NP 3.8). 0.20.0: can now insert a 'MEETINGNOTE' link next to each item. Please read important note in the README file on how to enable it.\n0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.",
+  "plugin.version": "0.21.0",
+  "plugin.lastUpdateInfo": "0.21.0: improvements to '/shift dates' and '/process date offsets'.\n0.20.3: new 'STOPMATCHING' placeholder for '/insert matching events'.\n0.20.2: upper-case letters allowed in offsets.\n0.20.1: adds support for time blocks in Checklists (available from NP 3.8). 0.20.0: can now insert a 'MEETINGNOTE' link next to each item. Please read important note in the README file on how to enable it.\n0.19.4: can now include 'calendarSet' and 'calendarNameMappings' parameters when using event lists from Templates.\n0.19.3: de-dupes lists of attendees in event lists.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -246,8 +246,16 @@
     },
     {
       "key": "uncompleteTasks",
-      "title": "Set any completed tasks to not complete?",
-      "description": "Whether to change any completed tasks back to not complete.",
+      "title": "Set any closed tasks or checklists to open?",
+      "description": "Whether to change any completed or cancelled tasks or checklists back to open.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "removeProcessedTagName",
+      "title": "Remove any 'processed tag name' on tasks or checklists?",
+      "description": "Whether to remove any 'processed tag name' (as set above) from tasks or checklists",
       "type": "bool",
       "default": true,
       "required": true
@@ -262,7 +270,7 @@
     {
       "key": "locale",
       "title": "Locale",
-      "description": "Optional 'Locale' to use for the date and times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.",
+      "description": "Locale to use for the date and times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.",
       "type": "string",
       "default": "",
       "required": false
@@ -270,7 +278,7 @@
     {
       "key": "timeOptions",
       "title": "Time options",
-      "description": "Optional Time format settings",
+      "description": "Optional Time format settings (from Javascript's Intl definition).\nDefault: {\"hour\": \"2-digit\", \"minute\": \"2-digit\", \"hour12\": false }",
       "type": "json",
       "default": "{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}",
       "required": false

@@ -22,8 +22,10 @@ import {
   type HourMinObj,
   // printDateRange,
   RE_ISO_DATE,
+  RE_BARE_WEEKLY_DATE,
   removeDateTagsAndToday,
   todaysDateISOString,
+  weekStartDateStr,
 } from './dateTime'
 import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { displayTitle } from './general'
@@ -53,8 +55,10 @@ export type EventsConfig = {
   removeTimeBlocksWhenProcessed?: boolean,
   addEventID: boolean,
   processedTagName?: string /* if not set, uses RE_EVENT_ID */,
+  alternateDateFormat: string,
   removeDoneDates: boolean,
   uncompleteTasks: boolean,
+  removeProcessedTagName: boolean,
   meetingTemplateTitle: string
 }
 
@@ -188,15 +192,21 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
           let datePart = ''
           // Now add date part (or dateContext if there wasn't one in the paragraph)
           const origTimeBlockString = timeBlockString
-          if (!thisParaContent.match(RE_ISO_DATE)) {
-            logDebug('NPCalendar / writeTimeBlocksToCalendar', `- No date in time block so will add current dateContext (${dateContext})`)
-            datePart = dateContext
-          } else {
+          if (thisParaContent.match(RE_ISO_DATE)) {
             const temp = thisParaContent.match(RE_ISO_DATE) ?? []
             datePart = temp[0]
+          } else if (thisParaContent.match(RE_BARE_WEEKLY_DATE)) {
+            const temp = thisParaContent.match(RE_BARE_WEEKLY_DATE) ?? []
+            const weekPart = temp[0]
+            datePart = getISODateStringFromYYYYMMDD(weekStartDateStr(weekPart))
+          } else {
+            logDebug('NPCalendar / writeTimeBlocksToCalendar', `- No date in time block so will add current dateContext (${dateContext})`)
+            datePart = dateContext
           }
           timeBlockString = `${datePart} ${timeBlockString}`
+          logDebug('NPCalendar / writeTimeBlocksToCalendar', `- datePart: ${datePart}`)
           // NB: parseDateText returns an array, so we'll use the first one as most likely
+          // eslint-disable-next-line prefer-const
           let timeblockDateRange = { ...Calendar.parseDateText(timeBlockString)[0] }
 
           if (timeblockDateRange) {
@@ -206,7 +216,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
             // was specified. If we have a defaultEventDuration then use it.
             if (differenceInMinutes(timeblockDateRange.start, timeblockDateRange.end) === 0 && config.defaultEventDuration > 0) {
               const newEndDate = addMinutes(timeblockDateRange.end, config.defaultEventDuration)
-              timeblockDateRange = { start: timeblockDateRange.start, end: newEndDate }
+              timeblockDateRange.end = newEndDate
             }
 
             // Strip out time + date (if present) from the timeblock line,
