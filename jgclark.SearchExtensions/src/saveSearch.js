@@ -123,23 +123,26 @@ export async function saveSearch(
     // get relevant settings
     const config = await getSearchSettings()
     const headingMarker = '#'.repeat(config.headingLevel)
+    logDebug(pluginJson, `arg0 -> searchTermsArg ${typeof searchTermsArg}`)
+    logDebug(pluginJson, `arg0 -> searchTermsArg '${searchTermsArg ?? '(not supplied)'}'`)
 
     // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
     let calledNonInteractively = (searchTermsArg !== undefined)
+    logDebug(pluginJson, `- called non-interactively? ${String(calledNonInteractively)}`)
 
     // Get the noteTypes to include
     const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
-    logDebug(pluginJson, `arg0 -> note types '${noteTypesToInclude.toString()}'`)
+    logDebug(pluginJson, `arg1 -> note types '${noteTypesToInclude.toString()}'`)
 
-    // Get the search terms
+    // Get the search terms, either from argument supplied, or by asking user
     let termsToMatchStr = ''
-    if (calledNonInteractively) {
-      // either from argument supplied
+    if (searchTermsArg) {
+    // from argument supplied
       termsToMatchStr = searchTermsArg ?? ''
-      logDebug(pluginJson, `arg1 -> search terms [${termsToMatchStr}]`)
+      logDebug(pluginJson, `arg0 -> search terms [${termsToMatchStr}]`)
     }
     else {
-      // or by asking user
+      // ask user
       const newTerms = await getInput(`Enter search term(s) separated by spaces or commas. (You can use +term, -term and !term as well.)`, 'OK', commandNameToDisplay, config.defaultSearchTerms)
       if (typeof newTerms === 'boolean') {
         // i.e. user has cancelled
@@ -150,7 +153,6 @@ export async function saveSearch(
         logDebug(pluginJson, `user -> search terms [${termsToMatchStr}]`)
       }
     }
-    logDebug(pluginJson, `- called non-interactively? ${String(calledNonInteractively)}`)
 
     // Validate the search terms: an empty return means failure. There is error logging in the function.
     const validatedSearchTerms = await validateAndTypeSearchTerms(termsToMatchStr, true)

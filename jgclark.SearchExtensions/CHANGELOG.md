@@ -3,6 +3,13 @@
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
 <!-- users with particular interest: JPR1972, DW, as, kennonb, modocache, stacey, jaredos-->
+
+## [1.2.3] - 2023-10-02
+- change to allow /quickSearch to be started from x-callback  but still ask user for search terms (for @dwertheimer)
+
+## [1.2.2] - 2023-09-01
+- ability to run FlexiSearch without closing the Dashboard and Project list windows from other plugins (requires NP v3.9.6.)
+
 ## [1.2.1] - 2023-07-14
 - add 'Click to refresh' button when appending to current note (for @dvcrn)
 - fix bug in /searchInPeriod when run from x-callback with date parameters

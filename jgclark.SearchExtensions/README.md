@@ -112,13 +112,14 @@ Notes:
 
 | Command | x-callback start | arg0 | arg1 | arg2 | arg3 | arg4 |
 |-----|-----------|----------|----------|----------|----------|----------|
-| /quickSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) | noteTypesToInclude either 'project','calendar' or 'both' | | |
+| /flexiSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=flexiSearch` | (none, as this is simply a wrapper around the other commands) | | | | |
+| /quickSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&` | search term(s) ¶ (separated by commas) | paragraph types to filter by (separated by commas) | noteTypesToInclude either 'project','calendar' or 'both' | | |
 | /search | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchOverCalendar | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverCalendar&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchOverNotes | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverNotes&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. | optional paragraph types to filter by (separated by commas) | optional output desination indicator: 'current', 'newnote', or 'log' |
 
-There is no x-callback equivalent of /flexiSearch, as this is simply a wrapper around these other commands.
+¶ Note: /quickSearch can be started by x-callback without any parameters (`noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch`); run this way it will ask for search terms.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
