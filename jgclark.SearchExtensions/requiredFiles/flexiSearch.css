@@ -1,0 +1,215 @@
+/* Speciifc CSS for the /flexiSearch dialog box */
+
+.dialogBox {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--bg-main-color);
+  min-width: 20rem;
+  min-height: 16rem;
+  font-size: 0.9rem;
+}
+.dialogBox > div {
+  max-width: 25rem;
+  max-height: 22rem;
+  background-color: var(--bg-alt-color);
+}
+ul.dialogList {
+  list-style-type: none;
+  margin: 0rem;
+  padding-inline: 0.4rem;
+}
+.dialogSection {
+  margin: 0.4rem 0rem; /* horiz + vert */
+}
+.dialogSection b {
+  font-weight: bold;
+  color: var(--tint-color);
+}
+i, kbd {
+  color: var(--tint-color);
+  padding-left: 0.1rem;
+  padding-right: 0.3rem;
+  font-size: 0.9rem; /* FIXME: FA icons and kbd land up being 1pt different in height :-( */
+}
+input[type="submit"] {
+  margin: 3px 6px;
+  padding: 3px 6px 4px 6px;
+  font-size: 0.9rem;
+}
+input[type="text"] {
+  margin-left: 0.4rem;
+  padding-left: 0.2rem;
+  font-size: 0.9rem;
+}
+.buttonRow {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: right;
+  align-items: right;
+}
+.mainButton { /* should only be used for default action button */
+  font-weight: 700;
+}
+.validationWarning {
+  font-size: 0.9rem;
+  color: red;
+  display: none; /* starts hidden */
+}
+/* when at least one of the checkboxes is checked its sibling span is hidden */
+/*
+input:checked ~ span {
+  display: none;
+}
+*/
+
+/* Tooltips adapted from http://www.menucool.com/tooltip/css-tooltip
+  Had previously looked at https://www.cssportal.com/css-tooltip-generator/ */
+.tooltip {
+    display:inline-block;
+    position:relative;
+}
+
+.tooltip .tooltipLeft {
+    min-width:8rem;
+    max-width:21rem;
+    top:50%;
+    right:100%;
+    margin-left:1.0rem;
+    transform:translate(0, -20%); /* was -50% */
+    position:absolute;
+    z-index:99999999;
+    box-sizing:border-box;
+    display:none;
+    text-align:left;
+    color:var(--fg-main-color);
+    background-color:var(--bg-alt-color);
+    font-weight:normal;
+    font-size:0.9rem;
+    border-radius:6px;
+    border:1px solid var(--tint-color);
+    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+    padding:0.5rem;
+}
+
+.tooltip:hover .tooltipLeft {
+    display:block;
+}
+
+.tooltip .tooltipLeft u {
+    position:absolute;
+    top:10%; /* was -50% */
+    left:100%;
+    /* margin-top:-12px; */
+    width:12px;
+    height:24px;
+    overflow:hidden;
+}
+
+.tooltip .tooltipLeft u::after {
+    content:'';
+    position:absolute;
+    width:12px;
+    height:12px;
+    left:0;
+    top:50%;
+    transform:translate(-50%,-50%) rotate(-45deg);
+    background-color:var(--bg-alt-color);
+    border:1px solid var(--tint-color);
+    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+}
+
+.tooltip .tooltipUnder {
+    min-width:14rem;
+    max-width:21rem;
+    top: 30px;
+    left:50%;
+    transform:translate(-50%, 0);
+    position:absolute;
+    z-index:99999999;
+    box-sizing:border-box;
+    display:none;
+    text-align:left;
+    color:var(--fg-main-color);
+    background-color:var(--bg-alt-color);
+    font-weight:normal;
+    font-size:0.9rem;
+    border-radius:6px;
+    border:1px solid var(--tint-color);
+    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+    padding:0.5rem;
+}
+
+.tooltip:hover .tooltipUnder {
+    display:block;
+}
+
+.tooltip .tooltipUnder u {
+    position:absolute;
+    bottom:100%;
+    left:50%;
+    margin-left:-12px;
+    width:24px;
+    height:12px;
+    overflow:hidden;
+}
+
+.tooltip .tooltipUnder u::after {
+    content:'';
+    position:absolute;
+    width:12px;
+    height:12px;
+    left:50%;
+    transform:translate(-50%,50%) rotate(45deg);
+    background-color:var(--bg-alt-color);
+    border:1px solid var(--tint-color);
+    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+}
+
+.tooltip .tooltipUnderLeft {
+    min-width:14rem;
+    max-width:21rem;
+    top: 30px;
+    left: 00%;
+    transform:translate(-90%, 0);
+    position:absolute;
+    z-index:99999999;
+    box-sizing:border-box;
+    display:none;
+    text-align:left;
+    color:var(--fg-main-color);
+    background-color:var(--bg-alt-color);
+    font-weight:normal;
+    font-size:0.9rem;
+    border-radius:6px;
+    border:1px solid var(--tint-color);
+    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+    padding:0.5rem;
+}
+
+.tooltip:hover .tooltipUnderLeft {
+    display:block;
+}
+
+.tooltip .tooltipUnderLeft u {
+    position:absolute;
+    bottom:100%;
+    left:95%;
+    margin-left:-12px;
+    width:24px;
+    height:12px;
+    overflow:hidden;
+}
+
+.tooltip .tooltipUnderLeft u::after {
+    content:'';
+    position:absolute;
+    width:12px;
+    height:12px;
+    left:50%;
+    transform:translate(-50%,50%) rotate(45deg);
+    background-color:var(--bg-alt-color);
+    border:1px solid var(--tint-color);
+    box-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+}

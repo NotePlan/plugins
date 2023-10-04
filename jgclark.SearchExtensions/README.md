@@ -10,6 +10,7 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 
 - **/flexiSearch** presents a dialog box which allows you to select all available options, without needing to know which of the following specific commands to call.
 <img width="500px" alt="FlexiSearch" src="flexiSearch-dialog1@2x.png">
+Note: when /flexiSearch is run on iPhone or iPad you will need to close the dialog box by pressing the X in the top right-hand corner after the search has run. (I'm trying to find a way around this limitation.)
 
 - **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
 - **/search** searches across **all notes**  (both calendar and regular notes). (Alias: **/ss**.)
@@ -19,7 +20,7 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 - **/searchInPeriod**: searches over the **calendar (daily, weekly etc.) notes of the time period you select**: ![selecting a period](period-selection.png)
 
 ## Results Display
-Apart from /quickSearch, the results are always **saved to a note** with the search terms as its title in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  You also are given the option of saving to the current note, or to the plugin console.
+The results are always **saved to a note** with the search terms as its title in a "Saved Searches" folder (which is created if necessary). If the same search terms are used again they will *update* the same note.  You also are given the option of saving to the current note, or to the plugin console.  _The exception is /quickSearch, which always saves to the same "Quick Search Results" note._
 
 As the results are saved to a note, the following sorts of uses are then possible:
 - keep a note with all open tasks for a particular `@person` -- as live tasks that can be ticked off
@@ -30,10 +31,14 @@ There are two **display styles**:
 1. '**NotePlan**': all results are shown as the usual NotePlan style of tasks, bullets, quotes or just notes. **Note**: Where a task is an open one, then a sync'd copy of it is shown, to stop duplication of tasks in NotePlan. This makes it a good way of having a special note that you can easily refresh that lists all open tasks for @personX.
 2. '**Simplified**': all results are shown as bullets, and can be reduced in length if required using the 'Result quote length' setting.
 
-There are various options you can set:
+There are further display options you can set:
 - 'Highlight matching search terms?' in the results. For this you need to use an appropriate theme: see below. Note: This is disabled if the search result is a 'Synced Line'.
 - 'Group results by Note?', where matches found within the same note are grouped together ('true' by default).
-- Where the match is in a calendar note, 'Date style' setting lets you choose where that link is shown as a 'date' using your locale, or as a NP date 'link' ([[2022-06-30]]), `at` (`@2022-06-30`), 'date' (date formatted for your locale), or 'scheduled' (`>2022-06-30`).
+- Where the match is in a calendar note, 'Date style' setting lets you choose where that link is shown as:
+  - a '**date**' formatted for your locale
+  - as a NP date '**link**' (`[[2022-06-30]]`)
+  - an '**at**' date (`@2022-06-30`)
+  - a '**scheduled**' date (`>2022-06-30`).
 - the ordering of the results by the title, created date or changed date of the note the search term is found in.
 - the commands to automatically decides the name of the note to save the search results to based on the search term, which avoids the final prompt, by the 'Automatically save?' setting.
 
@@ -64,7 +69,7 @@ To change the default **settings** on **macOS** click the gear button on the 'Se
 
 On **iOS** run the command "/Search: update plugin settings" which provides a multi-step equivalent to the more convenient macOS settings window.
 ## Results highlighting
-To see **highlighting** of matching terms in Simplified-style output, you'll need to be using a theme that highlights lines using `==this syntax==`. You can [customise an existing theme](https://help.noteplan.co/article/44-customize-themes) by adding something like:
+To see **highlighting** of matching terms in Simplified-style output, you'll need to be using a theme that highlights lines using `==this syntax==`. The build-in themes should now include this, but you can [customise an existing theme](https://help.noteplan.co/article/44-customize-themes) by adding something like:
 
 ```jsonc
 {
@@ -112,14 +117,14 @@ Notes:
 
 | Command | x-callback start | arg0 | arg1 | arg2 | arg3 | arg4 |
 |-----|-----------|----------|----------|----------|----------|----------|
-| /flexiSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=flexiSearch` | (none, as this is simply a wrapper around the other commands) | | | | |
+| /flexiSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=flexiSearch`<br />(this takes no args: use this just to display the dialog box)|  | | | | |
 | /quickSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&` | search term(s) ¶ (separated by commas) | paragraph types to filter by (separated by commas) | noteTypesToInclude either 'project','calendar' or 'both' | | |
 | /search | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchOverCalendar | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverCalendar&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchOverNotes | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverNotes&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. | optional paragraph types to filter by (separated by commas) | optional output desination indicator: 'current', 'newnote', or 'log' |
 
-¶ Note: /quickSearch can be started by x-callback without any parameters (`noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch`); run this way it will ask for search terms.
+¶ Note: /quickSearch can be called without any parameters (`noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch`); run this way it will prompt for search terms.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).

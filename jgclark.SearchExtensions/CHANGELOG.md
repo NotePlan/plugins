@@ -2,7 +2,11 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
-<!-- users with particular interest: JPR1972, DW, as, kennonb, modocache, stacey, jaredos-->
+## [1.2.4] - 2023-10-04
+### Changes
+- the /flexiSearch dialog box simplified with a new tooltip help, and better validation checks
+- the /flexiSearch dialog box now renders OK on iOS
+- removed the 'Cancel' button as it doesn't work on iOS/iPadOS, and on macOS you can use the standard red 'traffic-light' button instead.
 
 ## [1.2.3] - 2023-10-02
 - change to allow /quickSearch to be started from x-callback  but still ask user for search terms (for @dwertheimer)
