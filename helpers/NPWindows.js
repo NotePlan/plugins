@@ -21,25 +21,33 @@ export function rectToString(rect: Rect): string {
  * Uses API introduced in NP 3.8.1, and extended in 3.9.1 to add .rect.
  * @author @jgclark
  */
-export function logWindowsList(): void {
+/* eslint-disable-next-line require-await */
+export async function logWindowsList(): Promise<void> {
   const outputLines = []
+  const numWindows = NotePlan.htmlWindows.length + NotePlan.editors.length
+  if (NotePlan.environment.buildVersion >= 1100) { // v3.9.8a
+    outputLines.push(`${String(numWindows)} Windows on ${NotePlan.environment.machineName}:`)
+  } else {
+    outputLines.push(`${String(numWindows)} Windows:`)
+  }
+
   if (NotePlan.environment.buildVersion >= 1020) {
     let c = 0
     for (const win of NotePlan.editors) {
-      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
+      outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id} Rect:${rectToString(win.windowRect)}`)
       c++
     }
     c = 0
     for (const win of NotePlan.htmlWindows) {
+      // clo(win)
       outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id} Rect:${rectToString(win.windowRect)}`)
       c++
     }
-    outputLines.unshift(`${outputLines.length} Windows:`)
     logInfo('logWindowsList', outputLines.join('\n'))
   } else if (NotePlan.environment.buildVersion >= 973) {
     let c = 0
     for (const win of NotePlan.editors) {
-      outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id}`)
+      outputLines.push(`- ${String(c)}: ${win.windowType}: customId:'${win.customId ?? ''}' filename:${win.filename ?? ''} ID:${win.id}`)
       c++
     }
     c = 0
@@ -85,7 +93,7 @@ export function getNonMainWindowIds(): Array<string> {
  * @author @jgclark
  * @param {string} customId
  */
-export function setHTMLWindowId(customId: string): void {
+export async function setHTMLWindowId(customId: string): Promise<void> {
   if (NotePlan.environment.buildVersion >= 1087) {
     logDebug('setHTMLWindowId', `Won't set customId '${customId}' for HTML window as not necessary from 3.9.6.`)
   } else if (NotePlan.environment.buildVersion >= 973) {
@@ -94,7 +102,7 @@ export function setHTMLWindowId(customId: string): void {
     const thisWindow = allHTMLWindows[0]
     if (thisWindow) {
       thisWindow.customId = customId
-      logWindowsList()
+      await logWindowsList()
     } else {
       logError('setHTMLWindowId', `Couldn't set customId '${customId}' for HTML window`)
     }

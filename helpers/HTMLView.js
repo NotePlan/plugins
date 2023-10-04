@@ -428,108 +428,135 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
         opts.customId,
       )
       return true // for completeness
-    } else {
-      // clo(opts, 'HTMLView / showHTMLV2 starting with options:')
-      // Assemble the parts of the HTML into a single string
-      const fullHTMLStr = assembleHTMLParts(body, opts)
+    }
 
-      // Ensure we have a window ID to use
-      const cId = opts.customId ?? opts.windowTitle ?? ''
+    logDebug('HTMLView / showHTMLV2', `starting with customId ${opts.customId ?? ''} and reuseUsersWindowRect ${String(opts.reuseUsersWindowRect) ?? '??'}`)
 
-      // Before showing anything, see if the window is already open, and if so save its x/y/w/h (if requested)
-      if (opts.reuseUsersWindowRect && isHTMLWindowOpen(cId)) {
-        logDebug('showHTMLV2', `Window is already open, and will save its x/y/w/h`)
-        storeWindowRect(cId)
-      }
+    // Assemble the parts of the HTML into a single string
+    const fullHTMLStr = assembleHTMLParts(body, opts)
 
-      // Decide which of the appropriate functions to call.
-      if (opts.makeModal || NotePlan.environment.platform !== 'macOS') {
-        logDebug('showHTMLV2', `Using modal 'sheet' view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
-        if (opts.width === undefined || opts.height === undefined) {
-          HTMLView.showSheet(fullHTMLStr)
-        } else {
+    // Ensure we have a window ID to use
+    const cId = opts.customId ?? opts.windowTitle ?? 'fallback'
+
+    // Before showing anything, see if the window is already open, and if so save its x/y/w/h (if requested)
+    if (isHTMLWindowOpen(cId)) {
+      logDebug('showHTMLV2', `Window is already open, and will save its x/y/w/h`)
+      storeWindowRect(cId)
+    }
+
+    // Decide which of the appropriate functions to call.
+    if (opts.makeModal) {
+      // if (opts.makeModal || NotePlan.environment.platform !== 'macOS') {
+      logDebug('showHTMLV2', `Using modal 'sheet' view for ${NotePlan.environment.buildVersion} build on ${NotePlan.environment.platform}`)
+      // if (opts.width === undefined || opts.height === undefined) {
+      //   HTMLView.showSheet(fullHTMLStr)
+      // } else {
           HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
+      // }
+    } else {
+      // Make a normal non-modal window
+      let winOptions = {}
+      // First set to the default values
+      if (NotePlan.environment.buildVersion >= 1087) {
+        // From 3.9.6 can set windowId/customId directly through options
+        winOptions = {
+          x: opts.x,
+          y: opts.y,
+          width: opts.width,
+          height: opts.height,
+          shouldFocus: opts.shouldFocus,
+          id: cId, // don't need both ... but trying to work out which is the current one for the API
+          windowId: cId,
         }
       } else {
-        let winOptions = {}
-        // First set to the default values
-        if (NotePlan.environment.buildVersion >= 1087) {
-          // From 3.9.6 can set window id directly through options
-          winOptions = {
-            x: opts.x,
-            y: opts.y,
-            width: opts.width,
-            height: opts.height && opts.height > 56 ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
-            shouldFocus: opts.shouldFocus,
-            id: cId,
-          }
-        } else {
-          winOptions = {
-            x: opts.x,
-            y: opts.y,
-            width: opts.width,
-            height: opts.height && opts.height > 56 ? opts.height : 500, // to attempt to cope with bug where height can change to 28px
-            shouldFocus: opts.shouldFocus,
-          }
+        winOptions = {
+          x: opts.x,
+          y: opts.y,
+          width: opts.width,
+          height: opts.height,
+          shouldFocus: opts.shouldFocus,
         }
-        // Now override with saved x/y/w/h for this window if wanted, and if available
-        if (opts.reuseUsersWindowRect && cId) {
-          // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
-          const storedRect = getStoredWindowRect(cId)
-          if (storedRect) {
-            winOptions = {
-              x: storedRect.x,
-              y: storedRect.y,
-              width: storedRect.width,
-              height: storedRect.height > 56 ? storedRect.height : 500, // to attempt to cope with bug where height can change to 28px
-              shouldFocus: opts.shouldFocus,
-              id: cId,
-            }
-            logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
-          } else {
-            logDebug('showHTMLV2', `- Couldn't read user's saved Rect from pref from ${cId}`)
-          }
-        }
-        clo(winOptions, 'showHTMLV2 using winOptions:')
-
-        // Note: There's a bug somewhere in window height handling in NP. This is to try to gather data when its hit. Hopefully remove in time, as Eduard says he fixed something for 3.9.6.
-        // $FlowIgnore[invalid-compare]
-        if (winOptions.height < 29) {
-          // $FlowIgnore[incompatible-type]
-          logError('showHTMLV2', `**** height to use = ${winOptions.height}px! ****`)
-        }
-
-        // clo(winOptions, 'subset of options for API call:')
-        const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
-        // clo(win, '-> win:')
-
-        // If wanted, also write this HTML to a file so we can work on it offline.
-        // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
-        if (opts.savedFilename !== '') {
-          const thisFilename = opts.savedFilename ?? ''
-          const filenameWithoutSpaces = thisFilename.split(' ').join('') ?? ''
-          // Write to specified file in NP sandbox
-          const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
-          if (res) {
-            logDebug('showHTMLV2', `- Saved copy of HTML to '${opts.windowTitle}' to ${thisFilename}`)
-          } else {
-            logError('showHTMLV2', `- Couldn't save resulting HTML '${opts.windowTitle}' to ${thisFilename}.`)
-          }
-        }
-
-        // Set customId for this window (with fallback to be windowTitle)
-        // Note: only required between NP v3.8.1 + and 3.9.5.After that its built in.
-        if (NotePlan.environment.buildVersion < 1087) {
-          logDebug('showHTMLV2', `- opts.customId: '${opts.customId ?? '?'}'`)
-          const customIdToUse = opts.customId ?? opts.windowTitle
-          logDebug('showHTMLV2', `- customIdToUse: '${customIdToUse}'`)
-          win.customId = customIdToUse
-        }
-
-        // Double-check: read back from the window itself
-        logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
-        return win
       }
+      // Now override with saved x/y/w/h for this window if wanted, and if available
+      if (opts.reuseUsersWindowRect && cId) {
+        // logDebug('showHTMLV2', `- Trying to use user's saved Rect from pref for ${cId}`)
+        const storedRect = getStoredWindowRect(cId)
+        if (storedRect) {
+          winOptions = {
+            x: storedRect.x,
+            y: storedRect.y,
+            width: storedRect.width,
+            height: storedRect.height,
+            shouldFocus: opts.shouldFocus,
+            id: cId, // don't need both ... but trying to work out which is the current one for the API
+            windowId: cId,
+          }
+          logDebug('showHTMLV2', `- Read user's saved Rect from pref from ${cId}`)
+          // if (NotePlan.environment.platform !== 'macOS') {
+          // const extraInfo = "<p>OS:" + NotePlan.environment.platform +
+          //   " Type: " + (opts.makeModal ? 'Modal' : 'Floating') +
+          //   " W: " + opts.width +
+          //   " H: " + opts.height + "</p>\n" +
+          //   " StoredW: " + storedRect.width +
+          //   " StoredH: " + storedRect.height + "</p>\n"
+          // fullHTMLStr = fullHTMLStr.replace("<body>", `<body>\n${extraInfo}\n`)
+          // }
+        } else {
+          logDebug('showHTMLV2', `- Couldn't read user's saved Rect from pref from ${cId}`)
+          // if (NotePlan.environment.platform !== 'macOS') {
+          //   const extraInfo = "<p>OS:" + NotePlan.environment.platform +
+          //     " Type: " + (opts.makeModal ? 'Modal' : 'Floating') +
+          //     " W: " + opts.width +
+          //     " H: " + opts.height + "</p>\n"
+          //   fullHTMLStr = fullHTMLStr.replace("<body>", `<body>\n${extraInfo}\n`)
+          // }
+        }
+      }
+      // clo(winOptions, 'showHTMLV2 using winOptions:')
+
+      // From v3.9.8 we can test to see if requested window dimensions would exceed screen dimensions; if so reduce them accordingly
+      // TODO: could also check window will be visible on screen and if not, move accordingly
+      if (NotePlan.environment.buildVersion >= 1100) {
+        const screenWidth = NotePlan.environment.screenWidth
+        const screenHeight = NotePlan.environment.screenHeight
+        logDebug('showHTMLV2', `- screen dimensions are ${String(screenWidth)} x ${String(screenHeight)} for device ${NotePlan.environment.machineName}`)
+        if (winOptions.width > screenWidth) {
+          logDebug('showHTMLV2', `- Constrained width from ${String(winOptions.width)} to ${String(screenWidth)}`)
+          winOptions.width = screenWidth
+        }
+        if (winOptions.height > screenHeight) {
+          logDebug('showHTMLV2', `- Constrained height from ${String(winOptions.height)} to ${String(screenHeight)}`)
+          winOptions.height = screenHeight
+        }
+      }
+
+      const win: Window = await HTMLView.showWindowWithOptions(fullHTMLStr, opts.windowTitle, winOptions) // winOptions available from 3.9.1.
+      // clo(win, '-> win:')
+
+      // If wanted, also write this HTML to a file so we can work on it offline.
+      // Note: this is saved to the Plugins/Data/<Plugin> folder, not a user-accessible Note.
+      if (opts.savedFilename !== '') {
+        const thisFilename = opts.savedFilename ?? ''
+        const filenameWithoutSpaces = thisFilename.split(' ').join('') ?? ''
+        // Write to specified file in NP sandbox
+        const res = DataStore.saveData(fullHTMLStr, filenameWithoutSpaces, true)
+        if (res) {
+          logDebug('showHTMLV2', `- Saved copy of HTML to '${opts.windowTitle}' to ${thisFilename}`)
+        } else {
+          logError('showHTMLV2', `- Couldn't save resulting HTML '${opts.windowTitle}' to ${thisFilename}.`)
+        }
+      }
+
+      // Set customId for this window (with fallback to be windowTitle)
+      // Note: only required between NP v3.8.1 + and 3.9.5.After that its built in.
+      if (NotePlan.environment.buildVersion < 1087) {
+        logDebug('showHTMLV2', `- setting the customId to '${cId}'`)
+        win.customId = cId
+      }
+
+      // Double-check: read back from the window itself
+      logDebug('showHTMLV2', `- Window has customId '${win.customId}' / id ${win.id}`)
+      return win
     }
   } catch (error) {
     logError('HTMLView / showHTMLV2', error.message)
