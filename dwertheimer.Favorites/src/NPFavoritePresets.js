@@ -64,7 +64,7 @@ export async function favoritePresetChosen(commandDetails: PresetCommand | null 
       )
       logDebug(pluginJson, `favoritePresetChosen favoriteCommand entered=${String(favoriteCommand)}`)
       if (favoriteCommand && favoriteCommand !== '') {
-        favoriteCommand = DataStore.settings.charsToPrepend ? `${DataStore.settings.charsToPrepend} ${favoriteCommand}` : favoriteCommand
+        favoriteCommand = DataStore.settings.charsToPrepend ? `${DataStore.settings.charsToPrepend}${favoriteCommand}` : favoriteCommand
         const text = await getURL(favoriteCommand, commandDetails.data || '')
         if (text) {
           // validate x-callback URL

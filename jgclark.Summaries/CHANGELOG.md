@@ -1,6 +1,11 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.19.4] - 2023-09-26 unreleased ???
+### Added
+- refresh button to output of /periodStats where the time period is "<period> to date"
+- ??? make this work with all options
+
 ## [0.19.3] - 2023-08-06
 ### Fixed
 - date logic on 'weeklyStatsToCSV' command output

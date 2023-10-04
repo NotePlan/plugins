@@ -2,8 +2,15 @@
 // ----------------------------------------------------------------------------
 // Command to Process Date Offsets
 // @jgclark
-// Last updated 13.2.2023 for v0.20.2, by @jgclark
+// Last updated 29.9.2023 for v0.21.0, by @jgclark
 // ----------------------------------------------------------------------------
+// TEST:
+// * Unhook any blockIDs before starting /process
+// * remove time block indicator tags in /shift
+// TODO:
+// * [Allow other date styles in /process date offsets](https://github.com/NotePlan/plugins/issues/221) from Feb 2021 -- but much harder than it looks.
+// * Also allow other date styles in /shift? -- as above
+
 
 import pluginJson from '../plugin.json'
 import { getEventsSettings } from './config'
@@ -18,19 +25,22 @@ import {
   RE_OFFSET_DATE,
   RE_OFFSET_DATE_CAPTURE,
   RE_DATE_INTERVAL,
+  toISODateString,
+  toLocaleDateString,
 } from '@helpers/dateTime'
-import { log, logDebug, logError, logWarn } from '@helpers/dev'
+import { log, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { findEndOfActivePartOfNote } from '@helpers/paragraph'
+import { stripBlockIDsFromString } from '@helpers/stringTransforms'
+import { isTimeBlockPara } from '@helpers/timeblocks'
 import { askDateInterval, datePicker, showMessage, showMessageYesNo } from '@helpers/userInput'
 
 // ----------------------------------------------------------------------------
 /**
  * Shift Dates
- * Go through currently selected lines in the open note and shift YYYY-MM-DD dates by an interval given by the user.
- * And now supports YYYY-Www dates too.
- * Note: can remove @done(...) dates if wanted, but doesn't touch other others than don't have whitespace or newline before them.
- * Will also un-complete completed tasks.
+ * Go through currently selected lines in the open note and shift YYYY-MM-DD and YYYY-Wnn dates by an interval given by the user.
+ * Optionally removes @done(...) dates if wanted, but doesn't touch other others than don't have whitespace or newline before them.
+ * Optionally will un-complete completed tasks/checklists.
  * @author @jgclark
  */
 export async function shiftDates(): Promise<void> {
@@ -66,48 +76,75 @@ export async function shiftDates(): Promise<void> {
       return
     }
 
-    // Shift dates
+    // Shift dates.
     let updatedCount = 0
     pArr.forEach((p) => {
-      const c = p.content
+      const origContent = p.content
       let dates: Array<string> = []
       let originalDateStr = ''
       let shiftedDateStr = ''
-      // logDebug(pluginJson, `${c}`)
-      if (c.match(RE_BARE_DATE)) {
+
+      // logDebug(pluginJson, `${origContent}`)
+      if (origContent.match(RE_BARE_DATE)) { // find YYYY-MM-DD or >YYYY-MM-DD strings, but not following (</-
         // Process this YYYY-MM-DD date
-        dates = c.match(RE_BARE_DATE_CAPTURE) ?? []
+        dates = origContent.match(RE_BARE_DATE_CAPTURE) ?? []
         originalDateStr = dates[1]
         shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
       }
-      else if (c.match(RE_BARE_WEEKLY_DATE)) {
-        // Process this YYYY-Www date TEST:
-        dates = c.match(RE_BARE_WEEKLY_DATE_CAPTURE) ?? []
+      if (origContent.match(RE_BARE_WEEKLY_DATE)) { // find YYYY-Wnn or >YYYY-Wnn strings, but not following (</-
+        // Process this YYYY-Www date
+        dates = origContent.match(RE_BARE_WEEKLY_DATE_CAPTURE) ?? []
         originalDateStr = dates[1]
         shiftedDateStr = calcOffsetDateStr(originalDateStr, interval)
       }
 
+      // TODO: This would be the place to assess another date format, but it's much harder than it looks.
+      // Method probably to define new settings "regex" and "format".
+      // Just using moment doesn't work fully unless you take out all other numbers in the rest of the line first.
+      // NP.parseDate() uses chrono library, and probably useful, but needs testing to see how it actually works with ambiguous dates (documentation doesn't say)
+
+      let updatedContent = origContent
+      // As we're about to update the string, first 'unhook' it from any sync'd copies
+      updatedContent = stripBlockIDsFromString(updatedContent)
       if (shiftedDateStr !== '') {
         logDebug(pluginJson, `- ${originalDateStr}: match found -> ${shiftedDateStr}`)
         // Replace date part with the new shiftedDateStr
-        let updatedP = c.replace(originalDateStr, shiftedDateStr)
-
-        // If wanted, also remove @done(...) part
-        const doneDatePart = (updatedP.match(RE_DONE_DATE_OPT_TIME)) ?? ['']
-        if (config.removeDoneDates && doneDatePart[0] !== '') {
-          updatedP = updatedP.replace(doneDatePart[0], '')
-        }
-
-        p.content = updatedP.trimEnd()
-        logDebug(pluginJson, `-> '${p.content}'`)
-
-        // If wanted, also set any complete tasks to not complete ('open')
-        if (config.uncompleteTasks && p.type === 'done') {
-          p.type = 'open'
-        }
-        note.updateParagraph(p)
-        updatedCount += 1
+        updatedContent = origContent.replace(originalDateStr, shiftedDateStr)
       }
+
+      // If wanted, remove @done(...) part
+      const doneDatePart = (updatedContent.match(RE_DONE_DATE_OPT_TIME)) ?? ['']
+      // logDebug(pluginJson, `>> ${String(doneDatePart)}`)
+      if (config.removeDoneDates && doneDatePart[0] !== '') {
+        updatedContent = updatedContent.replace(doneDatePart[0], '')
+      }
+
+      // If wanted, remove any processedTagName
+      if (config.removeProcessedTagName && updatedContent.includes(config.processedTagName)) {
+        updatedContent = updatedContent.replace(config.processedTagName, '')
+      }
+
+      p.content = updatedContent.trimEnd()
+      logDebug(pluginJson, `-> '${p.content}'`)
+
+      // If wanted, set any complete or cancelled tasks/checklists to not complete
+      if (config.uncompleteTasks) {
+        if (p.type === 'done') {
+      // logDebug(pluginJson, `>> changed done -> open`)
+          p.type = 'open'
+        } else if (p.type === 'cancelled') {
+          // logDebug(pluginJson, `>> changed cancelled -> open`)
+          p.type = 'open'
+        } else if (p.type === 'checklistDone') {
+          // logDebug(pluginJson, `>> changed checklistDone -> checklist`)
+          p.type = 'checklist'
+        } else if (p.type === 'checklistCancelled') {
+          // logDebug(pluginJson, `>> changed checklistCancelled -> checklist`)
+          p.type = 'checklist'
+        }
+      }
+      note.updateParagraph(p)
+      updatedCount += 1
     })
     logDebug(pluginJson, `Shifted ${updatedCount} dates`)
 
@@ -133,28 +170,29 @@ export async function shiftDates(): Promise<void> {
  * @author @jgclark
  */
 export async function processDateOffsets(): Promise<void> {
-  const { paragraphs, note } = Editor
-  if (paragraphs == null || note == null) {
-    await showMessage('No content found to process.', 'OK', 'Process Date Offsets')
-    return
-  }
-  if (note.filename.startsWith('@Templates')) {
-    await showMessage(`For safety I won't run on notes in the @Templates folder.`, 'OK', 'Process Date Offsets')
-    return
-  }
-  if (note.filename.startsWith('@Archive')) {
-    await showMessage(`For safety I won't run on notes in the @Archive folder.`, 'OK', 'Process Date Offsets')
-    return
-  }
-  const noteTitle = displayTitle(note)
-  logDebug(pluginJson, `processDateOffsets() for note '${noteTitle}'`)
-  const config = await getEventsSettings()
-
   try {
+    const { paragraphs, note } = Editor
+    if (paragraphs == null || note == null) {
+      await showMessage('No content found to process.', 'OK', 'Process Date Offsets')
+      return
+    }
+    if (note.filename.startsWith('@Templates')) {
+      await showMessage(`For safety I won't run on notes in the @Templates folder.`, 'OK', 'Process Date Offsets')
+      return
+    }
+    if (note.filename.startsWith('@Archive')) {
+      await showMessage(`For safety I won't run on notes in the @Archive folder.`, 'OK', 'Process Date Offsets')
+      return
+    }
+    const noteTitle = displayTitle(note)
+    logDebug(pluginJson, `processDateOffsets() for note '${noteTitle}'`)
+    const config = await getEventsSettings()
+
     let currentTargetDate = ''
     let currentTargetDateLine = 0 // the line number where we found the currentTargetDate. Zero means not set.
     let lastCalcDate = ''
     let n = 0
+    let numFoundTimeblocks = 0
     const endOfActive = findEndOfActivePartOfNote(note)
 
     // Look through this open note to find data offsets
@@ -172,13 +210,18 @@ export async function processDateOffsets(): Promise<void> {
       let thisLevel = 0
 
       while (n < endOfActive) {
-        let line = paragraphs[n].content // don't think this needs to be rawContent
+        // Make a note if this contains a time block
+        if (isTimeBlockPara(paragraphs[n])) { numFoundTimeblocks++ }
+
+        let content = paragraphs[n].content
+        // As we're about to update the string, let's first unook it from any sync'd copies
+        content = stripBlockIDsFromString(content)
         thisLevel = paragraphs[n].type === 'title' ? (thisLevel = -1) : paragraphs[n].indents
-        logDebug(pluginJson, `  Line ${n} (${thisLevel}) ${line}`)
+        logDebug(pluginJson, `  Line ${n} (${thisLevel}) <${content}>`)
 
         // Decide whether to clear CTD
         // Specifically: clear on lower indent or heading or blank line or separator line
-        if (thisLevel < previousFoundLevel || thisLevel === -1 || line === '' || paragraphs[n].type === 'separator') {
+        if (thisLevel < previousFoundLevel || thisLevel === -1 || content === '' || paragraphs[n].type === 'separator') {
           if (currentTargetDate !== '') {
             logDebug(pluginJson, `- Cleared CTD`)
 
@@ -197,8 +240,11 @@ export async function processDateOffsets(): Promise<void> {
         // Try matching for the standard YYYY-MM-DD date pattern on its own
         // (check it's not got various characters before it, to defeat common usage in middle of things like URLs)
         // TODO: make a different type of CTD for in-line vs in-heading dates
-        if (line.match(RE_BARE_DATE) && !line.match(RE_DONE_DATE_OPT_TIME)) {
-          const dateISOStrings = line.match(RE_BARE_DATE_CAPTURE) ?? ['']
+
+        // TODO: Somewhere around would be the place to assess another date format, but it's much harder than it looks. (See more detail in shiftDates() above.)
+
+        if (content.match(RE_BARE_DATE) && !content.match(RE_DONE_DATE_OPT_TIME)) {
+          const dateISOStrings = content.match(RE_BARE_DATE_CAPTURE) ?? ['']
           const dateISOString = dateISOStrings[1] // first capture group
           // We have a date string to use for any offsets in this line, and possibly following lines
           currentTargetDate = dateISOString
@@ -210,19 +256,19 @@ export async function processDateOffsets(): Promise<void> {
         // find lines with {+3d} or {-4w} or {^3b} etc. plus {0d} special case
         // NB: this only deals with the first on any line; it doesn't make sense to have more than one.
         let dateOffsetString = ''
-        if (line.match(RE_OFFSET_DATE)) {
-          logDebug(pluginJson, `    - Found line '${line.trimEnd()}'`)
-          const dateOffsetStrings = line.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
+        if (content.match(RE_OFFSET_DATE)) {
+          logDebug(pluginJson, `    - Found line '${content.trimEnd()}'`)
+          const dateOffsetStrings = content.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
           dateOffsetString = dateOffsetStrings[1] // first capture group
           let calcDate = ''
           if (dateOffsetString !== '') {
             // We have a date offset in the line
             if (currentTargetDate === '' && lastCalcDate === '') {
               // This is currently an orphaned date offset
-              logWarn(pluginJson, `Line ${paragraphs[n].lineIndex}: offset date '${dateOffsetString}' is an orphan, as no currentTargetDate or lastCalcDate is set`)
+              logInfo(pluginJson, `Line ${paragraphs[n].lineIndex}: offset date '${dateOffsetString}' is an orphan, as no currentTargetDate or lastCalcDate is set. Will ask user for a date.`)
 
               // now ask for the date to use instead
-              currentTargetDate = await datePicker(`{ question: 'Please enter a base date to use to offset against for "${line}"' }`, {})
+              currentTargetDate = await datePicker(`{ question: 'Please enter a base date to use to offset against for "${content}"' }`, {})
               if (currentTargetDate === '') {
                 logError(pluginJson, `- Still no valid CTD, so stopping.`)
                 return
@@ -243,23 +289,25 @@ export async function processDateOffsets(): Promise<void> {
               lastCalcDate = calcDate
               // Continue, and replace offset with the new calcDate
               // Remove the offset text (e.g. {-3d}) by finding first '{' and '}' characters in the line
-              const labelStart = line.indexOf('{')
-              const labelEnd = line.indexOf('}')
+              const labelStart = content.indexOf('{')
+              const labelEnd = content.indexOf('}')
               // Create new version with inserted date
-              line = `${line.slice(0, labelStart)} >${calcDate} ${line.slice(labelEnd + 1)}` // also trim off trailing whitespace
-              paragraphs[n].content = line.trimEnd()
+              content = `${content.slice(0, labelStart)} >${calcDate} ${content.slice(labelEnd + 1)}` // also trim off trailing whitespace
+              paragraphs[n].content = content.trimEnd()
               note.updateParagraph(paragraphs[n])
-              logDebug(pluginJson, `    -> '${line.trimEnd()}'`)
+              logDebug(pluginJson, `    -> '${content.trimEnd()}'`)
             }
           }
         }
         n += 1
       } // loop over lines
 
-      // Offer to run timeblocks creation, as that often goes with offsets
-      const res = await showMessageYesNo(`Shall I also look for time blocks to create new events?`, ['Yes', 'No'], 'Process Date Offsets')
-      if (res === 'Yes') {
-        await timeBlocksToCalendar()
+      // If we've noticed any time blocks, offer to run timeblocks creation command
+      if (numFoundTimeblocks > 0) {
+        const res = await showMessageYesNo(`I spotted ${String(numFoundTimeblocks)} time blocks: shall I create new events from them?`, ['Yes', 'No'], 'Process Date Offsets')
+        if (res === 'Yes') {
+          await timeBlocksToCalendar()
+        }
       }
     } else {
       logWarn(pluginJson, `No date offset patterns found.`)

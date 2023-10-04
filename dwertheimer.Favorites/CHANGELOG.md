@@ -1,5 +1,9 @@
 # Favorites Plugin Changelog
 
+## [1.2.3] - 2023-09-29 @dwertheimer
+
+- change the default to not add a space in front of the default tag
+
 ## [1.2.2] - 2023-08 @dwertheimer
 
 - Bugfix: allow for escaping and leaving command intact.

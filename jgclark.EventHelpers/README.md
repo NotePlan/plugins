@@ -7,7 +7,7 @@ This plugin provides commands to help you do useful things with Events and Calen
 - **process date offsets**: finds date offset patterns and turns them into due dates, based on date at start of section. (See [Date Offsets](#process-date-offsets) below for full details.)
 - **shift dates**: takes dates _in the selected lines_ and shifts them forwards or backwards by a given date interval. It works on both `>YYYY-MM-DD` and `>YYYY-Wnn` style dates.  (User George Crump (@george65) has created a [video showing how this command works](https://storone.zoom.us/rec/play/tzI6AreYeKvoyHRw11HX93IGVf2OI-U7WgKXYn2rmGJvbFHXZp8PSr6ajmOrtWymOU5jFIItScSJnL9U.tboBQEXjdw1uRTqu).)
 
-Most of these commands require configuration, described in the sections below. Click the gear button on the 'Event Helpers' line in the Plugin Preferences panel to access the settings.  Also see [Theme customisation](#theme-customisation) below for more on how to customise display of time blocks and events.
+Most of these commands require configuration, described in the sections below. On macOS, click the gear button on the 'Event Helpers' line in the Plugin Preferences panel to access the settings. Or on on iOS/iPadOS devices, use the **Events: update plugin settings** command instead.
 
 ## "insert day's events as list"  and "insert matching events" commands
 Settings:
@@ -76,8 +76,12 @@ If you wish to see multiple day's output, not just the day for the active calend
 NB: the `Sort order` setting above also controls how the output of this list is sorted.
 
 ## /shift dates
-- Remove @done dates? Whether to remove `@done(...)` dates; by default it will. It doesn't remove any dates that are just in `(...)` brackets though.
-- Set any completed tasks to not complete? By default it will.
+This command takes plain or scheduled day or week dates (i.e. `YYYY-MM-DD`, `>YYYY-MM-DD`, `YYYY-Wnn` or ``>YYYY-Wnn`) in the selected lines and shifts them forwards or backwards by a given date interval. This allows you to copy a set of tasks to use again, and have the dates moved forward by a month or year etc. It doesn't change dates in `@done(...) mentions, or that are in brackets.
+
+Its settings are:
+- Remove @done dates? Whether to remove `@done(...)` dates; by default it will. It doesn't remove any dates that are just in `(...)` brackets though. Default: true.
+- Set any finished (i.e. completed or cancelled) tasks to open? Default: true.
+- Remove any 'processed tag name' on tasks or checklists? Whether to remove any 'processed tag name' (from the settings for "/time blocks to calendar" command above) from tasks or checklists. Default: true.
 
 ## /process date offsets
 User George Crump (@george65) has created a [video showing how this command works](https://drive.google.com/file/d/10suCe0x8QPbHw_7h4Ao4zwWf_kApEOKH/view).
@@ -108,6 +112,8 @@ In more detail:
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | \* Bob's birthday on 2021-09-05<br />&nbsp;&nbsp;\* Find present {^+6d}<br />&nbsp;&nbsp;\* Wrap & post present {^+3d} <br />&nbsp;&nbsp;\* Call Bob {0d}   | \* Bob's birthday on 2021-09-05 to 2021-09-14<br />&nbsp;&nbsp;\* Find present >2021-09-08<br />&nbsp;&nbsp;\* Wrap & post present >2021-09-11<br />&nbsp;&nbsp;\* Call Bob >2021-09-14 |
 | \#\#\# Easter Preparations >2022-03-01<br />\* Use up sweet treats (Shrove Tuesday) {0d}<br />\* Start Lent (Ash Wednesday) {^+1d}<br />\* End of Lent {^+-6w}<br />\* Remember Last Supper {^+1d} <br />\* Good Friday {^+1d} <br />\* Easter Sunday {^+2d} | \#\#\# Easter Preparations >2022-03-01 to >2022-04-17<br />\* Use up sweet treats (Shrove Tuesday) >2022-03-01<br />\* Start Lent (Ash Wednesday) >2022-03-02<br />\* End of Lent >2022-04-13<br />\* Remember Last Supper >2022-04-14<br />\* Good Friday >2022-04-15<br />\* Easter Sunday >2022-04-17 |
+
+If a base date can't be found, the command will ask you to supply a date.
 
 ## Display of Time Blocks
 If you're using the **time blocks to calendar** command with a format that includes the START and END times, then it's likely that the NotePlan will still see a time block for the text of the event, and so in the calendar area show the event _and_ a time block for it. To avoid this you can either
