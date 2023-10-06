@@ -333,8 +333,9 @@ export function timer(startTime: Date): string {
   const timeStart = startTime ?? new Date()
   const timeEnd = new Date()
   const difference = timeEnd - timeStart
-  const d = new Date(difference)
-  const diffText = `${d.getMinutes()}m${d.getSeconds()}s.${d.getMilliseconds()}ms`
+  // const d = new Date(difference)
+  // const diffText = `${d.getMinutes()}m${d.getSeconds()}.${d.getMilliseconds()}s`
+  const diffText = `${difference.toLocaleString()}ms`
   return diffText
 }
 
