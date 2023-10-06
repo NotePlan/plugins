@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 6.8.2023 for v0.19.3 by @jgclark
+// Last updated 6.10.2023 for v0.20.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,6 +12,8 @@ import {
   calcOffsetDateStr,
   getDateFromUnhyphenatedDateString,
   getDateStringFromCalendarFilename,
+  getISODateStringFromYYYYMMDD,
+  RE_ISO_DATE,
   RE_YYYYMMDD_DATE,
   unhyphenateString,
   withinDateRange,
@@ -122,22 +124,23 @@ export class TMOccurrences {
   /**
    * Create a new object, initialising the main valuesMap to the required number of values, as 'NaN', so that we can distinguish zero from no occurrences.
    * (Unless type 'yesno')
-   * @param {string} term
-   * @param {string} type
-   * @param {string} fromDateStr of type YYYY-MM-DD
-   * @param {string} toDateStr of type YYYY-MM-DD
+   * @param {string} term: mention or hashtag
+   * @param {string} type: 'daily-average', 'item-average', 'total', 'yesno', 'count'
+   * @param {string} fromISODateStr of type YYYY-MM-DD
+   * @param {string} toISODateStr of type YYYY-MM-DD
+   * @param {string} interval?: 'day' is currently the only one supported
    */
-  constructor(term: string, type: string, fromDateStr: string, toDateStr: string, interval: string = 'day') {
+  constructor(term: string, type: string, fromISODateStr: string, toISODateStr: string, interval: string = 'day') {
     try {
-      if (toDateStr && fromDateStr) {
+      if (toISODateStr && fromISODateStr) {
         this.term = term
         this.type = type
         this.interval = interval
-        this.dateStr = fromDateStr
+        this.dateStr = fromISODateStr
         // Calc number of days to cover
         // (Moment's diff function returns a truncated number by default, not rounded, so work around that, in case we're getting 6.9 days because of timezone issues)
-        const momFromDate = new moment(fromDateStr, 'YYYY-MM-DD')
-        const momToDate = new moment(toDateStr, 'YYYY-MM-DD')
+        const momFromDate = new moment(fromISODateStr, 'YYYY-MM-DD')
+        const momToDate = new moment(toISODateStr, 'YYYY-MM-DD')
         const numDays = Math.round(momToDate.diff(momFromDate, 'days', true)) + 1
         this.numDays = numDays
         this.valuesMap = new Map < string, number > ()
@@ -145,11 +148,11 @@ export class TMOccurrences {
         this.count = 0
         // Initialise all values to NaN, unless type 'yesno'
         for (let i = 0; i < numDays; i++) {
-          let thisDateStr = unhyphenateString(calcOffsetDateStr(fromDateStr, `${i}d`))
+          let thisDateStr = calcOffsetDateStr(fromISODateStr, `${i}d`)
           // logDebug('TMOcc:constructor', `- +${i}d -> date ${thisDateStr}`)
           this.valuesMap.set(thisDateStr, (this.type == 'yesno') ? 0 : NaN)
         }
-        // logDebug('TMOcc:constructor', `Constructed ${term} type ${this.type} for date ${fromDateStr} - ${toDateStr} -> valuesMap for ${this.valuesMap.size} / ${this.numDays} days `)
+        // logDebug('TMOcc:constructor', `Constructed ${term} type ${this.type} for date ${fromISODateStr} - ${toISODateStr} -> valuesMap for ${this.valuesMap.size} / ${this.numDays} days `)
       } else {
         logError('TMOcc:constructor', `Couldn't construct as passed date(s) were empty`)
       }
@@ -162,17 +165,23 @@ export class TMOccurrences {
   /**
    * Add a found hashtag/mention occurrence to its instance, updating stats accordingly
    * @param {string} occurrenceStr of a found hashtag/mention
-   * @param {string} dateStr format YYYYMMDD
+   * @param {string} dateStr format YYYYMMDD or YYYY-MM-DD
    */
-  addOccurrence(occurrenceStr: string, dateStr: string): void {
+  addOccurrence(occurrenceStr: string, dateStrArg: string): void {
     try {
-      if (dateStr == null) {
+      let isoDateStr = ''
+      if (dateStrArg == null) {
         throw new Error(`Passed null date string`)
       }
-      if (!dateStr.match(RE_YYYYMMDD_DATE)) {
-        throw new Error(`Passed invalid date string '${dateStr}'`)
+      if (!(dateStrArg.match(RE_YYYYMMDD_DATE) || dateStrArg.match(RE_ISO_DATE))) {
+        throw new Error(`Passed invalid date string '${isoDateStr}'`)
       }
-      // logDebug('TMOcc:addOccurrence', `starting for ${occurrenceStr} on date = ${dateStr}`)
+      if (dateStrArg.match(RE_YYYYMMDD_DATE)) {
+        isoDateStr = getISODateStringFromYYYYMMDD(dateStrArg)
+      } else {
+        isoDateStr = dateStrArg
+      }
+      logDebug('TMOcc:addOccurrence', `starting for ${occurrenceStr} on date = ${isoDateStr}`)
 
       // isolate the value
       let key = occurrenceStr
@@ -183,7 +192,7 @@ export class TMOccurrences {
         const tagParts = occurrenceStr.split('/')
         key = tagParts[0]
         value = Number(tagParts[1])
-        logDebug('TMOcc:addOccurrence', `- found tagParts ${key} / ${value.toString()}`)
+        // logDebug('TMOcc:addOccurrence', `- found tagParts ${key} / ${value.toString()}`)
       }
       // if this is a mention that finishes '(float)', then break into separate parts first
       else if (occurrenceStr.match(/\(-?\d+(\.\d+)?\)$/)) {
@@ -195,19 +204,19 @@ export class TMOccurrences {
 
       // if this has a numeric value add to total, taking into account that the day may have several values.
       // $FlowFixMe[incompatible-type]
-      const prevValue: number = isNaN(this.valuesMap.get(dateStr)) ? 0 : this.valuesMap.get(dateStr)
+      const prevValue: number = isNaN(this.valuesMap.get(isoDateStr)) ? 0 : this.valuesMap.get(isoDateStr)
       if (!isNaN(value)) {
-        this.valuesMap.set(dateStr, prevValue + value)
-        this.count++ // FIXME: why is this firing twice after the first time?
+        this.valuesMap.set(isoDateStr, prevValue + value)
+        this.count++
         this.total += value
-        logDebug('TMOcc:addOccurrence', `- ${key} / ${value} -> ${this.total} from ${this.count} on ${dateStr}`)
+        // logDebug('TMOcc:addOccurrence', `- ${key} / ${value} -> ${this.total} from ${this.count} on ${isoDateStr}`)
       }
       // else just update the count
       else {
-        this.valuesMap.set(dateStr, prevValue + 1)
+        this.valuesMap.set(isoDateStr, prevValue + 1)
         this.count++
         this.total++
-        // logDebug('TMOcc:addOccurrence', `- ${key} increment -> ${this.total} from ${this.count} on ${dateStr}`)
+        // logDebug('TMOcc:addOccurrence', `- ${key} increment -> ${this.total} from ${this.count} on ${isoDateStr}`)
       }
     }
     catch (err) {
@@ -275,11 +284,15 @@ export class TMOccurrences {
     return outArr
   }
 
+  getNumberItems(): number {
+    return this.valuesMap.size
+  }
+
   /**
    * Log all the details in the main valuesMap
    */
   logValuesMap(): void {
-    logDebug('TMOcc:logValuesMap', `- valuesMap for ${this.term}:`)
+    logDebug('TMOcc:logValuesMap', `- valuesMap for ${this.term} with ${this.getNumberItems()} entries:`)
     this.valuesMap.forEach((v, k, m) => {
       logDebug('TMOcc:logValuesMap', `  - ${k}: ${v}`)
     })
@@ -372,14 +385,14 @@ export class TMOccurrences {
 }
 
 /**
- * Gather all occurrences of requested hashtags and mentions for a given period.
- * Now also looks for requested 'progressYesNo', 'mentionTotal' and 'mentionAverage' items too.
+ * Gather all occurrences of requested hashtags and mentions for a given period, including 'progressYesNo', 'mentionTotal' and 'mentionAverage' variations.
+ * It only inspects the daily calendar notes for the period.
  * Returns a list of TMOccurrences instances:
     term: string
     type: string // 'daily-average', 'item-average', 'total', 'yesno', 'count'
     period: string
     numDays: number
-    valuesMap: Map<string, number> // map of <YYYYMMDD, count>
+    valuesMap: Map<string, number> // map of <YYYY-MM-DD, count>
     total: number
     count: number
  *
@@ -416,7 +429,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
       // For each daily note in the period
       for (const n of calendarNotesInPeriod) {
-        const thisDateStr = getDateStringFromCalendarFilename(n.filename)
+        const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(n.filename))
 
         // Look at hashtags first ...
         const seenTags = n.hashtags.slice().reverse()
@@ -489,7 +502,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
       // For each daily note in the period, look at each tag in reverse order to make subset checking work
       for (const n of calendarNotesInPeriod) {
-        const thisDateStr = getDateStringFromCalendarFilename(n.filename)
+        const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(n.filename))
         const seenTags = n.hashtags.slice().reverse()
         let lastTag = ''
         for (const tag of seenTags) {
@@ -547,7 +560,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
       // For each daily note in the period, look at each mention in reverse order to make subset checking work
       for (const n of calendarNotesInPeriod) {
-        const thisDateStr = getDateStringFromCalendarFilename(n.filename)
+        const thisDateStr = getISODateStringFromYYYYMMDD(getDateStringFromCalendarFilename(n.filename))
         const seenMentions = n.mentions.slice().reverse()
         let lastMention = ''
         for (const mention of seenMentions) {
@@ -882,7 +895,7 @@ export function calcMentionStatsPeriod(
  * @param {Object} options
  * @returns {string} output
  */
-function makeSparkline(data: Array<number>, options: Object = {}): string {
+export function makeSparkline(data: Array<number>, options: Object = {}): string {
   const spark_line_chars = "▁▂▃▄▅▆▇█".split('')
   const divider = options.divider ?? '|'
   const missingDataChar = options.missingDataChar ?? '.'
@@ -931,7 +944,7 @@ function makeSparkline(data: Array<number>, options: Object = {}): string {
  * @param {Object} options
  * @returns {string} output
  */
-function makeYesNoLine(data: Array<number>, options: Object = {}): string {
+export function makeYesNoLine(data: Array<number>, options: Object = {}): string {
   const yesChar = options.yesNoChars[0]
   const noChar = options.yesNoChars[1]
   const divider = options.divider ?? '|'

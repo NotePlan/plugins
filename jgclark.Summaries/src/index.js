@@ -3,19 +3,23 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 16.11.2022 for v0.16.0
+// Last updated 2.10.2023 for v0.22.0
 //-----------------------------------------------------------------------------
 
+// export {
+//   testHeatMapGeneration1,
+//   testHeatMapGeneration2,
+//   testHeatMapGeneration3,
+// } from './testCharting'
 export {
-  testHeatMapGeneration1,
-  testHeatMapGeneration2,
-  testHeatMapGeneration3,
-} from './testCharting'
-export {
+  showTagHeatmap,
   showTaskCompletionHeatmap,
-  testGenStats,
+  testJGCHeatmaps,
+} from './forHeatmaps'
+export {
+  testTaskGenStats,
   weeklyStats
-} from './forCharting'
+} from './forCharts'
 export {
   makeProgressUpdate,
   progressUpdate

@@ -10,15 +10,19 @@ This Plugin lets you do the following sorts of things:
 - count the times you've met with staff member `@alice` this year so far
 - sum the length of your `@run`s in the last quarter
 - get a breakdown of how you're spending your week by tracking minutes across various areas (e.g. in a daily note - `@email(30)`; `@email(10)`; `@coding(45)`; `@writing(30)` or `#words/90`)
+- show a heatmap chart of your `@sleep` stats
+
+  ![Heatmap example](heatmap-work-0164.png)
+
 - show a heatmap chart of how many tasks you've completed recently
 
-  ![Heatmap example](heatmap-0140.jpg)
+  ![Heatmap example](heatmap-tasks-0164.png)
 
 **What do you need to do?** Add tags like #closedmyrings or @habit(_number_) in your daily notes. In my case a day might incldue:
 ```md
 @sleep(5.3) @activeCals(400) @steps(3800) @distance(2.7) @minHR(50) @maxHR(161) @restingHR(66) @fruitveg(4)
-Remember: #visit to new CFL premises in K18, Festival Place #prayer #win #filmvideo
 @work(10) #readbook
+Remember: #visit to new CFL premises in Festival Place #prayer #win #filmvideo
 ```
 
 You might find a simple 'Shortcut' for use on iOS/macOS helpful to make it quicker to add items like this to the daily note. Sean O'Kana has [shared a shortcut to do this](https://www.icloud.com/shortcuts/a5943c80c0f845eda6e70c811724de6e)  which you can add and customise.
@@ -47,7 +51,7 @@ Note: According to [several](https://wiki.mobileread.com/wiki/List_of_fonts_incl
 
 All notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be exluded too using the `foldersToExclude` setting.
 
-Note: **Why use `@run(...)` (mentions) rather than `#run(...)` (hashtags)**? Well, it just felt more right to use `@run()` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a decimal number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside for `@run(5.3)`.  _However, you can use a `#hashtag/value` if you don't mind this limitation._
+Note: **Why use `@run(...)` (mentions) rather than `#run(...)` (hashtags)**? Well, it just felt more right to use `@run(...)` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside `@run(5.3)`.  However, you _can_ use a `#hashtag/value` if you don't mind this limitation.
 
 ## 'heatmap for complete tasks' command
 This displays a 'heatmap' chart of many tasks you've completed on each day (see example above). It uses the `@done(...)` dates in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you set this to 0, the plugin will generate a sensible longish period between 6 and 12 months.  It also counts completed tasks without `@done(...)` dates on Calendar notes, and assumes the tasks were completed on the day or start of week in question.
@@ -56,7 +60,32 @@ This displays a 'heatmap' chart of many tasks you've completed on each day (see 
 
 Note: This is a first attempt at generating heatmaps, and I want to make it much more flexible in future. But this will probably require rolling my own charts, rather than using one from AnyChart, which should be licensed if you rely on it.
 
-## appendProgressUpdate (or the older name "appendProgressUpdate") command
+## 'heatmap for tag' command
+This displays a 'heatmap' chart of a tag's values for each day (see example for '@work' above). It asks which tag/mention to use, and then charts what it finds in all daily notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you set this to 0, the plugin will generate a sensible longish period between 6 and 12 months.
+
+Note: There aren't many options for this; I'm deliberately keeping it simple while I work on a more comprehensive charting solution.
+
+But you can change the colour scheme, by starting the heatmap with the following x-callback call:
+`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=heatmap%20for%20tag&arg0=` plus a URL and JSON encoded string of the object definition.
+This is best explained by way of an example (not yet encoded):
+```
+{
+  "tagName":"@sleep",
+  "intervalType":"day",
+  "colorScaleRange":"['#FFFFFF', '#23A023']",
+  "fromDateStr":"2023-01-01",
+  "toDateStr":"2023-03-31",
+  "numberIntervals":90
+}
+```
+Notes on these definitions:
+- intervalType: currently this can only be `day`
+- colorScaleRange: an array of two RGB values that specify the colour gradient to use for the data. The example above is from light green to dark green. The charting library then scales the data between these two colours from low values to high values.  Unfortunately the charting library doesn't distinguish an item with no data from one with data value 0, so I suggest the first value is always '#FFFFFF'.
+- numberIntervals: the number of days in this interval
+
+The complete encoded string for this example would be `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=heatmap%20for%20tag&arg0=%7B%0A%20%20%22tagName%22%3A%22%40sleep%22%2C%0A%20%20%22intervalType%22%3A%22day%22%2C%0A%20%20%22colorScaleRange%22%3A%22%5B'%23FFFFFF'%2C%20'%2323A023'%5D%22%2C%0A%20%20%22fromDateStr%22%3A%222023-01-01%22%2C%0A%20%20%22toDateStr%22%3A%222023-03-31%22%2C%0A%20%20%22numberIntervals%22%3A%2090%0A%7D`
+
+## 'appendProgressUpdate' (alias 'insertProgressUpdate' or 'habitTracker') command
 As NotePlan is such a flexible app, there are [various ways people use it to track habits](https://help.noteplan.co/article/144-habit-tracking).
 
 This Plugin command helps show progress for items you track (e.g. `@work(9)`, `@run(5.3)` or `#prayed`) over various time periods. It does this by generating stats for the configured #hashtags or @mentions over the time interval you select, and inserts it as a section into the destination note. If the progress update section already exists in the destination note -- if for example you have it set to insert in the weekly note -- it will be updated, rather than be repeated.
