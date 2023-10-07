@@ -17,13 +17,13 @@ export function addCodeBlock(destNote: CoreNoteFields, textToAdd: string, codeBl
 }
 
 /**
- * INCOMPLETE: so not exported. I had a better idea when I was part-way through it.
+ * WARNING: Incomplete, so not exported. I had a better idea when I was part-way through it.
  * @param {CoreNoteFields} note
  * @param {string} textToAdd
  * @param {string} codeBlockType, e.g. 'json'
  * @returns {boolean} success?
  */
-export function updateCodeBlock(note: CoreNoteFields, textToAdd: string, codeBlockType: string): boolean {
+function updateCodeBlock(note: CoreNoteFields, textToAdd: string, codeBlockType: string): boolean {
   try {
     const updatedCodeBlock = `\`\`\` ${codeBlockType}\n${textToAdd}\n\`\`\`\n`
     const existingCodeBlocks: Array<$ReadOnly<CodeBlock>> = getCodeBlocks(note).slice() // copy
@@ -48,6 +48,7 @@ export function updateCodeBlock(note: CoreNoteFields, textToAdd: string, codeBlo
 
 export function getCodeBlocks(note: CoreNoteFields): $ReadOnlyArray<$ReadOnly<CodeBlock>> {
   const paragraphs = note.paragraphs ?? []
+  // logDebug('getCodeBlocks', `Starting with ${String(paragraphs.length)} paragraphs in note '${displayTitle(note)}'`)
 
   let inCodeBlock = false
   const codeBlocks: Array<CodeBlock> = []

@@ -314,7 +314,7 @@ export function closeWindowFromCustomId(windowCustomId: string): void {
   }
   if (thisWin) {
     thisWin.close()
-    logDebug('closeWindowFromCustomId', `Closed window '${windowCustomId}'`)
+    // logDebug('closeWindowFromCustomId', `Closed window '${windowCustomId}'`)
   } else {
     logWarn('closeWindowFromCustomId', `Couldn't find window to close matching customId '${windowCustomId}'`)
   }
@@ -342,7 +342,7 @@ export function closeWindowFromId(windowId: string): void {
   }
   if (thisWin) {
     thisWin.close()
-    logDebug('closeWindowFromId', `Closed window '${windowId}'`)
+    // logDebug('closeWindowFromId', `Closed window '${windowId}'`)
   } else {
     logWarn('closeWindowFromId', `Couldn't find window to close matching Id '${windowId}'`)
   }

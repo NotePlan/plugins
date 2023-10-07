@@ -910,35 +910,43 @@ export function getRelativeDates(): Array<Object> {
 }
 
 /**
- * Return rough relative string version of difference between 'dateStr' date and today.
- * Don't return all the detail, but just the most significant unit (year, month, week, day)
- * Returns a short code (e.g. "0d" = today, "-3w", "2m", "-4y" etc.)
+ * Return rough relative string version of difference between 'dateStrA' date and 'dateStrB' (or if not given, today).
+ * Returns a short code (e.g. "0d" = today, "-3w", "2m", "-4y" etc.) for the most significant unit (year, month, week, day).
  * FIXME: doesn't do the expected thing for weeks yet (the usual problem of NP weeks being different from ISO/moment weeks)
  * @author @jgclark
  * @param {string} dateStrA - date to calculate relative for (in NP display form)
- * @param {string?} dateStrB - day to calculate relative to (in YYYY-MM-DD)
- * @returns {string} - relative date code (e.g. "0d" = today, "-3w", "2m", "-4y" etc.)
+ * @param {string?} relDateIn - day to calculate relative to (in YYYY-MM-DD)
+ * @returns {[string, string]} - [relative date code (e.g. "0d" = today, "-3w", "2m", "-4y" etc.), relative date string (e.g. "last month")]
  */
-export function relativeDateCodeFromDateString(dateStrA: string, dateStrB: string = ''): string {
+export function relativeDateFromDateString(dateStrA: string, relDateIn: string = ''): [string, string] {
   try {
     if (!isValidCalendarNoteTitleStr(dateStrA)) {
       throw new Error(`${dateStrA} doesn't seem to be a valid NP date`)
     }
+    const dateStrB = (relDateIn === '') ? todaysDateISOString : relDateIn
     if (!isDailyDateStr(dateStrB)) {
       throw new Error(`${dateStrB} doesn't seem to be a valid YYYY-MM-DD date`)
     }
 
-    let output = ''
+    let codeStr = ''
+    let periodStr = '?'
     let diff = NaN
     const momB = (dateStrB !== '') ? moment(dateStrB) : moment()
-    logDebug('dateTime / relativeDateCodeFromDateString', `Starting for ${dateStrA} relative to ${dateStrB}`)
+    logDebug('NPdateTime / relativeDateFromDateString', `Starting for ${dateStrA} relative to ${dateStrB}`)
     // Need to tailor it to date type of dateStr
     if (isDailyDateStr(dateStrA)) {
-      logDebug('dateTime / relativeDateCodeFromDateString', `dailyNote`)
+      logDebug('NPdateTime / relativeDateFromDateString', `dailyNote`)
       const momA = moment(dateStrA)
       // diff = momB.startOf('day').diff(dateStrA, 'days')
       diff = momA.diff(momB.startOf('day'), 'days')
-      output = `${diff}d`
+      codeStr = `${diff}d`
+      periodStr = (diff === -1)
+        ? 'yesterday'
+        : (diff === 0)
+          ? 'today'
+          : (diff === 1)
+            ? 'tomorrow'
+            : `${diff} days`
 
     } else if (isWeeklyDateStr(dateStrA)) {
       // TODO:
@@ -950,42 +958,58 @@ export function relativeDateCodeFromDateString(dateStrA: string, dateStrB: strin
       // change to use moment not NP weeks, but as the output are relative weeks it doesn't matter
       const momA = moment(dateStrA, "YYYY-[W]WW")
       const dateStrBToUse = dateStrB ?? todaysDateISOString
-      logDebug('dateTime / relativeDateCodeFromDateString', dateStrBToUse)
+      logDebug('dateTime / relativeDateFromDateString', dateStrBToUse)
       const BNPWeekData = getNPWeekData(dateStrBToUse)
-      clo(BNPWeekData, 'BNPWeekData')
+      // clo(BNPWeekData, 'BNPWeekData')
       const momB = moment(BNPWeekData?.weekString, "YYYY-[W]WW")
       diff = momA.diff(momB, 'weeks')
-      logDebug('dateTime / relativeDateCodeFromDateString', `weeklyNote with momA ${momA} and momB ${momB}`)
-      output = `${diff}w`
+      logDebug('dateTime / relativeDateFromDateString', `weeklyNote with momA ${momA} and momB ${momB}`)
+      codeStr = `${diff}w`
+      periodStr = `${diff} weeks`
 
     } else if (isMonthlyDateStr(dateStrA)) {
-      logDebug('dateTime / relativeDateCodeFromDateString', `monthlyNote`)
+      logDebug('dateTime / relativeDateFromDateString', `monthlyNote`)
       const momA = moment(dateStrA, "YYYY-MM")
       // diff = momB.startOf('month').diff(dateStrA, 'months')
       diff = momA.diff(momB.startOf('month'), 'months')
-      output = `${diff}m`
+      codeStr = `${diff}m`
+      periodStr = `${diff} months`
 
     } else if (isQuarterlyDateStr(dateStrA)) {
       const momA = moment(dateStrA, "YYYY-[Q]Q")
-      logDebug('dateTime / relativeDateCodeFromDateString', `quarterlyNote`)
+      logDebug('dateTime / relativeDateFromDateString', `quarterlyNote`)
       // diff = Math.floor(momB.startOf('quarter').diff(dateStrA, 'months')/3.0) // moment can't diff quarters
       diff = Math.floor(momA.diff(momB.startOf('quarter'), 'months') / 3.0) // moment can't diff quarters
-      output = `${diff}q`
+      codeStr = `${diff}q`
+      periodStr = `${diff} quarters`
 
     } else if (isYearlyDateStr(dateStrA)) {
       const momA = moment(dateStrA, "YYYY")
-      logDebug('dateTime / relativeDateCodeFromDateString', `yearlyNote`)
+      logDebug('dateTime / relativeDateFromDateString', `yearlyNote`)
       // diff = momB.startOf('year').diff(dateStrA, 'years')
       diff = momA.diff(momB.startOf('year'), 'years')
-      output = `${diff}y`
+      codeStr = `${diff}y`
+      periodStr = `${diff} years`
 
     } else {
       throw new Error(`${dateStrA} doesn't seem to be a valid NP date`)
     }
-    logDebug('dateTime / relativeDateCodeFromDateString', `--> ${output}`)
-    return output
+
+    // Make periodStr more idiomatic where possible (in English!)
+    if (periodStr[0] === '0') {
+      periodStr = `this ${periodStr.slice(2, -1)}`
+    }
+    else if (periodStr.startsWith('1')) {
+      periodStr = `next ${periodStr.slice(2, -1)}`
+    }
+    else if (periodStr.startsWith('-1')) {
+      periodStr = `last ${periodStr.slice(3, -1)}`
+    }
+
+    logDebug('dateTime / relativeDateFromDateString', `--> ${codeStr} (${periodStr})`)
+    return [codeStr, periodStr]
   } catch (e) {
-    logError('dateTime / relativeDateCodeFromDateString', e.message)
+    logError('dateTime / relativeDateFromDateString', e.message)
     return '(error)'
   }
 }
