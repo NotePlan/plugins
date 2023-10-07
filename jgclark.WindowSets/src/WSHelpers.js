@@ -140,9 +140,12 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     // Make note lines
     const outputLines = []
     const currentDateTime = toLocaleDateTimeString(new Date())
-    outputLines.push(`# ${noteTitle}`)
+    outputLines.push(`---`)
+    outputLines.push(`title: ${noteTitle}`)
     // outputLines.push(`Last updated at ${currentDateTime} by WindowSets plugin`)
-    outputLines.push(`These are the definitions of your currently available **Window Sets**, for use with the Window Sets plugin.`)
+    outputLines.push(`triggers: onEditorWillSave => jgclark.WindowSets.sync window set note to pref`)
+    outputLines.push(`---`)
+    outputLines.push(`These are the definitions of your currently available **Window Sets**, for use with the Window Sets plugin. You can update the settings if you wish.`)
     outputLines.push(`They are specified in JSON, which has to be well-formatted to be usable. In particular check that there aren't any extra commas after the final item of any section.`)
     outputLines.push(`Note: please leave trigger in the frontmatter above, or changes will not be saved behind the scenes.`)
     outputLines.push(``)
@@ -157,12 +160,12 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     // Write out to note
     WSNote.content = outputLines.join('\n')
 
-    // FIXME: not working again
-    // add trigger for update pref when note is updated
-    let res = await addTrigger(Editor, "onEditorWillSave", "jgclark.WindowSets", "syncWSNoteToPrefs")
-    if (!res) {
-      logWarn('writeWSPrefsToNote', `addTrigger failed`)
-    }
+    // Add trigger for update pref when note is updated
+    // Note: commented out for now, as addTrigger doesn't always seem to work on the right note. Instead it's included in the above.
+    // let res = await addTrigger(Editor, "onEditorWillSave", "jgclark.WindowSets", "syncWSNoteToPrefs")
+    // if (!res) {
+    //   logWarn('writeWSPrefsToNote', `addTrigger failed`)
+    // }
 
     return true
   } catch (error) {
@@ -203,15 +206,14 @@ export async function writeWSNoteToPrefs(): Promise<void> {
     const firstCBStr = noteCBs[0].code
 
     // Get object from this JSON string
-    let WSsObj = JSON.parse(firstCBStr).WS
+    let WSsObj: Array<WindowSet> = JSON.parse(firstCBStr).WS
 
-    // TEST: check bounds for this WS
-    WSsObj = checkWindowBounds(WSsObj)
+    // check bounds for this WS
+    WSsObj = checkWindowSetBounds(WSsObj)
 
     // Get list of WS names from this JSON
     // TODO: update to just for this machine?
     const WSNames = WSsObj.map((w) => w.name)
-
 
     // Send the resulting WS definitions to the preferences store as an object
     DataStore.setPreference('windowSets', WSsObj)
@@ -247,9 +249,7 @@ export async function syncWSNoteToPrefs(): Promise<void> {
       return
     }
 
-    // TODO: check codeblock is valid JSON
-    // TODO: attempt to use JSONC instead?
-
+    // FIXME: We need to deal with the old stale-data problem
 
     // write from note to local preference
     logDebug('syncWSNoteToPrefs', `Will write note to local pref`)
@@ -320,27 +320,29 @@ export async function logWindowSets(): Promise<void> {
     const outputLines = []
     outputLines.push(`Window Sets:`)
     for (const set of windowSets) {
+      // FIXME: sometimes undefined:
+      logDebug('logWindowSets', `* windowSet '${set.name}'`)
       let c = 0
       // Format editorWindows details
       outputLines.push(`${set.name} (for ${thisMachineName}):`)
       if (set.editorWindows && set.editorWindows.length > 0) {
-        for (const ws of set.editorWindows) {
-          outputLines.push(`- ${String(c)}: ${ws.noteType}, ${ws.windowType}: title:'${ws.title ?? ''}' filename:${ws.filename ?? ''} x:${ws.x ?? '-'} y:${ws.y ?? '-'} w:${ws.width ?? '-'} h:${ws.height ?? '-'}`)
+        for (const ew of set.editorWindows) {
+          outputLines.push(`- EW${String(c)}: ${ew.noteType}, ${ew.windowType}: title:'${ew.title ?? ''}' filename:${ew.filename ?? ''} x:${ew.x ?? '-'} y:${ew.y ?? '-'} w:${ew.width ?? '-'} h:${ew.height ?? '-'}`)
           c++
         }
       } else {
-        logDebug('logWindowSets', `windowSet #${String(c)} has no editorWindows array`)
+        logDebug('logWindowSets', `windowSet '${set.name}' has no editorWindows array`)
       }
 
       // Format htmlWindows details
       c = 0
       if (set.htmlWindows && set.htmlWindows.length > 0) {
-        for (const ws of set.htmlWindows) {
-          outputLines.push(`- ${String(c)}: ${ws.type}: customId:'${ws.customId ?? ''}' pluginID:${ws.pluginID ?? '?'} pluginCommandName:${ws.pluginCommandName ?? '?'} x:${ws.x ?? '-'} y:${ws.y ?? '-'} w:${ws.width ?? '-'} h:${ws.height ?? '-'}`)
+        for (const hw of set.htmlWindows) {
+          outputLines.push(`- HW${String(c)}: ${hw.type}: customId:'${hw.customId ?? ''}' pluginID:${hw.pluginID ?? '?'} pluginCommandName:${hw.pluginCommandName ?? '?'} x:${hw.x ?? '-'} y:${hw.y ?? '-'} w:${hw.width ?? '-'} h:${hw.height ?? '-'}`)
           c++
         }
       } else {
-        logDebug('logWindowSets', `windowSet #${String(c)} has no htmlWindows array`)
+        logDebug('logWindowSets', `windowSet '${set.name}' has no htmlWindows array`)
       }
     }
     logInfo('logWindowSets', (outputLines.length > 0) ? outputLines.join('\n') : 'Window Sets: **none**')
@@ -385,17 +387,78 @@ export function getDetailedWindowSetByName(name: string): WindowSet | null {
  * @param {Array<WindowSet} setsToCheck
  * @returns {Array<WindowSet} checkedSets
  */
-export function checkWindowBounds(setsToCheck: Array<WindowSet>): Array<WindowSet> {
+export function checkWindowSetBounds(setsToCheck: Array<WindowSet>): Array<WindowSet> {
   try {
-    logDebug('checkWindowBounds', `Starting check for ${String(setsToCheck.length)} window sets`)
+    logDebug('checkWindowSetBounds', `Starting check for ${String(setsToCheck.length)} window sets`)
     let checkedSets = setsToCheck
 
-    // TODO: check bounds for this WS
-
+    // check bounds for each WS in turn
+    for (let thisWS of checkedSets) {
+      logDebug('checkWindowSetBounds', `- checking WS '${thisWS.name}' ...`)
+      for (let ew of thisWS.editorWindows) {
+        ew = constrainWindowSizeAndPosition(ew)
+      }
+      for (let hw of thisWS.htmlWindows) {
+        hw = constrainWindowSizeAndPosition(hw)
+      }
+    }
     return checkedSets
   } catch (error) {
-    logError(pluginJson, `checkWindowBounds(): ${error.name}: ${error.message}`)
+    logError(pluginJson, `checkWindowSetBounds(): ${error.name}: ${error.message}`)
     return []
+  }
+}
+
+function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDetails): EditorWinDetails | HTMLWinDetails {
+  try {
+    // TODO: is there any reason for these to be defined as optional (above) ???
+    const screenHeight = NotePlan.environment.screenHeight // remember bottom edge is y=0
+    const screenWidth = NotePlan.environment.screenWidth
+    const left = winDetails.x
+    const right = winDetails.x + winDetails.width
+    const top = winDetails.y + winDetails.height
+    const bottom = winDetails.y
+    const title = winDetails.title
+    if (winDetails.x < 0) {
+      logDebug('constrainWS+P', `  - window '${title}' has left edge at ${String(left)}px; moving right to 0px`)
+      winDetails.x = 0
+      if (winDetails.width > screenWidth) {
+        winDetails.width = screenWidth
+      }
+    }
+    if (bottom < 0) {
+      logDebug('constrainWS+P', `  - window '${title}' has bottom edge at ${String(winDetails.y)}px; moving up to 0px`)
+      winDetails.y = 0
+      if (winDetails.height > screenHeight) {
+        winDetails.height = screenHeight
+      }
+    }
+    if (right > screenWidth) {
+      // Change, by moving left edge in (if possible), or else narrowing
+      const overhang = right - screenWidth
+      if (winDetails.x > overhang) {
+        logDebug('constrainWS+P', `  - window '${title}' has right edge at ${String(right)}px but screen width is ${String(screenWidth)}px. Moving left by ${String(overhang)}px`)
+        winDetails.x -= overhang
+      } else {
+        logDebug('constrainWS+P', `  - window '${title}' has right edge at ${String(right)}px but screen width is ${String(screenWidth)}px. Changing to fill width.`)
+        winDetails.x = 0
+        winDetails.width = screenWidth
+      }
+    }
+    if (top > screenHeight) {
+      const overhang = top - screenHeight
+      if (winDetails.y > overhang) {
+        logDebug('constrainWS+P', `  - window '${title}' has top edge at ${String(top)}px but screen height is ${String(screenHeight)}px. Moving down by ${String(overhang)}px`)
+        winDetails.y -= overhang
+      } else {
+        logDebug('constrainWS+P', `  - window '${title}' has top edge at ${String(top)}px but screen height is ${String(screenHeight)}px. Changing to fill height.`)
+        winDetails.y = 0
+        winDetails.height = screenHeight
+      }
+    }
+    return winDetails
+  } catch (error) {
+    logError(pluginJson, `constrainWindowSizeAndPosition(): ${error.name}: ${error.message}`)
   }
 }
 

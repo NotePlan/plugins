@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/CHANGELOG.md",
-  "plugin.version": "0.3.0",
-  "plugin.lastUpdateInfo": "v0.3.0: Window Set definitions now in a hidden data file, that can be sync'd with a user-editable note.\nv0.2: Window Set definitions now in user-editable notes, allowing an arbitrary number of them.\nv0.1: First version, with basic save and restore functions.",
+  "plugin.version": "0.4.0",
+  "plugin.lastUpdateInfo": "v0.4.0: Now understands which Mac this is running on, and only shows the WindowSets for that Mac. This requires NP v3.9.8.\nv0.3.0: Window Set definitions now in a hidden preference that can be sync'd with a user-editable note.\nv0.2: Window Set definitions now in user-editable notes, allowing an arbitrary number of them.\nv0.1: First version, with basic save and restore functions.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -55,7 +55,7 @@
         "wpn"
       ],
       "description": "Write WS local preference to note",
-      "jsFunction": "writeWSPrefsToNote"
+      "jsFunction": "writeWSsToNote"
     },
     {
       "name": "write window set note to pref",
