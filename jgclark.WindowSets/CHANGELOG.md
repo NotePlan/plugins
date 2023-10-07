@@ -7,7 +7,7 @@ _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/ma
 - smarter mechanism for guessing plugin (HTML) windows details by developer convention
 - add update trigger a different way, and fixed it dealing with stale data
 - wrote most documentation
-- TODO: fix problem where regular notes' filenames aren't being saved
+- fix problem where regular notes' filenames aren't being saved
 
 ## [0.3.0] - 2023-09-28 (unreleased; following change of design)
 - Window Set definitions now live in a hidden preference, _but can be automatically sync'd to/from a user's note to see what's going on_. See README for details.

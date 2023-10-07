@@ -29,7 +29,7 @@ export type PluginWindowCommand = {
 // Plugin command name lookup list (note: all values are case sensitive!)
 export const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
   { pluginWindowId: 'jgclark.Dashboard.main', pluginID: 'jgclark.Dashboard', pluginCommandName: 'show dashboard' },
-  // { pluginWindowId: 'jgclark.Reviews.rich-review-list', pluginID: 'jgclark.Reviews', pluginCommandName: 'project lists' }, // TODO: should be this later?
+  { pluginWindowId: 'jgclark.Reviews.rich-review-list', pluginID: 'jgclark.Reviews', pluginCommandName: 'project lists' },
   { pluginWindowId: 'rich-review-list', pluginID: 'jgclark.Reviews', pluginCommandName: 'project lists' },
   { pluginWindowId: 'jgclark.Summaries.heatmap', pluginID: 'jgclark.Summaries', pluginCommandName: 'heatmap for task completion' },
 ]
@@ -312,8 +312,6 @@ export async function logWindowSets(): Promise<void> {
     const outputLines = []
     outputLines.push(`Window Sets:`)
     for (const set of windowSets) {
-      // FIXME: sometimes undefined:
-      logDebug('logWindowSets', `* windowSet '${set.name}'`)
       let c = 0
       // Format editorWindows details
       outputLines.push(`${set.name} (for ${thisMachineName}):`)
@@ -410,7 +408,7 @@ function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDe
     const right = winDetails.x + winDetails.width
     const top = winDetails.y + winDetails.height
     const bottom = winDetails.y
-    const title = winDetails.title
+    const title = winDetails.title ?? 'n/a'
     if (winDetails.x < 0) {
       logDebug('constrainWS+P', `  - window '${title}' has left edge at ${String(left)}px; moving right to 0px`)
       winDetails.x = 0
@@ -487,22 +485,42 @@ const exampleWSs: Array<WindowSet> = [
         "noteType": "Calendar",
         "windowType": "split",
         "filename": "{-1d}",
-        "title": "yesterday"
+        "title": "yesterday",
+        "x": 0,
+        "y": 0,
+        "width": 700,
+        "height": 600
       },
       {
         "noteType": "Calendar",
         "windowType": "split",
         "filename": "{0d}",
-        "title": "today"
+        "title": "today",
+        "x": 0,
+        "y": 0,
+        "width": 700,
+        "height": 600
       },
       {
         "noteType": "Calendar",
         "windowType": "split",
         "filename": "{+1d}",
-        "title": "tomorrow"
+        "title": "tomorrow",
+        "x": 0,
+        "y": 0,
+        "width": 700,
+        "height": 600
       }
     ],
-    "htmlWindows": [],
+    "htmlWindows": [
+      {
+        "type": "Plugin",
+        "pluginID": "jgclark.Dashboard",
+        "pluginCommandName": "show dashboard",
+        "customId": "Dashboard",
+        "x": 416, "y": 515, "width": 990, "height": 360
+      }
+    ],
     "machineName": "Desktop"
   },
   {
@@ -513,131 +531,34 @@ const exampleWSs: Array<WindowSet> = [
         "noteType": "Calendar",
         "windowType": "split",
         "filename": "{-1w}",
-        "title": "last week"
+        "title": "last week",
+        "x": 0,
+        "y": 0,
+        "width": 700,
+        "height": 600
       },
       {
         "noteType": "Calendar",
         "windowType": "split",
         "filename": "{0w}",
-        "title": "this week"
+        "title": "this week",
+        "x": 0,
+        "y": 0,
+        "width": 700,
+        "height": 600
       },
       {
         "noteType": "Calendar",
         "windowType": "split",
         "filename": "{+1w}",
-        "title": "next week"
+        "title": "next week",
+        "x": 0,
+        "y": 0,
+        "width": 700,
+        "height": 600
       }
     ],
     "htmlWindows": [],
     "machineName": "Desktop"
   }
 ]
-
-// const exampleContent1 = `# Day + Week Window Sets
-
-// This is an example of:
-// - use of a 'json' code block to specify a Window Set
-// - more than 1 Window Set definition in separate code blocks in the same note
-// - specifying "Calendar" note types
-// - use of relative dates to define dates that work relative to today's date (see the [Plugin's README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md) for more details)
-// - the ability to "closeOtherWindows" before the Window Set is activated
-// - "htmlWindows", "x", "y", "width", "height" should be left out if you don't want to define them
-// - these can have "title"s, though currently they're only used to help you identify different windows.
-
-// Note: the JSON has to be well-formatted to be usable. In particular check that there aren't any extra commas after the final item of any section.
-
-// \`\`\`json
-// {
-//   "name": "Days (Yesterday+Today+Tomorrow)",
-//   "closeOtherWindows": true,
-//   "editorWindows": [
-// 		{
-// 		"noteType": "Calendar",
-// 		"openAction": "split",
-// 		"filename": "{-1d}",
-// 		"title": "yesterday"
-// 		},
-// 		{
-// 		"noteType": "Calendar",
-// 		"openAction": "split",
-// 		"filename": "{0d}",
-// 		"title": "today"
-// 		},
-// 		{
-// 		"noteType": "Calendar",
-// 		"openAction": "split",
-// 		"filename": "{+1d}",
-// 		"title": "tomorrow"
-// 		}
-//   ]
-// }
-// \`\`\`
-
-// \`\`\`json
-// {
-//   "name": "Weeks (Last+This+Next)",
-//   "closeOtherWindows": true,
-//   "editorWindows": [
-// 		{
-// 		"noteType": "Calendar",
-// 		"openAction": "split",
-// 		"filename": "{-1w}",
-// 		"title": "last week"
-// 		},
-// 		{
-// 		"noteType": "Calendar",
-// 		"openAction": "split",
-// 		"filename": "{0w}",
-// 		"title": "this week"
-// 		},
-// 		{
-// 		"noteType": "Calendar",
-// 		"openAction": "split",
-// 		"filename": "{+1w}",
-// 		"title": "next week"
-// 		}
-//   ]
-// }
-// \`\`\`
-// `
-
-// const exampleContent2 = `# Staff Meeting Window Sets
-
-// This is an example of:
-// - specifying regular type "Note" notes. Note that the full filepath (including extension) needs to be given, not just the filename or title.
-// - specifying they should be opened in new 'floating' windows. If x/y/width/height aren't given, NotePlan will determine them.
-// - specifying a plugin window to be run, by its command name. Note: this should *not* be URI-encoded.
-// - use of x/y/wdith/height can override the last-used settings of the plugin window.
-
-// Note: the JSON has to be well-formatted to be usable. In particular check that there aren't any extra commas after the final item of any section.
-
-// \`\`\`json
-// {
-//   "name": "Staff Meeting",
-//   "closeOtherWindows": false,
-//   "editorWindows": [
-//     {
-//       "type": "Note",
-//       "windowType": "floating",
-//       "filename": "CCC Areas/Admin (Work).md",
-//       "title": "Admin (Work)"
-//     },
-//     {
-//       "type": "Note",
-//       "windowType": "floating",
-//       "filename": "Saved Searches/RP Search Results.md",
-//       "title": "@RP Search Results"
-//     }
-//   ],
-//   "htmlWindows": [
-//     {
-//       "type": "Plugin",
-//       "pluginID": "jgclark.Dashboard",
-//       "pluginCommandName": "show dashboard",
-//       "customId": "Dashboard",
-//       "x": 416, "y": 515, "width": 990, "height": 360
-//     }
-//   ]
-// }
-// \`\`\`
-// `

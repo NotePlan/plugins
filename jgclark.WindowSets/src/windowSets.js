@@ -171,8 +171,8 @@ export async function saveWindowSet(): Promise<void> {
     let ewCount = 0
     const firstWindow = editorWinDetails[0]
     for (const ew of editorWinDetails) {
-      clo(ew, String(ewCount))
-      let tempFilename = ''
+      // clo(ew, String(ewCount))
+      let tempFilename = ew.filename
       const thisNote = DataStore.projectNoteByFilename(tempFilename)
       let tempTitle = ''
 
