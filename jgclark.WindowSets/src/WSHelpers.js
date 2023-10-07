@@ -36,15 +36,16 @@ export const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
 
 //-----------------------------------------------------------------
 // Data types
+// Note: x/y/w/h are available on all window types since v3.9.1 build 1020
 export type EditorWinDetails = {
   noteType: string, // "Calendar" | "Note"
   filename: string,
   windowType: string, // "main" | "floating" | "split"
   title?: string, // optional, but persist it where used
-  x?: number,
-  y?: number,
-  width?: number,
-  height?: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
 }
 
 export type HTMLWinDetails = {
@@ -52,10 +53,10 @@ export type HTMLWinDetails = {
   pluginID: string,
   pluginCommandName: string,
   customId?: string, // If set to the same as the plugin sets, then you can override the last-stored x/y/width/height of the window
-  x?: number,
-  y?: number,
-  width?: number,
-  height?: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
   // filename, custonmID are set by the plugin command itself so aren't needed here
 }
 
@@ -67,23 +68,8 @@ export type WindowSet = {
   machineName: string
 }
 
-/**
- * Note: from v3.9.1 we also use
- * type Rect = {
- *   x: Integer,
- *   y: Integer,
- *   width: Integer,
- *   height: integer
- * }
- */
-
 //---------------------------------------------------------------
 // Settings
-
-// export type WindowSetsConfigV2 = {
-//   folderForDefinitions: string,
-//   _logDebug: String,
-// }
 
 export type WindowSetsConfig = {
   folderForDefinitions: string,
@@ -178,7 +164,7 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
  * Write WindowSet definitions from WS note to local Pref,
  * having first checked their screen bounds.
  */
-export async function writeWSNoteToPrefs(): Promise<void> {
+export async function writeWSNoteToPrefs(calledFromSaveTrigger: boolean = false): Promise<void> {
   try {
     // Check to stop it running on iOS
     if (NotePlan.environment.platform !== 'macOS') {
@@ -186,16 +172,25 @@ export async function writeWSNoteToPrefs(): Promise<void> {
       return
     }
     const config = await getPluginSettings()
-
-    const noteForWSs = DataStore.projectNoteByTitle(config.noteTitleForDefinitions) // TODO: look in the correct folder too
-    if (!noteForWSs) {
-      logWarn('writeWSNoteToPrefs', `No note found with title '${config.noteTitleForDefinitions}'`)
-      return
+    logDebug(pluginJson, `writeWSNoteToPrefs() starting ${(calledFromSaveTrigger ? 'triggered by save ' : '')}for folder '${config.folderForDefinitions}' title '${config.noteTitleForDefinitions}'`)
+    // Get note from config, or if triggered, then need to get it directly from Editor, to ensure we can get the latest version
+    let noteForWS: TNote
+    if (calledFromSaveTrigger && Editor) {
+      noteForWS = Editor
+      logDebug(pluginJson, `got Editor`)
+    }
+    else {
+      const noteForWSs = DataStore.projectNoteByTitle(config.noteTitleForDefinitions) // TODO: look in the correct folder too
+      if (noteForWSs) {
+        noteForWS = noteForWSs[0]
+      } else {
+        logWarn('writeWSNoteToPrefs', `No note found with title '${config.noteTitleForDefinitions}'`)
+        throw new Error(`Can't find Window Set note from Editor or '${config.noteTitleForDefinitions}'`)
+      }
     }
 
     // Get just the codeblock
-    const noteForWS = noteForWSs[0]
-    logDebug('getCodeBlocks', `Reading from note '${displayTitle(noteForWS)}'`)
+    logDebug('getCodeBlocks', `Reading from note '${displayTitle(noteForWS)}' for code blocks`)
     const noteCBs = getCodeBlocksOfType(noteForWS, ['json'])
     if (noteCBs.length === 0) {
       throw new Error(`No JSON code blocks found in note '${config.noteTitleForDefinitions}'`)
@@ -248,12 +243,9 @@ export async function syncWSNoteToPrefs(): Promise<void> {
       logDebug('syncWSNoteToPrefs', `syncWSNoteToPrefs fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
       return
     }
-
-    // FIXME: We need to deal with the old stale-data problem
-
-    // write from note to local preference
+    // write from note to local preference, indicating that this is from a trigger, so work around stale data problem
     logDebug('syncWSNoteToPrefs', `Will write note to local pref`)
-    await writeWSNoteToPrefs()
+    await writeWSNoteToPrefs(true)
 
   } catch (error) {
     logError(pluginJson, `syncWSNoteToPrefs: ${error.name}: ${error.message}`)

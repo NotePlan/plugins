@@ -231,7 +231,7 @@ export async function saveWindowSet(): Promise<void> {
         // take from a match in the lookup list
         ? thisPWAC?.pluginID
         : (thisWindowId.match(/^([^\.]+)\.([^\.]+)\.([^\.]+)/))
-          // We will try to guess pluginID from the convention that a customID is "pluginID.window_name"
+          // try to guess pluginID from the convention that a customID is "pluginID.window_name"
           ? thisWindowId.split('.', 2).join('.')
           : '? needs to be set from plugin'
       const thisHWPluginCommandName = thisPWAC?.pluginCommandName ?? '? needs to be set from ' + thisWindowId
@@ -355,10 +355,10 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
       }
       thisWS = savedWindowSets[num]
       const setName = thisWS.name
-      logDebug('openWindowSet', `User requests window set '${setName}'`)
+      // logDebug('openWindowSet', `User requests window set '${setName}'`)
     }
 
-    clo(thisWS, 'thisWS')
+    clo(thisWS, 'WindowSet to open')
 
     // First close other windows (if requested)
     if (thisWS.closeOtherWindows) {
@@ -375,6 +375,7 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
     // Now open new windows/splits
     let openCount = 0
     // First any HTMLView windows (currently just plugins)
+    if (thisWS.htmlWindows.length > 0) logDebug('openWindowSet', `Attempting to open ${String(thisWS.htmlWindows.length)} plugin window(s)`)
     for (const hw of thisWS.htmlWindows) {
       switch (hw.type) {
         case 'html': {
@@ -383,7 +384,7 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
           // If x,y,w,h given the override now
           if (hw.x && hw.y && hw.width && hw.height) {
             const rect = { x: hw.x, y: hw.y, width: hw.width, height: hw.height }
-            logDebug('openWindowSet', `- applying Rect definition ${rectToString(rect)} to ${thisWS.name}`)
+            logDebug('openWindowSet', `  - applying Rect definition ${rectToString(rect)} to ${thisWS.name}`)
             applyRectToWindow(rect, hw.customId)
           }
           break
@@ -394,9 +395,10 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
       }
     }
 
+    logDebug('openWindowSet', `Attempting to open ${String(thisWS.editorWindows.length)} note window(s)`)
     for (const ew of thisWS.editorWindows) {
       if (ew.filename === '') {
-        logError('openWindowSet', `- WS '${thisWS.name}' has an empty Editor filename: ignoring.`)
+        logWarn('openWindowSet', `- WS '${thisWS.name}' has an empty Editor filename: ignoring. Please check the definitions in the Window Set note.`)
         continue
       }
 
@@ -446,12 +448,12 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
               resourceToOpen = getFilenameDateStrFromDisplayDateStr(resourceToOpen)
               logDebug('dateOffsetStrings', `  - resourceToOpen = ${resourceToOpen}`)
             }
-            const res = await Editor.openNoteByDateString(resourceToOpen, false, 0, 0, true)
+            const res = await Editor.openNoteByDateString(resourceToOpen, false, 0, 0, (openCount > 0))
             if (res) {
               openCount++
               logDebug('openWindowSet', `- opened Calendar note ${resourceToOpen} in split`)
             } else {
-              logError('openWindowSet', `- problem opening Calendar note ${resourceToOpen} in split`)
+              logWarn('openWindowSet', `- problem opening Calendar note ${resourceToOpen} in split`)
             }
             break
           }
