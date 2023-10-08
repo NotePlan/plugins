@@ -1,10 +1,14 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [0.20.0] - 2023-10-???
+<!-- ## [0.20.0b2] - 2023-10-??? (unreleased)
+### Added
+- ??? make below work with all options -->
+
+## [0.20.0b1] - 2023-10-08 (unreleased)
 ### Added
 - new **heatmap for tag** command that displays a 'heatmap' chart of a chosen tag's values for each day (e.g. all `@work(...)` values from daily notes)
-- ??? make below work with all options
+- new **/Habits+Summaries:update plugin settings** command, that allows settings to be changed on iOS/iPadOS.
 
 ## [0.19.4] - 2023-09-26 unreleased
 ### Added

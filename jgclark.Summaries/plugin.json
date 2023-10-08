@@ -76,6 +76,11 @@
       "jsFunction": "weeklyStats"
     },
     {
+      "name": "Habits+Summaries: update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
+    },
+    {
       "hidden": false,
       "name": "test:GenTaskStats",
       "description": "test task gen stats",

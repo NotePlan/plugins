@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 2.10.2023 for v0.22.0
+// Last updated 8.10.2023 for v0.20.0
 //-----------------------------------------------------------------------------
 
 // export {
@@ -38,6 +38,7 @@ import {
   semverVersionToNumber,
   updateSettingData
 } from '@helpers/NPConfiguration'
+import { editSettings } from '@helpers/NPSettings'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const pluginID = "jgclark.Summaries"
@@ -123,5 +124,19 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
 
   } catch (error) {
     logError('jgclark.Summaries::onUpdateOrInstall', error.message)
+  }
+}
+
+/**
+ * Update Settings/Preferences (for iOS etc)
+ * Plugin entrypoint for command: "/<plugin>: Update Plugin Settings/Preferences"
+ * @author @dwertheimer
+ */
+export async function updateSettings() {
+  try {
+    logDebug(pluginJson, `updateSettings running`)
+    await editSettings(pluginJson)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
   }
 }
