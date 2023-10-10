@@ -51,7 +51,8 @@ export type SummariesConfig = {
   progressPeriod: string,
   progressDestination: string,
   progressHeading: string,
-  progressYesNoChars: string, // for progressUpdate ...
+  progressYesNoChars: string,
+  // for progressUpdate ...
   progressHashtags: Array<string>,
   progressHashtagsAverage: Array<string>,
   progressHashtagsTotal: Array<string>,
@@ -60,7 +61,11 @@ export type SummariesConfig = {
   progressMentionsTotal: Array<string>,
   progressYesNo: Array<string>,
   periodStatsShowSparklines: boolean,
-  periodStatsYesNo: Array<string>, // for periodStats ...
+  // for todayProgress ...
+  todayProgressHeading: string,
+  todayProgressTotal: Array<string>,
+  // for periodStats ...
+  periodStatsYesNo: Array<string>,
   includedHashtags: Array<string>,
   excludedHashtags: Array<string>,
   includedMentions: Array<string>,
@@ -464,7 +469,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 
           // check this is one of the ones we're after, then add
           if (caseInsensitiveMatch(mention, wantedItem)) {
-            // logDebug('gatherOccurrences', `- Found matching occurrence ${mention} on date ${n.filename}`)
+            logDebug('gatherOccurrences', `- Found matching occurrence ${mention} on date ${n.filename}`)
             thisOcc.addOccurrence(mention, thisDateStr)
           } else {
             // logDebug('gatherOccurrences', `- x ${mention} not wanted`)
@@ -507,14 +512,11 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
         let lastTag = ''
         for (const tag of seenTags) {
           // logDebug('gatherOccurrences', `orig: ${tag} ...`)
-          // const RE_HASHTAG_CAPTURE_NAME_AND_FLOAT = /(\#[\w\/]+)\/(-?\d+(\.\d+)?)$/
-          // const reMatches = tag.match(RE_HASHTAG_CAPTURE_NAME_AND_FLOAT) ?? []
-          // const tagWithoutClosingNumber = (reMatches.length >= 1) ? reMatches[1] : tag
           const RE_HASHTAG_CAPTURE_TERMINAL_SLASH_AND_FLOAT = /\/(-?\d+(\.\d+)?)$/
           const tagWithoutClosingNumber = tag.replace(RE_HASHTAG_CAPTURE_TERMINAL_SLASH_AND_FLOAT, '')
           // logDebug('gatherOccurrences', `  ... this:${tagWithoutClosingNumber} last:${lastTag} `)
           // if this tag is starting subset of the last one, assume this is an example of the bug, so skip this tag
-          if (caseInsensitiveStartsWith(tagWithoutClosingNumber, lastTag)) {
+          if (caseInsensitiveStartsWith(tag, lastTag)) {
             // logDebug('calcHashtagStatsPeriod', `- Found ${tag} but ignoring as part of a longer hashtag of the same name`)
             continue // skip this tag
           }

@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 8.10.2023 for v0.20.0
+// Last updated 10.10.2023 for v0.20.0
 //-----------------------------------------------------------------------------
 
 // export {
@@ -24,6 +24,10 @@ export {
   makeProgressUpdate,
   progressUpdate
 } from './progress'
+export {
+  makeTodayProgress,
+  todayProgressFromTemplate
+} from './todayProgress'
 export { statsPeriod } from './stats'
 
 // allow changes in plugin.json to trigger recompilation

@@ -30,17 +30,17 @@ import { showMessage } from "../../helpers/userInput";
 //-------------------------------------------------------------------------------
 
 /**
- * This is the entry point for x-callback use of makeProgressUpdate
+ * This is the entry point for template use of makeProgressUpdate
  * @param {?string} params as JSON string
- * @returns {string} - returns string to Template
+ * @returns {string} - returns string
  */
 export async function progressUpdate(params: string = ''): Promise<string> {
   try {
-    logDebug(pluginJson, `progressUpdate for xcb: Starting with params '${params}'`)
-    return await makeProgressUpdate(params, 'xcb') ?? '<error>'
+    logDebug(pluginJson, `progressUpdate (for template): Starting with params '${params}'`)
+    return await makeProgressUpdate(params, 'template') ?? '<error>'
   }
   catch (err) {
-    logError(pluginJson, 'progressUpdate (for xcb)' + err.message)
+    logError(pluginJson, 'progressUpdate (for template)' + err.message)
     return '<error>' // for completeness
   }
 }
@@ -63,12 +63,12 @@ export async function makeProgressUpdate(params: string = '', source: string = '
 
     // If there are params passed, then we've been called by a template command (and so use those).
     if (params) {
-      logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with params '${params}'`)
+      // logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
       // clo(config, `config after overriding with params '${params}'`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-      logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with no params`)
+      // logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with no params`)
     }
 
     // Use configuration setting as default for time period
@@ -148,23 +148,31 @@ export async function makeProgressUpdate(params: string = '', source: string = '
 
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
-    logDebug('makeProgressUpdate', `- created progress update in${timer(startTime)}`)
+    logDebug('makeProgressUpdate', `- created progress update in ${timer(startTime)}`)
 
+    // If we have a heading specified, make heading, using periodAndPartStr or '{{PERIOD}}' if it exists. Add a refresh button.
     // Create x-callback of form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=...` with 'Refresh' pseudo-button
     const xCallbackMD = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'progressUpdate', params)
-
     const thisHeading = formatWithFields(config.progressHeading, { PERIOD: periodAndPartStr ? periodAndPartStr : periodString })
     const headingAndXCBStr = `${thisHeading} ${xCallbackMD}`
+    const thisHeadingLine = `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}`
 
-    // Send output to chosen required destination
-    // Now complicated because if we have params it could be either from x-callback or template call.
-    if (params && source !== 'xcb') {
+    // Send output to chosen required destination:
+    // - if it's a template, then return the output text
+    // - if it's an x-callback or command, then write to a note
+    // - if it's from todayProgressUpdate, then write to daily note
+
+    if (source === 'template') {
       // this was a template command call, so simply return the output text
-      logDebug('makeProgressUpdate', `-> returning text to template for '${thisHeading}: ${periodAndPartStr} for ${periodString}'`)
-      return `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}\n${output}`
+      logDebug('makeProgressUpdate', `-> returning text to template for '${thisHeading}' (${periodAndPartStr} for ${periodString})`)
+      return ((config.progressHeading !== '') ? `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}\n` : '') + output
     }
 
-    // Else we were called by a plugin command.
+    if (source === 'todayProgressUpdate') {
+      config.progressDestination = 'daily'
+    }
+
+    // Else we were called by a plugin command or x-callback
     // Now decide whether to write to current note or update the relevant section in the current Daily or Weekly note
     switch (config.progressDestination) {
       case 'daily': {

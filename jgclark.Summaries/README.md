@@ -6,6 +6,7 @@ This Plugin lets you do the following sorts of things:
   <img alt="Habit Tracker example" src="ipu-2w-with-sparkline.jpg" width=360px/>
 
 - show your progress over the last 2 weeks against your goal of getting an average 8 hours `@sleep`
+- show your total Calorie count from different mentions in your daily note
 - count every time you've noted you've visited  `#family` or watched `#tv` this month
 - count the times you've met with staff member `@alice` this year so far
 - sum the length of your `@run`s in the last quarter
@@ -151,7 +152,21 @@ Note: The 'key' part and any string-based value part must be enclosed in **doubl
 
 Note: The JSON parts needs to be **urlencoded** before it can be used. (For help with this, see the **Get-X-Callback-URL command** from the "Link Creator" Plugin. Select RUN a Plugin command > progressUpdate ...)
 
-## periodStats command (aliases: statsPeriod, stp)
+## 'today progress' command (alias: 'tp')
+Sometimes you want to have a summary of progress on something within a day -- for example `@carlories(...)` or `@exercise(...)`. To summarise these from today's daily note use **today progress**, which works in the same way as **appendProgressUpdate**.
+
+When run by the user as a /command, it inserts the output into the current note. Or you can run it from a
+- template: is particularly designed to be used from a "Daily Note Template" by including a line like the following: `<%- todayProgressFromTemplate({todayProgressTotal: '@calories, @exercise', todayProgressHeading: 'Progress Today'}) %>`
+- x-callback call: create a JSON version of "key":"value" pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=today%20progress&arg0=`. (See more details above.) For example: For example:
+  ```
+  noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=today%20progress&arg0={"period": "2022-02-15", "excludeToday": true, "progressHeading": "Post-Birthday Habits", "showSparklines": true}
+  ```
+
+It has its own settings:
+- #hashtags and @mentions to total: a comma separated list of the terms to total from today's note
+- Today Progress heading: optional heading to insert before the results.
+
+## 'periodStats' command (aliases: 'statsPeriod', 'stp')
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify, and saves them into notes in a special 'Summaries' folder. For example:
 - **count** every time you've noted you've visited  family this month -- i.e. counts the number of times `#family` is mentioned in calendar notes this month
 - **count** the times you've met with staff member Alice this year so far -- i.e. counts the number of times `@alice` is mentioned in calendar notes this year

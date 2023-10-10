@@ -538,7 +538,7 @@ export function _sanitizeFrontmatterText(originalText: string, removeTemplateTag
   const unfilteredFmText = _getFMText(originalText)
   const hasTags = hasTemplateTagsInFM(unfilteredFmText)
   if (hasTags && !removeTemplateTagsInFM) {
-    logWarn(
+    logDebug(
       `FYI: _sanitizeFrontmatterText: getAttributes was called for a template which has template tags in the frontmatter. This is generally only advisable if you send getAttributes with the second param set to true. Ignore this warning if you meant to do this and it's working fine for you. Template text was: "${originalText}"`,
     )
   }
@@ -623,6 +623,6 @@ export function getAttributes(templateData: string = '', removeTemplateTagsInFM?
  */
 export function getBody(templateData: string = ''): string {
   if (!templateData) return ''
-  const fmData = getSanitizedFmParts(templateData, true)
+  const fmData = getSanitizedFmParts(templateData)
   return fmData && fmData?.body ? fmData.body : ''
 }

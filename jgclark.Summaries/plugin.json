@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.20.0",
+  "plugin.version": "0.20.0b2",
   "plugin.lastUpdateInfo": "0.20.0: add new /heatmap command, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.\n0.18.0: offers full set of summary types in /periodStats as well as /progressUpdate. Bug fixes.\n0.17.3: fix edge case of malformed @mentions.\n0.17.2: fix edge cases in /periodStats\n0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
@@ -33,10 +33,32 @@
     {
       "hidden": true,
       "name": "progressUpdate",
-      "description": "x-callback entry point to appendProgressUpdate command",
+      "description": "template entry point to appendProgressUpdate command",
       "jsFunction": "progressUpdate",
       "arguments": [
         "JSON-formatted parameter list"
+      ]
+    },
+    {
+      "hidden": true,
+      "name": "todayProgressFromTemplate",
+      "description": "template entry point to makeTodayProgress command",
+      "jsFunction": "todayProgressFromTemplate",
+      "arguments": [
+        "comma-separated list of items to count",
+        "heading (optional)"
+      ]
+    },
+    {
+      "name": "today progress",
+      "alias": [
+        "tp"
+      ],
+      "description": "insert today's progress update",
+      "jsFunction": "makeTodayProgress",
+      "arguments": [
+        "comma-separated list of items to count",
+        "heading (optional)"
       ]
     },
     {
@@ -200,7 +222,7 @@
     {
       "key": "progressHeading",
       "title": "Progress heading",
-      "description": "Heading to go before this output, to which is added the period that's covered. However, if it contains the string '{{PERIOD}}, then the covered period will be inserted in place of this string wherever you want in the heading.",
+      "description": "Heading to go before this output, to which is added the period that's covered. However, if it contains the string {{PERIOD}}, then the covered period will be inserted in place of this string wherever you want in the heading. If this is left blank, then no heading will be added.",
       "type": "string",
       "default": "Progress Update",
       "required": false
@@ -265,6 +287,25 @@
       "key": "progressMentionsTotal",
       "title": "@mentions to total",
       "description": "Optional list of @mention(number)s to include in Progress updates, presented as a total.\n(Note: you need to include the @ of the @mention.)",
+      "type": "[string]",
+      "default": [],
+      "required": false
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "key": "todayProgressHeading",
+      "title": "Today Progress heading",
+      "description": "Heading to go before this output. If this is left blank, then no heading will be added.",
+      "type": "string",
+      "default": "Progress Update",
+      "required": false
+    },
+    {
+      "key": "todayProgressTotal",
+      "title": "#hashtags and @mentions to total",
+      "description": "List of #hashtags and @mentions to include in Today Progress updates.",
       "type": "[string]",
       "default": [],
       "required": false

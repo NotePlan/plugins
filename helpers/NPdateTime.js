@@ -307,6 +307,14 @@ export async function getPeriodStartEndDates(
   logDebug('getPeriodStartEndDates', `starting with periodType = ${periodType}, TZOffset = ${TZOffset}, excludeToday? ${String(excludeToday)}.`)
 
   switch (periodType) {
+    case 'today': {
+      fromDateMom = fromDateMom.startOf('day')
+      fromDate = fromDateMom.toDate()
+      toDateMom = toDateMom.endOf('day')
+      toDate = toDateMom.toDate()
+      periodString = 'today'
+      break
+    }
     case 'lm': {
       // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // go to start of this month
       // fromDate = Calendar.addUnitToDate(fromDate, 'month', -1) // -1 month
