@@ -1,6 +1,6 @@
 // @flow
 
-import { generateCSSFromTheme } from '@helpers/HTMLView'
+import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 
 /**
  * Pops up an HTML window to allow for color picking
