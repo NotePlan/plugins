@@ -180,6 +180,7 @@ export async function createEvent(title: string, range: { start: Date, end: Date
 /**
  * Find the paragraphs that contain event text which needs to be created. If time/date text is ambiguous
  * then ask the user to choose the correct one. Return the ConfirmedEvent data for each line to be turned into an event
+ * Skips blank lines and title lines
  * NOTE: Calendar.parseDateText does not correctly return "today at" so we try to fix that here
  * @param {Array<TParagraph>} paragraphBlock
  * @param {EventBlocksConfig} config
@@ -190,8 +191,8 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
   const confirmedEventData = []
   for (let i = 0; i < paragraphBlock.length; i++) {
     const line = paragraphBlock[i]
-    if (hasCalendarLink(line.content)) {
-      logDebug(pluginJson, `Skipping line with calendar link: ${line.content}`)
+    if (hasCalendarLink(line.content) || line.type === 'title' || line.content === '') {
+      logDebug(pluginJson, `Skipping line: ${line.content}`)
     } else {
       // create a regex to replace the words "today at" (or today @) with or whithout spaces around the @ with " at "
       const lineText = line.content.replace(/today ?(at|\@) ?/gi, ' at  ') // Calendar.parseDateText does not correctly return "today at" so we try to fix that here
@@ -227,9 +228,10 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
  * Make changes to the paragraph lines and return all changed paragraphs as an array so they can be updated in one go
  * @param {Array<TParagraph>} block
  * @param {{[string]:any}} config
+ * @param {string} calendar - the calendar to use for the events or blank to ask
  * @returns {{paragraph:{TParagraph}, time:{Range++ object with start, end | null}}}
  */
-export async function processTimeLines(paragraphBlock: Array<TParagraph>, config: EventBlocksConfig): Promise<Array<TParagraph>> {
+export async function processTimeLines(paragraphBlock: Array<TParagraph>, config: EventBlocksConfig, calendar?: string = ''): Promise<Array<TParagraph>> {
   // parseDateTextChecker()
   const timeLines = []
   try {
@@ -237,7 +239,7 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
     // before we can show a status bar
     const eventsToCreate = (await confirmEventTiming(paragraphBlock, config)) || []
     // Now that we have all the info we need, we can create the events with a status bar
-    config.calendar = (await checkOrGetCalendar('', true)) || ''
+    config.calendar = (await checkOrGetCalendar(calendar, true)) || ''
     CommandBar.showLoading(true, `Creating Events:\n(${0}/${eventsToCreate.length})`)
     await CommandBar.onAsyncThread()
     for (let j = 0; j < eventsToCreate.length; j++) {
@@ -348,8 +350,9 @@ export async function createEventPrompt(_heading?: string) {
  * @param {*} heading
  * @param {*} confirm
  */
-export async function createEvents(heading: string = '', confirm: string = 'yes'): Promise<void> {
+export async function createEvents(heading: string = '', confirm?: string = 'yes', calendarName?: string = ''): Promise<void> {
   try {
+    logDebug(pluginJson, `createEvents running; heading="${heading}"; confirm="${confirm}"; calendarName="${calendarName}"`)
     const note = Editor.note
     if (note) {
       const config = { ...DataStore.settings }
@@ -358,7 +361,7 @@ export async function createEvents(heading: string = '', confirm: string = 'yes'
       if (headingPara) {
         const paragraphsBlock = getBlockUnderHeading(note, headingPara)
         if (paragraphsBlock.length) {
-          const timeLines = await processTimeLines(paragraphsBlock, config)
+          const timeLines = await processTimeLines(paragraphsBlock, config, calendarName)
           if (timeLines.length) {
             Editor.updateParagraphs(timeLines)
           } else {
@@ -369,9 +372,9 @@ export async function createEvents(heading: string = '', confirm: string = 'yes'
         logDebug(pluginJson, `Could not find heading containing "${heading}"; headings in note:\n`)
         const titles = note.paragraphs
           .filter((p) => p.type === 'title')
-          .map((p) => p.content)
+          .map((p) => `"p.content"`)
           .join(`\n`)
-        logDebug(pluginJson, titles)
+        clo(titles, `createEvents: titles in document were`)
       }
     }
   } catch (error) {
