@@ -25,7 +25,7 @@ export {
   progressUpdate
 } from './progress'
 export {
-  makeTodayProgress,
+  todayProgress,
   todayProgressFromTemplate
 } from './todayProgress'
 export { statsPeriod } from './stats'

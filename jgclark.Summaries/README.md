@@ -155,16 +155,20 @@ Note: The JSON parts needs to be **urlencoded** before it can be used. (For help
 ## 'today progress' command (alias: 'tp')
 Sometimes you want to have a summary of progress on something within a day -- for example `@carlories(...)` or `@exercise(...)`. To summarise these from today's daily note use **today progress**, which works in the same way as **appendProgressUpdate**.
 
-When run by the user as a /command, it inserts the output into the current note. Or you can run it from a
-- template: is particularly designed to be used from a "Daily Note Template" by including a line like the following: `<%- todayProgressFromTemplate({todayProgressTotal: '@calories, @exercise', todayProgressHeading: 'Progress Today'}) %>`
-- x-callback call: create a JSON version of "key":"value" pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=today%20progress&arg0=`. (See more details above.) For example: For example:
-  ```
-  noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=today%20progress&arg0={"period": "2022-02-15", "excludeToday": true, "progressHeading": "Post-Birthday Habits", "showSparklines": true}
-  ```
-
-It has its own settings:
+When run by the user as a **/command**, it inserts the output into the current note, and uses the following settings from the plugin pane:
 - #hashtags and @mentions to total: a comma separated list of the terms to total from today's note
 - Today Progress heading: optional heading to insert before the results.
+
+Or you can run it from an **x-callback**  using the form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=today%20progress&arg0=?&arg1=?` where
+- `arg0` is the comma separated list of items to summarise
+- `arg1` is the optional heading to use before the results
+
+For example:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=today%20progress&arg0=@exercise,@calories&arg1=Post-Birthday%20Habits
+```
+
+You can also run it as part of a **template**; for example use in a "Daily Note Template" by including a line like the following: `<%- todayProgressFromTemplate({todayProgressItems: '@calories, @exercise', todayProgressHeading: 'Progress Today'}) %>`. (Note the slightly different 'command name', and that this time the parameters need to be given as a JSON object of key:value pairs.)
 
 ## 'periodStats' command (aliases: 'statsPeriod', 'stp')
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify, and saves them into notes in a special 'Summaries' folder. For example:

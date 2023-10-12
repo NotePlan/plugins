@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.20.0b2",
-  "plugin.lastUpdateInfo": "0.20.0: add new /heatmap command, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.\n0.18.0: offers full set of summary types in /periodStats as well as /progressUpdate. Bug fixes.\n0.17.3: fix edge case of malformed @mentions.\n0.17.2: fix edge cases in /periodStats\n0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.",
+  "plugin.version": "0.20.0",
+  "plugin.lastUpdateInfo": "0.20.0: add new '/today progress' and '/heatmap for tag' commands, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.\n0.18.0: offers full set of summary types in /periodStats as well as /progressUpdate. Bug fixes.\n0.17.3: fix edge case of malformed @mentions.\n0.17.2: fix edge cases in /periodStats\n0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -55,7 +55,7 @@
         "tp"
       ],
       "description": "insert today's progress update",
-      "jsFunction": "makeTodayProgress",
+      "jsFunction": "todayProgress",
       "arguments": [
         "comma-separated list of items to count",
         "heading (optional)"
@@ -295,19 +295,23 @@
       "type": "separator"
     },
     {
-      "key": "todayProgressHeading",
-      "title": "Today Progress heading",
-      "description": "Heading to go before this output. If this is left blank, then no heading will be added.",
-      "type": "string",
-      "default": "Progress Update",
-      "required": false
+      "type": "heading",
+      "title": "/today progress command settings"
     },
     {
-      "key": "todayProgressTotal",
+      "key": "todayProgressItems",
       "title": "#hashtags and @mentions to total",
       "description": "List of #hashtags and @mentions to include in Today Progress updates.",
       "type": "[string]",
       "default": [],
+      "required": false
+    },
+    {
+      "key": "todayProgressHeading",
+      "title": "Today Progress heading",
+      "description": "Heading to go before this output. If this is left blank, then no heading will be added (and no refresh button).",
+      "type": "string",
+      "default": "Progress Update",
       "required": false
     },
     {

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 6.10.2023 for v0.20.0 by @jgclark
+// Last updated 12.10.2023 for v0.20.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -23,7 +23,6 @@ import {
   CaseInsensitiveMap,
   type headingLevelType,
 } from '@helpers/general'
-// import { gatherMatchingLines } from '@helpers/NPParagraph'
 import {
   caseInsensitiveMatch,
   caseInsensitiveStartsWith,
@@ -63,7 +62,7 @@ export type SummariesConfig = {
   periodStatsShowSparklines: boolean,
   // for todayProgress ...
   todayProgressHeading: string,
-  todayProgressTotal: Array<string>,
+  todayProgressItems: Array<string>,
   // for periodStats ...
   periodStatsYesNo: Array<string>,
   includedHashtags: Array<string>,
@@ -186,7 +185,7 @@ export class TMOccurrences {
       } else {
         isoDateStr = dateStrArg
       }
-      logDebug('TMOcc:addOccurrence', `starting for ${occurrenceStr} on date = ${isoDateStr}`)
+      logDebug('TMOcc:addOccurrence', `starting for ${occurrenceStr} on ${isoDateStr}`)
 
       // isolate the value
       let key = occurrenceStr
@@ -338,12 +337,12 @@ export class TMOccurrences {
   getStats(style: string): string {
     let output = ''
     // logDebug('TMOcc:getStats', `starting for ${ this.term } type ${ this.type } style ${ style } `)
-    // $FlowFixMe - @DW says the !== '' check is needed but flow doesn't like it
+    // $FlowFixMe[incompatible-type] - @DW says the !== '' check is needed but flow doesn't like it
     const countStr = (!isNaN(this.count) && this.count !== '') ? this.count.toLocaleString() : `none`
-    // $FlowFixMe - as above
+    // $FlowFixMe[incompatible-type] - as above
     const totalStr = (!isNaN(this.total) && this.total !== '' && this.total > 0) ? `total ${this.total.toLocaleString()}` : 'total 0'
     // This is the average per item, not the average per day. In general I feel this is more useful for numeric amounts
-    // $FlowFixMe - as above
+    // $FlowFixMe[incompatible-type] - as above
     const itemAvgStr = (!isNaN(this.total) && this.total !== '' && this.count > 0) ? (this.total / this.count).toLocaleString([], { maximumSignificantDigits: 3 }) : ''
 
     switch (style) {
@@ -478,7 +477,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
-    logInfo('gatherOccurrencesd', `Gathered YesNoList in ${timer(startTime)}`)
+    logInfo('gatherOccurrences', `Gathered YesNoList in ${timer(startTime)}`)
 
     //------------------------------
     // Review each wanted hashtag
@@ -534,7 +533,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
-    logInfo('gatherOccurrencesd', `Gathered combinedHashtags in ${timer(startTime)}`)
+    logInfo('gatherOccurrences', `Gathered combinedHashtags in ${timer(startTime)}`)
 
     //------------------------------
     // Now repeat for @mentions
@@ -593,7 +592,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
       }
       tmOccurrencesArr.push(thisOcc)
     }
-    logInfo('gatherOccurrencesd', `Gathered combinedMentions data in ${timer(startTime)}`)
+    logInfo('gatherOccurrences', `Gathered combinedMentions data in ${timer(startTime)}`)
 
     logDebug('gatherOccurrences', `Finished with ${tmOccurrencesArr.length} occObjects`)
     return tmOccurrencesArr
@@ -605,8 +604,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
 }
 
 /**
- * Generate output lines for each term, according to the specified style, starting with a heading.
- * Currently the only style available is 'markdown'.
+ * Generate output lines for each term, according to the specified style (currently only supports style 'markdown').
  * @param {Array<TMOccurrences>} occObjs
  * @param {string} periodString
  * @param {string} fromDateStr

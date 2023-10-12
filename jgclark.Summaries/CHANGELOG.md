@@ -1,13 +1,10 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [0.20.0b2] - 2023-10-??? (unreleased)
+<!-- - ??? make below work with all options -->
+## [0.20.0] - 2023-10-12
 ### Added
-- new **today progress** command that ???? This can also be invoked by an x-callback call, ??? or through a template call.
-- ??? make below work with all options
-
-## [0.20.0b1] - 2023-10-08 (unreleased)
-### Added
+- new **today progress** command that summarises tags or mentions _within today's note_. This could be useful for summarising `@calories(...)` noted from different meals, for example. This can also be invoked by an x-callback call, and through template calls. (For @seanokana)
 - new **heatmap for tag** command that displays a 'heatmap' chart of a chosen tag's values for each day (e.g. all `@work(...)` values from daily notes)
 - new **Habits+Summaries:update plugin settings** command, that allows settings to be changed on iOS/iPadOS.
 

@@ -82,7 +82,7 @@ export async function makeProgressUpdate(params: string = '', source: string = '
     if (periodParam !== '') {
       period = periodParam
     }
-    logDebug('makeProgressUpdate', `Starting for period '${period}' titled '${config.progressHeading}' with params '${params}'`)
+    logDebug('makeProgressUpdate', `Starting for period '${period}' with title '${config.progressHeading}' and params '${params}'`)
 
     // Now deal with any parameters passed that are mentions/hashtags to work on
     const paramProgressYesNo = await getTagParamsFromString(params, 'progressYesNo', '')
