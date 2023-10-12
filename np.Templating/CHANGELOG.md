@@ -4,6 +4,9 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.9.11] 2023-10-12 @jgclark
+- add 'todayProgressFromTemplate' template command (from Habits & Summaries v0.20)
+
 ## [1.9.10] (aka 2.0.0-bet1.13): 2023-09-11 @dwertheimer
 
 - add folder attribute to np:new for xcallback creation inside a specific folder]

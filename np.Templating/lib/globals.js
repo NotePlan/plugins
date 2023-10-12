@@ -110,7 +110,7 @@ const globals = {
     return await invokePluginCommandByName('jgclark.Summaries', 'appendProgressUpdate', [JSON.stringify(params)])
   },
 
-  todayProgress: async (params: any): Promise<string> => {
+  todayProgressFromTemplate: async (params: any): Promise<string> => {
     return await invokePluginCommandByName('jgclark.Summaries', 'todayProgressFromTemplate', [JSON.stringify(params)])
   },
 
