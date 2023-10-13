@@ -1018,6 +1018,6 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
     return [codeStr, periodStr]
   } catch (e) {
     logError('dateTime / relativeDateFromDateString', e.message)
-    return '(error)'
+    return ['(error)', '(error)']
   }
 }
