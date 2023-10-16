@@ -35,7 +35,7 @@ export async function getDataObjectForReactView(): Promise<PassedData> {
   // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
   const pluginData = await getData()
   // make sure to change np.plugin-test to your plugin name below
-  const ENV_MODE = 'development' /* helps during development. ouputs passed variables on the page and attaches react-devtools. set to 'production' when ready to release */
+  const ENV_MODE = 'production' /* helps during development. ouputs passed variables on the page and attaches react-devtools. set to 'production' when ready to release */
   const dataToPass: PassedData = {
     pluginData,
     title: `Plugin Command List`,

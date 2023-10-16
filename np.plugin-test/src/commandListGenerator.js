@@ -12,7 +12,7 @@ import { sortListBy } from '@helpers/sorting'
  * @param {string} showInstalledOnly - show only installed plugins
  * @returns
  */
-async function getPluginList(showInstalledOnly: boolean = false, installedPlugins: Array<any> = []) {
+async function getPluginList(showInstalledOnly: boolean = false, installedPlugins: Array<any> = []): Promise<Array<PluginObjectWithUpdateField>> {
   // clo(installedPlugins, ` generatePluginCommandList installedPlugins`)
   // .listPlugins(showLoading, showHidden, skipMatchingLocalPlugins)
   const githubReleasedPlugins = await DataStore.listPlugins(true, false, true) //released plugins .isOnline is true for all of them
@@ -43,7 +43,16 @@ async function getPluginList(showInstalledOnly: boolean = false, installedPlugin
   )
   // clo(installedPlugins[0], 'generatePluginCommandList installedPlugins')
   // clo(allPlugins[0], 'generatePluginCommandList allPlugins')
-  return plugins
+  const pluginListWithUpdateField = plugins.map((plugin) => {
+    const pluginWithUpdateField: PluginObjectWithUpdateField = {
+      ...copyObject(plugin),
+      updateIsAvailable: false,
+      isInstalled: false,
+      installedVersion: '',
+    }
+    return pluginWithUpdateField
+  })
+  return pluginListWithUpdateField
 }
 
 export async function installPlugin(pluginName: string, regenerateList?: boolean = true): Promise<void> {
@@ -102,6 +111,7 @@ export type PluginObjectWithUpdateField = {
   installLink?: string,
   documentation?: string,
   lastUpdateInfo?: string,
+  author?: string,
 }
 
 /**
@@ -117,24 +127,18 @@ export async function getFilteredPluginData(showInstalledOnly: boolean): Promise
   clo(plugins, `generatePluginCommandList ${plugins.length} plugins`)
   const pluginsFiltered = []
   plugins.forEach((plugin) => {
-    // logDebug(
-    //   pluginJson,
-    //   `generatePluginCommandList ${plugin.id} installedPlugins.length: ${installedPlugins.length} showInstalledOnly: ${showInstalledOnly} ${plugin.version} `,
-    // )
     const installedVersion = installedPlugins.find((p) => p.id === plugin.id)
-    // clo(installedVersion, `generatePluginCommandList ${plugin.id} installedVersion`)
-    // clo(plugin, `generatePluginCommandList ${plugin.id} plugin (should be cloud version)`)
     const isInstalled = installedVersion != null
     plugin.updateIsAvailable = isInstalled && plugin.version !== installedVersion?.version
     plugin.isInstalled = installedVersion != null
     plugin.installedVersion = installedVersion?.version || ''
     plugin.installLink = createRunPluginCallbackUrl(pluginJson['plugin.id'], 'Install Plugin and Re-Generate Listing', ['false'])
-    plugin.documentation = plugin.repoUrl
-    // plugin.lastUpdateInfo = plugin.lastUpdateInfo
-    const commands = plugin.commands.reduce((acc, c) => {
-      !c.isHidden ? acc.push(copyObject(c)) : null
-      return acc
-    }, [])
+    plugin.documentation = plugin.repoUrl || ''
+    const commands =
+      plugin?.commands?.reduce((acc, c) => {
+        !c.isHidden ? acc.push(copyObject(c)) : null
+        return acc
+      }, []) || []
     pluginsFiltered.push({ ...copyObject(plugin), commands })
   })
   //   clo(pluginsFiltered, `generatePluginCommandList (pluginsFiltered)`)
@@ -162,7 +166,9 @@ export async function generatePluginCommandList(pluginID: string = '', listExten
 
     const output = [
       `# Plugin Commands`,
-      `\t[🔄 Refresh](noteplan://x-callback-url/runPlugin?pluginID=np.plugin-test&command=Generate%20Plugin%20Command%20Listing&arg0=#%20Plugin%20Commands&arg1=${showInstalledOnly})`,
+      `\t[🔄 Refresh](noteplan://x-callback-url/runPlugin?pluginID=np.plugin-test&command=Generate%20Plugin%20Command%20Listing&arg0=#%20Plugin%20Commands&arg1=${String(
+        showInstalledOnly,
+      )}`,
     ]
     plugins.forEach((plugin) => {
       // logDebug(
@@ -189,7 +195,7 @@ export async function generatePluginCommandList(pluginID: string = '', listExten
       }
       output.push(`---\n## ${plugin.name} v${plugin.version}${installLink}`)
       output.push(`> ${plugin.desc}`)
-      output.push(`> Author: ${plugin.author}${readmeLink}`)
+      output.push(`> Author: ${String(plugin.author)}${readmeLink}`)
       const visibleCommands = plugin.commands?.filter((c) => !c.isHidden)
       if (Array.isArray(visibleCommands)) {
         output.push(`### Commands`)

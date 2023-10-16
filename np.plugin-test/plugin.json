@@ -6,8 +6,8 @@
   "plugin.name": "🔌 Plugin Information & Tester",
   "plugin.description": "View Plugin Commands and Test that Plugins are working.",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "1.4.0-beta",
-  "plugin.lastUpdateInfo": "1.4.0-beta: The beginning of a searchable plugin repository",
+  "plugin.version": "1.4.0-beta2",
+  "plugin.lastUpdateInfo": "1.4.0-betaX: The beginning of a searchable plugin repository",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "css.plugin.css",
