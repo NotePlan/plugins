@@ -169,7 +169,7 @@ export const getFilteredProps = (object: any): Array<string> => {
  * @param {any} obj
  */
 export function copyObject(obj: any): any {
-  const props = getAllPropertyNames(obj)
+  const props = getFilteredProps(obj)
   return props.reduce((acc, p) => {
     acc[p] = obj[p]
     return acc

@@ -3,7 +3,7 @@
 import { getSharedOptions } from '../../dwertheimer.TaskAutomations/src/NPTaskScanAndProcess'
 import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
+import { showHTMLWindow, showHTMLV2, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
 
 const startTime = new Date()
 
@@ -172,8 +172,11 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
         windowOptions.preBodyScript,
       ),
       postBodyScript: addStringOrArrayItems([reactComponents, reactRootComponent, mountAppString], windowOptions.postBodyScript),
+      customId: pluginJson['plugin.id'],
     }
     showHTMLWindow(globalData.title || 'React Window', bodyHTML, { ...windowOptions, ...generatedOptions })
+    // FIXME: use V2
+    // showHTMLV2(bodyHTML, { ...windowOptions, ...generatedOptions })
     logDebug(`np.Shared::openReactWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
     return true
   } catch (error) {

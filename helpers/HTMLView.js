@@ -194,8 +194,9 @@ export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boole
  * If you want to save the HTML to a file for debugging, then you should supply opts.savedFilename (it will be saved in the plugin's data/<plugin.id> folder).
  * Your script code in pre-body or post-body do not need to be wrapped in <script> tags, and can be either a string or an array of strings or an array of objects with code and type properties (see ScriptObj above)
  * @example showHTMLWindow("Test", "<p>Test</p>", {savedFilename: "test.html"})
+ * @author @dwertheimer
  */
-export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWindowOptions) {
+export async function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWindowOptions) {
   const preBody = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
   if (opts.includeCSSAsJS) {
     const theme = getThemeJS(true, true)
@@ -204,19 +205,21 @@ export function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWind
       logDebug(pluginJson, `showHTMLWindow Saving NP_THEME in JavaScript`)
     }
   }
-  showHTML(
-    windowTitle,
-    opts.headerTags ?? '',
-    body,
-    opts.generalCSSIn ?? '',
-    opts.specificCSS ?? '',
-    opts.makeModal ?? false,
-    [...preBody],
-    opts.postBodyScript ?? '',
-    opts.savedFilename ?? '',
-    opts.width,
-    opts.height,
-  )
+  opts.preBodyScript = preBody
+  await showHTMLV2(body, opts)
+  // showHTML(
+  //   windowTitle,
+  //   opts.headerTags ?? '',
+  //   body,
+  //   opts.generalCSSIn ?? '',
+  //   opts.specificCSS ?? '',
+  //   opts.makeModal ?? false,
+  //   [...preBody],
+  //   opts.postBodyScript ?? '',
+  //   opts.savedFilename ?? '',
+  //   opts.width,
+  //   opts.height,
+  // )
 }
 
 type ScriptObj = {
@@ -451,7 +454,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       // if (opts.width === undefined || opts.height === undefined) {
       //   HTMLView.showSheet(fullHTMLStr)
       // } else {
-          HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
+      HTMLView.showSheet(fullHTMLStr, opts.width, opts.height)
       // }
     } else {
       // Make a normal non-modal window

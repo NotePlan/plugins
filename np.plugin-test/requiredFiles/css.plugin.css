@@ -1,0 +1,111 @@
+/* Plugin-specific CSS */
+/* This file is loaded last to override any other CSS */
+/* It's a file rather than baked into the plugin to make fast editing/visual changes easier */
+body { padding-left: 15px; padding-right: 15px; }
+.monospace { font-family: 'ui-monospace'; }
+.monospaceData { font-family: 'ui-monospace'; font-size: 10px; white-space: pre-wrap }
+/* loading spinner */
+.loading {
+    -webkit-animation: sk-scaleout 1.0s infinite ease-in-out;
+    animation: sk-scaleout 1.0s infinite ease-in-out;
+    border-radius: 100%;
+    height: 6em;
+    width: 6em;
+    background-color: black;
+  }
+
+  .loading-text {
+    padding-left: 20px;
+  }
+
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+  }
+
+  .container {
+    align-items: center;
+    background-color: white;
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    width: 100vw;
+  }
+
+  @keyframes sk-scaleout {
+    0% {
+      -webkit-transform: scale(0);
+      transform: scale(0);
+    }
+    100% {
+      -webkit-transform: scale(1.0);
+      opacity: 0;
+      transform: scale(1.0);
+    }
+  }
+
+  @font-face {
+    font-family: "noteplanstate";
+    src: url('../np.Shared/noteplanstate-edited.otf') format('truetype');
+  }
+
+  .noteplanstate {
+    font-family: "noteplanstate";
+  }
+
+  .fa-icon {
+    font-family: "FontAwesome6Pro-Regular";
+  }
+
+  .PluginListingPage {
+    padding: 0px;
+    padding-top: 25px;
+  }
+
+  .plugin-section {
+    padding: 8px;
+  }
+
+  .pluginName {
+  }
+
+  .pluginVersion, .pluginBy, .install, .installed {
+    margin-left: 5px;
+    font-size: 12px;
+  }
+
+  .pluginAuthor {
+    margin-left: 2px;
+    font-size: 12px;
+  }
+
+  .installed {
+    color: green;
+  }
+
+  .install {
+    color: blue;
+  }
+
+  .updateIsAvailable {
+    color: orange;
+  }
+
+  .lastUpdate {
+
+  }
+
+  .aboutPlugin {
+
+  }
+
+  .sticky {
+    position: fixed;
+    top: 0;
+    z-index: 100; /* optional: to ensure the div stays on top of other elements */
+    display: 'flex'; 
+    justify-content: 'flex-end';
+    gap: '10px'; 
+    padding-right: '20px;
+  }

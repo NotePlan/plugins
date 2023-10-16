@@ -103,13 +103,28 @@ export function Root(props: Props): Node {
   }
 
   /**
+   * Ignore messages that have nothing to do with the plugin
+   * @param {Event} event
+   * @returns {boolean}
+   */
+  const shouldIgnoreMessage = (event) => {
+    const { origin, source, data } = event
+    // logDebug(
+    //   `Root: shouldIgnoreMessage origin=${origin} source=${source} data=${JSON.stringify(data)} data.source=${
+    //     data?.source
+    //   } /react-devtools/.test(data?.source=${/react-devtools/.test(data?.source)}}`,
+    // )
+    return (typeof data === 'string' && data?.startsWith('setImmediate$')) || (typeof data === 'object' && data?.hasOwnProperty('iframeSrc')) || /react-devtools/.test(data?.source)
+  }
+
+  /**
    * This is effectively a reducer we will use to process messages from the plugin
    * And also from components down the tree, using the dispatch command
    */
   const onMessageReceived = (event: MessageEvent | { data: { type: string, payload: any } }) => {
-    const { origin, source, data } = event
-    if (data && !(typeof data === 'string' && data.startsWith('setImmediate$')) && !data.iframeSrc) {
-      const str = JSON.stringify(event, null, 4)
+    const { data } = event
+    if (!shouldIgnoreMessage(event) && data) {
+      // const str = JSON.stringify(event, null, 4)
       try {
         // $FlowFixMe
         const { type, payload } = event.data // remember: event is on prototype and not JSON.stringify-able

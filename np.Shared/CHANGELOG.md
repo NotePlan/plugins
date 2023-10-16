@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.4.5] - 2023-10-16 @dwertheimer
+
+- updates to React tooling using ShowHTMLV2 etc.
+
 ## [0.4.4] - 2023-07-15 (@jgclark)
 
 - bugfix for 'undefined' message on plugin upgrade

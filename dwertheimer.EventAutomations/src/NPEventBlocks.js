@@ -195,7 +195,9 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
       logDebug(pluginJson, `Skipping line: ${line.content}`)
     } else {
       // create a regex to replace the words "today at" (or today @) with or whithout spaces around the @ with " at "
-      const lineText = line.content.replace(/today ?(at|\@) ?/gi, ' at  ') // Calendar.parseDateText does not correctly return "today at" so we try to fix that here
+      let lineText = line.content.replace(/today ?(at|\@) ?/gi, ' at  ') // Calendar.parseDateText does not correctly return "today at" so we try to fix that here
+      // replace "tomorrow" with the ISO date for tomorrow
+      lineText = lineText.replace(/tomorrow/gi, new Date(Date.now() + 86400000).toLocaleDateString())
       const potentials = Calendar.parseDateText(lineText) //returns {start: Date, end: Date}
       clo(potentials, `confirmEventTiming Calendar.parseDateText responses for "${line.content}"`)
       if (potentials.length > 0) {
@@ -208,11 +210,14 @@ export async function confirmEventTiming(paragraphBlock: Array<TParagraph>, conf
         }
         // Remove the timing part from the line now that we have a link
         // Calendar.parseDateText = [{"start":"2022-06-24T13:00:00.000Z","end":"2022-06-24T13:00:00.000Z","text":"friday at 8","index":0}]
-        let revisedLine = line.content
+        let revisedLine = lineText
           .replace(chosenDateRange?.text?.length ? chosenDateRange.text : '', '')
           .replace(/\s{2,}/g, ' ')
           .trim()
-        if (revisedLine.length === 0) revisedLine = '...' // If the line was all a date description, we need something to show
+        if (revisedLine.length === 0) {
+          revisedLine = '...' // If the line was all a date description, we need something to show
+          logDebug(pluginJson, `processTimeLines could not separate line timing from rest of text="${revisedLine}"`)
+        }
         confirmedEventData.push({ originalLine: line.content, revisedLine, dateRangeInfo: chosenDateRange, paragraph: line, index: i })
       } else {
         // do nothing with this line?
@@ -239,11 +244,13 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
     // before we can show a status bar
     const eventsToCreate = (await confirmEventTiming(paragraphBlock, config)) || []
     // Now that we have all the info we need, we can create the events with a status bar
-    config.calendar = (await checkOrGetCalendar(calendar, true)) || ''
+    config.calendar = (await checkOrGetCalendar(calendar, true)) || calendar || ''
     CommandBar.showLoading(true, `Creating Events:\n(${0}/${eventsToCreate.length})`)
     await CommandBar.onAsyncThread()
     for (let j = 0; j < eventsToCreate.length; j++) {
       const item = eventsToCreate[j]
+      clo(config, `processTimeLines: config`)
+      clo(item, `processTimeLines: item to create`)
       CommandBar.showLoading(true, `Creating Events:\n(${j}/${eventsToCreate.length})`)
       const range = { start: item.dateRangeInfo.start, end: item.dateRangeInfo.end }
       const eventWithoutLink = await createEvent(item.revisedLine, range, config)
@@ -372,7 +379,7 @@ export async function createEvents(heading: string = '', confirm?: string = 'yes
         logDebug(pluginJson, `Could not find heading containing "${heading}"; headings in note:\n`)
         const titles = note.paragraphs
           .filter((p) => p.type === 'title')
-          .map((p) => `"p.content"`)
+          .map((p) => p.content)
           .join(`\n`)
         clo(titles, `createEvents: titles in document were`)
       }

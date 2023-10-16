@@ -4,6 +4,10 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.17.4] 2023-10-16 @dwertheimer
+
+- Minor calendar event improvement to deal with "today" and "tomorrow" text better in event creation
+
 ## [1.17.3] 2023-10-11 @dwertheimer
 
 - EventBlocks: minor change to xcallback support]
