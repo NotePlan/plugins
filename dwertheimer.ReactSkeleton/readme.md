@@ -217,7 +217,7 @@ In your React Components, if you want to access the theme colors, they will be a
         "menuItemColor": "#c5c5c0",
         "toolbarIconColor": "#c5c5c0",
         "tintColor2": "#73B3C0",
-        "altBackgroundColor": "#2E2F30",
+        "altColor": "#2E2F30",
         "backgroundColor": "#1D1E1F",
         "toolbarBackgroundColor": "#2E2F30"
     },

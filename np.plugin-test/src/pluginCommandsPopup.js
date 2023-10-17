@@ -1,5 +1,7 @@
 // @flow
 
+const DEBUG = false // change to quickly turn debugging code on/off
+
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { getFilteredPluginData } from './commandListGenerator'
@@ -35,7 +37,9 @@ export async function getDataObjectForReactView(): Promise<PassedData> {
   // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
   const pluginData = await getData()
   // make sure to change np.plugin-test to your plugin name below
-  const ENV_MODE = 'production' /* helps during development. ouputs passed variables on the page and attaches react-devtools. set to 'production' when ready to release */
+  const ENV_MODE = DEBUG
+    ? 'development'
+    : 'production' /* helps during development. ouputs passed variables on the page and attaches react-devtools. set to 'production' when ready to release */
   const dataToPass: PassedData = {
     pluginData,
     title: `Plugin Command List`,
@@ -103,15 +107,15 @@ export async function openReactPluginCommandsWindow() {
   try {
     logDebug(pluginJson, `testReactWindow starting up`)
     await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
-    logDebug(pluginJson, `testReactWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
+    // logDebug(pluginJson, `testReactWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
     const data = await getDataObjectForReactView()
-    clo(data)
     // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
     // w3.css reference: https://www.w3schools.com/w3css/defaulT.asp
     // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
     const cssTagsString = `
       <link rel="stylesheet" href="../np.Shared/css.w3.css">
-		  <link rel="stylesheet" href="../np.plugin-test/css.plugin.css">\n`
+		  <link rel="stylesheet" href="../np.plugin-test/css.plugin.css">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">\n`
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/savedOutput.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
@@ -119,7 +123,7 @@ export async function openReactPluginCommandsWindow() {
     }
     logDebug(`===== testReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
     logDebug(pluginJson, `testReactWindow invoking window. testReactWindow stopping here. It's all React from this point forward`)
-    clo(data, `testReactWindow data object passed`)
+    // clo(data, `testReactWindow data object passed`)
     await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
   } catch (error) {
     logError(pluginJson, JSP(error))

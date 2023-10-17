@@ -1,6 +1,14 @@
 // @flow
 
+declare var NP_THEME: {
+  editor: {
+    backgroundColor: string,
+    altColor: string,
+  },
+}
+
 import React, { useState } from 'react'
+import { howDifferentAreTheseColors, getAltColor } from '../../../helpers/colors'
 import { filterCommands } from './support/filterFunctions.jsx'
 
 /****************************************************************************************************************************
@@ -106,8 +114,11 @@ type PluginSectionProps = {
 function PluginSection({ plugin, viewOption, index }: PluginSectionProps): React$Node {
   const installedDisplayString = plugin.isInstalled ? 'installed' : 'install'
   const updateIsAvailableString = plugin.updateIsAvailable ? '(update available)' : ''
+  const colorDiff = howDifferentAreTheseColors(NP_THEME.editor.backgroundColor, NP_THEME.editor.altColor)
+  const altColor = !colorDiff || colorDiff < 20 ? getAltColor(NP_THEME.editor.backgroundColor) : NP_THEME.editor.altColor
+
   const pluginSectionStyle = {
-    backgroundColor: index % 2 === 1 ? NP_THEME.editor.altBackgroundColor : 'inherit',
+    backgroundColor: index % 2 === 0 ? altColor : 'inherit',
   }
   return (
     <div className="plugin-section" style={pluginSectionStyle}>
@@ -187,10 +198,10 @@ function PluginListingPage(props: Props): React$Node {
   })
   const filteredPluginsAndCommands = filterCommands({ pluginList: filteredPlugins ?? [], filter: filter, categoryFilter: categoryFilter, returnOnlyMatchingCommands: true })
   console.log('filteredPluginsAndCommands SAMPLE OUPUT', JSON.stringify(filteredPluginsAndCommands.filter((plugin, index) => index < 1)))
-
+  const filterDivStyle = { backgroundColor: NP_THEME.editor.backgroundColor }
   return (
     <>
-      <div className="sticky">
+      <div className="sticky" style={filterDivStyle}>
         <Dropdown options={installationOptions} selectedValue={installationFilter} onValueChange={setInstallationFilter} />
         <Dropdown options={viewOptions} selectedValue={viewOption} onValueChange={setViewOption} />
         <Dropdown options={categoryFilterOptions} selectedValue={categoryFilter} onValueChange={setCategoryFilter} />

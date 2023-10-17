@@ -172,7 +172,7 @@ export function WebView({ data, dispatch }: Props): Node {
    ****************************************************************************************************************************/
 
   return (
-    <div style={{ maxWidth: '100vw', width: '100vw', overflowX: 'hidden' }}>
+    <div className="container">
       <PluginListingPage pluginList={pluginList} dispatch={dispatch} />
     </div>
   )

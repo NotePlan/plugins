@@ -155,7 +155,7 @@ const getBasicColors = (themeJSON: any) => {
     h3: RGBColourConvert(themeJSON.styles?.title3?.color ?? '#E9C062'),
     h4: RGBColourConvert(themeJSON.styles?.title4?.color ?? '#E9C062'),
     tintColor: RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2',
-    altColor: RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30',
+    altColor: RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? (RGBColourConvert(themeJSON.editor?.altColor) || '#2E2F30'),
     baseFontSize: Number(DataStore.preference('fontSize')) ?? 14,
   }
 }

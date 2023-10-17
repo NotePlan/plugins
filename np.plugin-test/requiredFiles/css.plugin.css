@@ -1,7 +1,16 @@
 /* Plugin-specific CSS */
 /* This file is loaded last to override any other CSS */
 /* It's a file rather than baked into the plugin to make fast editing/visual changes easier */
-body { padding-left: 15px; padding-right: 15px; }
+body {  }
+
+element.style {
+  margin-top: 0px;
+}
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0px;
+  font-weight: 500;
+  line-height: 1.2;
+}
 .monospace { font-family: 'ui-monospace'; }
 .monospaceData { font-family: 'ui-monospace'; font-size: 10px; white-space: pre-wrap }
 /* loading spinner */
@@ -20,17 +29,20 @@ body { padding-left: 15px; padding-right: 15px; }
 
   html, body {
     max-width: 100vw;
-    overflow-x: hidden;
     overscroll-behavior-y: none;
   }
 
   .container {
-    align-items: center;
-    background-color: white;
+    padding: 1rem;
     display: flex;
+    flex-wrap: wrap;
     height: 100vh;
-    justify-content: center;
     width: 100vw;
+    max-width: 100vw;
+    padding-left: 0px; /* edge to edge */
+    padding-right: 0px;
+    /* align-items: center; */ /* vertical */
+    justify-content: center; /* horizontal */
   }
 
   @keyframes sk-scaleout {
@@ -59,12 +71,11 @@ body { padding-left: 15px; padding-right: 15px; }
   }
 
   .PluginListingPage {
-    padding: 0px;
     padding-top: 25px;
   }
 
   .plugin-section {
-    padding: 8px;
+    padding: 10px;
   }
 
   .pluginName {
@@ -101,11 +112,48 @@ body { padding-left: 15px; padding-right: 15px; }
   }
 
   .sticky {
+    width: 100vw;
     position: fixed;
     top: 0;
     z-index: 100; /* optional: to ensure the div stays on top of other elements */
-    display: 'flex'; 
-    justify-content: 'flex-end';
-    gap: '10px'; 
+    display: flex; 
+    justify-content: flex-start;
     padding-right: '20px;
+    flex-wrap: wrap; /* allow to wrap on phone */
+  }
+
+
+  /**
+   * Responsive
+   * for phones
+   */
+
+   @media only screen and (min-width: 375px) 
+   and (max-width: 767px) {
+    .container {
+      padding-left: 0px; /* edge to edge */
+      padding-right: 0px;    }
+  
+    h1 {
+      font-size: 1.5rem;
+    }
+  
+    .button {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+
+    .sticky {
+      position: fixed;
+      top: 0;
+      z-index: 100;
+      justify-content: flex-end;
+      padding-top: 5px;
+      padding-right: 40px; /* make room for X */
+      flex-wrap: wrap; /* allow to wrap on phone */
+    }
+
+    .PluginListingPage {
+      margin-top: 55px;
+    }
   }

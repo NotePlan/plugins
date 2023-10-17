@@ -16,9 +16,9 @@ async function getPluginList(showInstalledOnly: boolean = false, installedPlugin
   // clo(installedPlugins, ` generatePluginCommandList installedPlugins`)
   // .listPlugins(showLoading, showHidden, skipMatchingLocalPlugins)
   const githubReleasedPlugins = await DataStore.listPlugins(true, false, true) //released plugins .isOnline is true for all of them
-  githubReleasedPlugins.forEach((p) => logDebug(`generatePluginCommandList githubPlugins`, `${p.id}`))
+  // githubReleasedPlugins.forEach((p) => logDebug(`generatePluginCommandList githubPlugins`, `${p.id}`))
   const localOnlyPlugins = installedPlugins.filter((p) => !githubReleasedPlugins.find((q) => q.id === p.id))
-  localOnlyPlugins.forEach((p) => logDebug(`generatePluginCommandList localOnlyPlugins`, `${p.id}`))
+  // localOnlyPlugins.forEach((p) => logDebug(`generatePluginCommandList localOnlyPlugins`, `${p.id}`))
   const allLocalAndReleasedPlugins = [...installedPlugins, ...githubReleasedPlugins]
   let allLatestPlugins = allLocalAndReleasedPlugins.reduce((acc, p) => {
     const pluginsWithThisID = allLocalAndReleasedPlugins.filter((f) => f.id === p.id)
@@ -35,12 +35,12 @@ async function getPluginList(showInstalledOnly: boolean = false, installedPlugin
     return acc
   }, [])
   allLatestPlugins = sortListBy(allLatestPlugins, 'name')
-  allLatestPlugins.forEach((p) => logDebug(`generatePluginCommandList allLatestPlugins`, `${p.name} (${p.id})`))
+  // allLatestPlugins.forEach((p) => logDebug(`generatePluginCommandList allLatestPlugins`, `${p.name} (${p.id})`))
   const plugins = showInstalledOnly ? installedPlugins : allLatestPlugins
-  logDebug(
-    `generatePluginCommandList`,
-    `installedPlugins ${installedPlugins.length} githubPlugins ${githubReleasedPlugins.length} allLocalAndReleasedPlugins ${allLocalAndReleasedPlugins.length}`,
-  )
+  // logDebug(
+  //   `generatePluginCommandList`,
+  //   `installedPlugins ${installedPlugins.length} githubPlugins ${githubReleasedPlugins.length} allLocalAndReleasedPlugins ${allLocalAndReleasedPlugins.length}`,
+  // )
   // clo(installedPlugins[0], 'generatePluginCommandList installedPlugins')
   // clo(allPlugins[0], 'generatePluginCommandList allPlugins')
   const pluginListWithUpdateField = plugins.map((plugin) => {
@@ -124,7 +124,7 @@ export type PluginObjectWithUpdateField = {
 export async function getFilteredPluginData(showInstalledOnly: boolean): Promise<Array<PluginObjectWithUpdateField>> {
   const installedPlugins = DataStore.installedPlugins()
   const plugins: Array<PluginObjectWithUpdateField> = await getPluginList(showInstalledOnly, installedPlugins)
-  clo(plugins, `generatePluginCommandList ${plugins.length} plugins`)
+  // clo(plugins, `generatePluginCommandList ${plugins.length} plugins`)
   const pluginsFiltered = []
   plugins.forEach((plugin) => {
     const installedVersion = installedPlugins.find((p) => p.id === plugin.id)
