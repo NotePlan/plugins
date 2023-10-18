@@ -11,6 +11,14 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
   line-height: 1.2;
 }
+h3 {
+  background-color: beige;
+  font-size: 1.4rem;
+  margin-left: -10px;
+  padding-left: 10px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
 .monospace { font-family: 'ui-monospace'; }
 .monospaceData { font-family: 'ui-monospace'; font-size: 10px; white-space: pre-wrap }
 /* loading spinner */
@@ -76,6 +84,7 @@ h1, h2, h3, h4, h5, h6 {
 
   .plugin-section {
     padding: 10px;
+    padding-top: 0px;
   }
 
   .pluginName {
@@ -154,6 +163,6 @@ h1, h2, h3, h4, h5, h6 {
     }
 
     .PluginListingPage {
-      margin-top: 55px;
+      margin-top: 75px;
     }
   }

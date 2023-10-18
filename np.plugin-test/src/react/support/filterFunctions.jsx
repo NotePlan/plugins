@@ -19,7 +19,7 @@ type FilterCommandsProps = {
  * Filter plugin list down to only plugins and (optionally only commands) that include the filter list
  */
 export function filterCommands({ pluginList, filter = '', categoryFilter = '', returnOnlyMatchingCommands = false }: FilterCommandsProps): Array<Plugin> {
-  console.log('Variables passed to filterCommands:', { pluginList, filter, returnOnlyMatchingCommands, categoryFilter })
+  // console.log('Variables passed to filterCommands:', { pluginList, filter, returnOnlyMatchingCommands, categoryFilter })
   const filters = filter
     ? filter
         .toLowerCase()

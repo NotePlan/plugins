@@ -114,8 +114,7 @@ export async function openReactPluginCommandsWindow() {
     // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
     const cssTagsString = `
       <link rel="stylesheet" href="../np.Shared/css.w3.css">
-		  <link rel="stylesheet" href="../np.plugin-test/css.plugin.css">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">\n`
+		  <link rel="stylesheet" href="../np.plugin-test/css.plugin.css">`
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/savedOutput.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
