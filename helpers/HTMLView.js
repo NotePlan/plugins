@@ -36,6 +36,13 @@ export type HtmlWindowOptions = {
   shouldFocus?: boolean,
 }
 
+// Meta tags to always apply:
+// - to make windows always responsive
+const fixedMetaTags = `
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+`
+
 // ---------------------------------------------------------
 
 /**
@@ -280,7 +287,7 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
     fullHTML.push('<html>')
     fullHTML.push('<head>')
     fullHTML.push(`<title>${winOpts.windowTitle}</title>`)
-    fullHTML.push(`<meta charset="utf-8">`)
+    fullHTML.push(fixedMetaTags)
     const preScript = generateScriptTags(winOpts.preBodyScript ?? '')
     if (preScript !== '') {
       fullHTML.push(preScript) // dbw moved to top because we need the logging bridge to be loaded before any content which could have errors
@@ -418,7 +425,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       logWarn('HTMLView / showHTMLV2', 'showHTMLV2() is only available on 3.9.2 build 1037 or newer. Will fall back to using older, simpler, showHTML() instead ...')
       await showHTML(
         opts.windowTitle,
-        opts.headerTags ?? '',
+        fixedMetaTags + opts.headerTags ?? '',
         body,
         opts.generalCSSIn ?? '',
         opts.specificCSS ?? '',
@@ -518,7 +525,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       // clo(winOptions, 'showHTMLV2 using winOptions:')
 
       // From v3.9.8 we can test to see if requested window dimensions would exceed screen dimensions; if so reduce them accordingly
-      // TODO: could also check window will be visible on screen and if not, move accordingly
+      // Note: could also check window will be visible on screen and if not, move accordingly
       if (NotePlan.environment.buildVersion >= 1100) {
         const screenWidth = NotePlan.environment.screenWidth
         const screenHeight = NotePlan.environment.screenHeight
