@@ -119,6 +119,8 @@ export async function openReactPluginCommandsWindow() {
       savedFilename: `../../${pluginJson['plugin.id']}/savedOutput.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
       windowTitle: `Plugin Commands`,
+      includeCSSAsJS: false /* don't want CSS because we are doing this page non-themed */,
+      generalCSSIn: ' ' /* don't want CSS because we are doing this page non-themed, needs to be non '' */,
     }
     logDebug(`===== testReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
     logDebug(pluginJson, `testReactWindow invoking window. testReactWindow stopping here. It's all React from this point forward`)

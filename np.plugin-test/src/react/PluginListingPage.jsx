@@ -8,7 +8,7 @@ declare var NP_THEME: {
 }
 
 import React, { useState } from 'react'
-import { howDifferentAreTheseColors, getAltColor } from '../../../helpers/colors'
+// import { howDifferentAreTheseColors, getAltColor } from '../../../helpers/colors'
 import { filterCommands } from './support/filterFunctions.jsx'
 
 /****************************************************************************************************************************
@@ -51,10 +51,10 @@ const Dropdown = ({ options, selectedValue, onValueChange }: DropdownProps) => {
 const categoryFilterOptions = [
   { label: 'Show Plugins which contain...', value: '' },
   { label: 'Tools for Events', value: 'event' },
-  { label: 'Tools for Timeblocks and planning your day', value: 'time blocks,timeblocks' },
+  { label: 'Tools for Timeblocks / Day Planning', value: 'time blocks,timeblocks,planning' },
   { label: 'Tools for Projects', value: 'projects' },
-  { label: 'Tools for tracking Habits', value: 'habits' },
-  { label: 'Getting stats', value: 'stats,statistics' },
+  { label: 'Tools for Tracking Habits', value: 'habits' },
+  { label: 'Getting Stats', value: 'stats,statistics' },
 ]
 
 const installationOptions = [
@@ -70,9 +70,10 @@ const viewOptions = [
   { label: 'Commands Only', value: 'commandsOnly' },
 ]
 
-const colorDiff = howDifferentAreTheseColors(NP_THEME.editor.backgroundColor, NP_THEME.editor.altBackgroundColor)
-logDebug(`PluginSection: howDifferentAreTheseColors background vs altBackground:${howDifferentAreTheseColors(NP_THEME.editor.backgroundColor, NP_THEME.editor.altBackgroundColor)}`)
-const altColor = !colorDiff || colorDiff < 5 ? getAltColor(NP_THEME.editor.backgroundColor) : NP_THEME.editor.altBackgroundColor
+// commenting out for now because I think we will make it static styling
+// const colorDiff = howDifferentAreTheseColors(NP_THEME.editor.backgroundColor, NP_THEME.editor.altBackgroundColor)
+// logDebug(`PluginSection: howDifferentAreTheseColors background vs altBackground:${howDifferentAreTheseColors(NP_THEME.editor.backgroundColor, NP_THEME.editor.altBackgroundColor)}`)
+// const altColor = !colorDiff || colorDiff < 5 ? getAltColor(NP_THEME.editor.backgroundColor) : NP_THEME.editor.altBackgroundColor
 
 /**
  * HTML OUTPUT FOR EACH COMMAND
@@ -120,7 +121,7 @@ function PluginSection({ plugin, viewOption, index }: PluginSectionProps): React
   const updateIsAvailableString = plugin.updateIsAvailable ? '(update available)' : ''
 
   const pluginSectionStyle = {
-    backgroundColor: index % 2 === 0 ? altColor : 'inherit',
+    /* backgroundColor: index % 2 === 0 ? altColor : 'inherit', */
   }
   return (
     <div className="plugin-section" style={pluginSectionStyle}>
@@ -199,7 +200,9 @@ function PluginListingPage(props: Props): React$Node {
     }
   })
   const filteredPluginsAndCommands = filterCommands({ pluginList: filteredPlugins ?? [], filter: filter, categoryFilter: categoryFilter, returnOnlyMatchingCommands: true })
-  const filterDivStyle = { backgroundColor: NP_THEME.editor.backgroundColor }
+  const filterDivStyle = {
+    /* backgroundColor: NP_THEME.editor.backgroundColor */
+  }
   return (
     <>
       <div className="sticky" style={filterDivStyle}>
