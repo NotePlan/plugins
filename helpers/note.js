@@ -437,8 +437,7 @@ export function replaceSection(
  * - Note to use
  * - Section heading line to look for (needs to match from start of line but not necessarily the end)
  * A section is defined (here at least) as all the lines between the heading,
- * and the next heading of that same or higher level, or the end of the file
- * if that's sooner.
+ * and the next heading of that same or higher level, or the end of the file if that's sooner.
  * @author @jgclark
  *
  * @param {TNote} note to use
@@ -448,16 +447,20 @@ export function replaceSection(
 export function removeSection(note: TNote, headingOfSectionToRemove: string): number {
   try {
     const paras = note.paragraphs ?? []
+    const startOfActive = findStartOfActivePartOfNote(note)
+    const endOfActive = findEndOfActivePartOfNote(note)
 
     if (paras.length === 0) {
       // We have no paragraphs, so need to return now
       logDebug('note / removeSection', `Note is empty, so there's nothing to do`)
       return 0
     }
+    if (headingOfSectionToRemove === '') {
+      logDebug('note / removeSection', `No heading to remove, so there's nothing to do. Will point to endOfActive (line ${endOfActive})`)
+      return endOfActive
+    }
     logDebug('note / removeSection', `Trying to remove '${headingOfSectionToRemove}' from note '${displayTitle(note)}' with ${paras.length} paras`)
 
-    const startOfActive = findStartOfActivePartOfNote(note)
-    const endOfActive = findEndOfActivePartOfNote(note)
     let matchedHeadingIndex: number // undefined
     let sectionHeadingLevel = 2
     // Find the title/headingOfSectionToRemove whose start matches 'heading', and is in the active part of the note
