@@ -165,7 +165,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
 
     const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.min.js"></script>`
     const generatedOptions = {
-      includeCSSAsJS: true,
+      includeCSSAsJS: windowOptions.includeCSSAsJS === false ? false : true,
       headerTags: `${[cssTags].join('\n')}${windowOptions.headerTags || ''}` /* needs to be a string */,
       preBodyScript: addStringOrArrayItems(
         [pluginToHTMLCommsBridge, ENV_MODE === 'development' ? ReactDevToolsImport : '', ENV_MODE === 'production' ? reactJSmin : reactJSDev, globalSharedDataScriptStr],

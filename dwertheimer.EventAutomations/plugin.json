@@ -3,7 +3,7 @@
   "noteplan.minAppVersion": "3.6",
   "plugin.id": "dwertheimer.EventAutomations",
   "plugin.name": "🗓 AutoTimeBlocking / Events",
-  "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for >today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
+  "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
   "plugin.version": "1.17.4-notreleased",
   "plugin.lastUpdateInfo": "1.17.4: Minor calendar event improvement",

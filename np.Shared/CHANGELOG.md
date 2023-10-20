@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.4.6] - 2023-10-16 @dwertheimer
+
+- update to remove CSS from React Windows if wanted
+
 ## [0.4.5] - 2023-10-16 @dwertheimer
 
 - updates to React tooling using ShowHTMLV2 etc.
