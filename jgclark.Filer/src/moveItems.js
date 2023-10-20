@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Plugin to help move selected Paragraphs to other notes
 // Jonathan Clark
-// last updated 28.11.2022, for v1.1.4+
+// last updated 28.11.2022, for v1.1.5
 // ----------------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -64,10 +64,9 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     }
 
     // Get config settings
-    const config = await getFilerSettings()
-    const origNote = note
-    const paragraphs = origNote.paragraphs
-    const origNumParas = origNote.paragraphs.length
+    // const origNote = note // this was clearer, but now trying directly with Editor.note in case there's a deep copy issue
+    const paragraphs = note.paragraphs
+    const origNumParas = note.paragraphs.length
 
     // Get current selection, and its range
     if (selection == null) {
@@ -75,6 +74,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
       logError(pluginJson, 'moveParas: No selection found, so stopping.')
       return
     }
+    const config = await getFilerSettings()
 
     // Get paragraph indexes for the start and end of the selection (can be the same)
     const [firstSelLineIndex, lastSelLineIndex] = selectedLinesIndex(selection, paragraphs)
@@ -91,7 +91,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
       // now see whether user wants to work on the surrounding block or not
       if (withBlockContext) {
         // user has requested working on the surrounding block
-        parasInBlock = getParagraphBlock(origNote, firstSelLineIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
+        parasInBlock = getParagraphBlock(note, firstSelLineIndex, config.includeFromStartOfSection, config.useTightBlockDefinition)
         logDebug(pluginJson, `moveParas: move block of ${parasInBlock.length} paras`)
       } else {
         // user just wants to move the current line
@@ -113,7 +113,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
 
     // If this is a calendar note we've moving from, and the user wants to
     // create a date backlink, then append backlink to the first selectedPara in parasInBlock
-    if (config.addDateBacklink && origNote.type === 'Calendar') {
+    if (config.addDateBacklink && note.type === 'Calendar') {
       const datePart: string =
         (config.dateRefStyle === 'link') ? ` >${hyphenatedDate(new Date())}`
           : (config.dateRefStyle === 'at') ? ` @${hyphenatedDate(new Date())}`
@@ -123,7 +123,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     }
     // Note: When written, there was no API function to deal with multiple
     // selectedParagraphs, qbut we can insert a raw text string.
-    // (can't simply use origNote.addParagraphBelowHeadingTitle() as we have more options than it supports)
+    // (can't simply use note.addParagraphBelowHeadingTitle() as we have more options than it supports)
     const selectedParasAsText = parasToText(parasInBlock)
 
     // Decide where to move to
@@ -138,7 +138,7 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
     // Note: showOptions returns the first item if something else is typed. And I can't see a way to distinguish between the two.
 
     // Ask to which heading to add the selectedParas
-    const headingToFind = (await chooseHeading(destNote, true, true, false))
+    const headingToFind = await chooseHeading(destNote, true, true, false)
     logDebug(pluginJson, `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
     // Add text to the new location in destination note
@@ -146,9 +146,10 @@ export async function moveParas(withBlockContext: boolean = false): Promise<void
 
     // delete from existing location
     logDebug(pluginJson, `- Removing ${parasInBlock.length} paras from original note (which had ${String(origNumParas)} paras)`)
-    origNote.removeParagraphs(parasInBlock)
-    if (origNote.paragraphs.length !== (origNumParas - parasInBlock.length)) {
-      logWarn(pluginJson, `  - WARNING: After delete there are ${Number(origNote.paragraphs.length)} paragraphs`)
+    note.removeParagraphs(parasInBlock)
+    // FIXME: this call above is not always working, confirmed by getting to see the warning below. Trying first changing to use Editor.note above.
+    if (note.paragraphs.length !== (origNumParas - parasInBlock.length)) {
+      logWarn(pluginJson, `  - WARNING: After delete there are ${Number(note.paragraphs.length)} paragraphs`)
     }
 
     // unhighlight the previous selection, for safety's sake

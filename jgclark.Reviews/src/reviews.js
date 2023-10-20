@@ -39,9 +39,9 @@ const pluginID = 'jgclark.Reviews'
 const fullReviewListFilename = 'full-review-list.md'
 const windowTitle = `Review List`
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
-const customRichWinId = `rich-review-list`
+const customRichWinId = `${pluginID}.rich-review-list`
 const customMarkdownWinId = `markdown-review-list`
-// const reviewListPref = 'jgclark.Reviews.reviewList'
+// const reviewListPref = `${pluginID}.reviewList`
 // const fullReviewJSONFilename = 'full-review-list.json'
 
 //-------------------------------------------------------------------------------
