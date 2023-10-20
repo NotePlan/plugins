@@ -85,7 +85,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set 'html':
     // - main font size
     // set global variable
-    baseFontSize = Number(DataStore.preference('fontSize')) ?? 14
+    const fsPref = DataStore.preference('fontSize')
+    baseFontSize = (fsPref && !isNaN(Number(fsPref))) ? Number(fsPref) : 14
     const bgMainColor = themeJSON?.editor?.backgroundColor ?? '#1D1E1F'
     tempSel.push(`background: var(--bg-main-color)`)
     output.push(makeCSSSelector('html', tempSel))
