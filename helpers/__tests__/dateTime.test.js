@@ -439,6 +439,15 @@ describe(`${PLUGIN_NAME}`, () => {
 
   describe('calcOffsetDateStr', () => {
     describe('should pass', () => {
+      test('20220101 +1d', () => {
+        expect(dt.calcOffsetDateStr('20220101', '1d')).toEqual('20220102')
+      })
+      test('20220101 +364d', () => {
+        expect(dt.calcOffsetDateStr('20220101', '364d')).toEqual('20221231')
+      })
+      test('20220101 +4m', () => {
+        expect(dt.calcOffsetDateStr('20220101', '4m')).toEqual('20220501')
+      })
       test('2022-01-01 +1d', () => {
         expect(dt.calcOffsetDateStr('2022-01-01', '1d')).toEqual('2022-01-02')
       })
@@ -558,6 +567,9 @@ describe(`${PLUGIN_NAME}`, () => {
       beforeAll(() => {
         // DataStore.settings['_logLevel'] = "DEBUG"
       })
+      test('20230101 +1d -> 20230102', () => {
+        expect(dt.calcOffsetDateStr('20230101', '1d', 'offset')).toEqual('20230102')
+      })
       test('2023-07 +14d -> 2023-07-15', () => {
         expect(dt.calcOffsetDateStr('2023-07', '14d', 'offset')).toEqual('2023-07-15')
       })
@@ -575,6 +587,9 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
     describe('adapting output to shorter durations than base', () => {
+      test('20230101 +1d -> 20230102', () => {
+        expect(dt.calcOffsetDateStr('20230101', '1d', 'shorter')).toEqual('20230102')
+      })
       test('2023-07 +14d -> 2023-07-15', () => {
         expect(dt.calcOffsetDateStr('2023-07', '14d', 'shorter')).toEqual('2023-07-15')
       })
@@ -589,6 +604,9 @@ describe(`${PLUGIN_NAME}`, () => {
       })
     })
     describe('adapting output to longer durations than base', () => {
+      test('20230101 +1d -> 20230102', () => {
+        expect(dt.calcOffsetDateStr('20230101', '1d', 'longer')).toEqual('20230102')
+      })
       test('2023-07-24 +0w -> 2023-W30', () => {
         expect(dt.calcOffsetDateStr('2023-07-24', '0w', 'longer')).toEqual('2023-W30')
       })
@@ -989,6 +1007,60 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should fail for non-date', () => {
       const result = dt.isValidCalendarNoteFilenameWithoutExtension('today')
       expect(result).toEqual(false)
+    })
+  })
+
+  /* calcOffsetDateStrUsingCalendarType() */
+  describe('calcOffsetDateStrUsingCalendarType()' /* function */, () => {
+    describe('should fail', () => {
+      test('fail blank input param 1', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('', '2023-01-01')
+        expect(result).toEqual('(error)')
+      })
+      test('fail 1e input', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1e', '2023-01-01')
+        expect(result).toEqual('(error)')
+      })
+      test('fail YYYYMMDD input', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1d', '20230101')
+        expect(result).toEqual('(error)')
+      })
+      test('fail YYYYMMDD input', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1d', '20230101')
+        expect(result).toEqual('(error)')
+      })
+      test('fail YYYYMMDD.md input', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1d', '20230101.md')
+        expect(result).toEqual('(error)')
+      })
+      test('fail YYYY-Wnn input', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1d', '2023-W01')
+        expect(result).toEqual('(error)')
+      })
+    })
+
+    describe('should pass', () => {
+      test('2023-01-01 +1d -> 2023-01-02', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1d', '2023-01-01')
+        expect(result).toEqual('2023-01-02')
+      })
+      // Note 2023-01-01 is actually in week 52 of 2022, so don't use that.
+      test('2023-01-02 +1w -> 2023-W02', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1w', '2023-01-02')
+        expect(result).toEqual('2023-W02')
+      })
+      test('2023-01-01 +1m -> 2023-02', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1m', '2023-01-01')
+        expect(result).toEqual('2023-02')
+      })
+      test('2023-01-01 +1q -> 2023-Q2', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1q', '2023-01-01')
+        expect(result).toEqual('2023-Q2')
+      })
+      test('2023-01-01 +1y -> 2024', () => {
+        const result = dt.calcOffsetDateStrUsingCalendarType('1y', '2023-01-01')
+        expect(result).toEqual('2024')
+      })
     })
   })
 })
