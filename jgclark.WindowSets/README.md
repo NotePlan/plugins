@@ -1,14 +1,26 @@
 # 🖥️ Window Sets
 
-This plugin (which requires NotePlan version 3.9.8 or higher) allows you to save particular 'sets' or layouts of your NotePlan windows on macOS, and then **restore** them in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins.
+This plugin (which requires NotePlan version 3.9.8 or higher) allows you to **save** particular 'sets' or layouts of your NotePlan windows on macOS, and then **restore** them in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins.
 
 The commands are simple:
-- **/open window set** (alias **/ows**): Open a saved set of windows/panes. You're shown a list of all saved window sets to choose from.
-- **/save window set** (alias **/sws**): Save the currently open set of windows/panes as a set, complete with size and position of 'floating' windows, including more advanced 'HTML' windows.
+- **/open window set** (alias **/ows**): Open a saved set of windows/panes. You're shown a list of all existing window sets to choose from.
+- **/save window set** (alias **/sws**): Save the size and position of currently open NotePlan windows and 'split' panes as a set. You're given the option to save any open calendar notes as either relative to today (e.g. 'yesterday' or 'next week'), or as a fixed note.
 
-(There are currently some other commands for testing. To see the underlying window set definitions, you can use **/log window sets** which writes to the Help > Plugin Console.)
+As monitor dimensions vary widely, a window set layout is specific to the particular macOS computer you've defined it on. If you have more than one then it will only show you the ones for the machine you're currently using.
+
+<!-- (There are currently some other commands for testing. To see the underlying window set definitions, you can use **/log window sets** which writes to the Help > Plugin Console.) -->
+
+_If you want to dig into more detail, and tweak more of what's going on, please read on. But you shouldn't need to for most use of saving and opening window sets._
 
 [<img width="100px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+
+<hr />
+
+## Configuration
+Click the gear button on the **Window Sets** line in the Plugin Preferences panel, and configure the two general settings accordingly:
+- Note title for Window Set definitions: defaults to `Window Sets`.
+- Folder where Window Set definitions are stored: defaults to `@Window Sets`.
+
 
 ## Defining Window Sets
 These are defined in a special note; by default this is `@Window Sets/Windows Sets` but can be changed in the plugin Settings. All Window Sets are defined in a code block in JSON format. When first run it will offer to write out some examples for you to use or modify.
@@ -35,7 +47,7 @@ In more detail here is an annotated example of the code block:
         "filename": "{0d}" // i.e. 0 days from today
       },
       { // define second note: the ordering of elements doesn't matter, and tends not to be maintained
-        "noteType": "Notes", //
+        "noteType": "Notes",
         "x": 966,
         "height": 623,
         "y": 107,
@@ -52,7 +64,7 @@ In more detail here is an annotated example of the code block:
         "title": "Window Sets",
         "windowType": "floating", // a separate, 'floating' window
         "width": 450,
-        "filename": "???"
+        "filename": "@WindowSets/Window Sets.md"
       }
     ],
     "closeOtherWindows": true // when opening this window set, should existing windows/splits be closed?
@@ -73,10 +85,6 @@ For example, filenames of `{-1w}`, `{0w}`,`{1w}` respectively means last week, t
 
 ### Specifiying Plugin Windows
 It will do its best to identify the plugin command used to create the window, however this is based on a lookup list, and so may not include everything. It will tell you if you need to manually update the Window Set definition: just search for the `?` which tell you where the command name needs adding.
-
-## Other Configuration
-Click the gear button on the **Window Sets** line in the Plugin Preferences panel, and fill in the settings accordingly:
-- Folder where Window Set definitions are stored: defaults to `@Window Sets`.
 
 ## Running from x-callback
 The **/open window set** command can be triggered by opening a a special x-callback URL. The first argument is the name of the window set to open (with spaces replaced by `%20`.)`

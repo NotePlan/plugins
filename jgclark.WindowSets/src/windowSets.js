@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 27.9.2022 for v0.3.0 by @jgclark
+// last update 20.10.2022 for v0.3.0 by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
 // - 1 local preference 'windowSets' that contains JS Array<WindowSet>
@@ -28,6 +28,7 @@ import {
   getFilenameDateStrFromDisplayDateStr,
   getISODateStringFromYYYYMMDD,
   getTodaysDateHyphenated,
+  getTodaysDateUnhyphenated,
   isValidCalendarNoteFilename,
   RE_OFFSET_DATE_CAPTURE,
   RE_OFFSET_DATE,
@@ -285,7 +286,7 @@ export async function saveWindowSet(): Promise<void> {
     const res = wsh.writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, WSsToSave)
     logDebug('saveWindowSet', `Saved window sets to note`)
 
-    // TEST: If we have htmlWindows not in our lookup list, then tell user to update the list with the plugin command Name
+    // If we have htmlWindows not in our lookup list, then tell user to update the list with the plugin command Name
     let askUserToComplete = false
     for (const thisHtmlWinDetails of htmlWinDetails) {
       const thisWindowId = thisHtmlWinDetails.customId ?? 'n/a'
@@ -441,19 +442,16 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
               logDebug('openWindowSet', `  - trying note filename '${ew.filename}' with windowType ${ew.windowType}`)
               const dateOffsetStrings = resourceToOpen.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
               const dateOffsetString = dateOffsetStrings[1] // first capture group
-              logDebug('dateOffsetStrings', `  - calculated relative date ${dateOffsetString}`)
-              resourceToOpen = calcOffsetDateStr(getTodaysDateHyphenated(), dateOffsetString, 'offset')
-              // Grr, need to change back to YYYYMMDD if daily note TEST: weeks etc.
-              // TODO: move this logic into the above func with new parameter
-              resourceToOpen = getFilenameDateStrFromDisplayDateStr(resourceToOpen)
+              logDebug('dateOffsetStrings', `  - dateOffsetString = ${dateOffsetString}`)
+              resourceToOpen = calcOffsetDateStr(getTodaysDateUnhyphenated(), dateOffsetString, 'offset')
               logDebug('dateOffsetStrings', `  - resourceToOpen = ${resourceToOpen}`)
             }
             const res = await Editor.openNoteByDateString(resourceToOpen, false, 0, 0, (openCount > 0))
             if (res) {
               openCount++
-              logDebug('openWindowSet', `- opened Calendar note ${resourceToOpen} in split`)
+              logDebug('openWindowSet', `- opened Calendar note ${resourceToOpen} in ${(openCount > 0) ? 'split' : 'main'}`)
             } else {
-              logWarn('openWindowSet', `- problem opening Calendar note ${resourceToOpen} in split`)
+              logWarn('openWindowSet', `- problem opening Calendar note ${resourceToOpen} in ${(openCount > 0) ? 'split' : 'main'}`)
             }
             break
           }

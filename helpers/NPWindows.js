@@ -112,7 +112,8 @@ export async function setHTMLWindowId(customId: string): Promise<void> {
 }
 
 /**
- * Search open HTML windows and return the window object that matches a given customId (if available)
+ * Search open HTML windows and return the window object that matches a given customId (if available).
+ * Matches are case-insensitive, and either an exact match or a starts-with-match.
  * @param {string} customId - to look for
  * @returns {string} the matching open HTML window's ID or false if not found
  */
@@ -137,8 +138,7 @@ export function getWindowIdFromCustomId(customId: string): string | false {
 }
 
 /**
- * Is a given HTML window open? Tests by doing a case-insensitive-starts-with-match or case-insensitive-match using the supplied customId string.
- * FIXME: fix up for 3.9.6?
+ * Is a given HTML window open? Matches are case-insensitive, and either an exact match or a starts-with-match on the supplied customId.
  * @author @jgclark
  * @param {string} customId to look for
  * @returns {boolean}

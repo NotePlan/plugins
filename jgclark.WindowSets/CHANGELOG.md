@@ -1,13 +1,14 @@
 # What's changed in 🖥️ Window Sets?
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md)._
 
-<!-- - ??? Now knows which machine they live on ... so now ... . See README for details. -->
-## [0.4.0b1] - 2023-10-07
+## [0.4.0] - 2023-10-20
+**This is the first public release. It requires NotePlan v3.9.8.**
+- wrote most documentation
 - now checks that windows live within the visible screen dimensions, and moves/resizes them if not
 - smarter mechanism for guessing plugin (HTML) windows details by developer convention
+- now knows which machine they live on ... so now ... . See README for details.
 - add update trigger a different way, and fixed it dealing with stale data
-- wrote most documentation
-- fix problem where regular notes' filenames aren't being saved
+- fix problem where regular notes' filenames weren't being saved
 
 ## [0.3.0] - 2023-09-28 (unreleased; following change of design)
 - Window Set definitions now live in a hidden preference, _but can be automatically sync'd to/from a user's note to see what's going on_. See README for details.

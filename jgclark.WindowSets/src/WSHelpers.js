@@ -379,7 +379,7 @@ export function getDetailedWindowSetByName(name: string): WindowSet | null {
  */
 export function checkWindowSetBounds(setsToCheck: Array<WindowSet>): Array<WindowSet> {
   try {
-    logDebug('checkWindowSetBounds', `Starting check for ${String(setsToCheck.length)} window sets`)
+    logDebug('checkWindowSetBounds', `Starting check for ${String(setsToCheck.length)} window sets against screen dimensions for ${NotePlan.environment.machineName}: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}`)
     let checkedSets = setsToCheck
 
     // check bounds for each WS in turn
@@ -399,6 +399,7 @@ export function checkWindowSetBounds(setsToCheck: Array<WindowSet>): Array<Windo
   }
 }
 
+// $FlowFixMe[incompatible-return]
 function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDetails): EditorWinDetails | HTMLWinDetails {
   try {
     // TODO: is there any reason for these to be defined as optional (above) ???
