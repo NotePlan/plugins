@@ -8,19 +8,23 @@ The commands are simple:
 
 As monitor dimensions vary widely, a window set layout is specific to the particular macOS computer you've defined it on. If you have more than one then it will only show you the ones for the machine you're currently using.
 
-<!-- (There are currently some other commands for testing. To see the underlying window set definitions, you can use **/log window sets** which writes to the Help > Plugin Console.) -->
-
-_If you want to dig into more detail, and tweak more of what's going on, please read on. But you shouldn't need to for most use of saving and opening window sets._
-
 [<img width="100px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
 <hr />
+
+<!-- (There are currently some other commands for testing. To see the underlying window set definitions, you can use **/log window sets** which writes to the Help > Plugin Console.) -->
+
+## Known limitations
+Unfortunately because of limitations in the API that plugins use, WindowSets:
+1. can't control the width of split windows within the main NotePlan window.
+2. can't control the order of windows that overlap, as the API doesn't supply the z-order of windows when saving a set. (Nor can it control the z-order of windows when opening a set.)
 
 ## Configuration
 Click the gear button on the **Window Sets** line in the Plugin Preferences panel, and configure the two general settings accordingly:
 - Note title for Window Set definitions: defaults to `Window Sets`.
 - Folder where Window Set definitions are stored: defaults to `@Window Sets`.
 
+_If you want to dig into more detail, and tweak more of what's going on, please read on. But you shouldn't need to for most use of saving and opening window sets._
 
 ## Defining Window Sets
 These are defined in a special note; by default this is `@Window Sets/Windows Sets` but can be changed in the plugin Settings. All Window Sets are defined in a code block in JSON format. When first run it will offer to write out some examples for you to use or modify.

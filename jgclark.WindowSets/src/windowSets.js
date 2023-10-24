@@ -68,7 +68,7 @@ const pluginID = 'jgclark.WindowSets'
 export async function saveWindowSet(): Promise<void> {
   try {
     if (NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 1100) {
-      logInfo('saveWindowSet', `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
+      logInfo(pluginJson, `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
       return
     }
 
@@ -90,7 +90,6 @@ export async function saveWindowSet(): Promise<void> {
         height: winRect.height,
       }
     })
-    // logDebug('saveWindowSet', `Found ${String(editorWinDetails.length)} editor windows`)
 
     const htmlWinDetails: Array<wsh.HTMLWinDetails> = NotePlan.htmlWindows.map((win) => {
       const winRect = win.windowRect
@@ -105,7 +104,7 @@ export async function saveWindowSet(): Promise<void> {
         height: winRect.height,
       }
     })
-    // logDebug('saveWindowSet', `Found ${String(htmlWinDetails.length)} HTML windows`)
+    logDebug(pluginJson, `saveWindowSet starting with ${String(editorWinDetails.length)} editor +  ${String(htmlWinDetails.length)} HTML windows`)
 
     if ((editorWinDetails.length + htmlWinDetails.length) < 2) {
       const answer = await showMessageYesNo("There's only 1 open window. Are you sure you want to continue to make a Window Set?")
@@ -318,9 +317,10 @@ export async function saveWindowSet(): Promise<void> {
 export async function openWindowSet(setName: string = ''): Promise<boolean> {
   try {
     if (NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 1100) {
-      logInfo('saveWindowSet', `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
+      logInfo(pluginJson, `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
       return false
     }
+    logDebug(pluginJson, `openWindowSet starting with param setName '${setName}'`)
 
     const config = await wsh.getPluginSettings()
     const thisMachineName = NotePlan.environment.machineName

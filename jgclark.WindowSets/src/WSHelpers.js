@@ -484,7 +484,7 @@ const exampleWSs: Array<WindowSet> = [
     "editorWindows": [
       {
         "noteType": "Calendar",
-        "windowType": "split",
+        "windowType": "main",
         "filename": "{-1d}",
         "title": "yesterday",
         "x": 0,
@@ -530,7 +530,7 @@ const exampleWSs: Array<WindowSet> = [
     "editorWindows": [
       {
         "noteType": "Calendar",
-        "windowType": "split",
+        "windowType": "main",
         "filename": "{-1w}",
         "title": "last week",
         "x": 0,
