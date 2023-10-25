@@ -132,7 +132,7 @@ export async function getFilteredPluginData(showInstalledOnly: boolean): Promise
     plugin.updateIsAvailable = isInstalled && plugin.version !== installedVersion?.version
     plugin.isInstalled = installedVersion != null
     plugin.installedVersion = installedVersion?.version || ''
-    plugin.installLink = createRunPluginCallbackUrl(pluginJson['plugin.id'], 'Install Plugin and Re-Generate Listing', ['false'])
+    plugin.installLink = createRunPluginCallbackUrl(pluginJson['plugin.id'], 'Install Plugin and Re-Generate Plugin Listing Page', ['false'])
     plugin.documentation = plugin.repoUrl || ''
     const commands =
       plugin?.commands?.reduce((acc, c) => {
@@ -188,10 +188,10 @@ export async function generatePluginCommandList(pluginID: string = '', listExten
       let installLink = ''
       if (isInstalled) {
         if (updateIsAvailable) {
-          installLink = ` ${createPrettyRunPluginLink(`update to latest version`, pluginJson['plugin.id'], 'Install Plugin and Re-Generate Listing', [plugin.name])}`
+          installLink = ` ${createPrettyRunPluginLink(`update to latest version`, pluginJson['plugin.id'], 'Install Plugin and Re-Generate Plugin Listing Page', [plugin.name])}`
         }
       } else {
-        installLink = ` ${createPrettyRunPluginLink(`install it`, pluginJson['plugin.id'], 'Install Plugin and Re-Generate Listing', [plugin.name])}`
+        installLink = ` ${createPrettyRunPluginLink(`install it`, pluginJson['plugin.id'], 'Install Plugin and Re-Generate Plugin Listing Page', [plugin.name])}`
       }
       output.push(`---\n## ${plugin.name} v${plugin.version}${installLink}`)
       output.push(`> ${plugin.desc}`)

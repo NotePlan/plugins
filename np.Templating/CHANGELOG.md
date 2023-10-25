@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.9.12] 2023-10-24 @dwertheimer
+
+- Changed title to just 'Templating']
+
 ## [1.9.11] 2023-10-12 @jgclark
 - add 'todayProgressFromTemplate' template command (from Habits & Summaries v0.20)
 
