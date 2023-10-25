@@ -921,7 +921,7 @@ function convertOffsetUnitToMomentUnit(unit: string): string {
  * @param {string} unit
  * @returns {string} momentDateFormat
  */
-function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
+export function getNPDateFormatForFilenameFromOffsetUnit(unit: string): string {
   const momentDateFormat =
     unit === 'd' || unit === 'b'
       ? MOMENT_FORMAT_NP_DAY // = YYYYMMDD not display format
@@ -1166,6 +1166,7 @@ export function calcOffsetDateStrUsingCalendarType(offsetInterval: string, baseD
 /**
  * Does this line include a scheduled date in the future?
  * (Should work even with >date in brackets or with non-white-space before it.)
+ * Works for future-scheduled daily, weekly, monthly, quarterly and yearly dates.
  * @author @jgclark
  *
  * @param {string} line to search in
@@ -1173,13 +1174,37 @@ export function calcOffsetDateStrUsingCalendarType(offsetInterval: string, baseD
  * @test - available in jest file
  */
 export function includesScheduledFutureDate(line: string): boolean {
-  const m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
+  // Test for days
+  let m = line.match(RE_SCHEDULED_ISO_DATE) ?? []
   if (m.length > 0) {
     const ISODateFromMatch = m[0].slice(1) // need to remove leading '>'
     return ISODateFromMatch > todaysDateISOString
-  } else {
-    return false
   }
+  // Test for weeks
+  m = line.match(RE_SCHEDULED_WEEK_NOTE_LINK) ?? []
+  if (m.length > 0) {
+    const weekDateFromMatch = m[0].slice(1) // need to remove leading '>'
+    return weekDateFromMatch > getNPWeekStr(new Date())
+  }
+  // Test for months
+  m = line.match(RE_SCHEDULED_MONTH_NOTE_LINK) ?? []
+  if (m.length > 0) {
+    const monthDateFromMatch = m[0].slice(1) // need to remove leading '>'
+    return monthDateFromMatch > getNPMonthStr(new Date())
+  }
+  // Test for quarters
+  m = line.match(RE_SCHEDULED_QUARTERLY_NOTE_LINK) ?? []
+  if (m.length > 0) {
+    const quarterDateFromMatch = m[0].slice(1) // need to remove leading '>'
+    return quarterDateFromMatch > getNPQuarterStr(new Date())
+  }
+  // Test for years
+  m = line.match(RE_SCHEDULED_YEARLY_NOTE_LINK) ?? []
+  if (m.length > 0) {
+    const yearDateFromMatch = m[0].slice(1) // need to remove leading '>'
+    return yearDateFromMatch > getNPYearStr(new Date())
+  }
+  return false
 }
 
 /**
