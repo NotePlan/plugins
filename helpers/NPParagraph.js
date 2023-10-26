@@ -274,7 +274,7 @@ export function getParagraphBlock(
 /**
  * Get the paragraphs beneath a title/heading in a note (optionally return the contents without the heading)
  * It uses getParagraphBlock() which won't return the title of a note in the first block.
- * TODO: this really needs a global setting for the two getParagraphBlock() settings that are currently fixed below.
+ * TODO(@jgclark): this really needs a global setting for the two getParagraphBlock() settings that are currently fixed below.
  * Note: Moved from helpers/paragraph.js to avoid circular depdency problem with getParagraphBlock()
  * @author @dwertheimer
  * @tests available in jest file
@@ -292,7 +292,7 @@ export function getBlockUnderHeading(note: CoreNoteFields, heading: TParagraph |
   }
   let paras: Array<TParagraph> = []
   if (headingPara?.lineIndex != null) {
-    // TODO: should use global settings here, not fixed as
+    // TODO(@jgclark): should use global settings here, not fixed as
     paras = getParagraphBlock(note, headingPara.lineIndex, true, true)
     // logDebug('getBlockUnderHeading', `= ${paras.length},${paras[0].type},${paras[0].headingLevel}`)
   }
@@ -734,7 +734,6 @@ export const getOverdueParagraphs = (paras: $ReadOnlyArray<TParagraph>, asOfDayS
   const openTasks = paras?.filter(isOpen) || []
   const effectivelyOverdues = openTasks.filter(paragraphIsEffectivelyOverdue)
   const datedOverdues = openTasks.filter((p) => hasOverdueTag(p, false, asOfDayString))
-  // FIXME: david you can't merge these because one fails and one succeeds every time? maybe?
   return [...datedOverdues, ...effectivelyOverdues].filter((t) => t.content !== '')
 }
 
@@ -1032,20 +1031,25 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
 
 /**
  * Calculate the number of days until due (or overdue) for a paragraph to today
- * TODO: Need to implement the days til due part (overdue works now)
  * The tricky part is that we have to start counting with the end of the period (e.g. the end of the week, month, etc.)
  * @author @dwertheimer
  * @param {TParagraph} paragraph
  * @param {string} toISODate - the date to calculate overdue to. Defaults to today
  * @returns {number} - the number of days overdue
+ * @tests in jest file
  */
 export function getDaysTilDue(paragraph: TParagraph, toISODate: string = getTodaysDateHyphenated()): number {
   const paraDateTagDetails = getTagDetails(paragraph, toISODate)
   clo(paragraph, 'para')
   clo(paraDateTagDetails, 'paraDateTagDetails')
-  const endDate = paragraph.date ? endOfPeriod(paraDateTagDetails?.linkType, paragraph.date) : null
-  const daysTilDue = calculateDaysOverdue(endDate, toISODate)
-  return daysTilDue
+  if (paraDateTagDetails && paraDateTagDetails.linkType && paragraph.date) {
+    const endDate = endOfPeriod(paraDateTagDetails.linkType, paragraph.date)
+    // FIXME(@dwertheimer: flow says there's an apparently serious error here
+    const daysTilDue = calculateDaysOverdue(endDate, toISODate)
+    return daysTilDue
+  } else {
+    return NaN
+  }
 }
 
 /**
@@ -1076,16 +1080,18 @@ function endOfPeriod(periodType: string, paraDate: Date): Date | null {
 
 /**
  *  Calculate the number of days until due for a given date (negative if overdue)
- * @param {*} fromDate
- * @param {*} toDate
- * @returns
+ * TODO: tests!
+ * @author @dwertheimer
+ * @param {string} fromDate (in YYYY-MM-DD format)
+ * @param {string} toDate (in YYYY-MM-DD format)
+ * @returns {number}
  */
 function calculateDaysOverdue(fromDate: string, toDate: string): number {
   if (!fromDate || !toDate) {
     return 0
   }
 
-  const fromDateMom = moment(fromDate)
+  const fromDateMom = moment(fromDate, 'YYYY-MM-DD')
   const toDateMom = moment(toDate, 'YYYY-MM-DD')
   const diffDays = fromDateMom.diff(toDateMom, 'days', true) // negative for overdue
 
@@ -1371,39 +1377,8 @@ export function completeItem(filenameIn: string, content: string): boolean {
       return false
     }
     return markComplete(possiblePara)
-
-    // let filename = filenameIn
-    // if (filenameIn === 'today') {
-    //   filename = getTodaysDateUnhyphenated()
-    // } else if (filenameIn === 'thisweek') {
-    //   filename = getNPWeekStr(new Date())
-    // }
-    // // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-    // // $FlowIgnore[incompatible-type]
-    // const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
-
-    // if (thisNote) {
-    //   if (thisNote.paragraphs.length > 0) {
-    //     let c = 0
-    //     for (const para of thisNote.paragraphs) {
-    //       if (para.content === content) {
-    //         logDebug('NPP/completeItem', `found matching para ${c} of type ${para.type}: ${content}`)
-    //         // Append @done(...) string (if user preference wishes this)
-    //         return markComplete(para)
-    //       }
-    //       c++
-    //     }
-    //     logWarn('NPP/completeItem', `Couldn't find paragraph <${content}> to complete`)
-    //     return false
-    //   } else {
-    //     logInfo('NPP/completeItem', `Note '${filename}' appears to be empty?`)
-    //     return false
-    //   }
-    // } else {
-    //   logWarn('NPP/completeItem', `Can't find note '${filename}'`)
-    //   return false
-    // }
-  } catch (error) {
+  }
+  catch (error) {
     logError(pluginJson, `NPP/completeItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
@@ -1424,38 +1399,8 @@ export function cancelItem(filenameIn: string, content: string): boolean {
       return false
     }
     return markCancelled(possiblePara)
-
-    // let filename = filenameIn
-    // if (filenameIn === 'today') {
-    //   filename = getTodaysDateUnhyphenated()
-    // } else if (filenameIn === 'thisweek') {
-    //   filename = getNPWeekStr(new Date())
-    // }
-    // // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-    // // $FlowIgnore[incompatible-type]
-    // const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
-
-    // if (thisNote) {
-    //   if (thisNote.paragraphs.length > 0) {
-    //     let c = 0
-    //     for (const para of thisNote.paragraphs) {
-    //       if (para.content === content) {
-    //         logDebug('NPP/cancelItem', `found matching para ${c} of type ${para.type}: ${content}`)
-    //         return markCancelled(para)
-    //       }
-    //       c++
-    //     }
-    //     logWarn('NPP/cancelItem', `Couldn't find paragraph <${content}> to complete`)
-    //     return false
-    //   } else {
-    //     logInfo('NPP/cancelItem', `Note '${filename}' appears to be empty?`)
-    //     return false
-    //   }
-    // } else {
-    //   logWarn('NPP/cancelItem', `Can't find note '${filename}'`)
-    //   return false
-    // }
-  } catch (error) {
+  }
+  catch (error) {
     logError(pluginJson, `NPP/cancelItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
