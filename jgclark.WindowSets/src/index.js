@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Window Sets commands
 // Jonathan Clark
-// Last updated 6.10.23 for v0.4.0 by @jgclark
+// Last updated 27.10.23 for v0.5.0 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -38,6 +38,7 @@ export {
 
 export {
   logWindowsList,
+  setEditorWindowWidth,
 } from '@helpers/NPWindows'
 
 export function init(): void {

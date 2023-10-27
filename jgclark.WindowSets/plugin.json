@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/CHANGELOG.md",
-  "plugin.version": "0.4.0",
-  "plugin.lastUpdateInfo": "v0.4.0: First public release, and requires NP v3.9.8.",
+  "plugin.version": "0.5.0b1",
+  "plugin.lastUpdateInfo": "v0.5.0: handling widths of split windows\nv0.4.0: First public release, and requires NP v3.9.8.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -74,12 +74,15 @@
       "jsFunction": "syncWSNoteToPrefs"
     },
     {
-      "name": "WS:test Update or install",
-      "description": "test WindowSets update/install",
-      "jsFunction": "testUpdate"
+      "name": "set editor width",
+      "alias": [
+        "sew"
+      ],
+      "description": "Set width of an open editor, by its index",
+      "jsFunction": "setEditorWindowWidth"
     },
     {
-      "name": "WS:delete all saved Window Sets",
+      "name": "delete all saved Window Sets",
       "description": "Delete all saved window sets",
       "jsFunction": "deleteAllSavedWindowSets"
     },
@@ -93,6 +96,9 @@
     },
     {
       "name": "test:Unset preference",
+      "alias": [
+        "up"
+      ],
       "description": "Unset local preference",
       "jsFunction": "unsetPreferenceAskUser"
     }

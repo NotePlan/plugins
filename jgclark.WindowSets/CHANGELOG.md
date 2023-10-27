@@ -1,6 +1,10 @@
 # What's changed in 🖥️ Window Sets?
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md)._
 
+## [0.5.0b1] - 2023-10-27
+First private attempt to use updated API to deal with split window widths properly in saving and opening window sets. In particular:
+- added a new command **/set editor width** (alias: /sew), which tests this new functionality.
+
 ## [0.4.0] - 2023-10-20
 **This is the first public release. It requires NotePlan v3.9.8.**
 - wrote most documentation

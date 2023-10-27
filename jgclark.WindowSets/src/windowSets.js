@@ -206,7 +206,7 @@ export async function saveWindowSet(): Promise<void> {
         ? 'main'
         : editorWinDetails[ewCount].windowType
 
-      // Save other details
+      // Create EW object to save with the other details
       let thisEWToSave: wsh.EditorWinDetails = {
         noteType: ew.noteType,
         filename: tempFilename ?? '?',
@@ -248,7 +248,37 @@ export async function saveWindowSet(): Promise<void> {
       thisWSToSave.htmlWindows.push(thisHWToSave)
       clo(thisWSToSave, `thisHWToSave in set ${setName}`)
     }
-    // clo(thisWSToSave, `saveWindowSet: thisWSToSave after EWs and HWs (${isNewSet ? 'new set' : 'updated'})`)
+    clo(thisWSToSave, `saveWindowSet: thisWSToSave after EWs and HWs (${isNewSet ? 'new set' : 'updated'})`)
+
+    // If we're on NP 3.9.9+ then split window Rects are reported differently than before, so take account of this.
+    // As of NP 3.9.9 (b1119), main width = width of whole window (including sidebars which is a bummer). The splits all have x=0/y=0, but width/height are accurate.
+    if (NotePlan.environment.buildVersion >= 1121) {
+      // Go through main + splits, summing as we go
+      const mainX = thisWSToSave.editorWindows[0].x
+      const mainY = thisWSToSave.editorWindows[0].y
+      // We can't get width of just the first split; it reports the width of all splits together. So calculate
+      let mainW = thisWSToSave.editorWindows[0].width
+      for (const thisEW of thisWSToSave.editorWindows) {
+        if (thisEW.windowType === 'split') {
+          mainW -= thisEW.width
+        }
+      }
+      const mainH = thisWSToSave.editorWindows[0].height
+      let cumulativeWidth = 0
+      logDebug('saveWindowSet', `- mainRect X=${mainX}, mainY=${mainY}, mainW=${mainW}, mainH=${mainH}`)
+      for (let i = 0; i < thisWSToSave.editorWindows.length; i++) {
+        const thisEW = thisWSToSave.editorWindows[i]
+        if (thisEW.windowType === 'main') {
+          thisEW.width = mainW
+        } else if (thisEW.windowType === 'split') {
+          thisEW.x = mainX + cumulativeWidth
+          cumulativeWidth += thisEW.width
+        } else {
+          // do nothing for 'floating' windows
+        }
+      }
+      clo(thisWSToSave, `saveWindowSet: thisWSToSave after dealing with EW splits`)
+    }
 
     // Save to preferences store
     // Add or update this WS
@@ -277,7 +307,7 @@ export async function saveWindowSet(): Promise<void> {
     }
     // Check window bounds make sense
     WSsToSave = wsh.checkWindowSetBounds(WSsToSave)
-    clo(WSsToSave, 'saveWindowSet: all current windowSets to save (after bounds check)')
+    // clo(WSsToSave, 'saveWindowSet: all current windowSets to save (after bounds check)')
 
     DataStore.setPreference('windowSets', WSsToSave)
     logDebug('saveWindowSet', `Saved window sets to local pref`)
