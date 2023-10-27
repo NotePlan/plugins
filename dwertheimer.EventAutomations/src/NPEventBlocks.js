@@ -242,11 +242,13 @@ export async function processTimeLines(paragraphBlock: Array<TParagraph>, config
   try {
     // First, we need to get all the data necessary to create this event, including user input
     // before we can show a status bar
+    clo(paragraphBlock, `processTimeLines: paragraphBlock contains ${paragraphBlock.length} lines`)
     const eventsToCreate = (await confirmEventTiming(paragraphBlock, config)) || []
     // Now that we have all the info we need, we can create the events with a status bar
     config.calendar = (await checkOrGetCalendar(calendar, true)) || calendar || ''
     CommandBar.showLoading(true, `Creating Events:\n(${0}/${eventsToCreate.length})`)
     await CommandBar.onAsyncThread()
+    logDebug(pluginJson, `eventsToCreate.length=${eventsToCreate.length}`)
     for (let j = 0; j < eventsToCreate.length; j++) {
       const item = eventsToCreate[j]
       clo(config, `processTimeLines: config`)

@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [1.2.1] -  2023-10-24 @dwertheimer
+
+- hiding plugin from directory
+
 ## [1.2.0] - 2023-09-25 (@dwertheimer)
 
 - Adding some intelligence to try to pick up existing meeting notes so as to not create them again

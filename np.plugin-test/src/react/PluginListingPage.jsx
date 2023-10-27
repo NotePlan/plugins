@@ -90,7 +90,7 @@ function CommandTable({ commands, viewOption }: CommandTableProps): React$Node {
       {viewOption !== 'commandsOnly' && (
         <thead>
           <tr>
-            <th style={{ width: '15%' }}>Command</th>
+            <th style={{ width: '40%' }}>Command</th>
             <th className="w3-rest">Description</th>
           </tr>
         </thead>
@@ -117,7 +117,22 @@ type PluginSectionProps = {
  * HTML OUTPUT FOR EACH PLUGIN
  */
 function PluginSection({ plugin, viewOption, index }: PluginSectionProps): React$Node {
-  const installedDisplayString = plugin.isInstalled ? 'installed' : 'install'
+  const installedDisplayString = plugin.isInstalled ? (
+    '(installed)'
+  ) : (
+    <a href={plugin.installLink} className="install-btn button">
+      Install
+    </a>
+  )
+
+  const docsString = plugin.documentation ? (
+    <a href={plugin.documentation} className="documentation-link button">
+      Documentation
+    </a>
+  ) : (
+    ''
+  )
+
   const updateIsAvailableString = plugin.updateIsAvailable ? '(update available)' : ''
 
   const pluginSectionStyle = {
@@ -131,9 +146,8 @@ function PluginSection({ plugin, viewOption, index }: PluginSectionProps): React
         {updateIsAvailableString && <span className="updateIsAvailable">{updateIsAvailableString}</span>}
         <span className="pluginBy">by: </span>
         <span className="pluginAuthor">{plugin.author}</span>
-        <span className={installedDisplayString}>{installedDisplayString}</span>
-        {false && <span className="installLink">{plugin.installLink}</span>}
-        {false && <span className="documentation">{plugin.documentation}</span>}
+        {docsString}
+        <span className={plugin.isInstalled ? 'installed' : 'install'}>{installedDisplayString}</span>
       </h3>
       {viewOption === 'all' && (
         <>
@@ -206,10 +220,10 @@ function PluginListingPage(props: Props): React$Node {
   return (
     <>
       <div className="sticky" style={filterDivStyle}>
+        <input type="text" placeholder="Filter commands..." value={filter} onChange={(e) => setFilter(e.target.value)} />
         <Dropdown options={installationOptions} selectedValue={installationFilter} onValueChange={setInstallationFilter} />
         <Dropdown options={viewOptions} selectedValue={viewOption} onValueChange={setViewOption} />
         <Dropdown options={categoryFilterOptions} selectedValue={categoryFilter} onValueChange={setCategoryFilter} />
-        <input type="text" placeholder="Filter commands..." value={filter} onChange={(e) => setFilter(e.target.value)} />
       </div>
       <div className="PluginListingPage">
         {filteredPluginsAndCommands?.length ? (
