@@ -124,6 +124,18 @@ export function rangeToString(r: TRange): string {
 }
 
 /**
+ * Pretty print range information
+ * Note: This is a copy of what's in general.js to avoid circular dependency.
+ * @author @EduardMe
+ */
+export function contentRangeToString(content: string, r: TRange): string {
+  if (r == null) {
+    return 'Range is undefined!'
+  }
+  return `${content.slice(r.start, r.end + 1)} [${r.start}-${r.end}]`
+}
+
+/**
  * Return title of note useful for display, including for
  * - daily calendar notes (the YYYYMMDD)
  * - weekly notes (the YYYY-Wnn)

@@ -6,8 +6,8 @@
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
   "plugin.description": "Tidy up and delete various things in your NotePlan notes",
-  "plugin.version": "0.9.1",
-  "plugin.lastUpdateInfo": "v0.9.1: exclude the list-of-stubs note from itself.\nv0.9.0: new '/list stubs' command.\nv0.8.1: fixes.\nv0.8.0: new command: Move top-level tasks in Editor to heading\nv0.7.0: new command: /Remove >today tags from completed todos\nv0.6.0: new commands 'Remove empty notes' 'List conflicted notes' + display improvements.\nv0.5.0: new 'list duplicate notes' command.",
+  "plugin.version": "0.9.2",
+  "plugin.lastUpdateInfo": "v0.9.2: update command aliases.\nv0.9.1: exclude the list-of-stubs note from itself.\nv0.9.0: new '/list stubs' command.\nv0.8.1: fixes.\nv0.8.0: new command: Move top-level tasks in Editor to heading\nv0.7.0: new command: /Remove >today tags from completed todos\nv0.6.0: new commands 'Remove empty notes' 'List conflicted notes' + display improvements.\nv0.5.0: new 'list duplicate notes' command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md",
@@ -18,8 +18,8 @@
       "description": "Run as many of the other commands in this plugin as you have configured.",
       "jsFunction": "tidyUpAll",
       "alias": [
-        "tidy",
-        "tua"
+        "tua",
+        "tidy"
       ]
     },
     {
@@ -27,9 +27,8 @@
       "description": "For each root-level note, asks which folder you'd like it moved to. (There's a setting for ones to ignore.)",
       "jsFunction": "fileRootNotes",
       "alias": [
-        "tidy",
-        "file",
-        "frln"
+        "frln",
+        "tidy"
       ]
     },
     {
@@ -50,21 +49,29 @@
     },
     {
       "name": "List stubs",
-      "alias": [
-        "link",
-        "wiki",
-        "wikilink"
-      ],
       "description": "Creates/updates a note that lists all your notes that have note links (wikilinks) that lead nowhere",
       "jsFunction": "listStubs"
+    },
+    {
+      "name": "Move top-level tasks in Editor to heading",
+      "description": "Tasks at top of active note (prior to any heading) will be placed under a specified heading",
+      "jsFunction": "moveTopLevelTasksInEditor",
+      "alias": [
+        "mtth"
+      ],
+      "arguments": [
+        "Heading name to place the tasks under (will be created if doesn't exist). If you are running this command in a template, put any non-blank text in the field below.",
+        "Run silently (e.g. in a template). Default is false.",
+        "Return the content of the tasks text, rather than inserting under a heading (e.g. for inserting in a tempate)"
+      ]
     },
     {
       "name": "Remove @done() markers",
       "description": "Remove @done() markers from recently-updated notes. Can be used with parameters from Template or Callback.",
       "jsFunction": "removeDoneMarkers",
       "alias": [
-        "tidy",
-        "rdm"
+        "rdm",
+        "tidy"
       ],
       "arguments": [
         "Parameters"
@@ -75,8 +82,8 @@
       "description": "Remove notes that are completely empty, or just have a `#` character",
       "jsFunction": "removeBlankNotes",
       "alias": [
-        "tidy",
-        "rbn"
+        "rbn",
+        "tidy"
       ],
       "arguments": [
         "Parameters"
@@ -87,8 +94,8 @@
       "description": "Remove blockIDs from lines that had been sync'd, but are 'orphans' as the other copies of the blockID have since been deleted.",
       "jsFunction": "removeOrphanedBlockIDs",
       "alias": [
-        "tidy",
-        "rob"
+        "rob",
+        "tidy"
       ],
       "arguments": [
         "Parameters"
@@ -99,8 +106,8 @@
       "description": "Remove time parts of @done(date time) from recently-updated notes. Can be used with parameters from Template or Callback.",
       "jsFunction": "removeDoneTimeParts",
       "alias": [
-        "tidy",
-        "rtp"
+        "rtp",
+        "tidy"
       ],
       "arguments": [
         "Parameters"
@@ -111,8 +118,8 @@
       "description": "Remove a given section (both the heading and its content) from recently-changed notes.\nCan be used with parameters from Template or x-callback.",
       "jsFunction": "removeSectionFromRecentNotes",
       "alias": [
-        "tidy",
-        "rsfn"
+        "rsrn",
+        "tidy"
       ],
       "arguments": [
         "Parameters"
@@ -123,32 +130,8 @@
       "description": "Remove a given section (both the heading and its content) from all notes.\nCan be used with parameters from Template or x-callback.",
       "jsFunction": "removeSectionFromAllNotes",
       "alias": [
-        "tidy",
-        "rcuh"
-      ],
-      "arguments": [
-        "Parameters"
-      ]
-    },
-    {
-      "name": "Remove triggers from recent calendar notes",
-      "description": "Remove one or more triggers from recent (but past) calendar notes.\nCan be used with parameters from Template or x-callback.",
-      "jsFunction": "removeTriggersFromRecentCalendarNotes",
-      "alias": [
-        "tidy",
-        "rtcn"
-      ],
-      "arguments": [
-        "Parameters"
-      ]
-    },
-    {
-      "name": "Log notes changed in interval (Tidy)",
-      "description": "Write a list of Log notes changed in the last interval of days to the plugin log. It will default to the 'Default Recent Time Interval' setting unless passed as a parameter.",
-      "jsFunction": "logNotesChangedInInterval",
-      "alias": [
-        "tidy",
-        "lncii"
+        "rsan",
+        "tidy"
       ],
       "arguments": [
         "Parameters"
@@ -159,8 +142,20 @@
       "description": "Remove Completed todos that have a >today tag. Can be used with parameters from Template or Callback.",
       "jsFunction": "removeTodayTagsFromCompletedTodos",
       "alias": [
-        "removeToday",
-        "rmt"
+        "rmt",
+        "removeToday"
+      ]
+    },
+    {
+      "name": "Remove triggers from recent calendar notes",
+      "description": "Remove one or more triggers from recent (but past) calendar notes.\nCan be used with parameters from Template or x-callback.",
+      "jsFunction": "removeTriggersFromRecentCalendarNotes",
+      "alias": [
+        "rtcn",
+        "tidy"
+      ],
+      "arguments": [
+        "Parameters"
       ]
     },
     {
@@ -176,23 +171,21 @@
       "jsFunction": "resolveConflictWithOtherVersion"
     },
     {
-      "name": "Tidy: update plugin settings",
-      "description": "Settings interface (even for iOS)",
-      "jsFunction": "updateSettings"
-    },
-    {
-      "name": "Tidy: Move top-level tasks in Editor to heading",
-      "description": "Tasks at top of active note (prior to any heading) will be placed under a specified heading",
-      "jsFunction": "moveTopLevelTasksInEditor",
+      "name": "Log notes changed in interval",
+      "description": "Write a list of notes changed in the last interval of days to the plugin console log. It will default to the 'Default Recent Time Interval' setting unless passed as a parameter.",
+      "jsFunction": "logNotesChangedInInterval",
       "alias": [
-        "mtth",
-        "mtlth"
+        "lncii",
+        "tidy"
       ],
       "arguments": [
-        "Heading name to place the tasks under (will be created if doesn't exist). If you are running this command in a template, put any non-blank text in the field below.",
-        "Run silently (e.g. in a template). Default is false.",
-        "Return the content of the tasks text, rather than inserting under a heading (e.g. for inserting in a tempate)"
+        "Parameters"
       ]
+    },
+    {
+      "name": "Update plugin settings",
+      "description": "Settings interface (even for iOS)",
+      "jsFunction": "updateSettings"
     }
   ],
   "plugin.commands_disabled": [

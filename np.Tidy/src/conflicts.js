@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 23.6.2023 for v0.6.0 by @jgclark
+// Last updated 7.11.2023 for v0.9.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -24,6 +24,7 @@ import {
 } from '@helpers/general'
 import { getProjectNotesInFolder } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
+import { contentRangeToString } from '@helpers/paragraph'
 import { showMessage } from "@helpers/userInput"
 
 const pluginID = 'np.Tidy'
@@ -66,11 +67,10 @@ async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise
 
     // Get all conflicts
     const conflictedNotes = notes.filter(n => (n.conflictedVersion != null))
-    // const dupeTitles = conflictedNotes.map(n => displayTitle(n))
 
     // Log details of each dupe
     for (const cn of conflictedNotes) {
-      logDebug('getConflictedNotes', `- ${displayTitle(cn)}`)
+      // logDebug('getConflictedNotes', `- ${displayTitle(cn)}`)
       const cv = cn.conflictedVersion
       if (cv) {
         // clo(cv, 'conflictedVersion = ')
@@ -84,7 +84,7 @@ async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise
         logError('getConflictedNotes', `- ${displayTitle(cn)} appears to have no conflictedVersion`)
       }
     }
-    clo(outputArray, '->')
+    // clo(outputArray, '->')
     return outputArray
   }
   catch (err) {
@@ -99,13 +99,14 @@ async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise
  */
 export async function listConflicts(params: string = ''): Promise<void> {
   try {
-    logDebug(pluginJson, `listConflicts: Starting with params '${params}'`)
+    const machineName = NotePlan.environment.machineName ?? NotePlan.environment.platform
+    logDebug(pluginJson, `listConflicts: Starting with params '${params}' on ${machineName}`)
     let config = await getSettings()
     const outputFilename = config.conflictNoteFilename ?? 'Conflicted Notes.md'
 
     // Decide whether to run silently
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
-    logDebug('removeDoneMarkers', `runSilently = ${String(runSilently)}`)
+    logDebug('listConflicts', `runSilently = ${String(runSilently)}`)
 
     CommandBar.showLoading(true, `Finding notes with conflicts`)
     await CommandBar.onAsyncThread()
@@ -123,7 +124,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
       // remove old conflicted note list (if it exists)
       const res = DataStore.moveNote(outputFilename, '@Trash')
       if (res) {
-        logDebug('getConflictedNotes', `Moved existing conflicted note list '${outputFilename}' to @Trash.`)
+        logDebug('listConflicts', `Moved existing conflicted note list '${outputFilename}' to @Trash.`)
       }
       return
     } else {
@@ -134,24 +135,19 @@ export async function listConflicts(params: string = ''): Promise<void> {
     const outputArray = []
 
     // Start with an x-callback link under the title to allow this to be refreshed easily
-    outputArray.push(`# Conflicted notes on ${NotePlan.environment.platform}`)
+    outputArray.push(`# Conflicted notes on ${machineName}`)
     const xCallbackRefreshButton = createPrettyRunPluginLink('🔄 Click to refresh', 'np.Tidy', 'List conflicted notes', [])
-    const summaryLine = `Found ${conflictedNotes.length} conflicts on ${NotePlan.environment.platform} at ${nowLocaleShortDateTime()}. ${xCallbackRefreshButton}`
+    const summaryLine = `Found ${conflictedNotes.length} conflicts on ${machineName} at ${nowLocaleShortDateTime()}. ${xCallbackRefreshButton}`
     outputArray.push(summaryLine)
 
     for (const cn of conflictedNotes) {
-      // $FlowFixMe[prop-missing]
-      // $FlowFixMe[incompatible-call]
-      logDebug('getConflictedNotes', `- ${displayTitle(cn)}, ${cn.filename}`)
       const titleToDisplay = (cn.note.title !== '') ? displayTitle(cn.note) : '(note with no title)'
+      logDebug(pluginJson, `- ${cn.filename}`)
+
       const thisFolder = cn.filename.includes('/') ? getFolderFromFilename(cn.filename) : '(root)'
       const mainContent = cn.note.content ?? ''
-
-      // Write out all details for this main note
-      logDebug(pluginJson, `- ${titleToDisplay} / ${cn.filename}`)
       // Make some button links for main note
       const openMe = createOpenOrDeleteNoteCallbackUrl(cn.filename, 'filename', '', 'splitView', false)
-      // const deleteMe = createOpenOrDeleteNoteCallbackUrl(cn.filename, 'filename', '', 'splitView', true)
       outputArray.push(`${thisFolder}/**${titleToDisplay}**`)
       outputArray.push(`- Main note (${cn.filename}): ${String(cn.note.paragraphs?.length ?? 0)} lines, ${String(cn.content?.length ?? 0)} bytes (created ${relativeDateFromDate(cn.note.createdDate)}, updated ${relativeDateFromDate(cn.note.changedDate)}) [open note](${openMe})`)
 
@@ -160,12 +156,19 @@ export async function listConflicts(params: string = ''): Promise<void> {
       const cvContent = cn.note.conflictedVersion.content ?? ''
       outputArray.push(`- Conflicted version note: ${String(cvContent.split('\n').length)} lines, ${String(cvContent.length ?? 0)} bytes`)
 
+      // Calculate amount of difference between them
       const greaterSize = Math.max(cn.note.content?.length ?? 0, cvContent?.length ?? 0)
       const allDiffRanges = NotePlan.stringDiff(cvContent, mainContent)
       const totalDiffBytes = allDiffRanges.reduce((a, b) => a + Math.abs(b.length), 0)
       if (totalDiffBytes > 0) {
         const percentDiff = percentWithTerm(totalDiffBytes, greaterSize, 'chars')
         outputArray.push(`- ${percentDiff} difference between them (from ${String(allDiffRanges.length)} areas)`)
+        // Write allDiffRanges to debug log
+        logDebug('listConflicts', 'Here are the areas of difference:')
+        for (const thisDiffRange of allDiffRanges) {
+          logDebug('', contentRangeToString(cn.content, thisDiffRange))
+        }
+
       } else {
         outputArray.push(`- oddly, the conflicted version appears to be identical`)
       }
@@ -187,15 +190,17 @@ export async function listConflicts(params: string = ''): Promise<void> {
     }
   }
   catch (err) {
-    logError('listDuplicates', JSP(err))
+    logError('listConflicts', JSP(err))
   }
 }
 
 /**
  * Command to be called by x-callback to run the API function of the same name, on the given note filename
  */
-export function resolveConflictWithCurrentVersion(filename: string): void {
+export async function resolveConflictWithCurrentVersion(filename: string): Promise<void> {
   try {
+    // Attempt to get spinner to appear, to show that something is happening.
+    CommandBar.showLoading(true, 'Deleting other note version')
     logDebug(pluginJson, `resolveConflictWithCurrentVersion() starting for file '${filename}'`)
     if (NotePlan.environment.buildVersion < 1053) {
       logWarn(pluginJson, `resolveConflictWithOtherVersion() can't be run until NP v3.9.3`)
@@ -207,17 +212,20 @@ export function resolveConflictWithCurrentVersion(filename: string): void {
       return
     }
     theNote.resolveConflictWithCurrentVersion()
+    CommandBar.showLoading(false)
   }
   catch (err) {
     logError(pluginJson, JSP(err))
+    CommandBar.showLoading(false)
   }
 }
 
 /**
  * Command to be called by x-callback to run the API function of the same name, on the given note filename
  */
-export function resolveConflictWithOtherVersion(filename: string): void {
+export async function resolveConflictWithOtherVersion(filename: string): Promise<void> {
   try {
+    CommandBar.showLoading(true, 'Deleting main note version')
     logDebug(pluginJson, `resolveConflictWithOtherVersion() starting for file '${filename}'`)
     if (NotePlan.environment.buildVersion < 1053) {
       logWarn(pluginJson, `resolveConflictWithOtherVersion() can't be run until NP v3.9.3`)
@@ -229,8 +237,10 @@ export function resolveConflictWithOtherVersion(filename: string): void {
       return
     }
     theNote.resolveConflictWithOtherVersion()
+    CommandBar.showLoading(false)
   }
   catch (err) {
     logError(pluginJson, JSP(err))
+    CommandBar.showLoading(false)
   }
 }
