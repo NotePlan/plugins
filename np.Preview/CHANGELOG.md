@@ -1,6 +1,9 @@
 # What's Changed in Previews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
+## [0.4.3] - 2023-11-10
+- stops the Preview window stealing focus in live preview mode
+
 ## [0.4.2] - 2023-08-21
 - fixed regression stopping Mermaid charts rendering.
 

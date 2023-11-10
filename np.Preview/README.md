@@ -19,6 +19,8 @@ Use the **/start live preview** command to open the Preview window, _and enable 
 triggers: onEditorWillSave => np.Preview.updatePreview
 ```
 
+It deliberately updates the Preview window without giving it focus, so that you can continue editing.
+
 ## Mermaid charts
 The markdown-ish definition of these charts is done in one or more fenced code blocks:
 

@@ -86,11 +86,11 @@ export function previewNote(mermaidTheme?: string): void {
   try {
     const { note, content, title } = Editor
     let lines = content?.split('\n') ?? []
-    // let endOfFMIndex = -1
     let hasFrontmatter = hasFrontMatter(content ?? '')
     const RE_OPEN_TASK_FOR_USER = formRegExForUsersOpenTasks(false)
 
-    // Update frontmatter for this note (if present)
+    // Work on a copy of the note's content
+    // Change frontmatter for this note (if present)
     // In particular remove trigger line
     if (hasFrontmatter) {
       let titleAsMD = ''
@@ -231,7 +231,7 @@ export function previewNote(mermaidTheme?: string): void {
       savedFilename: savedFilename,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       customId: 'preview',
-      shouldFocus: true, // shouuld not focus, if Window already exists
+      shouldFocus: false, // shouuld not focus, if Window already exists
       // not setting defaults for x, y, width, height
     }
     showHTMLV2(finalBody, windowOpts)
@@ -243,6 +243,7 @@ export function previewNote(mermaidTheme?: string): void {
 }
 
 /**
+ * Open preview in browser, mostly useful to get it to print
  * TODO: needs help to get this approach to work.
  */
 export async function openPreviewNoteInBrowser(): Promise<void> {
