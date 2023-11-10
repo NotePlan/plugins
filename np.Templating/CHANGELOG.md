@@ -4,6 +4,12 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.10.0] 2023-10-31 @dwertheimer
+
+- Command name changes require NotePlan 3.9.10
+- Change commands to be more descriptive (using @eduardme's new naming scheme)
+- Tweak np:invoke to work correctly with frontmatter
+
 ## [1.9.12] 2023-10-24 @dwertheimer
 
 - Changed title to just 'Templating']
