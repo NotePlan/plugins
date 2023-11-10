@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.20.0",
-  "plugin.lastUpdateInfo": "0.20.0: add new '/today progress' and '/heatmap for tag' commands, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.\n0.18.0: offers full set of summary types in /periodStats as well as /progressUpdate. Bug fixes.\n0.17.3: fix edge case of malformed @mentions.\n0.17.2: fix edge cases in /periodStats\n0.17.1: worked around API bug when processing repeats like @repeats(1/7) in Summaries commands.",
+  "plugin.version": "0.20.1",
+  "plugin.lastUpdateInfo": "0.20.1: fix refresh after '/append progress update' command. Logging change.\n0.20.0: add new '/today progress' and '/heatmap for tag' commands, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -27,7 +27,7 @@
       "description": "Append weekly/monthly habit and progress update",
       "jsFunction": "makeProgressUpdate",
       "arguments": [
-        "JSON-formatted parameter list"
+        "JSON5-formatted parameter list"
       ]
     },
     {
@@ -36,7 +36,8 @@
       "description": "template entry point to appendProgressUpdate command",
       "jsFunction": "progressUpdate",
       "arguments": [
-        "JSON-formatted parameter list"
+        "JSON5-formatted parameter list",
+        "Source ('command' or 'template')"
       ]
     },
     {

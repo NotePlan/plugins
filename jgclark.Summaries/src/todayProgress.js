@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Progress update for Today only
 // Jonathan Clark, @jgclark
-// Last updated 12.10.2022 for v0.20.0, @jgclark
+// Last updated 10.11.2023 for v0.20.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -42,12 +42,7 @@ import { replaceSection } from '@helpers/note'
  */
 export async function todayProgressFromTemplate(params: string = ''): Promise<string> {
   try {
-
-    // Testing other func
-    // console.log(await getTagParamsFromString(`{todayProgressItems: '@calories,@exercise,#test'}`, 'todayProgressHeading', 'def'))
-    // console.log(await getTagParamsFromString(`{todayProgressItems: '@calories,@exercise,#test', todayProgressHeading: ''}`, 'todayProgressHeading', 'def'))
-
-    logDebug(pluginJson, `todayProgressFromTemplate() starting with params '${params}'`)
+    logDebug(pluginJson, `todayProgressFromTemplate() starting with params '${params}' (type: ${typeof params})`)
 
     // let configFromParams = JSON.parse(params)
     const config = await getSummariesSettings()
@@ -63,8 +58,8 @@ export async function todayProgressFromTemplate(params: string = ''): Promise<st
     return summaryStr
   }
   catch (err) {
-    logError(pluginJson, 'todayProgressFromTemplate()' + err.message)
-    return '<error>' // for completeness
+    logError(pluginJson, `${err.message} in todayProgressFromTemplate()`)
+    return '❗️Error: please open Plugin Console and re-run.>' // for completeness
   }
 }
 
@@ -158,13 +153,13 @@ export async function makeTodayProgress(itemsToShowArr: Array<string> = [], sour
     logDebug('makeTodayProgress', `- created progress update in ${timer(startTime)}`)
 
     // If we have a heading specified, make heading, using periodAndPartStr or '{{PERIOD}}' if it exists. Add a refresh button.
-    // Create x-callback of form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=...` with 'Refresh' pseudo-button
+    // Create x-callback of form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=todayProgress&arg0=...` with 'Refresh' pseudo-button
     let thisHeading = ''
     let thisHeadingLine = ''
     let headingAndXCBStr = ''
     if (heading !== '') {
       const xCallbackParams = [itemsToShow.join(','), heading] // need to be strings in order
-      const xCallbackMD = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'today progress', xCallbackParams)
+      const xCallbackMD = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'todayProgress', xCallbackParams)
       thisHeading = formatWithFields(heading, { PERIOD: periodString })
       headingAndXCBStr = `${thisHeading} ${xCallbackMD}`
       thisHeadingLine = `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}`

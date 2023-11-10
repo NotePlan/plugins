@@ -291,6 +291,7 @@ export async function calcTagStatsMap(
 
   } catch (err) {
     logError(pluginJson, `calcTagStatsMap: ${err.name}: ${err.message}`)
+    return new Map()
   }
 }
 

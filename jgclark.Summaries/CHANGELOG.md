@@ -2,6 +2,11 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
 <!-- - ??? make below work with all options -->
+
+## [0.20.1] - 2023-11-10
+- fix Refresh button not working after '/append progress update' command
+- turns down logging against an API error
+
 ## [0.20.0] - 2023-10-12
 ### Added
 - new **today progress** command that summarises tags or mentions _within today's note_. This could be useful for summarising `@calories(...)` noted from different meals, for example. This can also be invoked by an x-callback call, and through template calls. (For @seanokana)
@@ -10,7 +15,7 @@
 
 ## [0.19.4] - 2023-09-26 unreleased
 ### Added
-- refresh button to output of **periodStats** command, where the time period is "<period> to date"
+- Refresh button to output of **periodStats** command, where the time period is "<period> to date"
 ## [0.19.3] - 2023-08-06
 ### Fixed
 - date logic on 'weeklyStatsToCSV' command output

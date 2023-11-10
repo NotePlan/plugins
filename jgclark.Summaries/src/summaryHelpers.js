@@ -565,9 +565,8 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
         const seenMentions = n.mentions.slice().reverse()
         let lastMention = ''
         for (const mention of seenMentions) {
-          // First need to add a check for a bug: '@repeat(1/7)' is returned as [@repeat(1/7), @repeat(1]. Skip the incomplete one.
+          // First need to add a check for an API bug: '@repeat(1/7)' is returned as [@repeat(1/7), @repeat(1]. Skip the incomplete one.
           if (mention.match(/\([^\)]+$/)) { // opening bracket not followed by closing bracket
-            logInfo('gatherOccurrences', `- Skipping ill-formed '${mention}'`)
             continue // skip this mention
           }
 

@@ -122,7 +122,7 @@ The many **settings** for this command are set in the Plugin Prererence pane:
 - Exclude today's entries? Whether to exclude today's entries in progress updates. Can be enabled if you tend to run the progress update as part of a start-of-day routine, and only add the updates later in the day.
 
 ### Calling from a Template
-This command can be used in any Template, but is particularly designed to be used from a "Daily Note Template" by including a '**progressUpdate()**' command tag in a template such as:
+This command can be used in any Template, but is particularly designed to be used from a "Daily Note Template" by including a '**progressUpdate(...)**' command tag in a template such as:
 ```
 <%- progressUpdate({period: 'wtd', progressHeading: 'Habits', showSparklines: true}) %>
 ```
@@ -136,46 +136,46 @@ You can add many parameters, _which if present override all the main settings de
 3. `showSparklines`: true (default) or false.
 4. `excludeToday`: false (default) or true (applies when you set a date for period and you don't want to include today in the visualization -- e.g. if you use this template as part of your /dayStart routine and you haven't had time to do the habit yet!)
 
-Each must be a`key:value` pair, with following pairs separated by commas, and all enclosed in curly brackets. The 'key' names of the other possible settings are found in the `plugin.json` file installed as part of the plugin.
+Each must be a `key:"value"` pair, with following pairs separated by commas, and all enclosed in curly brackets (i.e. in [JSON5 format](https://json5.org)). The 'key' names of the other possible settings are found in the `plugin.json` file installed as part of the plugin.
 
-Note: if you specifiy any of the settings that take hashtags or mentions, then _only those ones will be used_. E.g. `{... "progressYesNo":"#read,#pray,#exercise", ...}` will not use any of the usual '#hashtags or count' or '@mentions to count', but only show Yes/No for each of those 3 tags.
+Note: if you specifiy any of the settings that take hashtags or mentions, then _only those ones will be used_. E.g. `{... progressYesNo:"#read,#pray,#exercise", ...}` will not use any of the usual '#hashtags or count' or '@mentions to count', but only show Yes/No for each of those 3 tags.
 
 ### Calling by x-callback
-This is similar to the Template above: create a JSON version of "key":"value" pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=`
+This is similar to the Template above: create a JSON5 version of `key:"value"` pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=`
 
 For example:
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0={"period": "2022-02-15", "excludeToday": true, "progressHeading": "Post-Birthday Habits", "showSparklines": true}
 ```
 
-Note: The 'key' part and any string-based value part must be enclosed in **double quote marks** ("like this"), to make it valid JSON.
+Note: Any string-based value part must be enclosed in **double quote marks** to make it valid JSON5.
 
 Note: The JSON parts needs to be **urlencoded** before it can be used. (For help with this, see the **Get-X-Callback-URL command** from the "Link Creator" Plugin. Select RUN a Plugin command > progressUpdate ...)
 
 ## 'today progress' command (alias: 'tp')
-Sometimes you want to have a summary of progress on something within a day -- for example `@carlories(...)` or `@exercise(...)`. To summarise these from today's daily note use **today progress**, which works in the same way as **appendProgressUpdate**.
+Sometimes you want to have a summary of progress on something within a day -- for example `@carlories(...)` or `@exercise(...)`. To summarise these from today's daily note use **/today progress**, which works in the same way as **/append progress update**.
 
-When run by the user as a **/command**, it inserts the output into the current note, and uses the following settings from the plugin pane:
+When run by the user directly, it adds the output onto the current note, and uses the following settings from the plugin pane:
 - #hashtags and @mentions to total: a comma separated list of the terms to total from today's note
 - Today Progress heading: optional heading to insert before the results.
 
-Or you can run it from an **x-callback**  using the form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=today%20progress&arg0=?&arg1=?` where
+Or you can run it from an **x-callback**  using the form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=todayProgress&arg0=?&arg1=?` where
 - `arg0` is the comma separated list of items to summarise
 - `arg1` is the optional heading to use before the results
 
 For example:
 ```
-noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=today%20progress&arg0=@exercise,@calories&arg1=Post-Birthday%20Habits
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=todayProgress&arg0=@exercise,@calories&arg1=Post-Birthday%20Habits
 ```
 
-You can also run it as part of a **template**; for example use in a "Daily Note Template" by including a line like the following: `<%- todayProgressFromTemplate({todayProgressItems: '@calories, @exercise', todayProgressHeading: 'Progress Today'}) %>`. (Note the slightly different 'command name', and that this time the parameters need to be given as a JSON object of key:value pairs.)
+You can also run it as part of a **template**; for example use in a "Daily Note Template" by including a line like the following: `<%- todayProgressFromTemplate({todayProgressItems: '@calories, @exercise', todayProgressHeading: 'Progress Today'}) %>`. (Note the slightly different 'command name', and that this time the parameters need to be given as a JSON5 object of key:'value' pairs.)
 
 ## 'periodStats' command (aliases: 'statsPeriod', 'stp')
 This command generates some simple counts and other statistics of #hashtags or @mentions that you specify, and saves them into notes in a special 'Summaries' folder. For example:
 - **count** every time you've noted you've visited  family this month -- i.e. counts the number of times `#family` is mentioned in calendar notes this month
 - **count** the times you've met with staff member Alice this year so far -- i.e. counts the number of times `@alice` is mentioned in calendar notes this year
 - **sum** and **average** the length of your runs last quarter -- i.e. stats on all the mentions of `@run(N)` mentions (where, for example, `@run(7.5)` means a run of 7.5km/miles)
-- automatically add your progress this week against your goal of getting an **average** 8 hours `@sleep()` when you log that each day.
+- automatically add your progress this week against your goal of getting an **average** 8 hours `@sleep(N)` when you log that each day.
 
 Here's an example of what it shows with sparklines:
 
@@ -204,7 +204,7 @@ It starts by asking for the time period you wish to operate over:
 
 It asks where to save its output: to a specially-created note in the Summaries folder, or to the current note.
 
-<img alt="Calendar Notes types" src="calendar-notes@2x.jpg" width=500px align="right"/>
+<img alt="Calendar Notes types" src="calendar-notes@2x.jpg" width="220px" align="right" />
 It also offers to write to the current Weekly / Monthly / Quarterly / Yearly notes if you have them enabled in the preferences.
 
 It  updates the previous note for that same time period, if it already exists.

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 3.3.2022 for v0.18.0, @jgclark
+// Last updated 10.11.2023 for v0.20.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -34,14 +34,14 @@ import { showMessage } from "../../helpers/userInput";
  * @param {?string} params as JSON string
  * @returns {string} - returns string
  */
-export async function progressUpdate(params: string = ''): Promise<string> {
+export async function progressUpdate(params: string = '', source: string = 'template'): Promise<string> {
   try {
-    logDebug(pluginJson, `progressUpdate (for template): Starting with params '${params}'`)
-    return await makeProgressUpdate(params, 'template') ?? '<error>'
+    logDebug(pluginJson, `progressUpdate (for template): Starting with params '${params}' (type: ${typeof params}) and source '${source}'`)
+    return await makeProgressUpdate(params, source) ?? '<error>'
   }
   catch (err) {
-    logError(pluginJson, 'progressUpdate (for template)' + err.message)
-    return '<error>' // for completeness
+    logError(pluginJson, `${err.message} in progressUpdate (for template)`)
+    return '❗️Error: please open Plugin Console and re-run.>' // for completeness
   }
 }
 
@@ -51,18 +51,20 @@ export async function progressUpdate(params: string = ''): Promise<string> {
  * If it's week to date, then use the user's first day of week from NP setting.
  * @author @jgclark
  *
- * @param {?string} params - can pass parameter string e.g. "{"period": 'mtd', "progressHeading": 'Progress'}"
+ * @param {?string} params - can pass parameter string (in JSON format) e.g. '{"period": "mtd", "progressHeading": "Progress"}'
  * @param {?string} source of this call (command/xcb/template)
  * @returns {?string} - either return string to Template, or void to plugin
  */
-export async function makeProgressUpdate(params: string = '', source: string = 'command'): Promise<string | void> {
+export async function makeProgressUpdate(paramsIn: string = '', source: string = 'command'): Promise<string | void> {
   try {
     // Get config setting
     let config: SummariesConfig = await getSummariesSettings()
     let settingsForGO: OccurrencesConfig
 
-    // If there are params passed, then we've been called by a template command (and so use those).
-    if (params) {
+    // First workaround situation where paramsIn can be a null Object when called from a template. If so, make an empty JSON string.
+    const params = (paramsIn && typeof paramsIn === 'object') ? paramsIn : "{}"
+    // If there are paramsIn passed, then we've been called by a template command (and so use those).
+    if (params !== '') {
       // logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
       // clo(config, `config after overriding with params '${params}'`)
@@ -82,7 +84,7 @@ export async function makeProgressUpdate(params: string = '', source: string = '
     if (periodParam !== '') {
       period = periodParam
     }
-    logDebug('makeProgressUpdate', `Starting for period '${period}' with title '${config.progressHeading}' and params '${params}'`)
+    logDebug('makeProgressUpdate', `Starting for period '${period}' with title '${config.progressHeading}' / params '${params}' / source '${source}'`)
 
     // Now deal with any parameters passed that are mentions/hashtags to work on
     const paramProgressYesNo = await getTagParamsFromString(params, 'progressYesNo', '')
@@ -165,7 +167,9 @@ export async function makeProgressUpdate(params: string = '', source: string = '
     if (source === 'template') {
       // this was a template command call, so simply return the output text
       logDebug('makeProgressUpdate', `-> returning text to template for '${thisHeading}' (${periodAndPartStr} for ${periodString})`)
-      return ((config.progressHeading !== '') ? `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}\n` : '') + output
+      return (config.progressHeading !== '')
+        ? `${'#'.repeat(config.headingLevel)} ${headingAndXCBStr}\n${output}`
+        : output
     }
 
     if (source === 'todayProgressUpdate') {
