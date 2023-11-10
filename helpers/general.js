@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------
 
 import json5 from 'json5'
-import { JSP, logError, logDebug } from './dev'
+import { clo, JSP, logError, logDebug } from './dev'
 import { getDateStringFromCalendarFilename } from './dateTime'
 
 export type headingLevelType = 1 | 2 | 3 | 4 | 5
@@ -387,30 +387,38 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
 }
 
 /**
- * Get a particular parameter setting from parameter string
+ * Get a particular parameter setting from a JSON5 parameter string
  * (Replaces an earlier version called getTagParams)
  * @author @dwertheimer
  *
- * @param {string} paramString - the contents of the template tag, e.g. {{weather(template:FOO)}}
+ * @param {string} paramString - the contents of the template tag as a JSON5 string (e.g. either '{"template":"FOO", "area":"BAR"}' or '{template:"FOO", area:"BAR"}')
  * @param {string} wantedParam - the name of the parameter to get (e.g. 'template')
  * @param {any} defaultValue - default value to use if parameter not found
  * @returns {any} the value of the desired parameter if found (e.g. 'FOO'), or defaultValue if it isn't
  */
-export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: any): any {
-  // log('general/getTagParamsFromString', `for '${wantedParam}' in '${paramString}'`)
-  if (paramString !== '' && wantedParam !== '') {
-    try {
-      // $FlowFixMe(incompatible-type)
-      const paramObj: {} = await json5.parse(paramString)
-      const output = paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
-      // log('general/getTagParamsFromString', `--> ${output}`)
-      return output
-    } catch (e) {
-      logError('general/getTagParamsFromString', `Can't parse ${paramString} ${e}`)
+export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: any): Promise<any> {
+  try {
+    // logDebug('general/getTagParamsFromString', `for '${wantedParam}' in '${paramString}'`)
+    if (paramString === '') {
+      throw new Error("Can't parse empty paramString")
     }
+    if (wantedParam === '') {
+      throw new Error("Can't look for empty wantedParam")
+    }
+    // $FlowIgnore(incompatible-type) as can produce 'any'
+    const paramObj: {} = await json5.parse(paramString)
+    // console.log(typeof paramObj)
+    if (typeof paramObj !== 'object') {
+      throw new Error('JSON5 parsing did not return an object')
+    }
+    // clo(paramObj)
+    const output = paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
+    // logDebug('general/getTagParamsFromString', `--> ${output}`)
+    return output
+  } catch (e) {
+    logError('general/getTagParamsFromString', `${e}. paramString=${paramString}. Returning an error string.`)
+    return '❗️error'
   }
-  // log('general/getTagParamsFromString', `--> ${defaultValue} (default)`)
-  return defaultValue
 }
 
 /**
