@@ -45,6 +45,10 @@ type RescheduleUserAction =
   | '__mdfuture__'
   | '__newTask__'
   | '__opentask__'
+  | '__p0__'
+  | '__p1__'
+  | '__p2__'
+  | '__p3__'
   | string /* >dateOptions */
   | number /* lineIndex of item to pop open */
 
@@ -118,7 +122,7 @@ export function getSharedOptions(origPara?: TParagraph | { note: TNote } | null,
 }
 
 /**
- * Open a note, highlight the task being looked at and prompt user for a choice of what to do with one specific line
+ * Open a note, highlight the task being looked at and prompt user for a choice of what to do with one specific line/task
  * @param {*} origPara
  * @returns {Promise<RescheduleUserAction | false>} the user choice or false
  */
@@ -137,6 +141,10 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
     { label: `✓⏎ Mark done and add follow-up in same note`, value: '__mdhere__' },
     { label: `✓📆 Mark done and add follow-up in future note`, value: '__mdfuture__' },
     { label: `💡 This reminds me...(create new task then continue)`, value: '__newTask__' },
+    { label: `x! Remove priority from task`, value: '__p0__' },
+    { label: `! Set priority to p1`, value: '__p1__' },
+    { label: `!! Set priority to p2`, value: '__p2__' },
+    { label: `!!! Set priority to p3`, value: '__p3__' },
     ...sharedOpts,
     { label: `␡ Delete this line (be sure!)`, value: '__delete__' },
   ]
@@ -149,6 +157,20 @@ async function promptUserToActOnLine(origPara: TParagraph /*, updatedPara: TPara
   logDebug(pluginJson, `promptUserToActOnLine user selection: ${JSP(res)}`)
   // clo(res, `promptUserToActOnLine after chooseOption res=`)
   return res
+}
+
+/**
+ * Update a task's priority no matter where it was before
+ * @param {*} input
+ * @param {*} newPriority
+ * @returns
+ */
+export function updatePriority(input: TParagraph, newPriority: string): TParagraph {
+  const prioStr = newPriority === 'p1' ? '!' : newPriority === 'p2' ? '!!' : newPriority === 'p3' ? '!!!' : ''
+  const output = input
+  output.content = output.content.replace(/!\s*/g, '').replace(/\s+!/g, '')
+  output.content = `${prioStr ? `${prioStr} ` : ''}${output.content}`.trim()
+  return output
 }
 
 /**
@@ -207,6 +229,13 @@ export async function prepareUserAction(origPara: TParagraph, updatedPara: TPara
       case `__mdfuture__`: {
         return { action: userChoice, changed: origPara }
       }
+      case '__p0__':
+      case '__p1__':
+      case '__p2__':
+      case '__p3__': {
+        logDebug(`prepareUserAction: ${userChoice}`)
+        return { action: userChoice, changed: updatePriority(origPara, userChoice.replace(/_/g, '')) }
+      }
       case `__today__`: {
         origPara.content = replaceArrowDatesInString(origPara.content, '>today')
         return { action: 'set', changed: origPara } // dbw NOTE: this said "updatedPara". Not sure how/why that worked before. changing it for React
@@ -224,6 +253,7 @@ export async function prepareUserAction(origPara: TParagraph, updatedPara: TPara
       case '__skip__':
         return { action: 'skip', changed: origPara }
     }
+
     if (typeof userChoice === 'string' && userChoice[0] === '>') {
       origPara.content = replaceArrowDatesInString(origPara.content, userChoice)
       return { action: 'set', changed: origPara, userChoice }
@@ -393,6 +423,18 @@ async function reviewNote(notesToUpdate: Array<Array<TParagraph>>, noteIndex: nu
                 case '__newTask__': {
                   await appendTaskToCalendarNote(getTodaysDateHyphenated())
                   return updates.length ? noteIndex - 1 : noteIndex
+                }
+                case '__p0__':
+                case '__p1__':
+                case '__p2__':
+                case '__p3__': {
+                  logDebug(`reviewNote: index:${index}, updates.length=${updates.length} currentTaskIndex=${currentTaskIndex}`)
+                  clo(updates, `reviewNote: updates:`)
+                  if (result?.changed) {
+                    updates[index] = result.changed
+                    note.updateParagraph(updates[index])
+                    return noteIndex - 1
+                  }
                 }
               }
               //user selected an item in the list to come back to later (in splitview)

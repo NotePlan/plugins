@@ -236,7 +236,7 @@ var RootBundle = (function (exports, React$1) {
 	// color this component's output differently in the console
 	const consoleStyle = 'background: #222; color: #62AFEC';
 	const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args);
-	const logSubtle = (msg, ...args) => console.log(`%c${msg}`, 'color: #6D6962', ...args);
+	const logSubtle = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args);
 
 	// used by the ErrorBoundary component
 	const myErrorLogger = (error, info) => {
@@ -324,17 +324,34 @@ var RootBundle = (function (exports, React$1) {
 	  };
 
 	  /**
-	   * This is effectively a reducer we will use to process messages from the plugin
-	   * And also from components down the tree, using the dispatch command
+	   * Ignore messages that have nothing to do with the plugin
+	   * @param {Event} event
+	   * @returns {boolean}
 	   */
-	  const onMessageReceived = event => {
+	  const shouldIgnoreMessage = event => {
 	    const {
 	      origin,
 	      source,
 	      data
 	    } = event;
-	    if (data && !(typeof data === 'string' && data.startsWith('setImmediate$')) && !data.iframeSrc) {
-	      JSON.stringify(event, null, 4);
+	    // logDebug(
+	    //   `Root: shouldIgnoreMessage origin=${origin} source=${source} data=${JSON.stringify(data)} data.source=${
+	    //     data?.source
+	    //   } /react-devtools/.test(data?.source=${/react-devtools/.test(data?.source)}}`,
+	    // )
+	    return typeof data === 'string' && data?.startsWith('setImmediate$') || typeof data === 'object' && data?.hasOwnProperty('iframeSrc') || /react-devtools/.test(data?.source);
+	  };
+
+	  /**
+	   * This is effectively a reducer we will use to process messages from the plugin
+	   * And also from components down the tree, using the dispatch command
+	   */
+	  const onMessageReceived = event => {
+	    const {
+	      data
+	    } = event;
+	    if (!shouldIgnoreMessage(event) && data) {
+	      // const str = JSON.stringify(event, null, 4)
 	      try {
 	        // $FlowFixMe
 	        const {
@@ -451,7 +468,7 @@ var RootBundle = (function (exports, React$1) {
 	    // send some info to the plugin
 	    // first param is the action type and the rest are data (can be any form you want)
 	    // data.foo = 'bar'
-	    sendMessageToPlugin(['commsBridgeTest', 'drink green', 'tea']);
+	    sendMessageToPlugin(['commsBridgeTest', 'some sample', 'data passed']);
 	  };
 
 	  /**
@@ -516,12 +533,8 @@ var RootBundle = (function (exports, React$1) {
 	    data: npData,
 	    dispatch: dispatch
 	  }), (debug) && /*#__PURE__*/React__default["default"].createElement(React__default["default"].StrictMode, null, /*#__PURE__*/React__default["default"].createElement("div", {
-	    onClick: () => dispatch('SHOW_BANNER', {
-	      msg: 'Banner test succeeded'
-	    }, `banner test`)
-	  }, "Local Banner Display Test"), /*#__PURE__*/React__default["default"].createElement("div", {
-	    onClick: testCommsBridge
-	  }, "Test Communication Bridge"), /*#__PURE__*/React__default["default"].createElement("div", null, /*#__PURE__*/React__default["default"].createElement("span", {
+	    className: "w3-container w3-green"
+	  }, "Debugging information (Plugin passed debug variable = true)"), /*#__PURE__*/React__default["default"].createElement("div", null, /*#__PURE__*/React__default["default"].createElement("span", {
 	    id: "debugHistory"
 	  }, "History (most recent first):"), /*#__PURE__*/React__default["default"].createElement("ul", null, history.slice().reverse().map((h, i) => /*#__PURE__*/React__default["default"].createElement("li", {
 	    style: {
@@ -530,9 +543,15 @@ var RootBundle = (function (exports, React$1) {
 	    key: i
 	  }, "[", h?.date || '', "]: ", h?.msg || ''))), /*#__PURE__*/React__default["default"].createElement("div", {
 	    className: "monospaceData"
-	  }, "overdue paras: ", JSON.stringify(globalSharedData.overdueParas, null, 2)), /*#__PURE__*/React__default["default"].createElement("div", {
-	    className: "monospaceData"
-	  }, "globalSharedData: ", JSON.stringify(globalSharedData, null, 2))))));
+	  }, "globalSharedData: ", JSON.stringify(globalSharedData, null, 2))), /*#__PURE__*/React__default["default"].createElement("div", {
+	    className: "w3-button w3-black",
+	    onClick: () => dispatch('SHOW_BANNER', {
+	      msg: 'Banner test succeeded'
+	    }, `banner test`)
+	  }, "Local Banner Display Test"), /*#__PURE__*/React__default["default"].createElement("div", {
+	    className: "w3-button w3-black",
+	    onClick: testCommsBridge
+	  }, "Test Communication Bridge"))));
 	}
 
 	exports.Root = Root;
