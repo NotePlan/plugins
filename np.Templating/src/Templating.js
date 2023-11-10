@@ -14,6 +14,7 @@ import { timestamp } from '@templatingModules/DateModule'
 import { getTemplateFolder } from 'NPTemplating'
 import { helpInfo } from '../lib/helpers'
 import { getSetting } from '@helpers/NPConfiguration'
+import { smartPrependPara, smartAppendPara } from '@helpers/paragraph'
 
 // helpers
 import { getWeatherSummary } from '../lib/support/modules/weatherSummary'
@@ -32,6 +33,7 @@ import DateModule from '../lib/support/modules/DateModule'
 
 // Editor
 import { templateFileByTitleEx } from './NPEditor'
+import { getNoteByFilename } from '../../helpers/note'
 
 export async function init(): Promise<void> {
   try {
@@ -146,13 +148,22 @@ export async function templateAppend(templateName: string = ''): Promise<void> {
   }
 }
 
-export async function templateInvoke(): Promise<void> {
+export async function templateInvoke(templateName?: string): Promise<void> {
   try {
     if (Editor.type === 'Notes' || Editor.type === 'Calendar') {
       const content: string = Editor.content || ''
 
+      let selectedTemplateFilename
+      if (templateName) {
+        const notes = await DataStore.projectNoteByTitle(templateName, true, true)
+        if (notes?.length) {
+          selectedTemplateFilename = notes[0].filename
+        } else {
+          logError(pluginJson, `Unable to locate template: ${templateName} which was passed to templateExecute`)
+        }
+      }
       // $FlowIgnore
-      const selectedTemplate = await NPTemplating.chooseTemplate()
+      const selectedTemplate = selectedTemplateFilename ?? (await NPTemplating.chooseTemplate())
       const templateData = await NPTemplating.getTemplate(selectedTemplate)
       let { frontmatterBody, frontmatterAttributes } = await NPTemplating.preRender(templateData)
       let data = { ...frontmatterAttributes, frontmatter: { ...frontmatterAttributes } }
@@ -164,10 +175,12 @@ export async function templateInvoke(): Promise<void> {
 
       switch (location) {
         case 'append':
-          Editor.insertTextAtCharacterIndex(`\n` + renderedTemplate, content.length)
+          // Editor.insertTextAtCharacterIndex(`\n` + renderedTemplate, content.length)
+          smartAppendPara(Editor, renderedTemplate, 'text')
           break
         case 'prepend':
-          Editor.insertTextAtCharacterIndex(renderedTemplate, 0)
+          // Editor.insertTextAtCharacterIndex(renderedTemplate, 0)
+          smartPrependPara(Editor, renderedTemplate, 'text')
           break
         case 'insert':
         case 'cursor':
@@ -616,11 +629,20 @@ export async function templateConvertNote(): Promise<void> {
   }
 }
 
-export async function templateExecute(): Promise<void> {
+export async function templateExecute(templateName?: string): Promise<void> {
   try {
-    let selectedTemplate = await NPTemplating.chooseTemplate('template-fragment', 'Choose Template Fragment', { templateGroupTemplatesByFolder: false })
-
-    await NPTemplating.renderTemplate(selectedTemplate)
+    let selectedTemplateFilename
+    if (templateName) {
+      const notes = await DataStore.projectNoteByTitle(templateName, true, true)
+      if (notes?.length) {
+        selectedTemplateFilename = notes[0].filename
+      } else {
+        logError(pluginJson, `Unable to locate template: ${templateName} which was passed to templateExecute`)
+      }
+    }
+    selectedTemplateFilename =
+      selectedTemplateFilename ?? (await NPTemplating.chooseTemplate('template-fragment', 'Choose Template Fragment', { templateGroupTemplatesByFolder: false }))
+    await NPTemplating.renderTemplate(selectedTemplateFilename)
   } catch (error) {
     logError(pluginJson, error.message)
   }

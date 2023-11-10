@@ -7,8 +7,8 @@
 
 ## [2.17.0] @dwertheimer 2023-08-29
 
-- change edit to allow for 
-- opt-click a date return you to edit
+- Overdue processing: change edit to allow you to opt-click a date return you to edit
+- Overdue processing: added p1,p2,p3 options. Thx @george!
 
 ## [2.16.0] @dwertheimer 2023-08-23
 

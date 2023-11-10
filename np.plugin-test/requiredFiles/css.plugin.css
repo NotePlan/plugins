@@ -91,6 +91,7 @@ select:after {
   margin-bottom: 25px;
   padding-top: 5px;
   padding-left: 20px;
+  padding-right: 20px;
   padding-bottom: 10px; /* Increased padding for top and bottom */
   border-radius: 5px;
   transition: background-color 0.3s;
@@ -111,7 +112,7 @@ select:after {
 }
 
 .pluginVersion, .pluginBy, .install, .installed {
-  margin-left: 15px;
+  margin-left: 10px;
   font-size: 0.9rem;
   color: #777;
 }
@@ -160,6 +161,43 @@ table.w3-table thead {
 .noPluginsFound a:hover {
   text-decoration: underline;
 }
+
+.button {
+  text-decoration: none; /* Remove the underline */
+  padding: 5px 10px; /* Some padding to make it look like a button */
+  border-radius: 4px; /* Rounded corners */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* horizontal offset, vertical offset, blur radius, shadow color */
+  font-size: 0.8rem;
+}
+
+.install-btn {
+  color: #333;
+  text-align: center; 
+  background-color: #f0b785;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* horizontal offset, vertical offset, blur radius, shadow color */
+}
+
+.install-btn:hover {
+  background-color: #e09b61;
+  color: #fff;
+}
+
+.documentation-link {
+  margin-left: 10px;
+  color: #888; /* A soft gray color */
+  border: 1px solid #ccc; /* Light gray border */
+  transition: background-color 0.3s, color 0.3s; /* Smooth hover transition */
+}
+
+.documentation-link:hover {
+  background-color: #f0f0f0; /* Slightly darker gray on hover */
+  color: #555; /* Darker text color on hover */
+}
+
+
 
 
 /* Making the sticky header responsive */

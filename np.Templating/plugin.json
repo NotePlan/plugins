@@ -1,10 +1,10 @@
 {
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.5.0",
+  "noteplan.minAppVersion": "3.9.10",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "1.9.12",
-  "plugin.lastUpdateInfo": "1.9.12: Changed title to just 'Templating'.\n1.9.11: add 'todayProgressFromTemplate' template command.\n1.9.10: add folder attribute to np:new for xcallback creation inside a specific folder",
+  "plugin.version": "1.10.0",
+  "plugin.lastUpdateInfo": "1.10.0: Change command names to be more descriptive.\n1.9.12: Changed title to just 'Templating'.\n1.9.11: add 'todayProgressFromTemplate' template command.\n1.9.10: add folder attribute to np:new for xcallback creation inside a specific folder",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -13,12 +13,13 @@
   "plugin.url": "https://nptemplating-docs.netlify.app/docs/intro",
   "plugin.commands": [
     {
-      "name": "np:append",
+      "name": "Append template to end of current note",
       "alias": [
         "append",
         "at",
         "template",
-        "npa"
+        "npa",
+        "np:append"
       ],
       "description": "Append template to end of current note",
       "jsFunction": "templateAppend",
@@ -27,37 +28,42 @@
       ]
     },
     {
-      "name": "np:insert",
+      "name": "Insert template at cursor position",
       "alias": [
         "insert",
         "it",
         "template",
-        "npi"
+        "npi",
+        "np:insert"
       ],
-      "description": "Insert template to current note",
+      "description": "Insert template in current note at cursor position",
       "jsFunction": "templateInsert",
       "arguments": [
         "template title to run"
       ]
     },
     {
-      "name": "np:invoke",
+      "name": "Invoke/Place template at <location> in template",
       "alias": [
         "invoke",
-        "npv"
+        "npv",
+        "np:invoke",
+        "place"
       ],
-      "description": "Place template using <location> attribute in template",
-      "jsFunction": "templateInvoke"
+      "description": "Place template using <location> attribute in template frontmatter",
+      "jsFunction": "templateInvoke",
+      "arguments":["Template name to execute (optional)"]
     },
     {
-      "name": "np:new",
+      "name": "Create new note using template",
       "alias": [
         "new",
         "nn",
         "template",
-        "npn"
+        "npn",
+        "np:new"
       ],
-      "description": "Create new note with title, using folder attribute",
+      "description": "Create new note with title, optionally using folder and newNoteTitle attribute",
       "jsFunction": "templateNew",
       "arguments": [
         "template title to run (or if you know the folder but want to be prompted at run-time for the template, enter a single space for this argument)",
@@ -65,7 +71,7 @@
       ]
     },
     {
-      "name": "np:qtn",
+      "name": "New note using Quick Note Template",
       "alias": [
         "Quick template note",
         "quick",
@@ -73,7 +79,8 @@
         "qnt",
         "qtn",
         "qqq",
-        "npq"
+        "npq",
+        "np:qtn"
       ],
       "description": "Create new note based on Quick Note Template",
       "jsFunction": "templateQuickNote",
@@ -82,7 +89,7 @@
       ]
     },
     {
-      "name": "np:mtn",
+      "name": "Create Meeting Note using Meeting Note Template",
       "alias": [
         "Meeting template note",
         "quick",
@@ -90,7 +97,8 @@
         "mnt",
         "mtn",
         "mmm",
-        "npm"
+        "npm",
+        "np:mtn"
       ],
       "description": "Create new note based on Meeting Note Template",
       "hidden": true,
@@ -114,7 +122,8 @@
         "npc"
       ],
       "description": "Convert Project Note to Frontmatter format",
-      "jsFunction": "templateConvertNote"
+      "jsFunction": "templateConvertNote",
+      "hidden": true
     },
     {
       "name": "np:about",
@@ -123,12 +132,14 @@
       "jsFunction": "templateAbout"
     },
     {
-      "name": "np:execute",
+      "name": "Execute template script (type: template-fragment)",
       "alias": [
-        "npe"
+        "npe",
+        "np:execute"
       ],
-      "description": "Execute Template Script",
-      "jsFunction": "templateExecute"
+      "description": "Execute Template Script (type: template-fragment) which may or may not output text to current note",
+      "jsFunction": "templateExecute",
+      "arguments":["Template name to execute (optional)"]
     },
     {
       "name": "np:test",
