@@ -81,11 +81,10 @@ function deleteItemRow(data) {
  * TODO: move this into the click event handler?
  */
 async function completeTask(data) {
-  // const { ID } = data
-  const itemID = data.itemID
+  const { itemID } = data
   console.log(`completeTask: for ID: ${itemID}`)
   replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked circle icon
-  // addClassToID(itemID, "checked") // adds colour + line-through
+  addClassToID(itemID, "checked") // adds colour + line-through
   addClassToID(itemID, "fadeOutAndHide")
   await delay(2000)
   deleteHTMLItem(itemID)
@@ -114,7 +113,7 @@ async function completeChecklist(data) {
   const itemID = data.itemID
   console.log(`completeChecklist: for ID: ${itemID}`)
   replaceClassInID(`${itemID}I`, "fa-regular fa-box-check") // adds ticked box icon
-  // addClassToID(itemID, "checked") // adds colour + line-through text
+  addClassToID(itemID, "checked") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
   await delay(2000)
   deleteHTMLItem(itemID)
@@ -200,28 +199,6 @@ async function cancelTask(data) {
 // You could call sendMessageToPlugin directly from the HTML onClick event handler, but I prefer to have a separate function
 // so you can do error checking, logging, etc.
 
-// /**
-//  * Event handler for the 'click' event on the icon
-//  * Note: v1 with 4 params
-//  * @param {string} filename
-//  * @param {number} lineIndex
-//  * @param {string} statusWas
-//  */
-// function onClickDashboardItemV1(ID, type, filenameEncoded, rawContentEncoded = '') {
-//   const filename = decodeRFC3986URIComponent(filenameEncoded)
-//   const rawContent = decodeRFC3986URIComponent(rawContentEncoded)
-
-//   if (!ID || !type || !filename) {
-//     const msg = `onClickDashboardItem: invalid data: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: '${rawContent}'`
-//     console.log(msg)
-//     showError(msg)
-//   } else {
-//     console.log(`onClickDashboardItem received: ID: ${ID}, type: ${type}, filename: ${filename}, rawContent: <${rawContent}>; sending 'onClickDashboardItem' to plugin`)
-//     const data = { ID, type, filename, rawContent }
-//     sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
-//   }
-// }
-
 /**
  * Event handler for the 'click' event on the icon
  * Note: v2 with object passed in
@@ -231,22 +208,6 @@ async function cancelTask(data) {
  */
 function onClickDashboardItem(data) {
   sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
-
-  // const {itemID, type, filename, encodedContent} = data
-  // // const ID = data.itemID
-  // // const type = data.type
-  // // const filename = decodeRFC3986URIComponent(data.encodedFilename)
-  // // const content = decodeRFC3986URIComponent(data.encodedContent)
-
-  // if (!ID || !type || !filename) {
-  //   const msg = `onClickDashboardItem: invalid data: ID: ${ID}, type: ${type}, filename: ${filename}, encodedContent: '${encodedContent}'`
-  //   console.log(msg)
-  //   showError(msg)
-  // } else {
-  //   console.log(`onClickDashboardItem received: ID: ${ID}, type: ${type}, filename: ${filename}, encodedContent: <${encodedContent}>; sending 'onClickDashboardItem' to plugin`)
-  //   const data = { itemID, type, filename, encodedContent }
-  //   sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
-  // }
 }
 
 /**
@@ -265,39 +226,40 @@ function onChangeCheckbox(settingName, state) {
  *****************************************************************************/
 
 function deleteHTMLItem(ID) {
-  console.log(`deleteHTMLItem(${ID}) ...`)
+  // console.log(`deleteHTMLItem(${ID}) ...`)
   const div = document.getElementById(ID)
   if (div) {
     // console.log(`innerHTML was: ${div.innerHTML}`)
     div.innerHTML = ''
   } else {
-    console.log(`- error: couldn't find an elem for this ID`)
+    console.log(`- ❗error❗ in deleteHTMLItem: couldn't find an elem with ID ${ID}`)
   }
 }
 
 function addClassToID(ID, newerClass) {
-  console.log(`addClassToID(${ID}, '${newerClass}') ...`)
+  // console.log(`addClassToID(${ID}, '${newerClass}') ...`)
   const elem = document.getElementById(ID)
   if (elem) {
     const origClass = elem.getAttribute("class")
     elem.setAttribute("class", `${origClass} ${newerClass}`)
   } else {
-    console.log(`- error: couldn't find an elem for this ID`)
+    console.log(`- ❗error❗ in addClassToID: couldn't find an elem with ID ${ID} to add class ${newerClass}`)
   }
 }
 
+// TODO: this can't find the ID, and I can't see why
 function replaceClassInID(ID, replacementClass) {
-  console.log(`replaceClassInID(${ID}, '${replacementClass}') ...`)
+  // console.log(`replaceClassInID(${ID}, '${replacementClass}') ...`)
   const elem = document.getElementById(ID)
   if (elem) {
     elem.setAttribute("class", replacementClass)
   } else {
-    console.log(`- error: couldn't find an elem for this ID`)
+    console.log(`- error in replaceClassInID: couldn't find an elem with ID ${ID} to replace class ${replacementClass}`)
   }
 }
 
 function replaceHTML(ID, html, innerText) {
-  console.log(`replaceHTML(${ID}, '${html}', '${innerText}') ...`)
+  // console.log(`replaceHTML(${ID}, '${html}', '${innerText}') ...`)
   const div = document.getElementById(ID)
   if (div) {
     if (innerText) {
@@ -306,34 +268,34 @@ function replaceHTML(ID, html, innerText) {
       div.innerHTML = html
     }
   } else {
-    console.log(`- error: couldn't find a div for this ID`)
+    console.log(`- ❗error❗ in replaceHTML: couldn't find element with ID ${ID}`)
   }
 }
 
 function setCounter(counterID, value) {
-  console.log(`setCounter('${counterID}', ${value}) ...`)
+  // console.log(`setCounter('${counterID}', ${value}) ...`)
   replaceHTML(counterID, String(value), true)
 }
 
 function incrementItemCount(counterID) {
-  console.log(`incrementItemCount('${counterID}') ...`)
+  // console.log(`incrementItemCount('${counterID}') ...`)
   const div = document.getElementById(counterID)
   if (div) {
     const value = parseInt(div.innerText)
     replaceHTML(counterID, String(value + 1), true)
   } else {
-    console.log(`- error: couldn't find a div for this counterID`)
+    console.log(`- ❗error❗ in incrementItemCount: couldn't find a div for counterID ${counterID}`)
   }
 }
 
 function decrementItemCount(counterID) {
-  console.log(`decrementItemCount('${counterID}') ...`)
+  // console.log(`decrementItemCount('${counterID}') ...`)
   const div = document.getElementById(counterID)
   if (div) {
     const value = parseInt(div.innerText)
     replaceHTML(counterID, String(value - 1), true)
   } else {
-    console.log(`- error: couldn't find a div for this counterID`)
+    console.log(`- ❗error❗ in decrementItemCount: couldn't find a div for counterID ${counterID}`)
   }
 }
 
@@ -360,7 +322,7 @@ function getNumItemsInSection(sectionID, tagName) {
     // console.log(`= ${String(c)}`)
     return c
   } else {
-    console.log(`Couldn't find section with ID ${sectionID}`)
+    console.log(`- ❗error❗ in getNumItemsInSection: couldn't find section with ID ${sectionID}`)
     return 0
   }
 }

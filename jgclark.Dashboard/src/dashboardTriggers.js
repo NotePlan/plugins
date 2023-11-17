@@ -116,43 +116,17 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
       // // Decide if there are more or fewer open items than before
       // // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
       // // (This avoids firing when simply moving task/checklist items around, or updating the text.)
-      let hasNumberOfOpenItemsChanged = false
       // const hasNumberOfOpenItemsChanged = changeToNumberOfOpenItems(previousContent, latestContent)
-      // // Get changed ranges
-      // const ranges = NotePlan.stringDiff(previousContent, latestContent)
-      // if (!ranges || ranges.length === 0) {
-      //   logDebug('decideWhetherToUpdateDashboard', `No ranges returned, so stopping.`)
-      //   return
-      // }
-      // const earliestStart = ranges[0].start
-      // let latestEnd = ranges[ranges.length - 1].end
-      // const overallRange: TRange = Range.create(earliestStart, latestEnd)
-      // logDebug('decideWhetherToUpdateDashboard', `- overall changed content from ${rangeToString(overallRange)}`)
-      // Get changed lineIndexes
-
-      // earlier method for changedExtent based on character region, which didn't seem to always include all the changed parts.
-      // const changedExtent = latestContent?.slice(earliestStart, latestEnd)
-      // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
-      // logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
-
-      // // Newer method uses changed paragraphs: this will include more than necessary, but that's more useful in this case
-      // let changedExtent = ''
-      // const [startParaIndex, endParaIndex] = selectedLinesIndex(overallRange, Editor.paragraphs)
-      // logDebug('decideWhetherToUpdateDashboard', `- changed lines ${startParaIndex}-${endParaIndex}`)
-      // // Editor.highlightByIndex(earliestStart, latestEnd - earliestStart)
-      // for (let i = startParaIndex; i <= endParaIndex; i++) {
-      //   changedExtent += Editor.paragraphs[i].content
-      // }
-      // logDebug('decideWhetherToUpdateDashboard', `Changed content extent: <${changedExtent}>`)
+      let hasNumberOfOpenItemsChanged = false // TODO: remove workaround
 
       if (hasNumberOfOpenItemsChanged || openItemsHaveChanged) {
         // Note: had wanted to try using Editor.save() here, but seems to trigger an infinite loop
         // Note: DataStore.updateCache(Editor.note) doesn't work either.
         // Instead we test for Editor in the dataGeneration::getOpenItemParasForCurrentTimePeriod() function
 
-        // Update the dashboard, but don't ask for focus
+        // Update the dashboard
         logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard.`)
-        showDashboardHTML(false)
+        showDashboardHTML('trigger') // indicate this comes from a trigger, so won't take focus
       } else {
         logDebug('decideWhetherToUpdateDashboard', `Won't update dashboard.`)
       }

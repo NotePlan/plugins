@@ -61,7 +61,7 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	cursor: pointer;
 }
 .pad-right {	/* add space after icon */
-	padding-right: 0.4em;
+	padding-right: 0.3em;
 }
 .space-under {	/* add space under item */
 	padding-bottom: 0.3em;

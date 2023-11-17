@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 22.9.2023 for v0.6.2 by @jgclark
+// Last updated 22.9.2023 for v0.7.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -378,7 +378,7 @@ export async function showDemoDashboardHTML(): Promise<void> {
     return
   }
 
-  await showDashboardHTML(true, true)
+  await showDashboardHTML('manual', true)
 }
 
 /**
@@ -389,10 +389,10 @@ export async function showDemoDashboardHTML(): Promise<void> {
  * - x-yI = icon for section x item y, used in 'col 3' <i> tag
  *
  * @author @jgclark
- * @param {boolean?} shouldFocusWindow? (default: true)
+ * @param {string?} callType (default: 'manual')
  * @param {boolean?} showDemoData? if true, show the demo data, otherwise show the real data
  */
-export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: boolean = false): Promise<void> {
+export async function showDashboardHTML(callType: string = 'manual', demoMode: boolean = false): Promise<void> {
   try {
     // Check to stop it running on iOS
     if (NotePlan.environment.platform === 'iOS') {
@@ -401,6 +401,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
       return
     }
 
+    const shouldFocus = (callType === 'manual')
     const config = await getSettings()
     const todaysFilenameDate = getTodaysDateUnhyphenated()
     let filterPriorityItems = DataStore.preference('Dashboard-filterPriorityItems') ?? false
@@ -414,7 +415,9 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     if (demoMode) {
       ;[sections, sectionItems] = await getDemoDataForDashboard()
     } else {
-      ;[sections, sectionItems] = await getDataForDashboard()
+      // Get live data, indicating don't do a full generate if this has been triggered from change in daily note
+      const fullGenerate = callType !== 'trigger'
+        ;[sections, sectionItems] = await getDataForDashboard(fullGenerate)
     }
 
     // logDebug('showDashboardHTML', `Starting with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
@@ -466,14 +469,15 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
       // Prepare col 1 (section icon + title + description)
       // Now prepend a sectionNCount ID and populate it. This needs a span with an ID so that it can be updated later.
       const sectionCountID = `section${String(section.ID)}Count`
-      const sectionCountPrefix = `<span id="${sectionCountID}">${String(items.length)}</span>`
+      const sectionCountSpan = `<span id="${sectionCountID}">${String(items.length)}</span>`
       const sectionNameWithPossibleLink = section.filename ? addNoteOpenLinkToString(section, section.name) : section.name
       outputArray.push(
         ` <tr>\n  <td style="min-width:8rem; max-width: 10rem;"><p class="${section.sectionTitleClass} sectionName"><i class="${section.FAIconClass} pad-right"></i>${sectionNameWithPossibleLink}</p>`,
       )
 
       if (items.length > 0) {
-        outputArray.push(`   <p class="sectionDescription">${sectionCountPrefix} ${section.description}`)
+        const sectionDescriptionWithCountSpan = section.description.replace('{count}', sectionCountSpan)
+        outputArray.push(`   <p class="sectionDescription">${sectionDescriptionWithCountSpan}`)
 
         if (['Today', 'This week', 'This month', 'This quarter', 'This year'].includes(section.name)) {
           // Add 'add task' and 'add checklist' icons
@@ -516,7 +520,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
           items = filteredItems
           items.push({
             ID: section.ID + '-Filter',
-            content: `There are also ${filteredOut} lower-priority items not shown.`,
+            content: `There are also ${filteredOut} lower-priority items currently hidden.`,
             rawContent: 'Filtered out',
             filename: '',
             type: 'filterIndicator',
@@ -530,19 +534,20 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
         let reviewNoteCount = 0 // count of note-review items
         outputArray.push(`       <tr class="no-borders" id="${item.ID}">`)
 
-        // Long-winded way to get note title, as we don't have TNote, but do have note's filename
+        // get note title (a long-winded way because we don't have TNote, but do have note's filename)
         const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString(item.filename.split('.')[0]))
 
         // Work out the extra controls that are relevant for this task, and set up as tooltips
+        // (where 'O' refers to 'Overdue')
         const possibleControlTypes = [
-          { displayString: '→today', controlStr: 't', sectionDateTypes: ['W', 'M', 'Q'] }, // special controlStr to indicate change to '>today'
-          { displayString: '+1d', controlStr: '+1d', sectionDateTypes: ['D', 'W', 'M'] },
-          { displayString: '+1b', controlStr: '+1b', sectionDateTypes: ['D', 'W', 'M'] },
-          { displayString: '→wk', controlStr: '+0w', sectionDateTypes: ['D', 'M'] },
-          { displayString: '+1w', controlStr: '+1w', sectionDateTypes: ['D', 'W'] },
-          { displayString: '→mon', controlStr: '+0m', sectionDateTypes: ['D', 'W', 'Q'] },
-          { displayString: '+1m', controlStr: '+1m', sectionDateTypes: ['M'] },
-          { displayString: '→qtr', controlStr: '+0q', sectionDateTypes: ['M'] },
+          { displayString: '→today', controlStr: 't', sectionDateTypes: ['W', 'M', 'Q', 'O'] }, // special controlStr to indicate change to '>today'
+          { displayString: '+1d', controlStr: '+1d', sectionDateTypes: ['D', 'W', 'M', 'O'] },
+          { displayString: '+1b', controlStr: '+1b', sectionDateTypes: ['D', 'W', 'M', 'O'] },
+          { displayString: '→wk', controlStr: '+0w', sectionDateTypes: ['D', 'M', 'O'] },
+          { displayString: '+1w', controlStr: '+1w', sectionDateTypes: ['D', 'W', 'O'] },
+          { displayString: '→mon', controlStr: '+0m', sectionDateTypes: ['D', 'W', 'Q', 'O'] },
+          { displayString: '+1m', controlStr: '+1m', sectionDateTypes: ['M', 'O'] },
+          { displayString: '→qtr', controlStr: '+0q', sectionDateTypes: ['M', 'O'] },
         ]
         const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
         let tooltipContent = ''
@@ -556,7 +561,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
               if (isValidCalendarNoteFilename(item.filename)) {
                 tooltipContent += `<button class="moveButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
               } else {
-                logDebug('dashboardHTML', `- This needs to be updateTaskDate ${item.filename} as its not a calendar note`)
+                // logDebug('dashboardHTML', `- This needs to be updateTaskDate ${item.filename} as its not a calendar note`)
                 tooltipContent += `<button class="changeDateButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
               }
             }
@@ -663,7 +668,7 @@ export async function showDashboardHTML(shouldFocus: boolean = true, demoMode: b
     )}</span> closed. Last updated ${nowLocaleShortTime()}`
 
     // Write time and refresh info
-    const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', '')
+    const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', 'refresh')
     const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
     // Now using a proper button, not a fake one. But it needs to live inside a form to activate.
     // FIXME: works in Safari, but not in NP. Grrr.
@@ -736,7 +741,7 @@ export async function addTask(calNoteFilename: string): Promise<void> {
   logDebug('addTask', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`)
   await prependTodoToCalendarNote('task', calNoteDateStr)
   // trigger window refresh
-  await showDashboardHTML()
+  await showDashboardHTML('refresh')
 }
 
 /**
@@ -748,7 +753,7 @@ export async function addChecklist(calNoteFilename: string): Promise<void> {
   logDebug('addChecklist', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`)
   await prependTodoToCalendarNote('checklist', calNoteDateStr)
   // trigger window refresh
-  await showDashboardHTML()
+  await showDashboardHTML('refresh')
 }
 
 /**
@@ -758,7 +763,7 @@ export async function addChecklist(calNoteFilename: string): Promise<void> {
 export async function resetDashboardWinSize(): Promise<void> {
   unsetPreference('WinRect_Dashboard')
   closeWindowFromCustomId(pluginJson['plugin.id'])
-  await showDashboardHTML(true, false)
+  await showDashboardHTML('refresh', false)
 }
 
 //------------------------------------------------------------------------------

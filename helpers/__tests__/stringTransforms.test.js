@@ -43,12 +43,12 @@ describe(`${PLUGIN_NAME}`, () => {
     test('should produce HTML link 1 with icon', () => {
       const input = 'this has [text](brackets) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <a class="externalLink" href="brackets"><i class="fa-regular fa-globe"></i>text</a> with a valid link')
+      expect(result).toEqual('this has <a class="externalLink" href="brackets"><i class="fa-regular fa-globe pad-right"></i>text</a> with a valid link')
     })
     test('should produce HTML link 2', () => {
       const input = 'this has [title with spaces](https://www.something.com/with?various&chars%20ok) with a valid link'
       const result = st.changeMarkdownLinksToHTMLLink(input)
-      expect(result).toEqual('this has <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe"></i>title with spaces</a> with a valid link')
+      expect(result).toEqual('this has <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>title with spaces</a> with a valid link')
     })
   })
 
@@ -70,22 +70,33 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = st.changeBareLinksToHTMLLink(input)
       expect(result).toEqual('this has [a valid MD link](https://www.something.com/with?various&chars%20ok)')
     })
-    test('should produce HTML link 1 with icon', () => {
-      const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
-      const result = st.changeBareLinksToHTMLLink(input)
+    test('should produce HTML link 1 with icon and no truncation', () => {
+      const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
+      const result = st.changeBareLinksToHTMLLink(input, true, false)
       expect(result).toEqual(
-        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe"></i>https://www.something.com/with?various&chars%20ok</a> valid bare link')
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long</a> valid bare link')
+    })
+    test('should produce HTML link 1 with icon and truncation', () => {
+      const input = 'this has a https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long valid bare link'
+      const result = st.changeBareLinksToHTMLLink(input, true, true)
+      expect(result).toEqual(
+        'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok/~/and/yet/more/things-to-make-it-really-quite-long"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok/...</a> valid bare link')
     })
     test('should produce HTML link 1 without icon', () => {
       const input = 'this has a https://www.something.com/with?various&chars%20ok valid bare link'
-      const result = st.changeBareLinksToHTMLLink(input, false)
+      const result = st.changeBareLinksToHTMLLink(input, false, false)
       expect(result).toEqual(
         'this has a <a class="externalLink" href="https://www.something.com/with?various&chars%20ok">https://www.something.com/with?various&chars%20ok</a> valid bare link')
     })
     test('should produce HTML link when a link takes up the whole line', () => {
       const input = 'https://www.something.com/with?various&chars%20ok'
-      const result = st.changeBareLinksToHTMLLink(input)
-      expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe"></i>https://www.something.com/with?various&chars%20ok</a>')
+      const result = st.changeBareLinksToHTMLLink(input, true, false)
+      expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok</a>')
+    })
+    test('should produce HTML link when a link takes up the whole line', () => {
+      const input = 'https://www.something.com/with?various&chars%20ok'
+      const result = st.changeBareLinksToHTMLLink(input, true, false)
+      expect(result).toEqual('<a class="externalLink" href="https://www.something.com/with?various&chars%20ok"><i class="fa-regular fa-globe pad-right"></i>https://www.something.com/with?various&chars%20ok</a>')
     })
   })
 

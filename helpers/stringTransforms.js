@@ -4,7 +4,7 @@
 // by @jgclark, @dwertheimer
 //-----------------------------------------------------------------------------
 
-import { getNPWeekStr, RE_ISO_DATE, RE_NP_WEEK_SPEC, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, todaysDateISOString, RE_NP_YEAR_SPEC, RE_NP_DAY_SPEC } from '@helpers/dateTime'
+import { getNPWeekStr, RE_ISO_DATE, RE_NP_WEEK_SPEC, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC, todaysDateISOString, RE_NP_YEAR_SPEC } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { RE_MARKDOWN_LINKS_CAPTURE_G, RE_SIMPLE_BARE_URI_MATCH_G, RE_SYNC_MARKER } from '@helpers/regex'
 
@@ -30,20 +30,24 @@ export function convertAllLinksToHTMLLinks(original: string): string {
  * @tests in jest file
  * @param {string} original string
  * @param {boolean?} addWebIcon before the link? (default: true)
+ * @param {boolean?} truncateIfNecessary the display of the link? (default: true)
  */
-export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean = true): string {
+export function changeBareLinksToHTMLLink(original: string, addWebIcon: boolean = true, truncateIfNecessary: boolean = true): string {
   let output = original
   const captures = Array.from(original.matchAll(RE_SIMPLE_BARE_URI_MATCH_G) ?? [])
   if (captures.length > 0) {
     // clo(captures, `${String(captures.length)} results from bare URL matches:`)
     for (const capture of captures) {
       const linkURL = capture[3]
-      // output = output.replace(linkURL, `<span class="externalLink"><a href="${linkURL}">${linkURL}</a></span>`)
+      const URLForDisplay = (truncateIfNecessary && linkURL.length > 20)
+        ? linkURL.slice(0, 50) + '...'
+        : linkURL
+      // logDebug('changeBareLinksToHTMLLink', `${linkURL} / ${URLForDisplay}`)
       if (addWebIcon) {
         // not displaying icon
-        output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe"></i>${linkURL}</a>`)
+        output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe pad-right"></i>${URLForDisplay}</a>`)
       } else {
-        output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}">${linkURL}</a>`)
+        output = output.replace(linkURL, `<a class="externalLink" href="${linkURL}">${URLForDisplay}</a>`)
       }
     }
   }
@@ -66,10 +70,9 @@ export function changeMarkdownLinksToHTMLLink(original: string, addWebIcon: bool
     for (const capture of captures) {
       const linkTitle = capture[1]
       const linkURL = capture[2]
-      // output = output.replace(`[${linkTitle}](${linkURL})`, `<span class="externalLink"><a href="${linkURL}">${linkTitle}</a></span>`)
       if (addWebIcon) {
         // not displaying icon
-        output = output.replace(`[${linkTitle}](${linkURL})`, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe"></i>${linkTitle}</a>`)
+        output = output.replace(`[${linkTitle}](${linkURL})`, `<a class="externalLink" href="${linkURL}"><i class="fa-regular fa-globe pad-right"></i>${linkTitle}</a>`)
       } else {
         output = output.replace(`[${linkTitle}](${linkURL})`, `<a class="externalLink" href="${linkURL}">${linkTitle}</a>`)
       }

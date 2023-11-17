@@ -1,14 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 21.8.2023 for v0.6.0 by @jgclark
+// Last updated 17.11.2023 for v0.7.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_EVENT_ID } from '@helpers/calendar'
 import { trimString } from '@helpers/dataManipulation'
-import { getDateStringFromCalendarFilename, getAPIDateStrFromDisplayDateStr, toLocaleTime } from '@helpers/dateTime'
+import {
+  // getDateStringFromCalendarFilename,
+  getAPIDateStrFromDisplayDateStr,
+  toLocaleTime
+} from '@helpers/dateTime'
 // import { toLocaleDateTimeString } from "@helpers/NPdateTime"
 import {
   simplifyNPEventLinksForHTML,
@@ -32,13 +36,9 @@ import {
 } from '@helpers/paragraph'
 import {
   RE_ARROW_DATES_G,
-  // RE_EVENT_LINK,
   RE_MARKDOWN_LINKS_CAPTURE_G,
-  // RE_NOTELINK_G,
   RE_SCHEDULED_DATES_G,
-  // RE_SYNC_MARKER
 } from '@helpers/regex'
-// import { getLineMainContentPos } from '@helpers/search'
 import { getNumericPriority } from '@helpers/sorting'
 import {
   changeBareLinksToHTMLLink,
@@ -57,7 +57,7 @@ import { showMessage, showMessageYesNo } from '@helpers/userInput'
 export type Section = {
   ID: number,
   name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
-  dateType: '' | 'D' | 'W' | 'M' | 'Q' | 'Y',
+  dateType: '' | 'D' | 'W' | 'M' | 'Q' | 'Y' | 'O', // where O = overdue
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,
@@ -85,8 +85,15 @@ export type dashboardConfigType = {
   includeFolderName: boolean,
   includeTaskContext: boolean,
   autoAddTrigger: boolean,
-  excludeTasksWithTimeblocks: boolean,
   excludeChecklistsWithTimeblocks: boolean,
+  excludeTasksWithTimeblocks: boolean,
+  showYesterdaySection: boolean,
+  showMonthSection: boolean,
+  showQuarterSection: boolean,
+  showOverdueTaskSection: boolean,
+  maxOverdueTasksToShow: number,
+  overdueSortOrder: string,
+  showProjectSection: boolean,
   tagToShow: string,
   _logLevel: string,
   triggerLogging: boolean,
@@ -134,10 +141,13 @@ export async function getSettings(): Promise<any> {
  * Alter the provided paragraph's content to display suitably in HTML to mimic NP native display of markdown (as best we can). Currently this:
  * - simplifies NP event links, and tries to colour them
  * - turns MD links -> HTML links
+ * - truncates the display of raw URLs if necessary
  * - turns NP sync ids -> blue asterisk icon
  * - turns #hashtags and @mentions the colour that the theme displays them
  * - turns >date markers the colour that the theme displays them
- * Further, if noteTitle is supplied, then either 'append' it as a active NP note title, or make it the active NP note link for 'all' the string.
+ * - truncates the overall string if necessary
+ * - styles in bold/italic
+ * - if noteTitle is supplied, then either 'append' it as a active NP note title, or make it the active NP note link for 'all' the string.
  * Note: the actual note link is added following load by adding click handler to all items with class "sectionItemContent" (which already have a basic <a>...</a> wrapper).
  * @author @jgclark
  * @param {SectionItem} thisItem
@@ -214,7 +224,8 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
     output = convertBoldAndItalicToHTML(output)
 
     // Display underline with .underlined style
-    output = convertUnderlinedToHTML(output)
+    // TODO: Currently disabled as it breaks with a bare URL that contains a ~ (e.g. http://feeds.ligonier.org/~/798673703/0/ligonierministriesblog)
+    // output = convertUnderlinedToHTML(output)
 
     // Add suitable colouring to 'arrow' >date< items
     // (Needs to go before match on >date dates)
@@ -261,7 +272,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
 
     // Now include an active link to the note, if 'noteTitle' is given
     if (noteTitle) {
-      // logDebug('makeParaContet...', `- before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
+      logDebug('makeParaContet...', `- before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
       switch (noteLinkStyle) {
         case 'append': {
           output = addNoteOpenLinkToString(thisItem, output) + ' ' + makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)

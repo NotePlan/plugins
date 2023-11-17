@@ -1,11 +1,21 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.7.0] - 2023-11-17
+### Added
+- new optional 'Overdue Tasks' section (requested by @dwertheimer and @george65). There are some new settings to help tailor this to your way of working.
+- new optional 'Yesterday' section (requested by @george65)
+
+### Changed
+- the Tags/Mentions section now excludes open tasks/checklists that are scheduled to the future (using `>date`)
+- long raw URLs are now displayed in a shortened form
+- minor tweaks (mostly updating libraries)
+- removed styling for underlines, as it breaks bare URLs that contain a `~` character
+
 ## [0.6.2] - 2023-09-22
+- Tasks/checklists in calender notes that are scheduled to the future (by a `>date` string) are now excluded. (Request #471 by @dwertheimer)
 - Can now run Dashboard at the same time as other plugins with HTML windows. (Requires NotePlan v3.9.6.)
 -  Allow Dashboard to run on iPad again (for @phenix)
-
-<!-- ## [0.6.1] - 2023-08-??? -->
 
 ## [0.6.0] - 2023-08-25
 ### Added
@@ -41,7 +51,7 @@ Note: - this plugin has *lots* of moving parts, and many of them have changed in
 - new 'hover' effect over the todo circle and checklist square, to help hint that clicking will complete it (or command-click will cancel it).
 
 ### Fixed
-- lots of edge cases ???
+- lots of edge cases
 - 'Filter ...' checkbox
 
 ## [0.5.0] - 2023-07-14

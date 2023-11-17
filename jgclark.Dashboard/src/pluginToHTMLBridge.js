@@ -276,7 +276,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // Instruction from a 'changeDateButton' to change date on a task
         // Note: Overloads ID with the dateInterval to use
         const dateInterval = ID
-        let startDateStr = ''
         let newDateStr = ''
         if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
           logError('bridgeClickDashboardItem', `bad move date interval: ${dateInterval}`)
@@ -284,13 +283,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         }
         if (dateInterval === 't') {
           // Special case to change to '>today'
-          // FIXME: fails for week date referenced in project note
-          startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = 'today'
-          logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> 'today'`)
+          logDebug('bridgeClickDashboardItem', `move task -> 'today' in ${filename}`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           // Get today's date, ignoring current date on task
-          startDateStr = getTodaysDateHyphenated()
+          let startDateStr = getTodaysDateHyphenated()
           newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'longer') // TEST: longer?
           logDebug('bridgeClickDashboardItem', `change due date on task from ${startDateStr} -> ${newDateStr}`)
         }

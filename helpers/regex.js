@@ -106,9 +106,9 @@ export const RE_NOTELINK_CAPTURE_TITLE_G: RegExp = /\[\[([^\[]+)\]\]/g
 export const RE_MARKDOWN_LINKS_CAPTURE_G: RegExp = /\[([^\]]+)\]\(([^\)]+)\)/g
 export const RE_MARKDOWN_LINK_PATH_CAPTURE: RegExp = /\[.+?\]\(([^\s]*?)\)/
 export const RE_MARKDOWN_LINK_PATH_CAPTURE_G: RegExp = /\[.+?\]\(([^\s]*?)\)/g
-export const RE_SIMPLE_URI_MATCH: RegExp = /(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*,]+)/
-export const RE_SIMPLE_URI_MATCH_G: RegExp = /(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*,]+)/g
-export const RE_SIMPLE_BARE_URI_MATCH_G: RegExp = /((?!([\("'])).|^)(\b\w+:\/{1,3}[\w\.\/\?\#\&\d\-\=\@%*,]+)/ig // complex because it's still avoiding negative look-behind (though support is apparently coming in Safari 16.4 etc.)
+export const RE_SIMPLE_URI_MATCH: RegExp = /(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/
+export const RE_SIMPLE_URI_MATCH_G: RegExp = /(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/g
+export const RE_SIMPLE_BARE_URI_MATCH_G: RegExp = /((?!([\("'])).|^)(\b\w+:\/{1,3}[\w\.\/\?\#\&\d\-\=\@%*~,]+)/ig // complex because it's still avoiding negative look-behind (though support is apparently coming in Safari 16.4 etc.)
 
 // Synced lines
 export const RE_SYNC_MARKER: RegExp = /\^[A-Za-z0-9]{6}(?![A-Za-z0-9])/
