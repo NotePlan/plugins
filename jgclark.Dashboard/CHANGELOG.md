@@ -1,10 +1,13 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [0.7.1] - 2023-11-???
+## [0.7.1] - 2023-11-20
 ### Added
-- add '->today' button on Yesterday section items
-- ??? new button for completing an overdue task on the day it was due
+- 'Folders to ignore' setting now applies to the Overdue tasks section as well (resolves #496)
+  - add '->today' button on Yesterday section items
+- two new experimental buttons on Overdue tasks, turned on by new checkbox at bottom of settings screen:
+  - complete an overdue task on the day it was due, not today
+  - toggle an item between being a task and a checklist
 
 ## [0.7.0] - 2023-11-17
 ### Added
