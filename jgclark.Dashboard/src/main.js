@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 22.9.2023 for v0.7.0 by @jgclark
+// Last updated 19.11.2023 for v0.7.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -92,28 +92,38 @@ console.log('add Event Listeners to Icons ...');
 
 function mouseenterTodoFunc() {
 	// console.log('mouseenterTodo ... after '+String(event.detail)+' clicks');
+  thisID = this.firstChild.id;
+  // console.log('mouseenterTodo' + thisID);
 	if (event.metaKey) {
-		this.innerHTML = '<i class="cancelled fa-regular fa-circle-xmark">';
+		this.innerHTML = '<i id="'+thisID+'"  class="cancelled fa-regular fa-circle-xmark">';
 	} else {
-		this.innerHTML = '<i class="checked fa-regular fa-circle-check">';
+		this.innerHTML = '<i id="'+thisID+'"  class="checked fa-regular fa-circle-check">';
 	}
 }
 
 function mouseenterChecklistFunc() {
 	// console.log('mouseenterChecklist ... after '+String(event.detail)+' clicks');
+  thisID = this.firstChild.id;
+  // console.log('mouseenterChecklist' + thisID);
 	if (event.metaKey) {
-		this.innerHTML = '<i class="cancelled fa-regular fa-square-xmark">';
+		this.innerHTML = '<i id="'+thisID+'"  class="cancelled fa-regular fa-square-xmark">';
 	} else {
-		this.innerHTML = '<i class="checked fa-regular fa-square-check">';
+		this.innerHTML = '<i id="'+thisID+'"  class="checked fa-regular fa-square-check">';
 	}
 }
 
 function mouseleaveTodoFunc() {
-	this.innerHTML = '<i class="todo fa-regular fa-circle">';
+  // Need to save ID
+  thisID = this.firstChild.id;
+  // console.log('mouseleaveTodo' + thisID);
+	this.innerHTML = '<i id="'+thisID+'" class="todo fa-regular fa-circle">';
 }
 
 function mouseleaveChecklistFunc() {
-	this.innerHTML = '<i class="todo fa-regular fa-square">';
+  // Need to save ID
+  thisID = this.firstChild.id;
+  // console.log('mouseleaveChecklist' + thisID);
+	this.innerHTML = '<i id="'+thisID+'" class="todo fa-regular fa-square">';
 }
 
 // Add event handlers for task icons
@@ -225,7 +235,7 @@ console.log(String(allReviewItems.length) + ' review ELs added (to review cells)
 `
 
 /**
- * Add an event listener to all class="moveButton" and "changeDateButton" items
+ * Add an event listener to all class="moveButton", "changeDateButton", "completeThen" and "toggleType" items
  */
 const addButtonEventListenersScript = `
 <!-- addButtonEventListenersScript -->
@@ -241,6 +251,7 @@ function findAncestor(startElement, tagName) {
 
 // Add click handler to all hoverExtraControls' buttons
 // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
+console.log('Add click handlers to all hoverExtraControls buttons')
 let allMoveButtons = document.getElementsByClassName("moveButton");
 for (const button of allMoveButtons) {
   // const thisTD = button.parentElement.parentElement.parentElement;
@@ -256,7 +267,7 @@ for (const button of allMoveButtons) {
     handleButtonClick(thisControlStr, 'moveFromCalToCal', thisFilename, thisEncodedContent); // , event.metaKey
   }, false);
 }
-console.log(String(allMoveButtons.length) + ' moveButton ELs added');
+console.log(String(allMoveButtons.length) + ' move button ELs added');
 
 let allChangeDateButtons = document.getElementsByClassName("changeDateButton");
 for (const button of allChangeDateButtons) {
@@ -273,6 +284,38 @@ for (const button of allChangeDateButtons) {
   }, false);
 }
 console.log(String(allChangeDateButtons.length) + ' dateChangeButton ELs added');
+
+let allCompleteThenButtons = document.getElementsByClassName("completeThenButton");
+for (const button of allCompleteThenButtons) {
+  const thisTD = findAncestor(button, 'TD');
+  const thisID = thisTD.parentElement.id;
+  console.log('- CT on' + thisID);
+  const thisControlStr = button.dataset.controlStr;
+  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
+  const thisEncodedFilename = thisTD.dataset.encodedFilename;
+  // add event handler
+  button.addEventListener('click', function (event) {
+    event.preventDefault();
+    handleButtonClick(thisID, 'completeTaskThen', thisEncodedFilename, thisEncodedContent); // , event.metaKey
+  }, false);
+}
+console.log(String(allCompleteThenButtons.length) + ' completeThenButton ELs added');
+
+let allToggleTypeButtons = document.getElementsByClassName("toggleTypeButton");
+for (const button of allToggleTypeButtons) {
+  const thisTD = findAncestor(button, 'TD');
+  const thisID = thisTD.parentElement.id;
+  console.log('- TT on' + thisID);
+  const thisControlStr = button.dataset.controlStr;
+  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
+  const thisEncodedFilename = thisTD.dataset.encodedFilename;
+  // add event handler
+  button.addEventListener('click', function (event) {
+    event.preventDefault();
+    handleButtonClick(thisID, 'toggleType', thisEncodedFilename, thisEncodedContent); // , event.metaKey
+  }, false);
+}
+console.log(String(allToggleTypeButtons.length) + ' toggleTypeButton ELs added');
 </script>
 `
 
@@ -540,15 +583,25 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
         // Work out the extra controls that are relevant for this task, and set up as tooltips
         // (where 'O' refers to 'Overdue')
         const possibleControlTypes = [
-          { displayString: '→today', controlStr: 't', sectionDateTypes: ['W', 'M', 'Q', 'O'] }, // special controlStr to indicate change to '>today'
-          { displayString: '+1d', controlStr: '+1d', sectionDateTypes: ['D', 'W', 'M', 'O'] },
-          { displayString: '+1b', controlStr: '+1b', sectionDateTypes: ['D', 'W', 'M', 'O'] },
-          { displayString: '→wk', controlStr: '+0w', sectionDateTypes: ['D', 'M', 'O'] },
-          { displayString: '+1w', controlStr: '+1w', sectionDateTypes: ['D', 'W', 'O'] },
-          { displayString: '→mon', controlStr: '+0m', sectionDateTypes: ['D', 'W', 'Q', 'O'] },
+          { displayString: '→today', controlStr: 't', sectionDateTypes: ['DY', 'W', 'M', 'Q', 'O'] }, // special controlStr to indicate change to '>today'
+          { displayString: '+1d', controlStr: '+1d', sectionDateTypes: ['DT', 'DY', 'W', 'M', 'O'] },
+          { displayString: '+1b', controlStr: '+1b', sectionDateTypes: ['DT', 'DY', 'W', 'M', 'O'] },
+          { displayString: '→wk', controlStr: '+0w', sectionDateTypes: ['DT', 'DY', 'M', 'O'] },
+          { displayString: '+1w', controlStr: '+1w', sectionDateTypes: ['DT', 'DY', 'W', 'O'] },
+          { displayString: '→mon', controlStr: '+0m', sectionDateTypes: ['DT', 'DY', 'W', 'Q', 'O'] },
           { displayString: '+1m', controlStr: '+1m', sectionDateTypes: ['M', 'O'] },
-          { displayString: '→qtr', controlStr: '+0q', sectionDateTypes: ['M', 'O'] },
+          { displayString: '→qtr', controlStr: '+0q', sectionDateTypes: ['M'] },
         ]
+        // Add some specials if requested by a hidden setting
+        if (config.showExtraButtons) {
+          possibleControlTypes.push({ displayString: '◯/☐', controlStr: 'tog', sectionDateTypes: ['O'] })
+          possibleControlTypes.push({ displayString: '✓then', controlStr: 'ct', sectionDateTypes: ['O'] })
+        }
+
+        // FIXME: [WebView Log] CommsBridge: onMessageReceived: received a message of type: completeTask with a payload // onMessageFromPlugin: starting with type: completeTask and data.itemID: ct // completeTask: for ID: ct // - error in replaceClassInID: couldn't find an elem with ID ctI to replace class fa-regular fa-circle-check
+        // FIXME: need to remove from Yesterday section
+        // FIXME: [WebView Log] CommsBridge: onMessageReceived: received a message of type: completeTask with a payload /// onMessageFromPlugin: starting with type: completeTask and data.itemID: ct // completeTask: for ID: ct // - error in replaceClassInID: couldn't find an elem with ID ctI to replace class fa-regular fa-circle-check"
+        // FIXME: errors when moving from Overdue to Today: "INFO  | bridgeClickDashboardItem :: ID: t, type: moveFromCalToCal, filename: , content: {! Order more filter papers Edesia 80/200 x1000} // ❗️ERROR❗️ dateTime / getDateStringFromCalendarFilename :: Invalid calendar filename: // | DEBUG | bridgeClickDashboardItem :: move task from (invalid date) -> 'today'"
         const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
         let tooltipContent = ''
         if (controlTypesForThisSection.length > 0) {
@@ -556,15 +609,14 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
           // only want control types relevant for this section
           for (const ct of controlTypesForThisSection) {
             // tooltipContent += `\n/<!-- ${ct.controlStr} / ${ct.sectionDateTypes.join('')} / ${section.dateType} / ${item.filename} / ${section.filename} -->\n`
-            if (ct.sectionDateTypes.includes(section.dateType)) {
-              // if (item.filename === section.filename) {
-              if (isValidCalendarNoteFilename(item.filename)) {
-                tooltipContent += `<button class="moveButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
-              } else {
-                // logDebug('dashboardHTML', `- This needs to be updateTaskDate ${item.filename} as its not a calendar note`)
-                tooltipContent += `<button class="changeDateButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
-              }
-            }
+            const buttonType = (ct.controlStr === 'tog')
+              ? "toggleTypeButton"
+              : (ct.controlStr === 'ct')
+                ? "completeThenButton"
+                : (ct.sectionDateTypes.includes(section.dateType))
+                  ? "moveButton"
+                  : "changeDateButton"
+            tooltipContent += `<button class="${buttonType} hoverControlButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
           }
           tooltipContent += '</span>'
         }

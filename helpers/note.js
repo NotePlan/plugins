@@ -574,7 +574,7 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
       let isInIgnoredFolder = false
       excludedFolders.forEach((folder) => {
         if (note.filename.includes(`${folder.trim()}/`)) {
-          // logDebug('note/filterNotesAgainstExcludeFolders', `ignoring folder="${folder}" note.filename="${note.filename}}"`)
+          logDebug('note/fNAEF', `ignoring folder="${folder}" note.filename="${note.filename}}"`)
           isInIgnoredFolder = true
         }
       })
@@ -594,35 +594,34 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
  * @param {boolean} excludeNonMarkdownFiles - if true, exclude non-markdown files (must have .txt or .md to get through)
  * @returns {Array<TNote>} - array of notes that are not in excluded folders
  */
-export function filterParasAgainstExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>, excludeNonMarkdownFiles: boolean = false): Array<TParagraph> {
+export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>): Array<TParagraph> {
   try {
     if (!excludedFolders) {
-      logDebug('note/filterParasAgainstExcludeFolders', `excludedFolders list is empty, so will return all paras`)
+      logDebug('note/filterOutParasInExcludeFolders', `excludedFolders list is empty, so will return all paras`)
       return paras
     }
     // $FlowIgnore(incompatible-type)
-    const noteList: Array<CoreNoteFields> = paras.map((p) => p.note)
-    if (noteList.length > 0) {
-      const noteListFiltered = filterNotesAgainstExcludeFolders(noteList, excludedFolders, excludeNonMarkdownFiles)
+    const noteFilenameList: Array<string> = paras.map((p) => p.note.filename)
+    const dedupedNoteFilenameList = [...new Set(noteFilenameList)]
+    logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
 
-      if (!noteListFiltered) {
-        logInfo('note/filterParasAgainstExcludeFolders', `all notes have been excluded`)
-        return []
-      }
-
+    if (dedupedNoteFilenameList.length > 0) {
+      const wantedFolders = getFilteredFolderList(excludedFolders)
       // filter out paras not in these notes
       const parasFiltered = paras.filter((p) => {
-        const thisNote = p.note
-        const isInIgnoredFolder = noteListFiltered.includes(thisNote)
-        return !isInIgnoredFolder
+        const thisNoteFilename = p.note?.filename ?? 'error'
+        const thisNoteFolder = getFolderFromFilename(thisNoteFilename)
+        const isInWantedFolder = wantedFolders.includes(thisNoteFolder)
+        // console.log(`${thisNoteFilename} isInWantedFolder = ${String(isInWantedFolder)}`)
+        return isInWantedFolder
       })
       return parasFiltered
     } else {
-      logDebug('note/filterParasAgainstExcludeFolders', `found no corresponding notes`)
+      logDebug('note/filterOutParasInExcludeFolders', `found no corresponding notes`)
       return []
     }
   } catch (err) {
-    logError('note/filterParasAgainstExcludeFolders', err)
+    logError('note/filterOutParasInExcludeFolders', err)
     return []
   }
 }

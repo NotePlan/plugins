@@ -11,8 +11,8 @@ import {
   hyphenatedDateString,
   isScheduled,
   nowShortDateTimeISOString,
-  SCHEDULED_WEEK_NOTE_LINK,
   RE_SCHEDULED_ISO_DATE,
+  SCHEDULED_WEEK_NOTE_LINK,
   SCHEDULED_QUARTERLY_NOTE_LINK,
   SCHEDULED_MONTH_NOTE_LINK,
   SCHEDULED_YEARLY_NOTE_LINK,
@@ -23,8 +23,9 @@ import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateT
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
+import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
-import { isOpen } from '@helpers/utils'
+import { hasScheduledDate, isOpen } from '@helpers/utils'
 
 const pluginJson = 'NPParagraph'
 
@@ -1306,12 +1307,33 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
 
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
+ * TODO: Cope with non-daily scheduled dates
  * @param {TParagraph} para
+ * @param {boolean} useScheduledDateAsCompletionDate?
  * @returns
  */
-export function markComplete(para: TParagraph): boolean {
+export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): boolean {
   if (para) {
-    const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${nowShortDateTimeISOString})` : ''
+    // Default to using current date/time
+    let dateString = nowShortDateTimeISOString
+    if (useScheduledDateAsCompletionDate) {
+      // But use scheduled date instead if found
+      if (hasScheduledDate(para.content)) {
+        const captureArr = para.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE) ?? []
+        clo(captureArr)
+        dateString = captureArr[1]
+        logDebug('markComplete', `will use scheduled date ${dateString} as completion date`)
+      } else {
+        // Use date of the note if it has one. (What does para.note.date return for non-daily calendar notes?)
+        if (para.note?.type === 'Calendar' && para.note.date) {
+          dateString = hyphenatedDate(para.note.date)
+          logDebug('markComplete', `will use date of note ${dateString} as completion date`)
+        }
+      }
+    } else {
+      dateString = nowShortDateTimeISOString
+    }
+    const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${dateString})` : ''
 
     if (para.type === 'open') {
       para.type = 'done'
@@ -1376,10 +1398,33 @@ export function completeItem(filenameIn: string, content: string): boolean {
     if (typeof possiblePara === 'boolean') {
       return false
     }
-    return markComplete(possiblePara)
+    return markComplete(possiblePara, false)
   }
   catch (error) {
     logError(pluginJson, `NPP/completeItem: ${error.message} for note '${filenameIn}'`)
+    return false
+  }
+}
+
+/**
+ * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
+ * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * Appends a '@done(...)' date to the line if the user has selected to 'add completion date' - but uses completion date of the day it was scheduled to be done.
+ * @param {string} filenameIn to look in
+ * @param {string} content to find
+ * @returns {boolean} true if succesful, false if unsuccesful
+ */
+export function completeItemEarlier(filenameIn: string, content: string): boolean {
+  try {
+    logDebug('NPP/completeItemEarlier', `starting with filename: ${filenameIn}, content: <${content}>`)
+    const possiblePara = findParaFromStringAndFilename(filenameIn, content)
+    if (typeof possiblePara === 'boolean') {
+      return false
+    }
+    return markComplete(possiblePara, true)
+  }
+  catch (error) {
+    logError(pluginJson, `NPP/completeItemEarlier: ${error.message} for note '${filenameIn}'`)
     return false
   }
 }
@@ -1612,5 +1657,38 @@ export function makeBasicParasFromContent(content: string): Array<any> {
   catch (error) {
     logError('makeBasicParasFromEditorContent', `${error.message} for input '${content}'`)
     return []
+  }
+}
+
+/**
+ * Toggle given paragraph type between (open) Task and Checklist
+ * @param {TParagraph} para to toggle
+ * @returns {ParagraphType} new type
+ */
+export function toggleTaskChecklistParaType(filename: string, content: string): string {
+  try {
+    // find para
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
+    if (typeof possiblePara === 'boolean') {
+      throw new Error('toggleTaskChecklistParaType: no para found')
+    }
+
+    // Get the paragraph to change
+    const thisPara = possiblePara
+    const thisNote = thisPara.note
+    const existingType = thisPara.type
+    logDebug('toggleTaskChecklistParaType', `toggling in filename: ${filename}`)
+    if (existingType === 'checklist') {
+      thisPara.type = 'open'
+      thisNote.updateParagraph(thisPara)
+      return 'open'
+    } else {
+      thisPara.type = 'checklist'
+      thisNote.updateParagraph(thisPara)
+      return 'checklist'
+    }
+  } catch (error) {
+    logError('toggleTaskChecklistParaType', error.message)
+    return '(error)'
   }
 }

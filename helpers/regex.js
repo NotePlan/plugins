@@ -19,6 +19,7 @@
 
 // Times, Dates
 export const RE_SCHEDULED_DATES_G: RegExp = />(today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?))/g // from Eduard, but tweaked to ignore ones that start with @ rather than >
+export const RE_FIRST_SCHEDULED_DATE_CAPTURE: RegExp = />((today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?)))/ // adapted from above
 export const RE_ARROW_DATES_G: RegExp = />(today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?))</g // as above but with a closing '<'
 
 // In helpers/dateTime.js:

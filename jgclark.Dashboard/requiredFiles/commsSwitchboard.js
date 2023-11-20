@@ -32,16 +32,19 @@ async function onMessageFromPlugin(type, data) {
       updateDivReceived(data)
       break
     case 'completeTask':
-      await completeTask(data) // Note: await not needed
+      await completeTaskInDisplay(data) // Note: await not needed
       break
     case 'completeChecklist':
-      await completeChecklist(data) // Note: await not needed
+      await completeChecklistInDisplay(data) // Note: await not needed
       break
     case 'cancelTask':
-      await cancelTask(data) // Note: await not needed
+      await cancelTaskInDisplay(data) // Note: await not needed
       break
     case 'cancelChecklist':
-      await cancelChecklist(data) // Note: await not needed
+      await cancelChecklistInDisplay(data) // Note: await not needed
+      break
+    case 'toggleType':
+      toggleTypeInDisplay(data)
       break
     default:
       console.log(`- unknown type: ${type}`)
@@ -80,9 +83,9 @@ function deleteItemRow(data) {
  * @param { { ID: string, html: string, innerText:boolean } } data
  * TODO: move this into the click event handler?
  */
-async function completeTask(data) {
+async function completeTaskInDisplay(data) {
   const { itemID } = data
-  console.log(`completeTask: for ID: ${itemID}`)
+  console.log(`completeTaskInDisplay: for ID: ${itemID}`)
   replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked circle icon
   addClassToID(itemID, "checked") // adds colour + line-through
   addClassToID(itemID, "fadeOutAndHide")
@@ -108,10 +111,10 @@ async function completeTask(data) {
  * A checklist has been completed (details in data); now update window accordingly
  * @param { { ID: string, html: string, innerText:boolean } } data
  */
-async function completeChecklist(data) {
+async function completeChecklistInDisplay(data) {
   // const { ID } = data
   const itemID = data.itemID
-  console.log(`completeChecklist: for ID: ${itemID}`)
+  console.log(`completeChecklistInDisplay: for ID: ${itemID}`)
   replaceClassInID(`${itemID}I`, "fa-regular fa-box-check") // adds ticked box icon
   addClassToID(itemID, "checked") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
@@ -137,10 +140,10 @@ async function completeChecklist(data) {
  * A task has been cancelled (details in data); now update window accordingly
  * @param { { ID: string, html: string, innerText:boolean } } data
  */
-async function cancelChecklist(data) {
+async function cancelChecklistInDisplay(data) {
   // const { ID } = data
   const itemID = data.itemID
-  console.log(`cancelChecklist: for ID: ${itemID}`)
+  console.log(`cancelChecklistInDisplay: for ID: ${itemID}`)
   replaceClassInID(`${itemID}I`, "fa-regular fa-square-xmark") // adds x-box icon
   addClassToID(itemID, "cancelled") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
@@ -165,10 +168,10 @@ async function cancelChecklist(data) {
  * A checklist has been cancelled (details in data); now update window accordingly
  * @param { { ID: string, html: string, innerText:boolean } } data
  */
-async function cancelTask(data) {
+async function cancelTaskInDisplay(data) {
   // const { ID } = data
   const itemID = data.itemID
-  console.log(`cancelTask: for ID: ${itemID}`)
+  console.log(`cancelTaskInDisplay: for ID: ${itemID}`)
   replaceClassInID(`${itemID}I`, "fa-regular fa-circle-xmark") // adds x-circle icon
   addClassToID(itemID, "cancelled") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
@@ -189,6 +192,25 @@ async function cancelTask(data) {
   }
 }
 
+/**
+ * Toggle display of an item between (open) todo to checklist or vice versa
+ * @param { { ID: string, html: string, innerText:boolean } } data
+ */
+function toggleTypeInDisplay(data) {
+  const itemID = data.itemID
+  console.log(`toggleTypeInDisplay: for ID: ${itemID}`)
+  // Get the element with {itemID}I = the icon for that item
+  const iconElement = document.getElementById(`${itemID}I`)
+  // Switch the icon
+  if (iconElement.className.includes("fa-circle")) {
+    // console.log("toggling type to checklist")
+    replaceClassInID(`${itemID}I`, "todo fa-regular fa-square")
+  } else {
+    // console.log("toggling type to todo")
+    replaceClassInID(`${itemID}I`, "todo fa-regular fa-circle")
+  }
+}
+
 /******************************************************************************
  *                       EVENT HANDLERS FOR THE HTML VIEW
  *****************************************************************************/
@@ -200,8 +222,8 @@ async function cancelTask(data) {
 // so you can do error checking, logging, etc.
 
 /**
- * Event handler for the 'click' event on the icon
- * Note: v2 with object passed in
+ * Event handler for various button 'click' events
+ * Note: data is an object
  * @param {string} filename
  * @param {number} lineIndex
  * @param {string} statusWas

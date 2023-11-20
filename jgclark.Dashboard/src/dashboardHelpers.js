@@ -57,7 +57,7 @@ import { showMessage, showMessageYesNo } from '@helpers/userInput'
 export type Section = {
   ID: number,
   name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
-  dateType: '' | 'D' | 'W' | 'M' | 'Q' | 'Y' | 'O', // where O = overdue
+  dateType: '' | 'DT' | 'DY' | 'W' | 'M' | 'Q' | 'Y' | 'O', // where O = overdue, DT = today, DY = yesterday
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,
@@ -88,11 +88,13 @@ export type dashboardConfigType = {
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
   showYesterdaySection: boolean,
+  showWeekSection: boolean,
   showMonthSection: boolean,
   showQuarterSection: boolean,
   showOverdueTaskSection: boolean,
   maxOverdueTasksToShow: number,
   overdueSortOrder: string,
+  showExtraButtons: boolean,
   showProjectSection: boolean,
   tagToShow: string,
   _logLevel: string,

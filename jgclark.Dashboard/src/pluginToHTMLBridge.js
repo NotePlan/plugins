@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 27.7.2023 for v0.6.0 by @jgclark
+// Last updated 19.11.2023 for v0.7.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -22,10 +22,12 @@ import { getNoteByFilename } from '@helpers/note'
 import {
   cancelItem,
   completeItem,
+  completeItemEarlier,
   findParaFromStringAndFilename,
   getParagraphFromStaticObject,
   highlightParagraphInEditor,
   moveItemBetweenCalendarNotes,
+  toggleTaskChecklistParaType,
 } from '@helpers/NPParagraph'
 import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString, storeWindowRect, getWindowIdFromCustomId } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
@@ -110,10 +112,12 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     logInfo('bridgeClickDashboardItem', `ID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     switch (type) {
       case 'completeTask': {
+        // Complete the task in the actual Note
         const res = completeItem(filename, content)
-        // Ask for cache refresh for this note
+        // Ask for cache refresh for this note. (Can't now remember why this is needed.)
         DataStore.updateCache(getNoteByFilename(filename), false)
 
+        // Update display in Dashboard too
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
           sendToHTMLWindow(windowId, 'completeTask', data)
@@ -123,10 +127,29 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         }
         break
       }
+      case 'completeTaskThen': {
+        // Complete the task in the actual Note, but with the date it was scheduled for
+        const res = completeItemEarlier(filename, content)
+        // Ask for cache refresh for this note
+        DataStore.updateCache(getNoteByFilename(filename), false)
+
+        // Update display in Dashboard too
+        if (res) {
+          logDebug('bridgeClickDashboardItem', `-> successful call to completeItemEarlier(), so will now attempt to remove the row in the displayed table too`)
+          sendToHTMLWindow(windowId, 'completeTask', data)
+        } else {
+          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
+          await showDashboardHTML()
+        }
+        break
+      }
       case 'cancelTask': {
+        // Cancel the task in the actual Note
         const res = cancelItem(filename, content)
         // Ask for cache refresh for this note
         DataStore.updateCache(getNoteByFilename(filename), false)
+
+        // Update display in Dashboard too
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
           sendToHTMLWindow(windowId, 'cancelTask', data)
@@ -137,9 +160,12 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'completeChecklist': {
+        // Complete the checklist in the actual Note
         const res = completeItem(filename, content)
         // Ask for cache refresh for this note
         DataStore.updateCache(getNoteByFilename(filename), false)
+
+        // Update display in Dashboard too
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
           sendToHTMLWindow(windowId, 'completeChecklist', data)
@@ -150,9 +176,12 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'cancelChecklist': {
+        // Cancel the checklist in the actual Note
         const res = cancelItem(filename, content)
         // Ask for cache refresh for this note
         DataStore.updateCache(getNoteByFilename(filename), false)
+
+        // Update display in Dashboard too
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
           sendToHTMLWindow(windowId, 'cancelChecklist', data)
@@ -160,6 +189,15 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
           await showDashboardHTML()
         }
+        break
+      }
+      case 'toggleType': {
+        // Send a request to toggleType to API
+        logDebug('bridgeClickDashboardItem', `-> placeholder for toggleType on ID ${ID} in filename ${filename}`)
+        const res = toggleTaskChecklistParaType(filename, content)
+
+        // Update display in Dashboard too
+        sendToHTMLWindow(windowId, 'toggleType', data)
         break
       }
       case 'review': {
@@ -210,7 +248,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'showLineInEditorFromFilename': {
         // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
         // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)
-        // FIXME: Error in this line
+        // FIXME: Error in this call?
         const note = await Editor.openNoteByFilename(filename)
         if (note) {
           const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
