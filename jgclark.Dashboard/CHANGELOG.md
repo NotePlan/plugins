@@ -1,6 +1,13 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.7.2] - 2023-11-21
+### Changed
+- Now removes a whole section when the last item in it is completed. (Apart from the 'TODAY' section which always remains, so that the add new task/checklist buttons are still available.)
+- Removed the 'preview' effect when hovering the mouse over the open task or checklist marker: when moving the mouse too quickly, this could land up showing misleading state.
+### Fixed
+- Fix some 'move item' buttons not working in new Overdue Items section
+
 ## [0.7.1] - 2023-11-20
 ### Added
 - 'Folders to ignore' setting now applies to the Overdue tasks section as well (resolves #496)
@@ -8,6 +15,7 @@ For more details see the [plugin's README](https://github.com/NotePlan/plugins/t
 - two new experimental buttons on Overdue tasks, turned on by new checkbox at bottom of settings screen:
   - complete an overdue task on the day it was due, not today
   - toggle an item between being a task and a checklist
+- the plugin should now auto-update to minor and point releases.
 
 ## [0.7.0] - 2023-11-17
 ### Added

@@ -290,11 +290,13 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         }
         if (dateInterval === 't') {
           // Special case to change to '>today'
+          // FIXME: errors reported here from new Overdue section, where we don't have filename?
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = getTodaysDateHyphenated()
           logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> 'today'`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           // Get the (ISO) current date on the task
+          // FIXME: errors reported here from new Overdue section, where we don't have filename?
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'offset') // 'longer'
           logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> ${newDateStr}`)
@@ -311,7 +313,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
 
       case 'updateTaskDate': {
-        // Instruction from a 'changeDateButton' to change date on a task
+        // Instruction from a 'changeDateButton' to change date on a task (in a project note)
         // Note: Overloads ID with the dateInterval to use
         const dateInterval = ID
         let newDateStr = ''

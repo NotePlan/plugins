@@ -95,15 +95,25 @@ async function completeTaskInDisplay(data) {
   decrementItemCount("totalOpenCount")
   incrementItemCount("totalDoneCount")
   // update the section count, which is identified as the first part of the itemID
-  const sectionID = itemID.split('-')[0]
-  const sectionCountID = `section${sectionID}Count`
+  const sectionNum = itemID.split('-')[0]
+  const sectionID = `${sectionNum}-Section`
+  const sectionCountID = `section${sectionNum}Count`
   decrementItemCount(sectionCountID)
 
   // See if the only remaining item is the '> There are also ... items' line
-  const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
-  if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
+  const numItemsRemaining = getNumItemsInSection(sectionID, 'TR')
+  if (numItemsRemaining === 1 && doesIDExist(`${sectionNum}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+  }
+
+  // See if we now have no remaining items at all
+  if (numItemsRemaining === 0) {
+    // Delete the whole section from the display
+    console.log(`completeTaskInDisplay: trying to delete rest of empty section: ${sectionID}`)
+    const sectionDIV = document.getElementById(sectionID)
+    const enclosingTR = findAncestor(sectionDIV, 'TR')
+    enclosingTR.remove()
   }
 }
 
@@ -133,6 +143,15 @@ async function completeChecklistInDisplay(data) {
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+  }
+
+  // See if we now have no remaining items at all
+  if (numItemsRemaining === 0) {
+    // Delete the whole section from the display
+    console.log(`completeChecklistInDisplay: trying to delete rest of empty section: ${sectionID}`)
+    const sectionDIV = document.getElementById(sectionID)
+    const enclosingTR = findAncestor(sectionDIV, 'TR')
+    enclosingTR.remove()
   }
 }
 
@@ -224,9 +243,7 @@ function toggleTypeInDisplay(data) {
 /**
  * Event handler for various button 'click' events
  * Note: data is an object
- * @param {string} filename
- * @param {number} lineIndex
- * @param {string} statusWas
+ * @param {Object} data
  */
 function onClickDashboardItem(data) {
   sendMessageToPlugin('onClickDashboardItem', data) // actionName, data
@@ -247,12 +264,24 @@ function onChangeCheckbox(settingName, state) {
  *                             HELPER FUNCTIONS
  *****************************************************************************/
 
+function findAncestor(startElement, tagName) {
+  let currentElem = startElement
+  while (currentElem !== document.body) {
+    if (currentElem.tagName.toLowerCase() === tagName.toLowerCase()) {
+      return currentElem
+    }
+    currentElem = currentElem.parentElement
+  }
+  return false
+}
+
 function deleteHTMLItem(ID) {
   // console.log(`deleteHTMLItem(${ID}) ...`)
   const div = document.getElementById(ID)
   if (div) {
     // console.log(`innerHTML was: ${div.innerHTML}`)
     div.innerHTML = ''
+    // Note: why not use div.remove() ?
   } else {
     console.log(`- ❗error❗ in deleteHTMLItem: couldn't find an elem with ID ${ID}`)
   }

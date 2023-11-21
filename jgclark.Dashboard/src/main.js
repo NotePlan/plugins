@@ -16,7 +16,11 @@ import {
   type Section,
   type SectionItem,
 } from './dashboardHelpers'
-import { getDateStringFromCalendarFilename, getTodaysDateUnhyphenated, isValidCalendarNoteFilename } from '@helpers/dateTime'
+import {
+  getDateStringFromCalendarFilename,
+  getTodaysDateUnhyphenated,
+  isValidCalendarNoteFilename
+} from '@helpers/dateTime'
 import { nowLocaleShortTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { unsetPreference } from '@helpers/NPdev'
@@ -83,12 +87,13 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
 
 /**
  * Add event listener added to all todo + checklist icons
- * Note: now not used, as on onClick is included in the HTML directly when generating the page.
  */
 const addIconEventListenersScript = `
 <!-- addIconEventListenersScript -->
 <script type="text/javascript">
 console.log('add Event Listeners to Icons ...');
+// Note: mouseOverEvents now disabled at user request
+const addMouseOverEvents = false;
 
 function mouseenterTodoFunc() {
 	// console.log('mouseenterTodo ... after '+String(event.detail)+' clicks');
@@ -140,8 +145,10 @@ for (const thisTodo of allTodos) {
     handleIconClick(thisId, 'open', thisFilename, thisTodo.dataset.encodedContent, metaModifier);
   }, false);
 	// Add mouseover-type events to hint as to what's going to happen
-	thisTodo.addEventListener('mouseenter', mouseenterTodoFunc, false);
-	thisTodo.addEventListener('mouseleave', mouseleaveTodoFunc, false);
+  if (addMouseOverEvents) {
+	  thisTodo.addEventListener('mouseenter', mouseenterTodoFunc, false);
+	  thisTodo.addEventListener('mouseleave', mouseleaveTodoFunc, false);
+  }
 }
 console.log(String(allTodos.length) + ' sectionItemTodo ELs added (to icons)');
 
@@ -158,8 +165,10 @@ for (const thisChecklist of allChecklists) {
     handleIconClick(thisId, 'checklist', thisFilename, thisChecklist.dataset.encodedContent, metaModifier);
   }, false);
 	// Add mouseover-type events to hint as to what's going to happen
-	thisChecklist.addEventListener('mouseenter', mouseenterChecklistFunc, false);
-	thisChecklist.addEventListener('mouseleave', mouseleaveChecklistFunc, false);
+  if (addMouseOverEvents) {
+	  thisChecklist.addEventListener('mouseenter', mouseenterChecklistFunc, false);
+	  thisChecklist.addEventListener('mouseleave', mouseleaveChecklistFunc, false);
+  }
 }
 console.log(String(allChecklists.length) + ' sectionItemChecklist ELs added (to icons)');
 </script>
@@ -242,8 +251,8 @@ const addButtonEventListenersScript = `
 <script type="text/javascript">
 function findAncestor(startElement, tagName) {
   let currentElem = startElement;
-  while (currentElem != document.body) {
-    if (currentElem.tagName.toLowerCase() == tagName.toLowerCase()) { return currentElem; }
+  while (currentElem !== document.body) {
+    if (currentElem.tagName.toLowerCase() === tagName.toLowerCase()) { return currentElem; }
     currentElem = currentElem.parentElement;
   }
   return false;
@@ -357,20 +366,19 @@ function handleContentClick(event, id, filename, content) {
   console.log('handleContentClick( ' + id + ' / ' + filename + ' / ' +content + ' ) for event currentTarget: ' + event.currentTarget);
   const encodedFilename = filename; // already encoded at this point. Was: encodeRFC3986URIComponent(filename);
   const encodedContent = content; // already encoded at this point. Was: encodeRFC3986URIComponent(content);
-	// onClickDashboardItem( { itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } );
-	onClickDashboardItem( { itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } ); // TEST: change from openNote.. to openLine...
+	onClickDashboardItem( { itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } ); // TEST: change from showNote.. to showLine...
 }
 
 // For clicking on checkbox
 function handleCheckboxClick(cb) {
   console.log("Checkbox for " + cb.name + " clicked, new value = " + cb.checked);
-  onChangeCheckbox(cb.name, cb.checked);
+  onChangeCheckbox(cb.name, cb.checked); // = sendMessageToPlugin('onChangeCheckbox', ...)
 }
 
 // For clicking on button in hoverExtraControls
 function handleButtonClick(id, controlStr, filename, content) {
   console.log("Button clicked on id: " + id + " for controlStr " + controlStr + ". filename: " + filename + " content: {" + content +"}");
-  onClickDashboardItem( { itemID: id, type: controlStr, encodedFilename: filename, encodedContent: content } );
+  onClickDashboardItem( { itemID: id, type: controlStr, encodedFilename: filename, encodedContent: content } ); // = sendMessageToPlugin('onClickDashboardItem', ...)
 }
 </script>
 `
@@ -572,6 +580,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
       }
 
       for (const item of items) {
+        const isItemFromCalendarNote = isValidCalendarNoteFilename(item.filename)
         let encodedFilename = encodeRFC3986URIComponent(item.filename)
         let encodedContent = encodeRFC3986URIComponent(item.content)
         let reviewNoteCount = 0 // count of note-review items
@@ -601,19 +610,19 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
         // FIXME: [WebView Log] CommsBridge: onMessageReceived: received a message of type: completeTask with a payload // onMessageFromPlugin: starting with type: completeTask and data.itemID: ct // completeTask: for ID: ct // - error in replaceClassInID: couldn't find an elem with ID ctI to replace class fa-regular fa-circle-check
         // FIXME: need to remove from Yesterday section
         // FIXME: [WebView Log] CommsBridge: onMessageReceived: received a message of type: completeTask with a payload /// onMessageFromPlugin: starting with type: completeTask and data.itemID: ct // completeTask: for ID: ct // - error in replaceClassInID: couldn't find an elem with ID ctI to replace class fa-regular fa-circle-check"
-        // FIXME: errors when moving from Overdue to Today: "INFO  | bridgeClickDashboardItem :: ID: t, type: moveFromCalToCal, filename: , content: {! Order more filter papers Edesia 80/200 x1000} // ❗️ERROR❗️ dateTime / getDateStringFromCalendarFilename :: Invalid calendar filename: // | DEBUG | bridgeClickDashboardItem :: move task from (invalid date) -> 'today'"
         const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
         let tooltipContent = ''
         if (controlTypesForThisSection.length > 0) {
-          tooltipContent = `\n           <span class="hoverExtraControls" data-date-string="${section.filename}">`
+          tooltipContent = `\n           <span class="hoverExtraControls" data-date-string="${encodedFilename}">` // now always pass filename of item, even if it is same as section.filename
+
           // only want control types relevant for this section
           for (const ct of controlTypesForThisSection) {
-            // tooltipContent += `\n/<!-- ${ct.controlStr} / ${ct.sectionDateTypes.join('')} / ${section.dateType} / ${item.filename} / ${section.filename} -->\n`
             const buttonType = (ct.controlStr === 'tog')
               ? "toggleTypeButton"
               : (ct.controlStr === 'ct')
                 ? "completeThenButton"
-                : (ct.sectionDateTypes.includes(section.dateType))
+                // : (ct.sectionDateTypes.includes(section.dateType))
+                : isItemFromCalendarNote
                   ? "moveButton"
                   : "changeDateButton"
             tooltipContent += `<button class="${buttonType} hoverControlButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
@@ -623,7 +632,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
 
         // Do main work for the item
         switch (item.type) {
-          case 'open': {
+          case 'open': { // open todo type
             logDebug('showDashboardHTML', `- adding open taskContent for ${item.content} / ${itemNoteTitle}`)
             // do icon col (was col3)
             outputArray.push(
@@ -642,13 +651,12 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
             } else {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all', 140)
             }
-            // const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="content avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="avoidColumnBreakHere tooltip"><a class="content">${paraContent}</a>${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
           }
-          case 'checklist': {
+          case 'checklist': { // open checklist type
             logDebug('showDashboardHTML', `- adding checklist taskContent for ${item.content} / ${itemNoteTitle}`)
             // do icon col (was col3)
             outputArray.push(
@@ -664,7 +672,6 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 140)
             }
 
-            // const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="content avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="avoidColumnBreakHere tooltip"><a class="content">${paraContent}</a>${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
