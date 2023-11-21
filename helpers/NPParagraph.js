@@ -1452,7 +1452,7 @@ export function cancelItem(filenameIn: string, content: string): boolean {
 }
 
 /**
- * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
+ * Return a TParagraph object by an exact match to 'content' in file 'filenameIn'. If it fails to find a match, it returns false.
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * @param {string} filenameIn to look in
  * @param {string} content to find
@@ -1528,38 +1528,40 @@ export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklis
 }
 
 /**
- * Prepend a todo (task or checklist) to a calendar note
+ * Move a task or checklist from one calendar note to another.
+ * It's designed to be used when the para itself is not available; the para will try to be identified from its filename and content, and it will throw an error if it fails.
+ * The para will be *prepended* to the destination note in a smart way, to avoid frontmatter.
  * @author @jgclark
  * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
- * @param {string} NPFromDateStr from date (the usual calendar titles, plus YYYYMMDD)
- * @param {string} NPToDateStr to date (the usual calendar titles, plus YYYYMMDD)
- * @param {string} itemText text to prepend. If empty or missing, then will ask user for it
+ * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
+ * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
+ * @param {string} paraContent content of the para to move.
  */
-export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, itemText: string): boolean {
-  logDebug(pluginJson, `starting moveItemBetweenCalendarNotes`)
+export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string): boolean {
+  logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr}`)
   try {
     // Get calendar note to use
     const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
     const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))
     // Don't proceed unless we have valid from/to notes
     if (!fromNote || !toNote) {
-      logError('moveTodoBetweenCalendarNotes', `- Can't get calendar note for ${NPFromDateStr} and/or ${NPToDateStr}`)
+      logError('moveItemBetweenCalendarNotes', `- Can't get calendar note for ${NPFromDateStr} and/or ${NPToDateStr}`)
       return false
     }
 
     // find para in the fromNote
-    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, itemText)
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, paraContent)
     if (typeof possiblePara === 'boolean') {
-      throw new Error('moveTodoBetweenCalendarNotes: no para found')
+      throw new Error('moveItemBetweenCalendarNotes: no para found')
     }
     const itemType = possiblePara?.type
 
     // add to toNote
-    logDebug('moveTodoBetweenCalendarNotes', `- Prepending type ${itemType} '${itemText}' to '${displayTitle(toNote)}'`)
-    smartPrependPara(toNote, itemText, itemType)
+    logDebug('moveItemBetweenCalendarNotes', `- Prepending type ${itemType} '${paraContent}' to '${displayTitle(toNote)}'`)
+    smartPrependPara(toNote, paraContent, itemType)
 
     // Assuming that's not thrown an error, now remove from fromNote
-    logDebug('moveTodoBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
+    logDebug('moveItemBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
     fromNote.removeParagraph(possiblePara)
 
     // Ask for cache refresh for these notes
@@ -1568,7 +1570,7 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
 
     return true
   } catch (err) {
-    logError('moveTodoBetweenCalendarNotes', `${err.name}: ${err.message}`)
+    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message}`)
     return false
   }
 }
@@ -1680,10 +1682,12 @@ export function toggleTaskChecklistParaType(filename: string, content: string): 
     logDebug('toggleTaskChecklistParaType', `toggling in filename: ${filename}`)
     if (existingType === 'checklist') {
       thisPara.type = 'open'
+      // $FlowIgnore(incompatible-use)
       thisNote.updateParagraph(thisPara)
       return 'open'
     } else {
       thisPara.type = 'checklist'
+      // $FlowIgnore(incompatible-use)
       thisNote.updateParagraph(thisPara)
       return 'checklist'
     }
