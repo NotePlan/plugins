@@ -32,19 +32,25 @@ async function onMessageFromPlugin(type, data) {
       updateDivReceived(data)
       break
     case 'completeTask':
-      await completeTaskInDisplay(data) // Note: await not needed
+      await completeTaskInDisplay(data) // Note: await not really needed
       break
     case 'completeChecklist':
-      await completeChecklistInDisplay(data) // Note: await not needed
+      await completeChecklistInDisplay(data) // Note: await not really needed
       break
     case 'cancelTask':
-      await cancelTaskInDisplay(data) // Note: await not needed
+      await cancelTaskInDisplay(data) // Note: await not really needed
       break
     case 'cancelChecklist':
-      await cancelChecklistInDisplay(data) // Note: await not needed
+      await cancelChecklistInDisplay(data) // Note: await not really needed
       break
     case 'toggleType':
       toggleTypeInDisplay(data)
+      break
+    case 'cyclePriorityState':
+      cyclePriorityInDisplay(data)
+      break
+    case 'removeItem':
+      deleteItemRow(data)
       break
     default:
       console.log(`- unknown type: ${type}`)
@@ -65,7 +71,7 @@ async function onMessageFromPlugin(type, data) {
 function updateDivReceived(data) {
   const { ID, html, innerText } = data
   console.log(`updateDivReceived: for ID: ${ID}, html: ${html}`)
-  replaceHTML(ID, html, innerText)
+  replaceHTMLinID(ID, html, innerText)
 }
 
 /**
@@ -81,7 +87,6 @@ function deleteItemRow(data) {
 /**
  * A task has been completed (details in data); now update window accordingly
  * @param { { ID: string, html: string, innerText:boolean } } data
- * TODO: move this into the click event handler?
  */
 async function completeTaskInDisplay(data) {
   const { itemID } = data
@@ -230,6 +235,37 @@ function toggleTypeInDisplay(data) {
   }
 }
 
+/**
+ * Cycle through priority of a task
+ * @param { {itemID: string, newContent: string, newPriority: number} } data
+ */
+function cyclePriorityInDisplay(data) {
+  console.log(`starting cyclePriorityInDisplay for ID ${data.itemID} with new pri ${data.newPriority}`)
+  const thisIDTRElement = document.getElementById(data.itemID)
+  // console.log(`- thisIDTRElement class: ${thisIDTRElement.className}`)
+  // Find 2nd child DIV > DIV > A class="content"
+  const thisContentElement = findDescendantByClassName(thisIDTRElement, 'content')
+  // Get its inner content
+  const currentInnerHTML = thisContentElement.innerHTML
+  // console.log(`- currentInnerHTML: ${currentInnerHTML}`)
+
+  // Change the class of the content visible to users, to reflect the new priority colours
+  const newInnerHTML = (data.newPriority > 0)
+    ? `<span class="priority${data.newPriority}">${data.newContent}</span>`
+    : data.newContent
+  // console.log(`- newInnerHTML: ${newInnerHTML}`)
+  replaceHTMLinElement(thisContentElement, newInnerHTML, null)
+
+  // We also need to update the two "data-encoded-content" attributes in *both* TDs in the TR with this ID.
+  // Note this time it needs to be encoded.
+  const tdElements = thisIDTRElement.getElementsByTagName('td')
+  for (let i = 0; i < tdElements.length; i++) {
+    const tdElement = tdElements[i]
+    tdElement.setAttribute('data-encoded-content', data.newContent)
+    // console.log(`- set tdElement #${i} data-encoded-content: ${tdElement.getAttribute('data-encoded-content')}`)
+  }
+}
+
 /******************************************************************************
  *                       EVENT HANDLERS FOR THE HTML VIEW
  *****************************************************************************/
@@ -264,6 +300,13 @@ function onChangeCheckbox(settingName, state) {
  *                             HELPER FUNCTIONS
  *****************************************************************************/
 
+/**
+ * Function that returns the nearest ancestor element with the specified tag name
+ * Returns false if not found
+ * @param {HTMLElement} startElement - the element to start searching from
+ * @param {string} tagName - the tag name to search for
+ * @returns {HTMLElement | false} - the first descendant element with the specified tag name, or false if not found
+ */
 function findAncestor(startElement, tagName) {
   let currentElem = startElement
   while (currentElem !== document.body) {
@@ -273,6 +316,48 @@ function findAncestor(startElement, tagName) {
     currentElem = currentElem.parentElement
   }
   return false
+}
+
+/**
+ * Function that returns the first descendant element with the specified tag name
+ * Returns false if not found
+ * @param {HTMLElement} startElement - the element to start searching from
+ * @param {string} tagName - the tag name to search for
+ * @returns {HTMLElement | false} - the first descendant element with the specified tag name, or false if not found
+ */
+function findDescendantByTagName(startElement, tagName) {
+  // Get all descendant elements with the specified tag name
+  const descendants = startElement.getElementsByTagName(tagName)
+
+  // Check if any descendant elements were found
+  if (descendants.length > 0) {
+    // Return the first descendant element
+    return descendants[0]
+  } else {
+    // Return false if no descendant element with the specified tag name was found
+    return false
+  }
+}
+
+/**
+ * Function that returns the first descendant element with the specified tag name
+ * Returns false if not found
+ * @param {HTMLElement} startElement - the element to start searching from
+ * @param {string} className - the tag name to search for
+ * @returns {HTMLElement | false} - the first descendant element with the specified tag name, or false if not found
+ */
+function findDescendantByClassName(startElement, className) {
+  // Get all descendant elements with the specified tag name
+  const descendants = startElement.getElementsByClassName(className)
+
+  // Check if any descendant elements were found
+  if (descendants.length > 0) {
+    // Return the first descendant element
+    return descendants[0]
+  } else {
+    // Return false if no descendant element with the specified tag name was found
+    return false
+  }
 }
 
 function deleteHTMLItem(ID) {
@@ -309,8 +394,8 @@ function replaceClassInID(ID, replacementClass) {
   }
 }
 
-function replaceHTML(ID, html, innerText) {
-  // console.log(`replaceHTML(${ID}, '${html}', '${innerText}') ...`)
+function replaceHTMLinID(ID, html, innerText) {
+  // console.log(`replaceHTMLinID(${ID}, '${html}', '${innerText}') ...`)
   const div = document.getElementById(ID)
   if (div) {
     if (innerText) {
@@ -319,13 +404,26 @@ function replaceHTML(ID, html, innerText) {
       div.innerHTML = html
     }
   } else {
-    console.log(`- ❗error❗ in replaceHTML: couldn't find element with ID ${ID}`)
+    console.log(`- ❗error❗ in replaceHTMLinID: couldn't find element with ID ${ID}`)
+  }
+}
+
+function replaceHTMLinElement(elem, html, innerText) {
+  console.log(`replaceHTMLinElement(tag:${elem.tagName}, '${html}', '${innerText}') ...`)
+  if (elem) {
+    if (innerText) {
+      elem.innerText = html
+    } else {
+      elem.innerHTML = html
+    }
+  } else {
+    console.log(`- ❗error❗ in replaceHTMLinElement: problem with passed element`)
   }
 }
 
 function setCounter(counterID, value) {
   // console.log(`setCounter('${counterID}', ${value}) ...`)
-  replaceHTML(counterID, String(value), true)
+  replaceHTMLinID(counterID, String(value), true)
 }
 
 function incrementItemCount(counterID) {
@@ -333,7 +431,7 @@ function incrementItemCount(counterID) {
   const div = document.getElementById(counterID)
   if (div) {
     const value = parseInt(div.innerText)
-    replaceHTML(counterID, String(value + 1), true)
+    replaceHTMLinID(counterID, String(value + 1), true)
   } else {
     console.log(`- ❗error❗ in incrementItemCount: couldn't find a div for counterID ${counterID}`)
   }
@@ -344,7 +442,7 @@ function decrementItemCount(counterID) {
   const div = document.getElementById(counterID)
   if (div) {
     const value = parseInt(div.innerText)
-    replaceHTML(counterID, String(value - 1), true)
+    replaceHTMLinID(counterID, String(value - 1), true)
   } else {
     console.log(`- ❗error❗ in decrementItemCount: couldn't find a div for counterID ${counterID}`)
   }

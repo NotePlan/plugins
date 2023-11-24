@@ -37,7 +37,7 @@ export async function init(): Promise<void> {
 
 export async function onSettingsUpdated(): Promise<any> {
   if (!isHTMLWindowOpen(pluginJson['plugin.id'])) {
-    await showDashboardHTML('settings', false) // don't need await in the case I think
+    await showDashboardHTML('refresh', false) // don't need await in the case I think
   }
 }
 

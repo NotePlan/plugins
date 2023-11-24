@@ -81,6 +81,7 @@ const pluginID = 'jgclark.Dashboard'
 export type dashboardConfigType = {
   separateSectionForReferencedNotes: boolean,
   ignoreTasksWithPhrase: string,
+  ignoreChecklistItems: boolean,
   ignoreFolders: Array<string>,
   includeFolderName: boolean,
   includeTaskContext: boolean,
@@ -95,7 +96,6 @@ export type dashboardConfigType = {
   maxOverdueTasksToShow: number,
   overdueSortOrder: string,
   showExtraButtons: boolean,
-  showProjectSection: boolean,
   tagToShow: string,
   _logLevel: string,
   triggerLogging: boolean,

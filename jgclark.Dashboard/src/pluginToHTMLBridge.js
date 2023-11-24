@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 19.11.2023 for v0.7.1 by @jgclark
+// Last updated 23.11.2023 for v0.7.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -19,6 +19,7 @@ import {
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
+import { cyclePriorityState, getTaskPriority } from '@helpers/paragraph'
 import {
   cancelItem,
   completeItem,
@@ -35,7 +36,7 @@ import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
 //-----------------------------------------------------------------
 // Data types + constants
 
-type MessageDataObject = { itemID: string, type: string, encodedFilename: string, encodedContent: string }
+type MessageDataObject = { itemID: string, type: string, encodedFilename: string, encodedContent: string, controlStr: string }
 type SettingDataObject = { settingName: string, state: string }
 
 const windowCustomId = pluginJson['plugin.id'] + '.main'
@@ -119,10 +120,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
         // Update display in Dashboard too
         if (res) {
-          logDebug('bridgeClickDashboardItem', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
+          logDebug('bCDI / completeTask', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
           sendToHTMLWindow(windowId, 'completeTask', data)
         } else {
-          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+          logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
           await showDashboardHTML()
         }
         break
@@ -135,11 +136,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
         // Update display in Dashboard too
         if (res) {
-          logDebug('bridgeClickDashboardItem', `-> successful call to completeItemEarlier(), so will now attempt to remove the row in the displayed table too`)
+          logDebug('bCDI / completeTaskThen', `-> successful call to completeItemEarlier(), so will now attempt to remove the row in the displayed table too`)
           sendToHTMLWindow(windowId, 'completeTask', data)
         } else {
-          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
-          await showDashboardHTML()
+          logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
+          await showDashboardHTML('refresh')
         }
         break
       }
@@ -151,11 +152,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
         // Update display in Dashboard too
         if (res) {
-          logDebug('bridgeClickDashboardItem', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
+          logDebug('bCDI / cancelTask', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
           sendToHTMLWindow(windowId, 'cancelTask', data)
         } else {
-          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-          await showDashboardHTML()
+          logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
+          await showDashboardHTML('refresh')
         }
         break
       }
@@ -167,11 +168,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
         // Update display in Dashboard too
         if (res) {
-          logDebug('bridgeClickDashboardItem', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
+          logDebug('bCDI / completeChecklist', `-> successful call to completeItem(), so will now attempt to remove the row in the displayed table too`)
           sendToHTMLWindow(windowId, 'completeChecklist', data)
         } else {
-          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-          await showDashboardHTML()
+          logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+          await showDashboardHTML('refresh')
         }
         break
       }
@@ -183,40 +184,67 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
         // Update display in Dashboard too
         if (res) {
-          logDebug('bridgeClickDashboardItem', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
+          logDebug('bCDI / cancelChecklist', `-> successful call to cancelItem(), so will now attempt to remove the row in the displayed table too`)
           sendToHTMLWindow(windowId, 'cancelChecklist', data)
         } else {
-          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-          await showDashboardHTML()
+          logWarn('bCDI / cancelChecklist', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
+          await showDashboardHTML('refresh')
         }
         break
       }
       case 'toggleType': {
-        // Send a request to toggleType to API
-        logDebug('bridgeClickDashboardItem', `-> placeholder for toggleType on ID ${ID} in filename ${filename}`)
+        // Send a request to toggleType to plugin
+        // logDebug('bCDI / toggleType', `-> placeholder for toggleType on ID ${ID} in filename ${filename}`)
         const res = toggleTaskChecklistParaType(filename, content)
 
         // Update display in Dashboard too
         sendToHTMLWindow(windowId, 'toggleType', data)
         break
       }
+      case 'cyclePriorityState': {
+        // Send a request to cyclePriorityState to plugin
+
+        // Get para
+        const para = findParaFromStringAndFilename(filename, content)
+        if (para && typeof para !== 'boolean') {
+          const paraContent = para.content ?? 'error'
+          // logDebug('bCDI / cyclePriorityState', `will cycle priority on para {${paraContent}}`)
+          // Note: next 2 lines have to be this way around, otherwise a race condition
+          const newPriority = (getTaskPriority(paraContent) + 1) % 5
+          const updatedContent = cyclePriorityState(para)
+          logDebug('bCDI / cyclePriorityState', `cycling priority -> {${updatedContent}}`)
+
+          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (main.js::) it is simpler to ask for a refresh. = await showDashboardHTML('refresh')
+          // Note: But this doesn't work, because of race condition.
+          // So we better try that logic after all.
+          const updatedData = {
+            itemID: ID,
+            newContent: updatedContent,
+            newPriority: newPriority
+          }
+          sendToHTMLWindow(windowId, 'cyclePriorityState', updatedData)
+        } else {
+          logWarn('bCDI / cyclePriorityState', `-> unable to find para {${content}} in filename ${filename}`)
+        }
+        break
+      }
       case 'review': {
         // Handle a review call simply by opening the note in the main Editor. Later it might get more interesting!
         const note = await Editor.openNoteByFilename(filename)
         if (note) {
-          logDebug('bridgeClickDashboardItem', `-> successful call to open filename ${filename} in Editor`)
+          logDebug('bCDI / review', `-> successful call to open filename ${filename} in Editor`)
         } else {
-          logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open filename ${filename} in Editor`)
+          logWarn('bCDI / review', `-> unsuccessful call to open filename ${filename} in Editor`)
         }
         break
       }
       case 'windowResized': {
         // logWindowsList()
-        logDebug('bridgeClickDashboardItem', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
+        logDebug('bCDI / windowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
         const thisWin = getWindowFromCustomId(windowCustomId)
         const rect = getLiveWindowRectFromWin(thisWin)
         if (rect) {
-          // logDebug('bridgeClickDashboardItem/windowResized', `- saving rect: ${rectToString(rect)} to pref`)
+          // logDebug('bCDI / windowResized/windowResized', `- saving rect: ${rectToString(rect)} to pref`)
           storeWindowRect(windowCustomId)
         }
         break
@@ -281,7 +309,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'moveFromCalToCal': {
         // Instruction from a 'moveButton' to move task from calendar note to a different calendar note.
         // Note: Overloads ID with the dateInterval to use
-        const dateInterval = ID
+        const dateInterval = data.controlStr
         let startDateStr = ''
         let newDateStr = ''
         if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
@@ -305,7 +333,10 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         const res = moveItemBetweenCalendarNotes(startDateStr, newDateStr, content)
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> appeared to move item succesfully`)
-          await showDashboardHTML() // refresh display
+          // Unfortunately we seem to have a race condition here, as the following doesn't remove the item
+          // await showDashboardHTML()
+          // So instead send a message to delete the row in the dashboard
+          sendToHTMLWindow(windowId, 'removeItem', { ID: ID })
         } else {
           logWarn('bridgeClickDashboardItem', `-> moveFromCalToCal to ${newDateStr} not successful`)
         }
@@ -315,7 +346,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'updateTaskDate': {
         // Instruction from a 'changeDateButton' to change date on a task (in a project note)
         // Note: Overloads ID with the dateInterval to use
-        const dateInterval = ID
+        const dateInterval = data.controlStr
+        let startDateStr = ''
         let newDateStr = ''
         if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
           logError('bridgeClickDashboardItem', `bad move date interval: ${dateInterval}`)

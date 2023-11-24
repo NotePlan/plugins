@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 17.11.2023 for v0.7.0 by @jgclark
+// Last updated 23.11.2023 for v0.7.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -34,7 +34,7 @@ import {
 import { stripMailtoLinks, convertMarkdownLinks } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isTimeBlockPara } from '@helpers/timeblocks'
-import { isDone, isOpen, isScheduled, isOpenNotScheduled } from '@helpers/utils'
+import { isDone, isOpen, isScheduled, isOpenNotScheduled, isOpenTaskNotScheduled } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Constants
@@ -83,7 +83,10 @@ async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, time
     // await CommandBar.onAsyncThread()
 
     // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
-    let openParas = parasToUse.filter((p) => isOpenNotScheduled(p) && p.content !== '')
+    // Now also allow to ignore checklist items.
+    let openParas = (config.ignoreChecklistItems)
+      ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content !== '')
+      : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content !== '')
     logInfo('getOpenItemParasForCurrentTimePeriod', `After 'isOpenNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out anything from 'ignoreTasksWithPhrase' setting
@@ -112,11 +115,16 @@ async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, time
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
     // (This is 2-3x quicker than part above)
     // startTime = new Date() // for timing only
-    let refParas = timePeriodNote
-      ? getReferencedParagraphs(timePeriodNote, false).filter(isOpen).filter((p) => p.content !== '')
-      : []
+    let refParas = []
+    if (timePeriodNote) {
+      // Now also allow to ignore checklist items.
+      refParas = (config.ignoreChecklistItems)
+        ? getReferencedParagraphs(timePeriodNote, false).filter((p) => p.type === 'open' && p.content !== '')
+        : getReferencedParagraphs(timePeriodNote, false).filter(isOpen).filter((p) => p.content !== '')
+    }
+
     // Remove items referenced from items in 'ignoreFolders'
-    refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders, true)
+    refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders)
     // Remove possible dupes from sync'd lines
     refParas = eliminateDuplicateSyncedParagraphs(refParas)
     // Temporarily extend TParagraph with the task's priority
@@ -248,7 +256,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           })
           // clo(combinedSortedParas, "yesterday sortedOpenParas")
           logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-          sections.push({ ID: sectionCount, name: 'Today', dateType: 'DY', description: `{count} from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+          sections.push({ ID: sectionCount, name: 'Yesterday', dateType: 'DY', description: `{count} from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarDaily", filename: thisFilename })
           sectionCount++
 
           // clo(sortedRefParas, "sortedRefParas")
@@ -466,7 +474,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     if (config.showOverdueTaskSection && fullGenerate) {
       let thisStartTime = new Date()
       // $FlowFixMe(incompatible-call)
-      const refParas: Array<TParagraph> = await DataStore.listOverdueTasks()
+      const refParas: Array<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
       logDebug('getDataForDashboard', `Found ${refParas.length} overdue items in ${timer(thisStartTime)}`)
 
       // Remove items referenced from items in 'ignoreFolders'
@@ -581,7 +589,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
     //-----------------------------------------------------------
     // If Reviews plugin has produced a review list file, then show up to 4 of the most overdue things from it
-    if (config.showProjectSection && DataStore.fileExists(fullReviewListFilename)) {
+    if (DataStore.fileExists(fullReviewListFilename)) {
       const nextNotesToReview: Array<TNote> = getNextNotesToReview(4)
       if (nextNotesToReview) {
         let itemCount = 0

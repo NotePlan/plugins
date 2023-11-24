@@ -456,7 +456,7 @@ export function applyRectToWindow(rect: Rect, customId?: string): void {
 }
 
 /**
- * FIXME: Currently not working as hoped.
+ * TODO: Currently not working as hoped. Waiting for @EduardMe to fix things.
  * @author @jgclark
  * @param {number?} editorWinIn index into open .editors array
  * @param {number?} width to set
@@ -478,6 +478,7 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
       logError('setEditorWindowWidth', `Can't get window rect for editor ${String(editorWinIn)}`)
       return
     }
+    // FIXME(EduardMe): this part doesn't seem to work in practice
     const existingWidth = thisWindowRect.width
     logDebug('setEditorWindowWidth', `Attempting to set width for editor #${String(editorWinIndex)} from ${existingWidth} to ${width}`)
     thisWindowRect.width = width

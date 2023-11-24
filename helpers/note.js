@@ -591,7 +591,6 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
  * @author @jgclark building on @dwertheimer's work
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
- * @param {boolean} excludeNonMarkdownFiles - if true, exclude non-markdown files (must have .txt or .md to get through)
  * @returns {Array<TNote>} - array of notes that are not in excluded folders
  */
 export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>): Array<TParagraph> {

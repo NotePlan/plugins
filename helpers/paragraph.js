@@ -487,32 +487,64 @@ export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $
 }
 
 /**
- * Get number of consecutive '!' in 'content' that aren't at the start/end/middle of a word, or preceding a '['
- * From 3.9.4 there are also `>>` working-on markers, which are treated as priority 5.
+ * Get number of consecutive '!' in 'content' that aren't at the start/end of a word, or preceding a '['
+ * From 3.9.4 there are also `>>` working-on markers at the start of 'content', which are treated as priority 5.
  * @param {string} content
  * @returns {string} number of !, or 5 if line is flagged as 'working-on', or -1
  */
 export function getTaskPriority(content: string): number {
   let numExclamations = 0
-  if (content.match(/\B\!+\B(?!\[)/)) {
+  if (content.match(/\B\!+\B(?!\[)/)) { // not in middle of word, or starting an image tag
     // $FlowIgnore[incompatible-use]
     numExclamations = content.match(/\B\!+\B/)[0].length
     return numExclamations
   }
   if (content.match(/^>>/)) {
-    return 5
+    return 4
   }
-  return -1
+  return 0
 }
 
 /**
- * Get number of consecutive '!' in 'content' that aren't at the start/end/middle of a word, or preceding a '['
- * From 3.9.4 there are also `>>` working-on markers, which are treated as priority 5.
+ * Remove task Priority Indicators (!, !!, !!!, >>) from content, though not starting an image tag, or at start/end of a word
  * @param {string} content
  * @returns {string} content minus any priority indicators
  */
 export function removeTaskPriorityIndicators(content: string): string {
-  let output = content.replace(/\B\!+\B(?!\[)/g, '') // anywhere in line, but not starting an image tag
+  let output = content.replace(/\B\!+\B(?!\[)/g, '') // not in middle of word, or starting an image tag
   output = output.replace(/^>>\s?/, '') // start of line only
   return output
+}
+
+/**
+ * Change the priority in a task to '!', '!!', '!!!', '>>' (or remove priority)
+ * @author @dwertheimer updated by @jgclark
+ * @param {TParagraph} input - the task/pagraph to be processed
+ * @param {string} priorityString - the new priority (!,!!,!!! or '' for none)
+ * @param {boolean} - commit the change after the change is made (default false)
+ * @returns {string} the resulting updated paragraph's content
+ * Note: If the third param is missing or false, THE CHANGE HAS NOT BEEN COMMITTED YET. You should use note.updateParagraph(s) to commit the change you receive back.
+ * Note: Ideally lives in NPParagraph.js, but putting it here avoids a circular dependency
+ */
+export function changePriority(inputPara: TParagraph, prioStr: string, commitChange?: boolean = false): string {
+  const outputPara = inputPara
+  outputPara.content = outputPara.content.replace(/!\s*/g, '').replace(/\s+!/g, '').replace(/^>>\s/, '')
+  outputPara.content = `${prioStr ? `${prioStr} ` : ''}${outputPara.content}`.trim()
+  commitChange && outputPara.note ? outputPara.note.updateParagraph(outputPara) : null
+  return outputPara.content
+}
+
+const PRIORITY_LEVELS = ['', '!', '!!', '!!!', '>>']
+
+/**
+ * Cycle the priority level of a task: none -> ! -> !! -> !!! -> >> -> none
+ * Written to suit a single UI window in the Dashboard.
+ * @author @jgclark
+ * @param {TParagraph} input - the task/pagraph to be processed
+ * @returns {string} the resulting updated paragraph's content
+ */
+export function cyclePriorityState(input: TParagraph): string {
+  const currentPriorityLevel = getTaskPriority(input.content)
+  const newPriorityLevel = (currentPriorityLevel + 1) % 5
+  return changePriority(input, PRIORITY_LEVELS[newPriorityLevel], true)
 }

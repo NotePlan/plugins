@@ -1,6 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.7.3] - 2023-11-23???
+### Added
+- New action button `pri` that cycles the priority of the current item from none -> `!` -> `!!` -> `!!!` -> `>>` -> none
+- `⌘R` shortcut now should refresh the Dashboard if the window has focus -- though it seems to require a first click somewhere in the window before it will work.
+
 ## [0.7.2] - 2023-11-21
 ### Changed
 - Now removes a whole section when the last item in it is completed. (Apart from the 'TODAY' section which always remains, so that the add new task/checklist buttons are still available.)
