@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 23.11.2023 for v0.7.3 by @jgclark
+// Last updated 25.11.2023 for v0.7.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -470,8 +470,8 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     // Note: If we want to do yearly in the future then the icon is fa-calendar-days (same as quarter)
 
     // ----------------------------------------------------------
-    // Add a section for Overdue tasks, if wanted, and if not running because triggered by a change in the daily note
-    if (config.showOverdueTaskSection && fullGenerate) {
+    // Add a section for Overdue tasks, if wanted, and if not running because triggered by a change in the daily notex
+    if (config.showOverdueTaskSection && (config.updateOverdueOnTrigger || fullGenerate)) {
       let thisStartTime = new Date()
       // $FlowFixMe(incompatible-call)
       const refParas: Array<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items

@@ -93,6 +93,7 @@ export type dashboardConfigType = {
   showMonthSection: boolean,
   showQuarterSection: boolean,
   showOverdueTaskSection: boolean,
+  updateOverdueOnTrigger: boolean,
   maxOverdueTasksToShow: number,
   overdueSortOrder: string,
   showExtraButtons: boolean,

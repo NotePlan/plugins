@@ -323,7 +323,7 @@ for (const button of allCompleteThenButtons) {
   // add event handler
   button.addEventListener('click', function (event) {
     event.preventDefault();
-    handleButtonClick(thisID, 'completeTaskThen', thisEncodedFilename, thisEncodedContent); // , event.metaKey
+    handleButtonClick(thisID, 'completeTaskThen', '', thisEncodedFilename, thisEncodedContent); // , event.metaKey
   }, false);
 }
 console.log(String(allCompleteThenButtons.length) + ' completeThenButton ELs added');
@@ -339,7 +339,7 @@ for (const button of allToggleTypeButtons) {
   // add event handler
   button.addEventListener('click', function (event) {
     event.preventDefault();
-    handleButtonClick(thisID, 'toggleType', thisEncodedFilename, thisEncodedContent);
+    handleButtonClick(thisID, 'toggleType', '', thisEncodedFilename, thisEncodedContent);
   }, false);
 }
 console.log(String(allToggleTypeButtons.length) + ' toggleTypeButton ELs added');
@@ -355,7 +355,7 @@ for (const button of allPriorityButtons) {
   // add event handler
   button.addEventListener('click', function (event) {
     event.preventDefault();
-    handleButtonClick(thisID, 'cyclePriorityState', thisEncodedFilename, thisEncodedContent);
+    handleButtonClick(thisID, 'cyclePriorityState', '', thisEncodedFilename, thisEncodedContent);
   }, false);
 }
 console.log(String(allPriorityButtons.length) + ' priorityButton ELs added');

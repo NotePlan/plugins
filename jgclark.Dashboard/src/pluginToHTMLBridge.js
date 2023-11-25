@@ -98,7 +98,7 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
  */
 export async function bridgeClickDashboardItem(data: MessageDataObject) {
   try {
-    // clo(data, 'bridgeClickDashboardItem received data object')
+    clo(data, 'bridgeClickDashboardItem received data object')
     // const windowId = getWindowIdFromCustomId(windowCustomId);
     const windowId = windowCustomId
     if (!windowId) {
