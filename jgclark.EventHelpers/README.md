@@ -34,7 +34,7 @@ For example:
 - **Default event duration**: Event duration (in minutes) to use when making an event from a time block, if no end time is given.
 - **Confirm Event Creation?**: optional boolean tag to indicate whether to ask user to confirm each event to be created
 - **Remove time blocks when processed?**: in `time blocks...` whether to remove time block after making an event from it
-- **Add event link?**: whether to add a nicely-formatted event link when creating an event from a time block.<!--This returns rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed (details [below](#theme-customisation)). -->
+- **Add event link?**: whether to add a nicely-formatted event link when creating an event from a time block. (This can return rather long strings (e.g. `⏰event:287B39C1-4D0A-46DC-BD72-84D79167EFDF`) and so you might want to use a theme option to shorten them until needed (details [below](#theme-customisation)).)
 - **Processed tag name**: if this is set, then this tag will get added on the end of the line with the time block, to show that it has been processed. Otherwise, next time this command is run, it will create another event. This can be used with or without addEventID.
 - **Locale**: optional Locale to use for times in events. If not given, will default to what the OS reports, or failing that, 'en-US'.
 - **Time options**: Optional Time format settings. Default is `{\n\t\"hour\": \"2-digit\", \n\t\"minute\": \"2-digit\", \n\t\"hour12\": false\n}`.
@@ -129,9 +129,7 @@ NotePlan allows extensive [customisation of fonts and colours through its Themes
 }
 ```
 
-<!-- TODO: figure out what NP is automatically finding, since about v3.8 -->
-
-<!-- If you're adding event IDs through the `/time blocks to calendar` command, then you might want to **hide the long `event:ID` string until you move the cursor to the ⏰ marker**. To do this add the following:
+If you're adding event IDs through the `/time blocks to calendar` command, then you might want to hide the long `event:ID` string until you move the cursor to the ⏰ marker. To do this add the following:
 ```jsonc
 "eventID": {
   "regex": "(event:[A-F0-9-]{36,37})",
@@ -140,12 +138,12 @@ NotePlan allows extensive [customisation of fonts and colours through its Themes
   "isHiddenWithoutCursor": true,
   "isRevealOnCursorRange": true
  }
-``` -->
+```
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 ## History
