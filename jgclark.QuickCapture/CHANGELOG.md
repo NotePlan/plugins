@@ -1,6 +1,12 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
+## [0.15.1] - 2023-11-30
+### Added
+- new x-callback argument to set heading level (1-5) on commands "/quick add task under heading" and "/quick add line under heading"
+### Fixed
+- wrong display of number of '#' headings in the 'Choose Heading' dialog
+
 ## [0.15.0] - 2023-09-01
 ### Added
 - new "/**quick add to this month's journal** and **/quick add to this year's journal** commands

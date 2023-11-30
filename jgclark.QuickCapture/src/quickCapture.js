@@ -141,11 +141,13 @@ export async function appendTaskToNote(
  * @param {string?} noteTitleArg note title to use (can be YYYYMMDD as well as usual calendar titles)
  * @param {string?} headingArg
  * @param {string?} textArg
+ * @param {string?} headingLevelArg
  */
 export async function addTaskToNoteHeading(
   noteTitleArg?: string = '',
   headingArg?: string = '',
-  textArg?: string = ''
+  textArg?: string = '',
+  headingLevelArg?: string
 ): Promise<void> {
   try {
     logDebug(pluginJson, `starting /qath with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
@@ -163,6 +165,12 @@ export async function addTaskToNoteHeading(
       ? textArg
       : await CommandBar.showInput(`Type the task`, `Add task '%@' ${config.textToAppendToTasks}`)
     const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
+
+    // Get heaidng level details from arg3
+    const headingLevel = (headingLevelArg != null && headingLevelArg !== '')
+      ? Number(headingLevelArg)
+      : config.headingLevel
+    logDebug('addTextToNoteHeading(qalh)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
     let allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
@@ -190,12 +198,26 @@ export async function addTaskToNoteHeading(
     } else {
       const matchedHeading = findHeadingStartsWith(note, heading)
       logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to '${displayTitleWithRelDate(note)}' below '${heading}'`)
-      note.addTodoBelowHeadingTitle(
-        taskText,
-        (matchedHeading !== '') ? matchedHeading : heading,
-        config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
-        true, // create heading if needed (possible if supplied via headingArg)
-      )
+      if (matchedHeading !== '') {
+      // Heading does exist in note already
+        note.addTodoBelowHeadingTitle(
+          taskText,
+          (matchedHeading !== '') ? matchedHeading : heading,
+          config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
+          true, // create heading if needed (possible if supplied via headingArg)
+        )
+      } else {
+        // We need to a new heading either at top or bottom, depending what config.shouldAppend says
+        const headingMarkers = '#'.repeat(headingLevel)
+        const headingToUse = `${headingMarkers} ${heading}`
+        const insertionIndex = config.shouldAppend
+          ? findEndOfActivePartOfNote(note) + 1
+          : findStartOfActivePartOfNote(note)
+        logDebug('addTaskToNoteHeading', `- adding new heading '${headingToUse}' at line index ${insertionIndex}`)
+        note.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
+        logDebug('addTaskToNoteHeading', `- then adding text '${taskText}' after `)
+        note.insertParagraph(taskText, insertionIndex + 1, 'open')
+      }
     }
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -215,14 +237,16 @@ export async function addTaskToNoteHeading(
  * @param {string?} noteTitleArg note title to use (can be YYYY-MM-DD or YYYYMMDD)
  * @param {string?} headingArg
  * @param {string?} textArg
+ * @param {string?} headingLevelArg
  */
 export async function addTextToNoteHeading(
   noteTitleArg?: string = '',
   headingArg?: string = '',
-  textArg?: string = ''
+  textArg?: string = '',
+  headingLevelArg?: string = ''
 ): Promise<void> {
   try {
-    logDebug(pluginJson, `starting /qalh with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
+    logDebug(pluginJson, `starting /qalh with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'} arg3 ${headingLevelArg}`)
     const config = await getQuickCaptureSettings()
 
     // Start a longish sort job in the background
@@ -237,6 +261,12 @@ export async function addTextToNoteHeading(
       ? textArg
       : await CommandBar.showInput('Type the text to add', `Add text '%@' ${config.textToAppendToTasks}`)
 
+    // Get heading level details from arg3
+    const headingLevel = (headingLevelArg != null && headingLevelArg !== '')
+      ? Number(headingLevelArg)
+      : config.headingLevel
+    logDebug('addTextToNoteHeading(qalh)', `headingLevel: ${String(headingLevel)}`)
+
     // Get note details from arg0 or user
     let allNotes = await allNotesProm // here's where we resolve the promise and have the sorted list
     logDebug('addTextToNoteHeading(qalh)', `Starting with noteTitleArg '${noteTitleArg}'`)
@@ -250,7 +280,7 @@ export async function addTextToNoteHeading(
     // If we're asking user, we use function that allows us to first add a new heading at start/end of note
     const heading = (headingArg != null && headingArg !== '')
       ? headingArg
-      : await chooseHeading(note, true, true, false)
+      : await chooseHeading(note, true, true, false, headingLevel)
     // Add todo to the heading in the note, or if blank heading,
     // then then user has chosen to append to end of note, without a heading
     if (heading === '<<top of note>>') {
@@ -266,13 +296,27 @@ export async function addTextToNoteHeading(
     else {
       const matchedHeading = findHeadingStartsWith(note, heading)
       logDebug('addTextToNoteHeading', `Adding line '${textToAdd}' to '${displayTitleWithRelDate(note)}' below matchedHeading '${matchedHeading}' (heading was '${heading}')`)
-      note.addParagraphBelowHeadingTitle(
-        textToAdd,
-        'text',
-        (matchedHeading !== '') ? matchedHeading : heading,
-        config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
-        true, // create heading if needed (possible if supplied via headingArg)
-      )
+      if (matchedHeading !== '') {
+      // Heading does exist in note already
+        note.addParagraphBelowHeadingTitle(
+          textToAdd,
+          'text',
+          (matchedHeading !== '') ? matchedHeading : heading,
+          config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
+          true, // create heading if needed (possible if supplied via headingArg)
+        )
+      } else {
+        // We need to a new heading either at top or bottom, depending what config.shouldAppend says
+        const headingMarkers = '#'.repeat(headingLevel)
+        const headingToUse = `${headingMarkers} ${heading}`
+        const insertionIndex = config.shouldAppend
+          ? findEndOfActivePartOfNote(note) + 1
+          : findStartOfActivePartOfNote(note)
+        logDebug('addTextToNoteHeading', `- adding new heading '${headingToUse}' at line index ${insertionIndex}`)
+        note.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
+        logDebug('addTextToNoteHeading', `- then adding text '${textToAdd}' after `)
+        note.insertParagraph(textToAdd, insertionIndex + 1, 'text')
+      }
     }
   }
   catch (err) {

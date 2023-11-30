@@ -44,7 +44,7 @@ export function init(): void {
   }
 }
 
-export function onSettingsUpdated(): void {
+export async function onSettingsUpdated(): Promise<void> {
   // Placeholder only to stop error in logs
 }
 

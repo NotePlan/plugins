@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture/",
-  "plugin.version": "0.15.0",
-  "plugin.lastUpdateInfo": "0.15.0: new \"/quick add to this month's journal\" and \"/quick add to this year's journal\" commands. Speeding up some /quick... commands, and a bug fix.\n0.14.1: bug fixes\n0.14.0: allow relative dates in '/quick append task/line under heading' and other commands.\n0.13.0: appending now comes before archive section, and prepending comes after any frontmatter. Some command name changes.",
+  "plugin.version": "0.15.1",
+  "plugin.lastUpdateInfo": "0.15.1: bug fixes and new x-callback args when creating headings.\n0.15.0: new \"/quick add to this month's journal\" and \"/quick add to this year's journal\" commands. Speeding up some /quick... commands, and a bug fix.\n0.14.1: bug fixes\n0.14.0: allow relative dates in '/quick append task/line under heading' and other commands.\n0.13.0: appending now comes before archive section, and prepending comes after any frontmatter. Some command name changes.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -49,7 +49,8 @@
       "arguments": [
         "note title (or YYYYMMDD, YYYY-MM-DD, YYYY-Wnn, or relative date for an existing calendar note)",
         "note section heading to add text under",
-        "text to add"
+        "text to add",
+        "heading level (1-5)"
       ]
     },
     {
@@ -62,7 +63,8 @@
       "arguments": [
         "note title (or YYYYMMDD, YYYY-MM-DD, YYYY-Wnn, or relative date for an existing calendar note)",
         "note section heading to add text under",
-        "text to add"
+        "text to add",
+        "heading level (1-5)"
       ]
     },
     {
