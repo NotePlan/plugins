@@ -253,16 +253,18 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
  * @param {boolean} optionAddATopAndtBottom - whether to add 'top of note' and 'bottom of note' options. Default: true.
  * @param {boolean} optionCreateNewHeading - whether to offer to create a new heading at the top or bottom of the note. Default: false.
  * @param {boolean} includeArchive - whether to include headings in the Archive section of the note (i.e. after 'Done'). Default: false.
+ * @param {number} headingLevel - if adding a heading, the H1-H5 level to set (as an integer)
  * @returns {string} - the selected heading as text without any markdown heading markers. Blank string implies no heading selected, and user wishes to write to the end of the note. Special string '<<top>>' implies to write to the top (after any preamble or frontmatter).
  */
 export async function chooseHeading(
   note: TNote,
   optionAddATopAndtBottom: boolean = true, optionCreateNewHeading: boolean = false,
-  includeArchive: boolean = false
+  includeArchive: boolean = false,
+  headingLevel: number = 2
 ): Promise<string> {
   try {
     let headingStrings = []
-    const headingLevel = 2
+    // const headingLevel = 2
     // const spacer = '    '
     const spacer = '#'
     // Decide whether to include all headings in note, or just those before the Done/Cancelled section.
@@ -283,11 +285,10 @@ export async function chooseHeading(
     if (headingParas.length > 0) {
       headingStrings = headingParas.map((p) => {
         let prefix = ''
-        for (let i = 1; i < p.headingLevel; i++) {
+        for (let i = 0; i < p.headingLevel; i++) {
           prefix += spacer
         }
         // return `${prefix}➡️ ${p.content}` // an experiment that didn't look great
-        // return `${prefix}${p.content}`
         return `${prefix} ${p.content}`
       })
     }
