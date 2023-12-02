@@ -8,12 +8,13 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.7.0",
-  "plugin.lastUpdateInfo": "v0.7.0: new optional 'Yesterday' and 'Overdue' sections.???\nv0.6.3: tag/mention section now excludes tasks/checklists that are scheduled to future dates.\nv0.6.2: Adapt dashboard to use NotePlan's new multiple HTML windows capability.\nv0.6.1: adds new section for a specific #tag or @mention.\nv0.6.0: adds tooltip on displayed tasks that allows task to be moved on to next day, week etc. Adds lots of new theming support. Plus other visual polish and fixes.\nv0.5.1: display improvements + bug fixes.\nv0.5.0: Can now filter out lower-priority items. Can cancel or add tasks and checklists. New optional 'hastags/mentions to show' section.\nv0.4.2: various updates to window handling.v0.4.1: bug fix, polish and demo updates.",
+  "plugin.version": "0.7.3-RC2",
+  "plugin.lastUpdateInfo": "v0.7.3: New priority button. New setting to exclude checklist items. More setting to give more control over Overdue tasks section.\nv0.7.2: turn off 'preview' on task and checklist markers, as they can behave wrongly at speed. Other fixes and polish.\nv0.7.1: 'folders to ignore' setting now applies to 'Overdue tasks' section. Two new experimental buttons.\nv0.7.0: new optional 'Yesterday' and 'Overdue Tasks' sections.\nv0.6.3: tag/mention section now excludes tasks/checklists that are scheduled to future dates.\nv0.6.2: Adapt dashboard to use NotePlan's new multiple HTML windows capability.\nv0.6.1: adds new section for a specific #tag or @mention.\nv0.6.0: adds tooltip on displayed tasks that allows task to be moved on to next day, week etc. Adds lots of new theming support. Plus other visual polish and fixes.",
   "plugin.requiredFiles": [
     "commsSwitchboard.js",
     "dashboard.css",
-    "debounce.js"
+    "debounce.js",
+    "shortcut.js"
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -114,6 +115,14 @@
       "required": true
     },
     {
+      "key": "ignoreChecklistItems",
+      "title": "Ignore checklist items",
+      "description": "If set, only tasks are included in any of the sections.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "key": "ignoreTasksWithPhrase",
       "title": "Ignore items with this phrase",
       "description": "If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control.",
@@ -177,26 +186,37 @@
     {
       "key": "showYesterdaySection",
       "title": "Show section for Yesterday?",
-      "description": "If true, then a 'Yesterday' section for Yesterday's open items will be added after the 'Today' section.",
+      "description": "Whether to show a 'Yesterday' section for Yesterday's open items, after the 'Today' section.",
       "type": "bool",
       "default": false,
       "required": true
     },
     {
-      "key": "showMonthSection",
-      "hidden": true,
-      "title": "Show section for Monthly note?",
-      "description": "",
+      "type": "separator"
+    },
+    {
+      "key": "showWeekSection",
+      "title": "Show section for Week?",
+      "description": "Whether to show a 'Week' section for Week's open items, after the 'Today' section.",
       "type": "bool",
       "default": true,
       "required": true
     },
     {
+      "key": "showMonthSection",
+      "title": "Show section for Month?",
+      "description": "Whether to show a 'Month' section for open items in this month's calendar note",
+      "type": "hidden",
+      "_type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
       "key": "showQuarterSection",
-      "hidden": true,
-      "title": "Show section for Quarterly note?",
-      "description": "",
-      "type": "bool",
+      "title": "Show section for Quarter?",
+      "description": "Whether to show a 'Qaurter' section for open items in this quarter's calendar note",
+      "type": "hidden",
+      "_type": "bool",
       "default": true,
       "required": true
     },
@@ -209,6 +229,14 @@
       "description": "If true then an 'Overdue' section is added, and the following 2 settings will be used.\nNote: if set, then for performance reasons, this section will not be shown when a refresh is triggered automatically by a change in today's note.",
       "type": "bool",
       "default": false,
+      "required": true
+    },
+    {
+      "key": "updateOverdueOnTrigger",
+      "title": "Update Overdue section when triggered?",
+      "description": "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
+      "type": "bool",
+      "default": true,
       "required": true
     },
     {
@@ -230,18 +258,6 @@
         "most recent"
       ],
       "default": "priority",
-      "required": true
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "key": "showProjectSection",
-      "hidden": true,
-      "title": "Show section for Overdue Projects overdue for review?",
-      "description": "",
-      "type": "bool",
-      "default": true,
       "required": true
     },
     {
@@ -280,6 +296,21 @@
     {
       "key": "triggerLogging",
       "title": "Include extra trigger logs?",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Experimental Features"
+    },
+    {
+      "key": "showExtraButtons",
+      "title": "Show extra buttons for overdue tasks?",
+      "description": "Show experimental extra control buttons on overdue tasks:\n- toggle between checklist and todo types\n- mark the task complete at the date it was due (not today).",
       "type": "bool",
       "default": false,
       "required": true

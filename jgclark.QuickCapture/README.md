@@ -6,7 +6,6 @@ This plugin provides commands to more quickly add tasks/todos or general text to
 - **/quick add task under heading** (alias **/qath**): Quickly add a task at the top of a chosen note's heading
 - **/quick add line under heading** (alias **/qalh**): Quickly add text lines at the top of a chosen note's heading
 - **/quick add to calendar note** (alias **/qac**): Quickly add a task to a chosen calendar note
-<!-- - **/quick add to weekly note** (alias **/qaw**): Quickly add a task to a chosen weekly note -->
 - **/quick add to journal today** (alias **/qajd**): Quickly add text to the Journal section of today's daily note
 - **/quick add to journal this week** (alias **/qajw**): Quickly add text to the Journal section of this week's note
 - **/quick add to this month's journal** (alias **/qajm**): Quickly add text to the Journal section of this month's note
@@ -16,7 +15,7 @@ This plugin provides commands to more quickly add tasks/todos or general text to
 
 Where a command offers calendar notes as a destination, the most-used dates (`yesterday`, `tomorrow`, `this week` and their equivalents for weeks, months and quarters) have this 'relative date' added, so you can find them more easily in the long list. The list is sorted with most-recently updated first.
 
-<img width="500px" alt="Example list of notes annotated with 'relative dates'" src="quick-capture-annotated.png">
+<img width="500px" alt="Example list of notes annotated with 'relative dates'" src="quick-capture-annotated.png" />
 
 These can be used by Shortcuts on iOS or macOS or by other third-party apps to integrate NotePlan into your working practices: see [Using from x-callback calls](#using-from-x-callback-calls) below.
 
@@ -58,7 +57,6 @@ Notes:
 | /quick prepend task to calendar note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20calendar%20note` | note date (YYYYMMDD, YYYY-MM-DD, YYYY-Wnn etc.) or relative date (listed below) | text to add |  |
 | /quick append task to note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20append%20task%20to%20note` | note title | task to append | |
 | /quick prepend task to note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20prepend%20task%20to%20note` | note title | task to prepend | |
-<!-- | /quick add to weekly note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20weekly%20note` | note date (YYYY-Mnn) | text to add |  | -->
 
 The **relative dates** possible in some commands are:
 - `today`, `yesterday`, `tomorrow`
@@ -73,7 +71,7 @@ If you find an issue with this plugin, or would like to suggest new features for
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 

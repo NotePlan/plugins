@@ -383,7 +383,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push('border-radius: 5px')
       tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
-      output.push(makeCSSSelector('.priority5', tempSel))
+      output.push(makeCSSSelector('.priority4', tempSel))
     }
 
     // Now put the important info and rootSel at the start of the output

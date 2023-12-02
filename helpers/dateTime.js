@@ -1014,17 +1014,20 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
  * Calculate an offset date of any date interval NP supports, and return _in whichever format was supplied_.
  * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
  * Moment docs: https://momentjs.com/docs/#/get-set/
+ * - 'baseDateIn' the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
+ * - 'offsetInterval' of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
+ * - 'adaptOutputInterval' (optional). Options: 'shorter', 'longer', 'offset', 'base', 'day', 'week', 'month', 'quarter', 'year'
  * @author @jgclark
- *
  * @param {string} baseDateIn the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
- * @param {offsetInterval} string of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
- * @param {string?} adaptOutputInterval. Options:
+ * @param {string} offsetInterval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
+ * @param {string?} adaptOutputInterval. Options: 'shorter', 'longer', 'offset', 'base', 'day', 'week', 'month', 'quarter', 'year'
  * - 'shorter': keep the shorter of the two calendar types. E.g. a daily date + 1w -> daily date. Or '2023-07' + '2w' -> '2023-W28'.
  * - 'longer': use the longer of the two calendar types. E.g. a daily date + 1w -> weekly date.
  * - 'offset': keep type of the offsetInterval.
  * - 'base': (default)  keep the type of the base date.
- * @returns {string} new date in the same format that was supplied
- * @test - available in jest file
+ * - 'day', 'week', 'month', 'quarter', 'year': lock to that calendar type.
+ * @returns {string} new date in the requested format
+ * @tests - available in jest file (though not for the most recent adaptOutputInterval options)
  */
 export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, adaptOutputInterval: string = 'base'): string {
   try {
@@ -1098,6 +1101,36 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
           newDateStr = newDateStrFromOffsetDateType
           // logDebug('dateTime / cODS', `- 'longer' output: changed format to ${offsetMomentFormat}`)
         }
+        break
+      }
+      case 'day': {
+        const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('d')
+        newDateStr = moment(offsetDate).format(offsetMomentFormat)
+        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
+        break
+      }
+      case 'week': {
+        const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('w')
+        newDateStr = moment(offsetDate).format(offsetMomentFormat)
+        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
+        break
+      }
+      case 'month': {
+        const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('m')
+        newDateStr = moment(offsetDate).format(offsetMomentFormat)
+        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
+        break
+      }
+      case 'quarter': {
+        const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('q')
+        newDateStr = moment(offsetDate).format(offsetMomentFormat)
+        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
+        break
+      }
+      case 'year': {
+        const offsetMomentFormat = getNPDateFormatForDisplayFromOffsetUnit('y')
+        newDateStr = moment(offsetDate).format(offsetMomentFormat)
+        logDebug('dateTime / cODS', `- 'month' output: changed format to ${offsetMomentFormat}`)
         break
       }
       default: {

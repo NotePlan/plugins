@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 22.9.2023 for v0.7.0 by @jgclark
+// Last updated 19.11.2023 for v0.7.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -16,7 +16,11 @@ import {
   type Section,
   type SectionItem,
 } from './dashboardHelpers'
-import { getDateStringFromCalendarFilename, getTodaysDateUnhyphenated, isValidCalendarNoteFilename } from '@helpers/dateTime'
+import {
+  getDateStringFromCalendarFilename,
+  getTodaysDateUnhyphenated,
+  isValidCalendarNoteFilename
+} from '@helpers/dateTime'
 import { nowLocaleShortTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { unsetPreference } from '@helpers/NPdev'
@@ -57,6 +61,23 @@ export const resourceLinksInHeader = `
 <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
 `
 
+/**
+ * Script to add Cmd+R shortcut to refresh dashboard. (Meta=Cmd here.)
+ */
+const shortcutsScript = `
+<!-- shortcuts script -->
+<script type="text/javascript" src="./shortcut.js"></script>
+<script>
+shortcut.add("meta+r", function() {
+  console.log("Shortcut cmd+s triggered");
+  sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' })
+});
+</script>
+`
+
+/**
+ * Script to do fully-featured encoding/decoding for strings passed in URIs
+ */
 const encodeDecodeScript = `
 <!-- encode+decode script -->
 <script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
@@ -83,37 +104,48 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
 
 /**
  * Add event listener added to all todo + checklist icons
- * Note: now not used, as on onClick is included in the HTML directly when generating the page.
  */
 const addIconEventListenersScript = `
 <!-- addIconEventListenersScript -->
 <script type="text/javascript">
 console.log('add Event Listeners to Icons ...');
+// Note: mouseOverEvents now disabled at user request
+const addMouseOverEvents = false;
 
 function mouseenterTodoFunc() {
 	// console.log('mouseenterTodo ... after '+String(event.detail)+' clicks');
+  thisID = this.firstChild.id;
+  // console.log('mouseenterTodo' + thisID);
 	if (event.metaKey) {
-		this.innerHTML = '<i class="cancelled fa-regular fa-circle-xmark">';
+		this.innerHTML = '<i id="'+thisID+'"  class="cancelled fa-regular fa-circle-xmark">';
 	} else {
-		this.innerHTML = '<i class="checked fa-regular fa-circle-check">';
+		this.innerHTML = '<i id="'+thisID+'"  class="checked fa-regular fa-circle-check">';
 	}
 }
 
 function mouseenterChecklistFunc() {
 	// console.log('mouseenterChecklist ... after '+String(event.detail)+' clicks');
+  thisID = this.firstChild.id;
+  // console.log('mouseenterChecklist' + thisID);
 	if (event.metaKey) {
-		this.innerHTML = '<i class="cancelled fa-regular fa-square-xmark">';
+		this.innerHTML = '<i id="'+thisID+'"  class="cancelled fa-regular fa-square-xmark">';
 	} else {
-		this.innerHTML = '<i class="checked fa-regular fa-square-check">';
+		this.innerHTML = '<i id="'+thisID+'"  class="checked fa-regular fa-square-check">';
 	}
 }
 
 function mouseleaveTodoFunc() {
-	this.innerHTML = '<i class="todo fa-regular fa-circle">';
+  // Need to save ID
+  thisID = this.firstChild.id;
+  // console.log('mouseleaveTodo' + thisID);
+	this.innerHTML = '<i id="'+thisID+'" class="todo fa-regular fa-circle">';
 }
 
 function mouseleaveChecklistFunc() {
-	this.innerHTML = '<i class="todo fa-regular fa-square">';
+  // Need to save ID
+  thisID = this.firstChild.id;
+  // console.log('mouseleaveChecklist' + thisID);
+	this.innerHTML = '<i id="'+thisID+'" class="todo fa-regular fa-square">';
 }
 
 // Add event handlers for task icons
@@ -130,8 +162,10 @@ for (const thisTodo of allTodos) {
     handleIconClick(thisId, 'open', thisFilename, thisTodo.dataset.encodedContent, metaModifier);
   }, false);
 	// Add mouseover-type events to hint as to what's going to happen
-	thisTodo.addEventListener('mouseenter', mouseenterTodoFunc, false);
-	thisTodo.addEventListener('mouseleave', mouseleaveTodoFunc, false);
+  if (addMouseOverEvents) {
+	  thisTodo.addEventListener('mouseenter', mouseenterTodoFunc, false);
+	  thisTodo.addEventListener('mouseleave', mouseleaveTodoFunc, false);
+  }
 }
 console.log(String(allTodos.length) + ' sectionItemTodo ELs added (to icons)');
 
@@ -148,8 +182,10 @@ for (const thisChecklist of allChecklists) {
     handleIconClick(thisId, 'checklist', thisFilename, thisChecklist.dataset.encodedContent, metaModifier);
   }, false);
 	// Add mouseover-type events to hint as to what's going to happen
-	thisChecklist.addEventListener('mouseenter', mouseenterChecklistFunc, false);
-	thisChecklist.addEventListener('mouseleave', mouseleaveChecklistFunc, false);
+  if (addMouseOverEvents) {
+	  thisChecklist.addEventListener('mouseenter', mouseenterChecklistFunc, false);
+	  thisChecklist.addEventListener('mouseleave', mouseleaveChecklistFunc, false);
+  }
 }
 console.log(String(allChecklists.length) + ' sectionItemChecklist ELs added (to icons)');
 </script>
@@ -170,13 +206,13 @@ for (const contentItem of allContentItems) {
   const thisID = contentItem.parentElement.id;
   const thisEncodedContent = contentItem.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
   const thisEncodedFilename = contentItem.dataset.encodedFilename; // contentItem.id;
-  console.log('- sIC on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent);
+  // console.log('- sIC on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent);
 
   // add event handler to each <a> (normally only 1 per item),
   // unless it's a noteTitle, which gets its own click handler.
   const theseALinks = contentItem.getElementsByTagName("A");
   for (const thisLink of theseALinks) {
-    console.log('- A on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className);
+    // console.log('- A on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisEncodedContent + ' / ' + thisLink.className);
     if (!thisLink.className.match('noteTitle')) {
       thisLink.addEventListener('click', function (event) {
         event.preventDefault();
@@ -189,7 +225,7 @@ for (const contentItem of allContentItems) {
   const theseDIVLinks = contentItem.getElementsByTagName("DIV");
   for (const thisLink of theseDIVLinks) {
     if (thisLink.className.match('content') && !(thisLink.className.match('tooltip')))  {
-      console.log('DIV.content on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisLink.className);
+      // console.log('DIV.content on ' + thisID + ' / ' + thisEncodedFilename + ' / ' + thisLink.className);
       thisLink.addEventListener('click', function (event) {
         // event.preventDefault(); // now disabled to ensure that externalLinks etc. can fire
         handleContentClick(event, thisID, thisEncodedFilename, thisEncodedContent);
@@ -225,15 +261,15 @@ console.log(String(allReviewItems.length) + ' review ELs added (to review cells)
 `
 
 /**
- * Add an event listener to all class="moveButton" and "changeDateButton" items
+ * Add an event listener to all class="moveButton", "changeDateButton", "completeThen" and "toggleType" items
  */
 const addButtonEventListenersScript = `
 <!-- addButtonEventListenersScript -->
 <script type="text/javascript">
 function findAncestor(startElement, tagName) {
   let currentElem = startElement;
-  while (currentElem != document.body) {
-    if (currentElem.tagName.toLowerCase() == tagName.toLowerCase()) { return currentElem; }
+  while (currentElem !== document.body) {
+    if (currentElem.tagName.toLowerCase() === tagName.toLowerCase()) { return currentElem; }
     currentElem = currentElem.parentElement;
   }
   return false;
@@ -241,6 +277,8 @@ function findAncestor(startElement, tagName) {
 
 // Add click handler to all hoverExtraControls' buttons
 // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
+
+console.log('Add click handlers to all hoverExtraControls buttons')
 let allMoveButtons = document.getElementsByClassName("moveButton");
 for (const button of allMoveButtons) {
   // const thisTD = button.parentElement.parentElement.parentElement;
@@ -253,10 +291,10 @@ for (const button of allMoveButtons) {
   // add event handler
   button.addEventListener('click', function (event) {
     event.preventDefault();
-    handleButtonClick(thisControlStr, 'moveFromCalToCal', thisFilename, thisEncodedContent); // , event.metaKey
+    handleButtonClick(thisID, 'moveFromCalToCal', thisControlStr, thisFilename, thisEncodedContent); // , event.metaKey
   }, false);
 }
-console.log(String(allMoveButtons.length) + ' moveButton ELs added');
+console.log(String(allMoveButtons.length) + ' move button ELs added');
 
 let allChangeDateButtons = document.getElementsByClassName("changeDateButton");
 for (const button of allChangeDateButtons) {
@@ -269,10 +307,58 @@ for (const button of allChangeDateButtons) {
   // add event handler
   button.addEventListener('click', function (event) {
     event.preventDefault();
-    handleButtonClick(thisControlStr, 'updateTaskDate', thisEncodedFilename, thisEncodedContent); // , event.metaKey
+    handleButtonClick(thisID, 'updateTaskDate', thisControlStr, thisEncodedFilename, thisEncodedContent); // , event.metaKey
   }, false);
 }
 console.log(String(allChangeDateButtons.length) + ' dateChangeButton ELs added');
+
+let allCompleteThenButtons = document.getElementsByClassName("completeThenButton");
+for (const button of allCompleteThenButtons) {
+  const thisTD = findAncestor(button, 'TD');
+  const thisID = thisTD.parentElement.id;
+  // console.log('- CT on' + thisID);
+  const thisControlStr = button.dataset.controlStr;
+  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
+  const thisEncodedFilename = thisTD.dataset.encodedFilename;
+  // add event handler
+  button.addEventListener('click', function (event) {
+    event.preventDefault();
+    handleButtonClick(thisID, 'completeTaskThen', '', thisEncodedFilename, thisEncodedContent); // , event.metaKey
+  }, false);
+}
+console.log(String(allCompleteThenButtons.length) + ' completeThenButton ELs added');
+
+let allToggleTypeButtons = document.getElementsByClassName("toggleTypeButton");
+for (const button of allToggleTypeButtons) {
+  const thisTD = findAncestor(button, 'TD');
+  const thisID = thisTD.parentElement.id;
+  // console.log('- TT on' + thisID);
+  const thisControlStr = button.dataset.controlStr;
+  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
+  const thisEncodedFilename = thisTD.dataset.encodedFilename;
+  // add event handler
+  button.addEventListener('click', function (event) {
+    event.preventDefault();
+    handleButtonClick(thisID, 'toggleType', '', thisEncodedFilename, thisEncodedContent);
+  }, false);
+}
+console.log(String(allToggleTypeButtons.length) + ' toggleTypeButton ELs added');
+
+let allPriorityButtons = document.getElementsByClassName("priorityButton");
+for (const button of allPriorityButtons) {
+  const thisTD = findAncestor(button, 'TD');
+  const thisID = thisTD.parentElement.id;
+  // console.log('- P on' + thisID);
+  const thisControlStr = button.dataset.controlStr;
+  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
+  const thisEncodedFilename = thisTD.dataset.encodedFilename;
+  // add event handler
+  button.addEventListener('click', function (event) {
+    event.preventDefault();
+    handleButtonClick(thisID, 'cyclePriorityState', '', thisEncodedFilename, thisEncodedContent);
+  }, false);
+}
+console.log(String(allPriorityButtons.length) + ' priorityButton ELs added');
 </script>
 `
 
@@ -314,20 +400,24 @@ function handleContentClick(event, id, filename, content) {
   console.log('handleContentClick( ' + id + ' / ' + filename + ' / ' +content + ' ) for event currentTarget: ' + event.currentTarget);
   const encodedFilename = filename; // already encoded at this point. Was: encodeRFC3986URIComponent(filename);
   const encodedContent = content; // already encoded at this point. Was: encodeRFC3986URIComponent(content);
-	// onClickDashboardItem( { itemID: id, type: 'showNoteInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } );
-	onClickDashboardItem( { itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } ); // TEST: change from openNote.. to openLine...
+	onClickDashboardItem( { itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent } ); // TEST: change from showNote.. to showLine...
 }
 
 // For clicking on checkbox
 function handleCheckboxClick(cb) {
   console.log("Checkbox for " + cb.name + " clicked, new value = " + cb.checked);
-  onChangeCheckbox(cb.name, cb.checked);
+  onChangeCheckbox(cb.name, cb.checked); // = sendMessageToPlugin('onChangeCheckbox', ...)
 }
 
 // For clicking on button in hoverExtraControls
-function handleButtonClick(id, controlStr, filename, content) {
-  console.log("Button clicked on id: " + id + " for controlStr " + controlStr + ". filename: " + filename + " content: {" + content +"}");
-  onClickDashboardItem( { itemID: id, type: controlStr, encodedFilename: filename, encodedContent: content } );
+function handleButtonClick(id, type, controlStr, filename, origContent) {
+  console.log("Button clicked on id: " + id + " for controlStr: " + controlStr + ", type: " + type + ", filename: " + filename);
+  // re-gather the content part, as it might just have changed
+  const thisIDTRElement = document.getElementById(id);
+  const tdElements = thisIDTRElement.getElementsByTagName('TD');
+  const encodedCurrentContent = tdElements[0].getAttribute('data-encoded-content');
+  // console.log("- got data-encoded-content: {" + encodedCurrentContent + "}");
+  onClickDashboardItem( { itemID: id, type: type, controlStr: controlStr, encodedFilename: filename, encodedContent: encodedCurrentContent } ); // = sendMessageToPlugin('onClickDashboardItem', ...)
 }
 </script>
 `
@@ -423,10 +513,12 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
     // logDebug('showDashboardHTML', `Starting with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
 
     const outputArray: Array<string> = []
-    const dailyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'day'))
-    const weeklyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'week'))
-    const monthlyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'month'))
-    const quarterlyNoteTitle = displayTitle(DataStore.calendarNoteByDate(new Date(), 'quarter'))
+    const today = new moment().toDate()
+    const dailyNoteTitle = displayTitle(DataStore.calendarNoteByDate(today, 'day'))
+    const yesterdayNoteTitle = displayTitle(DataStore.calendarNoteByDate(new moment().subtract(1, 'days').toDate(), 'day'))
+    const weeklyNoteTitle = displayTitle(DataStore.calendarNoteByDate(today, 'week'))
+    const monthlyNoteTitle = displayTitle(DataStore.calendarNoteByDate(today, 'month'))
+    const quarterlyNoteTitle = displayTitle(DataStore.calendarNoteByDate(today, 'quarter'))
     const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '')
 
     //--------------------------------------------------------------
@@ -499,9 +591,9 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
       let filteredOut = 0
       const filteredItems: Array<SectionItem> = []
       // If we want to, then filter some out in this section, and append an item to indicate this
-      // Count newer 'working-on' indicator as priority 0, with no priority indicator as -1
+      // The new 'working-on' indicator >> has priority 4, with no priority indicator as 0.
       if (filterPriorityItems) {
-        let maxPriority = -1
+        let maxPriority = 0
         for (const item of items) {
           const thisPriority = getTaskPriority(item.content)
           if (thisPriority > maxPriority) {
@@ -529,6 +621,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
       }
 
       for (const item of items) {
+        const isItemFromCalendarNote = isValidCalendarNoteFilename(item.filename)
         let encodedFilename = encodeRFC3986URIComponent(item.filename)
         let encodedContent = encodeRFC3986URIComponent(item.content)
         let reviewNoteCount = 0 // count of note-review items
@@ -540,39 +633,48 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
         // Work out the extra controls that are relevant for this task, and set up as tooltips
         // (where 'O' refers to 'Overdue')
         const possibleControlTypes = [
-          { displayString: '→today', controlStr: 't', sectionDateTypes: ['W', 'M', 'Q', 'O'] }, // special controlStr to indicate change to '>today'
-          { displayString: '+1d', controlStr: '+1d', sectionDateTypes: ['D', 'W', 'M', 'O'] },
-          { displayString: '+1b', controlStr: '+1b', sectionDateTypes: ['D', 'W', 'M', 'O'] },
-          { displayString: '→wk', controlStr: '+0w', sectionDateTypes: ['D', 'M', 'O'] },
-          { displayString: '+1w', controlStr: '+1w', sectionDateTypes: ['D', 'W', 'O'] },
-          { displayString: '→mon', controlStr: '+0m', sectionDateTypes: ['D', 'W', 'Q', 'O'] },
+          { displayString: '→today', controlStr: 't', sectionDateTypes: ['DY', 'W', 'M', 'Q', 'O'] }, // special controlStr to indicate change to '>today'
+          { displayString: '+1d', controlStr: '+1d', sectionDateTypes: ['DT', 'DY', 'W', 'M', 'O'] },
+          { displayString: '+1b', controlStr: '+1b', sectionDateTypes: ['DT', 'DY', 'W', 'M', 'O'] },
+          { displayString: '→w', controlStr: '+0w', sectionDateTypes: ['DT', 'DY', 'M', 'O'] },
+          { displayString: '+1w', controlStr: '+1w', sectionDateTypes: ['DT', 'DY', 'W', 'O'] },
+          { displayString: '→m', controlStr: '+0m', sectionDateTypes: ['DT', 'DY', 'W', 'Q', 'O'] },
           { displayString: '+1m', controlStr: '+1m', sectionDateTypes: ['M', 'O'] },
-          { displayString: '→qtr', controlStr: '+0q', sectionDateTypes: ['M', 'O'] },
+          { displayString: '→q', controlStr: '+0q', sectionDateTypes: ['M'] },
+          { displayString: 'pri', controlStr: 'pri', sectionDateTypes: ['DT', 'DY', 'W', 'M', 'Q', 'O'] },
         ]
+        // Add some specials if requested by a hidden setting
+        if (config.showExtraButtons) {
+          possibleControlTypes.push({ displayString: '◯/☐', controlStr: 'tog', sectionDateTypes: ['O', 'DT', 'DY', 'W', 'M', 'Q'] })
+          possibleControlTypes.push({ displayString: '✓then', controlStr: 'ct', sectionDateTypes: ['O'] })
+        }
+
         const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
         let tooltipContent = ''
         if (controlTypesForThisSection.length > 0) {
-          tooltipContent = `\n           <span class="hoverExtraControls" data-date-string="${section.filename}">`
+          tooltipContent = `\n           <span class="hoverExtraControls" data-date-string="${encodedFilename}">` // now always pass filename of item, even if it is same as section.filename
+
           // only want control types relevant for this section
           for (const ct of controlTypesForThisSection) {
-            // tooltipContent += `\n/<!-- ${ct.controlStr} / ${ct.sectionDateTypes.join('')} / ${section.dateType} / ${item.filename} / ${section.filename} -->\n`
-            if (ct.sectionDateTypes.includes(section.dateType)) {
-              // if (item.filename === section.filename) {
-              if (isValidCalendarNoteFilename(item.filename)) {
-                tooltipContent += `<button class="moveButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
-              } else {
-                // logDebug('dashboardHTML', `- This needs to be updateTaskDate ${item.filename} as its not a calendar note`)
-                tooltipContent += `<button class="changeDateButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
-              }
-            }
+            const buttonType = (ct.controlStr === 'tog')
+              ? "toggleTypeButton"
+              : (ct.controlStr === 'ct')
+                ? "completeThenButton"
+                : (ct.controlStr === 'pri')
+                  ? "priorityButton"
+                  // : (ct.sectionDateTypes.includes(section.dateType))
+                  : isItemFromCalendarNote
+                    ? "moveButton"
+                    : "changeDateButton"
+            tooltipContent += `<button class="${buttonType} hoverControlButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
           }
           tooltipContent += '</span>'
         }
 
         // Do main work for the item
         switch (item.type) {
-          case 'open': {
-            logDebug('showDashboardHTML', `- adding open taskContent for ${item.content} / ${itemNoteTitle}`)
+          case 'open': { // open todo type
+            logDebug('showDashboardHTML', `- adding open task: {${item.content}} / filename:${itemNoteTitle}`)
             // do icon col (was col3)
             outputArray.push(
               `         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`,
@@ -582,7 +684,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
             // If context is wanted, and linked note title
             let paraContent = ''
             if (config.includeTaskContext) {
-              if ([dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
+              if ([dailyNoteTitle, yesterdayNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
                 paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 140)
               } else {
                 paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append', 140)
@@ -590,14 +692,13 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
             } else {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all', 140)
             }
-            // const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="content avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="avoidColumnBreakHere tooltip"><a class="content">${paraContent}</a>${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
             break
           }
-          case 'checklist': {
-            logDebug('showDashboardHTML', `- adding checklist taskContent for ${item.content} / ${itemNoteTitle}`)
+          case 'checklist': { // open checklist type
+            logDebug('showDashboardHTML', `- adding checklist: {${item.content}} / filename:${itemNoteTitle}`)
             // do icon col (was col3)
             outputArray.push(
               `         <td id="${encodedFilename}" class="sectionItemChecklist sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-square"></i></td>`,
@@ -606,13 +707,12 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
             // do item details col (was col4):
             let paraContent = ''
             // whole note link is clickable if context is wanted, and linked note title
-            if (config.includeTaskContext && ![dailyNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
+            if (config.includeTaskContext && ![dailyNoteTitle, yesterdayNoteTitle, weeklyNoteTitle, monthlyNoteTitle, quarterlyNoteTitle].includes(itemNoteTitle)) {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'append', 140)
             } else {
               paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, itemNoteTitle, 'all', 140)
             }
 
-            // const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="content avoidColumnBreakHere tooltip">${paraContent}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             const cell4 = `         <td class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">\n          <div class="avoidColumnBreakHere tooltip"><a class="content">${paraContent}</a>${tooltipContent}\n          </div>\n         </td>\n       </tr>`
             outputArray.push(cell4)
             totalOpenItems++
@@ -670,9 +770,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
     // Write time and refresh info
     const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', 'refresh')
     const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
-    // Now using a proper button, not a fake one. But it needs to live inside a form to activate.
-    // FIXME: works in Safari, but not in NP. Grrr.
-    // const refreshXCallbackButton = `<form action="${refreshXCallbackURL}" style="display: inline;"><button class="mainButton" type="submit"></form><i class="fa-solid fa-arrow-rotate-right"></i> Refresh</button>`
+    // Note: can't use a real HTML button, as it needs to live inside a form to activate. It will work in Safari, but not in NP. Grrr. So will use one of my 'fake buttons' instead.
 
     // Add filter checkbox
     const filterCheckbox = `<span style="float: right;"><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${
@@ -704,6 +802,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
         addContentEventListenersScript +
         addButtonEventListenersScript +
         addReviewEventListenersScript +
+        shortcutsScript +
         clickHandlersScript, // + resizeListenerScript, // + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...

@@ -57,7 +57,7 @@ import { showMessage, showMessageYesNo } from '@helpers/userInput'
 export type Section = {
   ID: number,
   name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
-  dateType: '' | 'D' | 'W' | 'M' | 'Q' | 'Y' | 'O', // where O = overdue
+  dateType: '' | 'DT' | 'DY' | 'W' | 'M' | 'Q' | 'Y' | 'O', // where O = overdue, DT = today, DY = yesterday
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,
@@ -81,6 +81,7 @@ const pluginID = 'jgclark.Dashboard'
 export type dashboardConfigType = {
   separateSectionForReferencedNotes: boolean,
   ignoreTasksWithPhrase: string,
+  ignoreChecklistItems: boolean,
   ignoreFolders: Array<string>,
   includeFolderName: boolean,
   includeTaskContext: boolean,
@@ -88,12 +89,14 @@ export type dashboardConfigType = {
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
   showYesterdaySection: boolean,
+  showWeekSection: boolean,
   showMonthSection: boolean,
   showQuarterSection: boolean,
   showOverdueTaskSection: boolean,
+  updateOverdueOnTrigger: boolean,
   maxOverdueTasksToShow: number,
   overdueSortOrder: string,
-  showProjectSection: boolean,
+  showExtraButtons: boolean,
   tagToShow: string,
   _logLevel: string,
   triggerLogging: boolean,

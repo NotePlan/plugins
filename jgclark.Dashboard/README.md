@@ -9,14 +9,14 @@ This plugin provides a **dashboard window** that in one place shows a compact li
 - all open tasks and checklists that conain a particular @tag or #mention of your choosing
 - next few notes to review (if you use the "Projects and Reviews" plugin)
 
-To open this run the **/show dashboard** command (aliases 'db' or 'sdb').
+To open this run the **/show dashboard** command (aliases 'db' or 'sdb').  There are many different [Settings](#settings) to tailor what is shown according to your preferences.
 
 [<img width="120px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
 ## Interacting with items in the Dashboard
 All tasks and checklists shown in the Dashboard view can be marked as **complete** by clicking in its usual open circle or square:
 <img width="400px" src="complete+cancel.gif" border="1pt solid" margin="8px" alt="example of completing or cancelling a task"/>
-The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by press ⌘ (command) when clicking on the open circle or square.
+The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by pressing  ⌘ (command) when clicking on the open circle or square.
 
 All tasks and checklists can be **moved** to different days/weeks/months. After a short time hovering over an item a small box appears with a number of buttons that have short codes indicating which calendar note they'll be moved (not scheduled) to:
 <img src="move-buttons@2x.png" width="330px" border="1pt solid" margin="8px" alt="move buttons" />
@@ -56,6 +56,7 @@ This requires the **Shared Resources** plugin to be installed as well, to work a
 
 There are various other settings to change some of how it displays:
 - Show referenced items in separate section? Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes. The same also goes for Weekly/Monthly/Quarterly notes.
+- Ignore checklist items? If set, only tasks are included in any of the sections.
 - Ignore items with this phrase: If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control.
 - Folders to ignore when finding linked items: If set, the contents of these folder(s) will be ignored when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results.
 - Include context for tasks? Whether to show the note link for an open task or checklist

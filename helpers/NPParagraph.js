@@ -11,8 +11,8 @@ import {
   hyphenatedDateString,
   isScheduled,
   nowShortDateTimeISOString,
-  SCHEDULED_WEEK_NOTE_LINK,
   RE_SCHEDULED_ISO_DATE,
+  SCHEDULED_WEEK_NOTE_LINK,
   SCHEDULED_QUARTERLY_NOTE_LINK,
   SCHEDULED_MONTH_NOTE_LINK,
   SCHEDULED_YEARLY_NOTE_LINK,
@@ -23,8 +23,9 @@ import { getNPWeekData, getMonthData, getYearData, getQuarterData, toLocaleDateT
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getNoteType } from '@helpers/note'
 import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPrependPara } from '@helpers/paragraph'
+import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
-import { isOpen } from '@helpers/utils'
+import { hasScheduledDate, isOpen } from '@helpers/utils'
 
 const pluginJson = 'NPParagraph'
 
@@ -1313,12 +1314,33 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
 
 /**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
+ * TODO: Cope with non-daily scheduled dates
  * @param {TParagraph} para
+ * @param {boolean} useScheduledDateAsCompletionDate?
  * @returns
  */
-export function markComplete(para: TParagraph): boolean {
+export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): boolean {
   if (para) {
-    const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${nowShortDateTimeISOString})` : ''
+    // Default to using current date/time
+    let dateString = nowShortDateTimeISOString
+    if (useScheduledDateAsCompletionDate) {
+      // But use scheduled date instead if found
+      if (hasScheduledDate(para.content)) {
+        const captureArr = para.content.match(RE_FIRST_SCHEDULED_DATE_CAPTURE) ?? []
+        clo(captureArr)
+        dateString = captureArr[1]
+        logDebug('markComplete', `will use scheduled date ${dateString} as completion date`)
+      } else {
+        // Use date of the note if it has one. (What does para.note.date return for non-daily calendar notes?)
+        if (para.note?.type === 'Calendar' && para.note.date) {
+          dateString = hyphenatedDate(para.note.date)
+          logDebug('markComplete', `will use date of note ${dateString} as completion date`)
+        }
+      }
+    } else {
+      dateString = nowShortDateTimeISOString
+    }
+    const doneString = DataStore.preference('isAppendCompletionLinks') ? ` @done(${dateString})` : ''
 
     if (para.type === 'open') {
       para.type = 'done'
@@ -1383,9 +1405,31 @@ export function completeItem(filenameIn: string, content: string): boolean {
     if (typeof possiblePara === 'boolean') {
       return false
     }
-    return markComplete(possiblePara)
+    return markComplete(possiblePara, false)
   } catch (error) {
     logError(pluginJson, `NPP/completeItem: ${error.message} for note '${filenameIn}'`)
+    return false
+  }
+}
+
+/**
+ * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
+ * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * Appends a '@done(...)' date to the line if the user has selected to 'add completion date' - but uses completion date of the day it was scheduled to be done.
+ * @param {string} filenameIn to look in
+ * @param {string} content to find
+ * @returns {boolean} true if succesful, false if unsuccesful
+ */
+export function completeItemEarlier(filenameIn: string, content: string): boolean {
+  try {
+    logDebug('NPP/completeItemEarlier', `starting with filename: ${filenameIn}, content: <${content}>`)
+    const possiblePara = findParaFromStringAndFilename(filenameIn, content)
+    if (typeof possiblePara === 'boolean') {
+      return false
+    }
+    return markComplete(possiblePara, true)
+  } catch (error) {
+    logError(pluginJson, `NPP/completeItemEarlier: ${error.message} for note '${filenameIn}'`)
     return false
   }
 }
@@ -1412,7 +1456,7 @@ export function cancelItem(filenameIn: string, content: string): boolean {
 }
 
 /**
- * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
+ * Return a TParagraph object by an exact match to 'content' in file 'filenameIn'. If it fails to find a match, it returns false.
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * @param {string} filenameIn to look in
  * @param {string} content to find
@@ -1488,38 +1532,40 @@ export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklis
 }
 
 /**
- * Prepend a todo (task or checklist) to a calendar note
+ * Move a task or checklist from one calendar note to another.
+ * It's designed to be used when the para itself is not available; the para will try to be identified from its filename and content, and it will throw an error if it fails.
+ * The para will be *prepended* to the destination note in a smart way, to avoid frontmatter.
  * @author @jgclark
  * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
- * @param {string} NPFromDateStr from date (the usual calendar titles, plus YYYYMMDD)
- * @param {string} NPToDateStr to date (the usual calendar titles, plus YYYYMMDD)
- * @param {string} itemText text to prepend. If empty or missing, then will ask user for it
+ * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
+ * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
+ * @param {string} paraContent content of the para to move.
  */
-export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, itemText: string): boolean {
-  logDebug(pluginJson, `starting moveItemBetweenCalendarNotes`)
+export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string): boolean {
+  logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr}`)
   try {
     // Get calendar note to use
     const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
     const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))
     // Don't proceed unless we have valid from/to notes
     if (!fromNote || !toNote) {
-      logError('moveTodoBetweenCalendarNotes', `- Can't get calendar note for ${NPFromDateStr} and/or ${NPToDateStr}`)
+      logError('moveItemBetweenCalendarNotes', `- Can't get calendar note for ${NPFromDateStr} and/or ${NPToDateStr}`)
       return false
     }
 
     // find para in the fromNote
-    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, itemText)
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, paraContent)
     if (typeof possiblePara === 'boolean') {
-      throw new Error('moveTodoBetweenCalendarNotes: no para found')
+      throw new Error('moveItemBetweenCalendarNotes: no para found')
     }
     const itemType = possiblePara?.type
 
     // add to toNote
-    logDebug('moveTodoBetweenCalendarNotes', `- Prepending type ${itemType} '${itemText}' to '${displayTitle(toNote)}'`)
-    smartPrependPara(toNote, itemText, itemType)
+    logDebug('moveItemBetweenCalendarNotes', `- Prepending type ${itemType} '${paraContent}' to '${displayTitle(toNote)}'`)
+    smartPrependPara(toNote, paraContent, itemType)
 
     // Assuming that's not thrown an error, now remove from fromNote
-    logDebug('moveTodoBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
+    logDebug('moveItemBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
     fromNote.removeParagraph(possiblePara)
 
     // Ask for cache refresh for these notes
@@ -1528,7 +1574,7 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
 
     return true
   } catch (err) {
-    logError('moveTodoBetweenCalendarNotes', `${err.name}: ${err.message}`)
+    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message}`)
     return false
   }
 }
@@ -1617,4 +1663,39 @@ export function getDaysToCalendarNote(para: TParagraph, asOfDayString?: string =
   const noteDate = para.note.title || ''
   const date = asOfDayString?.length ? asOfDayString : getTodaysDateHyphenated()
   return calculateDaysOverdue(noteDate, date)
+}
+
+/**
+ * Toggle given paragraph type between (open) Task and Checklist
+ * @param {TParagraph} para to toggle
+ * @returns {ParagraphType} new type
+ */
+export function toggleTaskChecklistParaType(filename: string, content: string): string {
+  try {
+    // find para
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
+    if (typeof possiblePara === 'boolean') {
+      throw new Error('toggleTaskChecklistParaType: no para found')
+    }
+
+    // Get the paragraph to change
+    const thisPara = possiblePara
+    const thisNote = thisPara.note
+    const existingType = thisPara.type
+    logDebug('toggleTaskChecklistParaType', `toggling in filename: ${filename}`)
+    if (existingType === 'checklist') {
+      thisPara.type = 'open'
+      // $FlowIgnore(incompatible-use)
+      thisNote.updateParagraph(thisPara)
+      return 'open'
+    } else {
+      thisPara.type = 'checklist'
+      // $FlowIgnore(incompatible-use)
+      thisNote.updateParagraph(thisPara)
+      return 'checklist'
+    }
+  } catch (error) {
+    logError('toggleTaskChecklistParaType', error.message)
+    return '(error)'
+  }
 }

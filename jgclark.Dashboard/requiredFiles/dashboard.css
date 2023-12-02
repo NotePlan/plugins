@@ -181,7 +181,7 @@ input, label {
 	transition: 0.2s;
 }
 
-.moveButton, .changeDateButton { /* compact 'buttons' for hoverExtraControls */
+.hoverControlButton {
 	font-size: 0.76rem;
 	font-weight: 400;
 	border-radius: 4px;

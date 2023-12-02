@@ -29,22 +29,16 @@ const thisPluginID = 'jgclark.Dashboard'
 export async function init(): Promise<void> {
   try {
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
-    // Note: turned off, as it was causing too much noise in logs
-    // DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-    //   pluginUpdated(pluginJson, r),
-    // )
+    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
   } catch (error) {
     logError(`${thisPluginID}/init`, JSP(error))
   }
 }
 
 export async function onSettingsUpdated(): Promise<any> {
-  // Placeholder only to stop error in logs
   if (!isHTMLWindowOpen(pluginJson['plugin.id'])) {
-    await showDashboardHTML(false, false) // don't need await in the case I think
+    await showDashboardHTML('refresh', false) // don't need await in the case I think
   }
-  // TEST: trying this empty return to see if stops console errors
-  return {}
 }
 
 export async function onUpdateOrInstall(): Promise<void> {

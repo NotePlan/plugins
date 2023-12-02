@@ -274,7 +274,7 @@ export const periodTypesAndDescriptions = [
  *
  * @param {string?} question to show user
  * @param {boolean?} excludeToday? (default true)
- * @param {string?} periodType? if not provided ask user
+ * @param {string?} periodType? lm | mtd | om etc. If not provided ask user
  * @returns {[Date, Date, string, string, string]}
  */
 export async function getPeriodStartEndDates(
@@ -284,7 +284,7 @@ export async function getPeriodStartEndDates(
 ): Promise<[Date, Date, string, string, string]> {
   let periodType: string
   // If we're passed the period, then use that, otherwise ask user
-  if (periodTypeToUse) {
+  if (periodTypeToUse && periodTypeToUse !== '') {
     // It may come with surrounding quotes, so remove those
     periodType = trimAnyQuotes(periodTypeToUse)
   } else {
