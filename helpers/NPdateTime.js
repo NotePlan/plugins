@@ -15,8 +15,14 @@ import {
   isWeeklyDateStr,
   isYearlyDateStr,
   isValidCalendarNoteTitleStr,
-  MOMENT_FORMAT_NP_ISO, MOMENT_FORMAT_NP_DAY, MOMENT_FORMAT_NP_MONTH, MOMENT_FORMAT_NP_QUARTER,
-  RE_DATE, RE_YYYYMMDD_DATE, RE_NP_MONTH_SPEC, RE_NP_QUARTER_SPEC,
+  MOMENT_FORMAT_NP_ISO,
+  MOMENT_FORMAT_NP_DAY,
+  MOMENT_FORMAT_NP_MONTH,
+  MOMENT_FORMAT_NP_QUARTER,
+  RE_DATE,
+  RE_YYYYMMDD_DATE,
+  RE_NP_MONTH_SPEC,
+  RE_NP_QUARTER_SPEC,
   todaysDateISOString,
   toISOShortDateTimeString,
 } from './dateTime'
@@ -42,7 +48,7 @@ async function chooseOption<T, TDefault = T>(message: string, options: $ReadOnly
 /**
  * Ask user to give arbitary input using CommandBar.
  * From helpers/userInput.js
-*/
+ */
 async function getInput(message: string, okLabel: string = 'OK', dialogTitle: string = 'Enter value', defaultValue: string = ''): Promise<false | string> {
   if (typeof CommandBar.textPrompt === 'function') {
     // i.e. do we have .textPrompt available?
@@ -60,7 +66,7 @@ export function setMomentLocaleFromEnvironment(): void {
   // logDebug('NPdateTime', `NP reports regionCode   = ${NotePlan.environment.regionCode ?? '<not set>'}`)
   // Locale-specific date + time formats
   // Set locale for moment library
-  const userLocaleSetting = `${NotePlan.environment.languageCode}${NotePlan.environment.regionCode ? '-' + NotePlan.environment.regionCode : ''}`
+  const userLocaleSetting = `${NotePlan.environment.languageCode}${NotePlan.environment.regionCode ? `-${NotePlan.environment.regionCode}` : ''}`
   moment.locale(userLocaleSetting)
   logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
 }
@@ -195,11 +201,11 @@ export function getUsersFirstDayOfWeekUTC(): number {
 }
 
 // TODO: Use moment instead ... and make locale aware
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-function monthNameAbbrev(m: number): string {
-  return monthsAbbrev[m - 1]
-}
+// const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+// const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+// function monthNameAbbrev(m: number): string {
+//   return monthsAbbrev[m - 1]
+// }
 
 /**
  * Array of period types and their descriptions, as used by getPeriodStartEndDates() when we need to ask user for a period.
@@ -431,7 +437,7 @@ export async function getPeriodStartEndDates(
         lastWeekNum = currentWeekNum - 1
       }
       ;[fromDate, toDate] = isoWeekStartEndDates(lastWeekNum, theYear)
-      periodString = `${String(theYear)}-W${lastWeekNum < 10 ? '0' + String(lastWeekNum) : String(lastWeekNum)}`
+      periodString = `${String(theYear)}-W${lastWeekNum < 10 ? `0${String(lastWeekNum)}` : String(lastWeekNum)}`
       break
     }
     case 'userwtd': {
@@ -447,10 +453,7 @@ export async function getPeriodStartEndDates(
       )
       fromDate = Calendar.startOfWeek(new Date()) //Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -(dateWithinInterval - 1))
       toDate = Calendar.addUnitToDate(fromDate, 'day', dateWithinInterval - 1) // Eduard, 3rd March '23: week to date means the start of the week till today? Before it went till the end.
-      logDebug(
-        'getPeriodStartEndDates',
-        `fromDate: ${String(fromDate)}, ${String(toDate)}`,
-      )
+      logDebug('getPeriodStartEndDates', `fromDate: ${String(fromDate)}, ${String(toDate)}`)
 
       periodString = `this week`
       periodAndPartStr = `at day ${dateWithinInterval} of this week`
@@ -468,7 +471,7 @@ export async function getPeriodStartEndDates(
       const tempObj = isoWeekStartEndDates(currentWeekNum, theYear)
       fromDate = tempObj[0]
       toDate = tempObj[1]
-      periodString = `${theYear}-W${currentWeekNum < 10 ? '0' + String(currentWeekNum) : String(currentWeekNum)}`
+      periodString = `${theYear}-W${currentWeekNum < 10 ? `0${String(currentWeekNum)}` : String(currentWeekNum)}`
       // get ISO dayOfWeek (Monday = 1 to Sunday = 7)
       const todaysISODayOfWeek = moment().isoWeekday()
       periodAndPartStr = `day ${todaysISODayOfWeek}, ${periodString}`
@@ -522,7 +525,7 @@ export async function getPeriodStartEndDates(
       const tempObj = isoWeekStartEndDates(weekNum, theYear)
       fromDate = tempObj[0]
       toDate = tempObj[1]
-      periodString = `${theYear}-W${weekNum < 10 ? '0' + String(weekNum) : String(weekNum)}`
+      periodString = `${theYear}-W${weekNum < 10 ? `0${String(weekNum)}` : String(weekNum)}`
       break
     }
 
@@ -614,8 +617,8 @@ export type NotePlanYearInfo = {
   endDate: Date,
 }
 
-export function pad(n: number) {
-  return n < 10 ? `0${n}` : n
+export function pad(n: number): string {
+  return n < 10 ? `0${n}` : String(n)
 }
 
 /**
@@ -645,8 +648,9 @@ export function pad(n: number) {
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
   try {
-    if (NotePlan?.environment?.buildVersion < 876 ?? true) { // to allow NPDateTime.test.js to run
-      throw new Error("Sorry; week API calls requires NotePlan v3.7 or newer.")
+    if (NotePlan?.environment?.buildVersion < 876 ?? true) {
+      // to allow NPDateTime.test.js to run
+      throw new Error('Sorry; week API calls requires NotePlan v3.7 or newer.')
     }
 
     let dateStrFormat = 'YYYY-MM-DD',
@@ -798,24 +802,24 @@ export function getWeekOptions(): $ReadOnlyArray<{ label: string, value: string 
   const weeks = eachWeekOfInterval({ start: now, end: add(now, { months: 6 }) })
   const weekOpts = weeks?.length
     ? weeks.map((w) => {
-      const weekData = getNPWeekData(w)
-      if (weekData) {
-        const start = weekData.startDate
-        const end = weekData.endDate
-        const arrowWeek = `>${weekData.weekString}`
-        const arrowWeekLabel = `>${weekData.weekString} Weekly Note`
-        return {
-          label: `${arrowWeekLabel} (${format(start, formats.noDay)} - ${format(end, formats.noDay)})`,
-          // $FlowIgnore
-          value: arrowWeek,
+        const weekData = getNPWeekData(w)
+        if (weekData) {
+          const start = weekData.startDate
+          const end = weekData.endDate
+          const arrowWeek = `>${weekData.weekString}`
+          const arrowWeekLabel = `>${weekData.weekString} Weekly Note`
+          return {
+            label: `${arrowWeekLabel} (${format(start, formats.noDay)} - ${format(end, formats.noDay)})`,
+            // $FlowIgnore
+            value: arrowWeek,
+          }
         }
-      }
-    })
+      })
     : []
   if (weekOpts && weekOpts?.length && weekOpts[0]?.label && weekOpts[1]?.label) {
     const extras = [
-      { ...weekOpts[0], ...{ label: `>thisweek -- ${weekOpts[0].label}` } },
-      { ...weekOpts[1], ...{ label: `>nextweek -- ${weekOpts[1].label}` } },
+      { ...weekOpts[0], ...{ label: `>thisweek (${weekOpts[0].label})` } },
+      { ...weekOpts[1], ...{ label: `>nextweek (${weekOpts[1].label})` } },
     ]
     // clo(options, `getDateOptions: options=`)
     // $FlowIgnore
@@ -931,7 +935,7 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
     if (!isValidCalendarNoteTitleStr(dateStrA)) {
       throw new Error(`${dateStrA} doesn't seem to be a valid NP date`)
     }
-    const dateStrB = (relDateIn === '') ? todaysDateISOString : relDateIn
+    const dateStrB = relDateIn === '' ? todaysDateISOString : relDateIn
     if (!isDailyDateStr(dateStrB)) {
       throw new Error(`${dateStrB} doesn't seem to be a valid YYYY-MM-DD date`)
     }
@@ -939,7 +943,7 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
     let codeStr = ''
     let periodStr = '?'
     let diff = NaN
-    const momB = (dateStrB !== '') ? moment(dateStrB) : moment()
+    const momB = dateStrB !== '' ? moment(dateStrB) : moment()
     logDebug('NPdateTime / relativeDateFromDateString', `Starting for ${dateStrA} relative to ${dateStrB}`)
     // Need to tailor it to date type of dateStr
     if (isDailyDateStr(dateStrA)) {
@@ -948,14 +952,7 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
       // diff = momB.startOf('day').diff(dateStrA, 'days')
       diff = momA.diff(momB.startOf('day'), 'days')
       codeStr = `${diff}d`
-      periodStr = (diff === -1)
-        ? 'yesterday'
-        : (diff === 0)
-          ? 'today'
-          : (diff === 1)
-            ? 'tomorrow'
-            : `${diff} days`
-
+      periodStr = diff === -1 ? 'yesterday' : diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : `${diff} days`
     } else if (isWeeklyDateStr(dateStrA)) {
       // TODO:
       // const momA = moment(dateStrA, "YYYY-[W]WW") // not NP weeks, but as we're working with relative weeks it doesn't matter
@@ -964,41 +961,37 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
       // diff = momA.diff(moment(BISOSOW), 'weeks')
 
       // change to use moment not NP weeks, but as the output are relative weeks it doesn't matter
-      const momA = moment(dateStrA, "YYYY-[W]WW")
+      const momA = moment(dateStrA, 'YYYY-[W]WW')
       const dateStrBToUse = dateStrB ?? todaysDateISOString
       logDebug('dateTime / relativeDateFromDateString', dateStrBToUse)
       const BNPWeekData = getNPWeekData(dateStrBToUse)
       // clo(BNPWeekData, 'BNPWeekData')
-      const momB = moment(BNPWeekData?.weekString, "YYYY-[W]WW")
+      const momB = moment(BNPWeekData?.weekString, 'YYYY-[W]WW')
       diff = momA.diff(momB, 'weeks')
       logDebug('dateTime / relativeDateFromDateString', `weeklyNote with momA ${momA} and momB ${momB}`)
       codeStr = `${diff}w`
       periodStr = `${diff} weeks`
-
     } else if (isMonthlyDateStr(dateStrA)) {
       logDebug('dateTime / relativeDateFromDateString', `monthlyNote`)
-      const momA = moment(dateStrA, "YYYY-MM")
+      const momA = moment(dateStrA, 'YYYY-MM')
       // diff = momB.startOf('month').diff(dateStrA, 'months')
       diff = momA.diff(momB.startOf('month'), 'months')
       codeStr = `${diff}m`
       periodStr = `${diff} months`
-
     } else if (isQuarterlyDateStr(dateStrA)) {
-      const momA = moment(dateStrA, "YYYY-[Q]Q")
+      const momA = moment(dateStrA, 'YYYY-[Q]Q')
       logDebug('dateTime / relativeDateFromDateString', `quarterlyNote`)
       // diff = Math.floor(momB.startOf('quarter').diff(dateStrA, 'months')/3.0) // moment can't diff quarters
       diff = Math.floor(momA.diff(momB.startOf('quarter'), 'months') / 3.0) // moment can't diff quarters
       codeStr = `${diff}q`
       periodStr = `${diff} quarters`
-
     } else if (isYearlyDateStr(dateStrA)) {
-      const momA = moment(dateStrA, "YYYY")
+      const momA = moment(dateStrA, 'YYYY')
       logDebug('dateTime / relativeDateFromDateString', `yearlyNote`)
       // diff = momB.startOf('year').diff(dateStrA, 'years')
       diff = momA.diff(momB.startOf('year'), 'years')
       codeStr = `${diff}y`
       periodStr = `${diff} years`
-
     } else {
       throw new Error(`${dateStrA} doesn't seem to be a valid NP date`)
     }
@@ -1006,11 +999,9 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
     // Make periodStr more idiomatic where possible (in English!)
     if (periodStr[0] === '0') {
       periodStr = `this ${periodStr.slice(2, -1)}`
-    }
-    else if (periodStr.startsWith('1')) {
+    } else if (periodStr.startsWith('1')) {
       periodStr = `next ${periodStr.slice(2, -1)}`
-    }
-    else if (periodStr.startsWith('-1')) {
+    } else if (periodStr.startsWith('-1')) {
       periodStr = `last ${periodStr.slice(3, -1)}`
     }
 

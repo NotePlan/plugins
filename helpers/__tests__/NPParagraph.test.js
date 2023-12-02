@@ -947,6 +947,60 @@ describe('NPParagraphs()', () => {
       })
     })
   })
+
+  describe('p.getDaysToCalendarNote', () => {
+    test('should return the (negative) number of days between two dates', () => {
+      const para = {
+        noteType: 'Calendar',
+        note: {
+          title: '2022-01-01', // Replace with your desired date
+        },
+      }
+      const asOfDayString = '2022-01-02' // Replace with your desired date
+      const result = p.getDaysToCalendarNote(para, asOfDayString)
+      expect(result).toBe(-1) // Replace with the expected number of days
+    })
+    test('should return zero if the date is the same', () => {
+      const para = {
+        noteType: 'Calendar',
+        note: {
+          title: '2022-01-01', // Replace with your desired date
+        },
+      }
+      const asOfDayString = '2022-01-01' // Replace with your desired date
+      const result = p.getDaysToCalendarNote(para, asOfDayString)
+      expect(result).toBe(0) // Replace with the expected number of days
+    })
+    test('should return positive if the date is the future', () => {
+      const para = {
+        noteType: 'Calendar',
+        note: {
+          title: '2022-01-02', // Replace with your desired date
+        },
+      }
+      const asOfDayString = '2022-01-01' // Replace with your desired date
+      const result = p.getDaysToCalendarNote(para, asOfDayString)
+      expect(result).toBe(1) // Replace with the expected number of days
+    })
+    test('should return null if para.noteType is not "Calendar"', () => {
+      const para = {
+        noteType: 'Other',
+        note: {
+          title: '2022-01-01',
+        },
+      }
+      const result = p.getDaysToCalendarNote(para)
+      expect(result).toBeNull()
+    })
+
+    test('should return null if para.note is not defined', () => {
+      const para = {
+        noteType: 'Calendar',
+      }
+      const result = p.getDaysToCalendarNote(para)
+      expect(result).toBeNull()
+    })
+  })
 })
 
 // ----------------------------------------------------------------------------

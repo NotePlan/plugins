@@ -55,7 +55,8 @@ export async function chooseOption<T, TDefault = T>(message: string, options: $R
 export async function chooseOptionWithModifiers<T, TDefault = T>(
   message: string,
   options: $ReadOnlyArray<Option<T>>,
-): Promise<{ ...TDefault, index: number, keyModifiers: Array < string > }> {
+): Promise<{ ...TDefault, index: number, keyModifiers: Array<string> }> {
+  logDebug('userInput / chooseOptionWithModifiers()', `About to showOptions with ${options.length} options & prompt:"${message}"`)
   // $FlowFixMe[prop-missing]
   const { index, keyModifiers } = await CommandBar.showOptions(
     options.map((option) => option.label),
@@ -214,7 +215,7 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
       }
     }
     // const re = await CommandBar.showOptions(folders, msg)
-    ; ({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
+    ;({ value, keyModifiers } = await chooseOptionWithModifiers(msg, folderOptionList))
     if (keyModifiers?.length && keyModifiers.indexOf('opt') > -1) {
       folder = NEW_FOLDER
     } else {
@@ -257,8 +258,9 @@ export async function chooseFolder(msg: string, includeArchive?: boolean = false
  */
 export async function chooseHeading(
   note: TNote,
-  optionAddATopAndtBottom: boolean = true, optionCreateNewHeading: boolean = false,
-  includeArchive: boolean = false
+  optionAddATopAndtBottom: boolean = true,
+  optionCreateNewHeading: boolean = false,
+  includeArchive: boolean = false,
 ): Promise<string> {
   try {
     let headingStrings = []
@@ -404,7 +406,7 @@ export async function askDateInterval(dateParams: string): Promise<string> {
   const allSettings: { [string]: mixed } = { ...paramConfig }
   // grab just question parameter, or provide a default
   let { question } = (allSettings: any)
-  question = question ?question: 'Please enter a date interval'
+  question = question ? question : 'Please enter a date interval'
 
   const reply = (await CommandBar.showInput(question, `Date interval (in form nn[bdwmqy]): %@`)) ?? ''
   const trimmedReply = reply.trim()
@@ -463,7 +465,7 @@ export async function datePicker(dateParams: string, config?: { [string]: ?mixed
     // grab just question parameter, or provide a default
     let { question, defaultValue } = (allSettings: any)
     // logDebug('userInput / datePicker', `defaultValue: ${defaultValue}`)
-    question = question ?question: 'Please enter a date'
+    question = question ? question : 'Please enter a date'
     defaultValue = defaultValue ? defaultValue : 'YYYY-MM-DD'
 
     // Ask question (newer style)

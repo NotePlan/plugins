@@ -337,15 +337,15 @@ export async function gatherMatchingLines(
       n.date == null
         ? `[[${n.title ?? ''}]]`
         : dateStyle.startsWith('link') // to deal with earlier typo where default was set to 'links'
-          ? // $FlowIgnore(incompatible-call)
+        ? // $FlowIgnore(incompatible-call)
           ` > ${hyphenatedDate(n.date)} `
-          : dateStyle === 'date'
-            ? // $FlowIgnore(incompatible-call)
-            ` (${toLocaleDateTimeString(n.date)})`
-            : dateStyle === 'at'
-              ? // $FlowIgnore(incompatible-call)
-              ` @${hyphenatedDate(n.date)} `
-              : ''
+        : dateStyle === 'date'
+        ? // $FlowIgnore(incompatible-call)
+          ` (${toLocaleDateTimeString(n.date)})`
+        : dateStyle === 'at'
+        ? // $FlowIgnore(incompatible-call)
+          ` @${hyphenatedDate(n.date)} `
+        : ''
 
     // set up regex for searching, now with word boundaries on either side
     // find any matches
@@ -936,10 +936,10 @@ export function hasOverdueTag(para: TParagraph, returnDetails: boolean = false, 
   } else {
     return Boolean(
       hasOverdueDayTag(para, false, asOfDayString) ||
-      hasOverdueWeekTag(para, false, asOfDayString) ||
-      hasOverdueMonthTag(para, false, asOfDayString) ||
-      hasOverdueQuarterTag(para, false, asOfDayString) ||
-      hasOverdueYearTag(para, false, asOfDayString),
+        hasOverdueWeekTag(para, false, asOfDayString) ||
+        hasOverdueMonthTag(para, false, asOfDayString) ||
+        hasOverdueQuarterTag(para, false, asOfDayString) ||
+        hasOverdueYearTag(para, false, asOfDayString),
     )
   }
 }
@@ -973,13 +973,13 @@ export function getOverdueTags(para: TParagraph, asOfDayString?: string = ''): s
 const paragraphIsScheduled = (para: TParagraph): boolean => isScheduled(para.content)
 
 /**
- * Test whether a calendar note has any open tasks that are "effectively overdue" (a.k.a. "forgotten tasks")
+ * Test whether a paragraph in a calendar note is "effectively overdue" (a.k.a. "forgotten tasks")
  * (i.e. the task is open, does not include a >scheduling date of any kind, and this type of note's date is in the past)
  * Immediately returns false if the note is not a calendar note
  * e.g. a task on yesterday's daily note would now be "overdue"
  * an open task on last week's weekly note would now be "overdue"
  * @author @dwertheimer
- * @param {TParagraph} note
+ * @param {TParagraph} paragraph
  * @returns {boolean} - true if the task is open
  */
 export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
@@ -1031,6 +1031,7 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
 
 /**
  * Calculate the number of days until due (or overdue) for a paragraph to today
+ * Assumes the paragraph has a >date tag; use helpers/NPdateTime.js/getDaysToCalendarNote for paragraphs that don't have a >date tag
  * The tricky part is that we have to start counting with the end of the period (e.g. the end of the week, month, etc.)
  * @author @dwertheimer
  * @param {TParagraph} paragraph
@@ -1039,16 +1040,22 @@ export function paragraphIsEffectivelyOverdue(paragraph: TParagraph): boolean {
  * @tests in jest file
  */
 export function getDaysTilDue(paragraph: TParagraph, toISODate: string = getTodaysDateHyphenated()): number {
-  const paraDateTagDetails = getTagDetails(paragraph, toISODate)
-  clo(paragraph, 'para')
-  clo(paraDateTagDetails, 'paraDateTagDetails')
+  const paraDateTagDetails: OverdueDetails | false = getTagDetails(paragraph, toISODate)
+  // clo(paragraph, 'getDaysTilDue: calculating days til due for paragraph')
+  // clo(paraDateTagDetails, 'getDaysTilDue: paraDateTagDetails')
   if (paraDateTagDetails && paraDateTagDetails.linkType && paragraph.date) {
     const endDate = endOfPeriod(paraDateTagDetails.linkType, paragraph.date)
-    // FIXME(@dwertheimer: flow says there's an apparently serious error here
-    const daysTilDue = calculateDaysOverdue(endDate, toISODate)
-    return daysTilDue
+    if (endDate) {
+      // logDebug(`getDaysTilDue: endDate:${endDate.toString()} toISODate:${toISODate}`)
+      const daysTilDue = calculateDaysOverdue(endDate, toISODate)
+      return daysTilDue
+    } else {
+      logError(`getDaysTilDue: could not get end of period for ${endDate || ''}`)
+      return NaN
+    }
   } else {
-    return NaN
+    const daysSinceNote = getDaysToCalendarNote(paragraph, toISODate)
+    return daysSinceNote || NaN
   }
 }
 
@@ -1082,11 +1089,11 @@ function endOfPeriod(periodType: string, paraDate: Date): Date | null {
  *  Calculate the number of days until due for a given date (negative if overdue)
  * TODO: tests!
  * @author @dwertheimer
- * @param {string} fromDate (in YYYY-MM-DD format)
- * @param {string} toDate (in YYYY-MM-DD format)
+ * @param {string|Date} fromDate (in YYYY-MM-DD format if string)
+ * @param {string|Date} toDate (in YYYY-MM-DD format if string)
  * @returns {number}
  */
-function calculateDaysOverdue(fromDate: string, toDate: string): number {
+export function calculateDaysOverdue(fromDate: string | Date, toDate: string | Date): number {
   if (!fromDate || !toDate) {
     return 0
   }
@@ -1207,7 +1214,7 @@ export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragra
   const potentials = parasToLookIn.filter((p) => paragraphMatches(p, paragraphDataToFind, fieldsToMatch))
   if (potentials?.length === 1) {
     // clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the one:`)
-    logDebug('findParagraph', `1 potential match: rawContent: <${potentials[0].rawContent}>`)
+    logDebug('findParagraph', `1 potential match: rawContent:"${potentials[0].rawContent}"`)
     return potentials[0]
   } else if (potentials.length > 1) {
     // clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the first:`)
@@ -1226,7 +1233,7 @@ export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragra
   } else {
     // no matches
     // const p = paragraphDataToFind
-    logDebug(pluginJson, `findParagraph: found no paragraphs in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind)}`)
+    logDebug(pluginJson, `findParagraph: found no paragraphs in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(paragraphDataToFind.rawContent)}`)
     // logDebug(`\n**** Looking for "${p[fieldsToMatch[0]]}" "${p[fieldsToMatch[1]]}" in the following list`)
     //$FlowIgnore
     // parasToLookIn.forEach((p) => logDebug(pluginJson, `\t findParagraph: ${p[fieldsToMatch[0]]} ${p[fieldsToMatch[1]]}`))
@@ -1281,7 +1288,7 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
     logDebug('highlightParagraphInEditor', `Looking for <${objectToTest.rawContent ?? objectToTest.content}>`)
 
     const { paragraphs } = Editor
-    const resultPara: TParagraph | null = (objectToTest.rawContent)
+    const resultPara: TParagraph | null = objectToTest.rawContent
       ? findParagraph(paragraphs, objectToTest, ['filename', 'rawContent'])
       : findParagraph(paragraphs, objectToTest, ['filename', 'content'])
     if (resultPara) {
@@ -1377,8 +1384,7 @@ export function completeItem(filenameIn: string, content: string): boolean {
       return false
     }
     return markComplete(possiblePara)
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, `NPP/completeItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
@@ -1399,8 +1405,7 @@ export function cancelItem(filenameIn: string, content: string): boolean {
       return false
     }
     return markCancelled(possiblePara)
-  }
-  catch (error) {
+  } catch (error) {
     logError(pluginJson, `NPP/cancelItem: ${error.message} for note '${filenameIn}'`)
     return false
   }
@@ -1528,7 +1533,6 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
   }
 }
 
-
 /**
  * Take a (multi-line) raw content block, typically from the editor, and turn it into an array of TParagraph-like objects
  * Designed to be used with Editor.content that is available in a trigger, before Editor.note.paragraphs is updated.
@@ -1543,14 +1547,14 @@ export function makeBasicParasFromContent(content: string): Array<any> {
     const allLines = content.split('\n')
     logDebug('makeBasicParasFromEditorContent', `Starting with ${String(allLines.length)} lines of editorContent}`)
     // read the user's prefs for what counts as a todo
-    const ASTERISK_TODO = DataStore.preference("isAsteriskTodo") ? "*" : ""
-    const DASH_TODO = DataStore.preference("isDashTodo") ? "-" : ""
-    const NUMBER_TODO = DataStore.preference("isNumbersTodo") ? "|\\d+\\." : ""
+    const ASTERISK_TODO = DataStore.preference('isAsteriskTodo') ? '*' : ''
+    const DASH_TODO = DataStore.preference('isDashTodo') ? '-' : ''
+    const NUMBER_TODO = DataStore.preference('isNumbersTodo') ? '|\\d+\\.' : ''
     // previously used /^\s*([\*\-]\s[^\[]|[\*\-]\s\[\s\])/
     const RE_OPEN_TASK = new RegExp(`^\\s*(([${DASH_TODO}${ASTERISK_TODO}]${NUMBER_TODO})\\s(?!\\[[x\\-\\]])(\\[[\\s>]\\])?)`)
     // logDebug('makeBasicParas...', `RE_OPEN_TASK: ${String(RE_OPEN_TASK)}`)
-    const ASTERISK_BULLET = DataStore.preference("isAsteriskTodo") ? "" : "\\*"
-    const DASH_BULLET = DataStore.preference("isDashTodo") ? "" : "\\-"
+    const ASTERISK_BULLET = DataStore.preference('isAsteriskTodo') ? '' : '\\*'
+    const DASH_BULLET = DataStore.preference('isDashTodo') ? '' : '\\-'
     const RE_BULLET_LIST = new RegExp(`^\\s*([${DASH_BULLET}${ASTERISK_BULLET}])\\s+`)
     // logDebug('makeBasicParas...', `RE_BULLET_LIST: ${String(RE_BULLET_LIST)}`)
 
@@ -1560,44 +1564,31 @@ export function makeBasicParasFromContent(content: string): Array<any> {
       const thisPara = {}
       if (/^#{1,5}\s+/.test(thisLine)) {
         thisPara.type = 'title'
-      }
-      else if (RE_OPEN_TASK.test(thisLine)) {
+      } else if (RE_OPEN_TASK.test(thisLine)) {
         thisPara.type = 'open'
-      }
-      else if (/^\s*(\+\s[^\[]|\+\s\[ \])/.test(thisLine)) {
+      } else if (/^\s*(\+\s[^\[]|\+\s\[ \])/.test(thisLine)) {
         thisPara.type = 'checklist'
-      }
-      else if (/^\s*([\*\-]\s\[>\])/.test(thisLine)) {
+      } else if (/^\s*([\*\-]\s\[>\])/.test(thisLine)) {
         thisPara.type = 'scheduled'
-      }
-      else if (/^\s*(\+\s\[>\])/.test(thisLine)) {
+      } else if (/^\s*(\+\s\[>\])/.test(thisLine)) {
         thisPara.type = 'checklistScheduled'
-      }
-      else if (/^\s*([\*\-]\s\[x\])/.test(thisLine)) {
+      } else if (/^\s*([\*\-]\s\[x\])/.test(thisLine)) {
         thisPara.type = 'done'
-      }
-      else if (/^\s*([\*\-]\s\[\-\])/.test(thisLine)) {
+      } else if (/^\s*([\*\-]\s\[\-\])/.test(thisLine)) {
         thisPara.type = 'cancelled'
-      }
-      else if (/^\s*(\+\s\[x\])/.test(thisLine)) {
+      } else if (/^\s*(\+\s\[x\])/.test(thisLine)) {
         thisPara.type = 'checklistDone'
-      }
-      else if (/^\s*(\+\s\[\-\])/.test(thisLine)) {
+      } else if (/^\s*(\+\s\[\-\])/.test(thisLine)) {
         thisPara.type = 'checklistCancelled'
-      }
-      else if (RE_BULLET_LIST.test(thisLine)) {
+      } else if (RE_BULLET_LIST.test(thisLine)) {
         thisPara.type = 'list'
-      }
-      else if (/^\s*>\s/.test(thisLine)) {
+      } else if (/^\s*>\s/.test(thisLine)) {
         thisPara.type = 'quote'
-      }
-      else if (thisLine === '---') {
+      } else if (thisLine === '---') {
         thisPara.type = 'separator'
-      }
-      else if (thisLine === '') {
+      } else if (thisLine === '') {
         thisPara.type = 'empty'
-      }
-      else {
+      } else {
         thisPara.type = 'text'
       }
       thisPara.lineIndex = c
@@ -1608,9 +1599,22 @@ export function makeBasicParasFromContent(content: string): Array<any> {
       c++
     }
     return basicParas
-  }
-  catch (error) {
+  } catch (error) {
     logError('makeBasicParasFromEditorContent', `${error.message} for input '${content}'`)
     return []
   }
+}
+
+/**
+ * Get the number of days to/from the date of a paragraph's contaier -- calendar note -- to another date (defaults to today's date)
+ * @param {TParagraph} para - the paragraph
+ * @param {string|undefined} asOfDayString - the date to compare to
+ * @returns {number} the number of days between the two dates (negative for in past, positive for in future), or null if there is no date
+ */
+export function getDaysToCalendarNote(para: TParagraph, asOfDayString?: string = ''): number | null {
+  if (para.noteType !== 'Calendar') return null
+  if (!para.note) return null
+  const noteDate = para.note.title || ''
+  const date = asOfDayString?.length ? asOfDayString : getTodaysDateHyphenated()
+  return calculateDaysOverdue(noteDate, date)
 }
