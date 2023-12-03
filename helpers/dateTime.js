@@ -790,7 +790,7 @@ export function getWeek(inDate: Date): number {
 }
 
 /**
- * WARNING: Does this really produce NP week numbers?
+ * WARNING: Only for use where Monday is the user's first day of the week. See NPdateTime::getNPWeekData() for use with other days of the week.
  * @param {Date} inDate
  * @returns string
  */
@@ -1013,6 +1013,7 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
 /**
  * Calculate an offset date of any date interval NP supports, and return _in whichever format was supplied_.
  * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
+ * WARNING: don't use when you want the output to be in week format, as the moment library doesn't understand different start-of-weeks. Use NPdateTime::getNPWeekData() instead.
  * Moment docs: https://momentjs.com/docs/#/get-set/
  * - 'baseDateIn' the base date as a string in any of the formats that NP supports: YYYY-MM-DD, YYYYMMDD (filename format), YYYY-Wnn, YYYY-MM, YYYY-Qn, YYYY.
  * - 'offsetInterval' of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in Europe and Americas)
@@ -1038,6 +1039,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
       throw new Error('Empty offsetInterval string')
     }
     const offsetUnit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
+    logDebug('dateTime / cODS', `Starting with ${adaptOutputInterval} adapt for ${baseDateIn} + ${offsetInterval}`)
 
     // calc offset date
     // (Note: library functions cope with negative nums, so just always use 'add' function)
@@ -1046,7 +1048,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
       throw new Error('Invalid return from calcOffsetDate()')
     }
     // Now decide how to format the new date.
-    // start with using baseDateIn's format
+    // Start with using baseDateIn's format
     const calendarTypeOrder = 'dbwmqy'
     let newDateStr = ''
     let baseDateMomentFormat = ''
@@ -1081,25 +1083,31 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
       : getNPDateFormatForDisplayFromOffsetUnit(offsetUnit)
     const newDateStrFromOffsetDateType = moment(offsetDate).format(offsetMomentFormat)
 
-    // logDebug('dateTime / cODS', ` ${adaptOutputInterval} adapt for ${baseDateIn} / ${baseDateUnit} / ${baseDateMomentFormat} / ${offsetMomentFormat} / ${offsetInterval}`)
+    if (offsetUnit === 'w') {
+      logWarn('dateTime / cODS', `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case.`)
+      logWarn('dateTime / cODS', `  Details: ${adaptOutputInterval} adapt for ${baseDateIn} / ${baseDateUnit} / ${baseDateMomentFormat} / ${offsetMomentFormat} / ${offsetInterval} / ${newDateStrFromOffsetDateType}`)
+    }
+
     // If we want to adapt smaller
     switch (adaptOutputInterval) {
       case 'offset': {
         newDateStr = newDateStrFromOffsetDateType
-        // logDebug('dateTime / cODS', `- 'offset' output: -> ${newDateStrFromOffsetDateType}`)
+        logDebug('dateTime / cODS', `- 'offset' output: -> ${newDateStrFromOffsetDateType}`)
         break
       }
       case 'shorter': {
         if (calendarTypeOrder.indexOf(offsetUnit) < calendarTypeOrder.indexOf(baseDateUnit)) {
           newDateStr = newDateStrFromOffsetDateType
-          // logDebug('dateTime / cODS', `- 'shorter' output: changed format to ${offsetMomentFormat}`)
+          logDebug('dateTime / cODS', `- 'shorter' output: changed format to ${offsetMomentFormat}`)
         }
         break
       }
       case 'longer': {
         if (calendarTypeOrder.indexOf(offsetUnit) > calendarTypeOrder.indexOf(baseDateUnit)) {
           newDateStr = newDateStrFromOffsetDateType
-          // logDebug('dateTime / cODS', `- 'longer' output: changed format to ${offsetMomentFormat}`)
+          logDebug('dateTime / cODS', `- 'longer' output: changed format to ${offsetMomentFormat}`)
+        } else {
+          logDebug('dateTime / cODS', `- 'longer' output: NO change to format`)
         }
         break
       }

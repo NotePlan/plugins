@@ -622,7 +622,7 @@ export function pad(n: number) {
  * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
  * Week info is offset depending on the NotePlan setting for the first day of the week
  * Note: requires API calls introduced in v3.7.0
- * @param {string} date - date string in format YYYY-MM-DD OR a Date object (default = today).
+ * @param {string} dateIn - date string in format YYYY-MM-DD OR a Date object (default = today).
  * Note:
  *    Make sure that if you send in a date that it's a date in the correct time/timezone you want.
  *    If you create a new date of your own without a time (e.g. new Date("2022-01-01")) it could produce a date
@@ -630,7 +630,7 @@ export function pad(n: number) {
  *    the date string rather than a date object
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
  * @param {string} offsetType - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'week')
- * @returns { NotePlanWeekInfo } - an object with all the week details
+ * @returns { NotePlanWeekInfo | null } - an object with all the week details, or null if there's an error
  * getNPWeekData: alias weekInfo, weekData, getWeek, weeklyNote
  * {
  *   weekNumber: number, // e.g. 1
