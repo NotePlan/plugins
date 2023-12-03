@@ -1677,7 +1677,6 @@ export function toggleTaskChecklistParaType(filename: string, content: string): 
     if (typeof possiblePara === 'boolean') {
       throw new Error('toggleTaskChecklistParaType: no para found')
     }
-
     // Get the paragraph to change
     const thisPara = possiblePara
     const thisNote = thisPara.note
@@ -1698,4 +1697,70 @@ export function toggleTaskChecklistParaType(filename: string, content: string): 
     logError('toggleTaskChecklistParaType', error.message)
     return '(error)'
   }
+}
+
+export type ParentParagraphs = {
+  parent: TParagraph,
+  children: Array<TParagraph>,
+}
+
+/**
+ * By definition, a paragraph's .children() method API returns an array of TParagraphs indented underneath it
+ * a grandparent will have its children and grandchildren listed in its .children() method and the child will have the grandchildren also
+ * This function returns only the children of the paragraph, not any descendants, eliminating duplicates
+ * Optionally, if removeChildrenFromTopLevel is true, it will remove the children from the top level of the array
+ * leaving children only in the children property of its direct parent paragraph
+ * @param {Array<TParagraph>} paragraphs - array of paragraphs
+ * @param {boolean} removeChildrenFromTopLevel - if true, removes children from top level of array (default = false)
+ * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
+ */
+export function getParagraphParentsOnly(paragraphs: Array<TParagraph>, removeChildrenFromTopLevel: boolean = false): Array<ParentParagraphs> {
+  const parentsOnly = []
+
+  for (const para of paragraphs) {
+    logDebug('getParagraphParentsOnly', `para: "${para.content}"`)
+    const childParas = getChildParas(para, paragraphs, removeChildrenFromTopLevel)
+    parentsOnly.push({ parent: para, children: childParas })
+  }
+
+  return parentsOnly
+}
+
+/**
+ * Get the direct children paragraphs of a given paragraph (ignore [great]grandchildren)
+ * NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true
+ * @param {TParagraph} para - the parent paragraph
+ * @param {Array<TParagraph>} paragraphs - array of all paragraphs
+ * @param {boolean} removeChildrenFromTopLevel - if true, removes children from top level of array (default: false)
+ * @returns {Array<TParagraph>} - array of children paragraphs (NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true)
+ */
+export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>, removeChildrenFromTopLevel: boolean = false): Array<TParagraph> {
+  const childParas = []
+
+  if (!para.children().length) {
+    return childParas
+  }
+
+  const thisIndentLevel = para.indents
+  const thisParaChildren = para.children()
+
+  for (const child of thisParaChildren) {
+    const childIndentLevel = child.indents
+
+    if (childIndentLevel === thisIndentLevel + 1) {
+      childParas.push(child)
+
+      if (removeChildrenFromTopLevel) {
+        const childIndex = paragraphs.findIndex((p) => p.lineIndex === child.lineIndex)
+
+        if (childIndex > -1) {
+          paragraphs.splice(childIndex, 1)
+        }
+      }
+    }
+  }
+
+  clo(thisParaChildren, `getChildParas: para="${para.content}", thisParaChildren.length=${thisParaChildren.length}. reduced to:${childParas.length}`)
+
+  return childParas
 }
