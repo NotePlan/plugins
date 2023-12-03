@@ -20,6 +20,7 @@ import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
 import { cyclePriorityState, getTaskPriority } from '@helpers/paragraph'
+import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import {
   cancelItem,
   completeItem,
@@ -124,6 +125,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'completeTask', data)
         } else {
           logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+          logDebug('bCDI', '---------------- refresh ---------------')
           await showDashboardHTML()
         }
         break
@@ -140,6 +142,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'completeTask', data)
         } else {
           logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
+          logDebug('bCDI', '---------------- refresh ---------------')
           await showDashboardHTML('refresh')
         }
         break
@@ -156,6 +159,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'cancelTask', data)
         } else {
           logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
+          logDebug('bCDI', '---------------- refresh ---------------')
           await showDashboardHTML('refresh')
         }
         break
@@ -172,6 +176,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'completeChecklist', data)
         } else {
           logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
+          logDebug('bCDI', '---------------- refresh ---------------')
           await showDashboardHTML('refresh')
         }
         break
@@ -188,6 +193,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'cancelChecklist', data)
         } else {
           logWarn('bCDI / cancelChecklist', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
+          logDebug('bCDI', '---------------- refresh ---------------')
           await showDashboardHTML('refresh')
         }
         break
@@ -323,10 +329,22 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           newDateStr = getTodaysDateHyphenated()
           logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> 'today'`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
-          // Get the (ISO) current date on the task
+          const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
+
           // FIXME: errors reported here from new Overdue section, where we don't have filename?
+
+          // Get the (ISO) current date on the task
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'offset') // 'longer'
+
+          // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week'
+          if (offsetUnit === 'w') {
+            const offsetNum = Number(dateInterval.substr(0, dateInterval.length - 1)) // return all but last character
+            // $FlowFixMe(incompatible-type)
+            const NPWeekData: NotePlanWeekInfo = getNPWeekData(startDateStr, offsetNum, 'week')
+            newDateStr = NPWeekData.weekString
+            logDebug('bridgeClickDashboardItem', `- used NPWeekData instead -> ${newDateStr}`)
+          }
           logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> ${newDateStr}`)
         }
         // Do the actual move
@@ -345,7 +363,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
       case 'updateTaskDate': {
         // Instruction from a 'changeDateButton' to change date on a task (in a project note)
-        // Note: Overloads ID with the dateInterval to use
         const dateInterval = data.controlStr
         let startDateStr = ''
         let newDateStr = ''
@@ -356,11 +373,23 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         if (dateInterval === 't') {
           // Special case to change to '>today'
           newDateStr = 'today'
-          logDebug('bridgeClickDashboardItem', `move task -> 'today' in ${filename}`)
+          logDebug('bridgeClickDashboardItem', `move task in ${filename} -> 'today'`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
-          // Get today's date, ignoring current date on task
+          const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
+          // Get today's date, ignoring current date on task. Note: this means we always start with a *day* base date, not week etc.
           let startDateStr = getTodaysDateHyphenated()
-          newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'longer') // TEST: longer?
+          // Get the new date, but output using the longer of the two types of dates given
+          newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'longer')
+
+          // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week'
+          if (offsetUnit === 'w') {
+            const offsetNum = Number(dateInterval.substr(0, dateInterval.length - 1)) // return all but last character
+            // $FlowFixMe(incompatible-type)
+            const NPWeekData: NotePlanWeekInfo = getNPWeekData(startDateStr, offsetNum, 'week')
+            // clo(NPWeekData, "NPWeekData:")
+            newDateStr = NPWeekData.weekString
+            logDebug('bridgeClickDashboardItem', `- used NPWeekData instead -> ${newDateStr}`)
+          }
           logDebug('bridgeClickDashboardItem', `change due date on task from ${startDateStr} -> ${newDateStr}`)
         }
         // Make the actual change
@@ -378,7 +407,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
             // Ask for cache refresh for this note
             DataStore.updateCache(thisNote, false)
 
-            // refresh display
+            // refresh whole display, as we don't know which if any section the moved task might need to be added to
+            logDebug('bridgeClickDashboardItem', `------------ refresh ------------`)
             await showDashboardHTML()
           } else {
             logWarn('bridgeClickDashboardItem', `- can't find note to update to {${changedLine}}`)
