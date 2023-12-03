@@ -538,9 +538,9 @@ export function _sanitizeFrontmatterText(originalText: string, removeTemplateTag
   const unfilteredFmText = _getFMText(originalText)
   const hasTags = hasTemplateTagsInFM(unfilteredFmText)
   if (hasTags && !removeTemplateTagsInFM) {
-    logDebug(
-      `FYI: _sanitizeFrontmatterText: getAttributes was called for a template which has template tags in the frontmatter. This is generally only advisable if you send getAttributes with the second param set to true. Ignore this warning if you meant to do this and it's working fine for you. Template text was: "${originalText}"`,
-    )
+    // logDebug(
+    //   `FYI: _sanitizeFrontmatterText: getAttributes was called for a template which has template tags in the frontmatter. This is generally only advisable if you send getAttributes with the second param set to true. Ignore this warning if you meant to do this and it's working fine for you. Template text was: "${originalText}"`,
+    // )
   }
   // remove any lines in fmText which contain <%
   const fmTextWithoutTags =
