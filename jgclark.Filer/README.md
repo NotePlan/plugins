@@ -32,10 +32,9 @@ This command (alias **/asc**) adds a sync'd copy of the current line to a sectio
 
 ![add sync demo](add-link-line-demo-T2.gif)
 
-<!-- NB: This only works with the "synced blocks" feature available in the NotePlan Lab from v3.5.2. -->
-NB: This feature only works on single lines, not whole blocks, at the moment.)
+NB: This feature only works on single lines, not whole blocks, at the moment.
 
-## various /note link commands
+## various /... note link ... commands
 There are 4 related commands that move or copy lines in calendar notes that include a `[[note link]]` to regular notes with that title:
 - **/move note links**
 - **/move note links (recently changed)**
@@ -48,7 +47,7 @@ For example, if you collect tasks and notes on 3 different main areas in your da
 _(Thanks to @jord8on for the graphic which inspired this set of commands.)_
 
 In practice running /copy note links command on a daily note can implement:
-![note link demo using /copy note links command](note-link-example1.gif)
+![note link demo using /copy note links command](note-link-example.gif)
 
 There are a number of settings to make it useful for a variety of ways of organising your notes:
 
@@ -102,7 +101,7 @@ If you find an issue with this plugin, or would like to suggest new features for
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 

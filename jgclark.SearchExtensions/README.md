@@ -9,7 +9,7 @@ NotePlan can search over your notes, but it is currently not very flexible or ea
 ## The search commands
 
 - **/flexiSearch** presents a dialog box which allows you to select all available options, without needing to know which of the following specific commands to call.
-<img width="500px" alt="FlexiSearch" src="flexiSearch-dialog1@2x.png">
+<img width="500px" alt="FlexiSearch" src="flexiSearch-dialog1@2x.png"/>
 Note: when /flexiSearch is run on iPhone or iPad you will need to close the dialog box by pressing the X in the top right-hand corner after the search has run. (I'm trying to find a way around this limitation.)
 
 - **/quickSearch** searches across **all notes** (both calendar and regular notes), saving to a pre-set 'Quick Search Results' note. (Alias: **/qs**.)
@@ -49,15 +49,14 @@ Each results note has a ` [🔄 Refresh results for ...]` pseudo-button under th
 
 This is shown in the demo above.
 
-## Extended search syntax<!--(from v1.0)-->
+## Extended search syntax
 
 - put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
-<!-- - you can also use older search style: for example searching for terms X or Y using `X, Y` or `X OR Y` -->
 - the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit`)
 - the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`), not using fuzzy matching or regular expressions
 - currently, a search term must have at least two alphanumeric characters to be valid
-- all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be exluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
+- all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
 - you can use an empty search term (from v1.1), which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
 - (from v1.2) to search for an exact multi-word phrases, put it in quotes (e.g. `"Holy Spirit"`)
 - you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
@@ -122,7 +121,7 @@ Notes:
 | /search | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchOverCalendar | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverCalendar&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchOverNotes | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverNotes&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
-| /searchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. | optional paragraph types to filter by (separated by commas) | optional output desination indicator: 'current', 'newnote', or 'log' |
+| /searchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. | optional paragraph types to filter by (separated by commas) | optional output destination indicator: 'current', 'newnote', or 'log' |
 
 ¶ Note: /quickSearch can be called without any parameters (`noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch`); run this way it will prompt for search terms.
 
@@ -131,7 +130,7 @@ If you find an issue with this plugin, or would like to suggest new features for
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg"/>](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 

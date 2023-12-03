@@ -203,7 +203,7 @@ export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boole
  * @example showHTMLWindow("Test", "<p>Test</p>", {savedFilename: "test.html"})
  * @author @dwertheimer
  */
-export async function showHTMLWindow(windowTitle: string, body: string, opts: HtmlWindowOptions) {
+export async function showHTMLWindow(body: string, opts: HtmlWindowOptions) {
   const preBody = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
   if (opts.includeCSSAsJS) {
     const theme = getThemeJS(true, true)

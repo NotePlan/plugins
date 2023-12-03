@@ -3,7 +3,7 @@ This plugin helps you write daily, weekly, monthly, quarterly and/or yearly **jo
 
 This takes advantage of each of these time periods that can be turned on in Preferences > Calendars, and then show in the sidebar:
 
-<img width="500px" src="calendar-notes@2x.jpg">
+<img width="500px" src="calendar-notes@2x.jpg" />
 
 The commands are:
 - **/dayStart**: Apply your 'Daily Note' Template to the currently open daily note (or today's note if you're not editing a daily note)
@@ -86,7 +86,7 @@ If you find an issue with this plugin, or would like to suggest new features for
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 

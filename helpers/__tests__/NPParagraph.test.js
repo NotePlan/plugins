@@ -1,10 +1,12 @@
-/* global describe, expect, test, beforeAll, beforeEach, afterAll */
+/* global describe, expect, test, beforeAll, beforeEach, afterAll, it */
 import moment from 'moment'
 import { CustomConsole } from '@jest/console' // see note below
 import * as p from '../NPParagraph'
 import { clo, logDebug, logInfo } from '../dev'
+import { getParagraphParentsOnly, getChildParas } from '../NPParagraph'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, simpleFormatter } from '@mocks/index'
 import { SCHEDULED_MONTH_NOTE_LINK } from '@helpers/dateTime'
+
 beforeAll(() => {
   global.Calendar = Calendar
   global.Clipboard = Clipboard
@@ -947,6 +949,60 @@ describe('NPParagraphs()', () => {
       })
     })
   })
+
+  describe('p.getDaysToCalendarNote', () => {
+    test('should return the (negative) number of days between two dates', () => {
+      const para = {
+        noteType: 'Calendar',
+        note: {
+          title: '2022-01-01', // Replace with your desired date
+        },
+      }
+      const asOfDayString = '2022-01-02' // Replace with your desired date
+      const result = p.getDaysToCalendarNote(para, asOfDayString)
+      expect(result).toBe(-1) // Replace with the expected number of days
+    })
+    test('should return zero if the date is the same', () => {
+      const para = {
+        noteType: 'Calendar',
+        note: {
+          title: '2022-01-01', // Replace with your desired date
+        },
+      }
+      const asOfDayString = '2022-01-01' // Replace with your desired date
+      const result = p.getDaysToCalendarNote(para, asOfDayString)
+      expect(result).toBe(0) // Replace with the expected number of days
+    })
+    test('should return positive if the date is the future', () => {
+      const para = {
+        noteType: 'Calendar',
+        note: {
+          title: '2022-01-02', // Replace with your desired date
+        },
+      }
+      const asOfDayString = '2022-01-01' // Replace with your desired date
+      const result = p.getDaysToCalendarNote(para, asOfDayString)
+      expect(result).toBe(1) // Replace with the expected number of days
+    })
+    test('should return null if para.noteType is not "Calendar"', () => {
+      const para = {
+        noteType: 'Other',
+        note: {
+          title: '2022-01-01',
+        },
+      }
+      const result = p.getDaysToCalendarNote(para)
+      expect(result).toBeNull()
+    })
+
+    test('should return null if para.note is not defined', () => {
+      const para = {
+        noteType: 'Calendar',
+      }
+      const result = p.getDaysToCalendarNote(para)
+      expect(result).toBeNull()
+    })
+  })
 })
 
 // ----------------------------------------------------------------------------
@@ -1058,5 +1114,86 @@ line 8 ordinary para
 
     const resultParas = p.makeBasicParasFromContent(content)
     expect(resultParas).toEqual(paragraphs)
+  })
+})
+
+describe('getParagraphParentsOnly', () => {
+  it('should return an array of parent paragraphs with their children - Test case 1', () => {
+    const paragraphs1 = [
+      { lineIndex: 1, indents: 0, children: () => [] },
+      { lineIndex: 2, indents: 1, children: () => [] },
+      { lineIndex: 3, indents: 1, children: () => [] },
+      { lineIndex: 4, indents: 0, children: () => [] },
+    ]
+    const result1 = getParagraphParentsOnly(paragraphs1)
+    expect(result1).toEqual([
+      { parent: paragraphs1[0], children: [] },
+      { parent: paragraphs1[1], children: [] },
+      { parent: paragraphs1[2], children: [] },
+      { parent: paragraphs1[3], children: [] },
+    ])
+  })
+
+  it('should return an array of parent paragraphs with their children - Test case 2', () => {
+    const paragraphs2 = [
+      {
+        lineIndex: 1,
+        indents: 0,
+        children: () => [
+          { lineIndex: 2, indents: 1, children: () => [] },
+          { lineIndex: 3, indents: 1, children: () => [] },
+        ],
+      },
+      { lineIndex: 2, indents: 1, children: () => [] },
+      { lineIndex: 3, indents: 1, children: () => [] },
+      { lineIndex: 4, indents: 0, children: () => [] },
+    ]
+    const result2 = getParagraphParentsOnly(paragraphs2, true)
+    expect(result2.length).toEqual(2)
+    expect(result2[0].parent.lineIndex).toEqual(1)
+    expect(result2[1].parent.lineIndex).toEqual(4)
+  })
+})
+
+describe('getChildParas', () => {
+  it('should return an array of children paragraphs - Test case 1: No children', () => {
+    const para1 = { lineIndex: 1, indents: 0, children: () => [] }
+    const paragraphs1 = [para1]
+    const result1 = getChildParas(para1, paragraphs1, false)
+    expect(result1).toEqual(expect.objectContaining([]))
+  })
+
+  it('should return an array of children paragraphs - Test case 2: One child with removeChildrenFromTopLevel as false', () => {
+    const para2 = { lineIndex: 1, indents: 0, children: () => [{ lineIndex: 2, indents: 1, children: () => [] }] }
+    const paragraphs2 = [para2, { lineIndex: 2, indents: 1, children: () => [] }]
+    const result2 = getChildParas(para2, paragraphs2, false)
+    expect(result2.length).toEqual(1)
+    expect(result2[0].lineIndex).toEqual(2)
+  })
+
+  it('should return an array of children paragraphs - Test case 3: One child with removeChildrenFromTopLevel as true', () => {
+    const para3 = { lineIndex: 1, indents: 0, children: () => [{ lineIndex: 2, indents: 1, children: () => [] }] }
+    const paragraphs3 = [para3, { lineIndex: 2, indents: 1, children: () => [] }]
+    const result3 = getChildParas(para3, paragraphs3, true)
+    expect(result3.length).toEqual(1)
+    expect(result3[0].lineIndex).toEqual(2)
+  })
+
+  it('should return an array of children paragraphs - Test case 4: Multiple children with removeChildrenFromTopLevel as false', () => {
+    const para4 = {
+      lineIndex: 1,
+      indents: 0,
+      children: () => [
+        { lineIndex: 2, indents: 1, children: () => [] },
+        { lineIndex: 3, indents: 1, children: () => [] },
+      ],
+    }
+    const paragraphs4 = [para4, { lineIndex: 2, indents: 1, children: () => [] }, { lineIndex: 3, indents: 1, children: () => [] }]
+    const result4 = getChildParas(para4, paragraphs4, false)
+    expect(result4.length).toEqual(2)
+    expect(result4[0].lineIndex).toEqual(2)
+    expect(result4[1].lineIndex).toEqual
+
+    // Add similar it() statements for other test cases
   })
 })

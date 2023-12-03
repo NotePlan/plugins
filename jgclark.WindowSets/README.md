@@ -8,11 +8,9 @@ The commands are simple:
 
 As monitor dimensions vary widely, a window set layout is specific to the particular macOS computer you've defined it on. If you have more than one then it will only show you the ones for the machine you're currently using.
 
-[<img width="100px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="100px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 <hr />
-
-<!-- (There are currently some other commands for testing. To see the underlying window set definitions, you can use **/log window sets** which writes to the Help > Plugin Console.) -->
 
 ## Known limitations
 Unfortunately because of limitations in the API that plugins use, WindowSets:
@@ -101,7 +99,7 @@ If you find an issue with this plugin, or would like to suggest new features for
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 
