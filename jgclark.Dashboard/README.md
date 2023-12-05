@@ -18,8 +18,8 @@ All tasks and checklists shown in the Dashboard view can be marked as **complete
 <img width="400px" src="complete+cancel.gif" border="1pt solid" margin="8px" alt="example of completing or cancelling a task"/>
 The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by pressing  ⌘ (command) when clicking on the open circle or square.
 
+<img src="action-buttons-0.7.3@2x.png" width="330px" border="1pt solid" margin="8px" alt="action buttons" />
 After a short time hovering over a task or checklist item a small box appears with a number of action buttons. Most **move** (not schedule) an item to a different day/week/etc.:
-<img src="action-buttons-0.7.3@2x.png" width="330px" border="1pt solid" margin="8px" alt="move buttons" />
 
 - `→today` moves to today's note
 - `+1d` moves to the next day's note
@@ -70,16 +70,16 @@ There are various other settings to change some of how it displays:
 - Show section for Week? Allows this to be always turned on/off.
 - Show section for Overdue tasks?: If true then an 'Overdue' section is added, and the following 2 settings will be used.\nNote: if set, then for performance reasons, this section will not be shown when a refresh is triggered automatically by a change in today's note. (Default: false)
 - Max number of Overdue tasks to show?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of Overdue items to show. (Default: 30)
-- Sort order for Overdue tasks: The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note. (Default: 'priority")
+- Sort order for Overdue tasks: The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note. (Default: 'priority')
 - #tag/@mention to show: (if set) will show all open tasks/checklists that include this #tag or @mention. It ignores tasks that are scheduled to the future. This is one way of showing all `#next` actions, for example.
 
 ## Known Issue
-There are some layout problems when it was showing multiple columns. I've tried the simple things; I now need to try a much bigger re-write of the layout engine :-(
+Items can appear in the Overdue section as well as the other sections. This is correct, but I'm looking for a way to suppress the duplicate in the Overdue section.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
-I've spent at least 2.5 working weeks on this particular plugin, so if you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+I'm not part of the NotePlan team, but I've spent at least 3 working weeks on this particular plugin, so if you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 

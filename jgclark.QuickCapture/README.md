@@ -46,9 +46,10 @@ Notes:
 - The matching of section headings in /qalh and /qath is done as an exact match, or (from v0.12) just the first part of it. This means it's possible to have a section such as `## Journal for 3.4.22` that changes every day, but still refer to it by the unchanging string `Journal`.
 - from NotePlan v3.6.1 and plugin v0.12.0 it's possible to send one or more empty arguments, and that will cause the missing argument(s) be requested from the user, as if it were run interactively.
 
-| Command | x-callback start | arg0 | arg1 | arg2 |
-|-----|-------------|-----|-----|-----|
+| Command | x-callback start | arg0 | arg1 | arg2 | arg3 |
+|-----|-------------|-----|-----|-----|------|
 | /quick add task to inbox | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20task%20to%20inbox&` | text to add | title of the inbox note to use (optional; will ask if not given), or a **relative date** (listed below) |  |
+| /quick add checklist under heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20checklist%20under%20heading` | note title to use (can be YYYYMMDD, YYYY-MM-DD, YYYY-Wnn etc. or a relative date (listed below)) | note heading to add checklist under | text to add | heading level (1-5) if this is a new heading |
 | /quick add task under heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20task%20under%20heading` | note title to use (can be YYYYMMDD, YYYY-MM-DD, YYYY-Wnn etc. or a relative date (listed below)) | note heading to add text under | text to add | heading level (1-5) if this is a new heading |
 | /quick add line under heading | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20line%20under%20heading` | note title (can be YYYYMMDD, YYYY-MM-DD, YYYY-Wnn etc. or relative date  (listed below)) | note heading to add text under | text to add | heading level (1-5) if this is a new heading |
 | /quick add to calendar note | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=quick%20add%20to%20calendar%20note` | note date (YYYYMMDD, YYYY-MM-DD, YYYY-Wnn etc.) or relative date (listed below) | text to add |  |
