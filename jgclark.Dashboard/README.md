@@ -18,8 +18,8 @@ All tasks and checklists shown in the Dashboard view can be marked as **complete
 <img width="400px" src="complete+cancel.gif" border="1pt solid" margin="8px" alt="example of completing or cancelling a task"/>
 The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by pressing  ⌘ (command) when clicking on the open circle or square.
 
-All tasks and checklists can be **moved** to different days/weeks/months. After a short time hovering over an item a small box appears with a number of buttons that have short codes indicating which calendar note they'll be moved (not scheduled) to:
-<img src="move-buttons@2x.png" width="330px" border="1pt solid" margin="8px" alt="move buttons" />
+After a short time hovering over a task or checklist item a small box appears with a number of action buttons. Most **move** (not schedule) an item to a different day/week/etc.:
+<img src="action-buttons-0.7.3@2x.png" width="330px" border="1pt solid" margin="8px" alt="move buttons" />
 
 - `→today` moves to today's note
 - `+1d` moves to the next day's note
@@ -27,6 +27,8 @@ All tasks and checklists can be **moved** to different days/weeks/months. After 
 - `+1w` moves to next week's note etc.
 - `→wk` moves to this week's note
 - `→mon` moves to this month's note
+- `pri` that cycles the priority of the current item from none -> `!` -> `!!` -> `!!!` -> `>>` -> none
+- `◯/◻︎` that toggles an item between being a task and a checklist
 
 <img src="add-buttons@2x.png" align="right" width="170px" alt="add buttons" />On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note:
 
@@ -34,12 +36,12 @@ Other notes:
 - _This requires the separate 'Shared Resources' plugin to be installed_.
 - The Dashboard doesn't use NotePlan's normal editor, but a more flexible HTML-based display. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
 - The plugin cannot work effectively on an **iPhone**-sized device, so it is disabled there.  On an **iPad** windows can't float in the same way as they can on macOS, so it's less useful, but it still works.
-- When the window is wide enough, it will switch to a multi-column display
+- When the window is wide enough, it will switch to a **multi-column** display
 - It de-dupes items that would appear twice in a list where the lines are sync'd together.
 - There's a UI toggle "Filter out lower-priority items?". If this is on, then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed. Priority items are currently indicated by having `>>`, `!!!``, `!!`` or `!`` at the beginning of the item.
 - If you use the [Projects & Reviews Plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), the Dashboard will show up to the first 4 projects ready for review. It reads this from the hidden list thats updated every time its **/project lists** command is run, or you **/finish project review** on a project note.
 
-### Updating automatically
+### Updating the Dashboard automatically
 The dashboard window can automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly/quarterly note(s). To get this added automatically to the daily note, turn on setting 'Add dashboard auto-update trigger when dashboard opened?' (details below).
 
 Or you can use the **/add trigger to note** command from my [Note Helpers plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/) which adds this:
@@ -64,6 +66,8 @@ There are various other settings to change some of how it displays:
 - Exclude tasks that include time blocks?: : Whether to stop display of open tasks that contain a time block.
 - Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block.
 - Include folder name? Whether to include the folder name when showing a note link
+- Show section for Yesterday? Allows this to be always turned on/off.
+- Show section for Week? Allows this to be always turned on/off.
 - Show section for Overdue tasks?: If true then an 'Overdue' section is added, and the following 2 settings will be used.\nNote: if set, then for performance reasons, this section will not be shown when a refresh is triggered automatically by a change in today's note. (Default: false)
 - Max number of Overdue tasks to show?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of Overdue items to show. (Default: 30)
 - Sort order for Overdue tasks: The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note. (Default: 'priority")

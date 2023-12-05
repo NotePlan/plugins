@@ -1,12 +1,13 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [0.7.3] - 2023-12-04???
+## [0.7.3] - 2023-12-05
 ### Added
 - New action button `pri` that cycles the priority of the current item from none -> `!` -> `!!` -> `!!!` -> `>>` -> none
-- `⌘R` shortcut now should refresh the Dashboard if the window has focus -- though it seems to require a first click somewhere in the window before it will work.
+- New action button `◯/◻︎` that toggles an item between being a task and a checklist
+- `⌘R` keyboard shortcut now should refresh the Dashboard if the window has focus -- though it seems to require a first click somewhere in the window before it will work.
 ### Fixed
-- Moving an item to the next week wasn't working where NotePlan's first day of the week was to set to Sunday (thanks to @george65 for raising this)
+- Moving an item to the next week wasn't working where NotePlan's first day of the week was to set to Sunday (thanks to @george65 for helping to get this fixed)
 
 ## [0.7.2] - 2023-11-21
 ### Changed

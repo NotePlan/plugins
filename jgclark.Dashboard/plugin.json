@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.7.3-RC4",
+  "plugin.version": "0.7.3",
   "plugin.lastUpdateInfo": "v0.7.3: New priority button. New setting to exclude checklist items. More setting to give more control over Overdue tasks section.\nv0.7.2: turn off 'preview' on task and checklist markers, as they can behave wrongly at speed. Other fixes and polish.\nv0.7.1: 'folders to ignore' setting now applies to 'Overdue tasks' section. Two new experimental buttons.\nv0.7.0: new optional 'Yesterday' and 'Overdue Tasks' sections.\nv0.6.3: tag/mention section now excludes tasks/checklists that are scheduled to future dates.\nv0.6.2: Adapt dashboard to use NotePlan's new multiple HTML windows capability.\nv0.6.1: adds new section for a specific #tag or @mention.\nv0.6.0: adds tooltip on displayed tasks that allows task to be moved on to next day, week etc. Adds lots of new theming support. Plus other visual polish and fixes.",
   "plugin.requiredFiles": [
     "commsSwitchboard.js",
