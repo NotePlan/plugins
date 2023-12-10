@@ -27,10 +27,7 @@ export function getFilteredFolderList(
     // Get all folders as array of strings (other than @Trash). Also remove root as a special case
     const fullFolderList = DataStore.folders.filter((f) => f !== '/')
     let includeRoot = includeRootFolder
-    logDebug(
-      'folders / filteredFolderList',
-      `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions [${inclusions.toString()}] exclusions [${exclusions.toString()}]`,
-    )
+    // logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with inclusions [${inclusions.toString()}] exclusions [${exclusions.toString()}]`)
 
     // To aid partial matching, terminate all folder strings with a trailing /
     // Note: Now can't remember why this needed to be commented out
