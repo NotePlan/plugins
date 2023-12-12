@@ -1202,15 +1202,16 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
 }
 
 /**
- * Because a paragraph may have been deleted or changed, we need to find the paragraph in the note
+ * Find the paragraph in the note, from its content
  * @param { Array<TParagraph>} parasToLookIn - NP paragraph list to search
  * @param {any} paragraphDataToFind - object with the static data fields to match (e.g. filename, rawContent, type)
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex). default = ['filename', 'rawContent']
+ * @param {boolean} ifMultipleReturnFirst? - (optional) if there are multiple matches, return the first one (default: false)
  * @returns {TParagraph | null } - the matching paragraph, or null if not found
- * @author @dwertheimer
+ * @author @dwertheimer updated by @jgclark
  * @tests exist
  */
-export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragraphDataToFind: any, fieldsToMatch: Array<string> = ['filename', 'rawContent']): TParagraph | null {
+export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragraphDataToFind: any, fieldsToMatch: Array<string> = ['filename', 'rawContent'], ifMultipleReturnFirst: boolean = false): TParagraph | null {
   // clo(parasToLookIn, `findParagraph: parasToLookIn.length=${parasToLookIn.length}`)
   const potentials = parasToLookIn.filter((p) => paragraphMatches(p, paragraphDataToFind, fieldsToMatch))
   if (potentials?.length === 1) {
@@ -1220,17 +1221,23 @@ export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragra
   } else if (potentials.length > 1) {
     // clo(potentials[0], `findParagraph potential matches=${potentials.length}, here's the first:`)
     logDebug('findParagraph', `first potential match: rawContent: <${potentials[0].rawContent}>`)
-    const matchIndexes = potentials.find((p) => p.lineIndex === paragraphDataToFind.lineIndex)
-    if (matchIndexes) {
-      return matchIndexes
+    if (ifMultipleReturnFirst) {
+      // If we want to always return the first match, do so.
+      return potentials[0]
+    } else {
+    // Otherwise check to see if lineIndex matches as well, and only then return the first match
+      const matchIndexes = potentials.find((p) => p.lineIndex === paragraphDataToFind.lineIndex)
+      if (matchIndexes) {
+        return matchIndexes
+      }
+      logDebug(
+        pluginJson,
+        `findParagraph: found more than one paragraph in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(
+          paragraphDataToFind,
+        )}. Could not determine which one to use.`,
+      )
+      return null
     }
-    logDebug(
-      pluginJson,
-      `findParagraph: found more than one paragraph in note "${paragraphDataToFind.filename}" that matches ${JSON.stringify(
-        paragraphDataToFind,
-      )}. Could not determine which one to use.`,
-    )
-    return null
   } else {
     // no matches
     // const p = paragraphDataToFind

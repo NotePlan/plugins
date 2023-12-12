@@ -53,8 +53,8 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	break-inside: avoid;
 	line-height: 1.2rem; /* get from a variable */
 }
-.lowerPriority { /* show italic */
-	font-weight: 300;
+.commentLine { /* show as italic */
+	font-weight: 400;
 	font-style: italic;
 }
 .clickTarget { /* change cursor for icons which can be clicked on */

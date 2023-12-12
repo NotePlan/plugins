@@ -9,11 +9,15 @@
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 import { showDashboardHTML } from './main'
-import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getPluginJson, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 import { isHTMLWindowOpen, logWindowsList } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
+
+// import { getNPWeekData } from '@helpers/NPdateTime'
+import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
+import moment from 'moment/min/moment-with-locales'
 
 export { getDemoDataForDashboard } from './demoDashboard'
 export { addTask, addChecklist, showDashboardHTML, showDemoDashboardHTML, resetDashboardWinSize } from './main'
@@ -36,9 +40,17 @@ export async function init(): Promise<void> {
 }
 
 export async function onSettingsUpdated(): Promise<any> {
-  if (!isHTMLWindowOpen(pluginJson['plugin.id'])) {
-    await showDashboardHTML('refresh', false) // don't need await in the case I think
-  }
+  // TODO: Remove this temporary alternative
+  const today = new moment().toDate()
+  const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
+  const thisFilename = currentWeeklyNote?.filename ?? '(error)'
+  const dateStr = getDateStringFromCalendarFilename(thisFilename)
+  logDebug('test', `currentWeeklyNote: ${thisFilename}`)
+  logDebug('test', `dateStr: ${dateStr}`)
+
+  // if (!isHTMLWindowOpen(pluginJson['plugin.id'])) {
+  //   await showDashboardHTML('refresh', false) // don't need await in the case I think
+  // }
 }
 
 export async function onUpdateOrInstall(): Promise<void> {

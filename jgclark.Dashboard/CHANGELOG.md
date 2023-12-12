@@ -1,6 +1,14 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.7.4] - 2023-12-10
+### Added
+- added some action buttons (the ones that appear when you hover) to the Tag section.
+### Change
+- the 'Max number of items in show in section' setting now applies to the Tag section, as well as the Overdue Tasks section.
+### Fixed
+- ??? edge case where week wouldn't move to the next week
+
 ## [0.7.3] - 2023-12-05
 ### Added
 - New action button `pri` that cycles the priority of the current item from none -> `!` -> `!!` -> `!!!` -> `>>` -> none

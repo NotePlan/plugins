@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 23.11.2023 for v0.7.3 by @jgclark
+// Last updated 11.12.2023 for v0.7.4 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,6 +14,7 @@ import {
   getTodaysDateUnhyphenated,
   RE_DATE_INTERVAL,
   RE_DATE_TIME,
+  RE_NP_WEEK_SPEC,
   replaceArrowDatesInString,
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -324,6 +325,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         }
         if (dateInterval === 't') {
           // Special case to change to '>today'
+
           // FIXME: errors reported here from new Overdue section, where we don't have filename?
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = getTodaysDateHyphenated()
@@ -332,13 +334,13 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
 
           // FIXME: errors reported here from new Overdue section, where we don't have filename?
-
           // Get the (ISO) current date on the task
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'offset') // 'longer'
 
-          // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week'
-          if (offsetUnit === 'w') {
+          // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week' but startDateStr is not of type 'week'
+          // FIXME: can land up as "NaN-W01" because getNPWeekData() doesn't cope with weekly note titles
+          if (offsetUnit === 'w' && !startDateStr.match(RE_NP_WEEK_SPEC)) {
             const offsetNum = Number(dateInterval.substr(0, dateInterval.length - 1)) // return all but last character
             // $FlowFixMe(incompatible-type)
             const NPWeekData: NotePlanWeekInfo = getNPWeekData(startDateStr, offsetNum, 'week')
