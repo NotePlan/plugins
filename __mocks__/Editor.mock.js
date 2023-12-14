@@ -65,7 +65,9 @@ export const Editor = {
       return this.note
     },
     // async openNoteByDateString() { return null },
-    // async openNoteByFilename() { return null },
+    async openNoteByFilename() {
+      return this.note
+    },
     // async openNoteByTitle() { return null },
     // async openNoteByTitleCaseInsensitive() { return null },
     async paragraphRangeAtCharacterIndex() {
