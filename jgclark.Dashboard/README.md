@@ -69,7 +69,7 @@ There are various other settings to change some of how it displays:
 - Show section for Yesterday? Allows this to be always turned on/off.
 - Show section for Week? Allows this to be always turned on/off.
 - Show section for Overdue tasks?: If true then an 'Overdue' section is added, and the following 2 settings will be used.\nNote: if set, then for performance reasons, this section will not be shown when a refresh is triggered automatically by a change in today's note. (Default: false)
-- Max number of Overdue tasks to show?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of Overdue items to show. (Default: 30)
+- Max number of items to show in section?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items to show in the Overdue and Tag sections. (Default: 30)
 - Sort order for Overdue tasks: The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note. (Default: 'priority')
 - #tag/@mention to show: (if set) will show all open tasks/checklists that include this #tag or @mention. It ignores tasks that are scheduled to the future. This is one way of showing all `#next` actions, for example.
 

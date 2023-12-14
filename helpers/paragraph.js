@@ -52,17 +52,17 @@ export function isTermInURL(term: string, searchString: string): boolean {
  */
 export function isTermInNotelinkOrURI(input: string, term: string): boolean {
   if (term === '') {
-    logDebug(`isTermInNotelinkOrURI`, `empty search term`)
+    logWarn(`isTermInNotelinkOrURI`, `empty search term`)
     return false
   }
   if (input === '') {
-    logDebug(`isTermInNotelinkOrURI`, `empty input string to search`)
+    logWarn(`isTermInNotelinkOrURI`, `empty input string to search`)
     return false
   }
   // Where is the term in the input?
   const index = input.indexOf(term)
   if (index < 0) {
-    logDebug(`isTermInNotelinkOrURI`, `term ${term} not found in'${input}'`)
+    // logDebug(`isTermInNotelinkOrURI`, `term ${term} not found in'${input}'`)
     return false
   }
   // Find any [[...]] ranges
@@ -72,7 +72,7 @@ export function isTermInNotelinkOrURI(input: string, term: string): boolean {
       clo(match)
       const rangeStart = match.index
       const rangeEnd = match.index + match[0].length
-      logDebug(`isTermInNotelinkOrURI`, `[[...]] range: ${String(rangeStart)}-${String(rangeEnd)}`)
+      // logDebug(`isTermInNotelinkOrURI`, `[[...]] range: ${String(rangeStart)}-${String(rangeEnd)}`)
       if (index >= rangeStart && index <= rangeEnd) {
         return true
       }

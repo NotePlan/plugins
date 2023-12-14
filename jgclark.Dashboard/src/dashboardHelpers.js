@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 17.11.2023 for v0.7.0 by @jgclark
+// Last updated 10.12.2023 for v0.7.4 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -94,7 +94,7 @@ export type dashboardConfigType = {
   showQuarterSection: boolean,
   showOverdueTaskSection: boolean,
   updateOverdueOnTrigger: boolean,
-  maxOverdueTasksToShow: number,
+  maxTasksToShowInSection: number,
   overdueSortOrder: string,
   showExtraButtons: boolean,
   tagToShow: string,
@@ -165,7 +165,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
   noteLinkStyle: string = "all",
   truncateLength: number = 0): string {
   try {
-    logDebug(`makeParaContent...`, `for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${thisItem.filename}'`)
+    // logDebug(`makeParaContent...`, `for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${thisItem.filename}'`)
     // Start with the content of the item
     let output = thisItem.content
 
@@ -260,7 +260,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
     if (captures) {
       // clo(captures, 'results from [[notelinks]] match:')
       for (const capturedTitle of captures) {
-        logDebug('makeParaContet...', `- making notelink with ${thisItem.filename}, ${capturedTitle}`)
+        // logDebug('makeParaContet...', `- making notelink with ${thisItem.filename}, ${capturedTitle}`)
         // Replace [[notelinks]] with HTML equivalent, aware that this will interrupt the <a>...</a> that will come around the whole string, and so it needs to make <a>...</a> regions for the rest of the string before and after the capture.
         const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(capturedTitle)
         output = output.replace('[[' + capturedTitle + ']]', '</a>' + noteTitleWithOpenAction + '<a>')
@@ -275,7 +275,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
 
     // Now include an active link to the note, if 'noteTitle' is given
     if (noteTitle) {
-      logDebug('makeParaContet...', `- before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
+      // logDebug('makeParaContet...', `- before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
       switch (noteLinkStyle) {
         case 'append': {
           output = addNoteOpenLinkToString(thisItem, output) + ' ' + makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)
@@ -342,7 +342,7 @@ export function addNoteOpenLinkToString(item: SectionItem | Section, displayStr:
  */
 export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteTitle: string): string {
   try {
-    logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
+    // logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
     // Pass request back to plugin, as a single object
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.filename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
   }
@@ -361,7 +361,7 @@ export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteT
  */
 export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string {
   try {
-    logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
+    // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
     // Pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
@@ -381,10 +381,9 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
  */
 export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, itemID: string): string {
   try {
-    // TEST:
     // TODO: use user's setting
     const dateFilename = getAPIDateStrFromDisplayDateStr(NPDateStr) + "." + DataStore.defaultFileExtension
-    logDebug('makeNoteTitleWithOpenActionFromNPDateStr', `- making notelink with ${NPDateStr} / ${dateFilename}`)
+    // logDebug('makeNoteTitleWithOpenActionFromNPDateStr', `- making notelink with ${NPDateStr} / ${dateFilename}`)
     // Pass request back to plugin, as a single object
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines"></i> ${NPDateStr}</a>`
   }

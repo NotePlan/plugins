@@ -602,7 +602,7 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
     // $FlowIgnore(incompatible-type)
     const noteFilenameList: Array<string> = paras.map((p) => p.note.filename)
     const dedupedNoteFilenameList = [...new Set(noteFilenameList)]
-    logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
+    // logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
 
     if (dedupedNoteFilenameList.length > 0) {
       const wantedFolders = getFilteredFolderList(excludedFolders)
@@ -616,7 +616,7 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
       })
       return parasFiltered
     } else {
-      logDebug('note/filterOutParasInExcludeFolders', `found no corresponding notes`)
+      // logDebug('note/filterOutParasInExcludeFolders', `found no corresponding notes`)
       return []
     }
   } catch (err) {

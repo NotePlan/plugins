@@ -641,12 +641,12 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
           { displayString: '→m', controlStr: '+0m', sectionDateTypes: ['DT', 'DY', 'W', 'Q', 'O'] },
           { displayString: '+1m', controlStr: '+1m', sectionDateTypes: ['M', 'O'] },
           { displayString: '→q', controlStr: '+0q', sectionDateTypes: ['M'] },
-          { displayString: 'pri', controlStr: 'pri', sectionDateTypes: ['DT', 'DY', 'W', 'M', 'Q', 'O'] },
+          { displayString: 'pri', controlStr: 'pri', sectionDateTypes: ['DT', 'DY', 'W', 'M', 'Q', 'O', 'TAG'] },
         ]
         // Add some specials if requested by a hidden setting
         if (config.showExtraButtons) {
-          possibleControlTypes.push({ displayString: '◯/☐', controlStr: 'tog', sectionDateTypes: ['O', 'DT', 'DY', 'W', 'M', 'Q'] })
-          possibleControlTypes.push({ displayString: '✓then', controlStr: 'ct', sectionDateTypes: ['O'] })
+          possibleControlTypes.push({ displayString: '◯/☐', controlStr: 'tog', sectionDateTypes: ['O', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'] })
+          possibleControlTypes.push({ displayString: '✓then', controlStr: 'ct', sectionDateTypes: ['O', 'TAG'] })
         }
 
         const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
@@ -674,7 +674,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
         // Do main work for the item
         switch (item.type) {
           case 'open': { // open todo type
-            logDebug('showDashboardHTML', `- adding open task: {${item.content}} / filename:${itemNoteTitle}`)
+            // logDebug('showDashboardHTML', `- adding open task: {${item.content}} / filename:${itemNoteTitle}`)
             // do icon col (was col3)
             outputArray.push(
               `         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`,
@@ -698,7 +698,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
             break
           }
           case 'checklist': { // open checklist type
-            logDebug('showDashboardHTML', `- adding checklist: {${item.content}} / filename:${itemNoteTitle}`)
+            // logDebug('showDashboardHTML', `- adding checklist: {${item.content}} / filename:${itemNoteTitle}`)
             // do icon col (was col3)
             outputArray.push(
               `         <td id="${encodedFilename}" class="sectionItemChecklist sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-square"></i></td>`,
@@ -748,7 +748,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
             // do icon col
             outputArray.push(`          <td class="todo sectionItem no-borders"><i class="fa-light fa-plus"></i></td>`)
             // do item details
-            let cell4 = `          <td class="sectionItem lowerPriority">${item.content}</td>\n       </tr>`
+            let cell4 = `          <td class="sectionItem commentLine">${item.content}</td>\n       </tr>`
             outputArray.push(cell4)
             break
           }
