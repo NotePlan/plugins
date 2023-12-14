@@ -3,7 +3,7 @@ import moment from 'moment'
 import { CustomConsole } from '@jest/console' // see note below
 import * as p from '../NPParagraph'
 import { clo, logDebug, logInfo } from '../dev'
-import { getParagraphParentsOnly, getChildParas } from '../NPParagraph'
+import { getParagraphParentsOnly, getChildParas, getIndentedLinesUnderneath } from '../NPParagraph'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, simpleFormatter } from '@mocks/index'
 import { SCHEDULED_MONTH_NOTE_LINK } from '@helpers/dateTime'
 
@@ -1125,11 +1125,9 @@ describe('getParagraphParentsOnly', () => {
       { lineIndex: 3, indents: 1, children: () => [] },
       { lineIndex: 4, indents: 0, children: () => [] },
     ]
-    const result1 = getParagraphParentsOnly(paragraphs1)
+    const result1 = getParagraphParentsOnly(paragraphs1, true)
     expect(result1).toEqual([
-      { parent: paragraphs1[0], children: [] },
-      { parent: paragraphs1[1], children: [] },
-      { parent: paragraphs1[2], children: [] },
+      { parent: paragraphs1[0], children: [paragraphs1[1], paragraphs1[2]] },
       { parent: paragraphs1[3], children: [] },
     ])
   })
@@ -1164,8 +1162,8 @@ describe('getChildParas', () => {
   })
 
   it('should return an array of children paragraphs - Test case 2: One child with removeChildrenFromTopLevel as false', () => {
-    const para2 = { lineIndex: 1, indents: 0, children: () => [{ lineIndex: 2, indents: 1, children: () => [] }] }
-    const paragraphs2 = [para2, { lineIndex: 2, indents: 1, children: () => [] }]
+    const para2 = { lineIndex: 1, indents: 0, type: 'open', children: () => [{ lineIndex: 2, indents: 1, type: 'text', children: () => [] }] }
+    const paragraphs2 = [para2, { lineIndex: 2, indents: 1, children: () => [], type: 'text' }]
     const result2 = getChildParas(para2, paragraphs2, false)
     expect(result2.length).toEqual(1)
     expect(result2[0].lineIndex).toEqual(2)
@@ -1192,8 +1190,138 @@ describe('getChildParas', () => {
     const result4 = getChildParas(para4, paragraphs4, false)
     expect(result4.length).toEqual(2)
     expect(result4[0].lineIndex).toEqual(2)
-    expect(result4[1].lineIndex).toEqual
-
     // Add similar it() statements for other test cases
   })
+})
+// Test cases
+describe('getIndentedLinesUnderneath', () => {
+  // Mock data
+  const mockParagraphs = [
+    { lineIndex: 1, indents: 0, type: 'text' },
+    { lineIndex: 2, indents: 1, type: 'text' },
+    { lineIndex: 3, indents: 1, type: 'open' },
+    { lineIndex: 4, indents: 2, type: 'text' },
+    { lineIndex: 5, indents: 2, type: 'text' },
+    { lineIndex: 6, indents: 3, type: 'text' },
+  ]
+  it('should return an array of indented paragraphs underneath the given paragraph', () => {
+    const para = { lineIndex: 3, indents: 1 }
+    const result = getIndentedLinesUnderneath(para, mockParagraphs)
+    expect(result).toEqual([
+      { lineIndex: 4, indents: 2, type: 'text' },
+      { lineIndex: 5, indents: 2, type: 'text' },
+      { lineIndex: 6, indents: 3, type: 'text' },
+    ])
+  })
+
+  it('should return an empty array if no indented paragraphs are found', () => {
+    const para = { lineIndex: 6, indents: 3 }
+    const result = getIndentedLinesUnderneath(para, mockParagraphs)
+    expect(result).toEqual([])
+  })
+
+  it('should handle the case where the given paragraph is the last one in the array', () => {
+    const para = { lineIndex: 6, indents: 3 }
+    const result = getIndentedLinesUnderneath(para, mockParagraphs)
+    expect(result).toEqual([])
+  })
+
+  it('should handle the case where the given paragraph is the last one in the array', () => {
+    const para = { lineIndex: 6, indents: 3 }
+    const result = getIndentedLinesUnderneath(para, mockParagraphs)
+    expect(result).toEqual([])
+  })
+
+  it('should handle the case where the given paragraph has no indented paragraphs underneath', () => {
+    const para = { lineIndex: 4, indents: 2 }
+    const result = getIndentedLinesUnderneath(para, mockParagraphs)
+    expect(result).toEqual([])
+  })
+})
+it('should return an array of children paragraphs - Test case 5: Multiple children with removeChildrenFromTopLevel as true', () => {
+  const paras5 = [
+    {
+      type: 'done',
+      content: '5 done',
+      rawContent: '\t* [x] 5 done',
+      prefix: '* [x] ',
+      contentRange: {},
+      lineIndex: 4,
+      heading: '',
+      headingLevel: -1,
+      isRecurring: false,
+      indents: 1,
+      filename: '20231202.md',
+      noteType: 'Calendar',
+      linkedNoteTitles: [],
+      subItems: [],
+      referencedBlocks: [],
+      note: {},
+      children: () => [],
+    },
+    {
+      type: 'checklist',
+      content: '6further indented checkbox',
+      rawContent: '\t\t+ 6further indented checkbox',
+      prefix: '+ ',
+      contentRange: {},
+      lineIndex: 5,
+      heading: '',
+      headingLevel: -1,
+      isRecurring: false,
+      indents: 2,
+      filename: '20231202.md',
+      noteType: 'Calendar',
+      linkedNoteTitles: [],
+      subItems: [],
+      referencedBlocks: [],
+      note: {},
+      children: () => [],
+    },
+    {
+      type: 'text',
+      content: "7 ok final - this is the problem cuz it's not a task",
+      rawContent: "\t\t7 ok final - this is the problem cuz it's not a task",
+      prefix: '',
+      contentRange: {},
+      lineIndex: 6,
+      heading: '',
+      headingLevel: -1,
+      isRecurring: false,
+      indents: 2,
+      filename: '20231202.md',
+      noteType: 'Calendar',
+      linkedNoteTitles: [],
+      subItems: [],
+      referencedBlocks: [],
+      note: {},
+      children: () => [],
+    },
+    {
+      type: 'text',
+      content: '8 double final',
+      rawContent: '\t\t\t8 double final',
+      prefix: '',
+      contentRange: {},
+      lineIndex: 7,
+      heading: '',
+      headingLevel: -1,
+      isRecurring: false,
+      indents: 3,
+      filename: '20231202.md',
+      noteType: 'Calendar',
+      linkedNoteTitles: [],
+      subItems: [],
+      referencedBlocks: [],
+      note: {},
+      children: () => [],
+    },
+  ]
+  paras5[0].children = () => paras5.slice(1)
+  const result5 = getChildParas(paras5[0], paras5, false)
+  expect(result5.length).toEqual(2)
+  expect(result5[0].lineIndex).toEqual(5)
+  const result6 = getChildParas(paras5[2], paras5, false)
+  expect(result6.length).toEqual(1)
+  expect(result6[0].lineIndex).toEqual(7)
 })

@@ -26,6 +26,7 @@ import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPr
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { hasScheduledDate, isOpen } from '@helpers/utils'
+import { TASK_TYPES } from './sorting'
 
 const pluginJson = 'NPParagraph'
 
@@ -1717,10 +1718,17 @@ export type ParentParagraphs = {
 export function getParagraphParentsOnly(paragraphs: Array<TParagraph>, removeChildrenFromTopLevel: boolean = false): Array<ParentParagraphs> {
   const parentsOnly = []
 
-  for (const para of paragraphs) {
+  for (let i = 0; i < paragraphs.length; i++) {
+    const para = paragraphs[i]
     logDebug('getParagraphParentsOnly', `para: "${para.content}"`)
     const childParas = getChildParas(para, paragraphs, removeChildrenFromTopLevel)
     parentsOnly.push({ parent: para, children: childParas })
+
+    // Check if para was removed from the paragraphs array
+    if (paragraphs.indexOf(para) === -1) {
+      // Adjust the index to account for the removed item
+      i--
+    }
   }
 
   return parentsOnly
@@ -1737,17 +1745,23 @@ export function getParagraphParentsOnly(paragraphs: Array<TParagraph>, removeChi
 export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>, removeChildrenFromTopLevel: boolean = false): Array<TParagraph> {
   const childParas = []
 
-  if (!para.children().length) {
-    return childParas
+  const allChildren = para.children()
+  const indentedChildren = getIndentedLinesUnderneath(para, paragraphs)
+  // concatenate the two arrays, but remove any duplicates that have the same lineIndex
+  const allChildrenWithDupes = allChildren.concat(indentedChildren)
+  const allChildrenNoDupes = allChildrenWithDupes.filter((p, index) => allChildrenWithDupes.findIndex((p2) => p2.lineIndex === p.lineIndex) === index)
+
+  if (!allChildrenNoDupes.length) {
+    return [] //FIXME: maybe need to move this back up to top and look at .children() only
   }
 
-  const thisIndentLevel = para.indents
-  const thisParaChildren = para.children()
+  // someone could accidentally indent twice
+  const minIndentLevel = Math.min(...allChildrenNoDupes.map((p) => p.indents))
 
-  for (const child of thisParaChildren) {
+  for (const child of allChildrenNoDupes) {
     const childIndentLevel = child.indents
 
-    if (childIndentLevel === thisIndentLevel + 1) {
+    if (childIndentLevel === minIndentLevel) {
       childParas.push(child)
 
       if (removeChildrenFromTopLevel) {
@@ -1760,7 +1774,32 @@ export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>, r
     }
   }
 
-  clo(thisParaChildren, `getChildParas: para="${para.content}", thisParaChildren.length=${thisParaChildren.length}. reduced to:${childParas.length}`)
+  clo(allChildrenNoDupes, `getChildParas: para="${para.content}", thisParaChildren.length=${allChildrenNoDupes.length}. reduced to:${childParas.length}`)
 
   return childParas
+}
+
+/**
+ * Get any indented text paragraphs underneath a given paragraph, excluding tasks
+ * Doing this to pick up any text para types that may have been missed by the .children() method
+ * @param {TParagraph} para - The parent paragraph
+ * @param {Array<TParagraph>} paragraphs - Array of all paragraphs
+ * @returns {Array<TParagraph>} - Array of indented paragraphs underneath the given paragraph
+ */
+export function getIndentedLinesUnderneath(para: TParagraph, paragraphs: Array<TParagraph>): Array<TParagraph> {
+  const indentedParas = []
+
+  const thisIndentLevel = para.indents
+  let lastLineUsed = para.lineIndex
+
+  for (const p of paragraphs) {
+    // only get indented lines that are not tasks
+    if (p.lineIndex > para.lineIndex && p.indents > thisIndentLevel && lastLineUsed === p.lineIndex - 1) {
+      if (TASK_TYPES.includes(p.type)) break // stop looking if we hit a task
+      indentedParas.push(p)
+      lastLineUsed = p.lineIndex
+    }
+  }
+
+  return indentedParas
 }
