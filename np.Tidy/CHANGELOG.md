@@ -1,7 +1,7 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [0.9.2] - 2023-11-???
+## [0.9.2] - 2023-12-15
 - Updates the list of command aliases to suit changes in NotePlan 3.9.9.
 - **/list conflicted notes** now includes the machine name in the note title it creates (available from NotePlan 3.9.9).
 
