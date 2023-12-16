@@ -789,8 +789,8 @@ export function testForOverdue(
   const reMATCHLINK = new RegExp(regexString, 'g')
   let links = para.content.match(reMATCHLINK) || []
   const todayString = todayRelevantFilename // .replace(`.${DataStore.defaultFileExtension}`, '')
-  let overdueLinks = [],
-    notOverdueLinks = []
+  let overdueLinks: Array<string> = [],
+    notOverdueLinks: Array<string> = []
   if (links && links?.length > 0) {
     links = links.map((link) => link.trim())
     overdueLinks = links.filter((link) => link.slice(1) < todayString)
@@ -1325,7 +1325,7 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
  * TODO: Cope with non-daily scheduled dates
  * @param {TParagraph} para
  * @param {boolean} useScheduledDateAsCompletionDate?
- * @returns
+ * @returns {boolean} success?
  */
 export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): boolean {
   if (para) {
@@ -1372,9 +1372,9 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
 }
 
 /**
- * Change para type of the given paragraph to cancelled
+ * Change para type of the given paragraph to cancelled (for both tasks/checklists)
  * @param {TParagraph} para
- * @returns
+ * @returns {boolean} success?
  */
 export function markCancelled(para: TParagraph): boolean {
   if (para) {
@@ -1388,6 +1388,9 @@ export function markCancelled(para: TParagraph): boolean {
       para.note?.updateParagraph(para)
       logDebug('markCancelled', `updated para <${para.content}>`)
       return true
+    } else if (para.type === 'cancelled' || para.type === 'checklistCancelled') {
+      logInfo('markCancelled', `para <${para.content}> is already cancelled: is this a duplicate line?`)
+      return false
     } else {
       logWarn('markCancelled', `unexpected para type ${para.type}, so won't continue`)
       return false
@@ -1404,7 +1407,7 @@ export function markCancelled(para: TParagraph): boolean {
  * Appends a '@done(...)' date to the line if the user has selected to 'add completion date'.
  * @param {string} filenameIn to look in
  * @param {string} content to find
- * @returns {boolean} true if succesful, false if unsuccesful
+ * @returns {boolean} success?
  */
 export function completeItem(filenameIn: string, content: string): boolean {
   try {
@@ -1612,44 +1615,53 @@ export function makeBasicParasFromContent(content: string): Array<any> {
     const RE_BULLET_LIST = new RegExp(`^\\s*([${DASH_BULLET}${ASTERISK_BULLET}])\\s+`)
     // logDebug('makeBasicParas...', `RE_BULLET_LIST: ${String(RE_BULLET_LIST)}`)
 
-    const basicParas = []
+    type TBasicPara = {
+      type: ParagraphType,
+      content: string,
+      rawContent: string,
+      lineIndex: number,
+    }
+
+    const basicParas: Array<TBasicPara> = []
     let c = 0
     for (const thisLine of allLines) {
-      const thisPara = {}
-      if (/^#{1,5}\s+/.test(thisLine)) {
-        thisPara.type = 'title'
-      } else if (RE_OPEN_TASK.test(thisLine)) {
-        thisPara.type = 'open'
-      } else if (/^\s*(\+\s[^\[]|\+\s\[ \])/.test(thisLine)) {
-        thisPara.type = 'checklist'
-      } else if (/^\s*([\*\-]\s\[>\])/.test(thisLine)) {
-        thisPara.type = 'scheduled'
-      } else if (/^\s*(\+\s\[>\])/.test(thisLine)) {
-        thisPara.type = 'checklistScheduled'
-      } else if (/^\s*([\*\-]\s\[x\])/.test(thisLine)) {
-        thisPara.type = 'done'
-      } else if (/^\s*([\*\-]\s\[\-\])/.test(thisLine)) {
-        thisPara.type = 'cancelled'
-      } else if (/^\s*(\+\s\[x\])/.test(thisLine)) {
-        thisPara.type = 'checklistDone'
-      } else if (/^\s*(\+\s\[\-\])/.test(thisLine)) {
-        thisPara.type = 'checklistCancelled'
-      } else if (RE_BULLET_LIST.test(thisLine)) {
-        thisPara.type = 'list'
-      } else if (/^\s*>\s/.test(thisLine)) {
-        thisPara.type = 'quote'
-      } else if (thisLine === '---') {
-        thisPara.type = 'separator'
-      } else if (thisLine === '') {
-        thisPara.type = 'empty'
-      } else {
-        thisPara.type = 'text'
+      const thisBasicPara: TBasicPara = {
+        type: 'text',
+        lineIndex: c,
+        rawContent: thisLine,
+        content: thisLine.slice(getLineMainContentPos(thisLine)),
       }
-      thisPara.lineIndex = c
-      thisPara.rawContent = thisLine
-      thisPara.content = thisLine.slice(getLineMainContentPos(thisLine))
-      basicParas.push(thisPara)
-      // logDebug('makeBasicParas...', `${c}: ${thisPara.type}: ${thisLine}`)
+      if (/^#{1,5}\s+/.test(thisLine)) {
+        thisBasicPara.type = 'title'
+      } else if (RE_OPEN_TASK.test(thisLine)) {
+        thisBasicPara.type = 'open'
+      } else if (/^\s*(\+\s[^\[]|\+\s\[ \])/.test(thisLine)) {
+        thisBasicPara.type = 'checklist'
+      } else if (/^\s*([\*\-]\s\[>\])/.test(thisLine)) {
+        thisBasicPara.type = 'scheduled'
+      } else if (/^\s*(\+\s\[>\])/.test(thisLine)) {
+        thisBasicPara.type = 'checklistScheduled'
+      } else if (/^\s*([\*\-]\s\[x\])/.test(thisLine)) {
+        thisBasicPara.type = 'done'
+      } else if (/^\s*([\*\-]\s\[\-\])/.test(thisLine)) {
+        thisBasicPara.type = 'cancelled'
+      } else if (/^\s*(\+\s\[x\])/.test(thisLine)) {
+        thisBasicPara.type = 'checklistDone'
+      } else if (/^\s*(\+\s\[\-\])/.test(thisLine)) {
+        thisBasicPara.type = 'checklistCancelled'
+      } else if (RE_BULLET_LIST.test(thisLine)) {
+        thisBasicPara.type = 'list'
+      } else if (/^\s*>\s/.test(thisLine)) {
+        thisBasicPara.type = 'quote'
+      } else if (thisLine === '---') {
+        thisBasicPara.type = 'separator'
+      } else if (thisLine === '') {
+        thisBasicPara.type = 'empty'
+      } else {
+        thisBasicPara.type = 'text'
+      }
+      basicParas.push(thisBasicPara)
+      // logDebug('makeBasicParas...', `${c}: ${thisBasicPara.type}: ${thisLine}`)
       c++
     }
     return basicParas
