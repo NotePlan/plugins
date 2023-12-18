@@ -2,7 +2,7 @@
   "noteplan.minAppVersion": "3.9.2",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "np.Preview",
-  "plugin.name": "Preview",
+  "plugin.name": "🖥️ Preview",
   "plugin.description": "Shows HTML preview of the current note, including Mermaid diagrams and MathJax equations. Requires NP v3.9.2.",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",

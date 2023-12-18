@@ -1,4 +1,4 @@
-# Preview Plugin
+# 🖥️ Preview Plugin
 This plugin provides the **/preview note** and **/start live preview** commands that renders the current note to HTML including:
 - standard Markdown conversion
 - [Mermaid diagrams](https://mermaid.js.org) (e.g. flowcharts, gantt charts, sequence diagrams ...)

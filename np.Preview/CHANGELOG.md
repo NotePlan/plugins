@@ -1,4 +1,4 @@
-# What's Changed in Previews plugin?
+# What's Changed in 🖥️ Previews plugin?
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/np.Preview), and how to configure it.
 
 ## [0.4.3] - 2023-11-10
