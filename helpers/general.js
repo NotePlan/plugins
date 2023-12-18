@@ -399,11 +399,12 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
 export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: any): Promise<any> {
   try {
     // logDebug('general/getTagParamsFromString', `for '${wantedParam}' in '${paramString}'`)
-    if (paramString === '') {
-      throw new Error("Can't parse empty paramString")
-    }
     if (wantedParam === '') {
       throw new Error("Can't look for empty wantedParam")
+    }
+    if (paramString === '') {
+      logDebug('general/getTagParamsFromString', `Empty paramString, so returning defaultValue`)
+      return defaultValue
     }
     // $FlowIgnore(incompatible-type) as can produce 'any'
     const paramObj: {} = await json5.parse(paramString)
@@ -457,9 +458,9 @@ export function semverVersionToNumber(version: string): number {
     }
   }
 
-  for (let part of parts) {
-    part = parseInt(part, 10)
-    if (Number.isNaN(part) || part >= 1024) {
+  for (const part of parts) {
+    const foundPart: number = parseInt(part, 10)
+    if (Number.isNaN(foundPart) || foundPart >= 1024) {
       throw new Error(`Version string invalid, ${part} is too large`)
     }
   }
