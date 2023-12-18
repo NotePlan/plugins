@@ -1,7 +1,7 @@
 {
   "COMMENT": "Details on these fields: https://help.noteplan.co/article/67-create-command-bar-plugins",
   "macOS.minVersion": "10.13.0",
-  "noteplan.minAppVersion": "3.4.0",
+  "noteplan.minAppVersion": "3.9.11",
   "plugin.id": "np.Tidy",
   "plugin.name": "🧹 Tidy Up",
   "plugin.author": "jgclark",
@@ -57,7 +57,8 @@
       "description": "Tasks at top of active note (prior to any heading) will be placed under a specified heading",
       "jsFunction": "moveTopLevelTasksInEditor",
       "alias": [
-        "mtth"
+        "mtth",
+        "Tidy: Move top-level tasks in Editor to heading"
       ],
       "arguments": [
         "Heading name to place the tasks under (will be created if doesn't exist). If you are running this command in a template, put any non-blank text in the field below.",
