@@ -1,8 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
-## [0.10.1] - 2023-12-?? @dwertheimer
+## [0.10.0] - 2023-12-21 @dwertheimer
 - modify topLevelTasks to include indented tasks
+- fix bug in moving top level tasks
 
 ## [0.9.2] - 2023-12-15
 - Updates the list of command aliases to suit changes in NotePlan 3.9.9.

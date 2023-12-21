@@ -20,7 +20,7 @@ export type headingLevelType = 1 | 2 | 3 | 4 | 5
  */
 export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
   // This is how private keys work in actual Javascript now.
-  #keysMap: Map<string, string> = new Map < string, string > ()
+  #keysMap: Map<string, string> = new Map<string, string>()
 
   constructor(iterable?: Iterable<[string, TVal]>) {
     super()
@@ -154,8 +154,8 @@ export function displayTitle(n: ?CoreNoteFields): string {
   return !n
     ? '(error)'
     : n.type === 'Calendar'
-      ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-      : n.title ?? '(error)'
+    ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
+    : n.title ?? '(error)'
 }
 
 /**
@@ -416,7 +416,7 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
     // logDebug('general/getTagParamsFromString', `--> ${output}`)
     return output
   } catch (e) {
-    logError('general/getTagParamsFromString', `${e}. paramString=${paramString}. Returning an error string.`)
+    logError('general/getTagParamsFromString', `${e}. paramString="${paramString}". wantedParam="${wantedParam}" defaultValue="${defaultValue}". Returning an error string.`)
     return '❗️error'
   }
 }

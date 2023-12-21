@@ -148,7 +148,7 @@ export class Note {
     if (p.blockId) delete p.blockId
   }
   async removeParagraph(para) {
-    this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
+    this.paragraphs = this.paragraphs.filter((p) => p.lineIndex !== para.lineIndex)
     this.resetLineIndexes()
   }
   async removeParagraphAtIndex() {

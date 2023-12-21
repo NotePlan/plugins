@@ -53,7 +53,7 @@ This command rewrites the current document in the Editor, moving tasks from the 
 ```markdown
 ## Tasks
 *
-<% const tasks = await DataStore.invokePluginCommandByName("Tidy: Move top-level tasks in Editor to heading","np.Tidy",["Tasks",true,true]);  -%>
+<% const tasks = await DataStore.invokePluginCommandByName("Move top-level tasks in Editor to heading","np.Tidy",["Tasks",true,true]);  -%>
 <% if (tasks?.length) { -%>
 <%- tasks %>
 <% } -%>
