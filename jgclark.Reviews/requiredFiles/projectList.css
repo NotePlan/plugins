@@ -36,10 +36,14 @@ tr.section-header-row {
   padding-top: 1.0rem;
   padding-bottom: 0.3rem;
 }
+.first-col-indicator {
+  padding-top: 0.4em; /* vertical-align doesn't seem to work, but this is approx right */
+  text-align: center;
+}
 /* remove L-R borders for now */
 tbody td {
   background-color: var(--bg-alt-color);
-  padding: 4px 0px;
+  padding: 2px 2px;
   border-left: 0px solid var(--tint-color);
   border-right: 0px solid var(--tint-color);
 }
@@ -51,8 +55,11 @@ table tbody tr:first-child {
 table tbody tr:last-child {
   border-bottom: 1px solid var(--tint-color);
 }
-table tr td:first-child, table tr th:first-child {
-  border-left: 0px; /* turn off outer table right borders */
+table tr td:first-child {
+  border-left: 0px; /* turn off outer table left border */
+}
+table tr th:first-child {
+  border-left: 0px; /* turn off outer table left border */
 }
 /* turn off outer table right borders */
 table tr td:last-child, table tr th:last-child {
@@ -75,9 +82,10 @@ i.fa-solid, i.fa-regular {
   color: var(--tint-color);
 }
 /* a top-right fixed position */
-/* '.fix-top-right { position: absolute; top: 1.7rem; right: 1rem;
+.fix-top-right {
+  position: absolute; top: 1.7rem; right: 1rem;
 }
-/* make checkbox display larger, and like in the app. TODO: is this needed? */
+/* make checkbox display larger, and like in the app. */
 .checkbox {
   font-family: "noteplanstate"; font-size: 1.4rem;
 }
@@ -95,11 +103,11 @@ i.fa-solid, i.fa-regular {
 }
 /* details of ring text that can be set in CSS */
 .circle-percent-text {
-  font-family: "Avenir Next"; font-size: 2.5rem; font-weight: 500; color: var(--fg-main-color);
+  font-family: "Avenir Next"; font-size: 2.4rem; font-weight: 500; color: var(--fg-main-color);
 }
 /* details for icon that can be set in CSS, including font size */
 .circle-icon {
-  font-size: 2.0rem;
+  font-size: 1.8rem;
 }
 /* Tooltip block */
 .tooltip { position: relative; display: inline-block; }

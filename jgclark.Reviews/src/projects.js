@@ -87,7 +87,7 @@ export async function completeProject(): Promise<void> {
       await Editor.openNoteByFilename(note.filename)
       // logDebug('completeProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
-      // delete the project line from the full-review-list
+      // delete the project line from the full-review-list (Note: doesn't necessarily exist)
       await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
 
       // re-render the outputs (but don't focus)
@@ -108,9 +108,9 @@ export async function completeProject(): Promise<void> {
       }
 
       // ... and finally ask whether to move it to the @Archive
-      if (filename != null) {
+      if (note.filename != null) {
         if (await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No']) === 'Yes') {
-          const newFilename = DataStore.moveNote(filename, '@Archive')
+          const newFilename = DataStore.moveNote(note.filename, '@Archive')
         }
       }
 

@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 9.8.2023 for v0.12.2, @jgclark
+// Last updated 15.12.2023 for v0.12.5, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -71,14 +71,16 @@ export async function init(): Promise<void> {
   }
 }
 
-export async function testUpdated(): Promise<void> {
-  await onUpdateOrInstall(true)
+export async function testSettingsUpdated(): Promise<void> {
+  await onSettingsUpdated()
 }
 
 export async function onSettingsUpdated(): Promise<void> {
   // Update the full - review - list in case there's a change in a relevant setting
+  logInfo(pluginID, 'Have updated settings, so will recalc the review list and display...')
   const config = await getReviewSettings()
   await makeFullReviewList(config, true)
+  // TODO: this actually generates errors, as Editor and HTMLView disappear at this point!
   await renderProjectLists(config)
 }
 

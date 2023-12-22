@@ -9,7 +9,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 9.8.2023 for v0.12.2, @jgclark
+// Last updated 15.12.2023 for v0.12.5, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -92,16 +92,85 @@ async function handleCheckboxClick(cb) {
 </script>
 `
 
-// TODO: this would need to go in commsSwitchboard.js
 /**
+ * Functions to get/set scroll position of the project list content.
+ * Helped by https://stackoverflow.com/questions/9377951/how-to-remember-scroll-position-and-scroll-back
+ * But need to find a different approach to store the position, as cookies not available.
+ */
+export const scrollPreLoadJSFuncs: string = `
+<script type="text/javascript">
+function getCurrentScrollHeight() {
+  let scrollPos;
+  if (typeof window.pageYOffset != 'undefined') {
+    scrollPos = window.pageYOffset;
+  }
+  else if (typeof document.compatMode != 'undefined' && document.compatMode != 'BackCompat') {
+    scrollPos = document.documentElement.scrollTop;
+  }
+  else if (typeof document.body != 'undefined') {
+    scrollPos = document.body.scrollTop;
+  }
+  let label = document.getElementById("scrollDisplay");
+  label.innerHTML = String(scrollPos);
+  console.log(String(scrollPos));
+}
+
+function setScrollPos(h) {
+  document.documentElement.scrollTop = h;
+  document.body.scrollTop = h;
+  console.log('Set scroll pos to ' + String(h));
+}
+
+// ???
+function setRefreshButtonURL(h) {
+  // TODO:
+  // document.documentElement.scrollTop = h;
+  // document.body.scrollTop = h;
+  console.log('Set refresh button x-callback to ???');
+}
+
+// This works in Safari, but not in NP:
+// window.onbeforeunload = function () {
+//   let scrollPos;
+//   if (typeof window.pageYOffset != 'undefined') {
+//     scrollPos = window.pageYOffset;
+//   }
+//   else if (typeof document.compatMode != 'undefined' && document.compatMode != 'BackCompat') {
+//     scrollPos = document.documentElement.scrollTop;
+//   }
+//   else if (typeof document.body != 'undefined') {
+//     scrollPos = document.body.scrollTop;
+//   }
+//   const info = "scrollTop=" + scrollPos + "URL=" + window.location.href;
+//   console.log(info);
+//   document.cookie = info;
+// }
+//
+// This works in Safari, but not in NP:
+// window.onload = function () {
+//   console.log('Looking for cookies for '+window.location.href)
+//   if (document.cookie.includes(window.location.href)) {
+//     if (document.cookie.match(/scrollTop=([^;]+)(;|$)/) != null) {
+//       let arr = document.cookie.match(/scrollTop=([^;]+)(;|$)/);
+//       console.log('Found matching cookie(s): '+String(arr))
+//       document.documentElement.scrollTop = parseInt(arr[1]);
+//       document.body.scrollTop = parseInt(arr[1]);
+//     }
+//   }
+// }
+</script>
+`
+
+/**
+ * TODO: this would need to go in commsSwitchboard.js. And contents uncommented out.
  * Event handler for the 'change' event on a checkbox
  * @param {string} settingName of checkbox
  * @param {boolean} state that it now has
  */
-function onChangeCheckbox(settingName, state) {
-  const data = { settingName, state }
+function onChangeCheckbox(settingName: string, state: boolean) {
+  // const data = { settingName, state }
   // console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
-  sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
+  // sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
 }
 
 
@@ -163,11 +232,12 @@ function setPercentRing(percent, ID) {
  * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
  * Now includes support for calling from x-callback, using full JSON '{"a":"b", "x":"y"}' version of settings and values that will override ones in the user's settings.
  * @param {string | null} arguments as JSON
+ * @param {number?} scrollPos in pixels (optional, for HTML only)
  */
-export async function makeProjectLists(argsIn?: string | null = null): Promise<void> {
+export async function makeProjectLists(argsIn?: string | null = null, scrollPos: number = 1000): Promise<void> {
   try {
     let args = argsIn?.toString() || ''
-    logDebug(pluginJson, `makeProjectLists: starting with JSON args <${args}>`)
+    logDebug(pluginJson, `makeProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPos)}`)
     let config = await getReviewSettings()
     if (args !== '') {
       config = overrideSettingsWithEncodedTypedArgs(config, args)
@@ -180,7 +250,7 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
     await makeFullReviewList(config, true)
 
     // Call the relevant rendering function with the updated config
-    await renderProjectLists(config, true)
+    await renderProjectLists(config, true, scrollPos)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -190,9 +260,15 @@ export async function makeProjectLists(argsIn?: string | null = null): Promise<v
  * Render the project list, according to the chosen output style.
  * Note: this does not re-calculate the data.
  * @author @jgclark
- * @param {Boolean} shouldOpen window/note if not already open?
+ * @param {any} config
+ * @param {boolean} shouldOpen window/note if not already open?
+ * @param {number?} scrollPos scroll position to set (pixels) for HTML display (default: 0)
  */
-export async function renderProjectLists(config: any, shouldOpen: boolean = true): Promise<void> {
+export async function renderProjectLists(
+  config: any,
+  shouldOpen: boolean = true,
+  scrollPos: number = 0
+): Promise<void> {
   try {
     // clo(config, 'config at start of renderProjectLists:')
     logDebug('renderProjectLists', `Started with displayOnlyOverdue? ${String(config.displayOnlyOverdue ?? '(error)')} displayFinished? ${String(config.displayFinished ?? '(error)')}`)
@@ -202,7 +278,7 @@ export async function renderProjectLists(config: any, shouldOpen: boolean = true
       await renderProjectListsMarkdown(config, shouldOpen)
     }
     if (config.outputStyle.match(/rich/i)) {
-      await renderProjectListsHTML(config, shouldOpen)
+      await renderProjectListsHTML(config, shouldOpen, scrollPos)
     }
   } catch (error) {
     clo(config, 'config at start of renderProjectLists:')
@@ -216,10 +292,14 @@ export async function renderProjectLists(config: any, shouldOpen: boolean = true
  * Note: Requires NP 3.7.0 (build 844) or greater.
  * Note: Currently we can only display 1 HTML Window at a time, so need to include all tags in a single view. In time this can hopefully change.
  * @author @jgclark
- * @param {any} config - from the main entry function, which can include overrides from passed args
- * @param {boolean} shouldOpen note if not already open?
- */
-export async function renderProjectListsHTML(config: any, shouldOpen: boolean = true): Promise<void> {
+ * @param {any} config
+ * @param {boolean} shouldOpen window/note if not already open?
+ * @param {number?} scrollPos scroll position to set (pixels) for HTML display  */
+export async function renderProjectListsHTML(
+  config: any,
+  shouldOpen: boolean = true,
+  scrollPos: number = 0
+): Promise<void> {
   try {
     if (config.noteTypeTags.length === 0) {
       throw new Error('No noteTypeTags configured to display')
@@ -321,7 +401,10 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
     // write lines before first table
     outputArray.push(`<h1>${windowTitle}</h1>`)
     // Add a sticky area for buttons
-    const controlButtons = `<b>Reviews</b>: ${startReviewButton} \n${reviewedXCallbackButton} \n${nextReviewXCallbackButton}\n${skipReviewXCallbackButton}\n<br /><b>List</b>: \n${refreshXCallbackButton} \n<b>Project</b>: ${updateProgressXCallbackButton} ${pauseXCallbackButton} \n${completeXCallbackButton} \n${cancelXCallbackButton}`
+    let controlButtons = `<b>Reviews</b>: ${startReviewButton} \n${reviewedXCallbackButton} \n${nextReviewXCallbackButton}\n${skipReviewXCallbackButton}\n<br /><b>List</b>: \n${refreshXCallbackButton} \n<b>Project</b>: ${updateProgressXCallbackButton} ${pauseXCallbackButton} \n${completeXCallbackButton} \n${cancelXCallbackButton}`
+    // TODO: remove test lines to see scroll position:
+    // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
+    // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
     outputArray.push(`<div class="sticky-box-top-middle">\n${controlButtons}\n</div>\n`)
 
     // Show date + display settings
@@ -402,26 +485,14 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
     }
     outputArray.push(`</div>`)
     const body = outputArray.join('\n')
-
     logDebug('renderProjectListsHTML', `>> end of main loop: ${timer(funcTimer)}`)
 
-    // Original version
-    // await showHTML(
-    //   windowTitle,
-    //   faLinksInHeader,
-    //   body,
-    //   '', // = get general CSS set automatically
-    //   reviewListCSS,
-    //   false, // = not modal window
-    //   setPercentRingJSFunc, // pre-body script
-    //   '', // post-body script
-    //   filenameHTMLCopy,
-    //   config.width, // was 800
-    //   config.height, // was 1200 (max height)
-    // )
-    // if (shouldOpen) {
-    //   focusHTMLWindowIfAvailable(customRichWinId)
-    // }
+    const setScrollPosJS: string = `<script type="text/javascript">
+  console.log('Attemping to set scroll pos to ${scrollPos}');
+  setScrollPos(${scrollPos});
+  console.log('Attemping to set scroll pos for refresh button to ${scrollPos}');
+  setRefreshButtonURL(${scrollPos});
+</script>`
 
     const winOptions = {
       windowTitle: windowTitle,
@@ -430,8 +501,8 @@ export async function renderProjectListsHTML(config: any, shouldOpen: boolean = 
       specificCSS: '', // now in requiredFiles/reviewListCSS instead
       makeModal: false, // = not modal window
       bodyOptions: '', // TODO: find a different way to get this working 'onload="timeAgo()"',
-      preBodyScript: setPercentRingJSFunc,
-      postBodyScript: checkboxHandlerJSFunc, // timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
+      preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
+      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS, // timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 800, // = default width of window (px)
@@ -719,7 +790,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
  * Log the machine-readable list of project-type notes
  * @author @jgclark
  */
-export function logFullReviewList(): void {
+export async function logFullReviewList(): Promise<void> {
   const content = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
   console.log(`Contents of ${fullReviewListFilename}:\n${content}`)
 }
@@ -729,24 +800,24 @@ export function logFullReviewList(): void {
  * ordered by the setting 'displayOrder', optionally also pre-ordered by 'folder'.
  * This is V3, which uses Plugins/data/jgclark.Reviews/full-review-list.md to store the list
  * @author @jgclark
- * @param {any} config
+ * @param {any} configIn
  * @param {boolean} runInForeground?
  */
-export async function makeFullReviewList(config: any, runInForeground: boolean = false): Promise<void> {
+export async function makeFullReviewList(configIn: any, runInForeground: boolean = false): Promise<void> {
   try {
-    // const config = await getReviewSettings() // get instead from passed config
-    logDebug('makeFullReviewList', `Starting for ${String(config.noteTypeTags)} tags`)
+    const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
+    logDebug('makeFullReviewList', `Starting for ${String(config.noteTypeTags)} tags, running in ${runInForeground ? 'foreground' : 'background'}`)
     let startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
     // Get list of folders, excluding @specials and our foldersToIgnore setting
     const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude, true).sort()
     // For filtering DataStore, no need to look at folders which are in other folders on the list already
-    const filteredFolderListWithoutSubdirs = filteredFolderList.reduce((acc, f) => {
+    const filteredFolderListWithoutSubdirs = filteredFolderList.reduce((acc: Array<string>, f: string) => {
       const exists = acc.some((s) => f.startsWith(s))
       if (!exists) acc.push(f)
       return acc
     }, [])
-    clo(filteredFolderListWithoutSubdirs, `makeFullReviewList: filteredFolderListWithoutSubdirs`)
+    // logDebug('makeFullReviewList', `filteredFolderListWithoutSubdirs: ${String(filteredFolderListWithoutSubdirs)}`)
 
     // filter DataStore one time, searching each item to see if it startsWith an item in filterFolderList
     // but need to deal with ignores here because of this optimization (in case an ignore folder is inside an included folder)
@@ -758,16 +829,15 @@ export async function makeFullReviewList(config: any, runInForeground: boolean =
     if (filteredFolderListWithoutSubdirs.includes('/')) {
       const rootNotes = DataStore.projectNotes.filter((f) => !f.filename.includes('/'))
       filteredDataStore = filteredDataStore.concat(rootNotes)
-      // logDebug('', `Added root folder notes: ${rootNotes.map((n) => n.title).join(' / ')}`)
+      // logDebug('makeFullReviewList', `Added root folder notes: ${rootNotes.map((n) => n.title).join(' / ')}`)
     }
 
     logDebug(`makeFullReviewList`, `>> filteredDataStore: ${filteredDataStore.length} potential project notes in ${timer(startTime)}`)
-    // filteredDataStore.map((n, i) => logDebug(`makeFullReviewList filteredDataStore[${i}]: ${n.filename}`))
-    // logDebug(pluginJson, `<filteredDataStore/> \n`)
 
     if (runInForeground) {
       CommandBar.showLoading(true, `Generating Project Review list`)
-      await CommandBar.onAsyncThread()
+      // TODO: work out what to do about this: currently commented this out as it gives warnings because Editor is accessed.
+      // await CommandBar.onAsyncThread()
     }
 
     // Iterate over the folders, using settings from config.foldersToProcess and config.foldersToIgnore list
@@ -794,13 +864,13 @@ export async function makeFullReviewList(config: any, runInForeground: boolean =
     }
     logDebug('makeFullReviewList', `>> Finding notes: ${timer(startTime)}`)
     if (runInForeground) {
-      await CommandBar.onMainThread()
+      // await CommandBar.onMainThread()
       CommandBar.showLoading(false)
     }
 
     // Get machineSummaryLine for each of the projectInstances
-    let reviewLines = []
-    let lineArrayObjs = []
+    let reviewLines: Array<string> = []
+    // let lineArrayObjs = []
     for (const p of projectInstances) {
       const mSL = p.machineSummaryLine()
       reviewLines.push(mSL)
@@ -812,7 +882,8 @@ export async function makeFullReviewList(config: any, runInForeground: boolean =
 
     // write summary to full-review-list file
     DataStore.saveData(outputArray.join('\n'), fullReviewListFilename, true)
-    // logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
+
+    logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
     // logFullReviewList()
   } catch (error) {
     logError(pluginJson, `makeFullReviewList: ${error.message}`)

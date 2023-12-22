@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 22.7.2023 for v0.12.1, @jgclark
+// Last updated 15.12.2023 for v0.12.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -238,7 +238,7 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
       // if (progressParaParts.length >= 1) {
       // const thisDatePart = progressParaParts[1]
       const progressLine = progressPara.content
-      logInfo('mostRecentProgressParagraph', progressLine)
+      // logDebug('mostRecentProgressParagraph', progressLine)
       const thisDate: Date = (new RegExp(RE_ISO_DATE).test(progressLine))
         // $FlowIgnore[incompatible-type]
         ? getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
@@ -271,7 +271,7 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
       // }
       i++
     }
-    clo(outputProgress, 'mostRecentProgressParagraph ->')
+    // clo(outputProgress, 'mostRecentProgressParagraph ->')
     return outputProgress
   } catch (e) {
     logError('Project::mostRecentProgressParagraph', e.message)
@@ -335,7 +335,7 @@ export class Project {
       this.note = note
       this.title = note.title
       this.filename = note.filename
-      logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag ?? '-'} ...`)
+      logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag ?? '?'}:`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -347,10 +347,11 @@ export class Project {
         const noteReadOnly: CoreNoteFields = Editor.note
         paras = noteReadOnly.paragraphs
         const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
-        logDebug('Project constructor', `Using EDITOR (${Editor.filename}) for this note, last updated ${String(timeSinceLastEdit)}ms ago.} `)
+        logDebug('Project constructor', `- using EDITOR (${Editor.filename}) for this note, last updated ${String(timeSinceLastEdit)}ms ago.} `)
       } else {
         // read note from DataStore in the usual way
         paras = note.paragraphs
+        // logDebug('Project constructor', `- read note from datastore `)
       }
 
       const metadataLineIndex = getOrMakeMetadataLine(note)
@@ -493,7 +494,7 @@ export class Project {
         : NaN
 
       // Calculate durations or time since cancel/complete
-      logDebug('calcDurations', String(this.startDate ?? 'no startDate'))
+      // logDebug('calcDurations', String(this.startDate ?? 'no startDate'))
       if (this.startDate) {
         const momTSD = moment(this.startDate)
         if (this.completedDate != null) {
@@ -554,7 +555,7 @@ export class Project {
           this.nextReviewDays = 0
         }
       }
-      logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
+      // logDebug('calcNextReviewDate', `-> reviewedDate = ${String(this.reviewedDate)} / nextReviewDate = ${String(this.nextReviewDate)} / nextReviewDays = ${String(this.nextReviewDays)}`)
     } catch (error) {
       logError('calcNextReviewDate', error.message)
     }
@@ -655,6 +656,7 @@ export class Project {
 
       // re-write the note's metadata line
       logDebug('completeProject', `Completing '${this.title}' ...`)
+      // FIXME: sometimes this chews up @started() and @due()
       const newMetadataLine = this.generateMetadataLine()
       logDebug('completeProject', `- metadata now '${newMetadataLine}'`)
 
@@ -869,30 +871,30 @@ export class Project {
       case 'Rich':
         output = '\t<tr>\n\t\t'
 
-        // Column 1: circle indicator + Column 2a: Project name/link
+        // Column 1: circle indicator
         if (this.isCompleted) {
-          output += '<td class="checked">' + this.addFAIcon('fa-solid fa-circle-check') + '</td>' // ('checked' gives colour)
-          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
+          output += '<td class="first-col-indicator checked">' + this.addFAIcon('fa-solid fa-circle-check') + '</td>' // ('checked' gives colour)
         }
         else if (this.isCancelled) {
-          output += '<td class="cancelled">' + this.addFAIcon('fa-solid fa-circle-xmark') + '</td>' // ('cancelled' gives colour)
-          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
+          output += '<td class="first-col-indicator cancelled">' + this.addFAIcon('fa-solid fa-circle-xmark') + '</td>' // ('cancelled' gives colour)
         }
         else if (this.isPaused) {
-          output += '<td>' + this.addFAIcon("fa-solid fa-circle-pause", "#888888") + '</td>'
+          output += '<td class="first-col-indicator">' + this.addFAIcon("fa-solid fa-circle-pause", "#888888") + '</td>'
+        }
+        else if (this.percentComplete === 0 || isNaN(this.percentComplete)) {
+          output += '<td class="first-col-indicator">' + this.addSVGPercentRing(100, '#FF000088', '0') + '</td>'
+        }
+        else {
+          output += '<td class="first-col-indicator">' + this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete)) + '</td>'
+        }
+
+        // Column 2a: Project name / link
+        if (this.isCompleted || this.isCancelled || this.isPaused) {
           output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
         else if (this.percentComplete === 0 || isNaN(this.percentComplete)) {
-          output += '<td>' + this.addSVGPercentRing(100, '#FF000088', '0') + '</td>'
           output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
-        }
-        // else if (isNaN(this.percentComplete)) { // NaN
-        //   // output += '<td>' + this.addSVGPercentRing(100, 'grey', '0') + '</td>'
-        //   output += '<td>' + this.addFAIcon("fa-solid fa-circle-question", "#888888") + '</td>'
-        //   output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}`
-        // }
-        else {
-          output += '<td>' + this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete)) + '</td>'
+        } else {
           output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}`
         }
 
@@ -1070,7 +1072,7 @@ export function makeFakeButton(buttonText: string, commandName: string, commandA
  * Note: From 3.9.3 there's a function for this, but we need something else before then. Try having a basic 1s wait.
  * FIXME: seems to just stop execution, but without error messages??
  */
-export async function saveEditorToCache(completed: function): Promise<void> {
+export async function saveEditorToCache(completed: any): Promise<void> {
   try {
     // If 3.9.3alpha or later call specific new function
     if (NotePlan.environment.buildVersion > 1049) {

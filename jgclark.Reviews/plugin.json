@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
   "plugin.version": "0.12.5",
-  "plugin.lastUpdateInfo": "0.12.5: now can include files in root folder.\n0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.",
+  "plugin.lastUpdateInfo": "0.12.5: now can include files in root folder. When you refresh project list it will keep scroll position.\n0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.",
   "plugin.requiredFiles": [
     "projectList.css"
   ],
@@ -32,7 +32,8 @@
       "description": "creates/updates a human-readable list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete.",
       "jsFunction": "makeProjectLists",
       "arguments": [
-        "comma-separated list of setting keys and their values"
+        "comma-separated list of setting keys and their values (optional)",
+        "position to scroll window to (optional, only for HTML view)"
       ]
     },
     {
@@ -143,9 +144,9 @@
       "jsFunction": "redisplayProjectListHTML"
     },
     {
-      "name": "test:renderProjectLists",
-      "description": "Render project lists (without recalc)",
-      "jsFunction": "renderProjectLists"
+      "name": "test:updateSettings",
+      "description": "Test for update of settings",
+      "jsFunction": "testSettingsUpdated"
     }
   ],
   "plugin.inactiveCommands": [

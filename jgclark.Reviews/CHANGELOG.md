@@ -2,7 +2,9 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
-## [0.12.5] - 2023-09-01 (@@@unreleased)
+## [0.12.5] - 2023-12-16???
+### Added
+- When you refresh the project list it will now keep the window's scroll position (for @anton.skliar)
 ### Fixes
 - now includes relevant files from the root folder too
 
