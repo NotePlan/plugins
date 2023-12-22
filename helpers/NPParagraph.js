@@ -1,6 +1,7 @@
 // @flow
 
 import moment from 'moment/min/moment-with-locales'
+import { TASK_TYPES } from './sorting'
 import { trimString } from '@helpers/dataManipulation'
 import {
   getAPIDateStrFromDisplayDateStr,
@@ -26,7 +27,6 @@ import { findStartOfActivePartOfNote, isTermInMarkdownPath, isTermInURL, smartPr
 import { RE_FIRST_SCHEDULED_DATE_CAPTURE } from '@helpers/regex'
 import { getLineMainContentPos } from '@helpers/search'
 import { hasScheduledDate, isOpen } from '@helpers/utils'
-import { TASK_TYPES } from './sorting'
 
 const pluginJson = 'NPParagraph'
 
@@ -789,8 +789,8 @@ export function testForOverdue(
   const reMATCHLINK = new RegExp(regexString, 'g')
   let links = para.content.match(reMATCHLINK) || []
   const todayString = todayRelevantFilename // .replace(`.${DataStore.defaultFileExtension}`, '')
-  let overdueLinks = [],
-    notOverdueLinks = []
+  let overdueLinks: Array<string> = [],
+    notOverdueLinks: Array<string> = []
   if (links && links?.length > 0) {
     links = links.map((link) => link.trim())
     overdueLinks = links.filter((link) => link.slice(1) < todayString)
@@ -1212,7 +1212,12 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
  * @author @dwertheimer updated by @jgclark
  * @tests exist
  */
-export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragraphDataToFind: any, fieldsToMatch: Array<string> = ['filename', 'rawContent'], ifMultipleReturnFirst: boolean = false): TParagraph | null {
+export function findParagraph(
+  parasToLookIn: $ReadOnlyArray<TParagraph>,
+  paragraphDataToFind: any,
+  fieldsToMatch: Array<string> = ['filename', 'rawContent'],
+  ifMultipleReturnFirst: boolean = false,
+): TParagraph | null {
   // clo(parasToLookIn, `findParagraph: parasToLookIn.length=${parasToLookIn.length}`)
   const potentials = parasToLookIn.filter((p) => paragraphMatches(p, paragraphDataToFind, fieldsToMatch))
   if (potentials?.length === 1) {
@@ -1226,7 +1231,7 @@ export function findParagraph(parasToLookIn: $ReadOnlyArray<TParagraph>, paragra
       // If we want to always return the first match, do so.
       return potentials[0]
     } else {
-    // Otherwise check to see if lineIndex matches as well, and only then return the first match
+      // Otherwise check to see if lineIndex matches as well, and only then return the first match
       const matchIndexes = potentials.find((p) => p.lineIndex === paragraphDataToFind.lineIndex)
       if (matchIndexes) {
         return matchIndexes
@@ -1325,7 +1330,7 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
  * TODO: Cope with non-daily scheduled dates
  * @param {TParagraph} para
  * @param {boolean} useScheduledDateAsCompletionDate?
- * @returns
+ * @returns {boolean} success?
  */
 export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate: boolean = false): boolean {
   if (para) {
@@ -1372,9 +1377,9 @@ export function markComplete(para: TParagraph, useScheduledDateAsCompletionDate:
 }
 
 /**
- * Change para type of the given paragraph to cancelled
+ * Change para type of the given paragraph to cancelled (for both tasks/checklists)
  * @param {TParagraph} para
- * @returns
+ * @returns {boolean} success?
  */
 export function markCancelled(para: TParagraph): boolean {
   if (para) {
@@ -1388,6 +1393,9 @@ export function markCancelled(para: TParagraph): boolean {
       para.note?.updateParagraph(para)
       logDebug('markCancelled', `updated para <${para.content}>`)
       return true
+    } else if (para.type === 'cancelled' || para.type === 'checklistCancelled') {
+      logInfo('markCancelled', `para <${para.content}> is already cancelled: is this a duplicate line?`)
+      return false
     } else {
       logWarn('markCancelled', `unexpected para type ${para.type}, so won't continue`)
       return false
@@ -1404,7 +1412,7 @@ export function markCancelled(para: TParagraph): boolean {
  * Appends a '@done(...)' date to the line if the user has selected to 'add completion date'.
  * @param {string} filenameIn to look in
  * @param {string} content to find
- * @returns {boolean} true if succesful, false if unsuccesful
+ * @returns {boolean} success?
  */
 export function completeItem(filenameIn: string, content: string): boolean {
   try {
@@ -1612,44 +1620,53 @@ export function makeBasicParasFromContent(content: string): Array<any> {
     const RE_BULLET_LIST = new RegExp(`^\\s*([${DASH_BULLET}${ASTERISK_BULLET}])\\s+`)
     // logDebug('makeBasicParas...', `RE_BULLET_LIST: ${String(RE_BULLET_LIST)}`)
 
-    const basicParas = []
+    type TBasicPara = {
+      type: ParagraphType,
+      content: string,
+      rawContent: string,
+      lineIndex: number,
+    }
+
+    const basicParas: Array<TBasicPara> = []
     let c = 0
     for (const thisLine of allLines) {
-      const thisPara = {}
-      if (/^#{1,5}\s+/.test(thisLine)) {
-        thisPara.type = 'title'
-      } else if (RE_OPEN_TASK.test(thisLine)) {
-        thisPara.type = 'open'
-      } else if (/^\s*(\+\s[^\[]|\+\s\[ \])/.test(thisLine)) {
-        thisPara.type = 'checklist'
-      } else if (/^\s*([\*\-]\s\[>\])/.test(thisLine)) {
-        thisPara.type = 'scheduled'
-      } else if (/^\s*(\+\s\[>\])/.test(thisLine)) {
-        thisPara.type = 'checklistScheduled'
-      } else if (/^\s*([\*\-]\s\[x\])/.test(thisLine)) {
-        thisPara.type = 'done'
-      } else if (/^\s*([\*\-]\s\[\-\])/.test(thisLine)) {
-        thisPara.type = 'cancelled'
-      } else if (/^\s*(\+\s\[x\])/.test(thisLine)) {
-        thisPara.type = 'checklistDone'
-      } else if (/^\s*(\+\s\[\-\])/.test(thisLine)) {
-        thisPara.type = 'checklistCancelled'
-      } else if (RE_BULLET_LIST.test(thisLine)) {
-        thisPara.type = 'list'
-      } else if (/^\s*>\s/.test(thisLine)) {
-        thisPara.type = 'quote'
-      } else if (thisLine === '---') {
-        thisPara.type = 'separator'
-      } else if (thisLine === '') {
-        thisPara.type = 'empty'
-      } else {
-        thisPara.type = 'text'
+      const thisBasicPara: TBasicPara = {
+        type: 'text',
+        lineIndex: c,
+        rawContent: thisLine,
+        content: thisLine.slice(getLineMainContentPos(thisLine)),
       }
-      thisPara.lineIndex = c
-      thisPara.rawContent = thisLine
-      thisPara.content = thisLine.slice(getLineMainContentPos(thisLine))
-      basicParas.push(thisPara)
-      // logDebug('makeBasicParas...', `${c}: ${thisPara.type}: ${thisLine}`)
+      if (/^#{1,5}\s+/.test(thisLine)) {
+        thisBasicPara.type = 'title'
+      } else if (RE_OPEN_TASK.test(thisLine)) {
+        thisBasicPara.type = 'open'
+      } else if (/^\s*(\+\s[^\[]|\+\s\[ \])/.test(thisLine)) {
+        thisBasicPara.type = 'checklist'
+      } else if (/^\s*([\*\-]\s\[>\])/.test(thisLine)) {
+        thisBasicPara.type = 'scheduled'
+      } else if (/^\s*(\+\s\[>\])/.test(thisLine)) {
+        thisBasicPara.type = 'checklistScheduled'
+      } else if (/^\s*([\*\-]\s\[x\])/.test(thisLine)) {
+        thisBasicPara.type = 'done'
+      } else if (/^\s*([\*\-]\s\[\-\])/.test(thisLine)) {
+        thisBasicPara.type = 'cancelled'
+      } else if (/^\s*(\+\s\[x\])/.test(thisLine)) {
+        thisBasicPara.type = 'checklistDone'
+      } else if (/^\s*(\+\s\[\-\])/.test(thisLine)) {
+        thisBasicPara.type = 'checklistCancelled'
+      } else if (RE_BULLET_LIST.test(thisLine)) {
+        thisBasicPara.type = 'list'
+      } else if (/^\s*>\s/.test(thisLine)) {
+        thisBasicPara.type = 'quote'
+      } else if (thisLine === '---') {
+        thisBasicPara.type = 'separator'
+      } else if (thisLine === '') {
+        thisBasicPara.type = 'empty'
+      } else {
+        thisBasicPara.type = 'text'
+      }
+      basicParas.push(thisBasicPara)
+      // logDebug('makeBasicParas...', `${c}: ${thisBasicPara.type}: ${thisLine}`)
       c++
     }
     return basicParas
@@ -1716,50 +1733,63 @@ export type ParentParagraphs = {
  * By definition, a paragraph's .children() method API returns an array of TParagraphs indented underneath it
  * a grandparent will have its children and grandchildren listed in its .children() method and the child will have the grandchildren also
  * This function returns only the children of the paragraph, not any descendants, eliminating duplicates
- * Optionally, if removeChildrenFromTopLevel is true, it will remove the children from the top level of the array
- * leaving children only in the children property of its direct parent paragraph
+ * Every paragraph sent into this function will be listed as a parent in the resulting array of ParentParagraphs
+ * Use removeParentsWhoAreChildren() afterwards to remove any children from the array of ParentParagraphs
+ * (if you only want a paragraph to be listed in one place in the resulting array of ParentParagraphs)
  * @param {Array<TParagraph>} paragraphs - array of paragraphs
- * @param {boolean} removeChildrenFromTopLevel - if true, removes children from top level of array (default = false)
  * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
  */
-export function getParagraphParentsOnly(paragraphs: Array<TParagraph>, removeChildrenFromTopLevel: boolean = false): Array<ParentParagraphs> {
+export function getParagraphParentsOnly(paragraphs: Array<TParagraph>): Array<ParentParagraphs> /* tag: children */ {
   const parentsOnly = []
-
   for (let i = 0; i < paragraphs.length; i++) {
     const para = paragraphs[i]
     logDebug('getParagraphParentsOnly', `para: "${para.content}"`)
-    const childParas = getChildParas(para, paragraphs, removeChildrenFromTopLevel)
+    const childParas = getChildParas(para, paragraphs)
     parentsOnly.push({ parent: para, children: childParas })
-
-    // Check if para was removed from the paragraphs array
-    if (paragraphs.indexOf(para) === -1) {
-      // Adjust the index to account for the removed item
-      i--
-    }
   }
-
   return parentsOnly
 }
 
+/**
+ * Remove any children from being listed as parents in the array of ParentParagraphs
+ * This function should be called after getParagraphParentsOnly()
+ * If a paragraph is listed as a child, it will not be listed as a parent
+ * The paragraphs need to be in lineIndex order for this to work
+ * @param {Array<ParentParagraphs>} everyParaIsAParent - array of parent paragraphs with their children
+ * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
+ */
+export function removeParentsWhoAreChildren(everyParaIsAParent: Array<ParentParagraphs>): Array<ParentParagraphs> {
+  const childrenSeen = []
+  const parentsOnlyAtTop = []
+  for (let i = 0; i < everyParaIsAParent.length; i++) {
+    const p = everyParaIsAParent[i]
+    if (childrenSeen.includes(p.parent)) {
+      p.children.length ? childrenSeen.push(...p.children) : null
+      continue // do not list this as a parent, because another para has it as a child
+    }
+    // concat all p.children to the childrenSeen array (we know they are unique, so no need to check)
+    p.children.length ? childrenSeen.push(...p.children) : null
+    parentsOnlyAtTop.push(p)
+  }
+  return parentsOnlyAtTop
+}
 /**
  * Get the direct children paragraphs of a given paragraph (ignore [great]grandchildren)
  * NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true
  * @param {TParagraph} para - the parent paragraph
  * @param {Array<TParagraph>} paragraphs - array of all paragraphs
- * @param {boolean} removeChildrenFromTopLevel - if true, removes children from top level of array (default: false)
  * @returns {Array<TParagraph>} - array of children paragraphs (NOTE: the passed "paragraphs" array can be mutated if removeChildrenFromTopLevel is true)
  */
-export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>, removeChildrenFromTopLevel: boolean = false): Array<TParagraph> {
+export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>): Array<TParagraph> {
   const childParas = []
-
   const allChildren = para.children()
-  const indentedChildren = getIndentedLinesUnderneath(para, paragraphs)
+  const indentedChildren = getIndentedNonTaskLinesUnderPara(para, paragraphs)
   // concatenate the two arrays, but remove any duplicates that have the same lineIndex
   const allChildrenWithDupes = allChildren.concat(indentedChildren)
   const allChildrenNoDupes = allChildrenWithDupes.filter((p, index) => allChildrenWithDupes.findIndex((p2) => p2.lineIndex === p.lineIndex) === index)
 
   if (!allChildrenNoDupes.length) {
-    return [] //FIXME: maybe need to move this back up to top and look at .children() only
+    return []
   }
 
   // someone could accidentally indent twice
@@ -1770,30 +1800,22 @@ export function getChildParas(para: TParagraph, paragraphs: Array<TParagraph>, r
 
     if (childIndentLevel === minIndentLevel) {
       childParas.push(child)
-
-      if (removeChildrenFromTopLevel) {
-        const childIndex = paragraphs.findIndex((p) => p.lineIndex === child.lineIndex)
-
-        if (childIndex > -1) {
-          paragraphs.splice(childIndex, 1)
-        }
-      }
     }
   }
 
-  clo(allChildrenNoDupes, `getChildParas: para="${para.content}", thisParaChildren.length=${allChildrenNoDupes.length}. reduced to:${childParas.length}`)
+  clo(childParas, `getChildParas of para:"${para.content}", children.length=${allChildrenNoDupes.length}. reduced to:${childParas.length}`)
 
   return childParas
 }
 
 /**
  * Get any indented text paragraphs underneath a given paragraph, excluding tasks
- * Doing this to pick up any text para types that may have been missed by the .children() method
+ * Doing this to pick up any text para types that may have been missed by the .children() method, which only gets task paras
  * @param {TParagraph} para - The parent paragraph
  * @param {Array<TParagraph>} paragraphs - Array of all paragraphs
  * @returns {Array<TParagraph>} - Array of indented paragraphs underneath the given paragraph
  */
-export function getIndentedLinesUnderneath(para: TParagraph, paragraphs: Array<TParagraph>): Array<TParagraph> {
+export function getIndentedNonTaskLinesUnderPara(para: TParagraph, paragraphs: Array<TParagraph>): Array<TParagraph> {
   const indentedParas = []
 
   const thisIndentLevel = para.indents

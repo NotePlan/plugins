@@ -20,7 +20,7 @@ export type headingLevelType = 1 | 2 | 3 | 4 | 5
  */
 export class CaseInsensitiveMap<TVal> extends Map<string, TVal> {
   // This is how private keys work in actual Javascript now.
-  #keysMap: Map<string, string> = new Map < string, string > ()
+  #keysMap: Map<string, string> = new Map<string, string>()
 
   constructor(iterable?: Iterable<[string, TVal]>) {
     super()
@@ -154,8 +154,8 @@ export function displayTitle(n: ?CoreNoteFields): string {
   return !n
     ? '(error)'
     : n.type === 'Calendar'
-      ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-      : n.title ?? '(error)'
+    ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
+    : n.title ?? '(error)'
 }
 
 /**
@@ -399,11 +399,12 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
 export async function getTagParamsFromString(paramString: string, wantedParam: string, defaultValue: any): Promise<any> {
   try {
     // logDebug('general/getTagParamsFromString', `for '${wantedParam}' in '${paramString}'`)
-    if (paramString === '') {
-      throw new Error("Can't parse empty paramString")
-    }
     if (wantedParam === '') {
       throw new Error("Can't look for empty wantedParam")
+    }
+    if (paramString === '') {
+      logDebug('general/getTagParamsFromString', `Empty paramString, so returning defaultValue`)
+      return defaultValue
     }
     // $FlowIgnore(incompatible-type) as can produce 'any'
     const paramObj: {} = await json5.parse(paramString)
@@ -416,7 +417,7 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
     // logDebug('general/getTagParamsFromString', `--> ${output}`)
     return output
   } catch (e) {
-    logError('general/getTagParamsFromString', `${e}. paramString=${paramString}. Returning an error string.`)
+    logError('general/getTagParamsFromString', `${e}. paramString="${paramString}". wantedParam="${wantedParam}" defaultValue="${defaultValue}". Returning an error string.`)
     return '❗️error'
   }
 }
@@ -457,9 +458,9 @@ export function semverVersionToNumber(version: string): number {
     }
   }
 
-  for (let part of parts) {
-    part = parseInt(part, 10)
-    if (Number.isNaN(part) || part >= 1024) {
+  for (const part of parts) {
+    const foundPart: number = parseInt(part, 10)
+    if (Number.isNaN(foundPart) || foundPart >= 1024) {
       throw new Error(`Version string invalid, ${part} is too large`)
     }
   }

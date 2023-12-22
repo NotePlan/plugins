@@ -105,7 +105,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
     const outputFilename = config.conflictNoteFilename ?? 'Conflicted Notes.md'
 
     // Decide whether to run silently
-    const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
+    const runSilently: boolean = await getTagParamsFromString(params, 'runSilently', false)
     logDebug('listConflicts', `runSilently = ${String(runSilently)}`)
 
     CommandBar.showLoading(true, `Finding notes with conflicts`)

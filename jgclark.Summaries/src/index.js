@@ -38,8 +38,8 @@ import {
   getPluginJson,
   getSettings,
   pluginUpdated,
-  savePluginJson,
-  semverVersionToNumber,
+  // savePluginJson,
+  // semverVersionToNumber,
   updateSettingData
 } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
