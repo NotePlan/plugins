@@ -74,26 +74,6 @@ Use the '**Hashtags to review**' setting to control which notes are included in 
 
 When you have [configured the plugin](#configuration), and added suitable metadata to notes, you're then ready to use some or all of the following commands:
 
-### Capturing Progress
-In a project/area note you can, if you wish, include a one-line summary of your view on its current overall progress. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think we're 10% complete:
-
-```markdown
-# Secret Undertaking
-#project @review(1w) @reviewed(2021-05-20) @start(2021-04-05) @due(2021-11-30)
-Aim: Do this amazing secret thing
-Progress: 10@2021-05-20: Tracked down 007 and got him on the case
-Progress: 0@2021-04-05: Project started with a briefing from M about SPECTRE's dastardly plan
-
-## Details
-* [x] Get briefing from 'M' at HQ
-* [x] recruit James Bond
-* [x]  task Q with building a personal jetpack (with USB ports)
-* [x] set up team Deliveroo account
-* [ ] arrange for 007's parking tickets to be paid
-...
-```
-The starting percentage number doesn't have to be given; if it's not it is calculated from the % of open and completed tasks found in the note. The date and the comment are needed.
-
 ## The Commands
 ### "/project lists" command
 This shows a list of project notes, including basic tasks statistics and time until next review, and time until the project is due to complete. **Tip**: Place this list next to your main NotePlan window, and you can click on each project title in the table, and it will open in the main window ready to review and update.
@@ -153,6 +133,26 @@ This adds a `@cancelled(date)` to the metadata line of the open project note, ad
 ### "/pause project toggle" command
 This is a toggle that adds or removes a `#paused` tag to the metadata line of the open project note. When paused it stops the note being offered with '/next review'. However, it keeps showing it in the review list, so you don't forget about it entirely.
 
+## Capturing Progress
+In a project/area note you can, if you wish, include a one-line summary of your view on its current overall progress. If given, the latest one is shown in the project lists. To continue the example above, here's the start of the note a few weeks later, showing I think we're 10% complete:
+
+```markdown
+# Secret Undertaking
+#project @review(1w) @reviewed(2021-05-20) @start(2021-04-05) @due(2021-11-30)
+Aim: Do this amazing secret thing
+Progress: 10@2021-05-20: Tracked down 007 and got him on the case
+Progress: 0@2021-04-05: Project started with a briefing from M about SPECTRE's dastardly plan
+
+## Details
+* [x] Get briefing from 'M' at HQ
+* [x] recruit James Bond
+* [x]  task Q with building a personal jetpack (with USB ports)
+* [x] set up team Deliveroo account
+* [ ] arrange for 007's parking tickets to be paid
+...
+```
+The starting percentage number doesn't have to be given; if it's not it is calculated from the % of open and completed tasks found in the note. The date and the comment are needed.
+
 ## Creating a new Project/Area note
 A good way to quickly create a new Project or Area note is to use the `/np:new` (new note from template) or `/np:qtn` (Quick template note) command from the Templating plugin. Here is what I use as my New Project Template:
 
@@ -198,6 +198,8 @@ The name of the settings are taken from the `key`s from the plugin's `plugin.jso
 
 ## Thanks
 Particular thanks to George Crump, 'John1' and David Wertheimer for their suggestions and beta testing.
+
+You might also like [Anton Skliar's description of his process which includes this and other plugins](https://noteplan.co/n/381AC6DF-FB8F-49A5-AF8D-1B43B3092922).
 
 ## Support
 There is what I consider to be a bug in the NotePlan API that means most of these commands **can only update a project note if it is open in the main  Editor**, not in a separate window, or the non-leftmost split window.
