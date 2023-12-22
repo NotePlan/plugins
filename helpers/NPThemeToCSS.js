@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions to create CSS from NP Themes
 // by @jgclark
-// Last updated 5.9.2023 by @jgclark
+// Last updated 22.12.2023 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -26,7 +26,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     let themeName = ''
     let themeJSON: Object
     const availableThemeNames = Editor.availableThemes.map((m) => (m.name.endsWith('.json') ? m.name.slice(0, -5) : m.name))
-    let matchingThemeObjs = []
+    let matchingThemeObjs: Array<any> = [] // Eduard hasn't typed the Theme objects
 
     // If we havee a supplied themeName, then attempt to use it
     if (themeNameIn !== '') {
@@ -120,6 +120,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       const thisColor = RGBColourConvert(themeJSON.styles.title1.color ?? '#CC6666')
       tempSel.push(`color: ${thisColor}`)
+      const thisBackgroundColor = RGBColourConvert(themeJSON.styles.title1.backgroundColor ?? bgMainColor)
+      tempSel.push(`background-color: ${thisBackgroundColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h1, .h1', tempSel)) // allow this same style to be used as a class too
       rootSel.push(`--h1-color: ${thisColor}`)
@@ -130,6 +132,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       const thisColor = RGBColourConvert(themeJSON.styles.title2.color ?? '#E9C062')
       tempSel.push(`color: ${thisColor}`)
+      const thisBackgroundColor = RGBColourConvert(themeJSON.styles.title2.backgroundColor ?? bgMainColor)
+      tempSel.push(`background-color: ${thisBackgroundColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h2, .h2', tempSel))
       rootSel.push(`--h2-color: ${thisColor}`)
@@ -140,6 +144,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     if (styleObj) {
       const thisColor = RGBColourConvert(themeJSON.styles.title3.color ?? '#E9C062')
       tempSel.push(`color: ${thisColor}`)
+      const thisBackgroundColor = RGBColourConvert(themeJSON.styles.title3.backgroundColor ?? bgMainColor)
+      tempSel.push(`background-color: ${thisBackgroundColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h3, .h3', tempSel))
       rootSel.push(`--h3-color: ${thisColor}`)
@@ -149,6 +155,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     styleObj = themeJSON.styles.title4
     if (styleObj) {
       tempSel.push(`color: ${RGBColourConvert(themeJSON.styles.title4.color ?? '#E9C062')}`)
+      const thisBackgroundColor = RGBColourConvert(themeJSON.styles.title4.backgroundColor ?? bgMainColor)
+      tempSel.push(`background-color: ${thisBackgroundColor}`)
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('h4, .h4', tempSel))
     }
