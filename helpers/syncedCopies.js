@@ -8,8 +8,7 @@ import { JSP, logDebug, logError } from '@helpers/dev'
 export const textWithoutSyncedCopyTag = (text: string): string => text.replace(new RegExp('(?:^|\\s)(\\^[a-z0-9]{6})', 'mg'), '').trim()
 
 /**
- * Eliminate duplicate paragraphs (especially for synced lines)
- * Duplicate content is not allowed if:
+ * Eliminate duplicate paragraphs (especially for synced lines), defined as:
  * - the content is the same
  * - the blockID is the same (multiple notes referencing this one) if 'syncedLinesOnly' is true
  * By default it keeps the first copy it finds ... so this is dependent on the order of paras passed to the function.
@@ -39,7 +38,7 @@ export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, kee
                 logDebug('eDSP', `Duplicate sync line eliminated: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
                 return true
               } else {
-                logDebug('eDSP', `Duplicate sync line allowed: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
+                // logDebug('eDSP', `Duplicate sync line allowed: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
               }
             }
           }
