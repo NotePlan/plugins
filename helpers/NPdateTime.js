@@ -68,7 +68,7 @@ export function setMomentLocaleFromEnvironment(): void {
   // Set locale for moment library
   const userLocaleSetting = `${NotePlan.environment.languageCode}${NotePlan.environment.regionCode ? `-${NotePlan.environment.regionCode}` : ''}`
   moment.locale(userLocaleSetting)
-  logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
+  // logDebug('NPdateTime', `locale for moment library is now ${moment.locale()}`)
 }
 
 export function nowLocaleShortDateTime(): string {
