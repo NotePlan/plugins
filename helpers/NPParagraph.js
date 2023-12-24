@@ -701,13 +701,19 @@ export function noteHasContent(note: CoreNoteFields, content: string): boolean {
 export function moveParagraphToNote(para: TParagraph, destinationNote: TNote): boolean {
   // for now, insert at the top of the note
   if (!para || !para.note || !destinationNote) return false
+  const oldNote = para.note
   insertParagraph(destinationNote, para.rawContent)
   // dbw note: because I am nervous about people losing data, I am going to check that the paragraph has been inserted before deleting the original
   if (noteHasContent(destinationNote, para.content)) {
     para?.note?.removeParagraph(para) // this may not work if you are using Editor.* commands rather than Editor.note.* commands
     // $FlowFixMe - not in the type defs yet
-    if (Editor) DataStore.updateCache(Editor) // try to force Editor and Editor.note to be in synce after the move
+    DataStore.updateCache(oldNote) // try to force Editor and Editor.note to be in synce after the move
     return true
+  } else {
+    logDebug(
+      pluginJson,
+      `moveParagraphToNote Could not find ${para.content} in ${destinationNote.title || 'no title'} so could not move it to ${destinationNote.title || 'no title'}`,
+    )
   }
   return false
 }
@@ -1595,6 +1601,13 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
   }
 }
 
+type TBasicPara = {
+  type: ParagraphType,
+  content: string,
+  rawContent: string,
+  lineIndex: number,
+}
+
 /**
  * Take a (multi-line) raw content block, typically from the editor, and turn it into an array of TParagraph-like objects
  * Designed to be used with Editor.content that is available in a trigger, before Editor.note.paragraphs is updated.
@@ -1619,13 +1632,6 @@ export function makeBasicParasFromContent(content: string): Array<any> {
     const DASH_BULLET = DataStore.preference('isDashTodo') ? '' : '\\-'
     const RE_BULLET_LIST = new RegExp(`^\\s*([${DASH_BULLET}${ASTERISK_BULLET}])\\s+`)
     // logDebug('makeBasicParas...', `RE_BULLET_LIST: ${String(RE_BULLET_LIST)}`)
-
-    type TBasicPara = {
-      type: ParagraphType,
-      content: string,
-      rawContent: string,
-      lineIndex: number,
-    }
 
     const basicParas: Array<TBasicPara> = []
     let c = 0

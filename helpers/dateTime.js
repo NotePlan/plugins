@@ -184,7 +184,7 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
     repl = getTodaysDateAsArrowDate()
   }
   // $FlowIgnore[incompatible-type]
-  logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith}, repl=${repl}`)
+  // logDebug(`replaceArrowDatesInString: BEFORE inString=${inString}, replaceWith=${replaceWith}, repl=${repl}`)
   // TODO: could this be done by .replace(RE_SCHEDULED_DATES_G) instead?
   while (str && isScheduled(str)) {
     str = str
@@ -199,7 +199,7 @@ export function replaceArrowDatesInString(inString: string, replaceWith: string 
       .trim()
   }
   // $FlowIgnore[incompatible-type]
-  logDebug(`replaceArrowDatesInString: AFTER will return ${repl && repl.length > 0 ? `${str} ${repl}` : str}`)
+  // logDebug(`replaceArrowDatesInString: AFTER will return ${repl && repl.length > 0 ? `${str} ${repl}` : str}`)
   return repl && repl.length > 0 ? `${str} ${repl}` : str
 }
 
@@ -954,7 +954,7 @@ function getNPDateFormatForDisplayFromOffsetUnit(unit: string): string {
       : unit === 'q'
       ? MOMENT_FORMAT_NP_QUARTER
       : unit === 'y'
-              ? MOMENT_FORMAT_NP_YEAR
+      ? MOMENT_FORMAT_NP_YEAR
       : ''
   return momentDateFormat
 }
@@ -988,11 +988,13 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
       momentDateFormat = MOMENT_FORMAT_NP_DAY
     } else if (baseDateStrIn.match(RE_NP_WEEK_SPEC)) {
       momentDateFormat = MOMENT_FORMAT_NP_WEEK
-    } else if (baseDateStrIn.match(RE_NP_MONTH_SPEC)) { // NB: test has to go after ISO check
+    } else if (baseDateStrIn.match(RE_NP_MONTH_SPEC)) {
+      // NB: test has to go after ISO check
       momentDateFormat = MOMENT_FORMAT_NP_MONTH
     } else if (baseDateStrIn.match(RE_NP_QUARTER_SPEC)) {
       momentDateFormat = MOMENT_FORMAT_NP_QUARTER
-    } else if (baseDateStrIn.match(RE_NP_YEAR_SPEC)) { // NB: test has to go at end as it will match all longer formats
+    } else if (baseDateStrIn.match(RE_NP_YEAR_SPEC)) {
+      // NB: test has to go at end as it will match all longer formats
       momentDateFormat = MOMENT_FORMAT_NP_YEAR
     } else {
       throw new Error('Invalid date string')
@@ -1062,13 +1064,15 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     } else if (baseDateIn.match(RE_NP_WEEK_SPEC)) {
       baseDateMomentFormat = MOMENT_FORMAT_NP_WEEK
       baseDateUnit = 'w'
-    } else if (baseDateIn.match(RE_NP_MONTH_SPEC)) { // NB: test has to go after ISO check
+    } else if (baseDateIn.match(RE_NP_MONTH_SPEC)) {
+      // NB: test has to go after ISO check
       baseDateMomentFormat = MOMENT_FORMAT_NP_MONTH
       baseDateUnit = 'm'
     } else if (baseDateIn.match(RE_NP_QUARTER_SPEC)) {
       baseDateMomentFormat = MOMENT_FORMAT_NP_QUARTER
       baseDateUnit = 'q'
-    } else if (baseDateIn.match(RE_NP_YEAR_SPEC)) { // NB: test has to go at end as it will match all longer formats
+    } else if (baseDateIn.match(RE_NP_YEAR_SPEC)) {
+      // NB: test has to go at end as it will match all longer formats
       baseDateMomentFormat = MOMENT_FORMAT_NP_YEAR
       baseDateUnit = 'y'
     } else {
@@ -1078,14 +1082,15 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     newDateStr = newDateStrFromBaseDateType
 
     // Also calculate offset's output format
-    const offsetMomentFormat = (offsetUnit === 'd' && baseDateIn.match(RE_YYYYMMDD_DATE))
-      ? MOMENT_FORMAT_NP_DAY
-      : getNPDateFormatForDisplayFromOffsetUnit(offsetUnit)
+    const offsetMomentFormat = offsetUnit === 'd' && baseDateIn.match(RE_YYYYMMDD_DATE) ? MOMENT_FORMAT_NP_DAY : getNPDateFormatForDisplayFromOffsetUnit(offsetUnit)
     const newDateStrFromOffsetDateType = moment(offsetDate).format(offsetMomentFormat)
 
     if (offsetUnit === 'w') {
       logWarn('dateTime / cODS', `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case.`)
-      logWarn('dateTime / cODS', `  Details: ${adaptOutputInterval} adapt for ${baseDateIn} / ${baseDateUnit} / ${baseDateMomentFormat} / ${offsetMomentFormat} / ${offsetInterval} / ${newDateStrFromOffsetDateType}`)
+      logWarn(
+        'dateTime / cODS',
+        `  Details: ${adaptOutputInterval} adapt for ${baseDateIn} / ${baseDateUnit} / ${baseDateMomentFormat} / ${offsetMomentFormat} / ${offsetInterval} / ${newDateStrFromOffsetDateType}`,
+      )
     }
 
     // If we want to adapt smaller

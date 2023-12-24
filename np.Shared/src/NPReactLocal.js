@@ -1,9 +1,8 @@
 // @flow
 
-import { getSharedOptions } from '../../dwertheimer.TaskAutomations/src/NPTaskScanAndProcess'
 import pluginJson from '../plugin.json'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { showHTMLWindow, showHTMLV2, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
+import { showHTMLWindow, getCallbackCodeString, getThemeJS, type HtmlWindowOptions, sendBannerMessage } from '@helpers/HTMLView'
 
 const startTime = new Date()
 
@@ -20,7 +19,7 @@ function setEnv(globalData: any) {
       globalData.ENV_MODE = 'development'
     }
   }
-  let LOAD_REACT_DEVTOOLS = ENV_MODE === 'development' // for debugging in local browser using react devtools & React Profiler
+  // const LOAD_REACT_DEVTOOLS = ENV_MODE === 'development' // for debugging in local browser using react devtools & React Profiler
   return globalData
 }
 
@@ -41,7 +40,7 @@ const mountAppString = `
  * Plugin entrypoint for "/onMessageFromHTMLView"
  * @author @dwertheimer
  */
-export async function onMessageFromHTMLView(incoming: string) {
+export async function onMessageFromHTMLView(incoming: string): Promise<any> {
   try {
     logDebug(
       pluginJson,
@@ -88,7 +87,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     globalSharedData.lastUpdated = { msg: 'Initial data load', date: new Date().toLocaleString() }
 
     // Load all components in the plugin.json file that end in '.jsx
-    const components = pluginJson['plugin.requiredFiles']?.filter((f) => f.endsWith('.jsx'))
+    // const components = pluginJson['plugin.requiredFiles']?.filter((f) => f.endsWith('.jsx'))
     // Load all CSS files in the plugin.json file that end in '.css
     // const css = pluginJson['plugin.requiredFiles']?.filter((f) => f.endsWith('.css'))
     const css = []
@@ -164,18 +163,19 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     `
 
     const reactRootComponent = `<script type="text/javascript" src="../np.Shared/react.c.Root.min.js"></script>`
+    const preBS = (windowOptions.preBodyScript = windowOptions.preBodyScript || '')
     const generatedOptions = {
       includeCSSAsJS: windowOptions.includeCSSAsJS === false ? false : true,
       headerTags: `${[cssTags].join('\n')}${windowOptions.headerTags || ''}` /* needs to be a string */,
       preBodyScript: addStringOrArrayItems(
         [pluginToHTMLCommsBridge, ENV_MODE === 'development' ? ReactDevToolsImport : '', ENV_MODE === 'production' ? reactJSmin : reactJSDev, globalSharedDataScriptStr],
-        windowOptions.preBodyScript,
+        preBS,
       ),
       postBodyScript: addStringOrArrayItems([reactComponents, reactRootComponent, mountAppString], windowOptions.postBodyScript),
-      customId: pluginJson['plugin.id'],
+      customId: windowOptions.customId ?? pluginJson['plugin.id'],
     }
-    showHTMLWindow(globalData.title || 'React Window', bodyHTML, { ...windowOptions, ...generatedOptions })
-    // FIXME: use V2
+    // const title = windowOptions.title ?? windowOptions.windowTitle ?? 'React Window'
+    showHTMLWindow(bodyHTML, { ...windowOptions, ...generatedOptions })
     // showHTMLV2(bodyHTML, { ...windowOptions, ...generatedOptions })
     logDebug(`np.Shared::openReactWindow: ---------------------------------------- HTML prep: ${timer(startTime)} | Total so far: ${timer(globalData.startTime)}`)
     return true
