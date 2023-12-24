@@ -18,7 +18,7 @@ beforeAll(() => {
   global.Editor = Editor
   global.NotePlan = new NotePlan()
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 beforeEach(() => {

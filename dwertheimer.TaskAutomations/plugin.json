@@ -5,8 +5,8 @@
   "plugin.name": "✅ Task Automations",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.17.0",
-  "plugin.lastUpdateInfo": "2.17.0: Overdue processing: added p1,p2,p3 options. Thx @george!",
+  "plugin.version": "2.18.0-notreleasedyet",
+  "plugin.lastUpdateInfo": "2.18.0: Overdue processing: stability/bugfixes.\n2.17.0: Overdue processing: added p1,p2,p3 options. Thx @george!",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "css.plugin.css",
@@ -104,18 +104,6 @@
         "folders to look in",
         "folder to ignore",
         "heading-TBD"
-      ]
-    },
-    {
-      "name": "Review overdue tasks (by Note)",
-      "description": "Search for overdue tasks in all notes and review them one note at a time.",
-      "jsFunction": "reviewOverdueTasksByNote",
-      "alias": [
-        "updateNoteTasks"
-      ],
-      "hidden": true,
-      "arguments": [
-        "By default will ask you to confirm changes. 'silent' here to to update tasks silently"
       ]
     },
     {
@@ -461,6 +449,20 @@
     {
       "type": "heading",
       "title": "Overdue Task Scan Settings"
+    },
+    {
+      "key": "numLastUsedChoices",
+      "title": "Show last N frequently used rescheduling choices at top",
+      "description": "If this is set to any number other than zero, the first choices in the rescheduler CommandBar will be your N most frequently used choices, sorted in order of most frequent usage. Set N above.",
+      "type": "[string]",
+      "default": 5,
+      "required": true,
+      "choices": ["0","1","3","5","10"]
+    },
+    {
+      "type": "hidden",
+      "key": "lastUsedChoicesJsonStr",
+      "default": "{}"
     },
     {
       "key": "overdueOpenOnly",

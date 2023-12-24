@@ -27,7 +27,6 @@ export { taskSync } from './taskSync'
 export { copyTagsFromLineAbove, copyTagsFromHeadingAbove, copyLineForEachMention, copyLineForEachHashtag } from './tagTasks'
 export {
   updateDatePlusTags,
-  reviewOverdueTasksByNote,
   reviewOverdueTasksByTask,
   reviewOverdueTasksInNote,
   reviewOverdueTasksInFolder,

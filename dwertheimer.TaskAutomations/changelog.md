@@ -5,6 +5,12 @@
 
 ## What's Changed in this Plugin?
 
+## [2.18.0] @dwertheimer 2023-12-?? 
+
+- Started saving most frequently used choices in prefs for future potential use in commandbar options sorting per user
+- Refactored much of the overdue processing under the hood to make it more modular and testable for the future
+- Bug fixes under the hood
+
 ## [2.17.0] @dwertheimer 2023-08-29
 
 - Overdue processing: change edit to allow you to opt-click a date return you to edit

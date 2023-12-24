@@ -25,13 +25,12 @@ import debounce from 'lodash/debounce'
 import React, { useEffect, type Node } from 'react'
 import DataTable from 'react-data-table-component'
 import ThemedSelect from './ThemedSelect.jsx'
-import Button from './Button.jsx'
 import TypeFilter from './TypeFilter.jsx'
 import EditableElement from './EditableElement.jsx'
 import MultiActionBar from './MultiActionBar.jsx'
 // import StatusButton from './StatusButton.jsx'
 // import Button from './Button.jsx'
-import { columnSpec, conditionalRowStyles, customTableStyles } from './dataTableFormatting.jsx'
+import { columnSpec, conditionalRowStyles, customTableStyles, sortByDaysOverdue } from './dataTableFormatting.jsx'
 
 // color this component's output differently in the console
 const consoleStyle = 'background: #222; color: #bada55' //lime green
@@ -71,19 +70,10 @@ export function WebView({ data, dispatch }: Props): Node {
    ****************************************************************************************************************************/
 
   // destructure all the startup data we expect from the plugin
-  const {
-    columns,
-    overdueParas,
-    title,
-    dropdownOptionsAll,
-    dropdownOptionsLine,
-    contextButtons,
-    returnPluginCommand,
-    debug,
-    autoSelectNext = true,
-    showDaysTilDueColumn = false,
-  } = data
-  const nonOmittedRows = data.overdueParas.filter((row) => !row.omit).filter(rowFilter)
+  let { overdueParas } = data
+  const { title, dropdownOptionsAll, dropdownOptionsLine, contextButtons, debug, autoSelectNext = true, showDaysTilDueColumn = false } = data
+  overdueParas = overdueParas.sort(sortByDaysOverdue)
+  const nonOmittedRows = overdueParas.filter((row) => !row.omit).filter(rowFilter)
   // const displayRows = [...nonOmittedRows.filter((row) => !row.highlight), ...nonOmittedRows.filter((row) => row.highlight)]
   const displayRows = nonOmittedRows // don't highlight rows for now (we will move them to 'Processed' status instead)
 
@@ -109,7 +99,7 @@ export function WebView({ data, dispatch }: Props): Node {
    */
   const sendToPlugin = ([command, data, additionalDetails = '']) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
-    logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
+    logDebug(`Webview: sendToPlugin: command:${JSON.stringify(command)} details:${additionalDetails} data:${JSON.stringify(data)}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
     dispatch('SEND_TO_PLUGIN', [command, data], `WebView: sendToPlugin: ${String(command)} ${additionalDetails}`)
   }
@@ -134,7 +124,7 @@ export function WebView({ data, dispatch }: Props): Node {
       })
       .join(', ')} ]`
     changes.forEach((change) => {
-      logDebug(`Webview: updateTableData: change:${JSON.stringify(change, null, 2)}`, change, data.overdueParas)
+      logDebug(`Webview: updateTableData: change:${JSON.stringify(change)}`, change, data.overdueParas)
       tableData[change.id] = { ...tableData[change.id], ...change }
     })
     newData = addPassthroughVars(newData)
@@ -144,14 +134,11 @@ export function WebView({ data, dispatch }: Props): Node {
   /**
    * Set a row's .highlight to true
    */
-  const highlightRow = React.useCallback(
-    (rowID) => {
-      logDebug(`Webview: highlightRow ${rowID}`)
-      updateTableData({ id: rowID, overdueStatus: 'Processed' })
-      // updateTableData({ id: rowID, highlight: true })
-    },
-    [data],
-  )
+  const highlightRow = (rowID, shouldHideAfter) => {
+    logDebug(`Webview: highlightRow ${rowID}; shouldHideAfter=${String(shouldHideAfter)} ${shouldHideAfter ? '(set to Processed & hiding)' : ''}`)
+    shouldHideAfter ? updateTableData({ id: rowID, overdueStatus: 'Processed' }) : ''
+    // updateTableData({ id: rowID, highlight: true })
+  }
 
   // const resetScrollEffect = ({ element, top }) => {
   //   element.current.getScrollableNode().children[0].scrollTop = top
@@ -180,8 +167,9 @@ export function WebView({ data, dispatch }: Props): Node {
    */
   useEffect(() => {
     let changes = false
-    const tableData = data.overdueParas.map((p, i) => {
+    const tableData = overdueParas.map((p, i) => {
       if (typeof p.id === 'undefined') {
+        logDebug(`Webview: add id to data: ${i} ${JSON.stringify(p)}`)
         changes = true
         return { ...p, id: i }
       }
@@ -231,6 +219,16 @@ export function WebView({ data, dispatch }: Props): Node {
   }, [data])
 
   /**
+   * Some actions should not hide the row after the action is processed (e.g. updating priority)
+   */
+  const shouldHideAfter = React.useCallback((action) => {
+    if (/__p\d__/.test(action)) {
+      return false
+    }
+    return true
+  }, [])
+
+  /**
    * Highlight the rows and send the data to the plugin
    * @param {number[]} rowIDs - array of row ids to highlight (and potentially omit)
    * @param {string} action - a string action to send to the plugin to identify this type of action, e.g. 'highlight'
@@ -239,8 +237,8 @@ export function WebView({ data, dispatch }: Props): Node {
    */
   const highlightAndSend = React.useCallback(
     (rowIDs, action, objectToSend, omitAfter? = null) => {
-      logDebug(`Webview: highlightAndSend rowIds:${rowIDs.toString()} action:${action} omitAfter:${String(omitAfter)} objectToSend`)
-      rowIDs.forEach((rowID) => highlightRow(rowID)) // highlight the rows immediately
+      logDebug(`Webview: highlightAndSend rowIds:${rowIDs.toString()} action:${action} omitAfter:${String(omitAfter)} objectToSend=${JSON.stringify(objectToSend)}`)
+      rowIDs.forEach((rowID) => highlightRow(rowID, shouldHideAfter(objectToSend.choice))) // highlight the rows immediately
       // do now
       sendToPlugin(['actionDropdown', objectToSend, objectToSend.choice || '']) // send the data to the plugin immediately
       // do later - omit/hide the rows after a brief delay
@@ -260,7 +258,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {{label:string,value:string}} dropdownSelected
    */
   const onDropdownItemSelected = React.useCallback((rowID, itemSelected) => {
-    logDebug(`Webview: onDropdownItemSelected: row:${rowID} itemSelected:`, itemSelected)
+    logDebug(`Webview: onDropdownItemSelected: row:${rowID} itemSelected: ${JSON.stringify(itemSelected)}`)
     if (isNaN(rowID)) throw new Error(`rowID is not a number: ${rowID} (${typeof rowID})`)
     if (!itemSelected.value) throw new Error(`itemSelected.value is not defined: ${itemSelected.value} (${typeof itemSelected.value})`)
     const action = itemSelected.value
@@ -295,7 +293,7 @@ export function WebView({ data, dispatch }: Props): Node {
       logDebug(`Webview: multiSetHandler action=${action} selectedRows=${JSON.stringify(selectedRows, null, 2)}`, selectedRows)
       if (action !== '-----' && selectedRows.length > 0) {
         const dataToSend = { choice: action, rows: selectedRows }
-        logDebug(`Webview: multiSetHandler dataToSend=${JSON.stringify(dataToSend, null, 2)}`, dataToSend)
+        logDebug(`Webview: multiSetHandler dataToSend=${JSON.stringify(dataToSend)}`, dataToSend)
         highlightAndSend(
           selectedRows.map((s) => s.id),
           'actionDropdown',
@@ -386,7 +384,7 @@ export function WebView({ data, dispatch }: Props): Node {
         // const dataWithOmittedRow = data.overdueParas.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus, omit: true, highlight: false }))
         // setDataTableData((prev) => prev.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus }))) // change the status immediately
         if (highlight) {
-          highlightRow(rowID)
+          highlightRow(rowID, true)
           // set a row to highlighted for a brief time before debounce takes it out (with .omit=true)
           // setDataTableData((prev) => prev.map((item) => (item.id !== rowID ? item : { ...item, type: newStatus, omit: false, highlight: true })))
         }
@@ -410,7 +408,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @returns
    */
   function decodeHTMLEntities(text) {
-    var textArea = document.createElement('textarea')
+    const textArea = document.createElement('textarea')
     textArea.innerHTML = text
     const decoded = textArea.value
     return decoded
@@ -428,9 +426,9 @@ export function WebView({ data, dispatch }: Props): Node {
    */
   const handleEditableContentChange = React.useCallback(
     ({ id, field, value }) => {
-      logDebug(`Webview: contentUpdated (actual edited paragraph.onInput) id=${id}, field=${field}, value=${value}`)
       // updateTableData([{ id, [field]: decodeHTMLEntities(value) }])
       const decodedValue = decodeHTMLEntities(value)
+      logDebug(`Webview: contentUpdated (actual edited paragraph.onInput) id=${id}, field=${field}, value=${decodedValue}`)
       data.overdueParas[id][field] = decodedValue
       editableDebounced(id, field, decodedValue)
       // updateTableDataAfterDebounce(3000)([{ id, [field]: decodeHTMLEntities(value) }])
@@ -491,9 +489,9 @@ export function WebView({ data, dispatch }: Props): Node {
    *                             TYPE FILTER
    ****************************************************************************************************************************/
   const handleTypeFilterChange = React.useCallback(({ value }) => {
-    filterValue.current = value
-    setFilter(value)
     logDebug(`WebView:handleTypeFilterChange: ${value}`)
+    filterValue ? (filterValue.current = value) : logDebug(`WARNING: WebView:handleTypeFilterChange: filterValue is undefined`)
+    setFilter(value)
   }, [])
   // Filter callback for filtering items based on current filterValue
   function rowFilter(row) {
@@ -652,6 +650,8 @@ export function WebView({ data, dispatch }: Props): Node {
       grow: 2,
     },
   ]
+  // find the columns item that has defaultSort set to true
+  const sortIndexCol = mainTableColumns.findIndex((c) => c.defaultSort) + 1 || 4 // 1-indexed column number
 
   /****************************************************************************************************************************
    *                             ABANDONED CODE
@@ -695,6 +695,7 @@ export function WebView({ data, dispatch }: Props): Node {
           highlightOnHover
           overflowY={false}
           columns={mainTableColumns}
+          defaultSortFieldId={sortIndexCol} // dbw: added defaultSort:true to the column spec
           data={displayRows}
           selectableRows
           onSelectedRowsChange={onSelectionCheck}
@@ -730,8 +731,8 @@ export function WebView({ data, dispatch }: Props): Node {
   )
 }
 
-const Checkbox = (props) => {
-  logDebug(`Webview: Checkbox props=`, props)
-  const { onChange, onClick } = props
-  return <input className="w3-check" onChange={onChange} onClick={onClick} type="checkbox" checked="checked" />
-}
+// const Checkbox = (props) => {
+//   logDebug(`Webview: Checkbox props=`, props)
+//   const { onChange, onClick } = props
+//   return <input className="w3-check" onChange={onChange} onClick={onClick} type="checkbox" checked="checked" />
+// }
