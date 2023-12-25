@@ -4,6 +4,8 @@ import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 
+const WEBVIEW_WINDOW_ID = 'SOME_WINDOW_ID' // change this to pertain to your plugin/windowname - customId
+
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
   title?: string /* React Window Title */,
@@ -67,6 +69,9 @@ export async function testReactWindow() {
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/saved.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
+      windowTitle: data.title,
+      customId: WEBVIEW_WINDOW_ID,
+      shouldFocus: true /* focus window every time (set to false if you want a bg refresh) */,
     }
     logDebug(`===== testReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
     logDebug(pluginJson, `testReactWindow invoking window. testReactWindow stopping here. It's all React from this point forward`)
@@ -102,7 +107,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
   try {
     logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
     clo(data, `Plugin onMessageFromHTMLView data=`)
-    let reactWindowData = getGlobalSharedData(pluginJson['plugin.id']) // get the current data from the React Window
+    let reactWindowData = getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     switch (actionType) {
       /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */

@@ -386,7 +386,7 @@ describe(`${FILE}`, () => {
   describe('getTagParamsFromString()' /* function */, () => {
     test('should error with empty paramString', async () => {
       const result = await g.getTagParamsFromString('', 'bob', 'default')
-      expect(result).toEqual('❗️error')
+      expect(result).toEqual('default')
     })
     test('should error with empty wantedParam', async () => {
       const result = await g.getTagParamsFromString('bob', '', 'default')

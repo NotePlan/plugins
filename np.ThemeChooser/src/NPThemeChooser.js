@@ -272,7 +272,7 @@ export async function toggleTheme() {
  * Change theme from frontmatter:
  *    triggers: onOpen => np.ThemeChooser.setTheme
  *    theme: "Theme Name"
- * Plugin entrypoint for command: "/setTheme"
+ * Plugin entrypoint for command: "/setTheme" "Change the theme based on frontmatter field 'theme'"
  * @author @dwertheimer
  * @param {*} incoming
  */
@@ -292,7 +292,7 @@ export async function changeThemeFromFrontmatter() {
         await showMessage(`Theme named: "${themeName}" does not exist. Please check the exact name of the theme`)
       }
     } else {
-      logDebug(pluginJson, `changeThemeFromFrontmatter: 'There must be frontmatter and a theme field in frontmatter.'`)
+      logDebug(pluginJson, `changeThemeFromFrontmatter: 'There must be frontmatter and a "theme" field in frontmatter.'`)
       await showMessage('There must be a theme field in frontmatter.')
     }
   } catch (error) {

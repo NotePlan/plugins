@@ -4,7 +4,7 @@ import moment from 'moment/min/moment-with-locales'
 import { format, add, eachWeekendOfInterval } from 'date-fns'
 import pluginJson from '../plugin.json'
 import { sortListBy } from '../../helpers/sorting'
-import { getTodaysDateAsArrowDate, getTodaysDateHyphenated } from '../../helpers/dateTime'
+import { getTodaysDateAsArrowDate, getTodaysDateHyphenated, getDateOptions } from '../../helpers/dateTime'
 import { getWeekOptions } from '../../helpers/NPdateTime'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { convertAllLinksToHTMLLinks, stripAllMarkersFromString } from '../../helpers/stringTransforms'
@@ -13,10 +13,37 @@ import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCa
 import { chooseFolder } from '../../helpers/userInput'
 import { findOpenTodosInNote } from '../../helpers/NPnote'
 import { followUpInFuture, followUpSaveHere } from './NPFollowUp'
-import { getNotesAndTasksToReview, getReferencesForReview, getSharedOptions, prepareUserAction, getNotesWithOpenTasks, getWeeklyOpenTasks } from './NPTaskScanAndProcess'
+import { getLimitedLastUsedChoices, updateLastUsedChoices } from './lastUsedChoices'
+
+import {
+  getNotesAndTasksToReview,
+  getReferencesForReview,
+  getGenericTaskActionOptions,
+  processUserAction,
+  getNotesWithOpenTasks,
+  getWeeklyOpenTasks,
+  type CommandBarChoice,
+  SEE_TASK_AGAIN,
+} from './NPTaskScanAndProcess'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getParagraphFromStaticObject, createStaticObject, createStaticParagraphsArray, noteHasContent } from '@helpers/NPParagraph'
 
+const DEBUG = true /* print data at bottom of webview */
+const WEBVIEW_WINDOW_ID = 'TaskAutomations.Overdue'
+
+/**
+ * Create a fake CommandBar choice for sending to processUserAction
+ * @param {string} value
+ * @returns
+ */
+function createOptionChoice(value: string): CommandBarChoice {
+  return {
+    index: 0,
+    keyModifiers: [],
+    label: value,
+    value: value,
+  }
+}
 /* Finalize the actions taken by the user (save/update the results)
  * @param {*} resultObj - the result of the user's action { action:string, changed:TParagraph }
  * @returns {TParagraph | null} - the updated paragraph with new data (has not been saved to API yet)
@@ -46,7 +73,7 @@ export async function finalizeChanges(result: any): Promise<TParagraph | null> {
             // just double checking that the delete worked
             // TODO: remove these checks when we r confident
             const after = para.note ? noteHasContent(para.note, para.content) : null
-            logDebug(pluginJson, `reviewNote delete content is in note:  before:${String(before)} | after:${String(after)}`)
+            logDebug(pluginJson, `reviewOverdueTasksInNote delete content is in note:  before:${String(before)} | after:${String(after)}`)
           }
           // return updates.length ? noteIndex - 1 : noteIndex
         }
@@ -77,7 +104,7 @@ export async function finalizeChanges(result: any): Promise<TParagraph | null> {
           const before = noteHasContent(origPara.note, origPara.content)
           origPara.note?.removeParagraph(origPara)
           const after = origPara.note ? noteHasContent(origPara.note, origPara.content) : null
-          logDebug(pluginJson, `reviewNote delete content is in note:  before:${String(before)} | after:${String(after)}`)
+          logDebug(pluginJson, `reviewOverdueTasksInNote delete content is in note:  before:${String(before)} | after:${String(after)}`)
         }
         return updates.length ? noteIndex - 1 : noteIndex
       }
@@ -129,7 +156,7 @@ export async function finalizeChanges(result: any): Promise<TParagraph | null> {
     }
   }
   if (typeof res === 'string' && res[0] === '>') {
-    logDebug(pluginJson, `reviewNote changing to a >date : "${res}"`)
+    logDebug(pluginJson, `reviewOverdueTasksInNote changing to a >date : "${res}"`)
     updates = updates.map((p) => {
       const origPara = note.paragraphs[p.lineIndex]
       p.content = replaceArrowDatesInString(origPara.content, String(res))
@@ -138,7 +165,7 @@ export async function finalizeChanges(result: any): Promise<TParagraph | null> {
       // }
       return p
     })
-    // clo(updates, `reviewNote updates=`)
+    // clo(updates, `reviewOverdueTasksInNote updates=`)
     makeChanges = true
   }
   */
@@ -187,13 +214,13 @@ export function paragraphUpdateReceived(data: { rows: Array<any>, field: string 
 export async function updateRowDataAndSend(updateInfo: any, updateText: string = '') {
   // clo(updateInfo, `updateRowDataAndSend updateText=${updateText} updateInfo=`)
   const updatedRows = updateInfo.updatedRows
-  const currentJSData = await getGlobalSharedData(pluginJson['plugin.id'])
+  const currentJSData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const overdueParas = currentJSData.overdueParas
   updatedRows.forEach((row) => {
     overdueParas[row.id] = { ...overdueParas[row.id], ...row }
     clo(overdueParas[row.id], `updateRowDataAndSend updated row=`)
   })
-  sendToHTMLWindow(pluginJson['plugin.id'], 'SET_DATA', currentJSData, updateText)
+  sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', currentJSData, updateText)
   // await updateGlobalSharedData(pluginJson['plugin.id'],currentJSData, false)
 }
 
@@ -203,20 +230,29 @@ export async function updateRowDataAndSend(updateInfo: any, updateText: string =
  */
 export async function dropdownChangeReceived(data: { rows: Array<any>, choice: string }): Promise<Array<any>> {
   const { rows, choice } = data
+  const commandBarStyleChoice = createOptionChoice(choice)
+  updateLastUsedChoices(commandBarStyleChoice)
   if (rows?.length && choice) {
     const updatedStatics = []
     const sortedRows = sortListBy(rows, ['filename', '-lineIndex'])
     const updatesByNote = {}
     for (const row of sortedRows) {
-      clo(row, `dropdownChangeReceived getting row of ${sortedRows.length} (${row.content})`)
+      clo(row, `dropdownChangeReceived getting row of potentials:${sortedRows.length}, staticObject is:`)
       // const note = DataStore.noteByFilename(row.filename, row.noteType || 'Notes')
       const paragraph = getParagraphFromStaticObject(row)
       if (paragraph) {
-        clo(paragraph, `dropdownChangeReceived found paragraph "${row.content}" in note "${row.filename}"`)
-        const result = await prepareUserAction(paragraph, paragraph, choice)
-        if (result?.action !== 'skip') {
-          clo(paragraph, `dropdownChangeReceived: prepareUserAction: ${JSON.stringify(result)}`)
-          const para = await finalizeChanges(result)
+        clo(paragraph, `dropdownChangeReceived found paragraph "${row.content}" in note "${row.filename}"; calling processUserAction:${String(choice)} for paragraph:`)
+        const result = await processUserAction(paragraph, commandBarStyleChoice)
+        clo(paragraph, `dropdownChangeReceived: processUserAction returned:${JSON.stringify(result)}`)
+        if (result !== SEE_TASK_AGAIN) {
+          // const para = await finalizeChanges(result)
+          //FIXME: if paragraph is deleted or something, this could be wrong
+          //FIXME: The can't update line-by-line may a big problem here. We used to
+          // return the changed item. What to do now?
+          if (!(paragraph.note?.paragraphs || [].length > paragraph.lineIndex)) {
+            throw 'Could not find paragraph in note. Indexes were wrong'
+          }
+          const para = paragraph.note?.paragraphs[paragraph.lineIndex]
           clo(para, `dropdownChangeReceived: updated paragraph ready to commit`)
           if (para && para.filename) {
             // writing one at a time will not work in the same note, so we need to save them and write them all at once
@@ -228,7 +264,7 @@ export async function dropdownChangeReceived(data: { rows: Array<any>, choice: s
       } else {
         logDebug(pluginJson, `dropdownChangeReceived Could not find note "${row.filename}"`)
         await sendBannerMessage(
-          pluginJson['plugin.id'],
+          WEBVIEW_WINDOW_ID,
           `NotePlan plugin TaskAutomations could not find the paragraph you were editing. This may be a bug. Or perhaps you edited the content in the note before making a change in the popup window? We need to be able to match lines of text, so you should generally do your editing in the popup window when if it is open. If you still think this is a bug, please report it to the developer.\nSearching for: ${JSON.stringify(
             row,
           )}`,
@@ -271,7 +307,7 @@ export async function onUserModifiedParagraphs(actionType: string, data: any): P
     if (returnValue?.updatedRows?.length) {
       returnValue.updatedRows = createCleanContent(returnValue.updatedRows)
       await updateRowDataAndSend({ updatedRows: returnValue.updatedRows }, `Plugin Changed: ${JSON.stringify(returnValue.updatedRows)}`)
-      // sendToHTMLWindow('RETURN_VALUE', { type: actionType, dataSent: data, returnValue: returnValue })
+      // sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'RETURN_VALUE', { type: actionType, dataSent: data, returnValue: returnValue })
     }
     return {} // this return value is ignored but needs to exist or we get an error
   } catch (error) {
@@ -311,11 +347,11 @@ export function getOverdueTasks(noteFolder?: string | false = false): Array<TPar
  * @returns an array of options for the dropdown menu
  */
 export function getSpecializedOptions(isSingleLine: boolean): Array<any> {
-  const sharedOpts = getSharedOptions(null, isSingleLine)
+  const sharedOpts = getGenericTaskActionOptions(null, isSingleLine)
   const todayLines = sharedOpts.splice(0, 2) // this is probably not necessary anymore
   const opts = [
     ...todayLines,
-    { label: `✓ Mark task done/complete`, value: '__done__' },
+    { label: `✓ Mark done/complete`, value: '__done__' },
     { label: `✓⏎ Mark done and add follow-up in same note`, value: '__mdhere__' },
     { label: `✓📆 Mark done and add follow-up in future note`, value: '__mdfuture__' },
     { label: `⇑ Open this task in NotePlan`, value: '__opentask__' },
@@ -324,24 +360,39 @@ export function getSpecializedOptions(isSingleLine: boolean): Array<any> {
     { label: `␡ Delete this line (be sure!)`, value: '__delete__' },
   ].filter((o) => o.value !== '__xcl__')
   // opts.forEach((o) => console.log(o.value))
+  // logDebug(pluginJson, `getSpecializedOptions: ${JSON.stringify(opts)}`)
   return opts
 }
 
-export function getButtons(): Array<{ text: string, action: string }> {
+export function getButtons(lastUsedChoices: Array<string> = []): Array<{ text: string, action: string }> {
   // build the buttons
   const now = new moment().toDate()
   const tomorrow = format(add(now, { days: 1 }), 'yyyy-MM-dd')
   const weekends = eachWeekendOfInterval({ start: now, end: add(now, { months: 1 }) }).filter((d) => d > now)
   const weekNotes = getWeekOptions()
-  return [
+  const dateOpts = getDateOptions().map((d) => ({ text: d.label, action: d.value }))
+  const baseOptions = [
     { text: 'Today', action: getTodaysDateAsArrowDate() },
     { text: '>today', action: '>today' },
     { text: 'Tomorrow', action: `>${tomorrow}` },
     { text: 'Weekend', action: `>${format(weekends[0], '>yyyy-MM-dd')}` },
     { text: 'ThisWeek', action: weekNotes[0].value },
     { text: 'NextWeek', action: weekNotes[1].value },
+    { text: '!', action: '__p1__' },
+    { text: '!!', action: '__p2__' },
+    { text: '!!!', action: '__p3__' },
+    ...dateOpts,
     // { text: 'Open Note', action: '__opentask__' },
   ]
+  if (lastUsedChoices.length) {
+    lastUsedChoices.reverse().forEach((choice) => {
+      // if choice is not in baseOptions.action, then add it to the front of the array
+      if (!baseOptions.find((o) => o.action === choice)) {
+        baseOptions.unshift({ text: choice, action: choice })
+      }
+    })
+  }
+  return baseOptions
 }
 
 const KEY_PARA_PROPS = ['filename', 'title', 'lineIndex', 'content', 'rawContent', 'type', 'prefix', 'noteType', 'daysOverdue']
@@ -423,7 +474,8 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
   if (!testData) {
     // const confirmResults = incoming ? false : true
     let start = new Date()
-    const overdueStaticTasks = getStaticTaskList(getOverdueTasks(noteFolder), 'Overdue')
+    const overdueParas = getOverdueTasks(noteFolder)
+    const overdueStaticTasks = getStaticTaskList(overdueParas, 'Overdue')
     logDebug(`>>> getDataForReactView getOverdueTasks(${noteFolder || ''}) took: ${timer(start)}`)
     start = new Date()
     const openWeeklyTasks = askToReviewWeeklyTasks ? getStaticTaskList(getWeeklyOpenTasks(), 'ThisWeek') : []
@@ -438,10 +490,14 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
         )
       : []
     logDebug(`>>> getDataForReactView getNotesWithOpenTasks() (forgotten) took: ${timer(start)}`)
+    // filter notesWithOpenTasks to only lines that do not exist in the overdueParas array
+    const openTasksNotOverdue = notesWithOpenTasks
+      .map((noteTasks) => noteTasks.filter((t) => !overdueParas.find((o) => o.filename === t.filename && o.lineIndex === t.lineIndex)))
+      .filter(Boolean)
     start = new Date()
     // clo(notesWithOpenTasks, `processOverdueReact: notesWithOpenTasks length=${notesWithOpenTasks.length}`)
-    const openTasksGoneBy = notesWithOpenTasks.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
-    const forgottenTasks = getStaticTaskList(openTasksGoneBy, 'LeftOpen')
+    const openTasksinRecentNotes = openTasksNotOverdue.reduce((acc, noteTasks) => [...acc, ...noteTasks], [])
+    const forgottenTasks = getStaticTaskList(openTasksinRecentNotes, 'LeftOpen')
     const todayTaskParas = ((await getTodayReferencedTasks()) || []).reduce((acc, noteTasks) => [...acc, ...noteTasks], []).filter((t) => t.content !== '')
     logDebug(`>>> getDataForReactView todayReferenced took: ${timer(start)}`)
     start = new Date()
@@ -458,17 +514,18 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
   const startReactDataPackaging = new Date()
   // clo(staticParasToReview, `processOverdueReact: staticParasToReview length=${staticParasToReview.length}`)
   const ENV_MODE = 'development'
+  const lastChoices = getLimitedLastUsedChoices()
   const data = {
     overdueParas: staticParasToReview,
     title: `Overdue Tasks`,
-    debug: false,
+    debug: DEBUG,
     ENV_MODE: ENV_MODE,
     returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onUserModifiedParagraphs' },
     componentPath: `../dwertheimer.TaskAutomations/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
     /* ... +any other data you want to be available to your react components */
     dropdownOptionsAll: getSpecializedOptions(false),
     dropdownOptionsLine: getSpecializedOptions(true),
-    contextButtons: getButtons(),
+    contextButtons: getButtons(lastChoices),
     showDaysTilDueColumn: reactShowDueInColumn,
     startTime,
   }
@@ -521,6 +578,10 @@ export async function startReactReview(filterSetting?: string | null, folderToSe
     const windowOptions = {
       headerTags: cssTagsString,
       savedFilename: `../../${pluginJson['plugin.id']}/reactLocal.html`,
+      windowTitle: data.title,
+      customId: WEBVIEW_WINDOW_ID,
+      shouldFocus: true,
+      reuseUsersWindowRect: true /* try to remember last window size */,
     }
     const payload = [data, windowOptions]
 

@@ -4,7 +4,7 @@ import moment from 'moment'
 import pluginJson from '../plugin.json'
 import { showMessageYesNo, chooseFolder, showMessage, chooseOptionWithModifiers } from '../../helpers/userInput'
 import { getOverdueParagraphs } from '../../helpers/NPParagraph'
-import { reviewTasksInNotes, getNotesAndTasksToReview, getNotesWithOpenTasks, getReferencesForReview } from './NPTaskScanAndProcess'
+import { reviewOverdueTasksByNote, getNotesAndTasksToReview, getNotesWithOpenTasks, getReferencesForReview } from './NPTaskScanAndProcess'
 import { isOpen } from '@helpers/utils'
 import { JSP, clo, log, logError, logWarn, logDebug } from '@helpers/dev'
 import { filenameDateString, getTodaysDateHyphenated, getDateOptions, RE_DATE } from '@helpers/dateTime'
@@ -32,6 +32,22 @@ export async function askToReviewWeeklyTasks(byTask: boolean = false, forDateStr
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+}
+
+export async function createFakeOverdues() {
+  const content = `# TEST Fake Overdue Tasks
+  * task 1 >2000-11-01
+  * task 2 >2000-11-02
+  * task 3 >2000-11-03
+  * task 4 >2000-11-04
+  * task 5 >2000-11-05
+  * task 6 >2000-11-06
+    `
+  const note = DataStore.noteByFilename(`DELETEME_TEST_Overdues.md`, 'Notes')
+  if (note) note.content = content
+  logWarn(`createFakeOverdues: created fake overdues note: TEST Fake Overdue Tasks`)
+  // await Editor.save()
+  // DataStore.updateCache()
 }
 
 /**
@@ -110,45 +126,46 @@ export async function updateDatePlusTags(incoming: string): Promise<void> {
       overdueOnly: true,
     }
     const notesToReview = getNotesAndTasksToReview(options)
-    await reviewTasksInNotes(notesToReview, options)
+    await reviewOverdueTasksByNote(notesToReview, options)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
 }
 
+// COMMENTING OUT BECAUSE NOT ALLOWING REVIEW BY NOTE ANYMORE. DELETE THIS AFTER 2023-12-01
 /**
  * Find and update all overdue tasks, including >date and >date+
  * DISPLAY EACH NOTE'S TASK FIRST, WITH OPTION TO EXPLORE EACH TASK
  * (plugin entry point for "/Review overdue tasks (by Note)")
  * @param {string} incoming - comes from xcallback - any string runs this command silently
  */
-export async function reviewOverdueTasksByNote(asOfDateString?: string = getTodaysDateHyphenated()): Promise<void> {
-  try {
-    logDebug(pluginJson, `reviewOverdueTasksByNote: asOfDateString="${asOfDateString}" typeof=${typeof asOfDateString}`)
-    const confirmResults = true
-    const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
-    const options = {
-      openOnly: overdueOpenOnly,
-      foldersToIgnore: overdueFoldersToIgnore,
-      datePlusOnly: false,
-      confirm: confirmResults,
-      showUpdatedTask,
-      showNote: true,
-      noteTaskList: null,
-      noteFolder: false,
-      replaceDate,
-      overdueOnly: true,
-    }
-    const notesToReview = getNotesAndTasksToReview(options)
-    await reviewTasksInNotes(notesToReview, options)
-    await askToReviewWeeklyTasks(false, asOfDateString)
-    await askToReviewTodaysTasks(false, asOfDateString)
-    await askToReviewForgottenTasks(false, asOfDateString)
-    await showMessage(`Review Complete!`, 'OK', 'Task Review', true)
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}
+// export async function reviewOverdueTasksByNote(asOfDateString?: string = getTodaysDateHyphenated()): Promise<void> {
+//   try {
+//     logDebug(pluginJson, `reviewOverdueTasksByNote: asOfDateString="${asOfDateString}" typeof=${typeof asOfDateString}`)
+//     const confirmResults = true
+//     const { overdueOpenOnly, overdueFoldersToIgnore, showUpdatedTask, replaceDate } = DataStore.settings
+//     const options = {
+//       openOnly: overdueOpenOnly,
+//       foldersToIgnore: overdueFoldersToIgnore,
+//       datePlusOnly: false,
+//       confirm: confirmResults,
+//       showUpdatedTask,
+//       showNote: true,
+//       noteTaskList: null,
+//       noteFolder: false,
+//       replaceDate,
+//       overdueOnly: true,
+//     }
+//     const notesToReview = getNotesAndTasksToReview(options)
+//     await reviewOverdueTasksByNote(notesToReview, options)
+//     await askToReviewWeeklyTasks(false, asOfDateString)
+//     await askToReviewTodaysTasks(false, asOfDateString)
+//     await askToReviewForgottenTasks(false, asOfDateString)
+//     await showMessage(`Review Complete!`, 'OK', 'Task Review', true)
+//   } catch (error) {
+//     logError(pluginJson, JSP(error))
+//   }
+// }
 
 /**
  * Shared worker function that asks users interactively to review overdue tasks
@@ -171,8 +188,8 @@ export async function runInteractiveReviewForDate(asOfDateString?: string = getT
     overdueOnly: true,
   }
   const notesToReview = getNotesAndTasksToReview(options)
-  clo(notesToReview, `runInteractiveReviewForDate notesToReview`)
-  await reviewTasksInNotes(notesToReview, options)
+  // clo(notesToReview, `runInteractiveReviewForDate notesToReview`)
+  await reviewOverdueTasksByNote(notesToReview, options)
   await askToReviewForgottenTasks(true, asOfDateString)
   await askToReviewWeeklyTasks(true, asOfDateString)
   await askToReviewTodaysTasks(true, asOfDateString)
@@ -187,6 +204,7 @@ export async function runInteractiveReviewForDate(asOfDateString?: string = getT
  */
 export async function reviewOverdueTasksByTask(asOfDateString: string): Promise<void> {
   try {
+    await createFakeOverdues()
     const aods = new RegExp(RE_DATE).test(asOfDateString) ? asOfDateString : getTodaysDateHyphenated()
     logDebug(pluginJson, `reviewOverdueTasksByTask asOfDateString=${asOfDateString}; will use: ${aods}`)
     await runInteractiveReviewForDate(aods)
@@ -255,15 +273,15 @@ export async function reviewOverdueTasksInNote(incoming: string): Promise<void> 
       // $FlowIgnore
       const notesToReview = getNotesAndTasksToReview(options)
       clo(notesToReview, 'reviewOverdueTasksInNote: notesToReview')
-      await reviewTasksInNotes(notesToReview, options)
+      await reviewOverdueTasksByNote(notesToReview, options)
       // find tasks in Editor note that are not in overdues (match by lineIndex property)
-      logDebug(pluginJson, `reviewOverdueTasksInNote: after reviewTasksInNotes`)
+      logDebug(pluginJson, `reviewOverdueTasksInNote: after reviewOverdueTasksByNote`)
       const paras = Editor?.note?.paragraphs || []
       const diffTasks = paras.filter((task) => isOpen(task) && !overdues.find((ot) => ot.lineIndex !== undefined && ot.lineIndex === task.lineIndex))
       // if there are more tasks in the note than the overdue ones we found, ask if we should review the rest
       if (diffTasks && diffTasks.length) {
         if ((await showMessageYesNo(`Review other open tasks in this note?`, ['Yes', 'No'], 'Task Review', true)) === 'Yes') {
-          await reviewTasksInNotes([diffTasks], { ...options, noteTaskList: [diffTasks] || [], overdueOnly: false })
+          await reviewOverdueTasksByNote([diffTasks], { ...options, noteTaskList: [diffTasks] || [], overdueOnly: false })
         }
       }
       if (confirm) await showMessage(`Note Review Complete!`, 'OK', 'Task Review', true)
@@ -320,7 +338,7 @@ export async function reviewEditorReferencedTasks(byTask: boolean = true, weekly
       noteTaskList: arrayOfOpenNotesAndTasks,
       overdueOnly: false,
     }
-    await reviewTasksInNotes(arrayOfOpenNotesAndTasks, options)
+    await reviewOverdueTasksByNote(arrayOfOpenNotesAndTasks, options)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -350,7 +368,7 @@ export async function reviewOverdueTasksInFolder(incoming: string): Promise<void
       overdueOnly: true,
     }
     const notesToReview = getNotesAndTasksToReview(options)
-    await reviewTasksInNotes(notesToReview, options)
+    await reviewOverdueTasksByNote(notesToReview, options)
     await askToReviewWeeklyTasks(true)
     await askToReviewTodaysTasks(true)
     await askToReviewForgottenTasks(true)
@@ -435,7 +453,7 @@ export async function searchForOpenTasks(byTask: boolean = false, ignoreSchedule
       noteFolder: false,
       overdueOnly: false,
     }
-    await reviewTasksInNotes(notes, options)
+    await reviewOverdueTasksByNote(notes, options)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }

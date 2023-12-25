@@ -23,6 +23,8 @@ import { StatusButton } from './StatusButton.jsx'
 const isDark = (bgColor) => chroma(bgColor).luminance() < 0.5
 const isLight = (bgColor) => !isDark(bgColor)
 
+const sortByDaysOverdue = (a, b) => a.daysOverdue - b.daysOverdue
+
 /**
  * Calculate a lightly-offset altColor based on the background color
  * Useful for striped rows (default) and highlight on hover
@@ -116,8 +118,10 @@ const columnsWithFallback = ({ handleTaskStatusChange, hideRow, showDaysTilDueCo
     base.push({
       name: 'Due in',
       selectorName: 'daysOverdue',
-      selector: (row) => `${row.daysOverdue.toLocaleString()}d`,
+      selector: (row) => (typeof row.daysOverdue === 'number' ? `${row.daysOverdue?.toFixed()}d` : ''),
       sortable: true,
+      sortFunction: sortByDaysOverdue,
+      defaultSort: true,
     })
   }
 
@@ -220,7 +224,7 @@ const customTableStyles = {
   },
   rows: {
     style: {
-      minHeight: '64px', // override the row height
+      minHeight: '44px', // override the row height
       backgroundColor: NP_THEME.base.backgroundColor,
       color: NP_THEME.base.textColor,
       border: `1px solid ${chroma(NP_THEME.base.backgroundColor).brighten().css()}`,
@@ -269,4 +273,4 @@ const customTableStyles = {
   },
 }
 
-export { columnSpec, conditionalRowStyles, customTableStyles, menuStyles }
+export { columnSpec, conditionalRowStyles, customTableStyles, menuStyles, sortByDaysOverdue }
