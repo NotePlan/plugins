@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 15.12.2023 for v0.12.1+, @jgclark
+// Last updated 26.12.2023 for v0.13.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -33,8 +33,8 @@ import {
   redToGreenInterpolation,
   rgbToHex
 } from '@helpers/HTMLView'
+import { noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import {
   getInputTrimmed,
   inputIntegerBounded,
@@ -284,6 +284,70 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
   }
 }
 
+/**
+ * Works out which line (if any) of the current note is project-style metadata line, defined as
+ * - line starting 'project:' or 'medadata:'
+ * - first line containing a @review() or @reviewed() mention
+ * - first line starting with a hashtag
+ * If these can't be found, then create a new line after the title, or in the 'metadata:' field if present in the frontmatter.
+ * @author @jgclark
+ *
+ * @param {TNote} note to use
+ * @param {string} metadataLinePlaceholder optional to use if we need to make a new metadata line
+ * @returns {number} the line number for the metadata line
+ */
+export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: string = ''): number {
+  try {
+    const lines = note.paragraphs?.map((s) => s.content) ?? []
+    // logDebug('getOrMakeMetadataLine', `Starting with ${lines.length} lines`)
+
+    // Belt-and-Braces: deal with empty or almost-empty notes
+    if (lines.length === 0) {
+      note.appendParagraph('<placeholder title>', 'title')
+      note.appendParagraph(metadataLinePlaceholder, 'text')
+      return 1
+    } else if (lines.length === 1) {
+      note.appendParagraph(metadataLinePlaceholder, 'text')
+      return 1
+    }
+
+    let lineNumber: number = NaN
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].match(/^project:/i) || lines[i].match(/^metadata:/i) || lines[i].match(/^#[\w]/) || lines[i].match(/(@review|@reviewed)\(.+\)/)) {
+        lineNumber = i
+        break
+      }
+    }
+    // If no metadataPara found, then insert one either after title, or in the frontmatter if present.
+    if (Number.isNaN(lineNumber)) {
+      if (noteHasFrontMatter(note)) {
+        logWarn('getOrMakeMetadataLine', `Warning: Can't find an existing metadata line, so will insert into metadata`)
+        const res = setFrontMatterVars(note, {
+          'metadata': metadataLinePlaceholder
+        })
+        const updatedLines = note.paragraphs?.map((s) => s.content) ?? []
+        // Find which line that project field is on
+        for (let i = 1; i < updatedLines.length; i++) {
+          if (updatedLines[i].match(/^metadata:/i)) {
+            lineNumber = i
+            break
+          }
+        }
+      } else {
+        logWarn('getOrMakeMetadataLine', `Warning: Can't find an existing metadata line, so will insert one after title`)
+        note.insertParagraph(metadataLinePlaceholder, 1, 'text')
+        lineNumber = 1
+      }
+    }
+    logDebug('getOrMakeMetadataLine', `Metadata line = ${String(lineNumber)}`)
+    return lineNumber
+  } catch (error) {
+    logError('getOrMakeMetadataLine', error.message)
+    return 0
+  }
+}
+
+
 //-----------------------------------------------------------------------------
 
 /**
@@ -407,9 +471,12 @@ export class Project {
       tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('nextReviewMentionStr')))
       if (tempStr !== '') {
         this.nextReviewDate = getDateObjFromDateString(tempStr)
-        // $FlowIgnore(incompatible-call)
-        this.nextReviewDateStr = toISODateString(this.nextReviewDate)
-        logDebug('Found nextReview()', `${this.nextReviewDateStr} / ${String(this.nextReviewDate)}`)
+        if (this.nextReviewDate) {
+          this.nextReviewDateStr = toISODateString(this.nextReviewDate)
+          logDebug('Project constructor', `- found '@nextReview(${this.nextReviewDateStr})' = ${String(this.nextReviewDate)}`)
+        } else {
+          logWarn('Project constructor', `- couldn't get valid date from  '@nextReview(${this.nextReviewDateStr})'`)
+        }
       }
 
       // count tasks (includes both tasks and checklists)

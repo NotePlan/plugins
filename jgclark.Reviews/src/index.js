@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 15.12.2023 for v0.12.5, @jgclark
+// Last updated 26.12.2023 for v0.13.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -19,8 +19,9 @@ export {
   logFullReviewList,
   makeFullReviewList,
   startReviews,
-  nextReview,
+  // nextReview,
   finishReview,
+  finishReviewAndStartNextReview,
   skipReview,
   makeProjectLists,
   redisplayProjectListHTML,

@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.12.5",
-  "plugin.lastUpdateInfo": "0.12.5: now can include files in root folder. When you refresh project list it will keep scroll position.\n0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.",
+  "plugin.version": "0.13.0",
+  "plugin.lastUpdateInfo": "0.13.0: add option to archive completed/cancelled projects using existing folder structure.\n0.12.5: now can include files in root folder. When you refresh project list it will keep scroll position.\n0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.",
   "plugin.requiredFiles": [
     "projectList.css"
   ],
@@ -60,7 +60,7 @@
         "review"
       ],
       "description": "updates this project's @reviewed() date, and jump to next project to review",
-      "jsFunction": "nextReview"
+      "jsFunction": "finishReviewAndStartNextReview"
     },
     {
       "name": "skip project review",
@@ -364,6 +364,14 @@
       "description": "Heading of list of completed or cancelled projects/areas in the yearly note",
       "type": "string",
       "default": "Finished Projects/Areas",
+      "required": true
+    },
+    {
+      "key": "archiveUsingFolderStructure",
+      "title": "Archive using folder structure?",
+      "description": "When you complete or cancel a project, and you opt to move it to the Archive, if set this will replicating the project note's existing folder structure inside the Archive.\n(This is the same thing that the Filer plugin's \"/archive note using folder structure\" command does, though Filer does not need to be installed to use this.)",
+      "type": "bool",
+      "default": true,
       "required": true
     },
     {

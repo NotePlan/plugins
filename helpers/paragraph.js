@@ -237,6 +237,7 @@ export function smartPrependPara(note: TNote, paraText: string, paragraphType: P
  * Works out where the first 'active' line of the note is, following the first paragraph of type 'title', or frontmatter (if present).
  * Additionally, it skips past any front-matter like section in a project note, as used by the Reviews plugin before frontmatter was supported.
  * This is indicated by a #hashtag starting the next line. If there is, run on to next heading or blank line.
+ * A task/checklist item marks the end of the frontmatter-like section.
  * Note: given this is a precursor to writing to a note, it first checks if the note is completely empty (0 lines). If so, a first 'empty' line is added, to avoid edge cases in calling code.
  * Note: Really should live in helpers/NPParagraph.js, but that introduces a circular dependency, so leaving here.
  * @author @jgclark
@@ -275,30 +276,31 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
       // logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
       note.appendParagraph('', 'empty')
       paras = note.paragraphs
+      startOfActive = paras.length
     }
 
-    // logDebug('paragraph/findStartOfActivePartOfNote', `allowPreamble? ${String(allowPreamble)}`)
+    logDebug('paragraph/findStartOfActivePartOfNote', `- startOfActive so far = ${String(startOfActive)}. allowPreamble: ${allowPreamble ? 'true' : 'false'}`)
     // Additionally, skip past any front-matter-like section in a project note,
     // if either there's a #hashtag starting the next line,
     // or 'allowPreamble' is true.
-    // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator also stops the search.
-    if (paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/) || allowPreamble) {
-      // logDebug('paragraph/findStartOfActivePartOfNote', `with ${String(startOfActive)} Found a metadata line, or we want to allow preamble, so trying to find next heading or blank line`)
-      startOfActive += 1
+    // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator or any YouTutype of task or checklist also stops the search.
+    if (allowPreamble || paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/)) {
+      logDebug('paragraph/findStartOfActivePartOfNote', `- We want to allow preamble, or found a metadata line.`)
+    // startOfActive += 1
       for (let i = startOfActive; i < paras.length; i++) {
         const p = paras[i]
-        if (p.type === 'separator' || p.type === 'empty') {
-          startOfActive = i + 1
-          break
-        }
-        // if (p.type === 'title' || p.type === 'empty') {
-        if (p.type === 'title') {
+        if (['open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'code'].includes(p.type)) {
+          logDebug('paragraph/findStartOfActivePartOfNote', `  - Found task/checklist/title/code line -> this line.`)
           startOfActive = i
           break
         }
-        // logDebug('paragraph/findStartOfActivePartOfNote', `  - no title/separator/empty found`)
+        else if (p.type === 'separator' || p.type === 'empty') {
+          logDebug('paragraph/findStartOfActivePartOfNote', `  - Found separator/blank -> next line.`)
+          startOfActive = i + 1
+          break
+        }
       }
-      // logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}  (after finding preamble or metadata line)`)
+      logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}  (after finding preamble or metadata line)`)
     }
     return startOfActive
   }

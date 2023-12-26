@@ -9,14 +9,14 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 15.12.2023 for v0.12.5, @jgclark
+// Last updated 26.12.2023 for v0.13.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import fm from 'front-matter'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
-import { getReviewSettings, makeFakeButton, Project, saveEditorToCache } from './reviewHelpers'
+import { getOrMakeMetadataLine, getReviewSettings, makeFakeButton, Project, saveEditorToCache } from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
 import { calcOffsetDate, calcOffsetDateStr, getDateObjFromDateString, getJSDateStartOfToday, getTodaysDateHyphenated, hyphenatedDateString, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
@@ -27,7 +27,6 @@ import { type HtmlWindowOptions, makeSVGPercentRing, redToGreenInterpolation, sh
 import { getOrMakeNote } from '@helpers/note'
 import { findNotesMatchingHashtag } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { getOrMakeMetadataLine } from '@helpers/NPparagraph'
 import { fieldSorter, sortListBy } from '@helpers/sorting'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 import { focusHTMLWindowIfAvailable, isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId, setHTMLWindowId } from '@helpers/NPWindows'
@@ -884,7 +883,13 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
     DataStore.saveData(outputArray.join('\n'), fullReviewListFilename, true)
 
     logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
-    // logFullReviewList()
+
+    // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
+    // DataStore.invokePluginCommand('refreshDashboard', '')
+    const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshDashboard', '')
+    logDebug('makeFullReviewList', `sent message to refresh Dashboard: ${refreshXCallbackURL}`)
+    await NotePlan.openURL(refreshXCallbackURL)
+
   } catch (error) {
     logError(pluginJson, `makeFullReviewList: ${error.message}`)
   }
@@ -1075,9 +1080,9 @@ export async function finishReview(): Promise<void> {
  * Complete current review, then open the next one to review in the Editor.
  * @author @jgclark
  */
-export async function nextReview(): Promise<void> {
+export async function finishReviewAndStartNextReview(): Promise<void> {
   try {
-    logDebug('nextReview', `Starting`)
+    logDebug('finishReviewAndStartNextReview', `Starting`)
     const config = await getReviewSettings()
 
     // Finish review
@@ -1093,14 +1098,14 @@ export async function nextReview(): Promise<void> {
           return
         }
       }
-      logDebug('nextReview', `- Opening '${displayTitle(noteToReview)}' as nextReview note ...`)
+      logDebug('finishReviewAndStartNextReview', `- Opening '${displayTitle(noteToReview)}' as nextReview note ...`)
       await Editor.openNoteByFilename(noteToReview.filename)
     } else {
-      logInfo('nextReview', `- 🎉 No more notes to review!`)
+      logInfo('finishReviewAndStartNextReview', `- 🎉 No more notes to review!`)
       await showMessage('🎉 No notes to review!', 'Great', 'Reviews')
     }
   } catch (error) {
-    logError('nextReview', error.message)
+    logError('finishReviewAndStartNextReview', error.message)
   }
 }
 
@@ -1261,6 +1266,12 @@ export async function updateReviewListAfterChange(
       // re-form the file
       const outputLines = filterAndSortReviewList(reviewLines, configIn)
       DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
+
+      // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
+      // DataStore.invokePluginCommand('refreshDashboard', '')
+      const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshDashboard', '')
+      logDebug('updateReviewListAfterChange', `sent message to refresh Dashboard: ${refreshXCallbackURL}`)
+      await NotePlan.openURL(refreshXCallbackURL)
     }
 
   } catch (error) {
@@ -1336,7 +1347,7 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
     }
     const thisNote = Editor // note: not Editor.note
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(Editor, `<placeholder metadata line>`)
+    const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
     // Re-read paragraphs, as they might have changed
     let metadataPara = Editor.paragraphs[metadataLineIndex]
     if (!metadataPara) {
@@ -1389,7 +1400,7 @@ export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<s
     }
     const thisNote = Editor // note: not Editor.note
 
-    const metadataLineIndex: number = getOrMakeMetadataLine(Editor, `<placeholder metadata line>`)
+    const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
     // Re-read paragraphs, as they might have changed
     let metadataPara = Editor.paragraphs[metadataLineIndex]
     if (!metadataPara) {

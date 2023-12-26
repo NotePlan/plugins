@@ -2,6 +2,14 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
+## [0.13.0] - 2023-12-26
+### Added
+- When you complete or cancel a project, and you opt to move it to the Archive, there is a new option that now will move it into the Archive replicating its existing folder structure. (This is the same thing that the Filer plugin's "/archive note using folder structure" command does, though Filer does not need to be installed to use this.)
+- When the project list is refreshed, it will now also refresh the Dashboard if it is open, as it can also show project notes waiting for review. (Requires Dashboard plugin to be installed, naturally.)
+
+### Changed
+- Now smarter about how it writes a 'project metadata line' if one isn't already present in the note.
+
 ## [0.12.5] - 2023-12-22
 ### Added
 - When you refresh the project list it will now keep the window's scroll position (for @anton.skliar)

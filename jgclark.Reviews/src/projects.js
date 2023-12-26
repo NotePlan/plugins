@@ -22,9 +22,8 @@ import { hyphenatedDateString } from '@helpers/dateTime'
 import { clo, logDebug, logInfo, logWarn, logError } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getOrMakeNote } from '@helpers/note'
-import {
-  showMessageYesNo
-} from '@helpers/userInput'
+import { showMessageYesNo } from '@helpers/userInput'
+import { archiveNoteUsingFolder } from '../../jgclark.Filer/src/archive'
 
 //-----------------------------------------------------------------------------
 
@@ -87,8 +86,16 @@ export async function completeProject(): Promise<void> {
       await Editor.openNoteByFilename(note.filename)
       // logDebug('completeProject', `- updated cache, re-opened, and now I can see ${String(note.hashtags)} ${String(note.mentions)}`)
 
-      // delete the project line from the full-review-list (Note: doesn't necessarily exist)
-      await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+      // Ask whether to move it to the @Archive
+      const willArchive = await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No']) === 'Yes'
+
+      if (willArchive) {
+        // delete the line from the full-review-list, as we don't show project notes in the archive
+        await updateReviewListAfterChange(note.title ?? '<error>', true, config)
+      } else {
+        // update the full-review-list, using the machineSummaryLine
+        await updateReviewListAfterChange(note.title ?? '<error>', false, config, newMSL)
+      }
 
       // re-render the outputs (but don't focus)
       await renderProjectLists(config, false)
@@ -108,13 +115,14 @@ export async function completeProject(): Promise<void> {
       }
 
       // ... and finally ask whether to move it to the @Archive
-      if (note.filename != null) {
-        if (await showMessageYesNo('Shall I move this completed note to the Archive?', ['Yes', 'No']) === 'Yes') {
-          const newFilename = DataStore.moveNote(note.filename, '@Archive')
-        }
+      if (willArchive) {
+        const newFilename = (config.archiveUsingFolderStructure)
+          ? archiveNoteUsingFolder(note)
+          : DataStore.moveNote(note.filename, '@Archive')
+        logInfo('cancelProject', `Project completed and moved to @Archive (at ${newFilename ?? '<error>'}), review list updated, and window updated.`)
+      } else {
+        logInfo('cancelProject', 'Project completed, review list updated, and window updated.')
       }
-
-      logInfo('completeProject', 'Project completed, review list updated, and window updated.')
     } else {
       logError('completeProject', 'Error completing project.')
     }
@@ -148,9 +156,9 @@ export async function cancelProject(): Promise<void> {
     const projectNote = new Project(note)
 
     // Then call the class' method to update its metadata
-    logDebug('cancelProject', `before cancelProject`)
+    // logDebug('cancelProject', `before cancelProject`)
     const newMSL = await projectNote.cancelProject()
-    logDebug('cancelProject', `after cancelProject, newMSL=${newMSL}`)
+    // logDebug('cancelProject', `after cancelProject, newMSL=${newMSL}`)
 
     // If this has worked, then ...
     if (newMSL) {
@@ -189,10 +197,12 @@ export async function cancelProject(): Promise<void> {
         )
       }
 
-      // Ask whether to move it to the @Archive
+      // ... and finally ask whether to move it to the @Archive
       if (willArchive) {
-        const newFilename = DataStore.moveNote(filename, '@Archive')
-        logInfo('cancelProject', 'Project cancelled and moved to @Archive, review list updated, and window updated.')
+        const newFilename = (config.archiveUsingFolderStructure)
+          ? archiveNoteUsingFolder(note)
+          : DataStore.moveNote(note.filename, '@Archive')
+        logInfo('cancelProject', `Project completed and moved to @Archive (at ${newFilename ?? '<error>'}), review list updated, and window updated.`)
       } else {
         logInfo('cancelProject', 'Project cancelled, review list updated, and window updated.')
       }
