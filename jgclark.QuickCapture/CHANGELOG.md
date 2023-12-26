@@ -1,6 +1,10 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
+## [0.15.2] - 2023-12-07
+### Fixed
+- '/quick add task under heading' using wrong paragraph type when inserting at top of note (thanks to tip by @laestrella26)
+
 ## [0.15.1] - 2023-11-30
 ### Added
 - new x-callback argument to set heading level (1-5) on commands "/quick add task under heading" and "/quick add line under heading"

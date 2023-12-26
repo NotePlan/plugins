@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 1.9.2023 for v0.15.0 by @jgclark
+// last update 7.12.2023 for v0.15.2 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -189,7 +189,7 @@ export async function addTaskToNoteHeading(
     if (heading === '<<top of note>>') {
       // Handle this special case
       logDebug('addTaskToNoteHeading', `Adding line '${taskText}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
-      note.insertParagraph(taskText, findStartOfActivePartOfNote(note), 'text')
+      note.insertTodo(taskText, findStartOfActivePartOfNote(note))
     }
     else if (heading === '') {
       // Handle bottom of note
