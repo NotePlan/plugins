@@ -15,22 +15,32 @@ import { allNotesSortedByChanged } from '@helpers/note'
 //-----------------------------------------------------------------------------
 
 /**
- * Add a 'blockId' to current line, and ask which note's heading (section)
- * to also add it to.
+ * Archive a note using its current folder, replicating the folder structure if needed.
+ * @param {TNote?} noteIn (optional)
+ * @returns {string | void} newFilename, if success
  */
-export function archiveNoteUsingFolder(): string | void {
+export function archiveNoteUsingFolder(noteIn?: TNote): string | void {
   try {
-    const { note } = Editor
+    let note: TNote | null
+    if (noteIn && (typeof noteIn === "object")) {
+      // A note was passed in, so use it
+      note = noteIn
+      logDebug('archiveNoteUsingFolder', `Note passed in: ${note.filename}`)
+    } else {
+      logDebug(pluginJson, `archiveNoteUsingFolder(): starting for note open in Editor`)
+      note = Editor.note ?? null
+    }
+
     if (!note) {
       // No note open, so don't do anything.
-      logWarn(pluginJson, 'archiveNoteUsingFolder(): No note open, so stopping.')
+      logWarn(pluginJson, 'archiveNoteUsingFolder(): No note passed or open in the Editor, so stopping.')
       return
     } else if (note.type === 'Calendar') {
       // Can't archive a Calendar note
       logWarn(pluginJson, 'archiveNoteUsingFolder(): Cannot archive a Calendar note, so stopping.')
       return
     }
-    logDebug(pluginJson, `archiveNoteUsingFolder(): starting for Note '${displayTitle(note)} created at ${String(note.createdDate)}`)
+    logDebug('archiveNoteUsingFolder', `- will archive Note '${displayTitle(note)} created at ${String(note.createdDate)}`)
 
     // Get note's current folder
     const currentFilename = note.filename
