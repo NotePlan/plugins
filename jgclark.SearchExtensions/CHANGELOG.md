@@ -2,6 +2,13 @@
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.SearchExtensions).)
 <!-- Main description: Allows searches to be saved and re-run, to use more powerful search operators, and be done over specified time periods. -->
 
+## [1.3.0] - 2023-12-26
+- Adds ability to **automatically refresh** a saved search when opening its note. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the frontmatter.
+- Adds **wildcard operators `*` and `?`** in search terms. These match any number of characters (including none) and just 1 character respectively within a word. For example, `pos*e` matches "possible", "posie" and "pose"; `poli?e` matches "polite" and "police".
+- Speeded up searches that have multiple terms (particularly 'must-find' terms)
+- Now places the date and time of the search, and the Refresh 'button' under the section heading, not above it. This makes better sense for the auto-refresh (above).
+- Now clarified that searches do include the special Archive and Templates folders, unless you exclude them using the 'Folders to exclude' setting.
+
 ## [1.2.4] - 2023-10-04
 ### Changes
 - the /flexiSearch dialog box simplified with a new tooltip help, and better validation checks
