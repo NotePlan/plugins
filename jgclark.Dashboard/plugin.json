@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.7.4-RC1",
-  "plugin.lastUpdateInfo": "v0.7.4: new optional limit to number of items shown in Tag section.\nv0.7.3: New priority button. New setting to exclude checklist items. More setting to give more control over Overdue tasks section.\nv0.7.2: turn off 'preview' on task and checklist markers, as they can behave wrongly at speed. Other fixes and polish.\nv0.7.1: 'folders to ignore' setting now applies to 'Overdue tasks' section. Two new experimental buttons.\nv0.7.0: new optional 'Yesterday' and 'Overdue Tasks' sections.",
+  "plugin.version": "0.7.4",
+  "plugin.lastUpdateInfo": "v0.7.4: new optional limit to number of items shown in Tag section. Update to help Projects & Reviews plugin.\nv0.7.3: New priority button. New setting to exclude checklist items, and give more control over Overdue tasks section.\nv0.7.2: turn off 'preview' on task and checklist markers, as they can behave wrongly at speed. Other fixes and polish.\nv0.7.1: 'folders to ignore' setting now applies to 'Overdue tasks' section. Two new experimental buttons.\nv0.7.0: new optional 'Yesterday' and 'Overdue Tasks' sections.",
   "plugin.requiredFiles": [
     "commsSwitchboard.js",
     "dashboard.css",
@@ -38,6 +38,12 @@
       ],
       "description": "Show Dashboard window",
       "jsFunction": "showDashboardHTML"
+    },
+    {
+      "name": "refreshDashboard",
+      "hidden": true,
+      "description": "Refresh Dashboard window if already open",
+      "jsFunction": "refreshDashboard"
     },
     {
       "name": "onMessageFromHTMLView",
@@ -136,6 +142,7 @@
       "description": "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results.",
       "type": "[string]",
       "default": [
+        "@Archive",
         "Saved Searches"
       ],
       "required": false

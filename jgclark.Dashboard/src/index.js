@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 24.8.2023 for v0.6.0, @jgclark
+// last updated 26.12.2023 for v0.7.5, @jgclark
 // ----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -20,7 +20,7 @@ import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import moment from 'moment/min/moment-with-locales'
 
 export { getDemoDataForDashboard } from './demoDashboard'
-export { addTask, addChecklist, showDashboardHTML, showDemoDashboardHTML, resetDashboardWinSize } from './main'
+export { addTask, addChecklist, refreshDashboard, showDashboardHTML, showDemoDashboardHTML, resetDashboardWinSize } from './main'
 export { decideWhetherToUpdateDashboard } from './dashboardTriggers'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge'
 export { getDataForDashboard, logDashboardData } from './dataGeneration'

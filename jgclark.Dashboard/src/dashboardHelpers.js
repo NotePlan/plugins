@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 10.12.2023 for v0.7.4 by @jgclark
+// Last updated 16.12.2023 for v0.7.4 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -57,7 +57,7 @@ import { showMessage, showMessageYesNo } from '@helpers/userInput'
 export type Section = {
   ID: number,
   name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
-  dateType: '' | 'DT' | 'DY' | 'W' | 'M' | 'Q' | 'Y' | 'O', // where O = overdue, DT = today, DY = yesterday
+  sectionType: '' | 'DT' | 'DY' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG', // where DT = today, DY = yesterday, TAG = Tag sections
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,

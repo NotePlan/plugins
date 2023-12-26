@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 19.11.2023 for v0.7.1 by @jgclark
+// Last updated 26.12.2023 for v0.7.5 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -32,6 +32,7 @@ import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
 import { showHTMLV2 } from '@helpers/HTMLView'
 import { getNoteType } from '@helpers/note'
+import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent, encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import {
   applyRectToWindow,
@@ -472,6 +473,24 @@ export async function showDemoDashboardHTML(): Promise<void> {
 }
 
 /**
+ * Refresh the dashboard HTML window, *if it is already open*.
+ * Called by Project & Reviews plugin from updateReviewListAfterChange() and makeFullReviewList() functions.
+ */
+export async function refreshDashboard(): Promise<void> {
+  try {
+    // Only continue if dashboard is already open
+    if (isHTMLWindowOpen(windowCustomId)) {
+      logDebug(pluginJson, `refreshDashboard(): Dashboard is open`)
+      await showDashboardHTML('refresh')
+    } else {
+      logDebug(pluginJson, `refreshDashboard(): Dashboard is NOT open`)
+    }
+  } catch (error) {
+    logError(pluginJson, `refreshDashboard(): ${error.message}`)
+  }
+}
+
+/**
  * Show the generated dashboard data using native HTML.
  * The HTML item IDs are defined as:
  * - x-y = section x item y, used in <tr> tags and onClick references
@@ -479,8 +498,8 @@ export async function showDemoDashboardHTML(): Promise<void> {
  * - x-yI = icon for section x item y, used in 'col 3' <i> tag
  *
  * @author @jgclark
- * @param {string?} callType (default: 'manual')
- * @param {boolean?} showDemoData? if true, show the demo data, otherwise show the real data
+ * @param {string?} callType (default: 'manual', 'trigger', 'refresh')
+ * @param {boolean?} demoMode? if true, show the demo data, otherwise show the real data
  */
 export async function showDashboardHTML(callType: string = 'manual', demoMode: boolean = false): Promise<void> {
   try {
@@ -490,6 +509,8 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
       await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
       return
     }
+
+    logDebug(pluginJson, `showDashboardHTML() started ${demoMode ? '*and will use demo data*' : ''}`)
 
     const shouldFocus = (callType === 'manual')
     const config = await getSettings()
@@ -509,8 +530,6 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
       const fullGenerate = callType !== 'trigger'
         ;[sections, sectionItems] = await getDataForDashboard(fullGenerate)
     }
-
-    // logDebug('showDashboardHTML', `Starting with ${String(sections.length)} sections and ${String(sectionItems.length)} items`)
 
     const outputArray: Array<string> = []
     const today = new moment().toDate()
@@ -631,25 +650,24 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
         const itemNoteTitle = displayTitle(DataStore.projectNoteByFilename(item.filename) ?? DataStore.calendarNoteByDateString(item.filename.split('.')[0]))
 
         // Work out the extra controls that are relevant for this task, and set up as tooltips
-        // (where 'O' refers to 'Overdue')
         const possibleControlTypes = [
-          { displayString: '→today', controlStr: 't', sectionDateTypes: ['DY', 'W', 'M', 'Q', 'O'] }, // special controlStr to indicate change to '>today'
-          { displayString: '+1d', controlStr: '+1d', sectionDateTypes: ['DT', 'DY', 'W', 'M', 'O'] },
-          { displayString: '+1b', controlStr: '+1b', sectionDateTypes: ['DT', 'DY', 'W', 'M', 'O'] },
-          { displayString: '→w', controlStr: '+0w', sectionDateTypes: ['DT', 'DY', 'M', 'O'] },
-          { displayString: '+1w', controlStr: '+1w', sectionDateTypes: ['DT', 'DY', 'W', 'O'] },
-          { displayString: '→m', controlStr: '+0m', sectionDateTypes: ['DT', 'DY', 'W', 'Q', 'O'] },
-          { displayString: '+1m', controlStr: '+1m', sectionDateTypes: ['M', 'O'] },
-          { displayString: '→q', controlStr: '+0q', sectionDateTypes: ['M'] },
-          { displayString: 'pri', controlStr: 'pri', sectionDateTypes: ['DT', 'DY', 'W', 'M', 'Q', 'O', 'TAG'] },
+          { displayString: '→today', controlStr: 't', sectionsectionTypes: ['DY', 'W', 'M', 'Q', 'OVERDUE'] }, // special controlStr to indicate change to '>today'
+          { displayString: '+1d', controlStr: '+1d', sectionsectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE'] },
+          { displayString: '+1b', controlStr: '+1b', sectionsectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE'] },
+          { displayString: '→w', controlStr: '+0w', sectionsectionTypes: ['DT', 'DY', 'M', 'OVERDUE'] },
+          { displayString: '+1w', controlStr: '+1w', sectionsectionTypes: ['DT', 'DY', 'W', 'OVERDUE'] },
+          { displayString: '→m', controlStr: '+0m', sectionsectionTypes: ['DT', 'DY', 'W', 'Q', 'OVERDUE'] },
+          { displayString: '+1m', controlStr: '+1m', sectionsectionTypes: ['M', 'OVERDUE'] },
+          { displayString: '→q', controlStr: '+0q', sectionsectionTypes: ['M'] },
+          { displayString: 'pri', controlStr: 'pri', sectionsectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'] },
         ]
         // Add some specials if requested by a hidden setting
         if (config.showExtraButtons) {
-          possibleControlTypes.push({ displayString: '◯/☐', controlStr: 'tog', sectionDateTypes: ['O', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'] })
-          possibleControlTypes.push({ displayString: '✓then', controlStr: 'ct', sectionDateTypes: ['O', 'TAG'] })
+          possibleControlTypes.push({ displayString: '◯/☐', controlStr: 'tog', sectionsectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'] })
+          possibleControlTypes.push({ displayString: '✓then', controlStr: 'ct', sectionsectionTypes: ['OVERDUE', 'TAG'] })
         }
 
-        const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionDateTypes.includes(section.dateType))
+        const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionsectionTypes.includes(section.sectionType))
         let tooltipContent = ''
         if (controlTypesForThisSection.length > 0) {
           tooltipContent = `\n           <span class="hoverExtraControls" data-date-string="${encodedFilename}">` // now always pass filename of item, even if it is same as section.filename
@@ -662,7 +680,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
                 ? "completeThenButton"
                 : (ct.controlStr === 'pri')
                   ? "priorityButton"
-                  // : (ct.sectionDateTypes.includes(section.dateType))
+                  // : (ct.sectionsectionTypes.includes(section.sectionType))
                   : isItemFromCalendarNote
                     ? "moveButton"
                     : "changeDateButton"
@@ -857,7 +875,7 @@ export async function addChecklist(calNoteFilename: string): Promise<void> {
 
 /**
  * Special command to resize dashboard window size to default
- * Note: remove when Eduard finds the bug that means I needed to try this
+ * Note: remove when Eduard finds the bug that means I needed to add this
  */
 export async function resetDashboardWinSize(): Promise<void> {
   unsetPreference('WinRect_Dashboard')
