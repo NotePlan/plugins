@@ -626,7 +626,7 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
   }
 
   // Then test to see if this is one of the other specials
-  const specialFontList = new Map()
+  const specialFontList: Map<string, Array<string>> = new Map()
   // lookup list of special cases
   specialFontList.set('System', ['sans', 'regular', 'normal'])
   specialFontList.set('', ['sans', 'regular', 'normal'])
