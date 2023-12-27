@@ -1,8 +1,9 @@
 # 🔎 Search Extensions plugin
 NotePlan can search over your notes, but it is currently not very flexible or easy to use; in particular it's difficult to navigate between the search results and any of the actual notes it shows.  This plugin adds some extra power and usability to searching. It:
 - lets you have keep special notes that lists all open tasks for @colleagueX that you can update in place!
-- extends the search syntax
+- extends the search syntax to allow much more control, including wildcards
 - by default the search runs and **saves the results in a note that it opens as a split view** next to where you're working.
+- these saved searches can be refreshed automatically when you open the note to consult it.
 
 ![demo](qs+refresh-demo.gif)
 
@@ -43,20 +44,24 @@ There are further display options you can set:
 - the commands to automatically decides the name of the note to save the search results to based on the search term, which avoids the final prompt, by the 'Automatically save?' setting.
 
 ### Refreshing Results
-Each results note has a ` [🔄 Refresh results for ...]` pseudo-button under the title of the note. Clicking that runs the search again, and replaces the earlier set of results. (Thanks to @dwertheimer for the suggestion, which is a good use of the x-callback mechanism -- see below.)
+Each results note has a ` [🔄 Refresh results for ...]` pseudo-button under the title of the note. Clicking that runs the search again, and replaces the earlier set of results.
 
 ![refresh results](highlight-refresh-in-search-results.png)
 
 This is shown in the demo above.
 
-## Extended search syntax
+From v1.3, a saved search can be **automatically refreshed when opening it**. To enable this, run "/add trigger" on the saved search note, and select "🔎 Search Extensions: 'refreshSavedSearch'" from the list.  To turn this off again, just remove the line starting `triggers: onOpen` from the frontmatter.
 
+## Extended search syntax
 - put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
-- the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit`)
-- the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`), not using fuzzy matching or regular expressions
-- currently, a search term must have at least two alphanumeric characters to be valid
-- all notes in the special folders (@Archive, @Templates and @Trash) are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
+- TEST: the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit`)
+- the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`)
+- however from v1.3.0 you can also use two **wildcard** operators:
+  -  `*` in a term means "match any number of characters (including none)" -- e.g. `pos*e` matches "possible", "posie" and "pose".
+  -  `?` in a term means "match any single character" -- e.g. `poli?e` matches "polite" and "police".
+- currently, a search term must have at least two alphanumeric characters to be valid.
+- all notes in the special Trash folder are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
 - you can use an empty search term (from v1.1), which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
 - (from v1.2) to search for an exact multi-word phrases, put it in quotes (e.g. `"Holy Spirit"`)
 - you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
@@ -67,8 +72,9 @@ To change the default **settings** on **macOS** click the gear button on the 'Se
 ![search settings](search-settings.png)
 
 On **iOS** run the command "/Search: update plugin settings" which provides a multi-step equivalent to the more convenient macOS settings window.
+
 ## Results highlighting
-To see **highlighting** of matching terms in Simplified-style output, you'll need to be using a theme that highlights lines using `==this syntax==`. The build-in themes should now include this, but you can [customise an existing theme](https://help.noteplan.co/article/44-customize-themes) by adding something like:
+To see **highlighting** of matching terms in Simplified-style output, you'll need to be using a theme that highlights lines using `==this syntax==`. The build-in themes now include this, but you can [customise an existing theme](https://help.noteplan.co/article/44-customize-themes) by adding something like:
 
 ```jsonc
 {
@@ -102,6 +108,8 @@ To see **highlighting** of matching terms in Simplified-style output, you'll nee
 }
 ```
 
+Note: I have reported a small layout bug with this highlighting that was introduced about v.3.9.9.
+
 ## Using from x-callback calls
 It's possible to call these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
 ```
@@ -118,7 +126,7 @@ Notes:
 |-----|-----------|----------|----------|----------|----------|----------|
 | /flexiSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=flexiSearch`<br />(this takes no args: use this just to display the dialog box)|  | | | | |
 | /quickSearch | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&` | search term(s) ¶ (separated by commas) | paragraph types to filter by (separated by commas) | noteTypesToInclude either 'project','calendar' or 'both' | | |
-| /search | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=saveSearch&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
+| /search | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=search&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchOverCalendar | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverCalendar&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchOverNotes | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchOverNotes&` | search term(s) (separated by commas) | paragraph types to filter by (separated by commas) |  | | |
 | /searchInPeriod | `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=searchInPeriod&` | search term(s) (separated by commas) | start date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to 3 months ago. | end date to search over (YYYYMMDD or YYYY-MM-DD format). If not given, then defaults to today. | optional paragraph types to filter by (separated by commas) | optional output destination indicator: 'current', 'newnote', or 'log' |
@@ -128,7 +136,7 @@ Notes:
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
-If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
+I have spent several weeks of my free time on this plugin. If you would like to support my late-night work extending NotePlan through writing these plugins, you can through
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg"/>](https://www.buymeacoffee.com/revjgc)
 
