@@ -3,7 +3,7 @@
 This Plugin lets you do the following sorts of things:
 - track habits: for example, show when this week I've managed to `#closedmyrings` or `#tookMeds`?
 
-  <img alt="Habit Tracker example" src="ipu-2w-with-sparkline.jpg" width=360px/>
+  <img alt="Habit Tracker example" src="ipu-2w-with-sparkline.jpg" width="360px"/>
 
 - show your progress over the last 2 weeks against your goal of getting an average 8 hours `@sleep`
 - show your total Calorie count from different mentions in your daily note
@@ -19,7 +19,7 @@ This Plugin lets you do the following sorts of things:
 
   ![Heatmap example](heatmap-tasks-0164.png)
 
-**What do you need to do?** Add tags like #closedmyrings or @habit(_number_) in your daily notes. In my case a day might incldue:
+**What do you need to do?** Add tags like #closedmyrings or @habit(_number_) in your daily notes. In my case a day might include:
 ```md
 @sleep(5.3) @activeCals(400) @steps(3800) @distance(2.7) @minHR(50) @maxHR(161) @restingHR(66) @fruitveg(4)
 @work(10) #readbook
@@ -34,8 +34,7 @@ You might find a simple 'Shortcut' for use on iOS/macOS helpful to make it quick
 
 All these commands require **some setup**, so it knows what you want to summarise. Do this in the Plugin Preferences panel by clicking the gear button on the 'Summaries' line. Each setting has an explanation (below), and they are grouped into relevant sections.
 
-
-The command output can include little **"sparkline" graphs**, as a simple in-line visualisation of the recorded activity for each item you're tracking, where the time period is a month or less. A dot `.` indicates there's no data for that day; the height of the bar indicates the value of that day, relative to the maximum in that time period. The mimimum is always 0, not the lowest value, and that is always shown as an empty space.
+The command output can include little **"sparkline" graphs**, as a simple in-line visualisation of the recorded activity for each item you're tracking, where the time period is a month or less. A dot `.` indicates there's no data for that day; the height of the bar indicates the value of that day, relative to the maximum in that time period. The minimum is always 0, not the lowest value, and that is always shown as an empty space.
 
 To display them requires your font to have the necessary characters (`▁▂▃▄▅▆▇█`). All of NotePlan's built-in themes have the characters, and I have tested with Menlo and Cascadia Code monospace fonts as well.  See [NotePlan help on how to set fonts in themes](https://help.noteplan.co/article/44-customize-themes#fonts).
 
@@ -50,7 +49,7 @@ In particular it uses the `code` attribute of the theme (if set). Here's an exam
 
 Note: According to [several](https://wiki.mobileread.com/wiki/List_of_fonts_included_with_each_device) [sources](http://iosfonts.com/) the only monospace fonts on iPhone/iPad are forms of Courier (e.g. `Courier-Bold`) and Menlo (e.g. `Menlo-Regular`).
 
-All notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be exluded too using the `foldersToExclude` setting.
+All notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be excluded too using the `foldersToExclude` setting.
 
 Note: **Why use `@run(...)` (mentions) rather than `#run(...)` (hashtags)**? Well, it just felt more right to use `@run(...)` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside `@run(5.3)`.  However, you _can_ use a `#hashtag/value` if you don't mind this limitation.
 
@@ -93,7 +92,7 @@ This Plugin command helps show progress for items you track (e.g. `@work(9)`, `@
 
 For example, it produces for me:
 
-  <img alt="Habit Tracker example" src="ipu-2w-with-sparkline-v2.jpg" width=360px/>
+  <img alt="Habit Tracker example" src="ipu-2w-with-sparkline-v2.jpg" width="360px"/>
 
 Note:
 - The statistics are shown according to whether you have selected count, average or total for that tag in the settings (see below)
@@ -102,7 +101,7 @@ Note:
 There are now 3 ways of running this: as the "/appendProgressUpdate" command; through [templates](#calling-from-a-template), or by [x-callback call](#calling-by-x-callback). The various settings are common, but how they are applied differ depending which method is used to invoke it. The settings and their meaning are introduced next, and differences in how they're applied are described in the following sections.
 
 ### Settings for appendProgressUpdate
-The many **settings** for this command are set in the Plugin Prererence pane:
+The many **settings** for this command are set in the Plugin Preference pane:
 
 - What time period should the Progress update cover? Pick one of the options: 'wtd' or 'userwtd' (two week-to-date options), 'last7d' (last 7 days), 'mtd' (month to date), 'last2w' (last 2 weeks), 'last4w' (last 4 weeks). Note: `wtd` and `userwtd` behave slightly differently to each other:
   - `wtd` is the week to date using ISO standard (Monday)
@@ -138,7 +137,7 @@ You can add many parameters, _which if present override all the main settings de
 
 Each must be a `key:"value"` pair, with following pairs separated by commas, and all enclosed in curly brackets (i.e. in [JSON5 format](https://json5.org)). The 'key' names of the other possible settings are found in the `plugin.json` file installed as part of the plugin.
 
-Note: if you specifiy any of the settings that take hashtags or mentions, then _only those ones will be used_. E.g. `{... progressYesNo:"#read,#pray,#exercise", ...}` will not use any of the usual '#hashtags or count' or '@mentions to count', but only show Yes/No for each of those 3 tags.
+Note: if you specify any of the settings that take hashtags or mentions, then _only those ones will be used_. E.g. `{... progressYesNo:"#read,#pray,#exercise", ...}` will not use any of the usual '#hashtags or count' or '@mentions to count', but only show Yes/No for each of those 3 tags.
 
 ### Calling by x-callback
 This is similar to the Template above: create a JSON5 version of `key:"value"` pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=`
@@ -150,7 +149,7 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressU
 
 Note: Any string-based value part must be enclosed in **double quote marks** to make it valid JSON5.
 
-Note: The JSON parts needs to be **urlencoded** before it can be used. (For help with this, see the **Get-X-Callback-URL command** from the "Link Creator" Plugin. Select RUN a Plugin command > progressUpdate ...)
+Note: The JSON parts needs to be **URL-encoded** before it can be used. (For help with this, see the **Get-X-Callback-URL command** from the "Link Creator" Plugin. Select RUN a Plugin command > progressUpdate ...)
 
 ## 'today progress' command (alias: 'tp')
 Sometimes you want to have a summary of progress on something within a day -- for example `@carlories(...)` or `@exercise(...)`. To summarise these from today's daily note use **/today progress**, which works in the same way as **/append progress update**.
@@ -221,8 +220,6 @@ The settings for this command are:
 - #hashtags to **count**: e.g. '#tv, #podcast'
 - #hashtags to **average**: e.g. '#maxHeartRate' -- these are counted and displayed as an average
 - #hashtags to **total**: e.g. '#distance' -- these are counted and displayed as a total
-<!-- - #hashtags to **exclude**: e.g. ''
-- @mentions to **exclude**: e.g. '@done', '@repeat' -->
 - @mentions to **count**: e.g. '@work' -- these are counted and displayed with count, total and average
 - @mentions to **average**: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average
 - @mentions to **total**: e.g. '@distance, @run' -- these are counted and displayed as a total
@@ -246,12 +243,12 @@ If you find an issue with this plugin, or would like to suggest new features for
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg"/>](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 
 ## History
-The Plugin was originally known simply as 'Summaries'. Please see the [CHANGELOG](CHANGELOG.md).
+Please see the [CHANGELOG](CHANGELOG.md).
 
 ## Thanks
-Thanks to GitHub user zz85 whose code for the [ASCII art sparklines](https://github.com/zz85/ascii-graphs.js) I adapted and improved in v0.12.
+Thanks to GitHub user @zz85 whose code for the [ASCII art sparklines](https://github.com/zz85/ascii-graphs.js) I adapted and improved in v0.12.
