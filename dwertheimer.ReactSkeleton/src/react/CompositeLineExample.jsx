@@ -12,7 +12,6 @@ type Props = {
 }
 
 const w3cssColors = [
-  'red',
   'pink',
   'purple',
   'deep-purple',

@@ -3,25 +3,36 @@
 See [CHANGELOG](changelog.md) for latest updates/changes to this plugin.
 
 ## About This Code
-This is a basic skeleton of a React app that can be used in a NotePlan plugin. Copy this whole directory and edit as appropriate. 
+
+This is a basic skeleton of a React app that can be used in a NotePlan plugin. 
+1. Copy this whole directory 
+1. Do a global find/replace inside the new plugin directory you created and replace:
+  `dwertheimer.ReactSkeleton` with whatever the ID of your plugin is. 
+1. Spot-check that it correctly changed the paths in these files (should say your plugin name below):
+  `dwertheimer.ReactSkeleton/src/react/support/performRollup.node.js` 
+  `dwertheimer.ReactSkeleton/src/reactMain.js` 
+1. Build and test the code as detailed below (confirm everything works)
+1. Then edit `reactMain.js` (the plugin-side code) and `WebView.jsx` (the HTML/React-side code) as you wish (See "Editing the Code" below)
+
 
 > **NOTE:** There are some peculiarities of writing an app that uses React, so make sure to read this whole document
 
 ## Building the Code
 
 There are two parts to this code:
-1. The plugin code in reactMain.js which is built (like every other plugin) by running a command like: `npc plugin:dev -vcw`
-1. The React code, which contains React components in the `src/react` folder, starting with `WebView.jsx` which will be the root of your React application. This code must be rolled up in order for it to be viewable in a NotePlan HTML window. you will roll this code up from the command line by opening up a separate terminal and running the command: 
+1. The React code, which contains React components in the `src/react` folder, starting with `WebView.jsx` which will be the root of your React application. This code must be rolled up in order for it to be viewable in a NotePlan HTML window. You will roll this code up from the command line by opening up a separate terminal and running the command: 
   `node ./dwertheimer.ReactSkeleton/src/react/support/performRollup.node.js --watch ` (obviously changing the `dwertheimer.ReactSkeleton` part after you rename it)
+1. The plugin code in reactMain.js which is built (like every other plugin) by running a command like:
+  `npc plugin:dev dwertheimer.ReactSkeletop -w`
+1. Once both sides are built, the `/Test React Window` should open a window with interactivity
 
-> **REMEMBER:** If you find yourself wondering why your changes are not being updated in the React window when running the plugin, it may be because you forgot to build the React code (you were just building the plugin code as normal). 
+> **NOTE:** In the supplied example, when you invoke the `/Test React Window` command, you will see in `reactMain.js` that we are setting/passing the variable "debug:true" to the React window. This variable tells our React wrapper to display at the very bottom a log of the changes to the window and the current value of the window's data/variables which are used to draw the page. This section starts with a garish red bar to separate this section from the rest of your React window. This data is very helpful for debugging (to ensure the window has the data you expect). Change `debug` to 'false' prior to plugin release or when you want to see the page clean.
+
+> **REMEMBER:** If you find yourself wondering why your changes are not being updated in the React window when running the plugin, it may be because you forgot to build the React code (you were just building the plugin code as normal). Always remember that there are two concurrent build processes (plugin & React) which need to be going at all times during your development.
 
 > **NOTE:** The build process will create two versions of the plugin code -- minified (min) and non-minified (dev) in the requiredFiles folder. These files will allow you to release the plugin with those files in the requiredFiles, but they **should not** be committed to the github repo.
 
-# THE REST OF THIS README HAS NOT BEEN UPDATED YET
-# IT IS OUTDATED AND NOT ACCURATE
-
-## Necessary Edits
+## Editing the code
 
 ## Plugin Code
 The main plugin code that will invoke the React Window is in the file `src/reactMain.js`. This is the entrypoint to your plugin. This is also where the callback function is that will receive the calls back from the React view. Of course, these functions could be moved/renamed in `index.js`.

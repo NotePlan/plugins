@@ -409,7 +409,7 @@ var RootBundle = (function (exports, React$1) {
 	          logDebug(`Root: onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event);
 	        }
 	      } catch (error) {
-	        logDebug('Root: onMessageReceived: error=' + JSON.stringify(error) + 'error=' + JSON.stringify(error));
+	        logDebug(`Root: onMessageReceived: error=${JSON.stringify(error)}error=${JSON.stringify(error)}`);
 	      }
 	    }
 	  };
@@ -424,7 +424,9 @@ var RootBundle = (function (exports, React$1) {
 	   */
 	  const sendToPlugin = React__default["default"].useCallback(args => {
 	    const returnPluginCommand = globalSharedData.returnPluginCommand || 'undefined';
-	    if (returnPluginCommand === 'undefined' || !returnPluginCommand?.command || !returnPluginCommand?.id) throw 'returnPluginCommand variable is not passed correctly to set up comms bridge. Check your data object which you are sending to invoke React';
+	    if (returnPluginCommand === 'undefined' || !returnPluginCommand?.command || !returnPluginCommand?.id) {
+	      throw 'returnPluginCommand variable is not passed correctly to set up comms bridge. Check your data object which you are sending to invoke React';
+	    }
 	    if (!returnPluginCommand?.command) throw 'returnPluginCommand.cmd is not defined in the intial data passed to the plugin';
 	    if (!returnPluginCommand?.id) throw 'returnPluginCommand.id is not defined in the intial data passed to the plugin';
 	    const {
@@ -533,8 +535,8 @@ var RootBundle = (function (exports, React$1) {
 	    data: npData,
 	    dispatch: dispatch
 	  }), (debug) && /*#__PURE__*/React__default["default"].createElement(React__default["default"].StrictMode, null, /*#__PURE__*/React__default["default"].createElement("div", {
-	    className: "w3-container w3-green"
-	  }, "Debugging information (Plugin passed debug variable = true)"), /*#__PURE__*/React__default["default"].createElement("div", null, /*#__PURE__*/React__default["default"].createElement("span", {
+	    className: "w3-container w3-red w3-margin-top"
+	  }, "Debugging Data (Plugin passed debug:true at window open)"), /*#__PURE__*/React__default["default"].createElement("div", null, /*#__PURE__*/React__default["default"].createElement("span", {
 	    id: "debugHistory"
 	  }, "History (most recent first):"), /*#__PURE__*/React__default["default"].createElement("ul", null, history.slice().reverse().map((h, i) => /*#__PURE__*/React__default["default"].createElement("li", {
 	    style: {
