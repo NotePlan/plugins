@@ -233,8 +233,7 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
     // Sort alphabetically on note's title
     const notesSortedByTitle = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
     return notesSortedByTitle
-  }
-  catch (err) {
+  } catch (err) {
     logError('note/notesInFolderSortedByTitle', err.message)
     return []
   }
@@ -258,8 +257,7 @@ export function getUniqueNoteTitle(title: string): string {
       res = DataStore.projectNoteByTitle(newTitle, true, false)
     }
     return newTitle
-  }
-  catch (err) {
+  } catch (err) {
     logError('note/notesInFolderSortedByTitle', err.message)
     return ''
   }
@@ -574,7 +572,6 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
       let isInIgnoredFolder = false
       excludedFolders.forEach((folder) => {
         if (note.filename.includes(`${folder.trim()}/`)) {
-          logDebug('note/fNAEF', `ignoring folder="${folder}" note.filename="${note.filename}}"`)
           isInIgnoredFolder = true
         }
       })
