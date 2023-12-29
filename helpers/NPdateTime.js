@@ -200,13 +200,6 @@ export function getUsersFirstDayOfWeekUTC(): number {
   return typeof DataStore.preference('firstDayOfWeek') === 'number' ? Number(DataStore.preference('firstDayOfWeek')) - 1 : 1
 }
 
-// TODO: Use moment instead ... and make locale aware
-// const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-// const monthsAbbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-// function monthNameAbbrev(m: number): string {
-//   return monthsAbbrev[m - 1]
-// }
-
 /**
  * Array of period types and their descriptions, as used by getPeriodStartEndDates() when we need to ask user for a period.
  * (Not dependent on NotePlan functions, but easier to keep it with the function that uses it.)
@@ -266,30 +259,30 @@ export const periodTypesAndDescriptions = [
  * Get a time period from 'periodTypesAndDescriptions' (e.g. 'Last Quarter') and returns a set of details for it:
  * - {Date} start (js) date of time period
  * - {Date} end (js) date of time period
- * - {string} periodType    (e.g. 'lq' for 'Last Quarter')
+ * - {string} periodShortCode    (e.g. 'lq' for 'Last Quarter')
  * - {string} periodString  (e.g. '2022 Q2 (Apr-June)')
  * - {string} periodAndPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
- * Normally does this by asking user, unless param 'periodType' is supplied.
+ * Normally does this by asking user, unless param 'periodShortCode' is supplied.
  * @author @jgclark
  *
  * @param {string?} question to show user
  * @param {boolean?} excludeToday? (default true)
- * @param {string?} periodType? lm | mtd | om etc. If not provided ask user
+ * @param {string?} periodShortCodeArg? lm | mtd | om etc. If not provided ask user
  * @returns {[Date, Date, string, string, string]}
  */
 export async function getPeriodStartEndDates(
   question: string = 'Create stats for which period?',
-  excludeToday: boolean = true /* currently only used when a date is passed through as periodTypeToUse */,
-  periodTypeToUse?: string,
+  excludeToday: boolean = true /* currently only used when a date is passed through as periodShortCode */,
+  periodShortCodeArg?: string,
 ): Promise<[Date, Date, string, string, string]> {
-  let periodType: string
+  let periodShortCode: string
   // If we're passed the period, then use that, otherwise ask user
-  if (periodTypeToUse && periodTypeToUse !== '') {
+  if (periodShortCodeArg && periodShortCodeArg !== '') {
     // It may come with surrounding quotes, so remove those
-    periodType = trimAnyQuotes(periodTypeToUse)
+    periodShortCode = trimAnyQuotes(periodShortCodeArg)
   } else {
     // Ask user what date interval to do tag counts for
-    periodType = await chooseOption(question, periodTypesAndDescriptions, 'mtd')
+    periodShortCode = await chooseOption(question, periodTypesAndDescriptions, 'mtd')
   }
   let fromDateMom = new moment()
   let fromDate: Date = fromDateMom.toDate()
@@ -298,87 +291,42 @@ export async function getPeriodStartEndDates(
   let periodString = ''
   let periodAndPartStr = ''
 
+  logDebug('getPeriodStartEndDates', `starting with periodShortCode = ${periodShortCode}, excludeToday? ${String(excludeToday)}.`)
+
   const todaysDate = toDateMom.toDate()
   // couldn't get const { y, m, d } = getYearMonthDate(todaysDate) to work ??
   const y = todaysDate.getFullYear()
   const m = todaysDate.getMonth() + 1 // so we can count from 1
   const d = todaysDate.getDate()
 
-  // We appear to need to take timezone offset into account in order to avoid landing
-  // up crossing date boundaries.
-  // I.e. when in BST (=UTC+0100) it's calculating dates which are often 1 too early.
-  // Get TZOffset in minutes. If positive then behind UTC; if negative then ahead.
-  // TODO: ideally use moment library instead, which should make this easier
-  const TZOffset = new Date().getTimezoneOffset()
-  logDebug('getPeriodStartEndDates', `starting with periodType = ${periodType}, TZOffset = ${TZOffset}, excludeToday? ${String(excludeToday)}.`)
-
-  switch (periodType) {
-    case 'today': {
-      fromDateMom = fromDateMom.startOf('day')
-      fromDate = fromDateMom.toDate()
-      toDateMom = toDateMom.endOf('day')
-      toDate = toDateMom.toDate()
-      periodString = 'today'
-      break
-    }
-    case 'lm': {
-      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // go to start of this month
-      // fromDate = Calendar.addUnitToDate(fromDate, 'month', -1) // -1 month
-      // toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
-      // const theY = m > 1 ? y : y - 1
-      // periodString = `${monthNameAbbrev(fromDate.getMonth() + 1)} ${theY}`
-      // Now use moment instead:
-      fromDateMom = fromDateMom.subtract(1, 'month').startOf('month') //.subtract(6, 'days')
-      fromDate = fromDateMom.toDate()
-      toDateMom = moment(toDate).startOf('month').subtract(1, 'days')
-      toDate = toDateMom.toDate()
-      periodString = fromDateMom.format('MMM YYYY')
-      break
-    }
-    case 'mtd': {
-      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
-      // toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
-      // periodString = `${monthNameAbbrev(m)} ${y}`
-      // periodAndPartStr = `${periodString}, day ${d}`
-
-      // Now use moment instead
-      fromDateMom = moment(toDate).startOf('month')
-      fromDate = fromDateMom.toDate()
-      periodString = fromDateMom.format('MMM YYYY')
-      periodAndPartStr = `${periodString}, day ${d}`
-      break
-    }
-    case 'om': {
-      const theY = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Month', String(y)))
-      const theM = Number(await getInput('Choose month, (1-12)', 'OK', 'Counts for Month'))
-      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theY, theM, 1, 0, 0, 0), 'minute', -TZOffset) // start of this month
-      // toDate = Calendar.addUnitToDate(fromDate, 'month', 1) // + 1 month
-      // toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      // periodString = `${monthNameAbbrev(theM)} ${theY}`
-
-      // Now use moment instead:
-      fromDateMom = moment({ year: theY, month: theM - 1, day: 1 })
-      toDateMom = moment(fromDateMom).endOf('month') // have to clone otherwise fromDateMom mutates
-      // logDebug('', `om: ${fromDateMom.format()} - ${toDateMom.format()}`)
+  switch (periodShortCode) {
+    case 'ly': {
+      const lastY = y - 1
+      fromDateMom = moment().startOf('year').subtract(1, 'year')
+      toDateMom = moment(fromDateMom).endOf('year')
       fromDate = fromDateMom.toDate()
       toDate = toDateMom.toDate()
-      periodString = fromDateMom.format('MMM YYYY')
+      periodString = `${lastY}`
+      break
+    }
+    case 'ytd': {
+      fromDateMom = moment().startOf('year')
+      fromDate = fromDateMom.toDate()
+      periodString = `${y}`
+      periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
+      break
+    }
+    case 'oy': {
+      const theYear = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Year', String(y)))
+      fromDateMom = moment({ year: theYear, month: 0, day: 1 })
+      toDateMom = moment(fromDateMom).endOf('year')
+      fromDate = fromDateMom.toDate()
+      toDate = toDateMom.toDate()
+      periodString = `${theYear}`
       break
     }
 
     case 'lq': {
-      // const thisQ = Math.floor((m - 1) / 3) + 1 // quarter (1-4)
-      // const theQ = thisQ > 1 ? thisQ - 1 : 4 // last quarter (1-4)
-      // const theY = theQ === 4 ? y - 1 : y // change the year if we want Q4
-      // const [f, t] = quarterStartEnd(theQ, theY)
-      // fromDate = f
-      // toDate = t
-      // const theQStartMonth = (theQ - 1) * 3 + 1
-      // toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
-      // toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      // periodString = `${theY} Q${theQ} (${monthNameAbbrev(theQStartMonth)}-${monthNameAbbrev(theQStartMonth + 2)})`
-
-      // Now use moment instead:
       fromDateMom = moment().startOf('quarter').subtract(1, 'quarter')
       toDateMom = moment(fromDateMom).endOf('quarter') // have to clone otherwise
       fromDate = fromDateMom.toDate()
@@ -387,14 +335,6 @@ export async function getPeriodStartEndDates(
       break
     }
     case 'qtd': {
-      // const thisQ = Math.floor((m - 1) / 3) + 1
-      // const thisQStartMonth = (thisQ - 1) * 3 + 1
-      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, thisQStartMonth, 1, 0, 0, 0), 'minute', -TZOffset) // start of this quarter
-      // toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
-      // periodString = `${y} Q${thisQ} (${monthNameAbbrev(thisQStartMonth)}-${monthNameAbbrev(thisQStartMonth + 2)})`
-      // periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
-
-      // Now use moment instead
       fromDateMom = moment(toDate).startOf('quarter')
       fromDate = fromDateMom.toDate()
       periodString = fromDateMom.format('YYYY [Q]Q')
@@ -405,19 +345,38 @@ export async function getPeriodStartEndDates(
       const theY = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Quarter', String(y)))
       const theQ = Number(await getInput('Choose quarter, (1-4)', 'OK', 'Counts for Quarter'))
       const theQStartMonth = (theQ - 1) * 3 + 1
-      // const [f, t] = quarterStartEnd(theQ, theY)
-      // fromDate = f
-      // toDate = t
-      // toDate = Calendar.addUnitToDate(fromDate, 'month', 3) // +1 quarter
-      // toDate = Calendar.addUnitToDate(toDate, 'day', -1) // -1 day, to get last day of last month
-      // periodString = `${theY} Q${theQ} (${monthNameAbbrev(theQStartMonth)}-${monthNameAbbrev(theQStartMonth + 2)})`
-
-      // Now use moment instead:
       fromDateMom = moment({ year: theY, month: theQStartMonth - 1, day: 1 })
       toDateMom = moment(fromDateMom).endOf('quarter') // have to clone otherwise fromDateMom mutates
       fromDate = fromDateMom.toDate()
       toDate = toDateMom.toDate()
       periodString = fromDateMom.format('YYYY [Q]Q (MMM-') + toDateMom.format('MMM)')
+      break
+    }
+
+    case 'lm': {
+      fromDateMom = fromDateMom.subtract(1, 'month').startOf('month') //.subtract(6, 'days')
+      fromDate = fromDateMom.toDate()
+      toDateMom = moment(toDate).startOf('month').subtract(1, 'days')
+      toDate = toDateMom.toDate()
+      periodString = fromDateMom.format('MMM YYYY')
+      break
+    }
+    case 'mtd': {
+      fromDateMom = moment(toDate).startOf('month')
+      fromDate = fromDateMom.toDate()
+      periodString = fromDateMom.format('MMM YYYY')
+      periodAndPartStr = `${periodString}, day ${d}`
+      break
+    }
+    case 'om': {
+      const theY = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Month', String(y)))
+      const theM = Number(await getInput('Choose month, (1-12)', 'OK', 'Counts for Month'))
+      fromDateMom = moment({ year: theY, month: theM - 1, day: 1 })
+      toDateMom = moment(fromDateMom).endOf('month') // have to clone otherwise fromDateMom mutates
+      // logDebug('', `om: ${fromDateMom.format()} - ${toDateMom.format()}`)
+      fromDate = fromDateMom.toDate()
+      toDate = toDateMom.toDate()
+      periodString = fromDateMom.format('MMM YYYY')
       break
     }
 
@@ -453,7 +412,7 @@ export async function getPeriodStartEndDates(
       )
       fromDate = Calendar.startOfWeek(new Date()) //Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -(dateWithinInterval - 1))
       toDate = Calendar.addUnitToDate(fromDate, 'day', dateWithinInterval - 1) // Eduard, 3rd March '23: week to date means the start of the week till today? Before it went till the end.
-      logDebug('getPeriodStartEndDates', `fromDate: ${String(fromDate)}, ${String(toDate)}`)
+      logDebug('getPeriodStartEndDates', `userwtd: fromDate: ${String(fromDate)}, ${String(toDate)}`)
 
       periodString = `this week`
       periodAndPartStr = `at day ${dateWithinInterval} of this week`
@@ -475,16 +434,13 @@ export async function getPeriodStartEndDates(
       // get ISO dayOfWeek (Monday = 1 to Sunday = 7)
       const todaysISODayOfWeek = moment().isoWeekday()
       periodAndPartStr = `day ${todaysISODayOfWeek}, ${periodString}`
-      // logDebug('getPeriodStartEndDates', `wtd: currentWeekNum: ${currentWeekNum}, theYear: ${theYear}, todaysISODayOfWeek: ${todaysISODayOfWeek}`)
+      logDebug('getPeriodStartEndDates', `wtd: currentWeekNum: ${currentWeekNum}, theYear: ${theYear}, todaysISODayOfWeek: ${todaysISODayOfWeek}`)
       break
     }
     case 'last7d': {
       // last 7 days, including today
-      // now using Moment library
       periodString = `last 7 days`
       periodAndPartStr = ``
-      // fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -6)
-      // toDate = Calendar.addUnitToDate(fromDate, 'day', 6)
       toDateMom = moment(toDate).startOf('day')
       fromDateMom = toDateMom.subtract(6, 'days')
       fromDate = fromDateMom.toDate()
@@ -493,28 +449,22 @@ export async function getPeriodStartEndDates(
     }
     case 'last2w': {
       // last 2 weeks, including today
-      // now using Moment library
       periodString = `last 2 weeks`
       periodAndPartStr = ``
-      // fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -13)
-      // toDate = Calendar.addUnitToDate(fromDate, 'day', 13)
       toDateMom = moment(toDate).startOf('day')
       fromDateMom = toDateMom.subtract(13, 'days')
       fromDate = fromDateMom.toDate()
-      // logDebug('last2w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+      logDebug('last2w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
       break
     }
     case 'last4w': {
       // last 4 weeks, including today
-      // now using Moment library
       periodString = `last 4 weeks`
       periodAndPartStr = ``
-      // fromDate = Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -27)
-      // toDate = Calendar.addUnitToDate(fromDate, 'day', 27)
       toDateMom = moment(toDate).startOf('day')
       fromDateMom = moment(toDateMom).subtract(27, 'days')
       fromDate = fromDateMom.toDate()
-      // logDebug('last4w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+      logDebug('last4w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
       break
     }
     case 'ow': {
@@ -529,54 +479,28 @@ export async function getPeriodStartEndDates(
       break
     }
 
-    case 'ly': {
-      const lastY = y - 1
-      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(lastY, 1, 1, 0, 0, 0), 'minute', -TZOffset)
-      // toDate = Calendar.addUnitToDate(Calendar.dateFrom(lastY, 12, 31, 0, 0, 0), 'minute', -TZOffset)
+    case 'today': {
+      fromDateMom = fromDateMom.startOf('day')
+      fromDate = fromDateMom.toDate()
+      toDateMom = toDateMom.endOf('day')
+      toDate = toDateMom.toDate()
+      periodString = 'today'
+      break
+    }
 
-      // Now use moment instead:
-      fromDateMom = moment().startOf('year').subtract(1, 'year')
-      toDateMom = moment(fromDateMom).endOf('year')
-      fromDate = fromDateMom.toDate()
-      toDate = toDateMom.toDate()
-      periodString = `${lastY}`
-      break
-    }
-    case 'ytd': {
-      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(y, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
-      // toDate = Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset)
-      // Now use moment instead:
-      fromDateMom = moment().startOf('year')
-      fromDate = fromDateMom.toDate()
-      periodString = `${y}`
-      periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
-      break
-    }
-    case 'oy': {
-      const theYear = Number(await getInput(`Choose year, e.g. ${y}`, 'OK', 'Counts for Year', String(y)))
-      // fromDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 1, 1, 0, 0, 0), 'minute', -TZOffset) // start of this year
-      // toDate = Calendar.addUnitToDate(Calendar.dateFrom(theYear, 12, 31, 0, 0, 0), 'minute', -TZOffset)
-      // Now use moment instead:
-      fromDateMom = moment({ year: theYear, month: 0, day: 1 })
-      toDateMom = moment(fromDateMom).endOf('year')
-      fromDate = fromDateMom.toDate()
-      toDate = toDateMom.toDate()
-      periodString = `${theYear}`
-      break
-    }
     default: {
       // check to see if it's an ISO8601 date instead
-      if (new RegExp(`^${RE_DATE}$`).test(periodType)) {
+      if (new RegExp(`^${RE_DATE}$`).test(periodShortCode)) {
         toDateMom = moment(toDate).startOf('day')
-        fromDateMom = moment(periodType)
+        fromDateMom = moment(periodShortCode)
         fromDate = fromDateMom.toDate()
-        periodString = `since ${periodType}`
+        periodString = `since ${periodShortCode}`
         const daysBetween = toDateMom.diff(fromDateMom, 'days')
-        periodAndPartStr = `${daysBetween} days since ${periodType}`
+        periodAndPartStr = `${daysBetween} days since ${periodShortCode}`
         logDebug('getPeriodStartEndDates 8601date', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
         break
       }
-      periodString = `<Error: couldn't parse interval type '${periodType}'>`
+      periodString = `<Error: couldn't parse interval type '${periodShortCode}'>`
     }
   }
   if (excludeToday) {
@@ -585,7 +509,111 @@ export async function getPeriodStartEndDates(
     toDate = toDateMom.toDate()
   }
   logDebug('getPeriodStartEndDates', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString} / ${periodAndPartStr}`)
-  return [fromDate, toDate, periodType, periodString, periodAndPartStr]
+  return [fromDate, toDate, periodShortCode, periodString, periodAndPartStr]
+}
+
+/**
+ * Returns a set of details for the supplied date period:
+ * - {Date} start (js) date of time period
+ * - {Date} end (js) date of time period
+ * - {string} periodShortCode    (e.g. 'lq' for 'Last Quarter')
+ * - {string} periodString  (e.g. '2022 Q2 (Apr-June)')
+ * - {string} periodAndPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
+ * @author @jgclark
+ * @tests some in jest file; doesn't cover the JS Date returns
+ * @param {string} periodShortCodeArg lm | mtd | om etc.
+ * @param {number} periodNumber e.g. 3 for '3rd Quarter' or '3rd month' etc.
+ * @param {number} year
+ * @param {boolean?} excludeToday? (default true)
+ * @returns {[Date, Date, string, string, string]}
+ */
+export async function getPeriodStartEndDatesFromPeriodCode(
+  periodShortCodeArg: string,
+  periodNumber: number,
+  year: number,
+  excludeToday: boolean = true /* currently only used when a date is passed through as periodShortCodeToUse */,
+): Promise<[Date, Date, string, string, string]> {
+  let periodShortCode = periodShortCodeArg
+  let fromDateMom = new moment()
+  let toDateMom = new moment()
+  let fromDate: Date = fromDateMom.toDate()
+  let toDate: Date = toDateMom.toDate()
+  let periodString = ''
+  let periodAndPartStr = ''
+  const todaysDateMom = new moment()
+
+  logDebug('getPeriodStartEndDatesFromPeriodCode', `Starting with code ${periodShortCodeArg}`)
+  if (['ytd', 'ly', 'oy'].includes(periodShortCode)) {
+    fromDateMom = moment({ year: year, month: 0, day: 1 })
+    toDateMom = moment(fromDateMom).endOf('year') // have to clone otherwise fromDateMom mutates
+    periodString = `${String(year)}`
+    periodAndPartStr = (todaysDateMom < toDateMom) ? `${periodString} (to date)` : periodString
+  }
+  else if (['qtd', 'lq', 'oq'].includes(periodShortCode)) {
+    const theQStartMonth = (periodNumber - 1) * 3 + 1
+    fromDateMom = moment({ year: year, month: theQStartMonth - 1, day: 1 })
+    toDateMom = moment(fromDateMom).endOf('quarter') // have to clone otherwise fromDateMom mutates
+    periodString = fromDateMom.format('YYYY [Q]Q (MMM-') + toDateMom.format('MMM)')
+    periodAndPartStr = (todaysDateMom < toDateMom) ? `${fromDateMom.format('YYYY [Q]Q')} (to date)` : periodString
+  }
+  else if (['mtd', 'lm', 'om'].includes(periodShortCode)) {
+    fromDateMom = moment({ year: year, month: periodNumber - 1, day: 1 })
+    toDateMom = moment(fromDateMom).endOf('month')
+    periodString = fromDateMom.format('MMM YYYY')
+    periodAndPartStr = (todaysDateMom < toDateMom) ? `${periodString} (to date)` : periodString
+  }
+  else if (['wtd', 'lw', 'ow'].includes(periodShortCode)) {
+    // I don't know why the [from, to] form doesn't work here, but using tempObj instead
+    const tempObj = isoWeekStartEndDates(periodNumber, year)
+    fromDate = tempObj[0]
+    toDate = tempObj[1]
+    periodString = `${year}-W${periodNumber < 10 ? `0${String(periodNumber)}` : String(periodNumber)}`
+    periodAndPartStr = (todaysDateMom < toDateMom) ? `${periodString} (to date)` : periodString
+  }
+  else if (periodShortCode === 'userwtd') {
+    ;[fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('', excludeToday, 'userwtd')
+  }
+  // else if (periodShortCode === 'wtd') {
+  //   ;[fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('', excludeToday, 'wtd')
+  // }
+  else if (periodShortCode === 'last7d') {
+    ;[fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('', excludeToday, 'last7d')
+  }
+  else if (periodShortCode === 'last2w') {
+    ;[fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('', excludeToday, 'last2w')
+  }
+  else if (periodShortCode === 'last4w') {
+    ;[fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('', excludeToday, 'last4w')
+  }
+  else if (periodShortCode === 'today') {
+    fromDateMom = fromDateMom.startOf('day')
+    toDateMom = toDateMom.endOf('day')
+    periodString = 'today'
+    periodAndPartStr = 'Today'
+  }
+  else if (new RegExp(`^${RE_DATE}$`).test(periodShortCode)) {
+    // check to see if it's an ISO8601 date instead
+
+    fromDateMom = moment(periodShortCode)
+    toDateMom = new moment().startOf('day')
+    periodString = `since ${periodShortCode}`
+    const daysBetween = toDateMom.diff(fromDateMom, 'days')
+    periodAndPartStr = `${daysBetween} days since ${periodShortCode}`
+    logDebug('getPeriodStartEndDatesFromPeriodCode', `matched 8601date: ${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+  } else {
+    periodString = `<Error: couldn't parse interval type '${periodShortCode}'>`
+    logWarn('getPeriodStartEndDatesFromPeriodCode', `couldn't match ${periodShortCode}`)
+  }
+
+  fromDate = fromDateMom.toDate()
+  toDate = toDateMom.toDate()
+  if (excludeToday) {
+    logDebug('getPeriodStartEndDatesFromPeriodCode', `- as requested, today's date will be excluded`)
+    toDateMom = moment(toDate).subtract(1, 'day')
+    toDate = toDateMom.toDate()
+  }
+  logDebug('getPeriodStartEndDatesFromPeriodCode', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString} / ${periodAndPartStr}`)
+  return [fromDate, toDate, periodShortCode, periodString, periodAndPartStr]
 }
 
 export type NotePlanWeekInfo = {

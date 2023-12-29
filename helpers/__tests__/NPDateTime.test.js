@@ -1,4 +1,4 @@
-/* global describe, test, expect, beforeAll, beforeEach */
+/* global describe, test, expect, beforeAll, it */
 import moment from 'moment/min/moment-with-locales'
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import * as f from '../NPdateTime'
@@ -172,6 +172,79 @@ describe(`${FILENAME}`, () => {
       })
       test('2023 to 2023-09-06', () => {
         expect(f.relativeDateFromDateString('2023', toDateStr)).toEqual(['0y', 'this year'])
+      })
+    })
+  })
+
+  /**
+   * getPeriodStartEndDatesFromPeriodCode()
+   */
+  describe('getPeriodStartEndDatesFromPeriodCode', () => {
+    describe('years', () => {
+      it('ytd / 1 / 2023 / false', async () => {
+        expect.assertions(2)
+        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('ytd', 1, 2023, false)
+        expect(ps).toBe('2023')
+        expect(paps).toBe('2023 (to date)')
+      })
+      it('oy / 3 / 2021 / false', async () => {
+        expect.assertions(2)
+        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('oy', 3, 2021, false)
+        expect(ps).toBe('2021')
+        expect(paps).toBe('2021')
+      })
+    })
+    describe('quarters', () => {
+      it('qtd / 1 / 2023 / false', async () => {
+        expect.assertions(2)
+        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('qtd', 1, 2023, false)
+        expect(ps).toBe('2023 Q1 (Jan-Mar)')
+        expect(paps).toBe('2023 Q1 (to date)')
+      })
+      it('oq / 3 / 2021 / false', async () => {
+        expect.assertions(2)
+        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('oq', 3, 2021, false)
+        expect(ps).toBe('2021 Q3 (Jul-Sep)')
+        expect(paps).toBe('2021 Q3 (Jul-Sep)')
+      })
+    })
+    describe('months', () => {
+      it('mtd / 1 / 2023 / false', async () => {
+        expect.assertions(2)
+        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('mtd', 1, 2023, false)
+        expect(ps).toBe('Jan 2023')
+        expect(paps).toBe('Jan 2023 (to date)')
+      })
+      it('om / 3 / 2021 / false', async () => {
+        expect.assertions(2)
+        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('om', 3, 2021, false)
+        expect(ps).toBe('Mar 2021')
+        expect(paps).toBe('Mar 2021')
+      })
+    })
+    describe('weeks', () => {
+      // can only test week type 'ow', without complex mocking
+      it('ow / 51 / 2023 / false', async () => {
+        expect.assertions(2)
+        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('ow', 51, 2023, false)
+        expect(ps).toBe('2023-W51')
+        expect(paps).toBe('')
+      })
+    })
+    describe('days', () => {
+      it('today / 3 / 2021 / false', async () => {
+        expect.assertions(2)
+        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('today', 3, 2021, false)
+        expect(ps).toBe('today')
+        expect(paps).toBe('')
+      })
+      // Is specific to today, so needs updating to test
+      // This was correct on 2023-12-27
+      it.skip('2023-12-01 / 3 / 2021 / false', async () => {
+        expect.assertions(2)
+        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('2023-12-01', 3, 2021, false)
+        expect(ps).toBe('since 2023-12-01')
+        expect(paps).toBe('26 days since 2023-12-01')
       })
     })
   })
