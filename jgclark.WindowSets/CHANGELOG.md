@@ -1,16 +1,21 @@
-# What's changed in 🖥️ Window Sets?
+# What's changed in 🖥️ Window Tools?
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md)._
 
-## [0.5.0b1] - 2023-10-27
+## [1.0.0] - 2023-12-27 (unreleased)
+Renamed plugin to '**🖥️  Window Tools**' (at v1.0.0) as it now covers more than just Window Sets:
+- new command **/move split to main** (alias: /mstm) that moves the current split pane to be the first one in the main window
+- new command **/constrain main window** (alias: /cmw) moves the main window to make sure its fully in the screen area, shrinking it if it needs to.
+
+<!-- ## [0.5.0b1] - 2023-10-27
 First private attempt to use updated API to deal with split window widths properly in saving and opening window sets. In particular:
-- added a new command **/set editor width** (alias: /sew), which tests this new functionality.
+- FIXME: added a new command **/set editor width** (alias: /sew), which tests this new functionality. -->
 
 ## [0.4.0] - 2023-10-20
 **This is the first public release. It requires NotePlan v3.9.8.**
 - wrote most documentation
-- now checks that windows live within the visible screen dimensions, and moves/resizes them if not
+- now checks that windows live within the visible screen area, and moves them if not, shrinking if necessary
 - smarter mechanism for guessing plugin (HTML) windows details by developer convention
-- now knows which machine they live on ... so now ... . See README for details.
+- now knows which Mac a WindowSet was defined on, and now will only offer to open WindowSets from that same Mac. This helps users with multiple machines with different sized monitors, including me.
 - add update trigger a different way, and fixed it dealing with stale data
 - fix problem where regular notes' filenames weren't being saved
 

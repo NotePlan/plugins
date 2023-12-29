@@ -1,28 +1,50 @@
-# 🖥️ Window Sets
+# 🖥️ Window Tools
 
-This plugin (which requires NotePlan version 3.9.8 or higher) allows you to **save** particular 'sets' or layouts of your NotePlan windows on macOS, and then **restore** them in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins.
+This plugin (which requires NotePlan version 3.9.8 or higher) gives some tools to help manage NotePlan's windows more easily:
+- **save different layouts** ('Window Sets') of your NotePlan windows on macOS, and then **restore them** in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins. (See more detail below.)
+- **/move split to main** command (alias: **/mstm**) moves the current split pane to be the first one in the main window.
+- **/constrain main window** command (alias: **/cmw**) moves the main window to make sure its fully in the screen area, shrinking it if it needs to.
 
-The commands are simple:
+## Window Set commands
+There are two commands:
 - **/open window set** (alias **/ows**): Open a saved set of windows/panes. You're shown a list of all existing window sets to choose from.
 - **/save window set** (alias **/sws**): Save the size and position of currently open NotePlan windows and 'split' panes as a set. You're given the option to save any open calendar notes as either relative to today (e.g. 'yesterday' or 'next week'), or as a fixed note.
 
-As monitor dimensions vary widely, a window set layout is specific to the particular macOS computer you've defined it on. If you have more than one then it will only show you the ones for the machine you're currently using.
+As monitor dimensions vary widely, a window set layout is specific to the particular Mac computer you've defined it on. If you have more than one then it will only show you the ones for the machine you're currently using.
 
 [<img width="100px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
-<hr />
-
-## Known limitations
+### Known limitations
 Unfortunately because of limitations in the API that plugins use, WindowSets:
 1. can't control the width of split windows within the main NotePlan window.
 2. can't control the order of windows that overlap, as the API doesn't supply the z-order of windows when saving a set. (Nor can it control the z-order of windows when opening a set.)
 
 ## Configuration
-Click the gear button on the **Window Sets** line in the Plugin Preferences panel, and configure the two general settings accordingly:
+Click the gear button on the **Window Tools** line in the Plugin Preferences panel, and configure the two settings accordingly:
 - Note title for Window Set definitions: defaults to `Window Sets`.
 - Folder where Window Set definitions are stored: defaults to `@Window Sets`.
 
-_If you want to dig into more detail, and tweak more of what's going on, please read on. But you shouldn't need to for most use of saving and opening window sets._
+_If you want to dig into more detail, and tweak more of what's going on, please read the final section below. But you shouldn't need to for most use of saving and opening window sets._
+
+## Running from x-callback
+The **/open window set** command can be triggered by opening a a special x-callback URL. The first argument is the name of the window set to open (with spaces replaced by `%20`.)`
+
+For example to restore the 'Days + Weeks' Window Set:
+`noteplan://x-callback-url/runPlugin?pluginID=jgclark.WindowSets&command=open%20window%20set&arg0=Days%20%2B%20Weeks`
+
+## Support
+If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
+
+If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
+
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
+
+Thanks!
+
+## History
+Please see the [CHANGELOG](CHANGELOG.md).
+
+<hr />
 
 ## Defining Window Sets
 These are defined in a special note; by default this is `@Window Sets/Windows Sets` but can be changed in the plugin Settings. All Window Sets are defined in a code block in JSON format. When first run it will offer to write out some examples for you to use or modify.
@@ -87,21 +109,3 @@ For example, filenames of `{-1w}`, `{0w}`,`{1w}` respectively means last week, t
 
 ### Specifiying Plugin Windows
 It will do its best to identify the plugin command used to create the window, however this is based on a lookup list, and so may not include everything. It will tell you if you need to manually update the Window Set definition: just search for the `?` which tell you where the command name needs adding.
-
-## Running from x-callback
-The **/open window set** command can be triggered by opening a a special x-callback URL. The first argument is the name of the window set to open (with spaces replaced by `%20`.)`
-
-For example to restore the 'Days + Weeks' Window Set:
-`noteplan://x-callback-url/runPlugin?pluginID=jgclark.WindowSets&command=open%20window%20set&arg0=Days%20%2B%20Weeks`
-
-## Support
-If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
-
-If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
-
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
-
-Thanks!
-
-## History
-Please see the [CHANGELOG](CHANGELOG.md).

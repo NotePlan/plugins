@@ -2,14 +2,14 @@
   "noteplan.minAppVersion": "3.9.8",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.WindowSets",
-  "plugin.name": "🖥️ Window Sets",
-  "plugin.description": "Allows you to easily save and restore particular sets of NotePlan windows on macOS.",
+  "plugin.name": "🖥️ Window Tools",
+  "plugin.description": "Tools to help manage NotePlan windows on macOS, notably save and restore particular window layouts ('Window Sets').",
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
-  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md",
-  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/CHANGELOG.md",
-  "plugin.version": "0.5.0b1",
-  "plugin.lastUpdateInfo": "v0.5.0: handling widths of split windows\nv0.4.0: First public release, and requires NP v3.9.8.",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/CHANGELOG.md",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "v1.0.0: 2 new commands, and renamed plugin to 'Window Tools'.\nv0.4.0: First public release, and requires NP v3.9.8.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -42,7 +42,23 @@
       "jsFunction": "logWindowSets"
     },
     {
-      "name": "log current windows list",
+      "name": "constrain main window",
+      "alias": [
+        "cmw"
+      ],
+      "description": "Constrain main window, so it actually all shows on the screen",
+      "jsFunction": "constrainMainWindow"
+    },
+    {
+      "name": "move split to main",
+      "alias": [
+        "mstm"
+      ],
+      "description": "Move current split window to be the main window",
+      "jsFunction": "moveCurrentSplitToMain"
+    },
+    {
+      "name": "test: log current windows list",
       "alias": [
         "lwl"
       ],
@@ -50,7 +66,7 @@
       "jsFunction": "logWindowsList"
     },
     {
-      "name": "write window set pref to note",
+      "name": "test: write window set pref to note",
       "alias": [
         "wpn"
       ],
@@ -58,7 +74,7 @@
       "jsFunction": "writeWSsToNote"
     },
     {
-      "name": "write window set note to pref",
+      "name": "test: write window set note to pref",
       "alias": [
         "wnp"
       ],
@@ -66,7 +82,7 @@
       "jsFunction": "writeWSNoteToPrefs"
     },
     {
-      "name": "sync window set note to pref",
+      "name": "test: sync window set note to pref",
       "alias": [
         "snp"
       ],
@@ -74,20 +90,28 @@
       "jsFunction": "syncWSNoteToPrefs"
     },
     {
-      "name": "set editor width",
+      "name": "test: set editor width",
       "alias": [
         "sew"
       ],
       "description": "Set width of an open editor, by its index",
-      "jsFunction": "setEditorWindowWidth"
+      "jsFunction": "setEditorSplitWidth"
     },
     {
-      "name": "delete all saved Window Sets",
+      "name": "test:delete window set",
+      "alias": [
+        "dws"
+      ],
+      "description": "Delete a saved set of windows/panes",
+      "jsFunction": "deleteWindowSet"
+    },
+    {
+      "name": "test: delete all saved Window Sets",
       "description": "Delete all saved window sets",
       "jsFunction": "deleteAllSavedWindowSets"
     },
     {
-      "name": "test:Log preference",
+      "name": "test:log preference",
       "alias": [
         "lp"
       ],
@@ -95,22 +119,12 @@
       "jsFunction": "logPreferenceAskUser"
     },
     {
-      "name": "test:Unset preference",
+      "name": "test:unset preference",
       "alias": [
         "up"
       ],
       "description": "Unset local preference",
       "jsFunction": "unsetPreferenceAskUser"
-    }
-  ],
-  "plugin.commands_unused": [
-    {
-      "name": "delete window set",
-      "alias": [
-        "dws"
-      ],
-      "description": "Delete a saved set of windows/panes",
-      "jsFunction": "deleteWindowSet"
     }
   ],
   "plugin.settings": [

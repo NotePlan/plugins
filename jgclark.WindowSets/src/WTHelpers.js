@@ -1,8 +1,8 @@
 // @flow
 //---------------------------------------------------------------
-// Helper functions for WindowSets plugin
+// Helper functions for WindowTools plugin
 // Jonathan Clark
-// last update 28.9.2022 for v0.3.0 by @jgclark
+// last update 27.12.2023 for v1.0.0 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -38,10 +38,11 @@ export const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
 // Data types
 // Note: x/y/w/h are available on all window types since v3.9.1 build 1020
 export type EditorWinDetails = {
-  noteType: string, // "Calendar" | "Note"
+  noteType: string, // NP NoteType "Calendar" | "Notes"
   filename: string,
   windowType: string, // "main" | "floating" | "split"
   title?: string, // optional, but persist it where used
+  id?: string, // optional, but persist it where used
   x: number,
   y: number,
   width: number,
@@ -57,14 +58,14 @@ export type HTMLWinDetails = {
   y: number,
   width: number,
   height: number,
-  // filename, custonmID are set by the plugin command itself so aren't needed here
+  // filename, customID are set by the plugin command itself so aren't needed here
 }
 
 export type WindowSet = {
   name: string,
   closeOtherWindows: boolean,
-  editorWindows: Array<EditorWinDetails>,
-  htmlWindows: Array<HTMLWinDetails>,
+  editorWindows: Array<EditorWinDetails>, // really 'editorWinDetails'
+  htmlWindows: Array<HTMLWinDetails>,// really 'htmlWinDetails'
   machineName: string
 }
 
@@ -201,17 +202,21 @@ export async function writeWSNoteToPrefs(calledFromSaveTrigger: boolean = false)
     const firstCBStr = noteCBs[0].code
 
     // Get object from this JSON string
-    let WSsObj: Array<WindowSet> = JSON.parse(firstCBStr).WS
+    let WSs: Array<WindowSet> = JSON.parse(firstCBStr).WS
 
-    // check bounds for this WS
-    WSsObj = checkWindowSetBounds(WSsObj)
+    // check bounds for each WS
+    // for (const ws of WSs) {
+    for (let i = 0; i < WSs.length; i++) {
+      const ws = WSs[i]
+      WSs[i] = checkWindowSetBounds(ws)
+    }
 
     // Get list of WS names from this JSON
     // TODO: update to just for this machine?
-    const WSNames = WSsObj.map((w) => w.name)
+    const WSNames = WSs.map((w) => w.name)
 
     // Send the resulting WS definitions to the preferences store as an object
-    DataStore.setPreference('windowSets', WSsObj)
+    DataStore.setPreference('windowSets', WSs)
     logDebug('writeWSNoteToPrefs', `Set windowSets pref from note '${config.noteTitleForDefinitions}' with set names [${String(WSNames)}]`)
 
   } catch (error) {
@@ -279,7 +284,6 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
       windowSets = windowSets.filter((ws) => ws.machineName === forMachineName)
       machineDisplayName = `(for ${forMachineName})`
     }
-    // clo(windowSets, `windowSets ${machineDisplayName}`)
     logDebug('readWindowSetDefinitions V3', `Read ${String(windowSets.length)} window sets  ${machineDisplayName}`)
     return windowSets
   } catch (err) {
@@ -307,7 +311,6 @@ export async function logWindowSets(): Promise<void> {
       logInfo('logWindowSets', `No saved windowSets object found in local pref.`)
       return
     }
-    // clo(windowSets, 'windowSets')
     logInfo('logWindowSets', `${String(windowSets.length)} saved windowSets found in local pref.`)
     const outputLines = []
     outputLines.push(`Window Sets:`)
@@ -371,44 +374,64 @@ export function getDetailedWindowSetByName(name: string): WindowSet | null {
 }
 
 /**
- * Returns the same array of WindowSet as passed, but with the X/Y/Width/Height attributes changed if:
+ * Returns the same WindowSet array as passed, but with the X/Y/Width/Height attributes changed if:
  * - it is created for the current machineName
  * - AND a window falls outside the bounds of the screen dimensions for the current machineName
- * @param {Array<WindowSet} setsToCheck
- * @returns {Array<WindowSet} checkedSets
+ * @param {Array<WindowSet} setToCheck
+ * @returns {Array<WindowSet>} checkedSet
  */
-export function checkWindowSetBounds(setsToCheck: Array<WindowSet>): Array<WindowSet> {
+export function checkWindowSetBounds(setToCheck: WindowSet): WindowSet {
   try {
-    logDebug('checkWindowSetBounds', `Starting check for ${String(setsToCheck.length)} window sets against screen dimensions for ${NotePlan.environment.machineName}: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}`)
-    let checkedSets = setsToCheck
+    logDebug('checkWindowSetBounds', `Starting check for window set '${setToCheck.name}' against screen dimensions for ${NotePlan.environment.machineName}: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}`)
+    let checkedSet = setToCheck
 
     // check bounds for each WS in turn
-    for (let thisWS of checkedSets) {
-      logDebug('checkWindowSetBounds', `- checking WS '${thisWS.name}' ...`)
-      for (let ew of thisWS.editorWindows) {
-        ew = constrainWindowSizeAndPosition(ew)
-      }
-      for (let hw of thisWS.htmlWindows) {
-        hw = constrainWindowSizeAndPosition(hw)
-      }
+    // for (let thisWS of checkedSet) {
+    //   logDebug('checkWindowSetBounds', `- checking WS '${thisWS.name}' ...`)
+    //   for (let ew of thisWS.editorWindows) {
+    //     ew = constrainWindowSizeAndPosition(ew)
+    //   }
+    //   for (let hw of thisWS.htmlWindows) {
+    //     hw = constrainWindowSizeAndPosition(hw)
+    //   }
+    // }
+
+    // check bounds for WS
+    // for (let ew of setToCheck.editorWindows) {
+    for (let i = 0; i < setToCheck.editorWindows.length; i++) {
+      const ew: EditorWinDetails = setToCheck.editorWindows[i]
+      checkedSet.editorWindows[i] = constrainWindowSizeAndPosition(ew)
     }
-    return checkedSets
+    for (let i = 0; i < setToCheck.htmlWindows.length; i++) {
+      const hw: HTMLWinDetails = setToCheck.htmlWindows[i]
+      checkedSet.htmlWindows[i] = constrainWindowSizeAndPosition(hw)
+    }
+
+    return checkedSet
   } catch (error) {
     logError(pluginJson, `checkWindowSetBounds(): ${error.name}: ${error.message}`)
-    return []
+    return setToCheck
   }
 }
 
+/**
+ * Constrain the Window Size and Position to what will fit on the current screen.
+ * The debug log explains what is being done if it doesn't all fit in the current screen area. It will first move up/down/l/r, and only then reduce in w/h.
+ * @author @jgclark
+ * @param {EditorWinDetails | HTMLWinDetails} winDetails
+ * @returns {EditorWinDetails | HTMLWinDetails} constrained winDetails
+ */
 // $FlowFixMe[incompatible-return]
-function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDetails): EditorWinDetails | HTMLWinDetails {
+// export function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDetails): EditorWinDetails | HTMLWinDetails {
+export function constrainWindowSizeAndPosition<T: { x: number, y: number, width: number, height: number, ... }> (winDetails: T): T {
   try {
-    // TODO: is there any reason for these to be defined as optional (above) ???
     const screenHeight = NotePlan.environment.screenHeight // remember bottom edge is y=0
     const screenWidth = NotePlan.environment.screenWidth
     const left = winDetails.x
     const right = winDetails.x + winDetails.width
     const top = winDetails.y + winDetails.height
     const bottom = winDetails.y
+    // $FlowIgnore[prop-missing]
     const title = winDetails.title ?? 'n/a'
     if (winDetails.x < 0) {
       logDebug('constrainWS+P', `  - window '${title}' has left edge at ${String(left)}px; moving right to 0px`)
@@ -449,7 +472,8 @@ function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDe
     }
     return winDetails
   } catch (error) {
-    logError(pluginJson, `constrainWindowSizeAndPosition(): ${error.name}: ${error.message}`)
+    logError(pluginJson, `constrainWindowSizeAndPosition(): ${error.name}: ${error.message}. Returning original window details.`)
+    return winDetails
   }
 }
 
