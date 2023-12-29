@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 1.7.2023 for v1.1.0, @jgclark
+// Last updated 21.12.2023 for v1.3.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,6 +13,7 @@ import {
   getSearchTermsRep,
   makeAnySyncs,
   OPEN_PARA_TYPES,
+  optimiseOrderOfSearchTerms,
   resultCounts,
   type resultOutputTypeV3,
   runSearchesV2,
@@ -93,6 +94,7 @@ export async function searchOverNotes(searchTermsArg?: string, paraTypeFilterArg
  * Call the main function, searching over all notes, but using a fixed note for results
  */
 export async function quickSearch(searchTermsArg?: string, paraTypeFilterArg?: string, noteTypesToIncludeArg?: string): Promise<void> {
+  logDebug('quickSearch', `starting with searchTermsArg=${searchTermsArg}, paraTypeFilterArg=${paraTypeFilterArg}, noteTypesToIncludeArg=${noteTypesToIncludeArg}`)
   await saveSearch(
     searchTermsArg,
     noteTypesToIncludeArg ?? 'both',
@@ -123,7 +125,7 @@ export async function saveSearch(
     // get relevant settings
     const config = await getSearchSettings()
     const headingMarker = '#'.repeat(config.headingLevel)
-    logDebug(pluginJson, `arg0 -> searchTermsArg ${typeof searchTermsArg}`)
+    // logDebug(pluginJson, `arg0 -> searchTermsArg ${typeof searchTermsArg}`)
     logDebug(pluginJson, `arg0 -> searchTermsArg '${searchTermsArg ?? '(not supplied)'}'`)
 
     // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
@@ -133,6 +135,7 @@ export async function saveSearch(
     // Get the noteTypes to include
     const noteTypesToInclude: Array<string> = (noteTypesToIncludeArg === 'both' || noteTypesToIncludeArg === '') ? ['notes', 'calendar'] : [noteTypesToIncludeArg]
     logDebug(pluginJson, `arg1 -> note types '${noteTypesToInclude.toString()}'`)
+    logDebug(pluginJson, `arg2 -> originatorCommand = '${originatorCommand}'`)
 
     // Get the search terms, either from argument supplied, or by asking user
     let termsToMatchStr = ''
@@ -160,10 +163,11 @@ export async function saveSearch(
       await showMessage(`These search terms aren't valid. Please see Plugin Console for details.`)
       return
     }
-    logDebug(pluginJson, `arg2 -> originatorCommand = '${originatorCommand}'`)
+    // Now optimise the order we tackle the search terms
+    const orderedSearchTerms = optimiseOrderOfSearchTerms(validatedSearchTerms)
 
     // If we have a blank search term, then double-check user wants to do this
-    if (validatedSearchTerms.length === 1 && validatedSearchTerms[0].term === '') {
+    if (orderedSearchTerms.length === 1 && orderedSearchTerms[0].term === '') {
       const res = await showMessageYesNo('No search terms specified. Are you sure you want to run a potentially very long search?')
       if (res === 'No') {
         logDebug(pluginJson, 'User has cancelled search')
@@ -184,7 +188,7 @@ export async function saveSearch(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact]
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude) // Note: deliberately no await: this is resolved later
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(orderedSearchTerms, noteTypesToInclude, [], config.foldersToExclude, config, paraTypesToInclude) // Note: deliberately no await: this is resolved later
 
     await CommandBar.onMainThread()
 
@@ -232,7 +236,7 @@ export async function saveSearch(
     // Do output
     // logDebug(pluginJson, 'reached do output stage')
     const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
-    const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [termsToMatchStr, paraTypeFilterArg ?? ''])
+    const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [termsToMatchStr, paraTypeFilterArg ?? '', noteTypesToInclude.join(',')]) // Note: these params are to the individual functions, not to the underlying saveSearch() function. So they are in a different order.
 
     switch (destination) {
       case 'current': {
@@ -314,6 +318,7 @@ export async function saveSearch(
         break
       }
     }
+    logDebug(pluginJson, `saveSearch() finished.`)
   }
   catch (err) {
     logError(pluginJson, err.message)

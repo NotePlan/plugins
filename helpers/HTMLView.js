@@ -204,11 +204,17 @@ export function getThemeJS(cleanIt: boolean = true, includeSpecificStyles: boole
  * @author @dwertheimer
  */
 export async function showHTMLWindow(body: string, opts: HtmlWindowOptions) {
-  const preBody = opts.preBodyScript ? (Array.isArray(opts.preBodyScript) ? opts.preBodyScript : [opts.preBodyScript]) : []
+  const preBody: Array<Object> = opts.preBodyScript
+    ? (Array.isArray(opts.preBodyScript)
+      ? opts.preBodyScript
+      : [opts.preBodyScript])
+    : []
   if (opts.includeCSSAsJS) {
     const theme = getThemeJS(true, true)
     if (theme.values) {
-      preBody.push(`/* Basic Theme as JS for CSS-in-JS use in scripts \n  Created from theme: "${theme.name}" */\n  const NP_THEME=${JSON.stringify(theme.values, null, 4)}\n`)
+      const themeName = theme.name ?? '<unknown>'
+      const themeJSONStr = JSON.stringify(theme.values, null, 4) ?? '<empty>'
+      preBody.push(`/* Basic Theme as JS for CSS-in-JS use in scripts \n  Created from theme: "${themeName}" */\n  const NP_THEME=${themeJSONStr}\n`)
       logDebug(pluginJson, `showHTMLWindow Saving NP_THEME in JavaScript`)
     }
   }
@@ -292,12 +298,12 @@ function assembleHTMLParts(body: string, winOpts: HtmlWindowOptions): string {
     if (preScript !== '') {
       fullHTML.push(preScript) // dbw moved to top because we need the logging bridge to be loaded before any content which could have errors
     }
-    fullHTML.push(winOpts.headerTags)
+    fullHTML.push(winOpts.headerTags ?? '')
     fullHTML.push('<style type="text/css">')
     // If generalCSSIn is empty, then generate it from the current theme. (Note: could extend this to save CSS from theme, and then check if it can be reused.)
     const generalCSS = winOpts.generalCSSIn && winOpts.generalCSSIn !== '' ? winOpts.generalCSSIn : generateCSSFromTheme('')
     fullHTML.push(generalCSS)
-    fullHTML.push(winOpts.specificCSS)
+    fullHTML.push(winOpts.specificCSS ?? '')
     fullHTML.push('</style>')
     fullHTML.push('</head>')
     fullHTML.push(winOpts.bodyOptions ? `\n<body ${winOpts.bodyOptions}>` : `\n<body>`)
@@ -425,7 +431,7 @@ export async function showHTMLV2(body: string, opts: HtmlWindowOptions): Promise
       logWarn('HTMLView / showHTMLV2', 'showHTMLV2() is only available on 3.9.2 build 1037 or newer. Will fall back to using older, simpler, showHTML() instead ...')
       await showHTML(
         opts.windowTitle,
-        fixedMetaTags + opts.headerTags ?? '',
+        fixedMetaTags + (opts.headerTags ?? ''),
         body,
         opts.generalCSSIn ?? '',
         opts.specificCSS ?? '',
@@ -801,7 +807,6 @@ export function simplifyNPEventLinksForHTML(input: string): string {
 
 // Simplify embedded images of the form ![image](...) by replacing with an icon.
 // (This also helps remove false positives for ! priority indicator)
-// FIXME: the leading ! is not getting removed from output for some reason
 export function simplifyInlineImagesForHTML(input: string): string {
   let output = input
   const captures = output.match(/!\[image\]\([^\)]+\)/g)
@@ -885,12 +890,14 @@ export function convertHighlightsToHTML(input: string): string {
 }
 
 // Display underlined with .underlined style
-// TODO: is regex tight enough?
+// TODO: regex isn't quite right. But can't get original one to work for reasons I can't understand
+// But does cope with lone ~ in URLs
 export function convertUnderlinedToHTML(input: string): string {
   let output = input
-  const captures = output.match(/~.*?~/g)
+  // const captures = output.match(/(?:[\s^])~.*?~(?:[\s$])/g)
+  const captures = output.match(/~[\w\-'"]*?~/g)
   if (captures) {
-    // clo(captures, 'results from underlined matches:')
+    clo(captures, 'results from underlined matches:')
     for (const capture of captures) {
       const match = capture
       output = output.replace(match, `<span class="underlined">${match.slice(1, -1)}</span>`)

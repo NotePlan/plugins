@@ -372,9 +372,9 @@ describe('searchHelpers.js tests', () => {
   })
 
   describe('normaliseSearchTerms', () => {
-    test('empty string', () => {
+    test('empty string -> empty string', () => {
       const result = normaliseSearchTerms('')
-      expect(result).toEqual([])
+      expect(result).toEqual([''])
     })
     test('just spaces', () => {
       const result = normaliseSearchTerms('  ')
@@ -424,74 +424,80 @@ describe('searchHelpers.js tests', () => {
       const result = normaliseSearchTerms('xxx AND yyy AND zzz')
       expect(result).toEqual(['+xxx', '+yyy', '+zzz'])
     })
-    test('"1 John", 1Jn (do modify)', () => {
-      const result = normaliseSearchTerms('"1 John", 1Jn', true)
-      expect(result).toEqual(['+1', '+John', '1Jn'])
-    })
     test('"1 John", 1Jn (do not modify)', () => {
-      const result = normaliseSearchTerms('"1 John", 1Jn', false)
+      const result = normaliseSearchTerms('"1 John" 1Jn')
       expect(result).toEqual(['1 John', '1Jn'])
     })
-    test('mix of quoted and unquoted terms (do modify)', () => {
-      const result = normaliseSearchTerms('-term1 "term two" !term3', true)
-      expect(result).toEqual(['-term1', '+term', '+two', '!term3'])
-    })
     test("mix of quoted and unquoted terms (don't modify)", () => {
-      const result = normaliseSearchTerms('-term1 "term two" !term3', false)
+      const result = normaliseSearchTerms('-term1 "term two" !term3')
       expect(result).toEqual(['-term1', 'term two', '!term3'])
     })
     test("quoted terms with different must/may/cant (don't modify)", () => {
-      const result = normaliseSearchTerms('-"Bob Smith" "Holy Spirit" !"ice cream cone"', false)
+      const result = normaliseSearchTerms('-"Bob Smith" "Holy Spirit" !"ice cream cone"')
       expect(result).toEqual(['-Bob Smith', 'Holy Spirit', '!ice cream cone'])
     })
-    test('terms with apostrophes in quoted terms (do modify)', () => {
-      const result = normaliseSearchTerms('-term1 "couldn\'t possibly" !term3', true)
-      expect(result).toEqual(['-term1', "+couldn't", '+possibly', '!term3'])
-    })
     test("terms with apostrophes in quoted terms (don't modify)", () => {
-      const result = normaliseSearchTerms('-term1 "couldn\'t possibly" !term3', false)
+      const result = normaliseSearchTerms('-term1 "couldn\'t possibly" !term3')
       expect(result).toEqual(['-term1', "couldn't possibly", '!term3'])
     })
-    // TODO: This one failing on the apostophe -> [- "can't",+ "can",+ "t", "term2"]
-    test.skip('terms with apostrophes in unquoted terms', () => {
+    test('terms with apostrophes in unquoted terms', () => {
       const result = normaliseSearchTerms("can't term2")
       expect(result).toEqual(["can't", 'term2'])
     })
-    test('mix of quoted and unquoted terms (do modify)', () => {
-      const result = normaliseSearchTerms(`bob "xxx",'yyy', "asd'sa" 'bob two' "" hello`, true)
-      expect(result).toEqual(['bob', 'xxx', 'yyy', "asd'sa", '+bob', '+two', 'hello'])
-    })
     test("mix of quoted and unquoted terms (don't modify)", () => {
-      const result = normaliseSearchTerms(`bob "xxx",'yyy', "asd'sa" 'bob two' "" hello`, false)
-      expect(result).toEqual(['bob', 'xxx', 'yyy', "asd'sa", 'bob two', 'hello'])
-    })
-    // TODO: This one failing on "-bob two" -> [- "-bob two", '+bob' '+two']
-    test.skip('mix of quoted and unquoted terms and operators (do modify)', () => {
-      const result = normaliseSearchTerms('+bob "xxx",\'yyy\', !"asd\'sa" -\'bob two\' "" !hello', true)
-      expect(result).toEqual(['+bob', 'xxx', 'yyy', "!asd'sa", '-bob two', '!hello'])
+      const result = normaliseSearchTerms(`bob "xxx" 'yyy' "asd'sa" 'bob two' "" hello`)
+      expect(result).toEqual(['bob', 'xxx', "'yyy'", "asd'sa", "'bob", "two'", 'hello'])
     })
     test("mix of quoted and unquoted terms and operators (don't modify)", () => {
-      const result = normaliseSearchTerms('+bob "xxx",\'yyy\', !"asd\'sa" -\'bob two\' "" !hello', false)
-      expect(result).toEqual(['+bob', 'xxx', 'yyy', "!asd'sa", '-bob two', '!hello'])
+      const result = normaliseSearchTerms('+bob "xxx" \'yyy\' !"asd\'sa" -"bob two" "" !hello')
+      expect(result).toEqual(['+bob', 'xxx', "'yyy'", "!asd'sa", "-bob two", '!hello'])
     })
     test("test for Greek characters", () => {
-      const result = normaliseSearchTerms('γιάννης', false)
+      const result = normaliseSearchTerms('γιάννης')
       expect(result).toEqual(['γιάννης'])
     })
-    test("test for Greek characters as an @mention", () => {
-      const result = normaliseSearchTerms('@γιάννης', false)
-      expect(result).toEqual(['@γιάννης'])
+    test("mix of terms with ? and * operators (this is just normalising not validating)", () => {
+      const result = normaliseSearchTerms('spirit* mo? *term mo*blues ?weird')
+      expect(result).toEqual(['spirit*', 'mo?', '*term', 'mo*blues', '?weird'])
     })
-    // TODO: can't mix OR with +
+
+    describe('skipping these tests as removed modifyQuotedTermsToAndedTerms functionality', () => {
+      test.skip('"1 John", 1Jn (do modify)', () => {
+        const result = normaliseSearchTerms('"1 John" 1Jn', true)
+        expect(result).toEqual(['+1', '+John', '1Jn'])
+      })
+      test.skip('mix of quoted and unquoted terms (do modify)', () => {
+        const result = normaliseSearchTerms('-term1 "term two" !term3', true)
+        expect(result).toEqual(['-term1', '+term', '+two', '!term3'])
+      })
+      test.skip('terms with apostrophes in quoted terms (do modify)', () => {
+        const result = normaliseSearchTerms('-term1 "couldn\'t possibly" !term3', true)
+        expect(result).toEqual(['-term1', "+couldn't", '+possibly', '!term3'])
+      })
+      test.skip('mix of quoted and unquoted terms (do modify)', () => {
+        const result = normaliseSearchTerms(`bob "xxx" 'yyy' "asd'sa" 'bob two' "" hello`, true)
+        expect(result).toEqual(['bob', 'xxx', 'yyy', "asd'sa", '+bob', '+two', 'hello'])
+      })
+      test.skip('mix of quoted and unquoted terms and operators (do modify)', () => {
+        const result = normaliseSearchTerms('+bob "xxx",\'yyy\', !"asd\'sa" -\'bob two\' "" !hello', true)
+        expect(result).toEqual(['+bob', 'xxx', "'yyy'", "!asd'sa", '-bob', 'two', '!hello'])
+      })
+    })
   })
 
   describe('validateAndTypeSearchTerms', () => {
-    test('should return empty array from empty input', () => {
-      const result = validateAndTypeSearchTerms('')
-      expect(result).toEqual([])
+    test('should return empty array from empty input (empty not allowed)', () => {
+      const result = validateAndTypeSearchTerms('', false)
+      expect(result).toEqual([]) // and an error
+    })
+    test('should return empty array from empty input (empty allowed)', () => {
+      const result = validateAndTypeSearchTerms('', true)
+      expect(result).toEqual([
+        { term: '', type: 'must', termRep: '<empty>' }
+      ])
     })
     test('should return empty array from too many terms', () => {
-      const result = validateAndTypeSearchTerms('abc def ghi jkl mno pqr stu vwz')
+      const result = validateAndTypeSearchTerms('abc def ghi jkl mno pqr stu vwz nine ten')
       expect(result).toEqual([])
     })
     test('should return empty array from no positive terms', () => {
@@ -500,67 +506,71 @@ describe('searchHelpers.js tests', () => {
     })
     test("single term string 'term1'", () => {
       const result = validateAndTypeSearchTerms('term1')
-      expect(result).toEqual([{ term: 'term1', type: 'may', termRep: 'term1' }])
+      expect(result).toEqual([
+        { term: 'term1', type: 'may', termRep: 'term1' }
+      ])
     })
     test("single term string 'twitter.com'", () => {
       const result = validateAndTypeSearchTerms('twitter.com')
       expect(result).toEqual([{ term: 'twitter.com', type: 'may', termRep: 'twitter.com' }])
     })
-    // Note: updated to suit better multi-word term handling
-    test("single quoted term string 'test string'", () => {
-      const result = validateAndTypeSearchTerms("'test string'")
+    test("quoted string with apostrophe [shouldn't matter]", () => {
+      const result = validateAndTypeSearchTerms('"shouldn\'t matter"')
       expect(result).toEqual([
-        // { term: 'test', type: 'must', termRep: '+test' },
-        // { term: 'string', type: 'must', termRep: '+string' },
-        { term: 'test string', type: 'may', termRep: 'test string' },
+        { term: "shouldn't matter", type: 'may', termRep: "shouldn't matter" },
       ])
     })
-    // Note: updated to suit better multi-word term handling
     test('two term string', () => {
       const result = validateAndTypeSearchTerms('term1 "term two"')
       expect(result).toEqual([
         { term: 'term1', type: 'may', termRep: 'term1' },
-        // { term: 'term', type: 'must', termRep: '+term' },
-        // { term: 'two', type: 'must', termRep: '+two' },
         { term: 'term two', type: 'may', termRep: 'term two' },
       ])
     })
-    // Note: updated to suit better multi-word term handling
-    test('three terms with +//-', () => {
+    test('three terms with [+,-,]', () => {
       const result = validateAndTypeSearchTerms('+term1 "term two" -term3')
       expect(result).toEqual([
         { term: 'term1', type: 'must', termRep: '+term1' },
-        // { term: 'term', type: 'must', termRep: '+term' },
-        // { term: 'two', type: 'must', termRep: '+two' },
         { term: 'term two', type: 'may', termRep: 'term two' },
         { term: 'term3', type: 'not-line', termRep: '-term3' },
       ])
     })
-    // Note: updated to suit better multi-word term handling
-    test('three terms with +//!', () => {
+    test('three terms with [+,!,]', () => {
       const result = validateAndTypeSearchTerms('+term1 "term two" !term3')
       expect(result).toEqual([
         { term: 'term1', type: 'must', termRep: '+term1' },
-        // { term: 'term', type: 'must', termRep: '+term' },
-        // { term: 'two', type: 'must', termRep: '+two' },
         { term: 'term two', type: 'may', termRep: 'term two' },
         { term: 'term3', type: 'not-note', termRep: '!term3' },
       ])
     })
     test('+"1 John", 1Jn', () => {
-      const result = validateAndTypeSearchTerms('+"1 John", 1Jn')
+      const result = validateAndTypeSearchTerms('+"1 John" 1Jn')
       expect(result).toEqual([
         { term: '1 John', type: 'must', termRep: '+1 John' },
         { term: '1Jn', type: 'may', termRep: '1Jn' },
       ])
     })
-    // Note: added to suit better multi-word term handling
     test("quoted terms with different must/may/cant", () => {
       const result = validateAndTypeSearchTerms('-"Bob Smith" "Holy Spirit" !"ice cream cone"')
       expect(result).toEqual([
         { term: 'Bob Smith', type: 'not-line', termRep: '-Bob Smith' },
         { term: 'Holy Spirit', type: 'may', termRep: 'Holy Spirit' },
         { term: 'ice cream cone', type: 'not-note', termRep: '!ice cream cone' }])
+    })
+    test("mix of terms with valid ? and * operators", () => {
+      const result = validateAndTypeSearchTerms('spirit* mo?t +term mo*blues we*d')
+      expect(result).toEqual([
+        { term: 'spirit*', type: 'may', termRep: 'spirit*' },
+        { term: 'mo?t', type: 'may', termRep: 'mo?t' },
+        { term: 'term', type: 'must', termRep: '+term' },
+        { term: 'mo*blues', type: 'may', termRep: 'mo*blues' },
+        { term: 'we*d', type: 'may', termRep: 'we*d' }])
+    })
+    test("mix of terms with invalid ? and * operators", () => {
+      const result = validateAndTypeSearchTerms('*spirit ?moses we*d')
+      expect(result).toEqual([
+        { term: 'we*d', type: 'may', termRep: 'we*d' }
+      ])
     })
   })
 

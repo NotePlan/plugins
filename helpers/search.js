@@ -221,20 +221,29 @@ export function trimAndHighlightTermInLine(
     const startOfMainLineContentPos = getLineMainContentPos(input)
     const startOfLineMarker = input.slice(0, startOfMainLineContentPos)
     let mainPart = input.slice(startOfMainLineContentPos)
+    // logDebug('trimAndHighlight', `starting; mainPart = <${mainPart}>`)
     let output = ''
+    // As terms can include wildcards * or ?, we need to modify them slightly for the following regexes:
+    // - replace ? with .
+    // - replace * with [^\s]*? (i.e. any anything within the same 'word')
+    const termsForRE = terms.join('|').replace(/\?/g, '.').replace(/\*/g, '[^\\s]*?') // Note: the replaces need to be in this order!
 
     // Simplify line display (if using Simplified style)
     if (simplifyLine) {
       // Trimming and remove any block IDs
       mainPart = simplifyRawContent(mainPart)
+      // logDebug('trimAndHighlight', `- after simplifyRawContent, mainPart = <${mainPart}>`)
 
       // Now trim the line content if necessary
       if (maxChars > 0 && mainPart.length > maxChars) {
         // this split point ensures we put the term with a little more context before it than after it
         const LRSplit = Math.round(maxChars * 0.55)
+        // logDebug('trimAndHighlight', `- maxChars = ${String(maxChars)}, LRSplit = ${String(LRSplit)}, mainPart.length = ${String(mainPart.length)}`)
         // regex: find occurrences of search terms and the text around them
-        const re = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${terms.join('|')}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
-        const matches = mainPart.match(re) ?? [] // multiple matches
+
+        const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${termsForRE}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
+        // logDebug('trimAndHighlight', `- /${RE_FIND_TEXT_AROUND_THE_TERMS}/`)
+        const matches = mainPart.match(RE_FIND_TEXT_AROUND_THE_TERMS) ?? [] // multiple matches
         if (matches.length > 0) {
           // If we have more than 1 match in the line, join the results together with '...'
           output = matches.join(' ...')
@@ -244,24 +253,26 @@ export function trimAndHighlightTermInLine(
           }
           // If we now have a shortened string, then (it's approximately right that) we have trimmed off the end, so append '...'
           if (output.length < mainPart.length) {
+            // logDebug('trimAndHighlight', `- have shortened line`)
             output = `${output} ...`
           }
           //
         } else {
           // For some reason we didn't find the matching term, so return the first part of line
+          // logDebug('trimAndHighlight', `- could not find a match in the line, so using the first part of the line`)
           output = (output.length >= maxChars) ? output.slice(0, maxChars) : output
         }
       } else {
         output = mainPart
       }
-
+      // logDebug('trimAndHighlight', `- resultPrefix=<${resultPrefix}> / simplified line=<${output}>`)
       // Now add on the appropriate prefix
       output = resultPrefix + output
     }
     // If using NotePlan style, then ...
     else {
       // - don't do any shortening, as that would mess up any sync'd lines
-      // - just add on the appropriate prefix
+      // - just reconstruct the way the line looks
       output = startOfLineMarker + mainPart
     }
 
@@ -271,11 +282,12 @@ export function trimAndHighlightTermInLine(
     const this_RE = new RegExp(RE_SYNC_MARKER)
     if (addHighlight && terms.length > 0 && (simplifyLine || !this_RE.test(output))) {
       // regex: find any of the match terms in all the text
-      const re = new RegExp(`(?:[^=](${terms.join('|')})(?=$|[^=]))`, "gi")
-      const termMatches = output.matchAll(re)
+      const RE_HIGHLIGHT_MATCH = new RegExp(`(?:[^=](${termsForRE})(?=$|[^=]))`, "gi")
+      // logDebug('trimAndHighlight', `- /${RE_HIGHLIGHT_MATCH}/`)
+      const termMatches = output.matchAll(RE_HIGHLIGHT_MATCH)
       let offset = 0
       for (const tm of termMatches) {
-        // logDebug('trimAndHighlight...', `${tm[0]}, ${tm[0].length}, ${tm.index}, ${offset}`)
+        // logDebug('trimAndHighlight', `${tm[0]}, ${tm[0].length}, ${tm.index}, ${offset}`)
         const leftPos = tm.index + offset + 1 // last adds previous ==...== additions
         const rightPos = leftPos + tm[1].length // as terms change have to get feedback from this match
         const highlitOutput = `${output.slice(0, leftPos)}==${output.slice(leftPos, rightPos)}==${output.slice(rightPos,)}`
