@@ -7,8 +7,8 @@
  * The function onClickStatus below is just an example of a function that could be called from the HTML view
  */
 
-import { getWindowIdFromCustomId } from '../../../../helpers/NPWindows'
 import pluginJson from '../plugin.json'
+// import { getWindowIdFromCustomId } from '@helpers/NPWindows'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { getParagraphFromStaticObject } from '@helpers/NPParagraph'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'

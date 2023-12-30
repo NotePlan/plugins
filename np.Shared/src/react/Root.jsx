@@ -173,7 +173,7 @@ export function Root(props: Props): Node {
           logDebug(`Root: onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event)
         }
       } catch (error) {
-        logDebug('Root: onMessageReceived: error=' + JSON.stringify(error) + 'error=' + JSON.stringify(error))
+        logDebug(`Root: onMessageReceived: error=${JSON.stringify(error)}error=${JSON.stringify(error)}`)
       }
     } else {
       // logDebug(`Root: onMessageReceived: called but event.data is undefined: noop`)
@@ -190,8 +190,9 @@ export function Root(props: Props): Node {
    */
   const sendToPlugin = React.useCallback((args) => {
     const returnPluginCommand = globalSharedData.returnPluginCommand || 'undefined'
-    if (returnPluginCommand === 'undefined' || !returnPluginCommand?.command || !returnPluginCommand?.id)
+    if (returnPluginCommand === 'undefined' || !returnPluginCommand?.command || !returnPluginCommand?.id) {
       throw 'returnPluginCommand variable is not passed correctly to set up comms bridge. Check your data object which you are sending to invoke React'
+    }
     if (!returnPluginCommand?.command) throw 'returnPluginCommand.cmd is not defined in the intial data passed to the plugin'
     if (!returnPluginCommand?.id) throw 'returnPluginCommand.id is not defined in the intial data passed to the plugin'
     const { command, id } = returnPluginCommand // this comes from the initial data passed to the plugin
@@ -284,7 +285,7 @@ export function Root(props: Props): Node {
 
         {(ROOT_DEBUG || debug) && (
           <React.StrictMode>
-            <div className="w3-container w3-green">Debugging information (Plugin passed debug variable = true)</div>
+            <div className="w3-container w3-red w3-margin-top">Debugging Data (Plugin passed debug:true at window open)</div>
             <div>
               <span id="debugHistory">History (most recent first):</span>
               <ul>
