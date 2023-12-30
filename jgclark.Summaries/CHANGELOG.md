@@ -3,6 +3,9 @@
 
 <!-- - ??? make below work with all options -->
 
+## [0.20.2] - 2023-12-30
+- added x-callback options for /periodStats command. See documentation for details.
+
 ## [0.20.1] - 2023-11-10
 - fix Refresh button not working after '/append progress update' command
 - turns down logging against an API error

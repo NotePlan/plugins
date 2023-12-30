@@ -2,12 +2,13 @@
 //-----------------------------------------------------------------------------
 // Create statistics for hasthtags and mentions for time periods
 // Jonathan Clark, @jgclark
-// Last updated 25.7.2023 for v0.19.2
+// Last updated 30.12.2023 for v0.20.2
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Helper functions
 
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import {
   gatherOccurrences,
@@ -17,59 +18,73 @@ import {
 } from './summaryHelpers'
 import {
   getJSDateStartOfToday,
-  getWeek, hyphenatedDate, unhyphenatedDate
+  getWeek, hyphenatedDate, unhyphenatedDate,
+  RE_DATE
 } from '@helpers/dateTime'
-import { getPeriodStartEndDates } from '@helpers/NPDateTime'
+import { getPeriodStartEndDates, getPeriodStartEndDatesFromPeriodCode } from '@helpers/NPDateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { logDebug, logError, logInfo, timer } from '@helpers/dev'
 import { CaseInsensitiveMap, displayTitle, createRunPluginCallbackUrl } from '@helpers/general'
 import { getOrMakeNote, printNote, replaceSection } from '@helpers/note'
 import { caseInsensitiveCompare } from '@helpers/sorting'
 import { chooseOption, showMessage } from '@helpers/userInput'
+import type { OccurrencesConfig } from "./summaryHelpers";
 
 //-------------------------------------------------------------------------------
 
 /**
  * Ask user which period to cover, call main stats function accordingly, and present results
  * @author @jgclark
- * @param {string?} periodTypeArg
+ * @param {string?} periodCodeArg (optional) lm | mtd | om etc. If not provided user will be asked
+ * @param {number?} calNumber (optional)
+ * @param {number?} year (optional)
  */
-export async function statsPeriod(periodTypeArg: string = ''): Promise<void> {
+export async function statsPeriod(periodCodeArg: string = '', calNumber: number = NaN, year: number = NaN): Promise<void> {
   try {
     // Get config from settings
     let config = await getSummariesSettings()
+    let fromDate, toDate, periodString, periodShortCode, periodAndPartStr = ''
 
-    // TODO: set and parse 3 parameters: calendarTimeFrame, year, itemNumber.  Not now 'periodType', as the meaning changes over time.
+    let isRunningFromXCallback = false
+    if (periodCodeArg && periodCodeArg !== '' && (!isNaN(year) || periodCodeArg === 'today' || new RegExp(`^${RE_DATE}$`).test(periodCodeArg))) {
+      isRunningFromXCallback = true
+      periodShortCode = periodCodeArg
+    }
 
-    const isRunningFromXCallback = periodTypeArg && periodTypeArg !== ''
+    // Get time period of interest ...
+    if (isRunningFromXCallback) {
+      // from periodCodeArg
+      // TODO: check periodShortCode = week | month | quarter | year | YYYY-MM-DD
+      // $FlowIgnore[incompatible-call]
+      [fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = getPeriodStartEndDatesFromPeriodCode(periodShortCode, calNumber, year, config.excludeToday) // note no await
+    } else {
+      // or by asking user
+      [fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('Create stats for which period?', config.excludeToday, '') // note await needed
+    }
 
-    // Get time period of interest, from asking user or from periodTypeArg
-    const [fromDate, toDate, periodType, periodString, periodAndPartStr] = await getPeriodStartEndDates('Create stats for which period?', config.excludeToday, periodTypeArg)
     if (fromDate == null || toDate == null) {
       throw new Error(`Error: failed to calculate dates`)
     }
     if (fromDate > toDate) {
       throw new Error(`Error: requested fromDate ${String(fromDate)} is after toDate ${String(toDate)}`)
     }
+
     const fromDateStr = hyphenatedDate(fromDate)
     const toDateStr = hyphenatedDate(toDate)
     logInfo(pluginJson, `statsPeriod: starting for ${periodString} (${fromDateStr} - ${toDateStr})`)
     const calendarTimeframe =
-      (periodType === 'userwtd' || periodType === 'wtd' || periodType === 'lw' || periodType === 'ow') ? 'week'
-        : (periodType === 'mtd' || periodType === 'lm' || periodType === 'om') ? 'month'
-          : (periodType === 'qtd' || periodType === 'lq' || periodType === 'oq') ? 'quarter'
-            : (periodType === 'ytd' || periodType === 'ly' || periodType === 'oy') ? 'year'
-              : '(error)'
-    if (calendarTimeframe === '(error)') {
-      throw new Error(`Error: I can't handle periodType '${periodType}'`)
-    }
+      (periodShortCode === 'userwtd' || periodShortCode === 'wtd' || periodShortCode === 'lw' || periodShortCode === 'ow') ? 'week'
+        : (periodShortCode === 'mtd' || periodShortCode === 'lm' || periodShortCode === 'om') ? 'month'
+          : (periodShortCode === 'qtd' || periodShortCode === 'lq' || periodShortCode === 'oq') ? 'quarter'
+            : (periodShortCode === 'ytd' || periodShortCode === 'ly' || periodShortCode === 'oy') ? 'year'
+              : 'other'
 
     let startTime = new Date()
-    CommandBar.showLoading(true, `Gathering Data`)
+    CommandBar.showLoading(true, `Gathering Data from Calendar notes`)
     await CommandBar.onAsyncThread()
 
     // Main work: calculate the occurrences, using config settings and the time period info
-    const settingsForGO = {
+    const settingsForGO: OccurrencesConfig = {
       GOYesNo: config.periodStatsYesNo,
       GOHashtagsCount: config.includeHashtags,
       GOHashtagsExclude: [],
@@ -124,8 +139,8 @@ export async function statsPeriod(periodTypeArg: string = ''): Promise<void> {
         } else {
           // logDebug('statsPeriod', `- about to update section '${config.statsHeading}' in weekly note '${currentNote.filename}' for ${periodAndPartStr}`)
           // add a refresh button if it can work with just a single extra parameter
-          if (periodType.endsWith('td')) {
-            const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodType)
+          if (periodShortCode.endsWith('td')) {
+            const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodShortCode)
             output = `[🔄 Refresh](${refreshXCallbackURL})\n${output}`
           }
           // Replace or add output section
@@ -145,8 +160,8 @@ export async function statsPeriod(periodTypeArg: string = ''): Promise<void> {
           // logDebug('statsPeriod', `- about to update section '${config.statsHeading}' in note '${note.filename}' for ${periodAndPartStr}`)
 
           // add a refresh button if it can work with just a single extra parameter
-          if (periodType.endsWith('td')) {
-            const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodType)
+          if (periodShortCode.endsWith('td')) {
+            const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodShortCode)
             output = `[🔄 Refresh](${refreshXCallbackURL})\n${output}`
           }
 
@@ -166,8 +181,8 @@ export async function statsPeriod(periodTypeArg: string = ''): Promise<void> {
       case 'calendar': {
         // Weekly note (from v3.6) or Monthly / Quarterly / Yearly (from v3.7.2)
         const todaysDate = getJSDateStartOfToday()
-        // TODO: when API makes this possible, make it only open a new window if not already open.
-        const calNoteAtFromDate = DataStore.calendarNoteByDate(fromDate, periodType)
+        // TODO(later): when API makes this possible, make it only open a new window if not already open.
+        const calNoteAtFromDate = DataStore.calendarNoteByDate(fromDate, periodShortCode)
         if (!calNoteAtFromDate) {
           throw new Error(`Couldn't get calendar note for ${periodString}`)
         }
@@ -189,8 +204,8 @@ export async function statsPeriod(periodTypeArg: string = ''): Promise<void> {
           await showMessage(`There was an error getting the Calendar note ${filenameForCalDate} ready to write`)
         } else {
           // add a refresh button if it can work with just a single extra parameter
-          if (periodType.endsWith('td')) {
-            const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodType)
+          if (periodShortCode.endsWith('td')) {
+            const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Summaries', 'periodStats', periodShortCode)
             output = `[🔄 Refresh](${refreshXCallbackURL})\n${output}`
           }
 

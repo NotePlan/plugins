@@ -19,7 +19,7 @@ beforeAll(() => {
   global.Editor = Editor
   global.NotePlan = NotePlan
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
-  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 /* Samples:
@@ -178,73 +178,59 @@ describe(`${FILENAME}`, () => {
 
   /**
    * getPeriodStartEndDatesFromPeriodCode()
+   * Note: not testing for the "... (to date)" variant of periodAndPartStr as that will only happen on certain dates.
    */
   describe('getPeriodStartEndDatesFromPeriodCode', () => {
     describe('years', () => {
-      it('ytd / 1 / 2023 / false', async () => {
-        expect.assertions(2)
-        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('ytd', 1, 2023, false)
-        expect(ps).toBe('2023')
-        expect(paps).toBe('2023 (to date)')
-      })
-      it('oy / 3 / 2021 / false', async () => {
-        expect.assertions(2)
-        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('oy', 3, 2021, false)
-        expect(ps).toBe('2021')
-        expect(paps).toBe('2021')
+      it('oy / 3 / 2021 / false', () => {
+        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('year', 3, 2021, false)
+        expect(ps).toEqual('2021')
+        expect(paps).toEqual('2021')
       })
     })
     describe('quarters', () => {
-      it('qtd / 1 / 2023 / false', async () => {
-        expect.assertions(2)
-        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('qtd', 1, 2023, false)
-        expect(ps).toBe('2023 Q1 (Jan-Mar)')
-        expect(paps).toBe('2023 Q1 (to date)')
-      })
-      it('oq / 3 / 2021 / false', async () => {
-        expect.assertions(2)
-        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('oq', 3, 2021, false)
-        expect(ps).toBe('2021 Q3 (Jul-Sep)')
-        expect(paps).toBe('2021 Q3 (Jul-Sep)')
+      it('oq / 3 / 2021 / false', () => {
+        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('quarter', 3, 2021, false)
+        expect(ps).toEqual('2021 Q3 (Jul-Sep)')
+        expect(paps).toEqual('2021 Q3 (Jul-Sep)')
       })
     })
     describe('months', () => {
-      it('mtd / 1 / 2023 / false', async () => {
-        expect.assertions(2)
-        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('mtd', 1, 2023, false)
-        expect(ps).toBe('Jan 2023')
-        expect(paps).toBe('Jan 2023 (to date)')
-      })
-      it('om / 3 / 2021 / false', async () => {
-        expect.assertions(2)
-        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('om', 3, 2021, false)
-        expect(ps).toBe('Mar 2021')
-        expect(paps).toBe('Mar 2021')
+      it('om / 3 / 2021 / false', () => {
+        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('month', 3, 2021, false)
+        expect(ps).toEqual('Mar 2021')
+        expect(paps).toEqual('Mar 2021')
       })
     })
+    // Skip this as it calls helper function setMomentLocaleFromEnvironment that isn't mocked (yet)
     describe('weeks', () => {
-      // can only test week type 'ow', without complex mocking
-      it('ow / 51 / 2023 / false', async () => {
-        expect.assertions(2)
-        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('ow', 51, 2023, false)
-        expect(ps).toBe('2023-W51')
-        expect(paps).toBe('')
+      it.skip('ow / 51 / 2023 / false', () => {
+        // Forcing to GB locale, to enable the test to be written by JGC
+        moment.locale('gb', {
+          week: {
+            dow: 1, // Monday is the first day of the week.
+            doy: 4  // Used to determine first week of the year.
+          }
+        })
+        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('week', 51, 2023, false)
+        expect(ps).toEqual('2023-W51')
+        expect(paps).toEqual('2023-W51')
+        expect(fd).toEqual(new Date(2023, 11, 18, 0, 0, 0)) // 18.12.2023
+        expect(td).toEqual(new Date(2023, 11, 24, 23, 59, 59, 999)) // 24.12.2023
       })
     })
     describe('days', () => {
-      it('today / 3 / 2021 / false', async () => {
-        expect.assertions(2)
-        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('today', 3, 2021, false)
-        expect(ps).toBe('today')
-        expect(paps).toBe('')
+      it('today / 3 / 2021 / false', () => {
+        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('today', 3, 2021, false)
+        expect(ps).toEqual('today')
+        expect(paps).toEqual('Today')
       })
       // Is specific to today, so needs updating to test
       // This was correct on 2023-12-27
-      it.skip('2023-12-01 / 3 / 2021 / false', async () => {
-        expect.assertions(2)
-        const [fd, td, psc, ps, paps] = await f.getPeriodStartEndDatesFromPeriodCode('2023-12-01', 3, 2021, false)
-        expect(ps).toBe('since 2023-12-01')
-        expect(paps).toBe('26 days since 2023-12-01')
+      it.skip('2023-12-01 / 3 / 2021 / false', () => {
+        const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('2023-12-01', 3, 2021, false)
+        expect(ps).toEqual('since 2023-12-01')
+        expect(paps).toEqual('26 days since 2023-12-01')
       })
     })
   })

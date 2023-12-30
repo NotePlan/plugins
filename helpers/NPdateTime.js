@@ -410,7 +410,7 @@ export async function getPeriodStartEndDates(
         'getPeriodStartEndDates',
         `userwtd: dayOfWeekWithSundayZero: ${dayOfWeekWithSundayZero}, usersStartOfWeekWithSundayZero: ${usersStartOfWeekWithSundayZero}, dateWithinInterval: ${dateWithinInterval}`,
       )
-      fromDate = Calendar.startOfWeek(new Date()) //Calendar.addUnitToDate(Calendar.addUnitToDate(Calendar.dateFrom(y, m, d, 0, 0, 0), 'minute', -TZOffset), 'day', -(dateWithinInterval - 1))
+      fromDate = Calendar.startOfWeek(new Date())
       toDate = Calendar.addUnitToDate(fromDate, 'day', dateWithinInterval - 1) // Eduard, 3rd March '23: week to date means the start of the week till today? Before it went till the end.
       logDebug('getPeriodStartEndDates', `userwtd: fromDate: ${String(fromDate)}, ${String(toDate)}`)
 
@@ -516,24 +516,23 @@ export async function getPeriodStartEndDates(
  * Returns a set of details for the supplied date period:
  * - {Date} start (js) date of time period
  * - {Date} end (js) date of time period
- * - {string} periodShortCode    (e.g. 'lq' for 'Last Quarter')
+ * - {string} periodCode    (e.g. 'lq' for 'Last Quarter')
  * - {string} periodString  (e.g. '2022 Q2 (Apr-June)')
  * - {string} periodAndPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
  * @author @jgclark
  * @tests some in jest file; doesn't cover the JS Date returns
- * @param {string} periodShortCodeArg lm | mtd | om etc.
- * @param {number} periodNumber e.g. 3 for '3rd Quarter' or '3rd month' etc.
+ * @param {string} periodCode only week | month | quarter | year | YYYY-MM-DD
+ * @param {number} periodNumber e.g. 3 for '3rd Quarter' or '3rd month' etc. (ignored for periodCode year or YYYY-MM-DD)
  * @param {number} year
  * @param {boolean?} excludeToday? (default true)
  * @returns {[Date, Date, string, string, string]}
  */
-export async function getPeriodStartEndDatesFromPeriodCode(
-  periodShortCodeArg: string,
+export function getPeriodStartEndDatesFromPeriodCode(
+  periodCode: string,
   periodNumber: number,
   year: number,
-  excludeToday: boolean = true /* currently only used when a date is passed through as periodShortCodeToUse */,
-): Promise<[Date, Date, string, string, string]> {
-  let periodShortCode = periodShortCodeArg
+  excludeToday: boolean = true,
+): [Date, Date, string, string, string] {
   let fromDateMom = new moment()
   let toDateMom = new moment()
   let fromDate: Date = fromDateMom.toDate()
@@ -542,67 +541,68 @@ export async function getPeriodStartEndDatesFromPeriodCode(
   let periodAndPartStr = ''
   const todaysDateMom = new moment()
 
-  logDebug('getPeriodStartEndDatesFromPeriodCode', `Starting with code ${periodShortCodeArg}`)
-  if (['ytd', 'ly', 'oy'].includes(periodShortCode)) {
-    fromDateMom = moment({ year: year, month: 0, day: 1 })
-    toDateMom = moment(fromDateMom).endOf('year') // have to clone otherwise fromDateMom mutates
-    periodString = `${String(year)}`
-    periodAndPartStr = (todaysDateMom < toDateMom) ? `${periodString} (to date)` : periodString
-  }
-  else if (['qtd', 'lq', 'oq'].includes(periodShortCode)) {
-    const theQStartMonth = (periodNumber - 1) * 3 + 1
-    fromDateMom = moment({ year: year, month: theQStartMonth - 1, day: 1 })
-    toDateMom = moment(fromDateMom).endOf('quarter') // have to clone otherwise fromDateMom mutates
-    periodString = fromDateMom.format('YYYY [Q]Q (MMM-') + toDateMom.format('MMM)')
-    periodAndPartStr = (todaysDateMom < toDateMom) ? `${fromDateMom.format('YYYY [Q]Q')} (to date)` : periodString
-  }
-  else if (['mtd', 'lm', 'om'].includes(periodShortCode)) {
-    fromDateMom = moment({ year: year, month: periodNumber - 1, day: 1 })
-    toDateMom = moment(fromDateMom).endOf('month')
-    periodString = fromDateMom.format('MMM YYYY')
-    periodAndPartStr = (todaysDateMom < toDateMom) ? `${periodString} (to date)` : periodString
-  }
-  else if (['wtd', 'lw', 'ow'].includes(periodShortCode)) {
-    // I don't know why the [from, to] form doesn't work here, but using tempObj instead
-    const tempObj = isoWeekStartEndDates(periodNumber, year)
-    fromDate = tempObj[0]
-    toDate = tempObj[1]
-    periodString = `${year}-W${periodNumber < 10 ? `0${String(periodNumber)}` : String(periodNumber)}`
-    periodAndPartStr = (todaysDateMom < toDateMom) ? `${periodString} (to date)` : periodString
-  }
-  else if (periodShortCode === 'userwtd') {
-    ;[fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('', excludeToday, 'userwtd')
-  }
-  // else if (periodShortCode === 'wtd') {
-  //   ;[fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('', excludeToday, 'wtd')
-  // }
-  else if (periodShortCode === 'last7d') {
-    ;[fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('', excludeToday, 'last7d')
-  }
-  else if (periodShortCode === 'last2w') {
-    ;[fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('', excludeToday, 'last2w')
-  }
-  else if (periodShortCode === 'last4w') {
-    ;[fromDate, toDate, periodShortCode, periodString, periodAndPartStr] = await getPeriodStartEndDates('', excludeToday, 'last4w')
-  }
-  else if (periodShortCode === 'today') {
-    fromDateMom = fromDateMom.startOf('day')
-    toDateMom = toDateMom.endOf('day')
-    periodString = 'today'
-    periodAndPartStr = 'Today'
-  }
-  else if (new RegExp(`^${RE_DATE}$`).test(periodShortCode)) {
-    // check to see if it's an ISO8601 date instead
+  // logDebug('getPeriodStartEndDatesFromPeriodCode', `Starting with code ${periodCode}`)
+  switch (periodCode) {
+    case 'year': {
+      fromDateMom = moment({ year: year, month: 0, day: 1 })
+      toDateMom = moment(fromDateMom).endOf('year') // have to clone otherwise fromDateMom mutates
+      periodString = `${String(year)}`
+      periodAndPartStr = (todaysDateMom < toDateMom) ? `${periodString} (to date)` : periodString
+      break
+    }
+    case 'quarter': {
+      const theQStartMonth = (periodNumber - 1) * 3 + 1
+      fromDateMom = moment({ year: year, month: theQStartMonth - 1, day: 1 })
+      toDateMom = moment(fromDateMom).endOf('quarter') // have to clone otherwise fromDateMom mutates
+      periodString = fromDateMom.format('YYYY [Q]Q (MMM-') + toDateMom.format('MMM)')
+      periodAndPartStr = (todaysDateMom < toDateMom) ? `${fromDateMom.format('YYYY [Q]Q')} (to date)` : periodString
+      break
+    }
+    case 'month': {
+      fromDateMom = moment({ year: year, month: periodNumber - 1, day: 1 })
+      toDateMom = moment(fromDateMom).endOf('month')
+      periodString = fromDateMom.format('MMM YYYY')
+      periodAndPartStr = (todaysDateMom < toDateMom) ? `${periodString} (to date)` : periodString
+      break
+    }
+    case 'week': {
+      // Using moment+locale functions here so that it lines up with what the NP GUI says.
+      setMomentLocaleFromEnvironment() // this will stop jest test
+      logDebug('getPeriodStartEndDatesFromPeriodCode', `locale = ${moment.locale()}`)
+      // const week41yDate = new Date(2023, 0, 4, 0, 0, 0)
+      // const NPSOYWeek = Calendar.weekNumber(week41yDate)
+      // logDebug('NP week for 4.1.year', String(NPSOYWeek))
 
-    fromDateMom = moment(periodShortCode)
-    toDateMom = new moment().startOf('day')
-    periodString = `since ${periodShortCode}`
-    const daysBetween = toDateMom.diff(fromDateMom, 'days')
-    periodAndPartStr = `${daysBetween} days since ${periodShortCode}`
-    logDebug('getPeriodStartEndDatesFromPeriodCode', `matched 8601date: ${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
-  } else {
-    periodString = `<Error: couldn't parse interval type '${periodShortCode}'>`
-    logWarn('getPeriodStartEndDatesFromPeriodCode', `couldn't match ${periodShortCode}`)
+      fromDateMom = moment([year, 0, 4]).add(periodNumber - 1, 'weeks').startOf('week')
+      toDateMom = moment([year, 0, 4]).add(periodNumber - 1, 'weeks').endOf('week')
+      // logDebug('moment attempt from', fromDateMom.toString())
+      // logDebug('moment attempt to', toDateMom.toString())
+      periodString = `${year}-W${periodNumber < 10 ? `0${String(periodNumber)}` : String(periodNumber)}`
+      periodAndPartStr = (todaysDateMom < toDateMom) ? `${periodString} (to date)` : periodString
+      break
+    }
+    case 'today': {
+      setMomentLocaleFromEnvironment() // this will stop jest test
+      logDebug('getPeriodStartEndDatesFromPeriodCode', `locale = ${moment.locale()}`)
+      fromDateMom = fromDateMom.startOf('day')
+      toDateMom = toDateMom.endOf('day')
+      periodString = 'today'
+      periodAndPartStr = `Today (${fromDateMom.format('ll')})` // short-ish locale format
+      break
+    }
+    default: {
+      // check to see if it's an ISO8601 date instead. Note: just do that one day, not as it does in the other function above
+      if (new RegExp(`^${RE_DATE}$`).test(periodCode)) {
+        fromDateMom = moment(periodCode)
+        toDateMom = moment(fromDateMom).endOf('day')
+        periodString = periodCode
+        periodAndPartStr = fromDateMom.format('ll') // short-ish locale format
+        logDebug('getPeriodStartEndDatesFromPeriodCode', `matched 8601date: ${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+      } else {
+        periodString = `<Error: couldn't parse interval type '${periodCode}'>`
+        logWarn('getPeriodStartEndDatesFromPeriodCode', `couldn't match ${periodCode}`)
+      }
+    }
   }
 
   fromDate = fromDateMom.toDate()
@@ -613,7 +613,7 @@ export async function getPeriodStartEndDatesFromPeriodCode(
     toDate = toDateMom.toDate()
   }
   logDebug('getPeriodStartEndDatesFromPeriodCode', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString} / ${periodAndPartStr}`)
-  return [fromDate, toDate, periodShortCode, periodString, periodAndPartStr]
+  return [fromDate, toDate, periodCode, periodString, periodAndPartStr]
 }
 
 export type NotePlanWeekInfo = {

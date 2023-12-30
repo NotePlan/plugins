@@ -228,6 +228,17 @@ The settings for this command are:
 
 Note: sparklines won't show for periods of time greater than 31 days -- they just get too wide for most devices.
 
+### Calling by x-callback
+You can run this from an **x-callback**  using the form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=periodStats&arg0=?&arg1=?&arg2=?` where
+- `arg0` is the calendar period code (`year`,`quarter`, `month`, `week`, `today`, or an `YYYY-MM-DD` date)",
+- `arg1` is the number within the calendar type (ignored for `today` or `YYYY-MM-DD`)
+- `arg2` is the `YYYY` year number to use (ignored for `YYYY-MM-DD`)
+
+For example the following will add stats for Dec 2023 to the end of the current note:
+```
+noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=periodStats&arg0=month&arg1=12&arg2=2023
+```
+
 ## weeklyStatsToCSV command
 This is a niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV file to 'Plugins/data/jgclark.Summaries/weekly_stats.csv'. This is designed to be used by third-party graphing tools.
 
