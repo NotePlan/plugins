@@ -7,9 +7,9 @@ See [CHANGELOG](changelog.md) for latest updates/changes to this plugin.
 This is a basic skeleton of a React app that can be used in a NotePlan plugin. 
 1. Copy this whole directory 
 1. Do a global find/replace inside the new plugin directory you created and replace:
-  `dwertheimer.ReactSkeleton` with whatever the ID of your plugin is. 
+  `dwertheimer.ReactSkeleton` with whatever the ID you want your new plugin to have. 
 > **NOTE:**
-> After doing this, you are advised to continue reading this README inside of your new plugin folder, because the commands/paths will have been updated for your new path
+> After the find/replace, you are advised to continue reading this README inside of your new plugin folder, because the commands/paths will have been updated for your new path
 1. Build and test the code as detailed below (confirm everything works)
 1. Then edit `reactMain.js` (the plugin-side code) and `WebView.jsx` (the HTML/React-side code) as you wish (See "Editing the Code" below)
 
