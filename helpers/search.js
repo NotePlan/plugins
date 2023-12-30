@@ -153,7 +153,7 @@ export function isMentionWanted(mentionToTest: string,
 export function getLineMainContentPos(input: string): number {
   try {
     if (input && input !== '') {
-      const res = input.match(/^(\s*(?:\#{1,5}\s+|(?:[*\-]\s(?:\[[ x\->]\])?|>))\s*)/) // regex which doesn't need input left trimming first
+      const res = input.match(/^(\s*(?:\#{1,5}\s+|(?:[*+-]\s(?:\[[ >x-]\])?|>))\s*)/) // regex which doesn't need input left trimming first
       if (res) {
         return res[0].length
       } else {
@@ -221,7 +221,10 @@ export function trimAndHighlightTermInLine(
     const startOfMainLineContentPos = getLineMainContentPos(input)
     const startOfLineMarker = input.slice(0, startOfMainLineContentPos)
     let mainPart = input.slice(startOfMainLineContentPos)
-    // logDebug('trimAndHighlight', `starting; mainPart = <${mainPart}>`)
+
+    // If we have a single blank 'terms' then set a flag, so we can disable highlighting and simplify the regex
+    const nonEmptyTerms = !(terms.length === 0 || (terms.length === 1 && terms[0] === ''))
+    logDebug('trimAndHighlight', `starting with [${String(terms)}] terms ${nonEmptyTerms ? '' : '(i.e. empty)'}; mainPart = <${mainPart}>`)
     let output = ''
     // As terms can include wildcards * or ?, we need to modify them slightly for the following regexes:
     // - replace ? with .
@@ -235,14 +238,16 @@ export function trimAndHighlightTermInLine(
       // logDebug('trimAndHighlight', `- after simplifyRawContent, mainPart = <${mainPart}>`)
 
       // Now trim the line content if necessary
-      if (maxChars > 0 && mainPart.length > maxChars) {
+      if (maxChars > 0 && mainPart.length > maxChars && nonEmptyTerms) {
         // this split point ensures we put the term with a little more context before it than after it
         const LRSplit = Math.round(maxChars * 0.55)
         // logDebug('trimAndHighlight', `- maxChars = ${String(maxChars)}, LRSplit = ${String(LRSplit)}, mainPart.length = ${String(mainPart.length)}`)
-        // regex: find occurrences of search terms and the text around them
 
-        const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${termsForRE}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
-        // logDebug('trimAndHighlight', `- /${RE_FIND_TEXT_AROUND_THE_TERMS}/`)
+        // regex: find occurrences of search terms and the text around them
+        // const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(?:^|\\b)(.{0,${String(LRSplit)}}${termsForRE}.{0,${String(maxChars - LRSplit)}})\\b\\w+`, "gi")
+        // TEST: Try doing this without word-boundary checks etc.
+        const RE_FIND_TEXT_AROUND_THE_TERMS = new RegExp(`(.{0,${String(LRSplit)}}${termsForRE}.{0,${String(maxChars - LRSplit)}})`, "gi")
+        // logDebug('trimAndHighlight', `- RE: ${RE_FIND_TEXT_AROUND_THE_TERMS}`)
         const matches = mainPart.match(RE_FIND_TEXT_AROUND_THE_TERMS) ?? [] // multiple matches
         if (matches.length > 0) {
           // If we have more than 1 match in the line, join the results together with '...'
@@ -280,7 +285,7 @@ export function trimAndHighlightTermInLine(
     // (A simple .replace() command doesn't work as it won't keep capitalisation)
     // Now allow highlighting again if this isn't a sync'd line
     const this_RE = new RegExp(RE_SYNC_MARKER)
-    if (addHighlight && terms.length > 0 && (simplifyLine || !this_RE.test(output))) {
+    if (addHighlight && nonEmptyTerms && terms.length > 0 && (simplifyLine || !this_RE.test(output))) {
       // regex: find any of the match terms in all the text
       const RE_HIGHLIGHT_MATCH = new RegExp(`(?:[^=](${termsForRE})(?=$|[^=]))`, "gi")
       // logDebug('trimAndHighlight', `- /${RE_HIGHLIGHT_MATCH}/`)

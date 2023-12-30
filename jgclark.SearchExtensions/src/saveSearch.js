@@ -3,10 +3,11 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 21.12.2023 for v1.3.0, @jgclark
+// Last updated 30.12.2023 for v1.3.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { trimAndHighlightTermInLine } from '@helpers/search'
 import {
   createFormattedResultLines,
   getSearchSettings,
@@ -67,6 +68,22 @@ export async function searchOpenTasks(searchTermsArg?: string): Promise<void> {
 }
 
 /**
+ * Call the main function, searching only over all open checklists.
+ */
+export async function searchOpenChecklists(searchTermsArg?: string): Promise<void> {
+  try {
+    await saveSearch(
+      searchTermsArg,
+      'both',
+      'searchOpenChecklists',
+      'checklist',
+      'Searching open checklists')
+  } catch (err) {
+    logError(pluginJson, `searchOpenChecklists(): ${err.message}`)
+  }
+}
+
+/**
  * Call the main function, but requesting only Calendar notes be searched.
  */
 export async function searchOverCalendar(searchTermsArg?: string, paraTypeFilterArg?: string): Promise<void> {
@@ -94,7 +111,7 @@ export async function searchOverNotes(searchTermsArg?: string, paraTypeFilterArg
  * Call the main function, searching over all notes, but using a fixed note for results
  */
 export async function quickSearch(searchTermsArg?: string, paraTypeFilterArg?: string, noteTypesToIncludeArg?: string): Promise<void> {
-  logDebug('quickSearch', `starting with searchTermsArg=${searchTermsArg}, paraTypeFilterArg=${paraTypeFilterArg}, noteTypesToIncludeArg=${noteTypesToIncludeArg}`)
+  logDebug('quickSearch', `starting with searchTermsArg=${searchTermsArg ?? ''}, paraTypeFilterArg=${paraTypeFilterArg ?? ''}, noteTypesToIncludeArg=${noteTypesToIncludeArg ?? ''}`)
   await saveSearch(
     searchTermsArg,
     noteTypesToIncludeArg ?? 'both',
@@ -128,7 +145,7 @@ export async function saveSearch(
     // logDebug(pluginJson, `arg0 -> searchTermsArg ${typeof searchTermsArg}`)
     logDebug(pluginJson, `arg0 -> searchTermsArg '${searchTermsArg ?? '(not supplied)'}'`)
 
-    // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
+    // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether searchTermsArg is supplied (not undefined)
     let calledNonInteractively = (searchTermsArg !== undefined)
     logDebug(pluginJson, `- called non-interactively? ${String(calledNonInteractively)}`)
 
@@ -139,7 +156,8 @@ export async function saveSearch(
 
     // Get the search terms, either from argument supplied, or by asking user
     let termsToMatchStr = ''
-    if (searchTermsArg) {
+    // if (searchTermsArg) {
+    if (calledNonInteractively) {
     // from argument supplied
       termsToMatchStr = searchTermsArg ?? ''
       logDebug(pluginJson, `arg0 -> search terms [${termsToMatchStr}]`)
@@ -193,7 +211,7 @@ export async function saveSearch(
     await CommandBar.onMainThread()
 
     //---------------------------------------------------------
-    // Work out where to save this summary
+    // While the search goes on, work out where to save this summary
     let destination = ''
     if (originatorCommand === 'quickSearch') {
       destination = 'quick'
@@ -206,7 +224,6 @@ export async function saveSearch(
     else {
       // else ask user
       const labelString = `🖊 Create/update note in folder '${config.folderToStore}'`
-      // destination = await chooseOption(
       destination = await chooseOption(
         `Where should I save the search results?`,
         [
@@ -236,13 +253,12 @@ export async function saveSearch(
     // Do output
     // logDebug(pluginJson, 'reached do output stage')
     const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
-    const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [termsToMatchStr, paraTypeFilterArg ?? '', noteTypesToInclude.join(',')]) // Note: these params are to the individual functions, not to the underlying saveSearch() function. So they are in a different order.
+    const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', originatorCommand, [termsToMatchStr, paraTypeFilterArg ?? '']) // Note: these params are to the individual functions, not to the underlying saveSearch() function. So they are in a different order.
 
     switch (destination) {
       case 'current': {
         // We won't write an overarching title, but will add a section heading.
         // Replace the search term's block (if already present) or append.
-        // Note: won't add a refresh button, as that requires seeing what the current filename is when called from the x-callback
         const currentNote = Editor
         if (currentNote == null) {
           logError(pluginJson, `No note is open`)
@@ -273,7 +289,7 @@ export async function saveSearch(
         if (noteOpenInEditor(noteFilename)) {
           logDebug(pluginJson, `- note ${noteFilename} already open in an editor window`)
         } else {
-            // Open the results note in a new split window, unless we can tell
+          // Open the results note in a new split window
           await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
         }
         break
@@ -284,8 +300,7 @@ export async function saveSearch(
         // Delete the note's contents and re-write each time.
         // *Does* need to include a subhead with search term + result count, as title is fixed.
         const requestedTitle = config.quickSearchResultsTitle
-        // const xCallbackLink = `noteplan://x-callback-url/runPlugin?pluginID=jgclark.SearchExtensions&command=quickSearch&arg0=${encodeURIComponent(termsToMatchStr)}&arg1=${paraTypeFilterArg ?? ''}&arg2=${noteTypesToIncludeArg ?? ''}`
-        const xCallbackLink = createRunPluginCallbackUrl('jgclark.SearchExtensions', 'quickSearch', [termsToMatchStr, paraTypeFilterArg ?? '', noteTypesToIncludeArg ?? ''])
+        const xCallbackLink = createRunPluginCallbackUrl('jgclark.SearchExtensions', 'quickSearch', [termsToMatchStr, paraTypeFilterArg ?? '', noteTypesToInclude.join(',')]) // Note: these params are to the individual functions, not to the underlying saveSearch() function. So they are in a different order.
 
         const noteFilename = await writeSearchResultsToNote(resultSet, requestedTitle, requestedTitle, config, xCallbackLink, false)
 

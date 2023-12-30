@@ -55,7 +55,8 @@ From v1.3, a saved search can be **automatically refreshed when opening it**. To
 ## Extended search syntax
 - put a `+`  and `-` search operator on the front of terms that **must** appear, and **must not** appear, respectively.  For example `+must may could -cannot"` has 4 search terms, the first must be present, the last mustn't be present, and the middle two (may, could) can be.
 - the test for + and - is done per line in notes. If you wish to ignore the whole note that has a term, you can use the ! operator, e.g. `+must_have_me !no_way_jose`. (thanks @dwertheimer for this suggestion)
-- TEST: the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit`)
+- (from v1.2) to search for an exact multi-word phrases, put it in quotes (e.g. `"Holy Spirit"`)
+- the searches ignore case of words (i.e. `SPIRIT` will match `spirit` or `Spirit`)
 - the searches are simple ones, matching on whole or partial words (e.g. `wind` matches `Windings` and `unwind`)
 - however from v1.3.0 you can also use two **wildcard** operators:
   -  `*` in a term means "match any number of characters (including none)" -- e.g. `pos*e` matches "possible", "posie" and "pose".
@@ -63,7 +64,6 @@ From v1.3, a saved search can be **automatically refreshed when opening it**. To
 - currently, a search term must have at least two alphanumeric characters to be valid.
 - all notes in the special Trash folder are ignored.  Others can be excluded too using the 'Folders to exclude' setting. If a folder is excluded, then so are its sub-folders.
 - you can use an empty search term (from v1.1), which might be useful in flexiSearch to find all open tasks. It will warn you first that this might be a lengthy operation.
-- (from v1.2) to search for an exact multi-word phrases, put it in quotes (e.g. `"Holy Spirit"`)
 - you can set default search terms in the 'Default Search terms' setting; if set you can still always override them.
 
 ## Settings

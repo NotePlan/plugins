@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 7.12.2023 for v1.3.0
+// Last updated 29.12.2023 for v1.0.0
 //-----------------------------------------------------------------------------
 
 export {
@@ -10,6 +10,7 @@ export {
   saveSearch,
   searchOverAll,
   searchOpenTasks,
+  searchOpenChecklists,
   searchOverNotes,
   searchOverCalendar
 } from './saveSearch'

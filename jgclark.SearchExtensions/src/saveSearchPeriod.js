@@ -3,7 +3,7 @@
 // Create list of occurrences of note paragraphs with specified strings, which
 // can include #hashtags or @mentions, or other arbitrary strings (but not regex).
 // Jonathan Clark
-// Last updated 14.7.2023 for v1.2.1, @jgclark
+// Last updated 30.12.2023 for v1.3.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -18,6 +18,7 @@ import {
   makeAnySyncs,
   type noteAndLine,
   numberOfUniqueFilenames,
+  optimiseOrderOfSearchTerms,
   type resultOutputTypeV3,
   runSearchesV2,
   validateAndTypeSearchTerms,
@@ -71,7 +72,7 @@ export async function searchPeriod(
     const headingMarker = '#'.repeat(config.headingLevel)
     const todayMom = new moment().startOf('day')
 
-    // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether searchTermsArg is undefined
+    // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether searchTermsArg is supplied (not undefined)
     let calledNonInteractively = (searchTermsArg !== undefined)
     logDebug(pluginJson, `Starting searchInPeriod()  ${calledNonInteractively ? "called non-interactively" : "called interactively"}`)
 
@@ -99,6 +100,18 @@ export async function searchPeriod(
     if (validatedSearchTerms == null || validatedSearchTerms.length === 0) {
       await showMessage(`These search terms aren't valid. Please see Plugin Console for details.`)
       return
+    }
+
+    // Now optimise the order we tackle the search terms
+    const orderedSearchTerms = optimiseOrderOfSearchTerms(validatedSearchTerms)
+
+    // If we have a blank search term, then double-check user wants to do this
+    if (orderedSearchTerms.length === 1 && orderedSearchTerms[0].term === '') {
+      const res = await showMessageYesNo('No search terms specified. Are you sure you want to run a potentially very long search?')
+      if (res === 'No') {
+        logDebug(pluginJson, 'User has cancelled search')
+        return
+      }
     }
 
     // Work out time period to cover
@@ -159,7 +172,7 @@ export async function searchPeriod(
     await CommandBar.onAsyncThread()
 
     // $FlowFixMe[incompatible-exact] Note: as no await, which gets resolved later
-    const resultsProm: resultOutputTypeV3 = runSearchesV2(validatedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, fromDateStr, toDateStr)
+    const resultsProm: resultOutputTypeV3 = runSearchesV2(orderedSearchTerms, ['calendar'], [], [], config, paraTypesToInclude, fromDateStr, toDateStr)
     await CommandBar.onMainThread()
 
     //---------------------------------------------------------
@@ -203,12 +216,12 @@ export async function searchPeriod(
     // Do output
     const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
     const resultOutputLines: Array<string> = createFormattedResultLines(resultSet, config)
-    const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', 'searchInPeriod', [termsToMatchStr, fromDateStr, toDateStr, paraTypeFilterArg ?? '', destinationArg ?? ''])
+    const xCallbackURL = createRunPluginCallbackUrl('jgclark.SearchExtensions', 'searchInPeriod', [termsToMatchStr, fromDateStr, toDateStr, paraTypeFilterArg ?? '', 'current']) // Note: these params are to the individual functions, not to the underlying saveSearch() function. So they are in a different order.
 
     switch (destination) {
       case 'current': {
         // We won't write an overarching heading.
-        // For each search term result set, replace the search term's block (if already present) or append.
+        // Replace the search term's block (if already present) or append.
         const currentNote = Editor.note
         if (currentNote == null) {
           logError(pluginJson, `No note is open`)
@@ -239,7 +252,7 @@ export async function searchPeriod(
         if (noteOpenInEditor(noteFilename)) {
           logDebug(pluginJson, `- note ${noteFilename} already open in an editor window`)
         } else {
-            // Open the results note in a new split window, unless we can tell
+          // Open the results note in a new split window
           await Editor.openNoteByFilename(noteFilename, false, 0, 0, true)
         }
         // }
@@ -264,6 +277,6 @@ export async function searchPeriod(
       }
     }
   } catch (err) {
-    logError(pluginJson, err.message)
+    logError(pluginJson, 'searchInPeriod(): ' + err.message)
   }
 }

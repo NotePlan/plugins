@@ -82,8 +82,8 @@ const flexiSearchDialogHTML = `
 	<ul class="dialogList">
 		<li>Checklists:</li>
 		<li>
-    <input type="checkbox" id="checklistOpen" name="checklist"
-      value="checklistOpen" checked />
+    <input type="checkbox" id="checklist" name="checklist"
+      value="checklist" checked />
     <label for="checklist"><i class="fa-regular fa-square"></i>Open</label>
 		</li>
 		<li>
@@ -334,7 +334,7 @@ export async function flexiSearchRequest(
     // Note: extra commas aren't typos
     const saveType = String(DataStore.preference(pluginID + '.saveType')) ?? 'quick'
     const noteTypesStr = String(DataStore.preference(pluginID + '.noteTypesStr')) ?? 'notes,calendar,'
-    const paraTypesStr = String(DataStore.preference(pluginID + '.paraTypesStr')) ?? 'open,done,checklistOpen,checklistDone,list,quote,title,text,'
+    const paraTypesStr = String(DataStore.preference(pluginID + '.paraTypesStr')) ?? 'open,done,checklist,checklistDone,list,quote,title,text,'
     const flexiSearchDialogPostBodyScriptsWithPrefValues = flexiSearchDialogPostBodyScripts
       .replace('%%SAVETYPEPREF%%', saveType)
       .replace('%%NOTETYPESSTRPREF%%', noteTypesStr)
@@ -388,8 +388,11 @@ export function flexiSearchHandler(searchTerms: string, saveType: string, noteTy
 }
 
 /**
- * Way for an HTML window to request that it be closed.
- * Is there a simpler way? I can't find one yet.
+ * Close the dialog window.
+ * Note: this is the only way I can find to get this to work:
+ * - Uses NotePlan-specific window handling.
+ * - I couldn't find a way for general HTML/JS that worked in the NP context.
+ * @author @jgclark
  * @param {customId} customId
  * @returns {any} not used, but has to be present
  */
@@ -408,6 +411,7 @@ export function closeDialogWindow(customId: string): any {
 
 /**
  * Helper function for HTML views to set a DataStore.preference value (as a string)
+ * @author @jgclark
  * @param {string} key to set
  * @param {string} value to set
  * @returns {any}
@@ -417,7 +421,6 @@ export function savePluginPreference(key: string, value: string): any {
     logDebug(pluginJson, `savePluginPreference('${key}', '${value}') called for ${pluginID}`)
     DataStore.setPreference(pluginID + '.' + key, value)
     // logDebug(pluginJson, `-> ${DataStore.preference(pluginID + '.' + key)}}`)
-
     return {} // apparently required to avoid error in log
   }
   catch (err) {
@@ -428,6 +431,7 @@ export function savePluginPreference(key: string, value: string): any {
 
 /**
  * Helper function for HTML views to get DataStore.preference value
+ * @author @jgclark
  * @param {string} key to read
  * @returns {any}
  */
@@ -436,8 +440,6 @@ export function getPluginPreference(key: string): any {
     logDebug(pluginJson, `getPluginPreference('${key}') called for ${pluginID}`)
     // logDebug(pluginJson, `-> ${DataStore.preference(pluginID + '.' + key)}}`)
     return DataStore.preference(pluginID + '.' + key)
-
-    // return {} // apparently required to avoid error in log
   }
   catch (err) {
     logError(pluginJson, 'getPluginPreference: ' + err.message)

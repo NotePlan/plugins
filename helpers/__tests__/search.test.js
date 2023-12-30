@@ -270,7 +270,7 @@ describe('search.js tests', () => {
       const output = s.trimAndHighlightTermInLine('Something in [tennis title](http://www.random-rubbish.org/)', ['tennis'], false, false, '- ', 0)
       expect(output).toEqual('Something in [tennis title](http://www.random-rubbish.org/)')
     })
-    test('should return same as input', () => {
+    test('should return same as short ', () => {
       const output = s.trimAndHighlightTermInLine('Something in [tennis title](http://www.random-rubbish.org/)', ['tennis'], false, false, '- ', 100)
       expect(output).toEqual('Something in [tennis title](http://www.random-rubbish.org/)')
     })
@@ -282,12 +282,20 @@ describe('search.js tests', () => {
       const output = s.trimAndHighlightTermInLine('Something in [tennis title](http://www.random-rubbish.org/)', ['tennis'], true, true, '- ', 100)
       expect(output).toEqual('- Something in [==tennis== title](http://www.random-rubbish.org/)')
     })
-    test('should return same as input (no term included at all)', () => {
+    test('should return same as input (with empty term)', () => {
+      const output = s.trimAndHighlightTermInLine('Something in [link title](http://www.random-rubbish.org/)', [''], false, true, '- ', 100)
+      expect(output).toEqual('Something in [link title](http://www.random-rubbish.org/)')
+    })
+    test('should return same as input (no term mentioned)', () => {
       const output = s.trimAndHighlightTermInLine('Something in [link title](http://www.random-rubbish.org/)', ['cabbage'], false, true, '- ', 100)
       expect(output).toEqual('Something in [link title](http://www.random-rubbish.org/)')
     })
     test('should return 3 highlights; simplified', () => {
       const output = s.trimAndHighlightTermInLine("\t\t* [ ] There's Tennis and tennis.org and unTENNISlike behaviour!  ", ['tennis'], true, true, '- ', 100)
+      expect(output).toEqual("- There's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!")
+    })
+    test('should return 3 highlights; simplified (different case)', () => {
+      const output = s.trimAndHighlightTermInLine("\t\t* [ ] There's Tennis and tennis.org and unTENNISlike behaviour!  ", ['TENNIS'], true, true, '- ', 100)
       expect(output).toEqual("- There's ==Tennis== and ==tennis==.org and un==TENNIS==like behaviour!")
     })
     test('should return 3 highlights, dealing with padding, simplifying', () => {
@@ -356,6 +364,11 @@ describe('search.js tests', () => {
         "- Kate's #picture big tap but dripping one drop at a time. Arrow pointing to tap, showing it’s not turned on far at all. → openness to ==Holy== ==Spirit==",
       )
     })
+    test('should return line that is all a markdown link', () => {
+      const output = s.trimAndHighlightTermInLine('[Jubilee Centre: Letters from Christians in the Workplace](https://static1.squarespace.com/static/62012941199c974967f9c4ad/t/6310c2720d9d1e7e30cf29bf/1662042743991/Dear+Church+Letters+%28Sept+2022%29.pdf)', [''], true, false, '- ')
+      expect(output).toEqual('- [Jubilee Centre: Letters from Christians in the Workplace](https://static1.squarespace.com/static/62012941199c974967f9c4ad/t/6310c2720d9d1e7e30cf29bf/1662042743991/Dear+Church+Letters+%28Sept+2022%29.pdf)')
+    })
+
     // TODO: Ran out of energy to do the detail on this ...
     test.skip('should return 1 highlight and front and end trimming', () => {
       const output = s.trimAndHighlightTermInLine('Lorem ipsum dolor sit amet, sed consectetur adipisicing elit, sed do eiusmod tempor incididunt', ['sed'], true, true, '- ', 48)

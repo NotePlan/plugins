@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
 // Jonathan Clark
-// Last updated 26.12.2023 for v1.3.0, @jgclark
+// Last updated 29.12.2023 for v1.3.1, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -51,6 +51,7 @@ export type resultObjectTypeV3 = {
 }
 
 export type resultOutputTypeV3 = {
+  searchTermsArr: Array<string>,
   searchTermsRepArr: Array<string>,
   resultNoteAndLineArr: Array<noteAndLine>,
   resultCount: number,
@@ -273,7 +274,7 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
 */
 export function optimiseOrderOfSearchTerms(inputTerms: Array<typedSearchTerm>): Array<typedSearchTerm> {
   try {
-    logDebug('optimiseOrderOfSearchTerms', `starting with ${String(inputTerms.length)} terms`)
+    // logDebug('optimiseOrderOfSearchTerms', `starting with ${String(inputTerms.length)} terms`)
     // Expand the typedSearchTerm object to include length of terms
     const expandedInputTerms = inputTerms.map((i) => {
       return {
@@ -284,9 +285,9 @@ export function optimiseOrderOfSearchTerms(inputTerms: Array<typedSearchTerm>): 
         longestWordLength: i.term.length
       }
     })
-    clo(expandedInputTerms, 'expandedInputTerms = ')
+    // clo(expandedInputTerms, 'expandedInputTerms = ')
     const sortKeys = ['typeOrder', 'longestWordLength']
-    logDebug('optimiseOrderOfSearchTerms', `- Will use sortKeys: [${String(sortKeys)}]`)
+    // logDebug('optimiseOrderOfSearchTerms', `- Will use sortKeys: [${String(sortKeys)}]`)
     const sortedTerms: Array<typedSearchTerm> = sortListBy(expandedInputTerms, sortKeys)
     clo(sortedTerms, 'optimiseOrderOfSearchTerms -> ')
     return sortedTerms
@@ -443,6 +444,7 @@ export function applySearchOperators(
     if (consolidatedLineCount === 0) {
       logInfo('applySearchOperators', `- must: no results found after must term [${r.searchTerm.termRep}] so stopping early.`)
       const consolidatedResultsObject: resultOutputTypeV3 = {
+        searchTermsArr: termsResults.map((m) => m.searchTerm.term),
         searchTermsRepArr: termsResults.map((m) => m.searchTerm.termRep),
         resultNoteAndLineArr: [],
         resultCount: 0,
@@ -481,6 +483,7 @@ export function applySearchOperators(
       if (consolidatedLineCount === 0) {
         logInfo('applySearchOperators', `- must: no results found after must term [${r.searchTerm.termRep}] so stopping early.`)
         const consolidatedResultsObject: resultOutputTypeV3 = {
+          searchTermsArr: termsResults.map((m) => m.searchTerm.term),
           searchTermsRepArr: termsResults.map((m) => m.searchTerm.termRep),
           resultNoteAndLineArr: [],
           resultCount: 0,
@@ -602,6 +605,7 @@ export function applySearchOperators(
 
   // Form the output data structure
   const consolidatedResultsObject: resultOutputTypeV3 = {
+    searchTermsArr: termsResults.map((m) => m.searchTerm.term),
     searchTermsRepArr: termsResults.map((m) => m.searchTerm.termRep),
     resultNoteAndLineArr: consolidatedNALs,
     resultCount: consolidatedLineCount,
@@ -723,7 +727,7 @@ export async function runSearchesV2(
   }
   catch (err) {
     logError('runSearchesV2', err.message)
-    return { searchTermsRepArr: [], resultNoteAndLineArr: [], resultCount: 0, resultNoteCount: 0, fullResultCount: 0 } // for completeness
+    return { searchTermsArr: [], searchTermsRepArr: [], resultNoteAndLineArr: [], resultCount: 0, resultNoteCount: 0, fullResultCount: 0 } // for completeness
   }
 }
 
@@ -1027,9 +1031,10 @@ export function createFormattedResultLines(resultSet: resultOutputTypeV3, config
     const simplifyLine = (config.resultStyle === 'Simplified')
 
     // Get array of 'may' or 'must' search terms ready to display highlights
-    const mayOrMustTermsRep = resultSet.searchTermsRepArr.filter((f) => f[0] !== '-')
+    const mayOrMustTerms = resultSet.searchTermsArr.filter((f) => f[0] !== '-')
     // Take off leading + or ! if necessary
-    const mayOrMustTerms = mayOrMustTermsRep.map((f) => (f.match(/^[\+\!]/)) ? f.slice(1) : f)
+    // TEST: now using .searchTermsArr so shouldn't be necessary
+    // const mayOrMustTerms = mayOrMustTerms.map((f) => (f.match(/^[\+\!]/)) ? f.slice(1) : f)
     const notEmptyMayOrMustTerms = mayOrMustTerms.filter((f) => f !== '')
     // logDebug('createFormattedResultLines', `Starting with ${notEmptyMayOrMustTerms.length} notEmptyMayOrMustTerms (${String(notEmptyMayOrMustTerms)}) / simplifyLine? ${String(simplifyLine)} / groupResultsByNote? ${String(config.groupResultsByNote)} / config.resultQuoteLength = ${String(config.resultQuoteLength)}`)
     // Add each result line to output array
