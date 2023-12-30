@@ -89,7 +89,7 @@ export function printNote(note: TNote): void {
 }
 
 /**
- * Open a note using whatever method works (open by title, filename, etc.)
+ * Get a note using whatever method works (open by title, filename, etc.)
  * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
  * Leaving it here for the moment in case any plugins are still using it
  * @author @dwertheimer
@@ -110,9 +110,7 @@ export async function noteOpener(fullPath: string, desc: string, useProjNoteByFi
 }
 
 /**
- * Open a note using whatever method works (open by title, filename, etc.)
- * Note: this function was used to debug/work-around API limitations. Probably not necessary anymore
- * Leaving it here for the moment in case any plugins are still using it
+ * Get a note using whatever method works (open by title, filename, etc.)
  * @author @jgclark, building on @dwertheimer
  * @param {string} filename of either Calendar or Notes type
  * @returns {?TNote} - the note that was opened
@@ -126,6 +124,24 @@ export function getNoteByFilename(filename: string): ?TNote {
   } else {
     logWarn('note/getNoteByFilename', `-> couldn't find a note in either Notes or Calendar`)
     return null
+  }
+}
+
+/**
+ * Get the noteType of a note from its filename
+ * @author @jgclark
+ * @param {string} filename of either Calendar or Notes type
+ * @returns {NoteType} Calendar | Notes
+ */
+export function getNoteTypeByFilename(filename: string): ?NoteType {
+  // logDebug('note/getNoteByFilename', `Started for '${filename}'`)
+  const newNote = DataStore.noteByFilename(filename, 'Notes') ?? DataStore.noteByFilename(filename, 'Calendar')
+  if (newNote != null) {
+    // logDebug('note/getNoteByFilename', `-> note '${displayTitle(newNote)}`)
+    return newNote.type
+  } else {
+    logWarn('note/getNoteByFilename', `-> couldn't find a note in either Notes or Calendar`)
+    return
   }
 }
 
@@ -233,8 +249,7 @@ export function notesInFolderSortedByTitle(folder: string): Array<TNote> {
     // Sort alphabetically on note's title
     const notesSortedByTitle = notesInFolder.sort((first, second) => (first.title ?? '').localeCompare(second.title ?? ''))
     return notesSortedByTitle
-  }
-  catch (err) {
+  } catch (err) {
     logError('note/notesInFolderSortedByTitle', err.message)
     return []
   }
@@ -258,8 +273,7 @@ export function getUniqueNoteTitle(title: string): string {
       res = DataStore.projectNoteByTitle(newTitle, true, false)
     }
     return newTitle
-  }
-  catch (err) {
+  } catch (err) {
     logError('note/notesInFolderSortedByTitle', err.message)
     return ''
   }
@@ -301,6 +315,7 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
   const projectNotes = projectNotesFromFilteredFolders(foldersToIgnore, true)
   const calendarNotes = DataStore.calendarNotes.slice()
   const allNotes = projectNotes.concat(calendarNotes)
+  // $FlowIgnore(unsafe-arithmetic)
   const allNotesSorted = allNotes.sort((first, second) => second.changedDate - first.changedDate) // most recent first
   return allNotesSorted
 }
@@ -311,6 +326,7 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
  * @return {Array<TNote>} - list of notes
  */
 export function calendarNotesSortedByChanged(): Array<TNote> {
+  // $FlowIgnore(unsafe-arithmetic)
   return DataStore.calendarNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
@@ -339,6 +355,7 @@ export function pastCalendarNotes(): Array<TNote> {
  */
 export function weeklyNotesSortedByChanged(): Array<TNote> {
   const weeklyNotes = DataStore.calendarNotes.slice().filter((f) => f.filename.match(RE_WEEKLY_NOTE_FILENAME))
+  // $FlowIgnore(unsafe-arithmetic)
   return weeklyNotes.sort((first, second) => second.changedDate - first.changedDate)
 }
 
@@ -348,6 +365,7 @@ export function weeklyNotesSortedByChanged(): Array<TNote> {
  * @return {Array<TNote>} - list of notes
  */
 export function projectNotesSortedByChanged(): Array<TNote> {
+  // $FlowIgnore(unsafe-arithmetic)
   return DataStore.projectNotes.slice().sort((first, second) => second.changedDate - first.changedDate)
 }
 
@@ -574,7 +592,6 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
       let isInIgnoredFolder = false
       excludedFolders.forEach((folder) => {
         if (note.filename.includes(`${folder.trim()}/`)) {
-          logDebug('note/fNAEF', `ignoring folder="${folder}" note.filename="${note.filename}}"`)
           isInIgnoredFolder = true
         }
       })

@@ -74,14 +74,17 @@ export function WebView({ data, dispatch }: Props): Node {
 
   /**
    * Submit button on the page was clicked
+   * (sample handler for a button in the react window)
    * @param {any} e - the event object
    * @param {number} index - the index of the button that was clicked
    */
   const onSubmitClick = (e, index) => {
-    logDebug(`Webview: onSubmitClick: click on index: ${index}`)
+    logDebug(`Webview: onSubmitClick: ${e.type || ''} click on index: ${index}`)
     sendActionToPlugin('onSubmitClick', { index: index })
   }
 
+  // A sample function that does something interactive in the window using React
+  // you will delete this
   const scrambleLines = () => {
     logDebug(`Webview: scrambleLines: click`)
     // in this example, we are not going to send any data back to the plugin, everything is local
@@ -92,7 +95,11 @@ export function WebView({ data, dispatch }: Props): Node {
     dispatch('UPDATE_DATA', newData) // save the data at the Root React Component level, which will give the plugin access to this data also
     // this will cause this component to re-render with the new data
     // will never reach anything below this line because the component will re-render
-    dispatch('SHOW_BANNER', { msg: 'Component re-rendered after data was changed at Root componenet level. Did not call the plugin.', color: 'blue', border: 'blue' })
+    dispatch('SHOW_BANNER', {
+      msg: 'FYI: Page automatically re-rendered locally after pluginData was changed at Root component level. Did not call the plugin.',
+      color: 'blue',
+      border: 'blue',
+    })
   }
 
   /****************************************************************************************************************************
@@ -120,6 +127,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {string} text
    * @returns {string} cleaned text without HTML entities
    */
+  // eslint-disable-next-line no-unused-vars
   function decodeHTMLEntities(text) {
     const textArea = document.createElement('textarea')
     textArea.innerHTML = text
@@ -174,9 +182,9 @@ export function WebView({ data, dispatch }: Props): Node {
   return (
     <div style={{ maxWidth: '100vw', width: '100vw' }}>
       <Button onClick={scrambleLines} className="w3-light-blue">
-        Randomize Lines (without calling Plugin)
+        Randomize Lines Locally in React (without calling Plugin)
       </Button>
-      <div className="w3-container w3-green">
+      <div className="w3-container w3-green w3-margin-top">
         <div className="w3-cell-row" style={{ fontWeight: 'bold' }}>
           <div className="w3-cell">Text</div>
           <div className="w3-cell">Submit Change to Plugin</div>

@@ -671,7 +671,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
   try {
     const dataWithUpdated = { ...data, ...{ lastUpdated: { msg: `${actionType}${updateInfo ? ` ${updateInfo}` : ''}`, date: new Date().toLocaleString() } } }
     // logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" payload=${JSON.stringify(data, null, 2)}`)
-    logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" to ${windowId}`)
+    logDebug(`Bridge::sendToHTMLWindow`, `sending type:"${actionType}" to window: "${windowId}"`)
     const result = await HTMLView.runJavaScript(
       `window.postMessage(
         {
@@ -699,7 +699,7 @@ export async function sendToHTMLWindow(windowId: string, actionType: string, dat
  * @param {string} windowId - the id of the window to send the message to (should be the same as the window's id attribute)
  * @returns {Object} - the current state of globalSharedData
  */
-export async function getGlobalSharedData(windowId: string, varName: string = 'globalSharedData'): any {
+export async function getGlobalSharedData(windowId: string, varName: string = 'globalSharedData'): Promise<any> {
   try {
     logDebug(pluginJson, `getGlobalSharedData getting var:${varName} from window:${windowId}`)
     const currentValue = await HTMLView.runJavaScript(`${varName};`, windowId)
@@ -720,7 +720,7 @@ export async function getGlobalSharedData(windowId: string, varName: string = 'g
  * @returns {any} returns the result of the runJavaScript call, which in this case is typically identical to the data passed
  * ...and so can probably be ignored
  */
-export async function updateGlobalSharedData(windowId: string, data: any, mergeData: boolean = true, varName: string = 'globalSharedData'): any {
+export async function updateGlobalSharedData(windowId: string, data: any, mergeData: boolean = true, varName: string = 'globalSharedData'): Promise<any> {
   let newData
   const currentData = await getGlobalSharedData(windowId, varName)
   if (currentData === undefined) {

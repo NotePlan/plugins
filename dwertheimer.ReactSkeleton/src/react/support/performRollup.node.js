@@ -16,7 +16,7 @@ const { rollupReactFiles, getRollupConfig } = rollupReactScript
   const graph = process.argv.includes('--graph')
 
   const rollupConfigs = [
-    /** TaskAutomations WebView app - build both dev and production each time */
+    /** WebView app - build both dev and production each time */
     getRollupConfig({
       entryPointPath: 'dwertheimer.ReactSkeleton/src/react/support/rollup.WebView.entry.js',
       outputFilePath: 'dwertheimer.ReactSkeleton/requiredFiles/react.c.WebView.bundle.REPLACEME.js',
