@@ -7,9 +7,10 @@
  * --------------------------------------------------------------------------------------------------------------------------*/
 
 import json5 from 'json5'
+import { showMessage, showMessageYesNo } from './userInput'
 import { castStringFromMixed } from '@helpers/dataManipulation'
-import { logDebug, logError, logInfo, JSP } from '@helpers/dev'
-import { showMessageYesNo } from '@helpers/userInput'
+import { logDebug, logError, logInfo, JSP, clo, copyObject } from '@helpers/dev'
+import { sortListBy } from '@helpers/sorting'
 
 /**
  * Returns ISO formatted date time
@@ -25,36 +26,6 @@ export const dt = (): string => {
 
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString()}`
 }
-
-// this is the only possible location for _configuration note
-// const STATIC_TEMPLATE_FOLDER = '📋 Templates'
-
-/**
- * Get NotePlan Configuration block for given section
- * WARNING: Since NotePlan v3.4 no longer used, so commented out.
- * @author @codedungeon
- * @param {string} section - NotePlan _configuration section
- * @return return this as structured data, in the format specified by the first line of the codeblock (should be `javascript`)
- */
-// export async function getConfiguration(configSection: string = ''): Promise<any> {
-//   const configFile = DataStore.projectNotes.filter((n) => n.filename?.startsWith(STATIC_TEMPLATE_FOLDER)).find((n) => !!n.title?.startsWith('_configuration'))
-
-//   const content: ?string = configFile?.content
-//   if (content == null) {
-//     log(`getConfiguration - Unable to find _configuration note`)
-//     return {}
-//   }
-
-//   const configData = content.split('\n```')[1]
-
-//   // FlowIgnore
-//   const config = await parseConfiguration(configData)
-//   if (!config.hasOwnProperty(configSection)) {
-//     log(`getConfiguration - Unable to locate ${configSection} in _configuration`)
-//     return {}
-//   }
-//   return config[configSection]
-// }
 
 /**
  * initialize Plugin Settings
@@ -80,89 +51,6 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
 
   return migrateData
 }
-
-/* WARNING: Since migration following NotePlan v3.4 this is no longer used, so commented out. */
-/**
- * Migrate existing _configuration block to plugin/settings.json
- * @author @codedungeon
- * @param {string} configSection - template section name
- * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
- * @return {number} migration result (-1 migration section not found, 1 success, 0 no migration necessary)
- */
-// export async function migrateConfiguration(configSection: string, pluginJsonData: any, silentMode?: boolean = false): Promise<number> {
-//   // migrationResult
-//   // will be 1 if _configuration was migrated to plugin settings
-//   // will be 0 if no migration necessary
-//   // will be -1 if _configuration data not found
-//   let migrationResult = 0
-//   const canEditSettings: boolean = NotePlan.environment.platform === 'macOS'
-
-//   const pluginSettingsData = await DataStore.loadJSON(`../${pluginJsonData['plugin.id']}/settings.json`)
-//   if (!pluginSettingsData) {
-//     const migrateData = {}
-
-//     // load _configuration data for configSection if exists
-//     const configData = await getConfiguration(configSection)
-//     migrationResult = Object.keys(configData).length > 0 ? 1 : -1
-
-//     // load plugin settings object, if not exists settings object will be empty
-//     const pluginSettings = pluginJsonData.hasOwnProperty('plugin.settings') ? pluginJsonData['plugin.settings'] : []
-
-//     pluginSettings.forEach((setting) => {
-//       const key: any = setting?.key || null
-//       const type: any = setting?.type || null
-
-//       if (key) {
-//         log(`migrateConfiguration checking: ${key}, type: ${type}`)
-//         migrateData[key] = setting?.default || ''
-
-//         // add key if it does not exist in _configuration note
-//         if (!configData.hasOwnProperty(key)) {
-//           log(`migrateConfiguration adding key: ${key}`)
-//           configData[key] = setting.default
-
-//           // Convert json to an object
-//           if (setting.type === 'json' && setting.default !== 'undefined') {
-//             configData[key] = JSON.parse(setting.default)
-//           }
-//         }
-
-//         // migration data from _configuration if exists
-//         if (key && configData[key] !== 'undefined') {
-//           migrateData[key] = configData[key]
-
-//           // Check if the variable is an array with anything but objects, then save it as comma separated string
-//           // Note: We don't need to conver this here, we need to set the type in the plugin.settings of plugin.json to [string]
-//           // if (Array.isArray(configData[key]) && configData[key].length > 0 && (typeof configData[key][0]) !== 'object') {
-//           //   migrateData[key] = configData[key].join(', ')
-//           // }
-//         }
-//       }
-//     })
-
-//     // initialize settings data
-//     // $FlowFixMe[prop-missing]
-//     migrateData.version = pluginJsonData['plugin.version']
-//     DataStore.settings = { ...migrateData }
-
-//     log(`==> ${pluginJsonData['plugin.id']} _configuration.${configSection} migration (migration complete)`)
-//   }
-
-//   // if settings data was migrated (first time only)
-//   if (migrationResult === 1 && !silentMode) {
-//     const reviewMessage: string = canEditSettings ? `\n\nWould you like to review the plugin settings now?` : ''
-//     const answer: mixed = await CommandBar.prompt(
-//       'Configuration Migration Complete',
-//       `Your personal settings for plugin: "${configSection}" have been migrated from the _configuration note to the new NotePlan Plugin Settings.\n\nTo change your plugin settings in the future (on the Mac), please open the NotePlan preferences, navigate to "Plugins" and click on the gear icon on the right of the plugin name. ${reviewMessage}`,
-//       canEditSettings ? ['Yes', 'No'] : ['OK'],
-//     )
-//     if (canEditSettings && answer === 0) {
-//       await NotePlan.showConfigurationView()
-//     }
-//   }
-
-//   return migrationResult
-// }
 
 /**
  * update setting data in the event plugin.settings object has been updated
@@ -301,25 +189,33 @@ export async function parseConfiguration(block: string): Promise<?{ [string]: ?m
 }
 
 /**
- * Convert semver string to number (used when plugin settings see np.Templating for an example)
- * @author @codedungeon
- * @param {string} semver - semver version
- * @return return long version number
+ * Convert semver string to number, ignoring any non-numeric, non-period characters (e.g., "-beta3")
+ * @param {string} version - semver version string
+ * @returns {number} Numeric representation of version
+ * @throws {Error} If version string is invalid
  */
 export function semverVersionToNumber(version: string): number {
-  const parts = version.split('.')
+  // Trim the version string at the first non-numeric, non-period character
+  const trimmedVersion = version.split(/[^0-9.]/)[0]
 
-  // $FlowIgnore
-  parts.forEach((part: number) => {
-    if (part >= 1024) {
-      throw new Error(`Version string invalid, ${part} is too large`)
+  const parts = trimmedVersion.split('.').map((part) => {
+    const numberPart = parseInt(part, 10)
+    if (isNaN(numberPart) || numberPart < 0) {
+      throw new Error(`Invalid version part: ${part}`)
     }
+    return numberPart
   })
 
+  if (parts.length !== 3) {
+    throw new Error('Version string must have exactly three parts')
+  }
+
   let numericVersion = 0
-  // Shift all parts either 0, 10 or 20 bits to the left.
-  for (let i = 0; i < 3; i++) {
-    numericVersion |= parseInt(parts[i]) << (i * 10)
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i] > 1023) {
+      throw new Error(`Version string invalid, ${parts[i]} is too large`)
+    }
+    numericVersion += parts[i] * Math.pow(1024, 2 - i)
   }
   return numericVersion
 }
@@ -331,19 +227,19 @@ export function semverVersionToNumber(version: string): number {
  * @param {{ code: number, message: string }} result
  */
 export async function pluginUpdated(pluginJson: any, result: { code: number, message: string }): Promise<void> {
-  // result.codes = 0=no update, 1=updated, -1=error
-  if (result.code === 1) {
-    logInfo(pluginJson, `Plugin was updated`)
+  // result.codes = 0=no update, 1=updated, 2=installed, -1=error
+  if (result.code >= 1) {
+    logInfo(pluginJson, `Plugin was ${result.code === 1 ? 'updated' : 'installed'}`)
     const newSettings = await getPluginJson(pluginJson['plugin.id'])
     if (newSettings) {
       const hasChangelog = newSettings['plugin.changelog']
       const hasUpdateMessage = newSettings['plugin.lastUpdateInfo']
-      const updateMessage = hasUpdateMessage ? `Changes include:\n"${hasUpdateMessage}"\n\n` : ''
+      const updateMessage = hasUpdateMessage ? `Latest changes include:\n"${hasUpdateMessage}"\n\n` : ''
       const version = newSettings['plugin.version']
       const openReadme = await showMessageYesNo(
-        `The '${newSettings['plugin.name']}' plugin was automatically updated to v${version}. ${updateMessage}Would you like to open the Plugin's ${
-          hasChangelog ? 'Change Log' : 'Documentation'
-        } to see more details?`,
+        `The '${newSettings['plugin.name']}' plugin ${
+          result.code === 1 ? 'was automatically updated to' : 'was installed.'
+        } v${version}. ${updateMessage}Would you like to open the Plugin's ${hasChangelog ? 'Change Log' : 'Documentation'} to see more details?`,
         ['Yes', 'No'],
         `'${newSettings['plugin.name']}' Plugin Updated`,
       )
@@ -351,6 +247,7 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
         const url = hasChangelog ? newSettings['plugin.changelog'] : newSettings['plugin.url'] || ''
         NotePlan.openURL(url)
       }
+      await migrateCommandsIfNecessary(newSettings)
     } else {
       logInfo(pluginJson, `Plugin was updated, but no new settings were loaded: newSettings was:${JSP(newSettings)}`)
     }
@@ -370,10 +267,141 @@ export function getLocale(configIn: Object): string {
   const envRegion = NotePlan?.environment ? NotePlan?.environment?.regionCode : ''
   const envLanguage = NotePlan?.environment ? NotePlan?.environment?.languageCode : ''
   let tempLocale = castStringFromMixed(configIn, 'locale') ?? null
-  tempLocale = tempLocale != null && tempLocale !== ''
-    ? tempLocale
-    : envRegion !== ''
-      ? `${envLanguage}-${envRegion}`
-      : 'en-US'
+  tempLocale = tempLocale != null && tempLocale !== '' ? tempLocale : envRegion !== '' ? `${envLanguage}-${envRegion}` : 'en-US'
   return tempLocale
+}
+
+export type PluginObjectWithUpdateField = {
+  ...PluginObject,
+  updateIsAvailable: boolean,
+  isInstalled: boolean,
+  installedVersion: string,
+  installLink?: string,
+  documentation?: string,
+  lastUpdateInfo?: string,
+  author?: string,
+}
+
+/**
+ * Find a plugin id and optionally minVersion from a list of plugins generated by DataStore.installedPlugins() etc.
+ * @param {*} list - array of plugins
+ * @param {*} id - id to find
+ * @param {*} minVersion - min version to find (optional)
+ * @returns the plugin object if the id is found and the minVersion matches (>= the minVersion)
+ */
+export const findPluginInList = (list: Array<any>, id: string, minVersion?: string): any =>
+  list.find((p) => p.id === id && (minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true))
+
+/**
+ * @param {string} id - the id of the plugin
+ * @param {string} minVersion - the minimum version of the plugin that is required
+ * @returns {boolean} - true if the plugin is installed with the minimum version
+ */
+export async function pluginIsInstalled(id: string, minVersion?: string): Promise<boolean> {
+  const installedPlugins = await DataStore.installedPlugins()
+  return Boolean(findPluginInList(installedPlugins, id, minVersion))
+}
+
+/**
+ * When commands move from one plugin to another, we tell the user about it and invite them to download the new plugin if they don't have it already.
+ * We look for two fields in the plugin.json:
+ * - "offerToDownloadPlugin": {"id": "np.Tidy", "minVersion": "2.18.0"},
+ * - "commandMigrationMessage": "NOTE: Task Sorting commands have been moved from the Task Automations plugin to the TaskSorter plugin.",
+ * @param {any} pluginJson - the old plugin
+ * @returns {void}
+ */
+export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void> {
+  const newPluginInfo = pluginJson['offerToDownloadPlugin']
+  if (newPluginInfo && newPluginInfo.id) {
+    const { id, minVersion } = newPluginInfo
+    const isInstalled = await pluginIsInstalled(id, minVersion)
+    if (isInstalled) {
+      logDebug(pluginJson, `migrateCommandsIfNecessary() ran but ${newPluginInfo.id} ${newPluginInfo.minVersion} was installed.`)
+      return
+    }
+    const commandMigrationMessage = pluginJson['commandMigrationMessage']
+    const githubReleasedPlugins = await DataStore.listPlugins(true, true, false) //released plugins .isOnline is true for all of them
+    clo(githubReleasedPlugins, 'migrateCommandsIfNecessary: githubReleasedPlugins')
+    const newPlugin = await findPluginInList(githubReleasedPlugins, id, minVersion)
+    if (!newPlugin) {
+      logDebug(pluginJson, `migrateCommandsIfNecessary() could not find plugin on github: ${id} >= ${minVersion}`)
+      await showMessage(`Could not find ${id} plugin to download. Please try to use the NotePlan preferences panel.`, 'OK', 'Plugin Not Found')
+      return
+    }
+    const msg = `${commandMigrationMessage || ''}\nWould you like to download the plugin "${newPlugin.name}" now?`
+    const res = await showMessageYesNo(msg, ['Yes', 'No'], 'Download New Plugin')
+    if (res === 'Yes') {
+      await DataStore.installPlugin(newPlugin.id, true)
+      const installedPlugins = DataStore.installedPlugins()
+      const newPluginInstalled = findPluginInList(installedPlugins, id, minVersion)
+      if (!newPluginInstalled) {
+        logDebug(pluginJson, `migrateCommandsIfNecessary() after plugin download but did not find plugin installed: ${id} >= ${minVersion}`)
+        return
+      }
+      await pluginUpdated(newPluginInstalled, { code: 2, message: 'Plugin Installed' })
+    }
+  }
+}
+
+/**
+ * Get a list of plugins to ouput, either (depending on user choice):
+ * 1) installed plugins only
+ * 2) all latest plugins, local or online/released on github
+ * @param {string} showInstalledOnly - show only installed plugins
+ * @returns
+ */
+export async function getPluginList(showInstalledOnly: boolean = false, installedPlugins: Array<any> = DataStore.installedPlugins()): Promise<Array<PluginObjectWithUpdateField>> {
+  try {
+    // clo(installedPlugins, ` generatePluginCommandList installedPlugins`)
+    // .listPlugins(showLoading, showHidden, skipMatchingLocalPlugins)
+    logDebug(`getPluginList  calling: DataStore.listPlugins`)
+    const githubReleasedPlugins = await DataStore.listPlugins(true, false, true) //released plugins .isOnline is true for all of them
+    logDebug(`getPluginList  back from: DataStore.listPlugins`)
+
+    // githubReleasedPlugins.forEach((p) => logDebug(`generatePluginCommandList githubPlugins`, `${p.id}`))
+    // const localOnlyPlugins = installedPlugins.filter((p) => !githubReleasedPlugins.find((q) => q.id === p.id))
+    // localOnlyPlugins.forEach((p) => logDebug(`generatePluginCommandList localOnlyPlugins`, `${p.id}`))
+    const allLocalAndReleasedPlugins = [...installedPlugins, ...githubReleasedPlugins]
+    let allLatestPlugins = allLocalAndReleasedPlugins.reduce((acc, p) => {
+      const pluginsWithThisID = allLocalAndReleasedPlugins.filter((f) => f.id === p.id)
+      if (pluginsWithThisID.length > 1) clo(pluginsWithThisID, `generatePluginCommandList pluginsWithThisID.length dupes ${p.id}: ${pluginsWithThisID.length}`)
+      let latest = pluginsWithThisID[0]
+      if (pluginsWithThisID.length > 1) {
+        logDebug(
+          `${p.id}: howMany:${pluginsWithThisID.length} onlineVersion (${pluginsWithThisID[1].version}):${semverVersionToNumber(
+            pluginsWithThisID[1].version,
+          )} <> installed version (${latest.version}): ${semverVersionToNumber(latest.version)}`,
+        )
+        if (semverVersionToNumber(pluginsWithThisID[1].version) > semverVersionToNumber(latest.version)) {
+          latest = pluginsWithThisID[1] //assumes at most we have 2 versions (local and online) - could do a filter here if necessary
+        }
+      }
+      if (!acc.find((f) => f.id === latest.id)) {
+        acc.push(latest)
+      }
+      return acc
+    }, [])
+    allLatestPlugins = sortListBy(allLatestPlugins, 'name')
+    // allLatestPlugins.forEach((p) => logDebug(`generatePluginCommandList allLatestPlugins`, `${p.name} (${p.id})`))
+    const plugins = showInstalledOnly ? installedPlugins : allLatestPlugins
+    // logDebug(
+    //   `generatePluginCommandList`,
+    //   `installedPlugins ${installedPlugins.length} githubPlugins ${githubReleasedPlugins.length} allLocalAndReleasedPlugins ${allLocalAndReleasedPlugins.length}`,
+    // )
+    // clo(installedPlugins[0], 'generatePluginCommandList installedPlugins')
+    // clo(allPlugins[0], 'generatePluginCommandList allPlugins')
+    const pluginListWithUpdateField = plugins.map((plugin) => {
+      const pluginWithUpdateField: PluginObjectWithUpdateField = {
+        ...copyObject(plugin),
+        updateIsAvailable: plugin.isOnline,
+        isInstalled: !plugin.isOnline,
+        installedVersion: plugin.isOnline ? 'N/A' : plugin.version,
+      }
+      return pluginWithUpdateField
+    })
+    return pluginListWithUpdateField
+  } catch (error) {
+    logError(`getPluginList: caught error: ${JSP(error)}`)
+    return []
+  }
 }
