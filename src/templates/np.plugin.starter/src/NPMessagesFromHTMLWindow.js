@@ -8,6 +8,10 @@
  */
 
 import pluginJson from '../plugin.json'
+
+// ID needs match the custom id you pass when you open the window
+const WINDOW_CUSTOM_ID = `${pluginJson['plugin.id']} HTML Window` // change if you want to use multiple html windows
+
 // import { getWindowIdFromCustomId } from '@helpers/NPWindows'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { getParagraphFromStaticObject } from '@helpers/NPParagraph'
@@ -39,6 +43,7 @@ type ClickStatus = { filename: string, lineIndex: number, statusWas: string, lin
 
 /**
  * Somebody clicked on a status icon in the HTML view
+ * (this is just a sample function called by the router - onMessageFromHTMLView() above)
  * @param {ClickStatus} data - details of the item clicked
  */
 export function onClickStatus(data: ClickStatus) {
@@ -51,10 +56,8 @@ export function onClickStatus(data: ClickStatus) {
     para.type = statusWas === 'open' ? 'done' : 'checklistDone'
     para.note?.updateParagraph(para)
     const newDivContent = `<td>"${para.type}"</td><td>Paragraph status was updated by the plugin!</td>`
-    // const windowId = getWindowIdFromCustomId(pluginJson['plugin.id'])
-    const windowId = pluginJson['plugin.id']
-    if (windowId) {
-      sendToHTMLWindow(windowId, 'updateDiv', { divID: lineID, html: newDivContent, innerText: false })
+    if (WINDOW_CUSTOM_ID) {
+      sendToHTMLWindow(WINDOW_CUSTOM_ID, 'updateDiv', { divID: lineID, html: newDivContent, innerText: false })
     }
     // NOTE: in this particular case, it might have been easier to just call the refresh-page command, but I thought it worthwhile
     // to show how to update a single div in the HTML view

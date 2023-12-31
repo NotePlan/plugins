@@ -61,7 +61,10 @@ export async function getDataObjectForReactView(): Promise<PassedData> {
  */
 async function handleSubmitButtonClick(data, reactWindowData) {
   const { index: clickedIndex } = data
-  await sendBannerMessage(pluginJson['plugin.id'], `Plugin received an actionType: "onSubmitClick" command with data:\n${JSON.stringify(data)}`)
+  await sendBannerMessage(
+    pluginJson['plugin.id'],
+    `Plugin received an actionType: "onSubmitClick" command with data:\n${JSON.stringify(data)}.\nPlugin then fired this message over the bridge to the React window.`,
+  )
   // change the data in the React window for the row that was clicked (just an example)
   clo(reactWindowData, `handleSubmitButtonClick: reactWindowData BEFORE update`)
   reactWindowData.pluginData.tableRows[clickedIndex].textValue = `Item ${clickedIndex} was updated by the plugin`

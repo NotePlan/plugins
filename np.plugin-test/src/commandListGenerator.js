@@ -3,57 +3,7 @@ import pluginJson from '../plugin.json'
 import { createRunPluginCallbackUrl, createPrettyRunPluginLink } from '../../helpers/general'
 import { log, logError, logDebug, timer, clo, JSP, copyObject } from '@helpers/dev'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
-import { sortListBy } from '@helpers/sorting'
-
-/**
- * Get a list of plugins to ouput, either (depending on user choice):
- * 1) installed plugins only
- * 2) all latest plugins, local or online/released on github
- * @param {string} showInstalledOnly - show only installed plugins
- * @returns
- */
-async function getPluginList(showInstalledOnly: boolean = false, installedPlugins: Array<any> = []): Promise<Array<PluginObjectWithUpdateField>> {
-  // clo(installedPlugins, ` generatePluginCommandList installedPlugins`)
-  // .listPlugins(showLoading, showHidden, skipMatchingLocalPlugins)
-  const githubReleasedPlugins = await DataStore.listPlugins(true, false, true) //released plugins .isOnline is true for all of them
-  // githubReleasedPlugins.forEach((p) => logDebug(`generatePluginCommandList githubPlugins`, `${p.id}`))
-  const localOnlyPlugins = installedPlugins.filter((p) => !githubReleasedPlugins.find((q) => q.id === p.id))
-  // localOnlyPlugins.forEach((p) => logDebug(`generatePluginCommandList localOnlyPlugins`, `${p.id}`))
-  const allLocalAndReleasedPlugins = [...installedPlugins, ...githubReleasedPlugins]
-  let allLatestPlugins = allLocalAndReleasedPlugins.reduce((acc, p) => {
-    const pluginsWithThisID = allLocalAndReleasedPlugins.filter((f) => f.id === p.id)
-    // if (pluginsWithThisID.length > 1) clo(pluginsWithThisID, `generatePluginCommandList pluginsWithThisID.length dupes ${p.id}: ${pluginsWithThisID.length}`)
-    let latest = pluginsWithThisID[0]
-    if (pluginsWithThisID.length > 1) {
-      if (pluginsWithThisID[1].version > latest.version) {
-        latest = pluginsWithThisID[1] //assumes at most we have 2 versions (local and online) - could do a filter here if necessary
-      }
-    }
-    if (!acc.find((f) => f.id === latest.id)) {
-      acc.push(latest)
-    }
-    return acc
-  }, [])
-  allLatestPlugins = sortListBy(allLatestPlugins, 'name')
-  // allLatestPlugins.forEach((p) => logDebug(`generatePluginCommandList allLatestPlugins`, `${p.name} (${p.id})`))
-  const plugins = showInstalledOnly ? installedPlugins : allLatestPlugins
-  // logDebug(
-  //   `generatePluginCommandList`,
-  //   `installedPlugins ${installedPlugins.length} githubPlugins ${githubReleasedPlugins.length} allLocalAndReleasedPlugins ${allLocalAndReleasedPlugins.length}`,
-  // )
-  // clo(installedPlugins[0], 'generatePluginCommandList installedPlugins')
-  // clo(allPlugins[0], 'generatePluginCommandList allPlugins')
-  const pluginListWithUpdateField = plugins.map((plugin) => {
-    const pluginWithUpdateField: PluginObjectWithUpdateField = {
-      ...copyObject(plugin),
-      updateIsAvailable: false,
-      isInstalled: false,
-      installedVersion: '',
-    }
-    return pluginWithUpdateField
-  })
-  return pluginListWithUpdateField
-}
+import { getPluginList, type PluginObjectWithUpdateField } from '@helpers/NPConfiguration'
 
 export async function installPlugin(pluginName: string, regenerateList?: boolean = true): Promise<void> {
   logDebug(pluginJson, `installPlugin "${pluginName}"`)
@@ -102,17 +52,6 @@ export async function installPlugin(pluginName: string, regenerateList?: boolean
   }
    
    */
-
-export type PluginObjectWithUpdateField = {
-  ...PluginObject,
-  updateIsAvailable: boolean,
-  isInstalled: boolean,
-  installedVersion: string,
-  installLink?: string,
-  documentation?: string,
-  lastUpdateInfo?: string,
-  author?: string,
-}
 
 /**
  * Get a list of plugins to ouput, either (depending on user choice):
