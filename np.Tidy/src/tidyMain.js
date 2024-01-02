@@ -140,7 +140,7 @@ export async function removeDoneMarkers(params: string = ''): Promise<void> {
     const start = new Date()
     // Use multi-threaded DataStore.search() to look for "@done(", and then use regex to narrow down. This also implements foldersToExclude for us.
     // (It's twice as quick as doing a more exact regex over all notes in my testing.)
-    const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
+    const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.removeFoldersToExclude)
     // const RE = new RegExp(RE_DONE_DATE_OPT_TIME) // @done(date) or @done(date time)
     let allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE_DONE_DATE_OPT_TIME.test(p.content)) ?? []
 
@@ -244,7 +244,7 @@ export async function removeDoneTimeParts(params: string = ''): Promise<void> {
     const start = new Date()
     // Use multi-threaded DataStore.search() to look for "@done(", and then use regex to narrow down. This also implements foldersToExclude for us.
     // Note: It's twice as quick as doing a more exact regex over all notes in my testing.
-    const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.foldersToExclude)
+    const parasToCheck: $ReadOnlyArray<TParagraph> = await DataStore.search('@done(', ['calendar', 'notes'], [], config.removeFoldersToExclude)
     // const RE = new RegExp(RE_DONE_DATE_TIME)
     const allMatchedParas: Array<TParagraph> = parasToCheck.filter((p) => RE_DONE_DATE_TIME.test(p.content)) ?? []
 
@@ -359,7 +359,7 @@ export async function removeSectionFromRecentNotes(params: string = ''): Promise
 
     // Find which notes have such a section to remove
     // Find notes with matching heading (or speed, let's multi-core search the notes to find the notes that contain this string)
-    let allMatchedParas: $ReadOnlyArray<TParagraph> = await DataStore.search(sectionHeading, ['calendar', 'notes'], [], config.foldersToExclude)
+    let allMatchedParas: $ReadOnlyArray<TParagraph> = await DataStore.search(sectionHeading, ['calendar', 'notes'], [], config.removeFoldersToExclude)
     // This returns all the potential matches, but some may not be headings, so now check for those
     switch (matchType) {
       case 'Exact': {
@@ -454,7 +454,7 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
     }
     logDebug('removeSectionFromRecentNotes', `sectionHeading = ${sectionHeading}`)
 
-    // TODO: Ideally work out how many this will remove, and then use this code:
+    // Ideally work out how many this will remove, and then use this code:
     // const numToRemove = 1
     // if (numToRemove > 0) {
     //   if (!runSilently) {

@@ -74,7 +74,7 @@ function getDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDeta
     return outputArray
   }
   catch (err) {
-    logError(pluginJson, JSP(err))
+    logError(pluginJson, 'getDuplicateNotes() ' + JSP(err))
     return [] // for completeness
   }
 }
@@ -110,7 +110,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
       // remove old conflicted note list (if it exists)
       const res = DataStore.moveNote(outputFilename, '@Trash')
       if (res) {
-        logDebug('getConflictedNotes', `Moved existing duplicate note list '${outputFilename}' to @Trash.`)
+        logDebug('listDuplicates', `Moved existing duplicate note list '${outputFilename}' to @Trash.`)
       }
       return
     } else {
@@ -146,7 +146,7 @@ export async function listDuplicates(params: string = ''): Promise<void> {
         const deleteMe = createOpenOrDeleteNoteCallbackUrl(n.filename, 'filename', '', 'splitView', true)
         // Write out all details for this dupe
         outputArray.push(`${String(i)}. ${thisFolder}/${thisJustFilename}: [open note](${openMe}) [❌ delete note](${deleteMe})`)
-        outputArray.push(`\t- ${String(n.paragraphs?.length ?? 0)} lines, ${String(n.content?.length ?? 0)} bytes created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}`)
+        outputArray.push(`\t- ${String(n.paragraphs?.length ?? 0)} lines, ${String(n.content?.length ?? 0)} bytes, created ${relativeDateFromDate(n.createdDate)}, updated ${relativeDateFromDate(n.changedDate)}`)
 
         // For all but the first of the duplicate set, show some comparison stats
         if (i > 1) {

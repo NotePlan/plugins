@@ -7,6 +7,7 @@ This plugin provides commands to help tidy up your notes:
     ![](conflicted-notes@2x.png)
 - **/List duplicate notes** (alias "dupes"): creates/updates a note that lists all your notes with identical titles, along with summary details about those potential duplicates. It gives options to delete one or other of the conflicted versions:
     ![](duplicate-note-display@2x.png)
+- **/List doubled notes**:  creates/updates a note that lists calendar notes that potentially have doubled content (i.e. internal duplication). Note: this is unlikely to happen, but it happened to me a lot for reasons I don't understand. This command helped me go through the notes and manually delete the duplicated content.
 - **/List stubs**: creates a note that lists all your notes that have wikilinks that lead nowhere.
 - **/Move top-level tasks in Editor to heading** (alias "mtth"): Move tasks orphaned at top of active note (prior to any heading) to under a specified heading. Note: this command does not work inside a template. See details below.
 - **/Remove blank notes** (alias: "rbn"): deletes any completely blank notes, or just with a starting '#' character.

@@ -24,6 +24,7 @@ export type TidyConfig = {
   numDays: number,
   conflictedNoteFilename: string,
   duplicateNoteFilename: string,
+  doubledNoteFilename: string,
   stubsNoteFilename: string,
   removeFoldersToExclude: Array<string>,
   runRemoveBlankNotes: boolean,
