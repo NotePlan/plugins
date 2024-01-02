@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 20.10.2022 for v0.3.0 by @jgclark
+// last update 27.12.2023 for v1.0.0 by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
 // - 1 local preference 'windowSets' that contains JS Array<WindowSet>
@@ -12,13 +12,11 @@
 //   - writeWSsToNote() sends pref to note -- and can be run manually by /wpn
 // - if no window sets found in pref, plugin offers to write 2 example sets
 //
-// Minimum version 3.9.6 to use API updates
-//---------------------------------------------------------------
-// Next version: Minimum version 3.9.8 to use some special new API features
+// Minimum version 3.9.8
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import * as wsh from './WSHelpers'
+import * as wsh from './WTHelpers'
 import { addCodeBlock, getCodeBlocksOfType } from '@helpers/codeBlocks'
 import {
   calcOffsetDateStr,
@@ -48,8 +46,8 @@ import {
   rectToString
 } from '@helpers/NPWindows'
 import {
-  openNoteInNewSplitIfNeeded,
-  openNoteInNewWindowIfNeeded
+  openNoteInNewSplit,
+  openNoteInNewWindow
 } from "@helpers/NPWindows";
 import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
 
@@ -131,7 +129,7 @@ export async function saveWindowSet(): Promise<void> {
       }
       const res = await chooseOption('Enter new window set name, or which one to update', nameOptions, 0)
       if (typeof res === 'boolean' && !res) {
-        logInfo('saveWindowSet', `User cancelled operation: ${res}.`)
+        logInfo('saveWindowSet', `User cancelled operation: ${String(res)}.`)
         return
       }
       choice = res
@@ -280,6 +278,10 @@ export async function saveWindowSet(): Promise<void> {
       clo(thisWSToSave, `saveWindowSet: thisWSToSave after dealing with EW splits`)
     }
 
+    // Check window bounds make sense
+    thisWSToSave = wsh.checkWindowSetBounds(thisWSToSave)
+    // clo(thisWSToSave, 'saveWindowSet: after bounds check')
+
     // Save to preferences store
     // Add or update this WS
     let WSsToSave = savedWindowSets.slice()
@@ -305,9 +307,6 @@ export async function saveWindowSet(): Promise<void> {
         logError('saveWindowSet', `Couldn't find window set '${setName}' to update.`)
       }
     }
-    // Check window bounds make sense
-    WSsToSave = wsh.checkWindowSetBounds(WSsToSave)
-    // clo(WSsToSave, 'saveWindowSet: all current windowSets to save (after bounds check)')
 
     DataStore.setPreference('windowSets', WSsToSave)
     logDebug('saveWindowSet', `Saved window sets to local pref`)
@@ -356,7 +355,7 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
     const thisMachineName = NotePlan.environment.machineName
     let success = false
     let thisWS: wsh.WindowSet
-    let res = false
+    let res: wsh.WindowSet | null
     if (setName !== '') {
       res = wsh.getDetailedWindowSetByName(setName)
     }
@@ -384,7 +383,7 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
         logInfo(pluginJson, `No valid set chosen, so stopping.`)
         return false
       }
-      thisWS = savedWindowSets[num]
+      thisWS = savedWindowSets[Number(num)]
       const setName = thisWS.name
       // logDebug('openWindowSet', `User requests window set '${setName}'`)
     }
@@ -538,10 +537,10 @@ export async function deleteWindowSet(setName: string): Promise<boolean> {
       logInfo(pluginJson, `No valid set chosen, so stopping.`)
       return false
     }
-    logInfo('deleteWindowSet', `You have asked to delete window set #${num}`)
+    logInfo('deleteWindowSet', `You have asked to delete window set #${String(num)}`)
 
     // Delete this window set, and save back to preferences store
-    windowSets.splice(num, 1)
+    windowSets.splice(Number(num), 1)
     DataStore.setPreference('windowSets', windowSets)
     logDebug('deleteWindowSet', `Window set '${setName}'`)
     wsh.logWindowSets()
