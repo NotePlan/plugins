@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Window Sets commands
 // Jonathan Clark
-// Last updated 27.12.23 for v1.0.0 by @jgclark
+// Last updated 2.1.2024 for v1.0.0 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -22,6 +22,13 @@ export {
   deleteWindowSet,
   deleteAllSavedWindowSets,
 } from './windowSets'
+
+export {
+  openCurrentNoteNewSplit,
+  openCurrentNoteNewWindow,
+  openNoteNewWindow,
+  openNoteNewSplit,
+} from './openers'
 
 export {
   constrainMainWindow,

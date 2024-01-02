@@ -4,6 +4,12 @@ This plugin (which requires NotePlan version 3.9.8 or higher) gives some tools t
 - **save different layouts** ('Window Sets') of your NotePlan windows on macOS, and then **restore them** in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins. (See more detail below.)
 - **/move split to main** command (alias: **/mstm**) moves the current split pane to be the first one in the main window.
 - **/constrain main window** command (alias: **/cmw**) moves the main window to make sure its fully in the screen area, shrinking it if it needs to.
+- **open note in new split**: (alias: /onns) opens a user-selected note in a new split of the main window (*)
+- **open note in new window** (alias: /onnw) opens a user-selected note in a new window (*)
+- **open current in new split**: (alias: /ocns) opens the current note again in a new split of the main window (*)
+- **open current in new window**: (alias: /ocnw) opens the current note again in a new floating window
+
+(*) these were originally released in the Note Helpers plugin.
 
 ## Window Set commands
 There are two commands:

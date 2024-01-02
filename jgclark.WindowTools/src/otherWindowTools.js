@@ -7,13 +7,14 @@
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import * as wsh from './WTHelpers'
+import * as wth from './WTHelpers'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import {
   closeWindowFromId,
-  openNoteInNewSplit,
-  openNoteInNewWindow,
+  constrainWindowSizeAndPosition,
+  openNoteInNewSplitIfNeeded,
+  // openNoteInNewWindowIfNeeded,
   rectToString,
 } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
@@ -36,7 +37,7 @@ export async function constrainMainWindow(): Promise<void> {
     logDebug(pluginJson, `- mainWindowRect: ${rectToString(mainWindowRect)}`)
 
     // Constrain into the screen area
-    const updatedRect = wsh.constrainWindowSizeAndPosition(mainWindowRect)
+    const updatedRect = constrainWindowSizeAndPosition(mainWindowRect)
     logDebug(pluginJson, `- updatedRect: ${rectToString(updatedRect)}`)
 
     NotePlan.editors[0].windowRect = updatedRect
@@ -56,7 +57,7 @@ export async function moveCurrentSplitToMain(): Promise<void> {
       return
     }
 
-    // const config = await wsh.getPluginSettings()
+    // const config = await wth.getPluginSettings()
 
     // Get filename of Editor
     if (!Editor) {
@@ -69,7 +70,7 @@ export async function moveCurrentSplitToMain(): Promise<void> {
     const originalSplitNoteType = Editor.type
 
     // Get set of currently open main/split windows
-    const originalWinDetails: Array<wsh.EditorWinDetails> = NotePlan.editors
+    const originalWinDetails: Array<wth.EditorWinDetails> = NotePlan.editors
       .filter((win) => win.windowType === 'main' || win.windowType === 'split')
       .map((win) => {
         const winRect = win.windowRect
@@ -113,14 +114,14 @@ export async function moveCurrentSplitToMain(): Promise<void> {
     // Open a split with previous main window
     const originalFirstWindow = originalWinDetails[0]
     logDebug('moveCurrentSplitToMain', `Attempting to open project note ${originalSplitFilename} in first split`)
-    let res = openNoteInNewSplit(originalFirstWindow.filename)
+    let res = openNoteInNewSplitIfNeeded(originalFirstWindow.filename)
 
     // Open any other remaining split windows
     if ((originalWinDetails.length) > 2) {
       for (let i = 2; i < originalWinDetails.length; i++) {
         const ew = originalWinDetails[i]
         if (ew.windowType === 'split') {
-          res = openNoteInNewSplit(ew.filename)
+          res = openNoteInNewSplitIfNeeded(ew.filename)
         } else {
           throw new Error(`Unexpected window type ${ew.windowType} for what should be split #${String(i)}`)
         }

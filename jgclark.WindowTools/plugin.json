@@ -1,7 +1,7 @@
 {
   "noteplan.minAppVersion": "3.9.8",
   "macOS.minVersion": "10.13.0",
-  "plugin.id": "jgclark.WindowSets",
+  "plugin.id": "jgclark.WindowTools",
   "plugin.name": "🖥️ Window Tools",
   "plugin.description": "Tools to help manage NotePlan windows on macOS, notably save and restore particular window layouts ('Window Sets').",
   "plugin.icon": "",
@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/CHANGELOG.md",
   "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "v1.0.0: 2 new commands, and renamed plugin to 'Window Tools'.\nv0.4.0: First public release, and requires NP v3.9.8.",
+  "plugin.lastUpdateInfo": "v1.0.0: 3 new commands, and renamed plugin from 'Window Sets'. Also moved 3 window-related commands from 'Note Helpers' plugin.\nv0.4.0: First public release, and requires NP v3.9.8.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -34,14 +34,6 @@
       "jsFunction": "saveWindowSet"
     },
     {
-      "name": "log current window sets",
-      "alias": [
-        "lws"
-      ],
-      "description": "Log my available windows sets",
-      "jsFunction": "logWindowSets"
-    },
-    {
       "name": "constrain main window",
       "alias": [
         "cmw"
@@ -56,6 +48,50 @@
       ],
       "description": "Move current split window to be the main window",
       "jsFunction": "moveCurrentSplitToMain"
+    },
+    {
+      "name": "open note in new window",
+      "alias": [
+        "onnw",
+        "window"
+      ],
+      "description": "Open a user-selected note in a new window.",
+      "jsFunction": "openNoteNewWindow"
+    },
+    {
+      "name": "open note in new split",
+      "alias": [
+        "onns",
+        "split"
+      ],
+      "description": "Open a user-selected note in a new split of the main window",
+      "jsFunction": "openNoteNewSplit"
+    },
+    {
+      "name": "open current in new split",
+      "alias": [
+        "ocns",
+        "split"
+      ],
+      "description": "Open the current note again in a new split of the main window",
+      "jsFunction": "openCurrentNoteNewSplit"
+    },
+    {
+      "name": "open current in new window",
+      "alias": [
+        "ocnw",
+        "window"
+      ],
+      "description": "Open the current note again in a new floating window",
+      "jsFunction": "openCurrentNoteNewWindow"
+    },
+    {
+      "name": "test: log current window sets",
+      "alias": [
+        "lws"
+      ],
+      "description": "Log my available windows sets",
+      "jsFunction": "logWindowSets"
     },
     {
       "name": "test: log current windows list",

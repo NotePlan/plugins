@@ -6,6 +6,12 @@ Renamed plugin to '**🖥️  Window Tools**' (at v1.0.0) as it now covers more 
 - new command **/move split to main** (alias: /mstm) that moves the current split pane to be the first one in the main window
 - new command **/constrain main window** (alias: /cmw) moves the main window to make sure its fully in the screen area, shrinking it if it needs to.
 
+Also the following window-management commands have moved from Note Helpers:
+- **open note in new split**: (alias: /onns) opens a user-selected note in a new split of the main window
+- **open note in new window** (alias: /onnw) opens a user-selected note in a new window
+- **open current in new split**: (alias: /ocns) opens the current note again in a new split of the main window
+- **open current in new window**: (alias: /ocnw) opens the current note again in a new floating window
+
 <!-- ## [0.5.0b1] - 2023-10-27
 First private attempt to use updated API to deal with split window widths properly in saving and opening window sets. In particular:
 - FIXME: added a new command **/set editor width** (alias: /sew), which tests this new functionality. -->

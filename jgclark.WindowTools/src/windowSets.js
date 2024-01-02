@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 27.12.2023 for v1.0.0 by @jgclark
+// last update 2.1.2024 for v1.0.0 by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
 // - 1 local preference 'windowSets' that contains JS Array<WindowSet>
@@ -45,10 +45,10 @@ import {
   getNonMainWindowIds,
   rectToString
 } from '@helpers/NPWindows'
-import {
-  openNoteInNewSplit,
-  openNoteInNewWindow
-} from "@helpers/NPWindows";
+// import {
+//   openNoteInNewSplit,
+//   openNoteInNewWindow
+// } from "@helpers/NPWindows";
 import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
