@@ -490,3 +490,91 @@ export async function setEditorWindowWidth(editorWinIn?: number, widthIn?: numbe
     return
   }
 }
+
+
+/**
+ * Constrain the Window Size and Position to what will fit on the current screen.
+ * The debug log explains what is being done if it doesn't all fit in the current screen area. It will first move up/down/l/r, and only then reduce in w/h.
+ * @author @jgclark
+ * @param {EditorWinDetails | HTMLWinDetails} winDetails
+ * @returns {EditorWinDetails | HTMLWinDetails} constrained winDetails
+ */
+// $FlowFixMe[incompatible-return]
+// export function constrainWindowSizeAndPosition(winDetails: EditorWinDetails | HTMLWinDetails): EditorWinDetails | HTMLWinDetails {
+export function constrainWindowSizeAndPosition<T: { x: number, y: number, width: number, height: number, ... }> (winDetails: T): T {
+  try {
+    const screenHeight = NotePlan.environment.screenHeight // remember bottom edge is y=0
+    const screenWidth = NotePlan.environment.screenWidth
+    const left = winDetails.x
+    const right = winDetails.x + winDetails.width
+    const top = winDetails.y + winDetails.height
+    const bottom = winDetails.y
+    // $FlowIgnore[prop-missing]
+    const title = winDetails.title ?? 'n/a'
+    if (winDetails.x < 0) {
+      logDebug('constrainWS+P', `  - window '${title}' has left edge at ${String(left)}px; moving right to 0px`)
+      winDetails.x = 0
+      if (winDetails.width > screenWidth) {
+        winDetails.width = screenWidth
+      }
+    }
+    if (bottom < 0) {
+      logDebug('constrainWS+P', `  - window '${title}' has bottom edge at ${String(winDetails.y)}px; moving up to 0px`)
+      winDetails.y = 0
+      if (winDetails.height > screenHeight) {
+        winDetails.height = screenHeight
+      }
+    }
+    if (right > screenWidth) {
+      // Change, by moving left edge in (if possible), or else narrowing
+      const overhang = right - screenWidth
+      if (winDetails.x > overhang) {
+        logDebug('constrainWS+P', `  - window '${title}' has right edge at ${String(right)}px but screen width is ${String(screenWidth)}px. Moving left by ${String(overhang)}px`)
+        winDetails.x -= overhang
+      } else {
+        logDebug('constrainWS+P', `  - window '${title}' has right edge at ${String(right)}px but screen width is ${String(screenWidth)}px. Changing to fill width.`)
+        winDetails.x = 0
+        winDetails.width = screenWidth
+      }
+    }
+    if (top > screenHeight) {
+      const overhang = top - screenHeight
+      if (winDetails.y > overhang) {
+        logDebug('constrainWS+P', `  - window '${title}' has top edge at ${String(top)}px but screen height is ${String(screenHeight)}px. Moving down by ${String(overhang)}px`)
+        winDetails.y -= overhang
+      } else {
+        logDebug('constrainWS+P', `  - window '${title}' has top edge at ${String(top)}px but screen height is ${String(screenHeight)}px. Changing to fill height.`)
+        winDetails.y = 0
+        winDetails.height = screenHeight
+      }
+    }
+    return winDetails
+  } catch (error) {
+    logError('constrainWindowSizeAndPosition', `constrainWindowSizeAndPosition(): ${error.name}: ${error.message}. Returning original window details.`)
+    return winDetails
+  }
+}
+
+
+/**
+ * Constrain main window, so it actually all shows on the screen
+ * @author @jgclark
+ */
+// eslint-disable-next-line require-await
+export async function constrainMainWindow(): Promise<void> {
+  try {
+    // Get current editor window details
+    const mainWindowRect: Rect = NotePlan.editors[0].windowRect
+    logDebug('constrainMainWindow', `- mainWindowRect: ${rectToString(mainWindowRect)}`)
+
+    // Constrain into the screen area
+    const updatedRect = constrainWindowSizeAndPosition(mainWindowRect)
+    logDebug('constrainMainWindow', `- updatedRect: ${rectToString(updatedRect)}`)
+
+    NotePlan.editors[0].windowRect = updatedRect
+    return
+  } catch (err) {
+    logError('constrainMainWindow', err.message)
+    return
+  }
+}

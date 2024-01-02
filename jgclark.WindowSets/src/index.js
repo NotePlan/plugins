@@ -3,13 +3,13 @@
 //---------------------------------------------------------------
 // Window Sets commands
 // Jonathan Clark
-// Last updated 27.10.23 for v0.5.0 by @jgclark
+// Last updated 27.12.23 for v1.0.0 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 import * as ws from './windowSets'
-import * as wsh from './WSHelpers'
+import * as wsh from './WTHelpers'
 import { JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -24,12 +24,17 @@ export {
 } from './windowSets'
 
 export {
+  constrainMainWindow,
+  moveCurrentSplitToMain
+} from './otherWindowTools'
+
+export {
   logWindowSets,
   readWindowSetDefinitions,
   syncWSNoteToPrefs,
   writeWSNoteToPrefs,
   writeWSsToNote,
-} from './WSHelpers'
+} from './WTHelpers'
 
 export {
   logPreferenceAskUser,
@@ -38,7 +43,7 @@ export {
 
 export {
   logWindowsList,
-  setEditorWindowWidth,
+  setEditorSplitWidth,
 } from '@helpers/NPWindows'
 
 export function init(): void {
