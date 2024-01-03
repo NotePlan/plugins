@@ -322,7 +322,7 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
       return
     }
     const commandMigrationMessage = pluginJson['commandMigrationMessage']
-    const githubReleasedPlugins = await DataStore.listPlugins(true, true, false) //released plugins .isOnline is true for all of them
+    const githubReleasedPlugins = await DataStore.listPlugins(false, true, false) //released plugins .isOnline is true for all of them
     // clo(githubReleasedPlugins, 'migrateCommandsIfNecessary: githubReleasedPlugins')
     // logDebug(pluginJson, `migrateCommandsIfNecessary: githubReleasedPlugins ^^^^`)
     const newPlugin = await findPluginInList(githubReleasedPlugins, id, minVersion)
@@ -336,11 +336,10 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
     const res = await showMessageYesNo(msg, ['Yes', 'No'], 'Download New Plugin')
     if (res === 'Yes') {
       clo(newPlugin, `migrateCommandsIfNecessary() before plugin download: ${id} >= ${minVersion}. Will try to install:`)
-      const r = await DataStore.installOrUpdatePluginsByID([id], true, false, false)
+      // const r = await DataStore.installOrUpdatePluginsByID([id], true, false, false)
+      const r = await DataStore.installPlugin(newPlugin, false)
       // FIXME: Never gets here, even when the plugin successfully installs
       clo(r, `migrateCommandsIfNecessary() after plugin download: result=`)
-      await pluginUpdated(newPluginInfo, r)
-      // await DataStore.installPlugin(newPlugin, false)
 
       logDebug(pluginJson, `migrateCommandsIfNecessary() after plugin download: ${id} >= ${minVersion}`)
       const installedPlugins = DataStore.installedPlugins()
@@ -349,6 +348,7 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
         logDebug(pluginJson, `migrateCommandsIfNecessary() after plugin download but did not find plugin installed: ${id} >= ${minVersion}`)
         return
       }
+      // TODO: Migrate settings from old plugin to new plugin
       await pluginUpdated(newPluginInstalled, { code: 2, message: 'Plugin Installed' })
     }
   } else {
