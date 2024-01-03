@@ -49,6 +49,9 @@ async function onMessageFromPlugin(type, data) {
     case 'cyclePriorityState':
       cyclePriorityInDisplay(data)
       break
+    case 'unscheduleItem':
+      unscheduleItem(data)
+      break
     case 'removeItem':
       deleteItemRow(data)
       break
@@ -233,6 +236,18 @@ function toggleTypeInDisplay(data) {
     // console.log("toggling type to todo")
     replaceClassInID(`${itemID}I`, "todo fa-regular fa-circle")
   }
+}
+
+/**
+ * Remove a scheduled date from an item: in the display simply remove it
+ * @param { { ID: string, ... } } data
+ */
+async function unscheduleItem(data) {
+  const itemID = data.itemID
+  console.log(`unscheduleItem: for ID: ${itemID}`)
+  addClassToID(itemID, "fadeOutAndHide")
+  await delay(1400)
+  deleteHTMLItem(itemID)
 }
 
 /**

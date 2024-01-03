@@ -19,7 +19,7 @@ All tasks and checklists shown in the Dashboard view can be marked as **complete
 The item is then completed in the NotePlan note, and removed from view in this list. You can also **cancel** the item by pressing  ⌘ (command) when clicking on the open circle or square.
 
 <img src="action-buttons-0.7.3@2x.png" width="330px" border="1pt solid" margin="8px" alt="action buttons" />
-After a short time hovering over a task or checklist item a small box appears with a number of action buttons. Most **move** (not schedule) an item to a different day/week/etc.:
+After a short time hovering over a task or checklist item a small box appears with a number of action buttons (not all are relevant for all tasks):
 
 - `→today` moves to today's note
 - `+1d` moves to the next day's note
@@ -27,8 +27,9 @@ After a short time hovering over a task or checklist item a small box appears wi
 - `+1w` moves to next week's note etc.
 - `→wk` moves to this week's note
 - `→mon` moves to this month's note
-- `pri` that cycles the priority of the current item from none -> `!` -> `!!` -> `!!!` -> `>>` -> none
-- `◯/◻︎` that toggles an item between being a task and a checklist
+- `pri` cycles the priority of the current item from none -> `!` -> `!!` -> `!!!` -> `>>` -> none
+- `◯/◻︎` toggles an item between being a task and a checklist
+- `≯` 'unschedules a task (i.e. removes any `>date`). Note: only relevant on tasks in Project notes.
 
 <img src="add-buttons@2x.png" align="right" width="170px" alt="add buttons" />On the daily/weekly/monthly sections there are 'add task' and 'add checklist' icons, to allow you to add a task directly at the start of that current note:
 

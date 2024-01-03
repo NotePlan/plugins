@@ -1,6 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.7.5] - 2024-01-03 (unreleased)
+- added action button '≯' to 'unschedule' a task. Note: only relevant on tasks in Project notes.
+
 ## [0.7.4] - 2023-12-26
 ### Added
 - added some action buttons (the ones that appear when you hover) to the Tag section.
