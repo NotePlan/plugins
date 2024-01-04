@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 11.12.2023 for v0.7.4 by @jgclark
+// Last updated 2.1.2024 for v0.7.5 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -31,6 +31,7 @@ import {
   highlightParagraphInEditor,
   moveItemBetweenCalendarNotes,
   toggleTaskChecklistParaType,
+  unscheduleItem,
 } from '@helpers/NPParagraph'
 import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString, storeWindowRect, getWindowIdFromCustomId } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
@@ -233,6 +234,16 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / cyclePriorityState', `-> unable to find para {${content}} in filename ${filename}`)
         }
+        break
+      }
+      case 'unscheduleItem': {
+        // Send a request to unscheduleItem to plugin
+        logDebug('bCDI / unscheduleItem', `-> unscheduleItem on ID ${ID} in filename ${filename}`)
+        const res = unscheduleItem(filename, content)
+        logDebug('bCDI / unscheduleItem', `  -> result ${String(res)}`)
+
+        // Update display in Dashboard too
+        sendToHTMLWindow(windowId, 'unscheduleItem', data)
         break
       }
       case 'review': {

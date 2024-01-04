@@ -12,6 +12,7 @@ import {
   hyphenatedDateString,
   isScheduled,
   nowShortDateTimeISOString,
+  replaceArrowDatesInString,
   RE_SCHEDULED_ISO_DATE,
   SCHEDULED_WEEK_NOTE_LINK,
   SCHEDULED_QUARTERLY_NOTE_LINK,
@@ -1161,7 +1162,8 @@ export function paragraphMatches(paragraph: TParagraph, fieldsObject: any, field
 
 /**
  * Find the paragraph in the note, from its content
- * @param { Array<TParagraph>} parasToLookIn - NP paragraph list to search
+ * @author @dwertheimer + @jgclark
+ * @param {Array<TParagraph>} parasToLookIn - NP paragraph list to search
  * @param {any} paragraphDataToFind - object with the static data fields to match (e.g. filename, rawContent, type)
  * @param {Array<string>} fieldsToMatch - (optional) array of fields to match (e.g. filename, lineIndex). default = ['filename', 'rawContent']
  * @param {boolean} ifMultipleReturnFirst? - (optional) if there are multiple matches, return the first one (default: false)
@@ -1248,7 +1250,6 @@ export function getParagraphFromStaticObject(staticObject: any, fieldsToMatch: A
  * Highlight the given Paragraph details in the open editor.
  * The static object that's passed in must have at least the following TParagraph-type fields populated: filename and rawContent (or content, though this is naturally less exact).
  * If 'thenStopHighlight' is true, the cursor will be moved to the start of the paragraph after briefly flashing the whole line. This is to prevent starting to type and inadvertdently removing the whole line.
- *
  * @author @jgclark
  * @param {any} objectToTest
  * @param {boolean} thenStopHighlight?
@@ -1283,8 +1284,56 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
 }
 
 /**
+ * Return a TParagraph object by an exact match to 'content' in file 'filenameIn'. If it fails to find a match, it returns false.
+ * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * @author @jgclark
+ * @param {string} filenameIn to look in
+ * @param {string} content to find
+ * @returns {TParagraph | boolean} TParagraph if succesful, false if unsuccesful
+ */
+export function findParaFromStringAndFilename(filenameIn: string, content: string): TParagraph | boolean {
+  try {
+    // logDebug('NPP/findParaFromStringAndFilename', `starting with filename: ${filenameIn}, content: {${content}}`)
+    let filename = filenameIn
+    if (filenameIn === 'today') {
+      filename = getTodaysDateUnhyphenated()
+    } else if (filenameIn === 'thisweek') {
+      filename = getNPWeekStr(new Date())
+    }
+    // Long-winded way to get note title, as we don't have TNote, but do have note's filename
+    // $FlowIgnore[incompatible-type]
+    const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
+
+    if (thisNote) {
+      if (thisNote.paragraphs.length > 0) {
+        let c = 0
+        for (const para of thisNote.paragraphs) {
+          if (para.content === content) {
+            logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
+            return para
+          }
+          c++
+        }
+        logWarn('NPP/findParaFromStringAndFilename', `Couldn't find paragraph {${content}} to complete`)
+        return false
+      } else {
+        logInfo('NPP/findParaFromStringAndFilename', `Note '${filename}' appears to be empty?`)
+        return false
+      }
+    } else {
+      logWarn('NPP/findParaFromStringAndFilename', `Can't find note '${filename}'`)
+      return false
+    }
+  } catch (error) {
+    logError(pluginJson, `NPP/findParaFromStringAndFilename: ${error.message} for note '${filenameIn}'`)
+    return false
+  }
+}
+
+/**
  * Appends a '@done(...)' date to the given paragraph if the user has turned on the setting 'add completion date'.
- * TODO: Cope with non-daily scheduled dates
+ * TODO: Cope with non-daily scheduled dates.
+ * @author @jgclark
  * @param {TParagraph} para
  * @param {boolean} useScheduledDateAsCompletionDate?
  * @returns {boolean} success?
@@ -1367,6 +1416,7 @@ export function markCancelled(para: TParagraph): boolean {
  * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Appends a '@done(...)' date to the line if the user has selected to 'add completion date'.
+ * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
  * @returns {boolean} success?
@@ -1389,6 +1439,7 @@ export function completeItem(filenameIn: string, content: string): boolean {
  * Complete a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
  * Appends a '@done(...)' date to the line if the user has selected to 'add completion date' - but uses completion date of the day it was scheduled to be done.
+ * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
  * @returns {boolean} true if succesful, false if unsuccesful
@@ -1410,6 +1461,7 @@ export function completeItemEarlier(filenameIn: string, content: string): boolea
 /**
  * Cancel a task/checklist item (given by 'content') in note (given by 'filenameIn').
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
  * @returns {boolean} true if succesful, false if unsuccesful
@@ -1428,51 +1480,6 @@ export function cancelItem(filenameIn: string, content: string): boolean {
   }
 }
 
-/**
- * Return a TParagraph object by an exact match to 'content' in file 'filenameIn'. If it fails to find a match, it returns false.
- * Designed to be called when you're not in an Editor (e.g. an HTML Window).
- * @param {string} filenameIn to look in
- * @param {string} content to find
- * @returns {TParagraph | boolean} TParagraph if succesful, false if unsuccesful
- */
-export function findParaFromStringAndFilename(filenameIn: string, content: string): TParagraph | boolean {
-  try {
-    // logDebug('NPP/findParaFromStringAndFilename', `starting with filename: ${filenameIn}, content: {${content}}`)
-    let filename = filenameIn
-    if (filenameIn === 'today') {
-      filename = getTodaysDateUnhyphenated()
-    } else if (filenameIn === 'thisweek') {
-      filename = getNPWeekStr(new Date())
-    }
-    // Long-winded way to get note title, as we don't have TNote, but do have note's filename
-    // $FlowIgnore[incompatible-type]
-    const thisNote: TNote = DataStore.projectNoteByFilename(filename) ?? DataStore.calendarNoteByDateString(filename)
-
-    if (thisNote) {
-      if (thisNote.paragraphs.length > 0) {
-        let c = 0
-        for (const para of thisNote.paragraphs) {
-          if (para.content === content) {
-            logDebug('NPP/findParaFromStringAndFilename', `found matching para #${c} of type ${para.type}: {${content}}`)
-            return para
-          }
-          c++
-        }
-        logWarn('NPP/findParaFromStringAndFilename', `Couldn't find paragraph {${content}} to complete`)
-        return false
-      } else {
-        logInfo('NPP/findParaFromStringAndFilename', `Note '${filename}' appears to be empty?`)
-        return false
-      }
-    } else {
-      logWarn('NPP/findParaFromStringAndFilename', `Can't find note '${filename}'`)
-      return false
-    }
-  } catch (error) {
-    logError(pluginJson, `NPP/findParaFromStringAndFilename: ${error.message} for note '${filenameIn}'`)
-    return false
-  }
-}
 /**
  * Prepend a todo (task or checklist) to a calendar note
  * @author @jgclark
@@ -1648,8 +1655,10 @@ export function getDaysToCalendarNote(para: TParagraph, asOfDayString?: string =
 }
 
 /**
- * Toggle given paragraph type between (open) Task and Checklist
- * @param {TParagraph} para to toggle
+ * Toggle type between (open) Task and Checklist for a given line in note identified by filename
+ * @author @jgclark
+ * @param {string} filename of note
+ * @param {string} content line to identify and change
  * @returns {ParagraphType} new type
  */
 export function toggleTaskChecklistParaType(filename: string, content: string): string {
@@ -1678,6 +1687,37 @@ export function toggleTaskChecklistParaType(filename: string, content: string): 
   } catch (error) {
     logError('toggleTaskChecklistParaType', error.message)
     return '(error)'
+  }
+}
+
+/**
+ * Remove any scheduled date (e.g. >YYYY-MM-DD or >YYYY-Www) from given line in note identified by filename
+ * @author @jgclark
+ * @param {string} filename of note
+ * @param {string} content line to identify and change
+ * @returns {boolean} success?
+ */
+export function unscheduleItem(filename: string, content: string): boolean {
+  try {
+    // find para
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(filename, content)
+    if (typeof possiblePara === 'boolean') {
+      throw new Error('unscheduleItem: no para found')
+    }
+    // Get the paragraph to change
+    const thisPara = possiblePara
+    const thisNote = thisPara.note
+    // Find and then remove any scheduled dates
+    const thisLine = possiblePara.content
+    logDebug('unscheduleItem', `unscheduleItem('${thisLine}'`)
+    thisPara.content = replaceArrowDatesInString(thisLine, '')
+    logDebug('unscheduleItem', `unscheduleItem('${thisPara.content}'`)
+    // $FlowIgnore(incompatible-use)
+    thisNote.updateParagraph(thisPara)
+    return true
+  } catch (error) {
+    logError('unscheduleItem', error.message)
+    return false
   }
 }
 
@@ -1716,8 +1756,8 @@ export function getParagraphParentsOnly(paragraphs: Array<TParagraph>): Array<Pa
  * @returns {Array<ParentParagraphs>} - array of parent paragraphs with their children
  */
 export function removeParentsWhoAreChildren(everyParaIsAParent: Array<ParentParagraphs>): Array<ParentParagraphs> {
-  const childrenSeen = []
-  const parentsOnlyAtTop = []
+  const childrenSeen: Array<TParagraph> = []
+  const parentsOnlyAtTop: Array<ParentParagraphs> = []
   for (let i = 0; i < everyParaIsAParent.length; i++) {
     const p = everyParaIsAParent[i]
     if (childrenSeen.includes(p.parent)) {

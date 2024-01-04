@@ -230,7 +230,9 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
   // result.codes = 0=no update, 1=updated, 2=installed, -1=error
   if (result.code >= 1) {
     logInfo(pluginJson, `Plugin was ${result.code === 1 ? 'updated' : 'installed'}`)
+    logDebug(pluginJson, `calling getPluginJson pluginJson['plugin.id'] = ${pluginJson['plugin.id']}`)
     const newSettings = await getPluginJson(pluginJson['plugin.id'])
+    clo(newSettings, 'pluginUpdated - newSettings')
     if (newSettings) {
       const hasChangelog = newSettings['plugin.changelog']
       const hasUpdateMessage = newSettings['plugin.lastUpdateInfo']
@@ -320,9 +322,11 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
       return
     }
     const commandMigrationMessage = pluginJson['commandMigrationMessage']
-    const githubReleasedPlugins = await DataStore.listPlugins(true, true, false) //released plugins .isOnline is true for all of them
-    clo(githubReleasedPlugins, 'migrateCommandsIfNecessary: githubReleasedPlugins')
+    const githubReleasedPlugins = await DataStore.listPlugins(false, true, false) //released plugins .isOnline is true for all of them
+    // clo(githubReleasedPlugins, 'migrateCommandsIfNecessary: githubReleasedPlugins')
+    // logDebug(pluginJson, `migrateCommandsIfNecessary: githubReleasedPlugins ^^^^`)
     const newPlugin = await findPluginInList(githubReleasedPlugins, id, minVersion)
+    clo(newPlugin, 'migrateCommandsIfNecessary: newPlugin found:')
     if (!newPlugin) {
       logDebug(pluginJson, `migrateCommandsIfNecessary() could not find plugin on github: ${id} >= ${minVersion}`)
       await showMessage(`Could not find ${id} plugin to download. Please try to use the NotePlan preferences panel.`, 'OK', 'Plugin Not Found')
@@ -331,15 +335,24 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
     const msg = `${commandMigrationMessage || ''}\nWould you like to download the plugin "${newPlugin.name}" now?`
     const res = await showMessageYesNo(msg, ['Yes', 'No'], 'Download New Plugin')
     if (res === 'Yes') {
-      await DataStore.installPlugin(newPlugin.id, true)
+      clo(newPlugin, `migrateCommandsIfNecessary() before plugin download: ${id} >= ${minVersion}. Will try to install:`)
+      // const r = await DataStore.installOrUpdatePluginsByID([id], true, false, false)
+      const r = await DataStore.installPlugin(newPlugin, false)
+      // FIXME: Never gets here, even when the plugin successfully installs
+      clo(r, `migrateCommandsIfNecessary() after plugin download: result=`)
+
+      logDebug(pluginJson, `migrateCommandsIfNecessary() after plugin download: ${id} >= ${minVersion}`)
       const installedPlugins = DataStore.installedPlugins()
       const newPluginInstalled = findPluginInList(installedPlugins, id, minVersion)
       if (!newPluginInstalled) {
         logDebug(pluginJson, `migrateCommandsIfNecessary() after plugin download but did not find plugin installed: ${id} >= ${minVersion}`)
         return
       }
+      // TODO: Migrate settings from old plugin to new plugin
       await pluginUpdated(newPluginInstalled, { code: 2, message: 'Plugin Installed' })
     }
+  } else {
+    logDebug(pluginJson, `migrateCommandsIfNecessary() did not find offerToDownloadPlugin; doing nothing`)
   }
 }
 

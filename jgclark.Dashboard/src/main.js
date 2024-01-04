@@ -360,6 +360,22 @@ for (const button of allPriorityButtons) {
   }, false);
 }
 console.log(String(allPriorityButtons.length) + ' priorityButton ELs added');
+
+let allUnscheduleButtons = document.getElementsByClassName("unscheduleButton");
+for (const button of allUnscheduleButtons) {
+  const thisTD = findAncestor(button, 'TD');
+  const thisID = thisTD.parentElement.id;
+  // console.log('- U on' + thisID);
+  const thisControlStr = button.dataset.controlStr;
+  const thisEncodedContent = thisTD.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
+  const thisEncodedFilename = thisTD.dataset.encodedFilename;
+  // add event handler
+  button.addEventListener('click', function (event) {
+    event.preventDefault();
+    handleButtonClick(thisID, 'unscheduleItem', '', thisEncodedFilename, thisEncodedContent);
+  }, false);
+}
+console.log(String(allUnscheduleButtons.length) + ' unscheduleButton ELs added');
 </script>
 `
 
@@ -651,23 +667,27 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
 
         // Work out the extra controls that are relevant for this task, and set up as tooltips
         const possibleControlTypes = [
-          { displayString: '→today', controlStr: 't', sectionsectionTypes: ['DY', 'W', 'M', 'Q', 'OVERDUE'] }, // special controlStr to indicate change to '>today'
-          { displayString: '+1d', controlStr: '+1d', sectionsectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE'] },
-          { displayString: '+1b', controlStr: '+1b', sectionsectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE'] },
-          { displayString: '→w', controlStr: '+0w', sectionsectionTypes: ['DT', 'DY', 'M', 'OVERDUE'] },
-          { displayString: '+1w', controlStr: '+1w', sectionsectionTypes: ['DT', 'DY', 'W', 'OVERDUE'] },
-          { displayString: '→m', controlStr: '+0m', sectionsectionTypes: ['DT', 'DY', 'W', 'Q', 'OVERDUE'] },
-          { displayString: '+1m', controlStr: '+1m', sectionsectionTypes: ['M', 'OVERDUE'] },
-          { displayString: '→q', controlStr: '+0q', sectionsectionTypes: ['M'] },
-          { displayString: 'pri', controlStr: 'pri', sectionsectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'] },
+          { displayString: '→today', controlStr: 't', sectionTypes: ['DY', 'W', 'M', 'Q', 'OVERDUE'] }, // special controlStr to indicate change to '>today'
+          { displayString: '+1d', controlStr: '+1d', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE'] },
+          { displayString: '+1b', controlStr: '+1b', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE'] },
+          { displayString: '→w', controlStr: '+0w', sectionTypes: ['DT', 'DY', 'M', 'OVERDUE'] },
+          { displayString: '+1w', controlStr: '+1w', sectionTypes: ['DT', 'DY', 'W', 'OVERDUE'] },
+          { displayString: '→m', controlStr: '+0m', sectionTypes: ['DT', 'DY', 'W', 'Q', 'OVERDUE'] },
+          { displayString: '+1m', controlStr: '+1m', sectionTypes: ['M', 'OVERDUE'] },
+          { displayString: '→q', controlStr: '+0q', sectionTypes: ['M'] },
+          { displayString: 'pri', controlStr: 'pri', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'] },
         ]
         // Add some specials if requested by a hidden setting
         if (config.showExtraButtons) {
-          possibleControlTypes.push({ displayString: '◯/☐', controlStr: 'tog', sectionsectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'] })
-          possibleControlTypes.push({ displayString: '✓then', controlStr: 'ct', sectionsectionTypes: ['OVERDUE', 'TAG'] })
+          possibleControlTypes.push({ displayString: '◯/☐', controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'] })
+          possibleControlTypes.push({ displayString: '✓then', controlStr: 'ct', sectionTypes: ['OVERDUE', 'TAG'] })
+          if (!isItemFromCalendarNote) {
+            // Only relevant for referenced items
+            possibleControlTypes.push({ displayString: '≯', controlStr: 'unsched', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'] })
+          }
         }
 
-        const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionsectionTypes.includes(section.sectionType))
+        const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionTypes.includes(section.sectionType))
         let tooltipContent = ''
         if (controlTypesForThisSection.length > 0) {
           tooltipContent = `\n           <span class="hoverExtraControls" data-date-string="${encodedFilename}">` // now always pass filename of item, even if it is same as section.filename
@@ -680,10 +700,11 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
                 ? "completeThenButton"
                 : (ct.controlStr === 'pri')
                   ? "priorityButton"
-                  // : (ct.sectionsectionTypes.includes(section.sectionType))
+                  : (ct.controlStr === 'unsched')
+                    ? "unscheduleButton"
                   : isItemFromCalendarNote
                     ? "moveButton"
-                    : "changeDateButton"
+                      : "changeDateButton"
             tooltipContent += `<button class="${buttonType} hoverControlButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
           }
           tooltipContent += '</span>'
