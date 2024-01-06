@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 16.12.2023 for v0.7.4 by @jgclark
+// Last updated 5.1.2024 for v0.7.5 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,6 +12,10 @@ import {
   type dashboardConfigType,
   type Section, type SectionItem
 } from './dashboardHelpers'
+import {
+  getNextNotesToReview,
+  makeFullReviewList
+} from '../../jgclark.Reviews/src/reviews.js'
 import {
   getDateStringFromCalendarFilename,
   includesScheduledFutureDate,
@@ -174,12 +178,11 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     let sectionCount = 0
     let doneCount = 0
     const today = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
-    let startTime = new Date() // for timing only
     const maxInSection = config.maxTasksToShowInSection ?? 30
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists from current daily note (if it exists)
-    startTime = new Date()
+    let startTime = new Date() // for timing only
     let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
     if (currentDailyNote) {
       const thisFilename = currentDailyNote?.filename ?? '(error)'
@@ -659,7 +662,21 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     // If Reviews plugin has produced a review list file, then show up to 4 of the most overdue things from it
     if (DataStore.fileExists(fullReviewListFilename)) {
       logDebug('getDataForDashboard', `---------------------------- Looking for Project items for section #${String(sectionCount)} -----------------------------`)
-      const nextNotesToReview: Array<TNote> = getNextNotesToReview(4)
+
+      // But first check to see if it is more than a day old
+      const fullReviewListContent = DataStore.loadData(fullReviewListFilename, true)
+      // Get date of last generation from file contents, lineIndex 2 ('date: 2024-01-04T23:20:08+00:00')
+      const reviewListDateStr = fullReviewListContent?.match(/date: (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/)?.[1]
+      const reviewListDate = moment(reviewListDateStr).toDate()
+      const fileAge = Date.now() - reviewListDate
+      // If this note is more than a day old, then regenerate it
+      if (fileAge > (1000 * 60 * 60 * 24)) {
+        logDebug('getDataForDashboard', `Regenerating fullReviewList as too old`)
+        // Call plugin command makeFullReviewList
+        await makeFullReviewList()
+      }
+
+      const nextNotesToReview: Array<TNote> = getNextNotesToReview(6)
       if (nextNotesToReview) {
         let itemCount = 0
         nextNotesToReview.map((n) => {
@@ -674,7 +691,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         sections.push({
           ID: sectionCount,
           name: 'Projects',
-          sectionType: '',
+          sectionType: 'PROJ',
           description: `{count} next projects to review`,
           FAIconClass: 'fa-regular fa-calendar-check',
           sectionTitleClass: 'sidebarYearly',
@@ -726,62 +743,5 @@ export async function logDashboardData(): Promise<void> {
     }
   } catch (error) {
     logError('pluginJson', error.message)
-  }
-}
-
-//-------------------------------------------------------------------------------
-/**
- * Get list of the next note(s) to review (if any).
- * It assumes the full-review-list exists and is sorted by nextReviewDate (earliest to latest).
- * Note: This is a variant of the original singular version in jgclark.Reviews/src/reviews.js
- * TODO: Should move this to the Reviews plugin?
- * @author @jgclark
- * @param { number } numToReturn first n notes to return
- * @return { Array<TNote> } next notes to review, up to numToReturn. Can be an empty array.
- */
-function getNextNotesToReview(numToReturn: number): Array<TNote> {
-  try {
-    logDebug(pluginJson, `Starting dashboard/getNextNotesToReview())`)
-
-    // Get contents of full-review-list
-    let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
-    if (!reviewListContents) {
-      // If we get here, give a warning, as the file should exist and not be empty
-      throw new Error(`full-review-list note empty or missing`)
-    } else {
-      const fileLines = reviewListContents.split('\n')
-
-      // Use front-matter library to get past frontmatter
-      const fmObj = fm(reviewListContents)
-      const reviewLines = fmObj.body.split('\n')
-
-      // Now read from the top until we find a line with a negative value in the first column (nextReviewDays)
-      // and not complete ('finished').
-      // Continue until we have found up to numToReturn such notes.
-      const notesToReview: Array<TNote> = []
-      for (let i = 0; i < reviewLines.length; i++) {
-        const thisLine = reviewLines[i]
-        const nextReviewDays = Number(thisLine.split('\t')[0]) ?? NaN // get first field = nextReviewDays
-        const thisNoteTitle = thisLine.split('\t')[2] // get third field = title
-        const tags = thisLine.split('\t')[5] ?? '' // get last field = tags
-        if (nextReviewDays < 0 && !tags.includes('finished')) {
-          logDebug('dashboard/getNextNotesToReview', `- Next to review = '${thisNoteTitle}'`)
-          const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
-          notesToReview.push(nextNotes[0]) // add first matching note
-          if (notesToReview.length >= numToReturn) {
-            break // stop processing the loop
-          }
-        }
-      }
-
-      if (notesToReview.length === 0) {
-        // If we get here then there are no projects needed for review
-        logDebug('dashboard/getNextNotesToReview', `- No notes due for review 🎉`)
-      }
-      return notesToReview
-    }
-  } catch (error) {
-    logError(pluginJson, `dashboard/getNextNotesToReview: ${error.message}`)
-    return []
   }
 }

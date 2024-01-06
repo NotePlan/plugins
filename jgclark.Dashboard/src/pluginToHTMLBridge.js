@@ -1,11 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 2.1.2024 for v0.7.5 by @jgclark
+// Last updated 4.1.2024 for v0.7.5 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { showDashboardHTML } from './main'
+import { skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import {
   calcOffsetDateStr,
   getNPWeekStr,
@@ -110,8 +111,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     }
     const ID = data.itemID
     const type = data.type
-    const filename = decodeRFC3986URIComponent(data.encodedFilename)
-    const content = decodeRFC3986URIComponent(data.encodedContent)
+    const filename = decodeRFC3986URIComponent(data.encodedFilename ?? '')
+    const content = decodeRFC3986URIComponent(data.encodedContent ?? '')
     logDebug('', '------------------------- bridgeClickDashboardItem:')
     logInfo('bridgeClickDashboardItem', `ID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     switch (type) {
@@ -256,13 +257,26 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         }
         break
       }
+      case 'setNextReviewDate': {
+        // Handle a review call simply by opening the note in the main Editor. Later it might get more interesting!
+        const note = await DataStore.projectNoteByFilename(filename)
+        if (note) {
+          logDebug('bCDI / setNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
+          let period = data.controlStr.replace('skip', '')
+          skipReviewForNote(note, period)
+          // Now send a message for the dashboard to update its display
+          sendToHTMLWindow(windowId, 'removeItem', data)
+        } else {
+          logWarn('bCDI / setNextReviewDate', `-> couldn't get filename ${filename} to update next review date.`)
+        }
+        break
+      }
       case 'windowResized': {
-        // logWindowsList()
         logDebug('bCDI / windowResized', `windowResized triggered on plugin side (hopefully for '${windowCustomId}')`)
         const thisWin = getWindowFromCustomId(windowCustomId)
         const rect = getLiveWindowRectFromWin(thisWin)
         if (rect) {
-          // logDebug('bCDI / windowResized/windowResized', `- saving rect: ${rectToString(rect)} to pref`)
+          // logDebug('bCDI / windowResized/windowResized', `-> saving rect: ${rectToString(rect)} to pref`)
           storeWindowRect(windowCustomId)
         }
         break
@@ -448,6 +462,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     //   logError('bridgeClickDashboardItem', `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
     // }
   } catch (error) {
-    logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem:${error.message}`)
+    logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${error.message}`)
   }
 }

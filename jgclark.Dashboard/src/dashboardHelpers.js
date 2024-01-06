@@ -57,7 +57,7 @@ import { showMessage, showMessageYesNo } from '@helpers/userInput'
 export type Section = {
   ID: number,
   name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
-  sectionType: '' | 'DT' | 'DY' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG', // where DT = today, DY = yesterday, TAG = Tag sections
+  sectionType: '' | 'DT' | 'DY' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG' | 'PROJ', // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,
@@ -79,6 +79,7 @@ export type SectionItem = {
 const pluginID = 'jgclark.Dashboard'
 
 export type dashboardConfigType = {
+  dashboardTheme: string,
   separateSectionForReferencedNotes: boolean,
   ignoreTasksWithPhrase: string,
   ignoreChecklistItems: boolean,
@@ -96,7 +97,7 @@ export type dashboardConfigType = {
   updateOverdueOnTrigger: boolean,
   maxTasksToShowInSection: number,
   overdueSortOrder: string,
-  showExtraButtons: boolean,
+  // showExtraButtons: boolean, // removed in 0.7.5
   tagToShow: string,
   _logLevel: string,
   triggerLogging: boolean,
@@ -227,8 +228,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
     output = convertBoldAndItalicToHTML(output)
 
     // Display underline with .underlined style
-    // TODO: Currently disabled as it breaks with a bare URL that contains a ~ (e.g. http://feeds.ligonier.org/~/798673703/0/ligonierministriesblog)
-    // output = convertUnderlinedToHTML(output)
+    output = convertUnderlinedToHTML(output)
 
     // Add suitable colouring to 'arrow' >date< items
     // (Needs to go before match on >date dates)
@@ -381,7 +381,6 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
  */
 export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, itemID: string): string {
   try {
-    // TODO: use user's setting
     const dateFilename = getAPIDateStrFromDisplayDateStr(NPDateStr) + "." + DataStore.defaultFileExtension
     // logDebug('makeNoteTitleWithOpenActionFromNPDateStr', `- making notelink with ${NPDateStr} / ${dateFilename}`)
     // Pass request back to plugin, as a single object

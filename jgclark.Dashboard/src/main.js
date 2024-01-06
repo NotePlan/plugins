@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 26.12.2023 for v0.7.5 by @jgclark
+// Last updated 6.1.2024 for v0.8.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -21,17 +21,18 @@ import {
   getTodaysDateUnhyphenated,
   isValidCalendarNoteFilename
 } from '@helpers/dateTime'
-import { nowLocaleShortTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { unsetPreference } from '@helpers/NPdev'
 import { getFolderFromFilename } from '@helpers/folders'
+import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
+import { showHTMLV2 } from '@helpers/HTMLView'
+import { getNoteType } from '@helpers/note'
+import { nowLocaleShortTime } from '@helpers/NPdateTime'
+import { unsetPreference } from '@helpers/NPdev'
 import { addTrigger } from '@helpers/NPFrontMatter'
 import { getTaskPriority } from '@helpers/paragraph'
 import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
-import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
-import { showHTMLV2 } from '@helpers/HTMLView'
-import { getNoteType } from '@helpers/note'
+import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent, encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import {
@@ -99,7 +100,7 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
    requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
    be in your html document or could be imported in an external file */
 </script>
-<script type="text/javascript" src="./commsSwitchboard.js"></script>
+<script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
 <script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
 `
 
@@ -376,6 +377,21 @@ for (const button of allUnscheduleButtons) {
   }, false);
 }
 console.log(String(allUnscheduleButtons.length) + ' unscheduleButton ELs added');
+
+let allNextReviewButtons = document.getElementsByClassName("nextReviewButton");
+for (const button of allNextReviewButtons) {
+  const thisTD = findAncestor(button, 'TD');
+  const thisID = thisTD.parentElement.id;
+  // console.log('- P on' + thisID);
+  const thisControlStr = button.dataset.controlStr;
+  const thisEncodedFilename = thisTD.dataset.encodedFilename;
+  // add event handler
+  button.addEventListener('click', function (event) {
+    event.preventDefault();
+    handleButtonClick(thisID, 'setNextReviewDate', thisControlStr, thisEncodedFilename, '');
+  }, false);
+}
+console.log(String(allNextReviewButtons.length) + ' nextReviewButton ELs added');
 </script>
 `
 
@@ -606,9 +622,9 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
         const sectionDescriptionWithCountSpan = section.description.replace('{count}', sectionCountSpan)
         outputArray.push(`   <p class="sectionDescription">${sectionDescriptionWithCountSpan}`)
 
-        if (['Today', 'This week', 'This month', 'This quarter', 'This year'].includes(section.name)) {
+        if (['DT', 'W', 'M', 'Q', 'Y'].includes(section.sectionType)) {
           // Add 'add task' and 'add checklist' icons
-          // TODO: add tooltip
+          // TODO: add info tooltip
           const xcbAddTask = createRunPluginCallbackUrl('jgclark.Dashboard', 'addTask', [section.filename])
           outputArray.push(`    <a href="${xcbAddTask}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a>`)
           const xcbAddChecklist = createRunPluginCallbackUrl('jgclark.Dashboard', 'addChecklist', [section.filename])
@@ -676,15 +692,17 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
           { displayString: '+1m', controlStr: '+1m', sectionTypes: ['M', 'OVERDUE'] },
           { displayString: '→q', controlStr: '+0q', sectionTypes: ['M'] },
           { displayString: 'pri', controlStr: 'pri', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'] },
+          { displayString: '◯/☐', controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'] },
+          { displayString: '✓then', controlStr: 'ct', sectionTypes: ['OVERDUE', 'TAG'] },
+          // Just for Project lines
+          { displayString: 'skip +1w', controlStr: 'skip+1w', sectionTypes: ['PROJ'] },
+          { displayString: 'skip +2w', controlStr: 'skip+2w', sectionTypes: ['PROJ'] },
+          { displayString: 'skip +1m', controlStr: 'skip+1m', sectionTypes: ['PROJ'] },
+          { displayString: 'skip +1q', controlStr: 'skip+1q', sectionTypes: ['PROJ'] },
         ]
-        // Add some specials if requested by a hidden setting
-        if (config.showExtraButtons) {
-          possibleControlTypes.push({ displayString: '◯/☐', controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'] })
-          possibleControlTypes.push({ displayString: '✓then', controlStr: 'ct', sectionTypes: ['OVERDUE', 'TAG'] })
-          if (!isItemFromCalendarNote) {
-            // Only relevant for referenced items
-            possibleControlTypes.push({ displayString: '≯', controlStr: 'unsched', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'] })
-          }
+        if (!isItemFromCalendarNote) {
+          // Only relevant for referenced items
+          possibleControlTypes.push({ displayString: '≯', controlStr: 'unsched', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'] })
         }
 
         const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionTypes.includes(section.sectionType))
@@ -702,9 +720,11 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
                   ? "priorityButton"
                   : (ct.controlStr === 'unsched')
                     ? "unscheduleButton"
-                  : isItemFromCalendarNote
-                    ? "moveButton"
-                      : "changeDateButton"
+                    : (ct.controlStr.startsWith('nr'))
+                      ? "nextReviewButton"
+                      : isItemFromCalendarNote
+                        ? "moveButton"
+                        : "changeDateButton"
             tooltipContent += `<button class="${buttonType} hoverControlButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
           }
           tooltipContent += '</span>'
@@ -764,17 +784,19 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
             outputArray.push(cell4)
             break
           }
+          // Project section items
           case 'review': {
             if (itemNoteTitle) {
               // do icon col (was col3)
               outputArray.push(
-                `         <td id="${item.ID}I" class="review sectionItem no-borders" data-encoded-filename="${encodedFilename}"><i class="fa-solid fa-calendar-check"></i></td>`,
+                `         <td id="${item.ID}I" class="review sectionItem no-borders"><i class="fa-solid fa-calendar-check"></i></td>`,
               )
 
               // do item details col (was col4): review note link as internal calls
               const folderNamePart = config.includeFolderName && getFolderFromFilename(item.filename) !== '' ? getFolderFromFilename(item.filename) + ' / ' : ''
+              // Before adding buttons via tooltips
               // let cell4 = `         <td id="${item.ID}" class="sectionItem">${folderNamePart}<a class="noteTitle" data-encoded-filename="${encodedFilename}">${itemNoteTitle}</a></td>\n       </tr>`
-              let cell4 = `         <td id="${item.ID}" class="sectionItem">${folderNamePart}${makeNoteTitleWithOpenActionFromFilename(item, itemNoteTitle)}</td>\n       </tr>`
+              let cell4 = `         <td id="${item.ID}" data-encoded-filename="${encodedFilename}" class="sectionItem">\n          <div class="avoidColumnBreakHere tooltip">${folderNamePart}${makeNoteTitleWithOpenActionFromFilename(item, itemNoteTitle)}${tooltipContent}\n          </div>\n         </td>\n       </tr>`
               outputArray.push(cell4)
               totalOpenItems++
               reviewNoteCount++
@@ -829,7 +851,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
       windowTitle: windowTitle,
       customId: windowCustomId,
       headerTags: resourceLinksInHeader,
-      generalCSSIn: '', // get general CSS set automatically
+      generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
       makeModal: false,
       shouldFocus: shouldFocus, // shouuld focus window?

@@ -1,8 +1,8 @@
 /**
- * commsSwitchboard.js - HTML Window: process data to/from the plugin
+ * HTMLWinCommsSwitchboard.js - in the HTMLWindow process data and logic to/from the plugin
  * This file is loaded by the browser via <script> tag in the HTML file
  * IMPORTANT NOTE: you can use flow and eslint to give you feedback but DO NOT put any type annotations in the actual code:
- * the file will fail silently and you will be scratching your head for why it doesn't work
+ * the file will fail silently and you will be scratching your head for why it doesn't work!
  */
 
 /* eslint-disable no-console */
@@ -26,22 +26,23 @@ async function delay(time) {
  * @param {any} data
  */
 async function onMessageFromPlugin(type, data) {
-  console.log(`onMessageFromPlugin: starting with type: ${type} and data.itemID: ${data.itemID ?? 'n/a'}`)
+  console.log(`onMessageFromPlugin: starting with type ${type} and data.itemID ${data.itemID ?? 'n/a'}`)
+  // Note: await not really needed below, but satisfy flow
   switch (type) {
     case 'updateDiv':
       updateDivReceived(data)
       break
     case 'completeTask':
-      await completeTaskInDisplay(data) // Note: await not really needed
+      await completeTaskInDisplay(data)
       break
     case 'completeChecklist':
-      await completeChecklistInDisplay(data) // Note: await not really needed
+      await completeChecklistInDisplay(data)
       break
     case 'cancelTask':
-      await cancelTaskInDisplay(data) // Note: await not really needed
+      await cancelTaskInDisplay(data)
       break
     case 'cancelChecklist':
-      await cancelChecklistInDisplay(data) // Note: await not really needed
+      await cancelChecklistInDisplay(data)
       break
     case 'toggleType':
       toggleTypeInDisplay(data)
@@ -50,7 +51,7 @@ async function onMessageFromPlugin(type, data) {
       cyclePriorityInDisplay(data)
       break
     case 'unscheduleItem':
-      unscheduleItem(data)
+      await unscheduleItem(data)
       break
     case 'removeItem':
       deleteItemRow(data)
@@ -78,13 +79,13 @@ function updateDivReceived(data) {
 }
 
 /**
- * Remove an HTML item that matches data.ID
- * @param { { ID: string, html: string, innerText:boolean } } data
+ * Remove an HTML item that matches the given data.itemid
+ * @param { { ... itemID: string } } data
  */
 function deleteItemRow(data) {
-  const { ID } = data
-  console.log(`deleteItemRow: for ID: ${ID}`)
-  deleteHTMLItem(ID)
+  const { itemID } = data
+  console.log(`deleteItemRow: for itemID: ${itemID}`)
+  deleteHTMLItem(itemID)
 }
 
 /**

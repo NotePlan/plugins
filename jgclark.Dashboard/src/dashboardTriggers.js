@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggering
-// Last updated 14.7.2023 for v0.5.0 by @jgclark
+// Last updated 5.1.2024 for v0.5.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -26,7 +26,9 @@ function logDebug(pluginJson: any, message: string): void {
 }
 
 /**
- * Return true if some task/checklist items have been added or completed when comparing 'previousContent' to 'currentContent'.
+ * Have the number of open items changed?
+ * v3 Method: Return true if some task/checklist items have been added or completed when comparing 'previousContent' to 'currentContent'.
+ * Note: now not used
  * @param {string} previousContent
  * @param {string} currentContent
  * @returns {boolean} changed?
@@ -36,6 +38,27 @@ function changeToNumberOfOpenItems(previousContent: string, currentContent: stri
   const currentOpenNum = numberOfOpenItems(currentContent)
   logDebug(pluginJson, `prevOpenNum: ${prevOpenNum} / currentOpenNum: ${currentOpenNum} ->  ${String(prevOpenNum - currentOpenNum)}`)
   return prevOpenNum != currentOpenNum
+}
+
+/**
+ * Have the number of open items changed?
+ * v4 Method: Get all open items from current and previous version of note, and compare, having sorted so we ignore lines simply being moved around.
+ * @param {TNote} note to compare versions
+ * @returns {boolean}
+ */
+function haveOpenItemsChanged(note: TNote): boolean {
+  const beforeContent = note.versions[0].content
+  const beforeOpenParas = makeBasicParasFromContent(beforeContent).filter((p) => isOpen(p))
+  const beforeOpenLines = beforeOpenParas.map((p) => p.rawContent)
+  const afterOpenParas = Editor.paragraphs.filter((p) => isOpen(p))
+  const afterOpenLines = afterOpenParas.map((p) => p.rawContent)
+
+  // Sort them
+  const beforeOpenSorted = beforeOpenLines.sort()
+  const afterOpenSorted = afterOpenLines.sort()
+
+  // Compare them
+  return beforeOpenSorted.toString() !== afterOpenSorted.toString()
 }
 
 /**
@@ -86,8 +109,6 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
         'decideWhetherToUpdateDashboard',
         `onEditorWillSave triggered for '${noteReadOnly.filename}' with ${noteReadOnly.versions.length} versions; last triggered ${String(timeSinceLastEdit)}ms ago`,
       )
-      // logDebug('decideWhetherToUpdateDashboard', `- previous version: ${String(noteReadOnly.versions[0].date)} [${previousContent}]`)
-      // logDebug('decideWhetherToUpdateDashboard', `- new version: ${String(Date.now())} [${latestContent}]`)
 
       // first check to see if this has been called in the last 1000ms: if so don't proceed, as this could be a double call.
       if (timeSinceLastEdit <= 2000) {
@@ -96,30 +117,29 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
       }
 
       // Decide if this is a relevant change, now looking for edits in open items as well.
-      // V4: Get all open items from before and after
-      const beforeContent = noteReadOnly.versions[0].content
-      // logDebug('decideWhetherToUpdateDashboard', `beforeContent = ${beforeContent}`)
-      const beforeOpenParas = makeBasicParasFromContent(beforeContent).filter((p) => isOpen(p))
-      const beforeOpenLines = beforeOpenParas.map((p) => p.rawContent)
-      // logDebug('decideWhetherToUpdateDashboard', `${beforeOpenLines.length} beforeOpenLines = ${beforeOpenLines.join('\n')}`)
-      const afterOpenParas = Editor.paragraphs.filter((p) => isOpen(p))
-      const afterOpenLines = afterOpenParas.map((p) => p.rawContent)
-      // logDebug('decideWhetherToUpdateDashboard', `${afterOpenLines.length} afterOpenLines = ${afterOpenLines.join('\n')}`)
+      // V4: Get all open items from before and after, but sort so we ignore lines being moved around
+      // const beforeContent = noteReadOnly.versions[0].content
+      // const beforeOpenParas = makeBasicParasFromContent(beforeContent).filter((p) => isOpen(p))
+      // const beforeOpenLines = beforeOpenParas.map((p) => p.rawContent)
+      // const afterOpenParas = Editor.paragraphs.filter((p) => isOpen(p))
+      // const afterOpenLines = afterOpenParas.map((p) => p.rawContent)
 
-      // Sort them
-      const beforeOpenSorted = beforeOpenLines.sort()
-      const afterOpenSorted = afterOpenLines.sort()
+      // // Sort them
+      // const beforeOpenSorted = beforeOpenLines.sort()
+      // const afterOpenSorted = afterOpenLines.sort()
 
-      // Compare them
-      const openItemsHaveChanged = beforeOpenSorted.toString() !== afterOpenSorted.toString()
+      // // Compare them
+      // const openItemsHaveChanged = beforeOpenSorted.toString() !== afterOpenSorted.toString()
+      const openItemsHaveChanged = haveOpenItemsChanged(noteReadOnly)
 
       // // Decide if there are more or fewer open items than before
       // // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
       // // (This avoids firing when simply moving task/checklist items around, or updating the text.)
       // const hasNumberOfOpenItemsChanged = changeToNumberOfOpenItems(previousContent, latestContent)
-      let hasNumberOfOpenItemsChanged = false // TODO: remove workaround
+      // let hasNumberOfOpenItemsChanged = false // TODO: remove workaround
 
-      if (hasNumberOfOpenItemsChanged || openItemsHaveChanged) {
+      // if (hasNumberOfOpenItemsChanged || openItemsHaveChanged) {
+      if (openItemsHaveChanged) {
         // Note: had wanted to try using Editor.save() here, but seems to trigger an infinite loop
         // Note: DataStore.updateCache(Editor.note) doesn't work either.
         // Instead we test for Editor in the dataGeneration::getOpenItemParasForCurrentTimePeriod() function

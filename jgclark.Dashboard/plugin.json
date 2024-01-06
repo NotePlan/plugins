@@ -8,10 +8,10 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.7.5",
-  "plugin.lastUpdateInfo": "v0.7.5: added action button '≯' to 'unschedule' a task.\nv0.7.4: new optional limit to number of items shown in Tag section. Update to help Projects & Reviews plugin.\nv0.7.3: New priority button. New setting to exclude checklist items, and give more control over Overdue tasks section.\nv0.7.2: turn off 'preview' on task and checklist markers, as they can behave wrongly at speed. Other fixes and polish.\nv0.7.1: 'folders to ignore' setting now applies to 'Overdue tasks' section. Two new experimental buttons.\nv0.7.0: new optional 'Yesterday' and 'Overdue Tasks' sections.",
+  "plugin.version": "0.8.0",
+  "plugin.lastUpdateInfo": "v0.8.0: added dashboard-specific Theme option. Added action buttons '≯' to 'unschedule' a task, and '✓then' to mark an overdue item as being comppleted at the time. Added action buttons on Project reviews.\nv0.7.4: new optional limit to number of items shown in Tag section. Update to help Projects & Reviews plugin.\nv0.7.3: New priority button. New setting to exclude checklist items, and give more control over Overdue tasks section.\nv0.7.2: turn off 'preview' on task and checklist markers, as they can behave wrongly at speed. Other fixes and polish.\nv0.7.1: 'folders to ignore' setting now applies to 'Overdue tasks' section. Two new experimental buttons.\nv0.7.0: new optional 'Yesterday' and 'Overdue Tasks' sections.",
   "plugin.requiredFiles": [
-    "commsSwitchboard.js",
+    "HTMLWinCommsSwitchboard.js",
     "dashboard.css",
     "debounce.js",
     "shortcut.js"
@@ -196,6 +196,14 @@
       "required": true
     },
     {
+      "key": "dashboardTheme",
+      "title": "Theme to use for Dashboard",
+      "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.\nLeave blank to use your current Theme.",
+      "type": "string",
+      "default": "",
+      "required": false
+    },
+    {
       "type": "separator"
     },
     {
@@ -306,7 +314,9 @@
       "type": "bool",
       "default": false,
       "required": true
-    },
+    }
+  ],
+  "plugin.settings_dsiabled": [
     {
       "type": "separator"
     },
