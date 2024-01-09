@@ -5,8 +5,8 @@
   "plugin.name": "🗓 AutoTimeBlocking / Events",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.17.4-notreleased",
-  "plugin.lastUpdateInfo": "1.17.4: Minor calendar event improvement",
+  "plugin.version": "1.18.1",
+  "plugin.lastUpdateInfo": "1.18.1: Fixed Synced Task creation to make it more reliable in templates. Please see updated code in the README.\nAlso removed the 'Remove Synced Lines' commands, as a more general command now exists in the Tidy Up plugin.\n1.18.0: Major update: Added the ability to map tasks into existing named timeblocks.\nIMPORTANT NOTE: NotePlan recently released the ability to write timeblocks to calendars automatically. This feature is not compatible with AutoTimeBlocking, so you must set this feature off to use the /atb command.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -64,14 +64,9 @@
       "alias": [
         "syncedTodos",
         "insertSynced"
-      ]
-    },
-    {
-      "name": "Remove Synced Todos for Open Calendar Note",
-      "description": "Remove the contents of Synced Todos created by this plugin",
-      "jsFunction": "removeSyncedCopiesOfTodayTodos",
-      "alias": [
-        "remSync"
+      ],
+      "arguments": [
+        "'Yes' to Pass back synced todos as text (e.g. for inserting in a template)."
       ]
     },
     {
@@ -80,27 +75,6 @@
       "jsFunction": "removeTimeBlocks",
       "alias": [
         "remTimeBlocks"
-      ]
-    },
-    {
-      "name": "Remove All Previous Synced Copies Written by this Plugin",
-      "description": "Remove previously written Synced Copies",
-      "jsFunction": "removePreviousSyncedCopies",
-      "alias": [
-        "remAllSync"
-      ],
-      "arguments": [
-        "Run silently with no pop-up messages (e.g. running from a Template) - (yes/no)"
-      ]
-    },
-    {
-      "name": "Remove Previous Days Paragraphs Named",
-      "description": "Remove Paragraphs from Previous Days with Confirmation",
-      "hidden": true,
-      "jsFunction": "removePreviousDaysParagraphNamed",
-      "arguments": [
-        "Name of the paragraph to remove",
-        "Run silently with no pop-up messages (e.g. running from a Template) - (yes/no) -- defaults to no, and you should probably run it this way so you get one chance to decide whether you actually want to remove the paragraphs"
       ]
     },
     {
@@ -287,8 +261,8 @@
     {
       "key": "createSyncedCopies",
       "type": "bool",
-      "title": "Create synced copies of References items",
-      "description": "Write a synced line (copy) of the Reference item in the calendar note. Can look a little repetitive, but it will save you time when you want to edit the underlying item.",
+      "title": "Automatically create synced copies of References items when ATB runs",
+      "description": "When /atb (AutoTimeBlocking) command is run, write a synced line (copy) of the Reference item in the calendar note. Can look a little repetitive, but it will save you time when you want to edit the underlying item.",
       "default": false,
       "required": true
     },
@@ -297,7 +271,7 @@
       "type": "string",
       "title": "Title/heading for synced copies of today's items",
       "description": "If you have turned on synced copies, they will be placed under this heading in the calendar note",
-      "default": " [Today's Synced Tasks](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.EventAutomations&command=Insert%20Synced%20Todos%20for%20Open%20Calendar%20Note&arg0=yes)",
+      "default": " [Today's Synced Tasks](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.EventAutomations&command=Insert%20Synced%20Todos%20for%20Open%20Calendar%20Note)",
       "required": true
     },
     {
@@ -430,7 +404,7 @@
         "LARGEST_FIRST",
         "BY_TIMEBLOCK_TAG"
       ],
-      "description": "PRIORITY_FIRST places the highest priority (most !'s) first (if there's a slot) and then continues down the priority stack. LARGEST_FIRST tries to place the longest/largest duration item first. BY_TIMEBLOCK_TAG will try to slot items into a pre-existing timeblock that matches a tag on the task (e.g. #projectA). Will then fall back to PRIORITY_FIRST if no matching timeblock is found.",
+      "description": "PRIORITY_FIRST places the highest priority (most !'s) first (if there's a slot) and then continues down the priority stack. LARGEST_FIRST tries to place the longest/largest duration item first. BY_TIMEBLOCK_TAG will try to slot items into a pre-existing timeblock that matches a tag on the task (e.g. a pre-existing timeblock called \"production\" and a task \"* do something #production\"). Will then fall back to PRIORITY_FIRST if no matching timeblock is found.",
       "default": "PRIORITY_FIRST",
       "required": true
     },

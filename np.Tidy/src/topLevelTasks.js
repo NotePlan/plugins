@@ -232,8 +232,7 @@ export function scrollToTitle(note: CoreNoteFields, heading: string) {
  * @returns {Promise<string|null>} Promise resolving to an empty string or null
  */
 async function handleNoTopLevelParagraphs(runSilently: boolean, returnContentAsText: boolean): Promise<string | null> {
-  logError(pluginJson, 'moveTopLevelTasks: No paragraphs in note. Exiting.')
-  runSilently ? logDebug('No task-type paragraphs in note. Exiting.') : await showMessage('No task-type paragraphs at top level of this note. Exiting.')
+  runSilently ? logDebug('No task-type paragraphs in note. Exiting.') : await showMessage('No task-type paragraphs at top level of this note.')
   return returnContentAsText ? '' : null
 }
 

@@ -131,7 +131,7 @@ export function Root(props: Props): Node {
         if (!type) throw (`onMessageReceived: event.data.type is undefined`, event.data)
         if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
         if (type && payload) {
-          logDebug(`Root: onMessageReceived: ${type}`)
+          logDebug(`Root: onMessageReceived: ${type} payload:${JSON.stringify(payload, null, 2)}`)
           // Spread existing state into new object to keep it immutable
           // TODO: ideally, you would use a reducer here
           if (type === 'SHOW_BANNER') payload.lastUpdated.msg += `: ${payload.msg}`
