@@ -3,15 +3,15 @@
 import pluginJson from '../../plugin.json'
 import { newNotePath } from './newNotePath'
 import { logDebug, logWarn } from '@helpers/dev'
-import { showMessage, showMessageYesNo } from '@helpers/userInput'
+import { showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
 
-export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: boolean = true): Promise<void> {
+export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: boolean = true): Promise<boolean> {
   if (note == null || note.paragraphs.length < 1) {
     // No note open, so don't do anything.
     logDebug(pluginJson, 'No note open, or no content. Stopping.')
     return
   }
-  if (Editor.type === 'Calendar') {
+  if (note.type === 'Calendar') {
     // Won't work on calendar notes
     await showMessage('This command does not support renaming calendar notes.')
     return
@@ -40,18 +40,23 @@ export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: 
     return
   }
 
-  const promptResponse = await showMessageYesNo(`
+  const promptResponse = await showMessageYesNoCancel(`
   Would you like to rename the note ${title} to match its filename?
 
   Current path: ${currentFullPath}
   New path: ${newPath}
   `)
 
-  if (promptResponse === 'Yes') {
+  if (promptResponse === 'Cancel') {
+    logDebug(pluginJson, `renameNoteToTitle(): User cancelled`)
+    return false
+  }
+  else if (promptResponse === 'Yes') {
     const newFilename = note.rename(newPath)
     logDebug(pluginJson, `renameNoteToTitle(): ${currentFullPath} -> ${newFilename}`)
     await showMessage(`Renamed note ${title} to ${newFilename}.`)
   } else {
     logDebug(pluginJson, 'renameNoteToTitle(): User chose not to rename.')
   }
+  return true
 }

@@ -2,6 +2,13 @@
 For more details see the [plugin's README](https://github.com/NotePlan/plugins/tree/main/jgclark.NoteHelpers/).
 <!-- ### Added
 <!-- TODO: Decide whether to shift "/add number of days to dates" to a different plugin -->
+## [0.19.0] - 2024-01-09
+- moved the "open note in ..." commands to the new "Window Tools" plugin
+- updated the display of the "index folders" command to use heading levels H2 to H4 depending on how deep the sub-folder is. The placeholder in the title `{{folder}}` now just uses the last part of the folder name, or new placeholder `{{full_folder_path}}` which will use the folder's full path. (Requested by @dutchnesss).
+- removed 'Show month/quarter/year' commands as they are now in the main NP menus.
+- fix to '/rename inconsistent filename' command (reported by @anton-sklyar)
+- fix to '/make index' command ignoring parameter 'displayOrder' if given.
+
 ## [0.18.2] - 2023-09-18
 - fix edge case with /add trigger command.
 

@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// last updated 15.8.2023 for v0.18.1, @jgclark
+// last updated 2.1.2024 for v0.19.0, @jgclark
 // -----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -23,9 +23,9 @@ export {
   jumpToDone,
   jumpToHeading,
   jumpToNoteHeading,
-  openCurrentNoteNewSplit,
-  openNoteNewWindow,
-  openNoteNewSplit,
+  // openCurrentNoteNewSplit,
+  // openNoteNewWindow,
+  // openNoteNewSplit,
   openURLFromANote,
   showMonth,
   showQuarter,
@@ -37,7 +37,7 @@ export function init(): void {
   DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
 }
 
-export function onSettingsUpdated(): void {
+export async function onSettingsUpdated(): void {
   // Placeholder only to stop error in logs
 }
 

@@ -353,7 +353,7 @@ export function timer(startTime: Date): string {
  */
 export function overrideSettingsWithStringArgs(config: any, argsAsString: string): any {
   try {
-    // Parse argsAsJSON (if any) into argObj using assuming JSON
+    // Parse argsAsJSON (if any) into argObj using JSON
     if (argsAsString) {
       const argObj = {}
       argsAsString.split(';').forEach((arg) => (arg.split('=').length === 2 ? (argObj[arg.split('=')[0]] = arg.split('=')[1]) : null))
@@ -378,7 +378,9 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
           value = value.split(',')
         }
         configOut[key] = value
-        // logDebug('overrideSettingsWithStringArgs', `- updated setting '${key}' -> value '${String(value)}'`)
+        if (configOut[key] !== argObj[key]) {
+          logDebug('overrideSettingsWithStringArgs', `- updated setting '${key}' -> value '${String(value)}'`)
+        }
       }
       return configOut
     } else {
