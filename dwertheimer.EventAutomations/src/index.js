@@ -10,10 +10,7 @@ export {
   insertTodosAsTimeblocksWithPresets,
   selectCalendar,
   insertSyncedCopiesOfTodayTodos,
-  removeSyncedCopiesOfTodayTodos,
   removeTimeBlocks,
-  removePreviousSyncedCopies,
-  removePreviousDaysParagraphNamed,
   removePreviousTimeBlocks,
   markDoneAndRecreateTimeblocks,
   onEditorWillSave,
@@ -23,14 +20,14 @@ export { createEvents, createEventPrompt } from './NPEventBlocks'
 
 const PLUGIN_ID = 'autoTimeBlocking' // the key that's used in _configuration note
 
-export async function onUpdateOrInstall(config: any = { silent: false }): Promise<void> {
+export async function onUpdateOrInstall(): Promise<void> {
   try {
     console.log(`${PLUGIN_ID}: onUpdateOrInstall running`)
     // migrate _configuration data to data/<plugin>/settings.json (only executes migration once)
     const updateSettings = updateSettingData(pluginJson)
     console.log(`${PLUGIN_ID}: onUpdateOrInstall updateSettingData code: ${updateSettings}`)
   } catch (error) {
-    console.log(error)
+    await console.log(error)
   }
   console.log(`${PLUGIN_ID}: onUpdateOrInstall finished`)
 }

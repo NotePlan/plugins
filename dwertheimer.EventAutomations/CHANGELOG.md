@@ -4,9 +4,17 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
-## [1.17.4] 2023-10-16 @dwertheimer
+## [1.18.1] 2024-01-04 @dwertheimer
 
+- Update language around Synced Copies preference (thanks @dutcheness)
+- Fix bug where synced copies didn't write if the Editor was not saved yet
+
+
+## [1.18.0] 2023-10-16 @dwertheimer
+
+- Add Named Timeblocks Mode (BY_TIMEBLOCK_TAG mode)
 - Minor calendar event improvement to deal with "today" and "tomorrow" text better in event creation
+
 
 ## [1.17.3] 2023-10-11 @dwertheimer
 

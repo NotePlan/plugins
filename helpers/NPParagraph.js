@@ -462,7 +462,39 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
 }
 
 /**
- * Remove all previously written blocks under a given heading in all notes (e.g. for deleting previous "TimeBlocks" or "SyncedCopoes")
+ * Check the block under a heading to see if it contains only synced copies
+ * @param {CoreNoteFields} note
+ * @param {boolean} runSilently
+ * @returns
+ */
+export async function blockContainsOnlySyncedCopies(note: CoreNoteFields, showErrorToUser: boolean = false): Promise<boolean> {
+  const heading = DataStore.settings.syncedCopiesTitle
+  const block = getBlockUnderHeading(note, heading, false)
+  // test every line of block and ensure every line contains a blockId
+  if (block?.length) {
+    for (const line of block) {
+      if (line.blockId || line.type === 'empty') {
+        continue
+      } else {
+        if (showErrorToUser) {
+          await showMessage(
+            `Non-synced items found in ${
+              note.title || ''
+            } under heading "${heading}". This function should only be run when the block under the heading contains only synced copies. Change your preference/settings so that the Synced Copies heading is distinct`,
+            'OK',
+            'Block under Heading Contains Non Synced Copies',
+          )
+        }
+        logDebug(pluginJson, `Non-synced items found in ${note.title || ''} under heading "${heading}"!`)
+        return false
+      }
+    }
+  }
+  return true
+}
+
+/**
+ * Remove all previously written blocks under a given heading in all notes (e.g. for deleting previous "TimeBlocks" or "SyncedCopies")
  * WARNING: This is DANGEROUS. Could delete a lot of content. You have been warned!
  * @author @dwertheimer
  * @param {Array<string>} noteTypes - the types of notes to look in -- e.g. ['calendar','notes']
@@ -470,20 +502,30 @@ export function selectedLinesIndex(selection: TRange, paragraphs: $ReadOnlyArray
  * @param {boolean} keepHeading - whether to leave the heading in place afer all the content underneath is
  * @param {boolean} runSilently - whether to show CommandBar popups confirming how many notes will be affected - you should set it to 'yes' when running from a template
  */
-export async function removeContentUnderHeadingInAllNotes(noteTypes: Array<string>, heading: string, keepHeading: boolean = false, runSilently: string = 'no'): Promise<void> {
+export async function removeContentUnderHeadingInAllNotes(
+  noteTypes: Array<string>,
+  heading: string,
+  keepHeading: boolean = false,
+  runSilently: string = 'no',
+  syncedOnly?: boolean,
+): Promise<void> {
   try {
     logDebug(`NPParagraph`, `removeContentUnderHeadingInAllNotes "${heading}" in ${noteTypes.join(', ')}`)
     // For speed, let's first multi-core search the notes to find the notes that contain this string
     let prevCopies = await DataStore.search(heading, noteTypes) // returns all the potential matches, but some may not be headings
     prevCopies = prevCopies.filter((n) => n.type === 'title' && n.content === heading)
     if (prevCopies.length) {
-      clo(prevCopies, `removeContentUnderHeadingInAllNotes: prevCopies`)
       let res = 'Yes'
-      if (!(runSilently === 'yes')) {
+      if (!/yes/i.test(runSilently)) {
         res = await showMessageYesNo(`Remove "${heading}"+content in ${prevCopies.length} notes?`)
       }
       if (res === 'Yes') {
         prevCopies.forEach(async (paragraph) => {
+          if (syncedOnly) {
+            //FIXME: I am here need to call the check and bail -- something like the following line:
+            if (!(await blockContainsOnlySyncedCopies(paragraph.note || Editor, true))) return
+            clo(prevCopies, `removeContentUnderHeadingInAllNotes: prevCopies`)
+          }
           if (paragraph.note != null) {
             await removeContentUnderHeading(paragraph.note, heading, false, keepHeading)
           }

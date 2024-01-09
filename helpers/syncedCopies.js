@@ -38,7 +38,7 @@ export function eliminateDuplicateSyncedParagraphs(paras: Array<TParagraph>, kee
                 logDebug('eDSP', `Duplicate sync line eliminated: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
                 return true
               } else {
-                // logDebug('eDSP', `Duplicate sync line allowed: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
+                logDebug('eDSP', `Duplicate sync line allowed: "${t.content}" in "${t.filename || ''}" and "${e.filename || ''}"`)
               }
             }
           }

@@ -161,8 +161,8 @@ export function getDurationFromLine(line: string, durationMarker: string): numbe
   const match = regex.exec(line)
   let mins = 0
   if (match) {
-    const hours = match.groups.hours ? Number(match.groups.hours) : 0
-    const minutes = match.groups.minutes ? Number(match.groups.minutes) : 0
+    const hours = match?.groups?.hours ? Number(match.groups.hours) : 0
+    const minutes = match?.groups?.minutes ? Number(match.groups.minutes) : 0
     mins = Math.ceil(hours * 60 + minutes)
   }
   clo(match, `+++++++ getDurationFromLine match - mins = ${mins} for "${line}":`)
@@ -390,12 +390,13 @@ export function processByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuratio
   logDebug(`\n\nprocessByTimeBlockTag namedBlocks:${namedBlocks.reduce((acc, val) => `${acc}, ${val.title || ''}`, '')}`)
   namedBlocks.forEach((block) => {
     const blockTitle = (block.title || '').replace(config.timeblockTextMustContainString, '').replace(/ {2,}/g, ' ').trim()
+    //$FlowIgnore
     const tasksMatchingThisNamedTimeblock = unprocessedTasks.filter((task) => (block.title ? namedTagExistsInLine(blockTitle, task.content) : false))
     logDebug(`processByTimeBlockTag tasksMatchingThisNamedTimeblock (${blockTitle}): ${JSP(tasksMatchingThisNamedTimeblock)}`)
     tasksMatchingThisNamedTimeblock.forEach((task) => {
       // call matchTasksToSlots for each block as if the block all that's available
       // remove from sortedTaskList
-      // FIXME: need to make sure block list and time map are updated after each call
+      // $FlowIgnore
       const newTimeBlockWithMap = matchTasksToSlots([task], { blockList: [block], timeMap: timeMap.filter((t) => t.start >= block.start && t.start <= block.end) }, config)
       unprocessedTasks = unprocessedTasks.filter((t) => t !== task) // remove the task from the list
       const foundTimeForTask = newTimeBlockWithMap.timeBlockTextList && newTimeBlockWithMap.timeBlockTextList.length > 0
@@ -428,6 +429,7 @@ export function processByTimeBlockTag(sortedTaskList: Array<ParagraphWithDuratio
   newBlockList = blockList?.filter((b) => !b.title || b.title === '') || [] // remove the named blocks from the list
 
   config.mode = 'PRIORITY_FIRST' // now that we've processed the named blocks, we can process the rest of the tasks by priority
+  // $FlowIgnore
   results.push(matchTasksToSlots(unprocessedTasks, { blockList: newBlockList, timeMap }, config))
   // clo(results, `\n\nprocessByTimeBlockTag results:\n\n`)
 

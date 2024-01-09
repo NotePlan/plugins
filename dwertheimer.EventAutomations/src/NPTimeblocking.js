@@ -12,6 +12,7 @@
 import { addMinutes } from 'date-fns'
 import pluginJson from '../plugin.json'
 import { addTrigger } from '../../helpers/NPFrontMatter'
+import { saveEditorToCache } from '../../jgclark.Reviews/src/reviewHelpers'
 import type { AutoTimeBlockingConfig } from './config'
 import {
   blockOutEvents,
@@ -40,6 +41,7 @@ import { checkNumber, checkWithDefault } from '@helpers/checkType'
 import { getSyncedCopiesAsList } from '@helpers/NPSyncedCopies'
 import { getTodaysReferences, findOpenTodosInNote } from '@helpers/NPnote'
 import { removeContentUnderHeading, insertContentUnderHeading, removeContentUnderHeadingInAllNotes, selectedLinesIndex, getBlockUnderHeading } from '@helpers/NPParagraph'
+import { saveEditorIfNecessary } from '@helpers/editor'
 
 /**
  * Get the config for this plugin, from DataStore.settings or the defaults if settings are not valid
@@ -124,7 +126,7 @@ export async function insertItemsIntoNote(
     }
   } else {
     if (config && !config.passBackResults) {
-      await showMessage('No items to insert or work hours left. Check config/presets. Also look for calendar events which may have blocked off the rest of the day.')
+      // await showMessage('No items to insert or work hours left. Check config/presets. Also look for calendar events which may have blocked off the rest of the day.')
     }
   }
 }
@@ -198,7 +200,7 @@ export async function deleteCalendarEventsWithTag(tag: string, dateStr: string):
     await CommandBar.onMainThread()
     CommandBar.showLoading(false)
   } else {
-    showMessage('deleteCalendarEventsWithTag could not delete events')
+    await showMessage('deleteCalendarEventsWithTag could not delete events')
   }
 }
 
@@ -479,6 +481,7 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
 
 /**
  * Write synced copies of passed paragraphs to the Editor
+ * Assumes any deletions were done already
  * @param {Array<TParagraph>} todosParagraphs - the paragraphs to write
  * @return {Promise<void}
  */
@@ -486,14 +489,11 @@ export async function writeSyncedCopies(todosParagraphs: Array<TParagraph>, conf
   if (!todosParagraphs.length && !config.runSilently) {
     await showMessage(`No todos/references marked for this day!`, 'OK', 'Write Synced Copies')
   } else {
-    logDebug(pluginJson, ``)
     const syncedList = getSyncedCopiesAsList(todosParagraphs)
     logDebug(pluginJson, `Deleting previous synced list heading and content`)
     if (!String(config.syncedCopiesTitle)?.length) {
       await showMessage(`You need to set a synced copies title in the plugin settings`)
       return
-    } else {
-      if (syncedList.length && Editor) await removeContentUnderHeading(Editor, String(config.syncedCopiesTitle), false)
     }
     logDebug(pluginJson, `Inserting synced list content: ${syncedList.length} items`)
     // $FlowIgnore
@@ -505,34 +505,33 @@ export async function writeSyncedCopies(todosParagraphs: Array<TParagraph>, conf
  * Write a list of synced copies of today items (in the references section) to the Editor
  * (entry point for /writeSyncedCopies)
  */
-export async function insertSyncedCopiesOfTodayTodos(): Promise<void> {
+export async function insertSyncedCopiesOfTodayTodos(passBackResults?: string): Promise<void | string> {
   try {
-    logDebug(pluginJson, `insertSyncedCopiesOfTodayTodos running`)
-    // if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
-    const start = Editor.selection?.start
+    logDebug(pluginJson, `insertSyncedCopiesOfTodayTodos running, passBackResults:${String(passBackResults)}`)
     const config = await getConfig()
     clo(config, 'insertSyncedCopiesOfTodayTodos config')
+    // if (!editorIsOpenToToday()) await Editor.openNoteByDate(new Date(), false) //open editor to today
+    logDebug(pluginJson, `insertSyncedCopiesOfTodayTodos beforesave`)
+    if (Editor) await removeContentUnderHeading(Editor, String(config.syncedCopiesTitle), true)
+    await saveEditorIfNecessary()
+    logDebug(pluginJson, `insertSyncedCopiesOfTodayTodos aftersave`)
+    const start = Editor.selection?.start // try to keep it from scrolling to end of doc
     const todosParagraphs = await getTodaysFilteredTodos(config)
     const sortedParasExcludingCurrentNote = todosParagraphs.filter((p) => p.filename !== Editor.filename)
+    clo(sortedParasExcludingCurrentNote, 'sortedParasExcludingCurrentNote')
+    if (passBackResults && /[Yy]es/.test(passBackResults)) {
+      // called from a template, so send a string back
+      const syncedList = getSyncedCopiesAsList(todosParagraphs)
+      logDebug(`insertSyncedCopiesOfTodayTodos`, `sending ${syncedList.length} synced line items to template`)
+      return syncedList.join('\n')
+    }
     await writeSyncedCopies(sortedParasExcludingCurrentNote, config)
+    await saveEditorIfNecessary()
     if (start) {
-      Editor.select(start, 1)
+      Editor.select(0, 0)
     }
   } catch (error) {
     logError(pluginJson, `insertSyncedCopiesOfTodayTodos error: ${JSP(error)}`)
-  }
-}
-
-/**
- * Remove previously written synced copies of today items (written by this plugin) to the Editor
- * (entry point for /removeSyncedCopiesOfTodayTodos)
- */
-export async function removeSyncedCopiesOfTodayTodos(note: TNote | null = null): Promise<void> {
-  try {
-    logDebug(pluginJson, `removeSyncedCopiesOfTodayTodos running`)
-    await removeContentUnderHeading(note || Editor, String(DataStore.settings.syncedCopiesTitle), false, false)
-  } catch (error) {
-    logError(pluginJson, `removeSyncedCopiesOfTodayTodos error: ${JSP(error)}`)
   }
 }
 
@@ -551,21 +550,6 @@ export async function removeTimeBlocks(note: TNote | null = null): Promise<void>
 
 /**
  * Remove all previously written synced copies of today items in all notes
- * (entry point for /removeAllPreviousSyncedCopies)
- * @param {boolean} runSilently - whether to show CommandBar popups - you should set it to 'yes' when running from a template
- */
-export async function removePreviousSyncedCopies(runSilently: string = 'no'): Promise<void> {
-  try {
-    logDebug(pluginJson, `removePreviousSyncedCopies running`)
-    const { syncedCopiesTitle } = DataStore.settings
-    await removeContentUnderHeadingInAllNotes(['calendar'], syncedCopiesTitle, false, runSilently)
-  } catch (error) {
-    logError(pluginJson, `removePreviousSyncedCopies error: ${JSP(error)}`)
-  }
-}
-
-/**
- * Remove all previously written synced copies of today items in all notes
  * (entry point for /removePreviousTimeBlocks)
  * @param {boolean} runSilently - whether to show CommandBar popups - you should set it to 'yes' when running from a template
  */
@@ -574,22 +558,6 @@ export async function removePreviousTimeBlocks(runSilently: string = 'no'): Prom
     logDebug(pluginJson, `removePreviousTimeBlocks running`)
     const { timeBlockHeading } = DataStore.settings
     await removeContentUnderHeadingInAllNotes(['calendar'], timeBlockHeading, false, runSilently)
-  } catch (error) {
-    logError(pluginJson, `removePreviousTimeBlocks error: ${JSP(error)}`)
-  }
-}
-
-/**
- * Remove a section from all previous days
- * (entry point for /removePreviousSection)
- * @param {boolean} headingName - the name of the heading to remove
- */
-export async function removePreviousDaysParagraphNamed(headingName: string = '', runSilently: string = 'no'): Promise<void> {
-  try {
-    logDebug(pluginJson, `removePreviousDaysParagraphNamed running for "${headingName}"`)
-    if (headingName?.length) {
-      await removeContentUnderHeadingInAllNotes(['calendar'], headingName, false, runSilently)
-    }
   } catch (error) {
     logError(pluginJson, `removePreviousTimeBlocks error: ${JSP(error)}`)
   }
