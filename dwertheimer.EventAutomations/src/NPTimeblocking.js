@@ -518,7 +518,7 @@ export async function insertSyncedCopiesOfTodayTodos(passBackResults?: string): 
     const start = Editor.selection?.start // try to keep it from scrolling to end of doc
     const todosParagraphs = await getTodaysFilteredTodos(config)
     const sortedParasExcludingCurrentNote = todosParagraphs.filter((p) => p.filename !== Editor.filename)
-    clo(sortedParasExcludingCurrentNote, 'sortedParasExcludingCurrentNote')
+    // clo(sortedParasExcludingCurrentNote, 'sortedParasExcludingCurrentNote')
     if (passBackResults && /[Yy]es/.test(passBackResults)) {
       // called from a template, so send a string back
       const syncedList = getSyncedCopiesAsList(todosParagraphs)

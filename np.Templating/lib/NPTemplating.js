@@ -791,7 +791,8 @@ export default class NPTemplating {
     // process include, template, calendar, and note separately
     for (let tag of tags) {
       if (isCommentTag(tag)) {
-        newTemplateData = newTemplateData.replace(tag, '')
+        const regex = new RegExp(`${tag}[\\s\\r\\n]*`, 'g')
+        newTemplateData = newTemplateData.replace(regex, '')
         tag = '' // clear tag as it has been removed from process
       }
 
