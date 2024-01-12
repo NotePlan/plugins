@@ -488,7 +488,7 @@ export async function removeSectionFromAllNotes(params: string = ''): Promise<vo
  * Remove Remove one or more triggers from recently changed (but past) calendar notes.
  * Can be passed parameters to override default time interval through an x-callback call
  * @author @jgclark
- * @param {string?} params optional JSON string
+ * @param {string?} params optional JSON string that overrides user's normal settings for this plugin
  */
 export async function removeTriggersFromRecentCalendarNotes(params: string = ''): Promise<void> {
   try {
@@ -500,13 +500,12 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
       config = overrideSettingsWithEncodedTypedArgs(config, params)
       clo(config, `config after overriding with params '${params}'`)
     } else {
-      // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
+      // If no params are passed, then we've been called by a plugin command (and so use defaults from user'sconfig).
       logDebug(pluginJson, `removeTriggersFromRecentCalendarNotes: Starting with no params`)
     }
 
     // Get num days to process from param, or by asking user if necessary
     const numDays: number = await getTagParamsFromString(params ?? '', 'numDays', config.numDays)
-    // logDebug('removeTriggersFromRecentCalendarNotes', `numDays = ${String(numDays)}`)
     logDebug('removeTriggersFromRecentCalendarNotes', `numDays = ${String(numDays)}`)
     // Note: can be 0 at this point, which implies process all days
 
@@ -514,9 +513,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
     const runSilently: boolean = await getTagParamsFromString(params ?? '', 'runSilently', false)
     // logDebug('removeTriggersFromRecentCalendarNotes', `runSilently = ${String(runSilently)}`)
 
-    // Find past calendar notes changed recently (or all if numDays === 0)
-    // Earlier method:
-    // const calendarParasWithTrigger = DataStore.searchCalendarNotes('triggers:', false)
+    // Find past calendar notes changed in the last numDays (or all if numDays === 0)
     // v2 method:
     const thePastCalendarNotes = pastCalendarNotes()
     logDebug('removeTriggersFromRecentCalendarNotes', `there are ${String(thePastCalendarNotes.length)} past calendar notes`)
@@ -525,7 +522,7 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
 
     if (numToProcess > 0) {
       let countRemoved = 0
-      logDebug('removeTriggersFromRecentCalendarNotes', `checking ${String(numToProcess)} notes in the right date interval:`)
+      logDebug('removeTriggersFromRecentCalendarNotes', `checking ${String(numToProcess)} notes last changed in the last ${numDays} days:`)
       // For each note, try the removal
       for (const note of notesToProcess) {
         // Only proceed if the note actually has frontmatter
@@ -537,8 +534,6 @@ export async function removeTriggersFromRecentCalendarNotes(params: string = '')
           } else {
             logDebug('removeTriggersFromRecentCalendarNotes', `failed to remove frontmatter trigger field from ${displayTitle(note)} for some reason`)
           }
-        } else {
-          // logDebug('removeTriggersFromRecentCalendarNotes', `no frontmatter in ${displayTitle(note)}`)
         }
       }
       if (!runSilently) await showMessage(`Removed ${countRemoved} triggers from ${numToProcess} recently-changed calendar notes`)
