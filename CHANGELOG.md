@@ -2,6 +2,10 @@
 
 ## About Plugins/package.json / package-lock.json
 
+## [3.19.0] - 2024-01-13 (@dwertheimer)
+
+- removed an errant import of libcurl that was crashing builds with node-gyp errors
+
 ## [3.18.0] - 2023-01-08 (@dwertheimer)
 
 - edits to rollup & releases to help with "plugin.requiredFiles" and the requiredFiles folder (files to be copied to the Plugins folder and to releases for React, etc.)
