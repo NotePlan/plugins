@@ -3,8 +3,8 @@
   "noteplan.minAppVersion": "3.9.10",
   "plugin.id": "np.Templating",
   "plugin.name": "📒 Templating",
-  "plugin.version": "1.10.0",
-  "plugin.lastUpdateInfo": "1.10.0: Change command names to be more descriptive.\n1.9.12: Changed title to just 'Templating'.\n1.9.11: add 'todayProgressFromTemplate' template command.\n1.9.10: add folder attribute to np:new for xcallback creation inside a specific folder",
+  "plugin.version": "1.10.1",
+  "plugin.lastUpdateInfo": "1.10.1: Bug fix to remove spaces after comment tags (<%#...)\n1.10.0: Change command names to be more descriptive.\n1.9.12: Changed title to just 'Templating'.\n1.9.11: add 'todayProgressFromTemplate' template command.\n1.9.10: add folder attribute to np:new for xcallback creation inside a specific folder",
   "plugin.description": "Templating Plugin for NotePlan",
   "plugin.author": "Mike Erickson (@codedungeon)",
   "plugin.dependencies": [],
@@ -52,7 +52,9 @@
       ],
       "description": "Place template using <location> attribute in template frontmatter",
       "jsFunction": "templateInvoke",
-      "arguments":["Template name to execute (optional)"]
+      "arguments": [
+        "Template name to execute (optional)"
+      ]
     },
     {
       "name": "Create new note using template",
@@ -139,7 +141,9 @@
       ],
       "description": "Execute Template Script (type: template-fragment) which may or may not output text to current note",
       "jsFunction": "templateExecute",
-      "arguments":["Template name to execute (optional)"]
+      "arguments": [
+        "Template name to execute (optional)"
+      ]
     },
     {
       "name": "np:test",

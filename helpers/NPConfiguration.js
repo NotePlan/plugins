@@ -251,7 +251,7 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
       }
       await migrateCommandsIfNecessary(newSettings)
     } else {
-      logInfo(pluginJson, `Plugin was updated, but no new settings were loaded: newSettings was:${JSP(newSettings)}`)
+      logInfo(pluginJson, `Plugin was updated, but no new settings were loaded. ${result.code === 2 ? '(not necessary on new install) ' : ''}newSettings was:${JSP(newSettings)}`)
     }
   } else if (result.code === -1) {
     logError(pluginJson, `Plugin update failed: ${result.message}`)

@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.10.1] 2024-01-11 @dwertheimer
+
+- Bug fix to remove spaces after comment tags (<%#...)
+
 ## [1.10.0] 2023-10-31 @dwertheimer
 
 - Command name changes require NotePlan 3.9.10
