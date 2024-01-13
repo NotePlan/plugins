@@ -19,7 +19,7 @@ beforeAll(() => {
   global.Editor = Editor
   global.NotePlan = NotePlan
   global.console = new CustomConsole(process.stdout, process.stderr, simpleFormatter) // minimize log footprint
-  DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging (or 'none' for none)
+  DataStore.settings['_logLevel'] = 'none' //change this to DEBUG to get more logging (or 'none' for none)
 })
 
 /* Samples:
@@ -209,8 +209,8 @@ describe(`${FILENAME}`, () => {
         moment.locale('gb', {
           week: {
             dow: 1, // Monday is the first day of the week.
-            doy: 4  // Used to determine first week of the year.
-          }
+            doy: 4, // Used to determine first week of the year.
+          },
         })
         const [fd, td, psc, ps, paps] = f.getPeriodStartEndDatesFromPeriodCode('week', 51, 2023, false)
         expect(ps).toEqual('2023-W51')

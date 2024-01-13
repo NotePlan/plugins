@@ -17,7 +17,6 @@ jest.mock('../NPConfiguration', () => {
     ...originalModule,
     pluginIsInstalled: jest.fn(),
     findPluginInList: jest.fn(),
-    showMessageYesNo: jest.fn(),
     logDebug: jest.fn(),
     pluginUpdated: jest.fn(),
   }
@@ -118,7 +117,7 @@ describe(`${PLUGIN_NAME}`, () => {
           offerToDownloadPlugin: { id: 'np.Tidy', minVersion: '2.18.0' },
           commandMigrationMessage: 'Task Sorting commands have moved...',
         })
-        expect(DataStore.installPlugin).toHaveBeenCalledWith('np.Tidy', true)
+        expect(DataStore.installPlugin).toHaveBeenCalledWith({ id: 'np.Tidy', name: 'Tidy Plugin', version: '2.18.0' }, false)
         expect(showMessageYesNo.mock.calls.length).toEqual(2) // once for should install, once after install (pluginUpdated())
         expect(showMessageYesNo).toHaveBeenNthCalledWith(1, expect.stringContaining('Task Sorting commands have moved...'), expect.any(Array), expect.any(String))
         expect(showMessageYesNo).toHaveBeenNthCalledWith(2, expect.stringContaining('plugin was installed'), expect.any(Array), expect.any(String))
