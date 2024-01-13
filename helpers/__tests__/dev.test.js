@@ -3,12 +3,12 @@
 /* globals describe, expect, test, jest, beforeAll */
 import * as d from '../dev'
 import { logDebug } from '@helpers/dev'
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
+import { Calendar, Clipboard, /* CommandBar, */ DataStore, Editor, NotePlan /*, Note, Paragraph */ } from '@mocks/index'
 
 beforeAll(() => {
   global.Calendar = Calendar
   global.Clipboard = Clipboard
-  global.CommandBar = CommandBar
+  // global.CommandBar = CommandBar
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = NotePlan
@@ -204,6 +204,14 @@ describe('helpers/dev', () => {
       expectedConfig.stringArr = ['this is a', 'different', 'array, of', 'strings']
       const URLEncodedArgs = '%7B%22stringArr%22%3A%5B%22this%20is%20a%22%2C%22different%22%2C%22array%2C%20of%22%2C%22strings%22%5D%7D'
       const res = d.overrideSettingsWithEncodedTypedArgs(testConfig, URLEncodedArgs)
+      expect(res).toEqual(expectedConfig)
+    })
+    test('long test for DW', () => {
+      const thisTestConfig = { "numDays": 7, "runSilently": false, "sectionHeading": "boring" }
+      const expectedConfig = { "numDays": 365, "runSilently": true, "sectionHeading": "🌤Weather:  [Los Angeles weather](noteplan://x-callback-url/runPlugin?pluginID=np.WeatherLookup&command=Weather%20by%20Lat%2FLong&arg0=%7B%22lat%22%3A34.0536909%2C%22lon%22%3A-118.242766%2C%22name%22%3A%22Los%20Angeles%22%2C%22country%22%3A%22US%22%2C%22state%22%3A%22California%22%2C%22label%22%3A%22Los%20Angeles%2C%20California%2C%20US%22%2C%22value%22%3A0%7D&arg1=yes)" }
+      expectedConfig.stringArr = ['this is a', 'different', 'array, of', 'strings']
+      const URLEncodedArgs = '{"numDays":365, "sectionHeading":"🌤Weather:  [Los Angeles weather](noteplan://x-callback-url/runPlugin?pluginID=np.WeatherLookup&command=Weather%20by%20Lat%2FLong&arg0=%7B%22lat%22%3A34.0536909%2C%22lon%22%3A-118.242766%2C%22name%22%3A%22Los%20Angeles%22%2C%22country%22%3A%22US%22%2C%22state%22%3A%22California%22%2C%22label%22%3A%22Los%20Angeles%2C%20California%2C%20US%22%2C%22value%22%3A0%7D&arg1=yes)", "runSilently": true}'
+      const res = d.overrideSettingsWithEncodedTypedArgs(thisTestConfig, URLEncodedArgs)
       expect(res).toEqual(expectedConfig)
     })
   })
