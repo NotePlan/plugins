@@ -65,7 +65,7 @@ npm i -g node-gyp@latest && npm config set node_gyp "/usr/local/lib/node_modules
 npm install
 ```
 
-> **NOTE**: if you are running node >= 16 and you get failure messages on the vanilla install command above, you may need to use this command instead: `npm install --legacy-peer-deps`
+> **NOTE**: if you are running node >= 16 and you get failure messages on the vanilla install command above, you will need to use this command instead: `npm install --legacy-peer-deps`
 
 3) Link the files to make them run properly from the command line (especially the `noteplan-cli`)
 
