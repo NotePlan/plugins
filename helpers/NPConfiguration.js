@@ -91,7 +91,6 @@ export function updateSettingData(pluginJsonData: any): number {
   // logDebug('newSettings:', JSP(newSettings, 2))
   // logDebug('DataStore.settings:', JSP(DataStore.settings, 2))
   try {
-    console.log(`NPConfiguration/updateSettingData: You may see a JS Exception: TypeError below, but as far as we can tell, the migration is working so you can ignore the error.`)
     DataStore.settings = newSettings
   } catch (error) {
     console.log(
@@ -103,13 +102,33 @@ export function updateSettingData(pluginJsonData: any): number {
   return updateResult
 }
 
-export function getSetting(pluginName: string = '', key: string = '', defaultValue?: any = ''): any | null {
-  const settings = DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
+/**
+ * Copy specific plugin settings from one (old) plugin to another (new) plugin
+ * Typically called when the calling plugin is the new plugin
+ * @param {string} oldPluginID
+ * @param {string} newPluginID
+ * @param {Array<string>} settingsList - an array of the names of the settings to copy
+ */
+export async function copySpecificSettings(oldPluginID: string, newPluginID: string, settingsList: Array<string>) {
+  const oldPluginSettings = await getSettings(oldPluginID)
+  clo(oldPluginSettings, `copySpecificSettings - oldPluginSettings`)
+  const newPluginSettings = await getSettings(newPluginID)
+  clo(newPluginSettings, `copySpecificSettings - newPluginSettings before updating settings`)
+  if (!oldPluginSettings) throw `copySpecificSettings: Could not load pluginJson for ${oldPluginID}`
+  if (!newPluginSettings) throw `copySpecificSettings: Could not load pluginJson for ${newPluginID}`
+  logDebug(`oldPluginID:${oldPluginID} pluginID in settings: ${oldPluginSettings.pluginID} newPluginID:${newPluginID} pluginID in settings: ${newPluginSettings.pluginID}`)
+  settingsList.forEach((settingName) => (oldPluginSettings.hasOwnProperty(settingName) ? (newPluginSettings[settingName] = oldPluginSettings[settingName]) : null)) // if the setting was set previously, copy it
+  clo(newPluginSettings, `About to save revised ${newPluginID}`)
+  await saveSettings(newPluginID, newPluginSettings, false)
+}
+
+export function getSetting(pluginId: string = '', key: string = '', defaultValue?: any = ''): any | null {
+  const settings = DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
   return typeof settings === 'object' && settings.hasOwnProperty(key) ? settings[key] : defaultValue
 }
 
-export async function getSettings(pluginName: string = '', defaultValue?: any = {}): any | null {
-  const settings = await DataStore.loadJSON(`../../data/${pluginName}/settings.json`)
+export async function getSettings(pluginId: string = '', defaultValue?: any = {}): any | null {
+  const settings = await DataStore.loadJSON(`../../data/${pluginId}/settings.json`)
   return typeof settings === 'object' ? settings : defaultValue
 }
 
@@ -117,47 +136,46 @@ export async function getSettings(pluginName: string = '', defaultValue?: any = 
  * Save given settings to the given plugin's settings.json file.
  * TODO(@dwertheimer): why can value be unspecified?
  * @author @dwertheimer, updated by @jgclark
- * @param {string?} pluginName
+ * @param {string?} pluginId
  * @param {any?} value
  * @param {boolean?} triggerUpdateMechanism
  * @returns {any} ?
  */
-export async function saveSettings(pluginName: string = '', value?: any = {}, triggerUpdateMechanism: boolean = true): any | null {
-  // logDebug('NPConfiguration/saveSettings', `starting to ${pluginName}/plugin.json with triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
+export async function saveSettings(pluginId: string = '', value?: any = {}, triggerUpdateMechanism: boolean = true): any | null {
+  // logDebug('NPConfiguration/saveSettings', `starting to ${pluginId}/plugin.json with triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
   if (NotePlan.environment.buildVersion < 1045 || triggerUpdateMechanism) {
     // save, and can't or don't want to turn off triggering onUpdateSettings
-    return await DataStore.saveJSON(value, `../../data/${pluginName}/settings.json`)
+    return await DataStore.saveJSON(value, `../../data/${pluginId}/settings.json`)
   } else {
     // save, but don't trigger onUpdateSettings
-    // logDebug('NPConfiguration/saveSettings', `writing ${pluginName}/settings.json and asking to block trigger`)
-    return await DataStore.saveJSON(value, `../../data/${pluginName}/settings.json`, true)
+    // logDebug('NPConfiguration/saveSettings', `writing ${pluginId}/settings.json and asking to block trigger`)
+    return await DataStore.saveJSON(value, `../../data/${pluginId}/settings.json`, true)
   }
 }
 
 /**
  * Save given settings to the given plugin's plugin.json file.
- * TODO(@dwertheimer): why can value be unspecified?
  * @author @dwertheimer, updated by @jgclark
- * @param {string?} pluginName
+ * @param {string?} pluginId
  * @param {any?} value
  * @param {boolean?} triggerUpdateMechanism
  * @returns {any} ?
  */
-export async function savePluginJson(pluginName: string = '', value?: any = {}, triggerUpdateMechanism: boolean = true): Promise<boolean> {
-  // logDebug('NPConfiguration/savePluginJson', `starting for ${pluginName}/plugin.json triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
+export async function savePluginJson(pluginId: string = '', value: any = {}, triggerUpdateMechanism: boolean = true): Promise<boolean> {
+  // logDebug('NPConfiguration/savePluginJson', `starting for ${pluginId}/plugin.json triggerUpdateMechanism? ${String(triggerUpdateMechanism)}`)
   if (NotePlan.environment.buildVersion < 1045 || triggerUpdateMechanism) {
     // save, and can't or don't want to turn off triggering onUpdateSettings
-    return await DataStore.saveJSON(value, `../../${pluginName}/plugin.json`)
+    return await DataStore.saveJSON(value, `../../${pluginId}/plugin.json`)
   } else {
     // save, but don't trigger onUpdateSettings
-    // logDebug('NPConfiguration/savePluginJson', `writing ${pluginName}/plugin.json and asking to block trigger`)
-    return await DataStore.saveJSON(value, `../../${pluginName}/plugin.json`, true)
+    // logDebug('NPConfiguration/savePluginJson', `writing ${pluginId}/plugin.json and asking to block trigger`)
+    return await DataStore.saveJSON(value, `../../${pluginId}/plugin.json`, true)
   }
 }
 
-export async function getPluginJson(pluginName: string = ''): any {
-  logDebug('NPConfiguration', `getting ${pluginName}/plugin.json`)
-  return await DataStore.loadJSON(`../../${pluginName}/plugin.json`)
+export async function getPluginJson(pluginId: string = ''): any {
+  logDebug('NPConfiguration', `getting ${pluginId}/plugin.json`)
+  return await DataStore.loadJSON(`../../${pluginId}/plugin.json`)
 }
 
 /**
@@ -229,29 +247,33 @@ export function semverVersionToNumber(version: string): number {
 export async function pluginUpdated(pluginJson: any, result: { code: number, message: string }): Promise<void> {
   // result.codes = 0=no update, 1=updated, 2=installed, -1=error
   if (result.code >= 1) {
-    logInfo(pluginJson, `Plugin was ${result.code === 1 ? 'updated' : 'installed'}`)
+    const wasUpdated = result.code === 1
+    logInfo(pluginJson, `Plugin was ${wasUpdated ? 'updated' : 'installed'}`)
     logDebug(pluginJson, `calling getPluginJson pluginJson['plugin.id'] = ${pluginJson['plugin.id']}`)
-    const newSettings = await getPluginJson(pluginJson['plugin.id'])
-    clo(newSettings, 'pluginUpdated - newSettings')
-    if (newSettings) {
-      const hasChangelog = newSettings['plugin.changelog']
-      const hasUpdateMessage = newSettings['plugin.lastUpdateInfo']
+    const newPluginJson = await getPluginJson(pluginJson['plugin.id'])
+    clo(newPluginJson, 'pluginUpdated - newPluginJson')
+    if (newPluginJson) {
+      const hasChangelog = newPluginJson['plugin.changelog']
+      const hasUpdateMessage = newPluginJson['plugin.lastUpdateInfo']
       const updateMessage = hasUpdateMessage ? `Latest changes include:\n"${hasUpdateMessage}"\n\n` : ''
-      const version = newSettings['plugin.version']
+      const version = newPluginJson['plugin.version']
       const openReadme = await showMessageYesNo(
-        `The '${newSettings['plugin.name']}' plugin ${
-          result.code === 1 ? 'was automatically updated to' : 'was installed.'
-        } v${version}. ${updateMessage}Would you like to open the Plugin's ${hasChangelog ? 'Change Log' : 'Documentation'} to see more details?`,
+        `The '${newPluginJson['plugin.name']}' plugin ${
+          wasUpdated ? 'was automatically updated to' : 'was installed.'
+        } v${version}. ${updateMessage}Would you like to open the Plugin's ${wasUpdated && hasChangelog ? 'Change Log' : 'Documentation'} to see more details?`,
         ['Yes', 'No'],
-        `'${newSettings['plugin.name']}' Plugin Updated`,
+        `'${newPluginJson['plugin.name']}' Plugin ${wasUpdated ? 'Updated' : 'Installed'}`,
       )
       if (openReadme === 'Yes') {
-        const url = hasChangelog ? newSettings['plugin.changelog'] : newSettings['plugin.url'] || ''
+        const url = wasUpdated ? (hasChangelog ? newPluginJson['plugin.changelog'] : newPluginJson['plugin.url'] || '') : newPluginJson['plugin.url']
         NotePlan.openURL(url)
       }
-      await migrateCommandsIfNecessary(newSettings)
+      await migrateCommandsIfNecessary(newPluginJson)
     } else {
-      logInfo(pluginJson, `Plugin was updated, but no new settings were loaded. ${result.code === 2 ? '(not necessary on new install) ' : ''}newSettings was:${JSP(newSettings)}`)
+      logInfo(
+        pluginJson,
+        `Plugin was updated, but no new settings were loaded. ${result.code === 2 ? '(not necessary on new install) ' : ''}newPluginJson was:${JSP(newPluginJson)}`,
+      )
     }
   } else if (result.code === -1) {
     logError(pluginJson, `Plugin update failed: ${result.message}`)
@@ -306,9 +328,10 @@ export async function pluginIsInstalled(id: string, minVersion?: string): Promis
 
 /**
  * When commands move from one plugin to another, we tell the user about it and invite them to download the new plugin if they don't have it already.
- * We look for two fields in the plugin.json:
+ * The plugin update process will automatically look for these fields in the plugin.json:
  * - "offerToDownloadPlugin": {"id": "np.Tidy", "minVersion": "2.18.0"},
  * - "commandMigrationMessage": "NOTE: Task Sorting commands have been moved from the Task Automations plugin to the TaskSorter plugin.",
+ * - "settingsToCopy": ["settingName1","settingName2"] // copies the settings values from old plugin to the new plugin
  * @param {any} pluginJson - the old plugin
  * @returns {void}
  */
@@ -318,7 +341,7 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
     const { id, minVersion } = newPluginInfo
     const isInstalled = await pluginIsInstalled(id, minVersion)
     if (isInstalled) {
-      logDebug(pluginJson, `migrateCommandsIfNecessary() ran but ${newPluginInfo.id} ${newPluginInfo.minVersion} was installed.`)
+      logDebug(pluginJson, `migrateCommandsIfNecessary() ran but ${newPluginInfo.id} >= ${newPluginInfo.minVersion} was installed, so no need to do anything.`)
       return
     }
     const commandMigrationMessage = pluginJson['commandMigrationMessage']
@@ -338,18 +361,17 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
       clo(newPlugin, `migrateCommandsIfNecessary() before plugin download: ${id} >= ${minVersion}. Will try to install:`)
       // const r = await DataStore.installOrUpdatePluginsByID([id], true, false, false)
       const r = await DataStore.installPlugin(newPlugin, false)
-      // FIXME: Never gets here, even when the plugin successfully installs
-      clo(r, `migrateCommandsIfNecessary() after plugin download: result=`)
 
-      logDebug(pluginJson, `migrateCommandsIfNecessary() after plugin download: ${id} >= ${minVersion}`)
+      logDebug(pluginJson, `migrateCommandsIfNecessary() after plugin download: ${r.id} / ${r.name} / ${r.version}`)
       const installedPlugins = DataStore.installedPlugins()
       const newPluginInstalled = findPluginInList(installedPlugins, id, minVersion)
       if (!newPluginInstalled) {
-        logDebug(pluginJson, `migrateCommandsIfNecessary() after plugin download but did not find plugin installed: ${id} >= ${minVersion}`)
+        logError(pluginJson, `migrateCommandsIfNecessary() after plugin download but did not find plugin installed: ${id} >= ${minVersion}`)
         return
       }
-      // TODO: Migrate settings from old plugin to new plugin
-      await pluginUpdated(newPluginInstalled, { code: 2, message: 'Plugin Installed' })
+      logDebug(pluginJson, `migrateCommandsIfNecessary() copying settings from old (${pluginJson['plugin.id']}) to new (${r.id})`)
+      if (pluginJson.settingsToCopy?.length) await copySpecificSettings(pluginJson['plugin.id'], r.id, pluginJson.settingsToCopy)
+      await pluginUpdated({ 'plugin.id': r.id }, { code: 2, message: 'Installed' }) //FIXME: I am here. Need to pass the proper values
     }
   } else {
     logDebug(pluginJson, `migrateCommandsIfNecessary() did not find offerToDownloadPlugin; doing nothing`)
