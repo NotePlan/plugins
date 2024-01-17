@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.8.0",
-  "plugin.lastUpdateInfo": "v0.8.0: added dashboard-specific Theme option. Added action buttons '≯' to 'unschedule' a task, and '✓then' to mark an overdue item as being comppleted at the time. Added action buttons on Project reviews.\nv0.7.4: new optional limit to number of items shown in Tag section. Update to help Projects & Reviews plugin.\nv0.7.3: New priority button. New setting to exclude checklist items, and give more control over Overdue tasks section.\nv0.7.2: turn off 'preview' on task and checklist markers, as they can behave wrongly at speed. Other fixes and polish.\nv0.7.1: 'folders to ignore' setting now applies to 'Overdue tasks' section. Two new experimental buttons.\nv0.7.0: new optional 'Yesterday' and 'Overdue Tasks' sections.",
+  "plugin.version": "0.8.3",
+  "plugin.lastUpdateInfo": "v0.8.3: new 'Section heading to add/move new tasks under' and 'Reschedule items in place, rather than move them?' settings.\nv0.8.2: Added secondary sorting by time block (if present).\nv0.8.1: added 'finish review' action button. Fix regression in settings.\nv0.8.0: added dashboard-specific Theme option. Added action buttons '≯' to 'unschedule' a task, and '✓then' to mark an overdue item as being comppleted at the time. Added action buttons on Project reviews.\nv0.7.4: new optional limit to number of items shown in Tag section. Update to help Projects & Reviews plugin.",
   "plugin.requiredFiles": [
     "HTMLWinCommsSwitchboard.js",
     "dashboard.css",
@@ -196,6 +196,22 @@
       "required": true
     },
     {
+      "key": "newTaskSectionHeading",
+      "title": "Section heading to add/move new tasks under",
+      "description": "When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. (Don't incude leading #s.)\nIf the heading isn't present, it will be added at the top of the note.\nIf this is left empty, then new tasks will appear at the top of the note.",
+      "type": "string",
+      "default": "Tasks",
+      "required": false
+    },
+    {
+      "key": "rescheduleNotMove",
+      "title": "Reschedule items in place, rather than move them?",
+      "description": "When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
       "key": "dashboardTheme",
       "title": "Theme to use for Dashboard",
       "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.\nLeave blank to use your current Theme.",
@@ -215,9 +231,6 @@
       "required": true
     },
     {
-      "type": "separator"
-    },
-    {
       "key": "showWeekSection",
       "title": "Show section for Week?",
       "description": "Whether to show a 'Week' section for Week's open items, after the 'Today' section.",
@@ -229,8 +242,7 @@
       "key": "showMonthSection",
       "title": "Show section for Month?",
       "description": "Whether to show a 'Month' section for open items in this month's calendar note",
-      "type": "hidden",
-      "_type": "bool",
+      "type": "bool",
       "default": true,
       "required": true
     },
@@ -238,8 +250,7 @@
       "key": "showQuarterSection",
       "title": "Show section for Quarter?",
       "description": "Whether to show a 'Qaurter' section for open items in this quarter's calendar note",
-      "type": "hidden",
-      "_type": "bool",
+      "type": "bool",
       "default": true,
       "required": true
     },
@@ -311,23 +322,6 @@
     {
       "key": "triggerLogging",
       "title": "Include extra trigger logs?",
-      "type": "bool",
-      "default": false,
-      "required": true
-    }
-  ],
-  "plugin.settings_dsiabled": [
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
-      "title": "Experimental Features"
-    },
-    {
-      "key": "showExtraButtons",
-      "title": "Show extra buttons for overdue tasks?",
-      "description": "Show experimental extra control buttons on overdue tasks:\n- toggle between checklist and todo types\n- mark the task complete at the date it was due (not today).",
       "type": "bool",
       "default": false,
       "required": true

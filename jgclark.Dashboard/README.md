@@ -39,12 +39,17 @@ Other notes:
 - The Dashboard doesn't use NotePlan's normal editor, but a more flexible HTML-based display. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
 - The plugin cannot work effectively on an **iPhone**-sized device, so it is disabled there.  On an **iPad** windows can't float in the same way as they can on macOS, so it's less useful, but it still works.
 - When the window is wide enough, it will display with 2 (or even 3!) columns.
+- The items are shown sorted first by greatest priority, and then by increasing time (where there is a time block).
 - It de-dupes items that would appear twice in a list where the lines are sync'd together.
 - There's a UI toggle "Filter out lower-priority items?". If this is on, then items without any extra priority in calendar files will be hidden until there are no remaining priority items that haven't been completed. Priority items are currently indicated by having `>>`, `!!!``, `!!`` or `!`` at the beginning of the item.
 - you can use the '#Tags' section to create a "deferred date" function. To do this tag something as (for example) `#next` and then date it with a day in the future.On that future date, it will show up in this `#next` section. (Thanks to @george65 for spottig this use case.)
-- If you use the [Projects & Reviews Plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), the Dashboard will show up to the first 4 projects ready for review. It reads this from the hidden list thats updated every time its **/project lists** command is run, or you **/finish project review** on a project note.  
-The equivalent 'action buttons' in the Project section all do the equivalent of the "/skip project review" command, that overrides (or skips) the normal review interval by the duration given. This adds a `@nextReview(...)` to the note's metadata. See [Project + Reviews documentation](../jgclark.Reviews/README.md) for more details.
 
+### Project section
+If you use the [Projects & Reviews Plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), the Dashboard will show up to the first 6 projects ready for review. It reads this from the hidden list thats updated every time its **/project lists** command is run, or you **/finish project review** on a project note.  
+
+The 'action buttons' available in this section are:
+- the various `skip ...` buttons do the equivalent of the "/skip project review" command, that override (or skips) the normal review interval by the duration given. This adds a `@nextReview(...)` to the note's metadata. See [Project + Reviews documentation](../jgclark.Reviews/README.md) for more details.
+- `✓review` does the equivalent of the "/finish review" command, marking that project as @reviewed today.
 
 ### Updating the Dashboard automatically
 The dashboard window can automatically update when a change is made in the relevant calendar note(s) if you have [added a trigger to the frontmatter](https://help.noteplan.co/article/173-plugin-note-triggers) of the relevant daily/weekly/monthly/quarterly note(s). To get this added automatically to the daily note, turn on setting 'Add dashboard auto-update trigger when dashboard opened?' (details below).
@@ -68,19 +73,23 @@ These settings change some of how it displays:
 - Folders to ignore when finding linked items: If set, the contents of these folder(s) will be ignored when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. Default: "@Archive, Saved Searches"
 - Include context for tasks? Whether to show the note link for an open task or checklist
 - Add dashboard auto-update trigger when dashboard opened?: Whether to add the auto-update trigger to the frontmatter to the current note when the dashboard is opened.
-- Exclude tasks that include time blocks?: : Whether to stop display of open tasks that contain a time block.
+- Exclude tasks that include time blocks?: Whether to stop display of open tasks that contain a time block.
 - Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block.
 - Include folder name? Whether to include the folder name when showing a note link
+- Max number of items to show in a section?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections. (Default: 30)
+- Section heading to add/move new tasks under: When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under.\nIf the heading isn't present, it will be added at the top of the note.\nIf this is left empty, then new tasks will appear at the top of the note.
+- Reschedule items in place, rather than move them?: When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.
 - Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
 - Show section for Yesterday? Allows this to be always turned on/off.
 - Show section for Week? Allows this to be always turned on/off.
+- Show section for Month? Allows this to be always turned on/off.
+- Show section for Quarter? Allows this to be always turned on/off.
 - Show section for Overdue tasks?: If true then an 'Overdue' section is added, and the following 2 settings will be used.\nNote: if set, then for performance reasons, this section will not be shown when a refresh is triggered automatically by a change in today's note. (Default: false)
-- Max number of items to show in section?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items to show in the Overdue and Tag sections. (Default: 30)
 - Sort order for Overdue tasks: The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note. (Default: 'priority')
 - #tag/@mention to show: (if set) will show all open tasks/checklists that include this #tag or @mention. It ignores tasks that are scheduled to the future. This is one way of showing all `#next` actions, for example.
 
 ## Known Issues
-- Some open tasks referenced to weekly notes can be missing. A bug report has been raised on the underlying NotePlan app about this.
+- Since v3.10, I think the API call to find Overdue tasks has got much slower. If you find this as well, then please let me know.
 - In multi-column mode the open circle or square can be split apart from its text. I'm looking for a work-around to this HTML layout bug.
 - Items can appear in the Overdue section as well as the other sections. This is correct, but I'm looking for a way to suppress the duplicate in the Overdue section.
 

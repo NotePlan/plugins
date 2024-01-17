@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 26.12.2023 for v0.7.5, @jgclark
+// last updated 14.1.2024 for v0.7.5+, @jgclark
 // ----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -40,23 +40,16 @@ export async function init(): Promise<void> {
 }
 
 export async function onSettingsUpdated(): Promise<any> {
-  // TODO: Remove this temporary alternative
-  const today = new moment().toDate()
-  const currentWeeklyNote = DataStore.calendarNoteByDate(today, 'week')
-  const thisFilename = currentWeeklyNote?.filename ?? '(error)'
-  const dateStr = getDateStringFromCalendarFilename(thisFilename)
-  logDebug('test', `currentWeeklyNote: ${thisFilename}`)
-  logDebug('test', `dateStr: ${dateStr}`)
-
-  // if (!isHTMLWindowOpen(pluginJson['plugin.id'])) {
-  //   await showDashboardHTML('refresh', false) // don't need await in the case I think
-  // }
+  // FIXME(Eduard): this fails because the Editor is out of scope when the settings screen is shown
+  if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
+    await showDashboardHTML('refresh', false) // probably don't need await
+  }
 }
 
 export async function onUpdateOrInstall(): Promise<void> {
   try {
-    // Tell user the plugin has been updated
-    if (pluginJson['plugin.lastUpdateInfo'] !== undefined) {
+    // Tell user the plugin has been updated (if there's something to say, and not on iPhone (as it doesn't run there))
+    if (pluginJson['plugin.lastUpdateInfo'] !== undefined && NotePlan.environment.platform !== 'iOS') {
       await showMessage(pluginJson['plugin.lastUpdateInfo'], 'OK, thanks', `Plugin ${pluginJson['plugin.name']}\nupdated to v${pluginJson['plugin.version']}`)
     }
   } catch (error) {

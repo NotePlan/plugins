@@ -1,12 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 4.1.2024 for v0.7.5 by @jgclark
+// Last updated 16.1.2024 for v0.8.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
+import { getSettings } from './dashboardHelpers'
 import { showDashboardHTML } from './main'
-import { skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
+import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import {
   calcOffsetDateStr,
   getNPWeekStr,
@@ -114,7 +115,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const filename = decodeRFC3986URIComponent(data.encodedFilename ?? '')
     const content = decodeRFC3986URIComponent(data.encodedContent ?? '')
     logDebug('', '------------------------- bridgeClickDashboardItem:')
-    logInfo('bridgeClickDashboardItem', `ID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
+    logInfo('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
     switch (type) {
       case 'completeTask': {
         // Complete the task in the actual Note
@@ -247,18 +248,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         sendToHTMLWindow(windowId, 'unscheduleItem', data)
         break
       }
-      case 'review': {
-        // Handle a review call simply by opening the note in the main Editor. Later it might get more interesting!
-        const note = await Editor.openNoteByFilename(filename)
-        if (note) {
-          logDebug('bCDI / review', `-> successful call to open filename ${filename} in Editor`)
-        } else {
-          logWarn('bCDI / review', `-> unsuccessful call to open filename ${filename} in Editor`)
-        }
-        break
-      }
       case 'setNextReviewDate': {
-        // Handle a review call simply by opening the note in the main Editor. Later it might get more interesting!
+        // Mimic the /skip review command.
         const note = await DataStore.projectNoteByFilename(filename)
         if (note) {
           logDebug('bCDI / setNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
@@ -267,7 +258,21 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           // Now send a message for the dashboard to update its display
           sendToHTMLWindow(windowId, 'removeItem', data)
         } else {
-          logWarn('bCDI / setNextReviewDate', `-> couldn't get filename ${filename} to update next review date.`)
+          logWarn('bCDI / setNextReviewDate', `-> couldn't get filename ${filename} to add a @nextReview() date.`)
+        }
+        break
+      }
+      case 'reviewFinished': {
+      // Mimic the /finish review command.
+        const note = await DataStore.projectNoteByFilename(filename)
+        if (note) {
+          logDebug('bCDI / review', `-> reviewFinished on ID ${ID} in filename ${filename}`)
+          // TODO: update this to actually take a note to work on
+          finishReviewForNote(note)
+          logDebug('bCDI / review', `-> after finishReview`)
+          sendToHTMLWindow(windowId, 'removeItem', data)
+        } else {
+          logWarn('bCDI / review', `-> couldn't get filename ${filename} to update the @reviewed() date.`)
         }
         break
       }
@@ -308,7 +313,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'showLineInEditorFromFilename': {
         // Handle a show line call by opening the note in the main Editor, and then finding and moving the cursor to the start of that line
         // logDebug('showLineInEditorFromFilename', `${filename} /  ${content}`)
-        // FIXME: Error in this call?
         const note = await Editor.openNoteByFilename(filename)
         if (note) {
           const res = highlightParagraphInEditor({ filename: filename, content: content }, true)
@@ -341,6 +345,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'moveFromCalToCal': {
         // Instruction from a 'moveButton' to move task from calendar note to a different calendar note.
         // Note: Overloads ID with the dateInterval to use
+        const config = await getSettings()
         const dateInterval = data.controlStr
         let startDateStr = ''
         let newDateStr = ''
@@ -351,14 +356,12 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         if (dateInterval === 't') {
           // Special case to change to '>today'
 
-          // FIXME: errors reported here from new Overdue section, where we don't have filename?
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = getTodaysDateHyphenated()
           logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> 'today'`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
 
-          // FIXME: errors reported here from new Overdue section, where we don't have filename?
           // Get the (ISO) current date on the task
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'offset') // 'longer'
@@ -375,13 +378,13 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> ${newDateStr}`)
         }
         // Do the actual move
-        const res = moveItemBetweenCalendarNotes(startDateStr, newDateStr, content)
+        const res = moveItemBetweenCalendarNotes(startDateStr, newDateStr, content, config.newTaskSectionHeading ?? '')
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> appeared to move item succesfully`)
           // Unfortunately we seem to have a race condition here, as the following doesn't remove the item
           // await showDashboardHTML()
           // So instead send a message to delete the row in the dashboard
-          sendToHTMLWindow(windowId, 'removeItem', { ID: ID })
+          sendToHTMLWindow(windowId, 'removeItem', { itemID: ID })
         } else {
           logWarn('bridgeClickDashboardItem', `-> moveFromCalToCal to ${newDateStr} not successful`)
         }
@@ -389,7 +392,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
 
       case 'updateTaskDate': {
-        // Instruction from a 'changeDateButton' to change date on a task (in a project note)
+        // Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)
         const dateInterval = data.controlStr
         let startDateStr = ''
         let newDateStr = ''
