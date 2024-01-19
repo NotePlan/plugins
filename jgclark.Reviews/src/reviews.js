@@ -9,14 +9,24 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 26.12.2023 for v0.13.0, @jgclark
+// Last updated 13.1.2024 for v0.13.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import fm from 'front-matter'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
-import { getOrMakeMetadataLine, getReviewSettings, makeFakeButton, Project, saveEditorToCache } from './reviewHelpers'
+import {
+  deleteMetadataMentionInEditor,
+  deleteMetadataMentionInNote,
+  getOrMakeMetadataLine,
+  getReviewSettings,
+  makeFakeButton,
+  Project,
+  saveEditorToCache,
+  updateMetadataInEditor,
+  updateMetadataInNote,
+} from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
 import { calcOffsetDate, calcOffsetDateStr, getDateObjFromDateString, getJSDateStartOfToday, getTodaysDateHyphenated, hyphenatedDateString, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
@@ -35,7 +45,7 @@ import { focusHTMLWindowIfAvailable, isHTMLWindowOpen, logWindowsList, noteOpenI
 
 // Settings
 const pluginID = 'jgclark.Reviews'
-const fullReviewListFilename = 'full-review-list.md'
+const fullReviewListFilename = `../${pluginID}/full-review-list.md` // to ensure that it saves in the Reviews directory (which wasn't the case when called from Dashboard)
 const windowTitle = `Review List`
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
 const customRichWinId = `${pluginID}.rich-review-list`
@@ -230,7 +240,7 @@ function setPercentRing(percent, ID) {
 /**
  * Decide which of the project list outputs to call (or more than one) based on x-callback args or config.outputStyle.
  * Now includes support for calling from x-callback, using full JSON '{"a":"b", "x":"y"}' version of settings and values that will override ones in the user's settings.
- * @param {string | null} arguments as JSON
+ * @param {string? | null} argsIn as JSON (optional)
  * @param {number?} scrollPos in pixels (optional, for HTML only)
  */
 export async function makeProjectLists(argsIn?: string | null = null, scrollPos: number = 1000): Promise<void> {
@@ -496,7 +506,7 @@ export async function renderProjectListsHTML(
     const winOptions = {
       windowTitle: windowTitle,
       headerTags: faLinksInHeader + `\n<meta name="startTime" content="${String(Date.now())}">`,
-      generalCSSIn: '', // get general CSS set automatically
+      generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/reviewListCSS instead
       makeModal: false, // = not modal window
       bodyOptions: '', // TODO: find a different way to get this working 'onload="timeAgo()"',
@@ -507,7 +517,7 @@ export async function renderProjectListsHTML(
       width: 800, // = default width of window (px)
       height: 1200, // = default height of window (px)
       customId: customRichWinId,
-      shouldFocus: true, // shouuld not focus, if Window already exists
+      shouldFocus: false, // shouuld not focus, if Window already exists
     }
     const thisWindow = await showHTMLV2(body, winOptions)
     if (thisWindow) {
@@ -662,7 +672,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
       const winOptions = {
         windowTitle: windowTitle,
         headerTags: faLinksInHeader + `\n<meta name="startTime" content="${String(Date.now())}">`,
-        generalCSSIn: '', // get general CSS set automatically
+        generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
         specificCSS: '', // now provided by separate projectList.css
         makeModal: false, // = not modal window
         bodyOptions: '', // TODO: find a different way to get this working  'onload="timeAgo()"',
@@ -673,7 +683,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
         width: 800, // = default width of window (px)
         height: 1200, // = default height of window (px)
         customId: customRichWinId,
-        shouldFocus: true, // shouuld not focus, if Window already exists
+        shouldFocus: true, // shouuld focus
       }
       const thisWindow = await showHTMLV2(savedHTML, winOptions)
       clo(thisWindow, 'created window')
@@ -1043,16 +1053,13 @@ export async function finishReview(): Promise<void> {
       // logDebug('finishReview', String(RE_REVIEWED_MENTION))
 
       // First update @review(date) on current open note
-      let openNote: ?TNote = await updateMetadataInEditor([reviewedTodayString])
+      let ignoreResult: ?TNote = await updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      openNote = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
+      ignoreResult = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
       // logDebug('finishReview', `- after metadata updates`)
 
       // Save Editor, so the latest changes can be picked up elsewhere
-      // Putting the Editor.save() here, rather than in the above functions, seems to work
-      // if (NotePlan.environment.buildVersion > 1049) {
-      //   await Editor.save()
-      // }
+      // Putting the Editor.save() or equivalent here, rather than in the above functions, seems to work
       await saveEditorToCache(null)
 
       // Note: I haven't tried loading a new Project instance here
@@ -1068,10 +1075,57 @@ export async function finishReview(): Promise<void> {
       // Update list for user (but don't focus)
       await renderProjectLists(config, false)
     } else {
-      logWarn('finishReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
+      logWarn('finishReview', `- There's no project note in the Editor to finish reviewing.`)
     }
   } catch (error) {
     logError('finishReview', error.message)
+  }
+}
+
+/**
+ * Complete review of the given note
+ * Note: Used by Dashboard
+ * @author @jgclark
+ * @param {TNote} noteIn
+ */
+export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
+  try {
+    const config = await getReviewSettings()
+
+    if (noteToUse && noteToUse.type === 'Notes') {
+      logInfo(pluginJson, `finishReviewForNote: Starting for passed note '${displayTitle(noteToUse)}'`)
+      const thisNoteAsProject = new Project(noteToUse)
+
+      const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
+      const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, 'gi')
+      const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
+      // logDebug('finishReviewForNote', String(RE_REVIEWED_MENTION))
+
+      // First update @review(date) on current open note
+      await updateMetadataInNote(noteToUse, [reviewedTodayString])
+      // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
+      await deleteMetadataMentionInNote(noteToUse, [config.nextReviewMentionStr])
+      // logDebug('finishReviewForNote', `- after metadata updates`)
+
+      // Save changes
+
+      // Note: I haven't tried loading a new Project instance here
+
+      // Then update the Project instance
+      thisNoteAsProject.reviewedDate = new moment().toDate() // use moment instead of `new Date` to ensure we get a date in the local timezone
+      thisNoteAsProject.calcNextReviewDate()
+      logDebug('finishReviewForNote', `- mSL='${thisNoteAsProject.machineSummaryLine()}'`)
+
+      // Also update the full-review-list
+      await updateReviewListAfterChange(noteToUse.title ?? '', false, config, thisNoteAsProject.machineSummaryLine())
+
+      // Update list for user (but don't focus)
+      await renderProjectLists(config, false)
+    } else {
+      logWarn('finishReviewForNote', `- There's no valid project note to finish reviewing.`)
+    }
+  } catch (error) {
+    logError('finishReviewForNote', error.message)
   }
 }
 
@@ -1087,6 +1141,9 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 
     // Finish review
     await finishReview()
+    // This also:
+    // updates the full-review-list = updateReviewListAfterChange(...)
+    // Update list for user (but don't focus) = renderProjectLists(...)
 
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
@@ -1111,7 +1168,8 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
 
 //-------------------------------------------------------------------------------
 /**
- * Skip the next review, asking when to delay to, add that as a @nextReview() date, and jump to next project to review
+ * Skip the next review for the note open in the Editor, asking when to delay to, add that as a @nextReview() date, and jump to next project to review.
+ * Note: see below for a non-interactive version that takes parameters
  * @author @jgclark
  */
 export async function skipReview(): Promise<void> {
@@ -1144,11 +1202,6 @@ export async function skipReview(): Promise<void> {
     const nextReviewDate = getDateObjFromDateString(newDateStr)
     const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
     logDebug('skipReview', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
-
-    // Following not wanted when skipping a review
-    // Form updated @review(date) for today
-    // const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-    // const reviewedTodayMetadataStr = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
 
     // Update metadata in the current open note
     const result = await updateMetadataInEditor([nextReviewMetadataStr])
@@ -1191,10 +1244,56 @@ export async function skipReview(): Promise<void> {
   }
 }
 
+export async function skipReviewForNote(note: TNote, skipPeriod: string): Promise<void> {
+  try {
+    const config = await getReviewSettings()
+    if (!note || note.type !== 'Notes') {
+      logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
+    }
+
+    logDebug(pluginJson, `skipReviewForNote: Starting for ${displayTitle(note)}`)
+    const thisNoteAsProject = new Project(note)
+
+    // Get new date from input in the common ISO format, and create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)` below.
+    let newDateStr: string = skipPeriod.match(RE_DATE_INTERVAL)
+      ? calcOffsetDateStr(todaysDateISOString, skipPeriod)
+      : ''
+    if (newDateStr === '') {
+      logWarn('skipReviewForNote', `${skipPeriod} is not a valid interval, so will stop.`)
+      return
+    }
+    const nextReviewDate = getDateObjFromDateString(newDateStr)
+    const nextReviewMetadataStr = `${config.nextReviewMentionStr}(${newDateStr})`
+    logDebug('skipReviewForNote', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
+
+    // Update metadata in that note
+    await updateMetadataInNote(note, [nextReviewMetadataStr])
+
+    // // Save Editor, so the latest changes can be picked up elsewhere
+    // // Putting the Editor.save() here, rather than in the above functions, seems to work
+    // await saveEditorToCache(null)
+
+    // Update the full-review-list too
+    thisNoteAsProject.nextReviewDateStr = newDateStr
+    thisNoteAsProject.nextReviewDate = nextReviewDate
+    thisNoteAsProject.calcDurations()
+    thisNoteAsProject.calcNextReviewDate()
+    logDebug('skipReviewForNote', `-> reviewedDate = ${String(thisNoteAsProject.reviewedDate)} / dueDays = ${String(thisNoteAsProject.dueDays)} / nextReviewDate = ${String(thisNoteAsProject.nextReviewDate)} / nextReviewDays = ${String(thisNoteAsProject.nextReviewDays)}`)
+    const newMSL = thisNoteAsProject.machineSummaryLine()
+    logDebug('skipReviewForNote', `- updatedMachineSummaryLine => '${newMSL}'`)
+    await updateReviewListAfterChange(note.title ?? '', false, config, newMSL)
+
+    // Update list window for user (if already open)
+    await renderProjectLists(config, false)
+  } catch (error) {
+    logError('skipReviewForNote', error.message)
+  }
+}
+
 //-------------------------------------------------------------------------------
 /**
  * Update the full-review-list after completing a review or completing/cancelling a whole project.
- * Note: Called by nextReview, skipReview, completeProject, cancelProject, pauseProject.
+ * Note: Called by nextReview, skipReview, skipReviewForNote, completeProject, cancelProject, pauseProject.
  * @author @jgclark
  * @param {string} title of note that has been reviewed
  * @param {boolean} simplyDelete the project line?
@@ -1257,20 +1356,26 @@ export async function updateReviewListAfterChange(
       if (simplyDelete) {
         // delete line 'thisLineNum'
         reviewLines.splice(thisLineNum, 1)
-        logDebug('updateReviewListAfterChange', `- Deleted '${reviewedTitle}' from line number ${thisLineNum}`)
+        logDebug('updateReviewListAfterChange', `- Deleted line number ${thisLineNum}: '${reviewedTitle}'`)
       } else {
         // update this line in the full-review-list
         reviewLines[thisLineNum] = updatedMachineSummaryLine
-        logDebug('updateReviewListAfterChange', `- Updated '${reviewedTitle}'  line number ${thisLineNum}`)
+        logDebug('updateReviewListAfterChange', `- Updated line number ${thisLineNum}: '${reviewedTitle}'`)
       }
       // re-form the file
       const outputLines = filterAndSortReviewList(reviewLines, configIn)
-      DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
+      const saveRes = DataStore.saveData(outputLines.join('\n'), fullReviewListFilename, true)
+      if (saveRes) {
+        logInfo('updateReviewListAfterChange', `- Saved updated full-review-list OK`)
+      } else {
+        logWarn('updateReviewListAfterChange', `- problem when updating ${fullReviewListFilename}`)
+      }
+      // logFullReviewList()
 
       // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
       // DataStore.invokePluginCommand('refreshDashboard', '')
       const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshDashboard', '')
-      logDebug('updateReviewListAfterChange', `sent message to refresh Dashboard: ${refreshXCallbackURL}`)
+      logDebug('updateReviewListAfterChange', `sent message to refresh Dashboard (if available)`)
       await NotePlan.openURL(refreshXCallbackURL)
     }
 
@@ -1330,109 +1435,64 @@ async function getNextNoteToReview(): Promise<?TNote> {
   }
 }
 
-//-------------------------------------------------------------------------------
 /**
- * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the note in the Editor.
- * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of @reviewed will be removed first, before that string is appended.
+ * Get list of the next note(s) to review (if any).
+ * It assumes the full-review-list exists and is sorted by nextReviewDate (earliest to latest).
+ * Note: This is a variant of the original singular version above
  * @author @jgclark
- * @param {Array<string>} mentions to update:
- * @returns { ?TNote } current note
+ * @param { number } numToReturn first n notes to return
+ * @return { Array<TNote> } next notes to review, up to numToReturn. Can be an empty array.
  */
-export async function updateMetadataInEditor(updatedMetadataArr: Array<string>): Promise<?TNote> {
+export function getNextNotesToReview(numToReturn: number): Array<TNote> {
   try {
-    // only proceed if we're in a valid Project note (with at least 2 lines)
-    if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
-      logWarn('updateMetadataInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
-      return
+    logDebug(pluginJson, `Starting getNextNotesToReview())`)
+
+    // Get contents of full-review-list
+    let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
+    if (!reviewListContents) {
+      // If we get here, give a warning, as the file should exist and not be empty
+      throw new Error(`full-review-list note empty or missing`)
+    } else {
+      const fileLines = reviewListContents.split('\n')
+
+      // Use front-matter library to get past frontmatter
+      const fmObj = fm(reviewListContents)
+      const reviewLines = fmObj.body.split('\n')
+
+      // Now read from the top until we find a line with a negative value in the first column (nextReviewDays),
+      // and not complete (has a tag of 'finished'),
+      // and not the same as the previous line (which can legitimately happen).
+      // Continue until we have found up to numToReturn such notes.
+      const notesToReview: Array<TNote> = []
+      let lastTitle = ''
+      for (let i = 0; i < reviewLines.length; i++) {
+        const thisLine = reviewLines[i]
+        const nextReviewDays = Number(thisLine.split('\t')[0]) ?? NaN // get first field = nextReviewDays
+        const thisNoteTitle = thisLine.split('\t')[2] // get third field = title
+        const tags = thisLine.split('\t')[5] ?? '' // get last field = tags
+        if (nextReviewDays < 0 && !tags.includes('finished') && thisNoteTitle !== lastTitle) {
+          logDebug('dashboard/getNextNotesToReview', `- Next to review = '${thisNoteTitle}'`)
+          const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
+          notesToReview.push(nextNotes[0]) // add first matching note
+          if (notesToReview.length >= numToReturn) {
+            break // stop processing the loop
+          }
+        }
+        lastTitle = thisNoteTitle
+      }
+
+      if (notesToReview.length === 0) {
+        // If we get here then there are no projects needed for review
+        logDebug('dashboard/getNextNotesToReview', `- No notes due for review 🎉`)
+      }
+      return notesToReview
     }
-    const thisNote = Editor // note: not Editor.note
-
-    const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
-    // Re-read paragraphs, as they might have changed
-    let metadataPara = Editor.paragraphs[metadataLineIndex]
-    if (!metadataPara) {
-      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
-    }
-
-    const origLine: string = metadataPara.content
-    let updatedLine = origLine
-
-    logDebug('updateMetadataInEditor', `starting for '${displayTitle(thisNote)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
-
-    for (const item of updatedMetadataArr) {
-      // logDebug('updateMetadataInEditor', `Processing ${item} for ${mentionName}`)
-      const mentionName = item.split('(', 1)[0]
-      // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
-      updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
-      // Then append this @mention
-      updatedLine += ' ' + item
-      // logDebug('updateMetadataInEditor', `-> ${updatedLine}`)
-    }
-
-    // send update to Editor (removing multiple and trailing spaces)
-    metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
-    Editor.updateParagraph(metadataPara)
-    // await saveEditorToCache() // might be stopping code execution here for unknown reasons
-    logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
-
-    // update this note in the review list
-    return thisNote
   } catch (error) {
-    logError('updateMetadataInEditor', `${error.message}`)
-    return null
+    logError(pluginJson, `dashboard/getNextNotesToReview: ${error.message}`)
+    return []
   }
 }
 
-//-------------------------------------------------------------------------------
-/**
- * Update project metadata @mentions (e.g. @reviewed(date)) in the note in the Editor
- * @author @jgclark
- * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
- * @returns { ?TNote } current note
- */
-export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>): Promise<?TNote> {
-  try {
-    // only proceed if we're in a valid Project note (with at least 2 lines)
-    if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
-      logWarn('deleteMetadataMentionInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
-      return
-    }
-    const thisNote = Editor // note: not Editor.note
-
-    const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
-    // Re-read paragraphs, as they might have changed
-    let metadataPara = Editor.paragraphs[metadataLineIndex]
-    if (!metadataPara) {
-      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
-    }
-
-    const origLine: string = metadataPara.content
-    let newLine = origLine
-
-    logDebug('deleteMetadataMentionInEditor', `starting for '${displayTitle(Editor)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
-
-    for (const mentionName of mentionsToDeleteArr) {
-      // logDebug('deleteMetadataMentionInEditor', `Processing ${item} for ${mentionName}`)
-      // Start by removing all instances of this @mention
-      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
-      newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
-      logDebug('deleteMetadataMentionInEditor', `-> ${newLine}`)
-    }
-
-    // send update to Editor (removing multiple and trailing spaces)
-    metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
-    Editor.updateParagraph(metadataPara)
-    // await saveEditorToCache() // seems to stop here but without error
-    logDebug('deleteMetadataMentionInEditor', `- After update ${metadataPara.content}`)
-
-    // update this note in the review list
-    return thisNote
-  } catch (error) {
-    logError('deleteMetadataMentionInEditor', `${error.message}`)
-    return null
-  }
-}
 
 export async function toggleDisplayFinished(): Promise<void> {
   try {

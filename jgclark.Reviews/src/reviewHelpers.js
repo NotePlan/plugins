@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 26.12.2023 for v0.13.0, @jgclark
+// Last updated 7.1.2024 for v0.13.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -25,7 +25,7 @@ import {
 import { localeRelativeDateFromNumber } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import { createOpenOrDeleteNoteCallbackUrl, createRunPluginCallbackUrl, getContentFromBrackets, getStringFromList } from '@helpers/general'
+import { createOpenOrDeleteNoteCallbackUrl, createRunPluginCallbackUrl, displayTitle, getContentFromBrackets, getStringFromList } from '@helpers/general'
 import {
   getCallbackCodeString,
   makeSVGPauseIcon,
@@ -48,6 +48,7 @@ import { isNull } from 'mathjs'
 
 export type ReviewConfig = {
   outputStyle: string,
+  reviewsTheme: string,
   folderToStore: string,
   foldersToInclude: Array<string>,
   foldersToIgnore: Array<string>,
@@ -339,7 +340,7 @@ export function getOrMakeMetadataLine(note: TNote, metadataLinePlaceholder: stri
         lineNumber = 1
       }
     }
-    logDebug('getOrMakeMetadataLine', `Metadata line = ${String(lineNumber)}`)
+    // logDebug('getOrMakeMetadataLine', `Metadata line = ${String(lineNumber)}`)
     return lineNumber
   } catch (error) {
     logError('getOrMakeMetadataLine', error.message)
@@ -475,7 +476,7 @@ export class Project {
           this.nextReviewDateStr = toISODateString(this.nextReviewDate)
           logDebug('Project constructor', `- found '@nextReview(${this.nextReviewDateStr})' = ${String(this.nextReviewDate)}`)
         } else {
-          logWarn('Project constructor', `- couldn't get valid date from  '@nextReview(${this.nextReviewDateStr})'`)
+          logWarn('Project constructor', `- couldn't get valid date from  '@nextReview(${tempStr})'`)
         }
       }
 
@@ -527,7 +528,7 @@ export class Project {
         this.calcNextReviewDate()
       }
 
-      logDebug('Project constructor', `project(${this.title}) -> ID ${this.ID} / ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
+      // logDebug('Project constructor', `project(${this.title}) -> ID ${this.ID} / ${this.nextReviewDateStr ?? '-'} / ${String(this.nextReviewDays)} / ${this.isCompleted ? ' completed' : ''}${this.isCancelled ? ' cancelled' : ''}${this.isPaused ? ' paused' : ''}`)
 
       // Find progress field lines (if any) and process
       this.processProgressLines()
@@ -1161,7 +1162,7 @@ export async function saveEditorToCache(completed: any): Promise<void> {
   }
 }
 
-// TODO(later): Looks like this doesn't work in NP. See some Discord chat @EduardMe, 19.6.2023
+// Looks like this doesn't work in NP. See some Discord chat @EduardMe, 19.6.2023
 // Error message "NotePlan_Beta.JSPromiseConstructor is not a constructor (evaluating 'new Promise((resolve => setTimeout(resolve, milliseconds)))')"
 // function delay(milliseconds: number) {
 //   try {
@@ -1179,5 +1180,204 @@ const delay = (ms: number) => {
   let now = start
   while (now - start < ms) {
     now = Date.now()
+  }
+}
+
+
+//-------------------------------------------------------------------------------
+/**
+ * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the note in the Editor.
+ * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of @reviewed will be removed first, before that string is appended.
+ * @author @jgclark
+ * @param {Array<string>} mentions to update:
+ * @returns { ?TNote } current note
+ */
+export async function updateMetadataInEditor(updatedMetadataArr: Array<string>): Promise<?TNote> {
+  try {
+    // only proceed if we're in a valid Project note (with at least 2 lines)
+    if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
+      logWarn('updateMetadataInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
+      return
+    }
+    const thisNote = Editor // note: not Editor.note
+
+    const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
+    // Re-read paragraphs, as they might have changed
+    let metadataPara = Editor.paragraphs[metadataLineIndex]
+    if (!metadataPara) {
+      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
+    }
+
+    const origLine: string = metadataPara.content
+    let updatedLine = origLine
+
+    logDebug('updateMetadataInEditor', `starting for '${displayTitle(thisNote)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
+
+    for (const item of updatedMetadataArr) {
+      const mentionName = item.split('(', 1)[0]
+      // logDebug('updateMetadataInEditor', `Processing ${item} for ${mentionName}`)
+      // Start by removing all instances of this @mention
+      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+      updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
+      // Then append this @mention
+      updatedLine += ' ' + item
+      // logDebug('updateMetadataInEditor', `-> ${updatedLine}`)
+    }
+
+    // send update to Editor (removing multiple and trailing spaces)
+    metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
+    Editor.updateParagraph(metadataPara)
+    // await saveEditorToCache() // might be stopping code execution here for unknown reasons
+    logDebug('updateMetadataInEditor', `- After update ${metadataPara.content}`)
+
+    // update this note in the review list
+    return thisNote
+  } catch (error) {
+    logError('updateMetadataInEditor', `${error.message}`)
+    return null
+  }
+}
+
+/**
+ * Update project metadata @mentions (e.g. @reviewed(date)) in the metadata line of the note in the Editor.
+ * It takes each mention in the array (e.g. '@reviewed(2023-06-23)') and all other versions of @reviewed will be removed first, before that string is appended.
+ * @author @jgclark
+ * @param {TNote} noteToUse
+ * @param {Array<string>} mentions to update:
+ */
+export async function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<string>): Promise<void> {
+  try {
+    // only proceed if we're in a valid Project note (with at least 2 lines)
+    if (note == null || note.type === 'Calendar' || note.paragraphs.length < 2) {
+      logWarn('updateMetadataInEditor', `- We don't have a valid Project note (and with at least 2 lines). Stopping.`)
+      return
+    }
+
+    const metadataLineIndex: number = getOrMakeMetadataLine(note)
+    // Re-read paragraphs, as they might have changed
+    let metadataPara = note.paragraphs[metadataLineIndex]
+    if (!metadataPara) {
+      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(note)}`)
+    }
+
+    const origLine: string = metadataPara.content
+    let updatedLine = origLine
+
+    logDebug('updateMetadataInNote', `starting for '${displayTitle(note)}' for new metadata ${String(updatedMetadataArr)} with metadataLineIndex ${metadataLineIndex} ('${origLine}')`)
+
+    for (const item of updatedMetadataArr) {
+      const mentionName = item.split('(', 1)[0]
+      logDebug('updateMetadataInNote', `Processing ${item} for ${mentionName}`)
+      // Start by removing all instances of this @mention
+      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+      updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
+      // Then append this @mention
+      updatedLine += ' ' + item
+      logDebug('updateMetadataInNote', `-> ${updatedLine}`)
+    }
+
+    // update the note (removing multiple and trailing spaces)
+    metadataPara.content = updatedLine.replace(/\s{2,}/g, ' ').trimRight()
+    note.updateParagraph(metadataPara)
+    logDebug('updateMetadataInNote', `- After update ${metadataPara.content}`)
+
+    return
+  } catch (error) {
+    logError('updateMetadataInNote', `${error.message}`)
+    return
+  }
+}
+
+//-------------------------------------------------------------------------------
+/**
+ * Update project metadata @mentions (e.g. @reviewed(date)) in the note in the Editor
+ * @author @jgclark
+ * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
+ * @returns { ?TNote } current note
+ */
+export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>): Promise<?TNote> {
+  try {
+    // only proceed if we're in a valid Project note (with at least 2 lines)
+    if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
+      logWarn('deleteMetadataMentionInEditor', `- We're not in a valid Project note (and with at least 2 lines). Stopping.`)
+      return
+    }
+    const thisNote = Editor // note: not Editor.note
+
+    const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
+    // Re-read paragraphs, as they might have changed
+    let metadataPara = Editor.paragraphs[metadataLineIndex]
+    if (!metadataPara) {
+      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
+    }
+
+    const origLine: string = metadataPara.content
+    let newLine = origLine
+
+    logDebug('deleteMetadataMentionInEditor', `starting for '${displayTitle(Editor)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
+
+    for (const mentionName of mentionsToDeleteArr) {
+      // logDebug('deleteMetadataMentionInEditor', `Processing ${item} for ${mentionName}`)
+      // Start by removing all instances of this @mention
+      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+      newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
+      logDebug('deleteMetadataMentionInEditor', `-> ${newLine}`)
+    }
+
+    // send update to Editor (removing multiple and trailing spaces)
+    metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
+    Editor.updateParagraph(metadataPara)
+    // await saveEditorToCache() // seems to stop here but without error
+    logDebug('deleteMetadataMentionInEditor', `- After update ${metadataPara.content}`)
+
+    // update this note in the review list
+    return thisNote
+  } catch (error) {
+    logError('deleteMetadataMentionInEditor', `${error.message}`)
+    return null
+  }
+}
+
+/**
+ * Update project metadata @mentions (e.g. @reviewed(date)) in the note in the Editor
+ * @author @jgclark
+ * @param {TNote} noteToUse
+ * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
+ */
+export async function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteArr: Array<string>): Promise<void> {
+  try {
+    // only proceed if we're in a valid Project note (with at least 2 lines)
+    if (noteToUse == null || noteToUse.type === 'Calendar' || noteToUse.paragraphs.length < 2) {
+      logWarn('deleteMetadataMentionInNote', `- We've not been passed a valid Project note (and with at least 2 lines). Stopping.`)
+      return
+    }
+
+    const metadataLineIndex: number = getOrMakeMetadataLine(noteToUse)
+    let metadataPara = noteToUse.paragraphs[metadataLineIndex]
+    if (!metadataPara) {
+      throw new Error(`Couldn't get or make metadataPara for ${displayTitle(noteToUse)}`)
+    }
+
+    const origLine: string = metadataPara.content
+    let newLine = origLine
+
+    logDebug('deleteMetadataMentionInNote', `starting for '${displayTitle(noteToUse)}' with metadataLineIndex ${metadataLineIndex} to remove [${String(mentionsToDeleteArr)}]`)
+
+    for (const mentionName of mentionsToDeleteArr) {
+      // logDebug('deleteMetadataMentionInNote', `Processing ${item} for ${mentionName}`)
+      // Start by removing all instances of this @mention
+      const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
+      newLine = newLine.replace(RE_THIS_MENTION_ALL, '')
+      logDebug('deleteMetadataMentionInNote', `-> ${newLine}`)
+    }
+
+    // send update to noteToUse (removing multiple and trailing spaces)
+    metadataPara.content = newLine.replace(/\s{2,}/g, ' ').trimRight()
+    noteToUse.updateParagraph(metadataPara)
+    logDebug('deleteMetadataMentionInNote', `- After update ${metadataPara.content}`)
+    return
+  } catch (error) {
+    logError('deleteMetadataMentionInNote', `${error.message}`)
+    return
   }
 }
