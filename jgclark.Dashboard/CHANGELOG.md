@@ -1,8 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
-## [0.8.3] - 2024-01-???
+## [0.8.3] - 2024-01-19
 - added new setting "Section heading to add/move new tasks under". When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. If the heading isn't present, it will be added at the top of the note. If this is left empty, then new tasks will appear at the top of the note. (for @dwertheimer)
 - added new setting "Reschedule items in place, rather than move them?".  When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it. (for @dwertheimer)
+- added new setting "Ignore items in this section with this phrase". Open tasks/checklists in this section will be ignored if they include this phrase. This can be used to make this a 'deferred' section, by setting the tag to show to '#next', but ignoring this in the calendar sections above. (for @George65)
 
 ## [0.8.2] - 2024-01-15
 - added secondary sorting by time block (if present). The primary sort remains priority of the open items.

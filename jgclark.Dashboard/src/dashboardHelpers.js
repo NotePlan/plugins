@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 16.12.2023 for v0.7.4 by @jgclark
+// Last updated 19.1.2024 for v0.8.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -100,8 +100,8 @@ export type dashboardConfigType = {
   updateOverdueOnTrigger: boolean,
   maxTasksToShowInSection: number,
   overdueSortOrder: string,
-  // showExtraButtons: boolean, // removed in 0.7.5
   tagToShow: string,
+  ignoreTagMentionsWithPhrase: string,
   _logLevel: string,
   triggerLogging: boolean,
   // filterPriorityItems: boolean, // now kept in a DataStore.preference key

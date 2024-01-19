@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 17.1.2024 fo v0.8.3 by @jgclark
+// Last updated 19.1.2024 fo v0.8.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -208,11 +208,14 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     // -------------------------------------------------------------
     // Get list of open tasks/checklists from current daily note (if it exists)
     let startTime = new Date() // for timing only
-    let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
+    // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
+    const dateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
+    // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day') // ❌
+    let currentDailyNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
     if (currentDailyNote) {
       const thisFilename = currentDailyNote?.filename ?? '(error)'
-      const dateStr = getDateStringFromCalendarFilename(thisFilename)
-      logDebug('getDataForDashboard', `---------------------------- Looking for Today's items for section #${String(sectionCount)} from ${dateStr}`)
+      // const dateStr = getDateStringFromCalendarFilename(thisFilename)
+      logInfo('getDataForDashboard', `---------------------------- Looking for Today's items for section #${String(sectionCount)} from ${dateStr}`)
       if (!thisFilename.includes(dateStr)) {
         logError('Please', `- filename '${thisFilename}' but '${dateStr}' ??`)
       }
@@ -265,7 +268,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
       // Note: ideally also add completed count for today from referenced notes as well
 
-      logInfo('getDataForDashboard', `- finished finding daily items after ${timer(startTime)}`)
+      logInfo('getDataForDashboard', `- finished finding daily items from ${dateStr} after ${timer(startTime)}`)
     } else {
       logDebug('getDataForDashboard', `No daily note found for filename '${currentDailyNote?.filename ?? 'error'}'`)
     }
@@ -274,11 +277,13 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     // Get list of open tasks/checklists from yesterday's daily note (if wanted and it exists)
     if (config.showYesterdaySection) {
       const yesterday = new moment().subtract(1, 'days').toDate()
-      let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day')
+      const dateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
+      // let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day') // ❌
+      let yesterdaysNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
       if (yesterdaysNote) {
         const thisFilename = yesterdaysNote?.filename ?? '(error)'
-        const dateStr = getDateStringFromCalendarFilename(thisFilename)
-        logDebug('getDataForDashboard', `---------------------------- Looking for Yesterday's items for section #${String(sectionCount)} from ${dateStr}`)
+        // const dateStr = getDateStringFromCalendarFilename(thisFilename)
+        logInfo('getDataForDashboard', `---------------------------- Looking for Yesterday's items for section #${String(sectionCount)} from ${dateStr}`)
         if (!thisFilename.includes(dateStr)) {
           logError('Please', `- filename '${thisFilename}' but '${dateStr}' ??`)
         }
@@ -331,7 +336,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
         // Note: ideally also add completed count for yesterday from referenced notes as well
 
-        logInfo('getDataForDashboard', `- finished finding yesterday's items after ${timer(startTime)}`)
+        logInfo('getDataForDashboard', `- finished finding yesterday's items from ${dateStr} after ${timer(startTime)}`)
       } else {
         logDebug('getDataForDashboard', `No daily note found for filename '${yesterdaysNote?.filename ?? 'error'}'`)
       }
@@ -600,19 +605,41 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       if (isHashtag || isMention) {
         let itemCount = 0
         let totalCount = 0
-        const filteredTagParas: Array<TParagraph> = []
+        let filteredTagParas: Array<TParagraph> = []
 
         // From notes with matching hashtag or mention
         const notesWithTag = findNotesMatchingHashtagOrMention(config.tagToShow)
         for (const n of notesWithTag) {
+          // // Remove items referenced from items in 'ignoreFolders'
+          // logDebug('getDataForDashboard', `- ${notesWithTag.length} tag notes`)
+          // const filteredTagParasFromNote = filterOutParasInExcludeFolders(tagParasFromNote, config.ignoreFolders)
+          // filteredTagParas.push(...filteredTagParasFromNote)
+          // logDebug('getDataForDashboard', `- ${filteredTagParas.length} paras after excluding @special + [${String(config.ignoreFolders)}] folders`)
+
+          // Don't continue if this note is in an excluded folder
+          const thisNoteFolder = getFolderFromFilename(n.filename)
+          if (config.ignoreFolders.includes(thisNoteFolder)) {
+            logDebug('getDataForDashboard', `- ignoring ${n.filename} as it is in an ignored folder`)
+            continue
+          }
+
           // Get the relevant paras from this note
-          const tagParasFromNote = n.paragraphs.filter(p => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
-          // Remove items referenced from items in 'ignoreFolders'
-          // TODO: move this to a check before the filter
-          const filteredTagParasFromNote = filterOutParasInExcludeFolders(tagParasFromNote, config.ignoreFolders)
-          filteredTagParas.push(...filteredTagParasFromNote)
+          let tagParasFromNote = n.paragraphs.filter(p => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
+          // logDebug('getDataForDashboard', `- found ${tagParasFromNote.length} paras`)
+
+          // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
+          // if (config.ignoreTagMentionsWithPhrase !== '') {
+          //   filteredTagParas = tagParasFromNote.filter((p) => !p.content.includes(config.ignoreTagMentionsWithPhrase))
+          // }
+          for (const p of tagParasFromNote) {
+            if (!p.content.includes(config.ignoreTagMentionsWithPhrase)) {
+              filteredTagParas.push(p)
+            } else {
+              logDebug('getDataForDashboard', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
+            }
+          }
         }
-        logDebug('getDataForDashboard', `- ${filteredTagParas.length} paras after excluding @special + [${String(config.ignoreFolders)}] folders`)
+        logDebug('getDataForDashboard', `- ${filteredTagParas.length} paras (after ${timer(startTime)})`)
 
         if (filteredTagParas.length > 0) {
           // Remove possible dupes from sync'd lines

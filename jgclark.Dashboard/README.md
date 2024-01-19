@@ -69,7 +69,7 @@ This requires the **Shared Resources** plugin to be installed as well, to work a
 These settings change some of how it displays:
 - Show referenced items in separate section? Whether to show Today's open tasks and checklists in two separate sections: first from the daily note itself, and second referenced from project notes. The same also goes for Weekly/Monthly/Quarterly notes.
 - Ignore checklist items? If set, only tasks are included in any of the sections.
-- Ignore items with this phrase: If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control.
+- Ignore items in calendar sections with this phrase: If set, open tasks/checklists with this word or tag will be ignored, and not counted as open or closed. This is useful for situations where completing the item is outside your control. Note: This doesn't apply to the Tag/Mention section, which has its own setting (below).
 - Folders to ignore when finding linked items: If set, the contents of these folder(s) will be ignored when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results. Default: "@Archive, Saved Searches"
 - Include context for tasks? Whether to show the note link for an open task or checklist
 - Add dashboard auto-update trigger when dashboard opened?: Whether to add the auto-update trigger to the frontmatter to the current note when the dashboard is opened.
@@ -86,7 +86,8 @@ These settings change some of how it displays:
 - Show section for Quarter? Allows this to be always turned on/off.
 - Show section for Overdue tasks?: If true then an 'Overdue' section is added, and the following 2 settings will be used.\nNote: if set, then for performance reasons, this section will not be shown when a refresh is triggered automatically by a change in today's note. (Default: false)
 - Sort order for Overdue tasks: The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note. (Default: 'priority')
-- #tag/@mention to show: (if set) will show all open tasks/checklists that include this #tag or @mention. It ignores tasks that are scheduled to the future. This is one way of showing all `#next` actions, for example.
+- #tag/@mention to show: (if set) will show all open tasks/checklists that include this #tag or @mention. This is a good way of showing all `#next` actions, for example. Further, this can be used to make this a 'deferred' section, by setting the tag to show here to the same tag that is also set to be ignored in the calendar sections above. Note: This is limited to hashtags and mentions for speed, and it can show tasks duplicated from other sections.
+- Ignore items in the tag/mention section with this phrase: Open tasks/checklists in this section will be ignored if they include this phrase.
 
 ## Known Issues
 - Since v3.10, I think the API call to find Overdue tasks has got much slower. If you find this as well, then please let me know.
