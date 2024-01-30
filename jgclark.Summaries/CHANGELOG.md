@@ -1,7 +1,8 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-<!-- - ??? make below work with all options -->
+## [0.20.3] - 2024-01-30
+- fixed problem when using `periodStats()` tag from a template (thanks to report by @bhan.me). Requires updating Templating plugin to v1.10.2 as well.
 
 ## [0.20.2] - 2023-12-30
 - added x-callback options for /periodStats command. See documentation for details.

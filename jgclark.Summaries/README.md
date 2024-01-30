@@ -135,12 +135,12 @@ You can add many parameters, _which if present override all the main settings de
 3. `showSparklines`: true (default) or false.
 4. `excludeToday`: false (default) or true (applies when you set a date for period and you don't want to include today in the visualization -- e.g. if you use this template as part of your /dayStart routine and you haven't had time to do the habit yet!)
 
-Each must be a `key:"value"` pair, with following pairs separated by commas, and all enclosed in curly brackets (i.e. in [JSON5 format](https://json5.org)). The 'key' names of the other possible settings are found in the `plugin.json` file installed as part of the plugin.
+Each must be a `key:"value"` pair, with string values enclosed in double quotes, with following pairs separated by commas, and all enclosed in curly brackets (i.e. in [JSON5 format](https://json5.org)). The 'key' names of the other possible settings are found in the `plugin.json` file installed as part of the plugin.
 
 Note: if you specify any of the settings that take hashtags or mentions, then _only those ones will be used_. E.g. `{... progressYesNo:"#read,#pray,#exercise", ...}` will not use any of the usual '#hashtags or count' or '@mentions to count', but only show Yes/No for each of those 3 tags.
 
 ### Calling by x-callback
-This is similar to the Template above: create a JSON5 version of `key:"value"` pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=`
+This is similar to the Template above: create a JSON5 version of `"key":"value"` pairs for parameters that are different from the normal saved settings, and then prefix with the string `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=`
 
 For example:
 ```
@@ -230,7 +230,7 @@ Note: sparklines won't show for periods of time greater than 31 days -- they jus
 
 ### Calling by x-callback
 You can run this from an **x-callback**  using the form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=periodStats&arg0=?&arg1=?&arg2=?` where
-- `arg0` is the calendar period code (`year`,`quarter`, `month`, `week`, `today`, or an `YYYY-MM-DD` date)",
+- `arg0` is the calendar period code (`year`, `quarter`, `month`, `week`, `today`, or an `YYYY-MM-DD` date)",
 - `arg1` is the number within the calendar type (ignored for `today` or `YYYY-MM-DD`)
 - `arg2` is the `YYYY` year number to use (ignored for `YYYY-MM-DD`)
 
