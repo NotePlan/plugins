@@ -396,7 +396,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
  * Note: tested with strings, ints, floats, boolean and array of strings.
  * @author @jgclark
  * @param {any} config object
- * @param {string} argsAsJSON e.g. '{"style":"markdown", "exludedFolders:["one","two","three"]}'
+ * @param {string} argsAsJSON e.g. '{"style":"markdown", "excludedFolders":["one","two","three"]}'
  * @returns {any} configOut
  */
 export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): any {
