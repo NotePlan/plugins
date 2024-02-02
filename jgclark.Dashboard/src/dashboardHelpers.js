@@ -1,13 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 16.12.2023 for v0.7.4 by @jgclark
+// Last updated 19.1.2024 for v0.8.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { RE_EVENT_ID } from '@helpers/calendar'
 import { trimString } from '@helpers/dataManipulation'
+import { getTimeBlockString } from '@helpers/timeblocks'
 import {
   // getDateStringFromCalendarFilename,
   getAPIDateStrFromDisplayDateStr,
@@ -86,6 +87,8 @@ export type dashboardConfigType = {
   ignoreFolders: Array<string>,
   includeFolderName: boolean,
   includeTaskContext: boolean,
+  newTaskSectionHeading: string,
+  rescheduleNotMove: Boolean,
   autoAddTrigger: boolean,
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
@@ -97,8 +100,8 @@ export type dashboardConfigType = {
   updateOverdueOnTrigger: boolean,
   maxTasksToShowInSection: number,
   overdueSortOrder: string,
-  // showExtraButtons: boolean, // removed in 0.7.5
   tagToShow: string,
+  ignoreTagMentionsWithPhrase: string,
   _logLevel: string,
   triggerLogging: boolean,
   // filterPriorityItems: boolean, // now kept in a DataStore.preference key
@@ -389,5 +392,45 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromNPDateStr', `${error.message} for input '${NPDateStr}'`)
     return '(error)'
+  }
+}
+
+/**
+ * Extend the paragraph object with a .timeStr property which comes from the start time of a time block, or else 'none' (which will then sort after times)
+ * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
+ * @tests in dashboardHelpers.test.js
+ * @param {Array<TParagraph>} paras to extend
+ * @returns {Array<TParagraph>} paras extended by .timeStr
+ */
+export function extendParaToAddStartTime(paras: Array<TParagraph>): Array<any> {
+  try {
+    // logDebug('extendParaToAddStartTime', `starting with ${String(paras.length)} paras`)
+    const extendedParas = []
+    for (const p of paras) {
+      const thisTimeStr = getTimeBlockString(p.content)
+      let extendedPara = p
+      if (thisTimeStr !== '') {
+        let startTimeStr = thisTimeStr.split('-')[0]
+        if (startTimeStr[1] === ':') {
+          startTimeStr = "0" + startTimeStr
+        }
+        if (startTimeStr.endsWith("PM")) {
+          startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
+        }
+        logDebug('extendParaToAddStartTime', `found timeStr: ${thisTimeStr} from timeblock ${thisTimeStr}`)
+        // $FlowIgnore(prop-missing)
+        extendedPara.timeStr = startTimeStr
+      } else {
+        // $FlowIgnore(prop-missing)
+        extendedPara.timeStr = "none"
+      }
+      extendedParas.push(extendedPara)
+    }
+
+    return extendedParas
+  }
+  catch (error) {
+    logError('dashboard / extendParaToAddTimeBlock', `${error.message}`)
+    return []
   }
 }

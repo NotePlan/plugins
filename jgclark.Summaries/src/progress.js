@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Progress update on some key goals to include in notes
 // Jonathan Clark, @jgclark
-// Last updated 10.11.2023 for v0.20.1, @jgclark
+// Last updated 30.1.2024 for v0.20.3, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -30,18 +30,34 @@ import { showMessage } from "../../helpers/userInput";
 //-------------------------------------------------------------------------------
 
 /**
- * This is the entry point for template use of makeProgressUpdate
- * @param {?string} params as JSON string
+ * There are 3 ways to invoke Progress updates:
+ * 1. "/insertProgressUpdate" command -- uses settings, and writes to current note
+ * 2. callback to progressUpdate&arg0=... -- can give params to override settings if wanted; writes to current note
+ * 3. template call to progressUpdate( { ... JSON ...} ) -- can give params to override settings; doesn't write to a note, but returns text to Templating. Under hood calls progressUpdate()
+ */
+
+/**
+ * This is the entry point for template or callback use of makeProgressUpdate().
+ * It works out if it's a template (by object passed) or a callback (by string passed).
+ * @param {any?} params as JS object or JSON string
+ * @param {string?} sourceIn 'template' | 'callback' | empty
  * @returns {string} - returns string
  */
-export async function progressUpdate(params: string = '', source: string = 'template'): Promise<string> {
+export async function progressUpdate(params: any = '', sourceIn: string = ''): Promise<string> {
   try {
-    logDebug(pluginJson, `progressUpdate (for template): Starting with params '${params}' (type: ${typeof params}) and source '${source}'`)
+    logDebug(pluginJson, `progressUpdate (from template or callback): Starting with params '${params}' (type: ${typeof params}) and source '${sourceIn}'`)
+    const source = (sourceIn !== '') ? sourceIn
+      : (typeof params === 'string')
+        ? 'callback'
+        : (typeof params === 'object')
+          ? 'template'
+          : ''
+    logDebug(pluginJson, `- source determined to be '${source}'`)
     return await makeProgressUpdate(params, source) ?? '<error>'
   }
   catch (err) {
     logError(pluginJson, `${err.message} in progressUpdate (for template)`)
-    return '❗️Error: please open Plugin Console and re-run.>' // for completeness
+    return '❗️ Error: please open Plugin Console and re-run to see more details.' // for completeness
   }
 }
 
@@ -51,26 +67,30 @@ export async function progressUpdate(params: string = '', source: string = 'temp
  * If it's week to date, then use the user's first day of week from NP setting.
  * @author @jgclark
  *
- * @param {?string} params - can pass parameter string (in JSON format) e.g. '{"period": "mtd", "progressHeading": "Progress"}'
- * @param {?string} source of this call (command/xcb/template)
- * @returns {?string} - either return string to Template, or void to plugin
+ * @param {any?} paramsIn - can pass parameter string (in JSON format) e.g. '{"period": "mtd", "progressHeading": "Progress"}' or as a JS object
+ * @param {string?} source of this call (callback/template); if not given defaults to 'command'
+ * @returns {string|void} - either return string to Template, or void to plugin
  */
-export async function makeProgressUpdate(paramsIn: string = '', source: string = 'command'): Promise<string | void> {
+export async function makeProgressUpdate(paramsIn: any = '', source: string = 'command'): Promise<string | void> {
   try {
     // Get config setting
     let config: SummariesConfig = await getSummariesSettings()
     let settingsForGO: OccurrencesConfig
 
-    // First workaround situation where paramsIn can be a null Object when called from a template. If so, make an empty JSON string.
-    const params = (paramsIn && typeof paramsIn === 'object') ? paramsIn : "{}"
-    // If there are paramsIn passed, then we've been called by a template command (and so use those).
+    logDebug(pluginJson, `makeProgressUpdate: Starting with params '${paramsIn}' (type: ${typeof paramsIn}) from source '${source}'`)
+    // If an object param has been passed, then we've been called by a template, and so turned into JSON string
+    const params = (paramsIn)
+      ? (typeof paramsIn === 'object')
+        ? JSON.stringify(paramsIn)
+        : paramsIn
+      : ''
     if (params !== '') {
-      // logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with params '${params}'`)
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      // clo(config, `config after overriding with params '${params}'`)
+      logDebug(makeProgressUpdate, `- params decoded to '${params}'`)
+      // clo(config, `- config after overriding with params-as-JSON-string '${params}' (from callback)`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-      // logDebug(pluginJson, `makeProgressUpdate: Starting from '${source}' with no params`)
+      logDebug(makeProgressUpdate, `- no params`)
     }
 
     // Use configuration setting as default for time period

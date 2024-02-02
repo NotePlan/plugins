@@ -1,10 +1,21 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
+## [0.8.3] - 2024-01-19
+- added new setting "Section heading to add/move new tasks under". When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. If the heading isn't present, it will be added at the top of the note. If this is left empty, then new tasks will appear at the top of the note. (for @dwertheimer)
+- added new setting "Reschedule items in place, rather than move them?".  When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it. (for @dwertheimer)
+- added new setting "Ignore items in this section with this phrase". Open tasks/checklists in this section will be ignored if they include this phrase. This can be used to make this a 'deferred' section, by setting the tag to show to '#next', but ignoring this in the calendar sections above. (for @George65)
+
+## [0.8.2] - 2024-01-15
+- added secondary sorting by time block (if present). The primary sort remains priority of the open items.
+
+## [0.8.1] - 2024-01-13
+- added 'finish review' action button to items in the Project section.
+- fix regression in settings (thanks to @yinnerspace for the report)
 
 ## [0.8.0] - 2024-01-06
-- added action button '≯' to 'unschedule' a task. (This is only relevant on tasks referenced/scheduled to calendar notes.)
-- added action button '✓then' to complete an overdue task, but marks it `@done(...)` at the original time, not today.
-- added action buttons 'skip ...' to items in the Project section. (This does the equivalent of "/skip project review", skipping the review of that note for the period shown.)
+- added action button `≯` to 'unschedule' a task. (This is only relevant on tasks referenced/scheduled to calendar notes.)
+- added action button `✓then` to complete an overdue task, but marks it `@done(...)` at the original time, not today.
+- added action buttons `skip ...` to items in the Project section. (This does the equivalent of "/skip project review", skipping the review of that note for the period shown.)
 - added new 'Theme to use for Dashboard' setting for @anton.skliar. If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.
 
 ## [0.7.4] - 2023-12-26

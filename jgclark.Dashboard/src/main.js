@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 6.1.2024 for v0.8.0 by @jgclark
+// Last updated 7.1.2024 for v0.8.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -382,7 +382,7 @@ let allNextReviewButtons = document.getElementsByClassName("nextReviewButton");
 for (const button of allNextReviewButtons) {
   const thisTD = findAncestor(button, 'TD');
   const thisID = thisTD.parentElement.id;
-  // console.log('- P on' + thisID);
+  // console.log('- PNR on' + thisID);
   const thisControlStr = button.dataset.controlStr;
   const thisEncodedFilename = thisTD.dataset.encodedFilename;
   // add event handler
@@ -392,6 +392,21 @@ for (const button of allNextReviewButtons) {
   }, false);
 }
 console.log(String(allNextReviewButtons.length) + ' nextReviewButton ELs added');
+
+let allReviewFinishedButtons = document.getElementsByClassName("reviewFinishedButton");
+for (const button of allReviewFinishedButtons) {
+  const thisTD = findAncestor(button, 'TD');
+  const thisID = thisTD.parentElement.id;
+  // console.log('- PRF on' + thisID);
+  const thisControlStr = button.dataset.controlStr;
+  const thisEncodedFilename = thisTD.dataset.encodedFilename;
+  // add event handler
+  button.addEventListener('click', function (event) {
+    event.preventDefault();
+    handleButtonClick(thisID, 'reviewFinished', thisControlStr, thisEncodedFilename, '');
+  }, false);
+}
+console.log(String(allReviewFinishedButtons.length) + ' reviewFinishedButton ELs added');
 </script>
 `
 
@@ -695,6 +710,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
           { displayString: '◯/☐', controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'] },
           { displayString: '✓then', controlStr: 'ct', sectionTypes: ['OVERDUE', 'TAG'] },
           // Just for Project lines
+          { displayString: '✓review', controlStr: 'reviewed', sectionTypes: ['PROJ'] },
           { displayString: 'skip +1w', controlStr: 'skip+1w', sectionTypes: ['PROJ'] },
           { displayString: 'skip +2w', controlStr: 'skip+2w', sectionTypes: ['PROJ'] },
           { displayString: 'skip +1m', controlStr: 'skip+1m', sectionTypes: ['PROJ'] },
@@ -720,11 +736,13 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
                   ? "priorityButton"
                   : (ct.controlStr === 'unsched')
                     ? "unscheduleButton"
-                    : (ct.controlStr.startsWith('nr'))
-                      ? "nextReviewButton"
-                      : isItemFromCalendarNote
-                        ? "moveButton"
-                        : "changeDateButton"
+                    : (ct.controlStr === 'reviewed')
+                      ? "reviewFinishedButton"
+                      : (ct.controlStr.startsWith('nr'))
+                        ? "nextReviewButton"
+                        : (isItemFromCalendarNote && !config.rescheduleNotMove)
+                          ? "moveButton"
+                          : "changeDateButton"
             tooltipContent += `<button class="${buttonType} hoverControlButton" data-control-str="${ct.controlStr}">${ct.displayString}</button>`
           }
           tooltipContent += '</span>'
@@ -897,11 +915,19 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
  * @param {string} calNoteFilename to prepend the task to
  */
 export async function addTask(calNoteFilename: string): Promise<void> {
-  const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
-  logDebug('addTask', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`)
-  await prependTodoToCalendarNote('task', calNoteDateStr)
-  // trigger window refresh
-  await showDashboardHTML('refresh')
+  try {
+    const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    if (!calNoteDateStr) {
+      throw new Error(`calNoteDateStr isn\'t defined`)
+    }
+    logInfo('addTask', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`) // TODO: in time turn me down to Debug
+    await prependTodoToCalendarNote('task', calNoteDateStr)
+    // trigger window refresh
+    await showDashboardHTML('refresh')
+  }
+  catch (err) {
+    logError('addTask', `${err.message} for ${calNoteFilename}`)
+  }
 }
 
 /**
@@ -909,11 +935,19 @@ export async function addTask(calNoteFilename: string): Promise<void> {
  * @param {string} calNoteFilename to prepend the task to
  */
 export async function addChecklist(calNoteFilename: string): Promise<void> {
-  const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
-  logDebug('addChecklist', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`)
-  await prependTodoToCalendarNote('checklist', calNoteDateStr)
-  // trigger window refresh
-  await showDashboardHTML('refresh')
+  try {
+    const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    if (!calNoteDateStr) {
+      throw new Error(`calNoteDateStr isn\'t defined`)
+    }
+    logInfo('addChecklist', `- adding checklist to ${calNoteDateStr} from ${calNoteFilename}`) // TODO: in time turn me down to Debug
+    await prependTodoToCalendarNote('checklist', calNoteDateStr)
+    // trigger window refresh
+    await showDashboardHTML('refresh')
+  }
+  catch (err) {
+    logError('addChecklist', `${err.message} for ${calNoteFilename}`)
+  }
 }
 
 /**

@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.10.2] 2024-01-30 @jgclark
+
+- fixed issue when using `progressUpdate(...)` in template (from Habits & Summaries plugin)
+
 ## [1.10.1] 2024-01-11 @dwertheimer
 
 - Bug fix to remove spaces after comment tags (<%#...)

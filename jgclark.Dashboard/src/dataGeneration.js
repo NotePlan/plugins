@@ -1,13 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 5.1.2024 for v0.7.5 by @jgclark
+// Last updated 19.1.2024 fo v0.8.3 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import fm from 'front-matter' // For reviewList functionality
 import {
+  extendParaToAddStartTime,
   getSettings,
   type dashboardConfigType,
   type Section, type SectionItem
@@ -73,15 +74,15 @@ async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, time
     let startTime = new Date() // for timing only
     if (Editor && (Editor?.note?.filename === timePeriodNote.filename)) {
       // If note of interest is open in editor, then use latest version available, as the DataStore is probably stale.
-      logDebug('getOpenItemParasForCurrentTimePeriod', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras`)
+      logDebug('getOpenItemParasForCurrent...', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras`)
       parasToUse = Editor.paragraphs
     } else {
       // read note from DataStore in the usual way
-      logDebug('getOpenItemParasForCurrentTimePeriod', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
+      logDebug('getOpenItemParasForCurrent...', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
       // parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
       parasToUse = timePeriodNote.paragraphs
     }
-    logInfo('getOpenItemParasForCurrentTimePeriod', `Got ${parasToUse.length} parasToUse (after ${timer(startTime)})`)
+    logInfo('getOpenItemParasForCurrent...', `Got ${parasToUse.length} parasToUse from ${timePeriodNote.filename} (after ${timer(startTime)})`)
 
     // Run following in background thread
     // NB: Has to wait until after Editor has been accessed to start this
@@ -93,29 +94,38 @@ async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, time
     let openParas = (config.ignoreChecklistItems)
       ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content !== '')
       : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content !== '')
-    logInfo('getOpenItemParasForCurrentTimePeriod', `After 'isOpenNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemParasForCurrent...', `After 'isOpenNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    const tempSize = openParas.length
+
+    // Filter out any future-scheduled tasks from this calendar note. TEST:
+    openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content))
+    if (openParas.length !== tempSize) {
+      logInfo('getOpenItemParasForCurrent...', `Removed ${tempSize - openParas.length} future scheduled tasks`)
+    }
+    // logDebug('getOpenItemParasForCurrent...', `After 'future' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
       openParas = openParas.filter((p) => !p.content.includes(config.ignoreTasksWithPhrase))
     }
-    // logInfo('getOpenItemParasForCurrentTimePeriod', `After 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemParasForCurrent...', `After 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out tasks with timeblocks, if wanted
     if (config.excludeTasksWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'open' && isTimeBlockPara(p)))
     }
-    // logInfo('getOpenItemParasForCurrentTimePeriod', `After 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemParasForCurrent...', `After 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out checklists with timeblocks, if wanted
     if (config.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
     }
-    // logInfo('getOpenItemParasForCurrentTimePeriod', `After 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemParasForCurrent...', `After 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
-    // Temporarily extend TParagraph with the task's priority
+    // Temporarily extend TParagraph with the task's priority + start time (if present)
     openParas = addPriorityToParagraphs(openParas)
-    // logInfo('getDataForDashboard', `  - finding cal items took ${timer(startTime)} for ${timePeriodName}`)
+    openParas = extendParaToAddStartTime(openParas)
+    logDebug('getOpenItemParasForCurrent...', `found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName} took ${timer(startTime)}`)
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
@@ -133,23 +143,38 @@ async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, time
     refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders)
     // Remove possible dupes from sync'd lines
     refParas = eliminateDuplicateSyncedParagraphs(refParas)
-    // Temporarily extend TParagraph with the task's priority
+    // Temporarily extend TParagraph with the task's priority + start time (if present)
     refParas = addPriorityToParagraphs(refParas)
-    // logDebug('', `found ${String(refParas.length ?? 0)} references to ${timePeriodName}`)
-    // logDebug('getDataForDashboard', `  - finding refs took ${timer(startTime)} for ${timePeriodName}`)
+    refParas = extendParaToAddStartTime(refParas)
+    logDebug('getOpenItemParasForCurrent...', `found ${String(refParas.length ?? 0)} references to ${timePeriodName} in ${timer(startTime)}`)
 
-    // Sort the list only by priority, otherwise leaving order the same
+    // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
     // (This takes less than 1ms)
     if (config.separateSectionForReferencedNotes) {
-      const sortedOpenParas = sortListBy(openParas, ['-priority'])
-      const sortedRefParas = sortListBy(refParas, ['-priority'])
+      const sortedOpenParas = sortListBy(openParas, ['-priority', 'timeStr'])
+      // // for TEST: remove later
+      // logDebug('getOpenItemParasForCurrent...', `sortedOpenParas...`)
+      // for (let p of sortedOpenParas) {
+      //   console.log(`- '${p.timeStr}' in ${p.content}`)
+      // }
+      const sortedRefParas = sortListBy(refParas, ['-priority', 'timeStr'])
+      // // for TEST: remove later
+      // logDebug('getOpenItemParasForCurrent...', `sortedRefParas...`)
+      // for (let p of sortedRefParas) {
+      //   console.log(`- '${p.timeStr}' in ${p.content}`)
+      // }
       // come back to main thread
       // await CommandBar.onMainThread()
       return [sortedOpenParas, sortedRefParas]
     } else {
-      const combinedParas = sortListBy(openParas.concat(refParas), ['-priority'])
-      const combinedSortedParas = sortListBy(combinedParas, ['-priority'])
+      const combinedParas = openParas.concat(refParas)
+      const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
+      // for TEST: remove later
+      // logDebug('getOpenItemParasForCurrent...', `combinedSortedParas...`)
+      // for (let p of combinedSortedParas) {
+      //   console.log(`- '${p.timeStr}' in ${p.content}`)
+      // }
       // come back to main thread
       // await CommandBar.onMainThread()
       return [combinedSortedParas, []]
@@ -183,11 +208,14 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     // -------------------------------------------------------------
     // Get list of open tasks/checklists from current daily note (if it exists)
     let startTime = new Date() // for timing only
-    let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
+    // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
+    const dateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
+    // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day') // ❌
+    let currentDailyNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
     if (currentDailyNote) {
       const thisFilename = currentDailyNote?.filename ?? '(error)'
-      const dateStr = getDateStringFromCalendarFilename(thisFilename)
-      logDebug('getDataForDashboard', `---------------------------- Looking for Today's items for section #${String(sectionCount)} from ${dateStr}`)
+      // const dateStr = getDateStringFromCalendarFilename(thisFilename)
+      logInfo('getDataForDashboard', `---------------------------- Looking for Today's items for section #${String(sectionCount)} from ${dateStr}`)
       if (!thisFilename.includes(dateStr)) {
         logError('Please', `- filename '${thisFilename}' but '${dateStr}' ??`)
       }
@@ -240,7 +268,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
       // Note: ideally also add completed count for today from referenced notes as well
 
-      logInfo('getDataForDashboard', `- finished finding daily items after ${timer(startTime)}`)
+      logInfo('getDataForDashboard', `- finished finding daily items from ${dateStr} after ${timer(startTime)}`)
     } else {
       logDebug('getDataForDashboard', `No daily note found for filename '${currentDailyNote?.filename ?? 'error'}'`)
     }
@@ -249,11 +277,13 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     // Get list of open tasks/checklists from yesterday's daily note (if wanted and it exists)
     if (config.showYesterdaySection) {
       const yesterday = new moment().subtract(1, 'days').toDate()
-      let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day')
+      const dateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
+      // let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day') // ❌
+      let yesterdaysNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
       if (yesterdaysNote) {
         const thisFilename = yesterdaysNote?.filename ?? '(error)'
-        const dateStr = getDateStringFromCalendarFilename(thisFilename)
-        logDebug('getDataForDashboard', `---------------------------- Looking for Yesterday's items for section #${String(sectionCount)} from ${dateStr}`)
+        // const dateStr = getDateStringFromCalendarFilename(thisFilename)
+        logInfo('getDataForDashboard', `---------------------------- Looking for Yesterday's items for section #${String(sectionCount)} from ${dateStr}`)
         if (!thisFilename.includes(dateStr)) {
           logError('Please', `- filename '${thisFilename}' but '${dateStr}' ??`)
         }
@@ -306,7 +336,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
         // Note: ideally also add completed count for yesterday from referenced notes as well
 
-        logInfo('getDataForDashboard', `- finished finding yesterday's items after ${timer(startTime)}`)
+        logInfo('getDataForDashboard', `- finished finding yesterday's items from ${dateStr} after ${timer(startTime)}`)
       } else {
         logDebug('getDataForDashboard', `No daily note found for filename '${yesterdaysNote?.filename ?? 'error'}'`)
       }
@@ -554,7 +584,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
 
-        const overdueSectionDescription = (totalOverdue > itemCount) ? `first {count} from ${String(totalOverdue)} tasks ordered by ${config.overdueSortOrder}`
+        const overdueSectionDescription = (totalOverdue > itemCount) ? `first {count} of ${String(totalOverdue)} tasks ordered by ${config.overdueSortOrder}`
           : `all {count} tasks ordered by ${config.overdueSortOrder}`
         sections.push({
           ID: sectionCount,
@@ -575,19 +605,41 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       if (isHashtag || isMention) {
         let itemCount = 0
         let totalCount = 0
-        const filteredTagParas: Array<TParagraph> = []
+        let filteredTagParas: Array<TParagraph> = []
 
         // From notes with matching hashtag or mention
         const notesWithTag = findNotesMatchingHashtagOrMention(config.tagToShow)
         for (const n of notesWithTag) {
+          // // Remove items referenced from items in 'ignoreFolders'
+          // logDebug('getDataForDashboard', `- ${notesWithTag.length} tag notes`)
+          // const filteredTagParasFromNote = filterOutParasInExcludeFolders(tagParasFromNote, config.ignoreFolders)
+          // filteredTagParas.push(...filteredTagParasFromNote)
+          // logDebug('getDataForDashboard', `- ${filteredTagParas.length} paras after excluding @special + [${String(config.ignoreFolders)}] folders`)
+
+          // Don't continue if this note is in an excluded folder
+          const thisNoteFolder = getFolderFromFilename(n.filename)
+          if (config.ignoreFolders.includes(thisNoteFolder)) {
+            logDebug('getDataForDashboard', `- ignoring ${n.filename} as it is in an ignored folder`)
+            continue
+          }
+
           // Get the relevant paras from this note
-          const tagParasFromNote = n.paragraphs.filter(p => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
-          // Remove items referenced from items in 'ignoreFolders'
-          // TODO: move this to a check before the filter
-          const filteredTagParasFromNote = filterOutParasInExcludeFolders(tagParasFromNote, config.ignoreFolders)
-          filteredTagParas.push(...filteredTagParasFromNote)
+          let tagParasFromNote = n.paragraphs.filter(p => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
+          // logDebug('getDataForDashboard', `- found ${tagParasFromNote.length} paras`)
+
+          // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
+          // if (config.ignoreTagMentionsWithPhrase !== '') {
+          //   filteredTagParas = tagParasFromNote.filter((p) => !p.content.includes(config.ignoreTagMentionsWithPhrase))
+          // }
+          for (const p of tagParasFromNote) {
+            if (!p.content.includes(config.ignoreTagMentionsWithPhrase)) {
+              filteredTagParas.push(p)
+            } else {
+              logDebug('getDataForDashboard', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
+            }
+          }
         }
-        logDebug('getDataForDashboard', `- ${filteredTagParas.length} paras after excluding @special + [${String(config.ignoreFolders)}] folders`)
+        logDebug('getDataForDashboard', `- ${filteredTagParas.length} paras (after ${timer(startTime)})`)
 
         if (filteredTagParas.length > 0) {
           // Remove possible dupes from sync'd lines

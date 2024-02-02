@@ -1328,6 +1328,7 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
 /**
  * Return a TParagraph object by an exact match to 'content' in file 'filenameIn'. If it fails to find a match, it returns false.
  * Designed to be called when you're not in an Editor (e.g. an HTML Window).
+ * Works on both Project and Calendar notes.
  * @author @jgclark
  * @param {string} filenameIn to look in
  * @param {string} content to find
@@ -1556,14 +1557,17 @@ export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklis
 /**
  * Move a task or checklist from one calendar note to another.
  * It's designed to be used when the para itself is not available; the para will try to be identified from its filename and content, and it will throw an error if it fails.
- * The para will be *prepended* to the destination note in a smart way, to avoid frontmatter.
+ * If 'headingToPlaceUnder' is provided, para is added after it (with heading being created at effective top of note if necessary).
+ * If 'headingToPlaceUnder' the para will be *prepended* to the effective top of the destination note.
  * @author @jgclark
  * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
  * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
  * @param {string} paraContent content of the para to move.
+ * @param {string?} headingToPlaceUnder which will be created if necessary
+ * @returns {boolean} success?
  */
-export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string): boolean {
+export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): boolean {
   logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr}`)
   try {
     // Get calendar note to use
@@ -1583,8 +1587,13 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
     const itemType = possiblePara?.type
 
     // add to toNote
-    logDebug('moveItemBetweenCalendarNotes', `- Prepending type ${itemType} '${paraContent}' to '${displayTitle(toNote)}'`)
-    smartPrependPara(toNote, paraContent, itemType)
+    if (headingToPlaceUnder === '') {
+      logDebug('moveItemBetweenCalendarNotes', `- Prepending type ${itemType} '${paraContent}' to '${displayTitle(toNote)}'`)
+      smartPrependPara(toNote, paraContent, itemType)
+    } else {
+      logDebug('moveItemBetweenCalendarNotes', `- Adding under heading '${headingToPlaceUnder}' in '${displayTitle(toNote)}'`)
+      toNote.addParagraphBelowHeadingTitle(paraContent, itemType, headingToPlaceUnder, false, true)
+    }
 
     // Assuming that's not thrown an error, now remove from fromNote
     logDebug('moveItemBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
@@ -1596,7 +1605,7 @@ export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr:
 
     return true
   } catch (err) {
-    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message}`)
+    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraContent}} from ${NPFromDateStr} to ${NPToDateStr}`)
     return false
   }
 }
