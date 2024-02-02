@@ -4,6 +4,15 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.18.3] 2024-02-02 @dwertheimer
+
+- Added ability for BY_TIMEBLOCK_TAG to work for multiple sessions in a day of the same name, e.g. HighEnergy. Thx @Crambeary
+- Fix /atb to work with NP's new auto-writing Timeblocks to Calendar
+
+## [1.18.2] 2024-02-01 @dwertheimer
+
+- Added more logging to help find a bug
+
 ## [1.18.1] 2024-01-04 @dwertheimer
 
 - Update language around Synced Copies preference (thanks @dutcheness)

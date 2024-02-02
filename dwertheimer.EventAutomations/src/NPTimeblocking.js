@@ -12,7 +12,6 @@
 import { addMinutes } from 'date-fns'
 import pluginJson from '../plugin.json'
 import { addTrigger } from '../../helpers/NPFrontMatter'
-import { saveEditorToCache } from '../../jgclark.Reviews/src/reviewHelpers'
 import type { AutoTimeBlockingConfig } from './config'
 import {
   blockOutEvents,
@@ -75,8 +74,14 @@ export const editorIsOpenToToday = (): boolean => {
   }
   return getDateStringFromCalendarFilename(fileName) === getTodaysDateUnhyphenated()
 }
-
-export function deleteParagraphsContainingString(destNote: CoreNoteFields, timeBlockTag: string): void {
+/**
+ * Deletes paragraphs containing a specific string from the given note and returns the strings without the leading time signature
+ *
+ * @param {CoreNoteFields} destNote - the note to delete paragraphs from
+ * @param {string} timeBlockTag - the string to search for in the paragraphs
+ * @return {Array<string>} - the contents of the deleted paragraphs without the AutoTimeBlocking tag
+ */
+export function deleteParagraphsContainingString(destNote: CoreNoteFields, timeBlockTag: string): Array<string> {
   const destNoteParas = destNote.paragraphs
   const parasToDelete = []
   for (let i = 0; i < destNoteParas.length; i++) {
@@ -89,6 +94,7 @@ export function deleteParagraphsContainingString(destNote: CoreNoteFields, timeB
     const deleteListByIndex = sortListBy(parasToDelete, ['lineIndex']) //NP API may give wrong results if lineIndexes are not in ASC order
     destNote.removeParagraphs(deleteListByIndex)
   }
+  return parasToDelete.map((p) => p.content.replace(timeBlockTag, '').replace(/^\d{2}:\d{2}-\d{2}:\d{2} /g, ''))
 }
 
 export async function insertItemsIntoNote(
@@ -162,17 +168,29 @@ function getExistingTimeBlocksFromNoteAsEvents(note: CoreNoteFields, defaultDura
   return timeBlocksAsEvents
 }
 
+/**
+ * Get a time map populated with the calendar events for the day
+ * @param {string} dateStr
+ * @param {number} intervalMins
+ * @param {AutoTimeBlockingConfig} config
+ * @returns
+ */
 async function getPopulatedTimeMapForToday(dateStr: string, intervalMins: number, config: AutoTimeBlockingConfig): Promise<IntervalMap> {
   // const todayEvents = await Calendar.eventsToday()
   const eventsArray = await getEventsForDay(dateStr)
   const eventsWithStartAndEnd = getTimedEntries(eventsArray || [])
   let eventsScheduledForToday = keepTodayPortionOnly(eventsWithStartAndEnd)
+  clo(eventsScheduledForToday[0], `eventsScheduledForToday[0]`)
+  // ignore NP calendar entries that are timeblocks (we will pick those up later)
+  // remove the timebocks that NP wrote to the calendar and may not have been deleted yet
+  eventsScheduledForToday = eventsScheduledForToday.filter((e) => !e.notes.startsWith('NPTB:'))
   if (Editor) {
     const duration = checkWithDefault(checkNumber, 60)
     const userEnteredTimeblocks = getExistingTimeBlocksFromNoteAsEvents(Editor, duration)
     eventsScheduledForToday = [...userEnteredTimeblocks, ...eventsScheduledForToday]
   }
   const blankDayMap = getBlankDayMap(parseInt(intervalMins))
+
   // $FlowFixMe - [prop-missing] and [incompatible-variance]
   const eventMap = blockOutEvents(eventsScheduledForToday, blankDayMap, config)
   return eventMap
@@ -296,11 +314,13 @@ export function getTodaysFilteredTodos(config: AutoTimeBlockingConfig): Array<TP
   logDebug(pluginJson, `Found ${backLinksAndNoteTodos.length} backlinks+today-note items (may include completed items)`)
   const undupedBackLinkParas = eliminateDuplicateSyncedParagraphs(backLinksAndNoteTodos, 'most-recent', true)
   logDebug(pluginJson, `Found ${undupedBackLinkParas.length} undupedBackLinkParas after duplicate elimination`)
+  clo(undupedBackLinkParas, `undupedBackLinkParas`)
   let todosParagraphs: Array<TParagraph> = makeAllItemsTodos(undupedBackLinkParas) //some items may not be todos but we want to pretend they are and timeblock for them
+  logDebug(pluginJson, `After makeAllItemsTodos, ${todosParagraphs.length} potential items`)
   todosParagraphs = Array.isArray(includeTasksWithText) && includeTasksWithText?.length > 0 ? includeTasksWithPatterns(todosParagraphs, includeTasksWithText) : todosParagraphs
-  logDebug(pluginJson, `After includeTasksWithText, ${todosParagraphs.length} potential items`)
+  logDebug(pluginJson, `After includeTasksWithPatterns (${(includeTasksWithText ?? []).join(', ')}), ${todosParagraphs.length} potential items`)
   todosParagraphs = Array.isArray(excludeTasksWithText) && excludeTasksWithText?.length > 0 ? excludeTasksWithPatterns(todosParagraphs, excludeTasksWithText) : todosParagraphs
-  logDebug(pluginJson, `After excludeTasksWithText, ${todosParagraphs.length} potential items`)
+  logDebug(pluginJson, `After excludeTasksWithPatterns (${(excludeTasksWithText ?? []).join(', ')}), ${todosParagraphs.length} potential items`)
   return todosParagraphs.filter((t) => t.content)
 }
 
@@ -356,7 +376,6 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
       logDebug(pluginJson, `After sortListBy, ${sortedTodos.length} open items  Editor.paras=${Editor.paragraphs.length}`)
       // $FlowIgnore
       if (timeBlockTag?.length) {
-        await deleteParagraphsContainingString(note, timeBlockTag) // Delete our timeblocks before scanning note for user-entered timeblocks
         logDebug(pluginJson, `After deleteParagraphsContainingString("${timeBlockTag}"), Editor.paras=${Editor.paragraphs.length}`)
       } else {
         logError(pluginJson, `timeBlockTag was empty. That's not good. I told the user.`)
@@ -366,7 +385,6 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
       }
       // $FlowIgnore
       if (eventEnteredOnCalTag?.length) {
-        await deleteParagraphsContainingString(note, eventEnteredOnCalTag) // Delete @jgclark timeblocks->calendar breadcrumbs also
         logDebug(pluginJson, `After deleteParagraphsContainingString("${eventEnteredOnCalTag}"), Editor.paras=${Editor.paragraphs.length}`)
       } else {
         logError(pluginJson, `eventEnteredOnCalTag was empty. That's not good. I told the user.`)
@@ -430,13 +448,15 @@ export async function createTimeBlocksForTodaysTasks(config: AutoTimeBlockingCon
               ),
             )
           }
-          clo(timeBlockTextList, `getTimeBlockTimesForEvents timeBlockTextList`)
+          clo(
+            timeBlockTextList,
+            `getTimeBlockTimesForEvents Before writing: Editor.paras=${Editor.paragraphs.length} Editor.note.paras=${Editor.note?.paragraphs.length || 0}; timeBlockTextList=`,
+          )
           await insertItemsIntoNote(Editor, timeBlockTextList, config.timeBlockHeading, config.foldTimeBlockHeading, config)
         }
 
         logDebug(pluginJson, `\n\nAUTOTIMEBLOCKING SUMMARY:\n\n`)
-        logDebug(pluginJson, `After cleaning, ${tasksByType?.open?.length ?? 0} open items,  Editor.paras=${Editor.paragraphs.length}`)
-
+        logDebug(pluginJson, `After cleaning, ${tasksByType?.open?.length ?? 0} open items`)
         logDebug(pluginJson, `createTimeBlocksForTodaysTasks inserted ${String(timeBlockTextList?.length)} items  Editor.paras=${Editor.paragraphs.length}`)
         if (createCalendarEntries) {
           logDebug(pluginJson, `About to create calendar entries  Editor.paras=${Editor.paragraphs.length}`)
