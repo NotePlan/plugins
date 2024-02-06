@@ -232,14 +232,17 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
             logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Will process time block '${timeBlockString}' for '${restOfTaskWithoutDateTime}'`)
 
             // Do we want to add this particular event?
-            if (config.confirmEventCreation) {
-              const res = await showMessageYesNoCancel(`Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`, ['Yes', 'No', 'Cancel'], 'Make event from time block')
+            let keepAsking = true
+            if (config.confirmEventCreation && keepAsking) {
+              const res = await showMessageYesNoCancel(`Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`, ['Yes to all', 'Yes', 'No', 'Cancel'], 'Make event from time block')
               if (res === 'No') {
                 continue // go to next time block
               } else if (res === 'Cancel') {
                 logDebug('NPCalendar / writeTimeBlocksToCalendar', `User cancelled rest of the command.`)
                 i = timeblockParas.length
                 continue // cancel out of all time blocks
+              } else if (res === 'Yes to all') {
+                keepAsking = false
               }
             }
             const eventRange = { start: timeblockDateRange.start, end: timeblockDateRange.end }

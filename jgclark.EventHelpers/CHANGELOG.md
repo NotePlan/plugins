@@ -2,6 +2,11 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.21.1] - 2024-02-06 @jgclark
+### New
+- added 'Yes to all' as an option to the dialog when creating time blocks in "time blocks to calendar" and "process date offsets" commands
+- extended 'shift dates' command to work on week dates (`>YYYY-Wnn`) as well as day dates
+- extended 'process date offsets' and 'shift dates' commands to remove any blockIDs from lines before they change
 
 ## [0.21.0] - 2023-09-29 @jgclark
 ### New

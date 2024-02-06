@@ -168,6 +168,16 @@ describe(`${PLUGIN_NAME}`, () => {
       const result = st.stripBlockIDsFromString(input)
       expect(result).toEqual('- this has one blockID')
     })
+    test('should strip 1 blockID at end of line', () => {
+      const input = '+ Offset 0d {0d} ^135931'
+      const result = st.stripBlockIDsFromString(input)
+      expect(result).toEqual('+ Offset 0d {0d}')
+    })
+    test('should strip 1 blockID at end of line', () => {
+      const input = '+ Offset 0d >2024-02-06 ^135931'
+      const result = st.stripBlockIDsFromString(input)
+      expect(result).toEqual('+ Offset 0d >2024-02-06')
+    })
     test('should strip 2 blockIDs', () => {
       const input = '- this has two ^123def blockIDs for some reason ^abc890'
       const result = st.stripBlockIDsFromString(input)

@@ -1023,7 +1023,6 @@ export function splitIntervalToParts(intervalStr: string): { number: number, typ
   const interval = intervalStr.replace(/[{}]/g, '')
   const intervalNumber = Number(interval.slice(0, interval.length - 1))
   const intervalChar = interval.charAt(interval.length - 1);
-  console.log(intervalChar, ' ', intervalNumber)
   const intervalType = (intervalChar === 'd') ? 'day'
     : (intervalChar === 'w') ? 'week'
       : (intervalChar === 'm') ? 'month'
@@ -1187,7 +1186,6 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
  * If the date to offset isn't supplied, today's date will be used.
  * (Uses 'moment' library to avoid using NP calls. Docs: https://momentjs.com/docs/#/get-set/)
  * @author @jgclark
- *
  * @param {string} offsetInterval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @param {string?} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type. If not given then today's date is used.
  * @returns {string} new date in the same format that was supplied

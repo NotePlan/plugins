@@ -23,6 +23,7 @@ import {
   RE_YYYYMMDD_DATE,
   RE_NP_MONTH_SPEC,
   RE_NP_QUARTER_SPEC,
+  RE_NP_WEEK_SPEC,
   todaysDateISOString,
   toISOShortDateTimeString,
 } from './dateTime'
@@ -650,17 +651,15 @@ export function pad(n: number): string {
 }
 
 /**
- * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string or a Date object
+ * Get all the week details for a given unhyphenated|hyphenated(ISO8601) date string, a week string (YYYY-Wnn) or a Date object
  * Week info is offset depending on the NotePlan setting for the first day of the week
  * Note: requires API calls introduced in v3.7.0
- * @param {string} dateIn - date string in format YYYY-MM-DD OR a Date object (default = today).
- * Note:
- *    Make sure that if you send in a date that it's a date in the correct time/timezone you want.
- *    If you create a new date of your own without a time (e.g. new Date("2022-01-01")) it could produce a date
- *    in a previous or next day depending on your timezone. So if you are creating the date, just send through
- *    the date string rather than a date object
+ * @param {string} dateIn - date string in format YYYY-MM-DD, YYYYMMDD, YYYY-Wnn OR a Date object (default = today).
+ * Note: Make sure that if you send in a date object that it's a date in the correct time/timezone you want.
+ * If you create a new date of your own without a time (e.g. new Date("2022-01-01")) it could produce a date
+ * in a previous or next day depending on your timezone. So if you are creating the date, just send through the date string rather than a date object.
  * @param {number} offsetIncrement - number of days|weeks|month to add (or negative=subtract) to date (default: 0)
- * @param {string} offsetType - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'week')
+ * @param {string} offsetType - the increment to add/subtract: 'day'|'week'|'month'|'year' (default: 'week'). Note: not quarters!
  * @returns { NotePlanWeekInfo | null } - an object with all the week details, or null if there's an error
  * getNPWeekData: alias weekInfo, weekData, getWeek, weeklyNote
  * {
@@ -671,8 +670,7 @@ export function pad(n: number): string {
  *   endDate: Date,
  *   date: Date,
  * }
- * @author @dwertheimer
- * @test - available in jest file
+ * @author @dwertheimer, extended by @jgclark
  */
 export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncrement: number = 0, offsetType: string = 'week'): NotePlanWeekInfo | null {
   try {
@@ -685,7 +683,8 @@ export function getNPWeekData(dateIn: string | Date = new Date(), offsetIncremen
       newMom
     if (typeof dateIn === 'string') {
       if (new RegExp(RE_YYYYMMDD_DATE).test(dateIn)) dateStrFormat = 'YYYYMMDD'
-      newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)
+      if (new RegExp(RE_NP_WEEK_SPEC).test(dateIn)) dateStrFormat = 'YYYY-[W]WW'
+      newMom = moment(dateIn, dateStrFormat).add(offsetIncrement, offsetType)        
     } else {
       newMom = moment(dateIn).add(offsetIncrement, offsetType)
     }
