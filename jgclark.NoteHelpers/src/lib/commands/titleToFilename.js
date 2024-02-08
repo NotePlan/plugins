@@ -12,7 +12,7 @@ export async function titleToFilename(): Promise<void> {
     const { note } = Editor
 
     if (note) {
-      const shouldContinue = await renameNoteToTitle(note)
+      await renameNoteToTitle(note)
     }
   } catch (error) {
     logError(error)
