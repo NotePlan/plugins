@@ -140,6 +140,14 @@
       "jsFunction": "listInconsistentNames"
     },
     {
+      "name": "reset title to match filename",
+      "alias": [
+        "filenameToTitle"
+      ],
+      "description": "Resets the current note title to match its filename.",
+      "jsFunction": "filenameToTitle"
+    },
+    {
       "name": "rename filename to title",
       "alias": [
         "titleToFilename"
