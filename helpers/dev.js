@@ -387,6 +387,7 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
       return config
     }
   } catch (error) {
+    logError('overrideSettingsWithStringArgs', JSP(error))
     console.log(JSP(error))
   }
 }
@@ -412,7 +413,7 @@ export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): 
       return config
     }
   } catch (error) {
-    console.log(JSP(error))
+    logError('overrideSettingsWithTypedArgs', JSP(error))
   }
 }
 
@@ -427,6 +428,6 @@ export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJ
   try {
     return overrideSettingsWithTypedArgs(config, decodeURIComponent(argsAsEncodedJSON))
   } catch (error) {
-    console.log(JSP(error))
+    logError('overrideSettingsWithEncodedTypedArgs', JSP(error))
   }
 }
