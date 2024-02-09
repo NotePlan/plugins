@@ -147,9 +147,10 @@ For example:
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0={"period": "2022-02-15", "excludeToday": true, "progressHeading": "Post-Birthday Habits", "showSparklines": true}
 ```
 
-Note: Any string-based value part must be enclosed in **double quote marks** to make it valid JSON5.
-
-Note: The JSON parts needs to be **URL-encoded** before it can be used. (For help with this, see the **Get-X-Callback-URL command** from the "Link Creator" Plugin. Select RUN a Plugin command > progressUpdate ...)
+Notes: 
+- Any string-based value part must be enclosed in **double quote marks** to make it valid JSON5.
+- Any arrays need to be enclosed in square brackets, e.g. `"key":["one","two","three"]` (not `"key":"one,two,three"` which will be treated as a single string)
+- The JSON parts needs to be **URL-encoded** before it can be used. (For help with this, see the **Get-X-Callback-URL command** from the "Link Creator" Plugin. Select RUN a Plugin command > progressUpdate ...)
 
 ## 'today progress' command (alias: 'tp')
 Sometimes you want to have a summary of progress on something within a day -- for example `@carlories(...)` or `@exercise(...)`. To summarise these from today's daily note use **/today progress**, which works in the same way as **/append progress update**.

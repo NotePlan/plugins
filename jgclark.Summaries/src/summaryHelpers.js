@@ -116,7 +116,7 @@ export async function getSummariesSettings(): Promise<any> {
  */
 export class TMOccurrences {
   // the class instance properties
-  term: string
+  term: string // mention or hashtag (TEST: with @ or #)
   type: string // 'daily-average', 'item-average', 'total', 'yesno', 'count'
   interval: string // currently only 'day' supported
   dateStr: string // typically YYYY-MM-DD, but also YYYY-Wnn
