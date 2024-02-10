@@ -1,8 +1,10 @@
 # ⚡️ QuickCapture plugin
 This plugin provides commands to more quickly add tasks/todos or general text to NotePlan notes, _without having to switch away from the note you're currently working on_:
 
+- **/quick add text to inbox** (alias **/jot** or **/inj**): Quickly add a text 'jot' to your chosen Inbox location. (To configure this, see below.)
 - **/quick add task to inbox** (alias **/int**): Quickly add a task to your chosen Inbox location. (To configure this, see below.)
 - **/quick append task to note** (alias **/qat**): Quickly append a task to a chosen project note
+- **/quick add checklist under heading** (alias **/qach**): Quickly add a checklist at the top of a chosen note's heading
 - **/quick add task under heading** (alias **/qath**): Quickly add a task at the top of a chosen note's heading
 - **/quick add line under heading** (alias **/qalh**): Quickly add text lines at the top of a chosen note's heading
 - **/quick add to calendar note** (alias **/qac**): Quickly add a task to a chosen calendar note
@@ -32,7 +34,8 @@ The settings are:
 - 'Where is your Inbox?': Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note. Or  choose 'Fixed' and then add the note title in the next setting
 - 'InboxTitle': If the previous setting is set to 'Fixed', this is where you set the Title of that note. (Default: "📥 Inbox".)
 - 'Where to add in Inbox?': either "prepend" (start) or "append" (end) in Inbox (and the other commands which use the term 'add'). Note: if the note has frontmatter, the item will be added _after_ that.
-- 'Text to append to new inbox tasks': optional text  (that can include hashtags or mentions) to append to any tasks captured to the inbox.
+- 'Text to append to new inbox jots': optional text  (that can include hashtags, mentions or emojis) to add on the end of any text 'jots' captured to the inbox. By default it is '💡'.
+- 'Text to append to new inbox tasks': optional text  (that can include hashtags, mentions or emojis) to add on the end of any tasks captured to the inbox.
 
 ## Using from x-callback calls
 From v0.9 it's possible to call each of these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:

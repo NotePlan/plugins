@@ -1,6 +1,14 @@
 # What's changed in ⚡️ Quick Capture
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.QuickCapture), and how to configure.
 
+## [0.16.0] - 2024-02-???
+### Added
+- new **/quick add checklist under heading** command
+- new **/jot** command (full name **/quick add text to inbox**) to quickly 'jot' (add some text) to your chosen Inbox note
+
+### Fixed
+- notes with pairs of `***` separators aren't now sometimes confused with frontmatter sections (thanks to report by @haris-sav)
+
 ## [0.15.2] - 2023-12-07
 ### Fixed
 - '/quick add task under heading' using wrong paragraph type when inserting at top of note (thanks to tip by @laestrella26)

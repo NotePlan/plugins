@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helpers for QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 17.8.2023 for v0.14.0 by @jgclark
+// last update 10.2.2024 for v0.16.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -26,6 +26,7 @@ export type QCConfigType = {
   inboxLocation: string,
   inboxTitle: string,
   textToAppendToTasks: string,
+  textToAppendToJots: string,
   addInboxPosition: string,
   journalHeading: string,
   shouldAppend: boolean, // special case set in getQuickCaptureSettings()
