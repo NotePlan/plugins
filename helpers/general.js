@@ -388,7 +388,7 @@ export function stringReplace(inputString: string = '', replacementArray: Array<
 
 /**
  * Get a particular parameter setting from a JSON5 parameter string
- * (Replaces an earlier version called getTagParams)
+ * Note: Replaces an earlier version called getTagParams
  * @author @dwertheimer
  *
  * @param {string} paramString - the contents of the template tag as a JSON5 string (e.g. either '{"template":"FOO", "area":"BAR"}' or '{template:"FOO", area:"BAR"}')
@@ -403,7 +403,7 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
       throw new Error("Can't look for empty wantedParam")
     }
     if (paramString === '') {
-      logDebug('general/getTagParamsFromString', `Empty paramString, so returning defaultValue`)
+      // logDebug('general/getTagParamsFromString', `Empty paramString, so returning defaultValue`)
       return defaultValue
     }
     // $FlowIgnore(incompatible-type) as can produce 'any'
@@ -412,9 +412,9 @@ export async function getTagParamsFromString(paramString: string, wantedParam: s
     if (typeof paramObj !== 'object') {
       throw new Error('JSON5 parsing did not return an object')
     }
-    // clo(paramObj)
+    // clo(paramObj, 'paramObj')
     const output = paramObj.hasOwnProperty(wantedParam) ? paramObj[wantedParam] : defaultValue
-    // logDebug('general/getTagParamsFromString', `--> ${output}`)
+    // logDebug('general/getTagParamsFromString', `--> ${output} type ${typeof output}`)
     return output
   } catch (e) {
     logError('general/getTagParamsFromString', `${e}. paramString="${paramString}". wantedParam="${wantedParam}" defaultValue="${defaultValue}". Returning an error string.`)

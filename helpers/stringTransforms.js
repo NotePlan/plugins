@@ -280,8 +280,8 @@ export function stripBlockIDsFromString(original: string): string {
   const REGEX = new RegExp(RE_SYNC_MARKER, 'g')
   const captures = Array.from(output.matchAll(REGEX) ?? [])
   if (captures.length > 0) {
-    // clo(captures, 'results from blockID match:')
     for (const capture of captures) {
+      // logDebug('stripBlockIDsFromString', `- found '${capture[0]}'`)
       output = output
         .replace(capture[0], '')
         .replace(/\s{2,}/, ' ')

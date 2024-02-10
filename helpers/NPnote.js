@@ -31,12 +31,78 @@ const pluginJson = 'NPnote.js'
 //-------------------------------------------------------------------------------
 
 /**
+ * Get a note from (in order):
+ * - its title (for a project note)
+ * - its relative date description ('today', 'yesterday', 'tomorrow', 'this week', 'last week', 'next week')
+ * - an ISO date (i.e. YYYY-MM-DD)
+ * - for date intervals '{[+-]N[dwmqy]}' calculate the date string relative to today
+ * - for calendar notes, from it's NP date string (e.g. YYYYMMDD, YYYY-Wnn etc.)
+ * @param {string} noteIdentifier: project note title, or date interval (e.g.'-1d'), or NotePlan's (internal) calendar date string
+ * @returns {TNote?} note if found, or null
+ */
+export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
+  try {
+    let thisFilename = ''
+    const noteIdentifier = (noteIdentifierIn === 'today')
+      ? '{0d}'
+      : (noteIdentifierIn === 'yesterday')
+        ? '{-1d}'
+        : (noteIdentifierIn === 'tomorrow')
+          ? '{+1d}'
+          : (noteIdentifierIn === 'this week')
+            ? '{0w}'
+            : (noteIdentifierIn === 'last week')
+              ? '{-1w}'
+              : (noteIdentifierIn === 'next week')
+                ? '{+1w}'
+                : noteIdentifierIn
+    const possibleProjectNotes = DataStore.projectNoteByTitle(noteIdentifier) ?? []
+    if (possibleProjectNotes.length > 0) {
+      thisFilename = possibleProjectNotes[0].filename
+      logDebug('NPnote/getNoteFilenameFromTitle', `-> found project note with filename '${thisFilename}'`)
+      return possibleProjectNotes[0]
+    }
+    // Not a project note, so look at calendar notes
+    let possDateString = noteIdentifier
+    if (new RegExp(RE_OFFSET_DATE).test(possDateString)) {
+      // this is a date interval, so -> date string relative to today
+      // $FlowIgnore[incompatible-use]
+      const thisOffset = possDateString.match(new RegExp(RE_OFFSET_DATE_CAPTURE))[1]
+      possDateString = calcOffsetDateStrUsingCalendarType(thisOffset)
+      logDebug('NPnote/getNoteFilenameFromTitle', `found offset date ${thisOffset} -> '${possDateString}'`)
+    }
+    // If its YYYY-MM-DD then have to turn it into YYYYMMDD
+    if (new RegExp(RE_ISO_DATE).test(possDateString)) {
+      possDateString = unhyphenateString(possDateString)
+    }
+    // If this matches a calendar note by filename (YYYYMMDD or YYYY-Wnn etc.)
+    if (isValidCalendarNoteFilenameWithoutExtension(possDateString)) {
+      const thisNote = DataStore.calendarNoteByDateString(possDateString)
+      if (thisNote) {
+        thisFilename = thisNote.filename
+        logDebug('NPnote/getNoteFilenameFromTitle', `-> found calendar note with filename '${thisFilename}' from ${possDateString}`)
+        return thisNote
+      } else {
+        logError('NPnote/getNoteFilenameFromTitle', `${possDateString} doesn't seem to have a calendar note?`)
+      }
+    } else {
+      logError('NPnote/getNoteFilenameFromTitle', `${possDateString} is not a valid date string`)
+    }
+    logError('NPnote/getNoteFilenameFromTitle', `-> no note found for '${noteIdentifierIn}'`)
+    return null
+  } catch (err) {
+    logError(pluginJson, err.message)
+    return null
+  }
+}
+
+/**
  * Get a note's filename from (in order):
  * - its title (for a project note)
  * - an ISO date (i.e. YYYY-MM-DD)
- * - for date intervals '{+/-N[dwmqy}' calculate the date string relative to today
- * - for calendar notes, from it's NP date string (e.g. YYYY-MM-DD, YYYY-Wnn etc.)
- * @param {string} input: project note, or NotePlan's (internal) calendar date string
+ * - for date intervals '[+-]N[dwmqy]' calculate the date string relative to today
+ * - for calendar notes, from it's NP date string (e.g. YYYYMMDD, YYYY-Wnn etc.)
+ * @param {string} inputStr: project note title, or date interval (e.g.'-1d'), or NotePlan's (internal) calendar date string
  * @returns {string} filename of note if found, or null
  */
 export function getNoteFilenameFromTitle(inputStr: string): string | null {

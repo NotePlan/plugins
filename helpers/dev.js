@@ -387,13 +387,16 @@ export function overrideSettingsWithStringArgs(config: any, argsAsString: string
       return config
     }
   } catch (error) {
+    logError('overrideSettingsWithStringArgs', JSP(error))
     console.log(JSP(error))
   }
 }
 
 /**
  * Add or override parameters from args to the supplied config object. This is the **advanced version** that respects more complex typing of the passed arguments, by using JSON.
- * Note: tested with strings, ints, floats, boolean and array of strings.
+ * This has been tested with strings, ints, floats, boolean and array of strings.
+ * Note: on reflection the name '...TypedArgs' is a bit of a misnomer. Perhaps '...JSONArgs' is more accurate.
+ * Note: input `"key":"one,two,three"` will be treated as a string. To treat as an array, need `"key":["one","two","three"]`
  * @author @jgclark
  * @param {any} config object
  * @param {string} argsAsJSON e.g. '{"style":"markdown", "excludedFolders":["one","two","three"]}'
@@ -412,12 +415,13 @@ export function overrideSettingsWithTypedArgs(config: any, argsAsJSON: string): 
       return config
     }
   } catch (error) {
-    console.log(JSP(error))
+    logError('overrideSettingsWithTypedArgs', JSP(error))
   }
 }
 
 /**
  * A version of overrideSettingsWithTypedArgs that first URL-decodes the args
+ * As above, Note: on reflection the name '...TypedArgs' is a bit of a misnomer. Perhaps '...JSONArgs' is more accurate.
  * @author @jgclark
  * @param {any} config object
  * @param {string} argsAsEncodedJSON e.g. '%7B%22style%22%3A%22markdown%22%2C%20%22exludedFolders%3A%5B%22one%22%2C%22two%22%2C%22three%22%5D%7D'
@@ -427,6 +431,6 @@ export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJ
   try {
     return overrideSettingsWithTypedArgs(config, decodeURIComponent(argsAsEncodedJSON))
   } catch (error) {
-    console.log(JSP(error))
+    logError('overrideSettingsWithEncodedTypedArgs', JSP(error))
   }
 }

@@ -83,6 +83,8 @@ Its settings are:
 - Set any finished (i.e. completed or cancelled) tasks to open? Default: true.
 - Remove any 'processed tag name' on tasks or checklists? Whether to remove any 'processed tag name' (from the settings for "/time blocks to calendar" command above) from tasks or checklists. Default: true.
 
+Note: if the line contains a blockID (link to another line), this will be removed before the date is shifted.
+
 ## /process date offsets
 User George Crump (@george65) has created a [video showing how this command works](https://drive.google.com/file/d/10suCe0x8QPbHw_7h4Ao4zwWf_kApEOKH/view).
 
@@ -114,6 +116,8 @@ In more detail:
 | \#\#\# Easter Preparations >2022-03-01<br />\* Use up sweet treats (Shrove Tuesday) {0d}<br />\* Start Lent (Ash Wednesday) {^+1d}<br />\* End of Lent {^+-6w}<br />\* Remember Last Supper {^+1d} <br />\* Good Friday {^+1d} <br />\* Easter Sunday {^+2d} | \#\#\# Easter Preparations >2022-03-01 to >2022-04-17<br />\* Use up sweet treats (Shrove Tuesday) >2022-03-01<br />\* Start Lent (Ash Wednesday) >2022-03-02<br />\* End of Lent >2022-04-13<br />\* Remember Last Supper >2022-04-14<br />\* Good Friday >2022-04-15<br />\* Easter Sunday >2022-04-17 |
 
 If a base date can't be found, the command will ask you to supply a date.
+
+Note: any blockIDs (links to another line) are removed before the offset is calculated.
 
 ## Display of Time Blocks
 If you're using the **time blocks to calendar** command with a format that includes the START and END times, then it's likely that the NotePlan will still see a time block for the text of the event, and so in the calendar area show the event _and_ a time block for it. To avoid this you can either

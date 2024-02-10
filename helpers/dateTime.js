@@ -1013,6 +1013,27 @@ export function calcOffsetDate(baseDateStrIn: string, interval: string): Date | 
 }
 
 /**
+ * Split an interval (e.g. '-3m') into number (e.g. -3) and type ('month') parts
+ * If interval arrives with {...} around the terms, remove them first
+ * @param {string} intervalStr (e.g. '-3m' or '{-3m}')
+ * @returns {{number, string}} parts of interval
+ * @tests in jest file
+ */
+export function splitIntervalToParts(intervalStr: string): { number: number, type: string } {
+  const interval = intervalStr.replace(/[{}]/g, '')
+  const intervalNumber = Number(interval.slice(0, interval.length - 1))
+  const intervalChar = interval.charAt(interval.length - 1);
+  const intervalType = (intervalChar === 'd') ? 'day'
+    : (intervalChar === 'w') ? 'week'
+      : (intervalChar === 'm') ? 'month'
+        : (intervalChar === 'q') ? 'quarter'
+          : (intervalChar === 'y') ? 'year'
+            : 'error'
+  const intervalParts = { number: intervalNumber, type: intervalType }
+  return intervalParts
+}
+
+/**
  * Calculate an offset date of any date interval NP supports, and return _in whichever format was supplied_.
  * v5 method, using 'moment' library to avoid using NP calls, now extended to allow for Weekly, Monthly etc. strings as well.
  * WARNING: don't use when you want the output to be in week format, as the moment library doesn't understand different start-of-weeks. Use NPdateTime::getNPWeekData() instead.
@@ -1165,7 +1186,6 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
  * If the date to offset isn't supplied, today's date will be used.
  * (Uses 'moment' library to avoid using NP calls. Docs: https://momentjs.com/docs/#/get-set/)
  * @author @jgclark
- *
  * @param {string} offsetInterval of form +nn[bdwmq] or -nn[bdwmq], where 'b' is weekday (i.e. Monday - Friday in English)
  * @param {string?} baseDateISO is type ISO Date (i.e. YYYY-MM-DD) - NB: different from JavaScript's Date type. If not given then today's date is used.
  * @returns {string} new date in the same format that was supplied

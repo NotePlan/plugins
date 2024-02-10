@@ -15,7 +15,7 @@ beforeAll(() => {
   global.DataStore = DataStore
   global.Editor = Editor
   global.NotePlan = new NotePlan()
-  DataStore.settings['_logLevel'] = 'none' // change this to DEBUG to get more logging, or 'none' for quiet
+  DataStore.settings['_logLevel'] = 'DEBUG' // change this to DEBUG to get more logging, or 'none' for quiet
 })
 
 const PLUGIN_NAME = `📙 ${colors.yellow('helpers/dateTime')}`
@@ -1060,6 +1060,59 @@ describe(`${PLUGIN_NAME}`, () => {
       test('2023-01-01 +1y -> 2024', () => {
         const result = dt.calcOffsetDateStrUsingCalendarType('1y', '2023-01-01')
         expect(result).toEqual('2024')
+      })
+    })
+  })
+
+  /* splitIntervalToParts() */
+  describe('splitIntervalToParts()' /* function */, () => {
+    test('0d', () => {
+      const result = dt.splitIntervalToParts('0d')
+      expect(result).toEqual({
+        number: 0,
+        type: 'day',
+      })
+    })
+    test('-3d', () => {
+      const result = dt.splitIntervalToParts('-3d')
+      expect(result).toEqual({
+        number: -3,
+        type: 'day',
+      })
+    })
+    test('{10d}', () => {
+      const result = dt.splitIntervalToParts('{10d}')
+      expect(result).toEqual({
+        number: 10,
+        type: 'day',
+      })
+    })
+    test('2w', () => {
+      const result = dt.splitIntervalToParts('2w')
+      expect(result).toEqual({
+        number: 2,
+        type: 'week',
+      })
+    })
+    test('+6m', () => {
+      const result = dt.splitIntervalToParts('+6m')
+      expect(result).toEqual({
+        number: 6,
+        type: 'month',
+      })
+    })
+    test('-1q', () => {
+      const result = dt.splitIntervalToParts('-1q')
+      expect(result).toEqual({
+        number: -1,
+        type: 'quarter',
+      })
+    })
+    test('2y', () => {
+      const result = dt.splitIntervalToParts('2y')
+      expect(result).toEqual({
+        number: 2,
+        type: 'year',
       })
     })
   })

@@ -65,10 +65,11 @@ export async function progressUpdate(params: any = '', sourceIn: string = ''): P
  * Work out the progress stats of interest (on hashtags and/or mentions) so far this week or month, and write out to current note.
  * Defaults to looking at week to date ("wtd") but can specify month to date ("mtd") as well, or 'last7d', 'last2w', 'last4w'.
  * If it's week to date, then use the user's first day of week from NP setting.
+ * TODO: fix why a 'refresh' jumps to the end of the note
  * @author @jgclark
  *
  * @param {any?} paramsIn - can pass parameter string (in JSON format) e.g. '{"period": "mtd", "progressHeading": "Progress"}' or as a JS object
- * @param {string?} source of this call (callback/template); if not given defaults to 'command'
+ * @param {string?} source of this call: 'callback', 'template' or 'command' (the default)
  * @returns {string|void} - either return string to Template, or void to plugin
  */
 export async function makeProgressUpdate(paramsIn: any = '', source: string = 'command'): Promise<string | void> {
@@ -78,7 +79,7 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
     let settingsForGO: OccurrencesConfig
 
     logDebug(pluginJson, `makeProgressUpdate: Starting with params '${paramsIn}' (type: ${typeof paramsIn}) from source '${source}'`)
-    // If an object param has been passed, then we've been called by a template, and so turned into JSON string
+    // If an object param has been passed, then we've been called by a template (including refreshes), and so turned into JSON string
     const params = (paramsIn)
       ? (typeof paramsIn === 'object')
         ? JSON.stringify(paramsIn)
@@ -86,11 +87,10 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
       : ''
     if (params !== '') {
       config = overrideSettingsWithEncodedTypedArgs(config, params)
-      logDebug(makeProgressUpdate, `- params decoded to '${params}'`)
-      // clo(config, `- config after overriding with params-as-JSON-string '${params}' (from callback)`)
+      clo(config, `- config after overriding with params-as-JSON-string '${params}' (from callback)`)
     } else {
       // If no params are passed, then we've been called by a plugin command (and so use defaults from config).
-      logDebug(makeProgressUpdate, `- no params`)
+      logDebug('makeProgressUpdate', `- no params`)
     }
 
     // Use configuration setting as default for time period
@@ -174,6 +174,7 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
 
     // If we have a heading specified, make heading, using periodAndPartStr or '{{PERIOD}}' if it exists. Add a refresh button.
     // Create x-callback of form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=...` with 'Refresh' pseudo-button
+
     const xCallbackMD = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'progressUpdate', params)
     const thisHeading = formatWithFields(config.progressHeading, { PERIOD: periodAndPartStr ? periodAndPartStr : periodString })
     const headingAndXCBStr = `${thisHeading} ${xCallbackMD}`
