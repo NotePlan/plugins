@@ -364,6 +364,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
 
 /**
  * Works out which is the last line of the frontmatter, returning the line index number of the closing separator, or 0 if no frontmatter found.
+ * Now 
  * TODO: Move to NPFrontMatter.js ?
  * @author @jgclark
  * @param {TNote} note - the note to assess
@@ -371,29 +372,32 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
  */
 export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
   try {
-  const paras = note.paragraphs
-  const lineCount = paras.length
-  // logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
-  if (paras.filter((p) => p.type === 'separator').length < 2) {
-    // can't have frontmatter as less than 2 separators
-    return 0
-  }
-  let inFrontMatter: boolean = false
-  let lineIndex = 0
+    const paras = note.paragraphs
+    const lineCount = paras.length
+    // logDebug(`paragraph/endOfFrontmatterLineIndex`, `total paragraphs in note (lineCount) = ${lineCount}`)
+    // Can't have frontmatter as less than 2 separators
+    if (paras.filter((p) => p.type === 'separator').length < 2) {
+      return 0
+    }
+    // No frontmatter if first line isn't ---
+    if (note.paragraphs[0].type !== 'separator') {
+      return 0
+    }
+    // No frontmatter if less than 3 lines
+    if (note.paragraphs.length <= 3) {
+      return 0
+    }
+    // Look for second --- line
+    let lineIndex = 1
     while (lineIndex < lineCount) {
       const p = paras[lineIndex]
       if (p.type === 'separator') {
-        // logDebug(`paragraph/endOfFrontmatterLineIndex`, `  - ${String(lineIndex)}: ${String(inFrontMatter)}: ${p.type}`)
-        if (!inFrontMatter) {
-          inFrontMatter = true
-        } else {
-          inFrontMatter = false
-          // logDebug(`paragraph/endOfFrontmatterLineIndex`, `-> ${String(lineIndex)}`)
-          return lineIndex
-        }
+        // logDebug(`paragraph/endOfFrontmatterLineIndex`, `-> line ${lineIndex} of ${lineCount}`)
+        return lineIndex
       }
       lineIndex++
     }
+    // Shouldn't get here ...
     return 0
   }
   catch (err) {
