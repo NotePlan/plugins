@@ -17,6 +17,7 @@ export { countAndAddDays } from './countDays'
 export { indexFolders, updateAllIndexes } from './indexFolders'
 export { listInconsistentNames } from './lib/commands/listInconsistentNames'
 export { titleToFilename } from './lib/commands/titleToFilename'
+export { filenameToTitle } from './lib/commands/filenameToTitle'
 export { renameInconsistentNames } from './lib/commands/renameInconsistentNames'
 export { addTriggerToNote, convertLocalLinksToPluginLinks, addFrontmatterToNote, moveNote, renameNoteFile } from './noteHelpers'
 export {
@@ -29,7 +30,7 @@ export {
   openURLFromANote,
   showMonth,
   showQuarter,
-  showYear
+  showYear,
 } from './noteNavigation'
 
 export function init(): void {
