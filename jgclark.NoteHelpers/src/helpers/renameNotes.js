@@ -71,7 +71,7 @@ export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: 
 function isValidFilename(path: string): boolean {
   // Check for invalid characters in filename
   const invalidChars = /[<>:"/\\|?*]/g
-  if (path.match(invalidChars)) {
+  if (path.split('/').pop().match(invalidChars)) {
     return false
   }
   return true
