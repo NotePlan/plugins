@@ -13,7 +13,7 @@ export async function makeNoteTitleMatchFilename(note: Note, shouldPromptBeforeR
   }
   if (note.type === 'Calendar') {
     // Won't work on calendar notes
-    await showMessage('This command does not support calendar notes.')
+    await showMessage('Sorry: calendar notes cannot be renamed.')
     return false
   }
 

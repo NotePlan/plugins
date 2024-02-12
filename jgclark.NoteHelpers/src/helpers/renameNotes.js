@@ -34,6 +34,12 @@ export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: 
     return false
   }
 
+  if (!isValidFilename(newPath)) {
+    logWarn(pluginJson, `renameNoteToTitle(): Invalid filename "${newPath}". Stopping.`)
+    await showMessage(`The filename "${newPath}" is not valid. Please check the title and try again.`)
+    return false
+  }
+
   if (!shouldPromptBeforeRenaming) {
     const newFilename = note.rename(newPath)
     logDebug(pluginJson, `renameNoteToTitle(): ${currentFullPath} -> ${newFilename}`)
@@ -58,6 +64,15 @@ export async function renameNoteToTitle(note: Note, shouldPromptBeforeRenaming: 
     await showMessage(`Renamed note ${title} to ${newFilename}.`)
   } else {
     logDebug(pluginJson, 'renameNoteToTitle(): User chose not to rename.')
+  }
+  return true
+}
+
+function isValidFilename(path: string): boolean {
+  // Check for invalid characters in filename
+  const invalidChars = /[<>:"/\\|?*]/g
+  if (path.match(invalidChars)) {
+    return false
   }
   return true
 }
