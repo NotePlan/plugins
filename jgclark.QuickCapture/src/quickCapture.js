@@ -241,7 +241,7 @@ export async function addTaskToNoteHeading(
   headingLevelArg?: string
 ): Promise<void> {
   try {
-    logDebug(pluginJson, `starting /qath with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
+    logDebug(pluginJson, `starting /qath with arg0 '${noteTitleArg != null ? noteTitleArg : '<undefined>'}' arg1 '${headingArg != null ? headingArg : '<undefined>'}' arg2 '${textArg != null ? textArg : '<undefined>'}' arg3 '${headingLevelArg != null ? headingLevelArg : '<undefined>'}'`)
     const config = await getQuickCaptureSettings()
 
     // Start a longish sort job in the background
@@ -259,7 +259,7 @@ export async function addTaskToNoteHeading(
     const headingLevel = (headingLevelArg != null && headingLevelArg !== '')
       ? Number(headingLevelArg)
       : config.headingLevel
-    logDebug('addTextToNoteHeading(qalh)', `headingLevel: ${String(headingLevel)}`)
+    logDebug('addTextToNoteHeading(qath)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
     let allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list

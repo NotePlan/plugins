@@ -31,11 +31,13 @@ Note: there's a bug in NotePlan's API that means '/quick add task under heading'
 The command `/quick add task to inbox` requires configuring, by clicking on the gear button on the 'Event Helpers' line in the Plugin Preferences panel. (Or, on iOS or iPadOS you can use the **/QuickCapture: update plugin settings** instead.)
 
 The settings are:
-- 'Where is your Inbox?': Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note. Or  choose 'Fixed' and then add the note title in the next setting
-- 'InboxTitle': If the previous setting is set to 'Fixed', this is where you set the Title of that note. (Default: "📥 Inbox".)
-- 'Where to add in Inbox?': either "prepend" (start) or "append" (end) in Inbox (and the other commands which use the term 'add'). Note: if the note has frontmatter, the item will be added _after_ that.
-- 'Text to append to new inbox jots': optional text  (that can include hashtags, mentions or emojis) to add on the end of any text 'jots' captured to the inbox. By default it is '💡'.
-- 'Text to append to new inbox tasks': optional text  (that can include hashtags, mentions or emojis) to add on the end of any tasks captured to the inbox.
+- Where is your Inbox?: Select 'Daily' or 'Weekly' to use whatever is the current daily or weekly note. Or  choose 'Fixed' and then add the note title in the next setting
+- InboxTitle: If the previous setting is set to 'Fixed', this is where you set the Title of that note. (Default: "📥 Inbox".)
+- Text to append to new inbox jots: optional text  (that can include hashtags, mentions or emojis) to add on the end of any text 'jots' captured to the inbox. By default it is '💡'.
+- Text to append to new inbox tasks: optional text  (that can include hashtags, mentions or emojis) to add on the end of any tasks captured to the inbox.
+- Where to add in notes?: either "prepend" (start) or "append" (end) in Inbox (and the other commands which use the term 'add'). Note: if the note has frontmatter, the item will be added _after_ that.
+- 'Heading Level for new Headings: Heading level (1-5) to use when adding new headings in notes.
+- Heading for your Journal entries: Optional heading to add your journal entries under with /quick add to journal ... commands
 
 ## Using from x-callback calls
 From v0.9 it's possible to call each of these commands from [outside NotePlan using the **x-callback mechanism**](https://help.noteplan.co/article/49-x-callback-url-scheme#runplugin). The URL calls all take the same form:
@@ -44,7 +46,7 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.QuickCapture&command=<encod
 ```
 Notes:
 - the number and order of arguments you pass is important
-- where an argument isn't valid (empty in the table below), don't include it
+- all arguments need to be passed even when empty (following a change in NotePlan ~3.10) (e.g. `...&arg0=&arg1=&arg2=something`)
 - as with all x-callback URLs, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.
 - The matching of section headings in /qalh and /qath is done as an exact match, or (from v0.12) just the first part of it. This means it's possible to have a section such as `## Journal for 3.4.22` that changes every day, but still refer to it by the unchanging string `Journal`.
 - from NotePlan v3.6.1 and plugin v0.12.0 it's possible to send one or more empty arguments, and that will cause the missing argument(s) be requested from the user, as if it were run interactively.
