@@ -2,6 +2,9 @@
 
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.EventHelpers), and how to configure.
 
+## [0.21.2] - 2024-02-13 @jgclark
+- /shiftDates now shifts dates in brackets and multiples dates on a single line (to suit Project metadata).
+
 ## [0.21.1] - 2024-02-06 @jgclark
 ### New
 - added 'Yes to all' as an option to the dialog when creating time blocks in "time blocks to calendar" and "process date offsets" commands

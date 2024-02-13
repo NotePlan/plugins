@@ -76,10 +76,10 @@ If you wish to see multiple day's output, not just the day for the active calend
 NB: the `Sort order` setting above also controls how the output of this list is sorted.
 
 ## /shift dates
-This command takes plain or scheduled day or week dates (i.e. `YYYY-MM-DD`, `>YYYY-MM-DD`, `YYYY-Wnn` or ``>YYYY-Wnn`) in the selected lines and shifts them forwards or backwards by a given date interval. This allows you to copy a set of tasks to use again, and have the dates moved forward by a month or year etc. It doesn't change dates in `@done(...) mentions, or that are in brackets.
+This command takes plain or scheduled day or week dates (i.e. `YYYY-MM-DD`, `>YYYY-MM-DD`, `YYYY-Wnn` or ``>YYYY-Wnn`) in the selected lines and shifts them forwards or backwards by a given date interval. This allows you to copy a set of tasks to use again, and have the dates moved forward by a month or year etc.
 
 Its settings are:
-- Remove @done dates? Whether to remove `@done(...)` dates; by default it will. It doesn't remove any dates that are just in `(...)` brackets though. Default: true.
+- Remove @done dates? Whether to remove `@done(...)` dates; by default it will. (If you don't remove such dates, then they will also get shifted.)
 - Set any finished (i.e. completed or cancelled) tasks to open? Default: true.
 - Remove any 'processed tag name' on tasks or checklists? Whether to remove any 'processed tag name' (from the settings for "/time blocks to calendar" command above) from tasks or checklists. Default: true.
 
