@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 1.9.23 for v0.15.0, @jgclark
+// Last updated 10.2.24 for v0.16.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -13,8 +13,9 @@ import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
 
-export { addTaskToInbox } from './inbox'
+export { addJotToInbox, addTaskToInbox } from './inbox'
 export {
+  addChecklistToNoteHeading,
   addTaskToNoteHeading,
   addTextToNoteHeading,
   appendTaskToCalendarNote,

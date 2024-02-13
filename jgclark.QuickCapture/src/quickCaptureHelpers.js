@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // Helpers for QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 17.8.2023 for v0.14.0 by @jgclark
+// last update 10.2.2024 for v0.16tt.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -26,7 +26,9 @@ export type QCConfigType = {
   inboxLocation: string,
   inboxTitle: string,
   textToAppendToTasks: string,
+  textToAppendToJots: string,
   addInboxPosition: string,
+  headingLevel: number,
   journalHeading: string,
   shouldAppend: boolean, // special case set in getQuickCaptureSettings()
   _logLevel: string,
@@ -82,31 +84,33 @@ export async function getNoteFromParamOrUser(
     let allNotes: Array<TNote> = []
     if (allNotesIn) {
       allNotes = allNotesIn
+      logDebug('getNoteFromParamOrUser', `- Used arg3 which has ${allNotesIn.length} entries`)
     }
     else {
       allNotes = allNotesSortedByChanged()
-      logDebug('getNoteFromParamOrUser', `Got large note array: ${timer(startTime)})`)
+      logDebug('getNoteFromParamOrUser', `- Got large note array`)
     }
-    logDebug('getNoteFromParamOrUser', `allNotes has ${allNotes.length ?? '?'} entries`)
+    logDebug('getNoteFromParamOrUser', `allNotes has ${allNotes.length ?? '?'} entries (taken ${timer(startTime)} so far)`)
 
     // First get note from arg or User
     if (noteTitleArg != null && noteTitleArg !== '') {
       // Is this a note title from arg?
       // First check if its a special 'relative date'
+      // TODO: If this was moved to top would this be quicker?
       for (const rd of relativeDates) {
         if (noteTitleArg === rd.relName) {
           note = rd.note
-          logDebug('getNoteFromParamOrUser', `found match with relative date '${rd.relName}' = filename ${note.filename}`)
+          logDebug('getNoteFromParamOrUser', `Found match with relative date '${rd.relName}' = filename ${note.filename}`)
         }
       }
 
       if (!note && allNotes) {
         // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
         const noteTitleToMatch = noteTitleArg
-        logDebug('getNoteFromParamOrUser', `noteTitleToMatch = ${noteTitleToMatch}`)
+        logDebug('getNoteFromParamOrUser', `- noteTitleToMatch = ${noteTitleToMatch}`)
         // Change YYYY-MM-DD to YYYYMMDD format if needed.
         const wantedNotes = allNotes.filter((n) => displayTitleWithRelDate(n, false) === noteTitleToMatch)
-        // logDebug('getNoteFromParamOrUser', `matchingNotes: ${String(wantedNotes.map((n) => displayTitleWithRelDate(n)))}`)
+        // logDebug('getNoteFromParamOrUser', `- matchingNotes: ${String(wantedNotes.map((n) => displayTitleWithRelDate(n)))}`)
         note = wantedNotes != null ? wantedNotes[0] : null
         if (note != null) {
           if (wantedNotes.length > 1) {
@@ -117,6 +121,7 @@ export async function getNoteFromParamOrUser(
         }
       }
     }
+    logDebug('getNoteFromParamOrUser', `- taken ${timer(startTime)} so far`)
 
     // We don't have a note by now, so ask user to select one
     if (!note && allNotes) {

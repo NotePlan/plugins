@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 7.12.2023 for v0.15.2 by @jgclark
+// last update 9.2.2024 for v0.16.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -132,6 +132,97 @@ export async function appendTaskToNote(
   }
 }
 
+/** /qach
+ * Add a checklist to a (regular or calendar) note and heading the user picks.
+ * Allows use from x-callback with some empty arguments: now asks users to supply missing arguments.
+ * Note: duplicate headings not properly handled, due to NP architecture.
+ * @author @jgclark
+ * @param {string?} noteTitleArg note title to use (can be YYYYMMDD as well as usual calendar titles)
+ * @param {string?} headingArg
+ * @param {string?} textArg
+ * @param {string?} headingLevelArg
+ */
+export async function addChecklistToNoteHeading(
+  noteTitleArg?: string = '',
+  headingArg?: string = '',
+  textArg?: string = '',
+  headingLevelArg?: string
+): Promise<void> {
+  try {
+    logDebug(pluginJson, `starting /qach with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
+    const config = await getQuickCaptureSettings()
+
+    // Start a longish sort job in the background
+    CommandBar.onAsyncThread()
+    const allCalNotesProm: Array<TNote> = allNotesSortedByChanged() // Note: deliberately no await: this is resolved later
+    CommandBar.onMainThread()// no await
+
+    // Get text details from arg2 or user
+    const checklistText = (textArg != null && textArg !== '')
+      ? textArg
+      : await CommandBar.showInput(`Type the checklist`, `Add checklist '%@' ${config.textToAppendToTasks}`)
+    const text = `${checklistText} ${config.textToAppendToTasks}`.trimEnd()
+
+    // Get heading level details from arg3
+    const headingLevel = (headingLevelArg != null && headingLevelArg !== '')
+      ? Number(headingLevelArg)
+      : config.headingLevel
+    logDebug('addChecklistToNoteHeading(qach)', `headingLevel: ${String(headingLevel)}`)
+
+    // Get note details from arg0 or user
+    let allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
+    let note = await getNoteFromParamOrUser('checklist', noteTitleArg, false, allNotes)
+    if (note == null) {
+      return // stop if can't get note
+    }
+
+    // Get heading details from arg1 or user
+    // If we're asking user, we use function that allows us to first add a new heading at start/end of note
+    const heading = (headingArg != null && headingArg !== '')
+      ? headingArg
+      : await chooseHeading(note, true, true, false)
+    // Add todo to the heading in the note, or if blank heading,
+    // then then user has chosen to append to end of note, without a heading
+    if (heading === '<<top of note>>') {
+      // Handle this special case
+      logDebug('addChecklistToNoteHeading', `Adding line '${checklistText}' to start of active part of note '${displayTitleWithRelDate(note)}'`)
+      note.insertParagraph(checklistText, findStartOfActivePartOfNote(note), 'checklist')
+    }
+    else if (heading === '') {
+      // Handle bottom of note
+      logDebug('addChecklistToNoteHeading', `Adding checklist '${checklistText}' to end of '${displayTitleWithRelDate(note)}'`)
+      note.insertParagraph(checklistText, findEndOfActivePartOfNote(note) + 1, 'checklist')
+    } else {
+      const matchedHeading = findHeadingStartsWith(note, heading)
+      logDebug('addChecklistToNoteHeading', `Adding checklist '${checklistText}' to '${displayTitleWithRelDate(note)}' below '${heading}'`)
+      if (matchedHeading !== '') {
+        // Heading does exist in note already
+        note.addParagraphBelowHeadingTitle(
+          checklistText,
+          'checklist',
+          (matchedHeading !== '') ? matchedHeading : heading,
+          config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
+          true, // create heading if needed (possible if supplied via headingArg)
+        )
+      } else {
+        // We need to a new heading either at top or bottom, depending what config.shouldAppend says
+        const headingMarkers = '#'.repeat(headingLevel)
+        const headingToUse = `${headingMarkers} ${heading}`
+        const insertionIndex = config.shouldAppend
+          ? findEndOfActivePartOfNote(note) + 1
+          : findStartOfActivePartOfNote(note)
+        logDebug('addChecklistToNoteHeading', `- adding new heading '${headingToUse}' at line index ${insertionIndex}`)
+        note.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
+        logDebug('addChecklistToNoteHeading', `- then adding text '${checklistText}' after `)
+        note.insertParagraph(checklistText, insertionIndex + 1, 'checklist')
+      }
+    }
+  } catch (err) {
+    logError(pluginJson, `addChecklistToNoteHeading: ${err.name}: ${err.message}`)
+    await showMessage(err.message)
+  }
+}
+
 /** /qath
  * Add a task to a (regular or calendar) note and heading the user picks.
  * Extended in v0.9 to allow use from x-callback with three passed arguments.
@@ -150,15 +241,13 @@ export async function addTaskToNoteHeading(
   headingLevelArg?: string
 ): Promise<void> {
   try {
-    logDebug(pluginJson, `starting /qath with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
+    logDebug(pluginJson, `starting /qath with arg0 '${noteTitleArg != null ? noteTitleArg : '<undefined>'}' arg1 '${headingArg != null ? headingArg : '<undefined>'}' arg2 '${textArg != null ? textArg : '<undefined>'}' arg3 '${headingLevelArg != null ? headingLevelArg : '<undefined>'}'`)
     const config = await getQuickCaptureSettings()
 
     // Start a longish sort job in the background
     CommandBar.onAsyncThread()
-    // logDebug('', `on async thread`)
     const allCalNotesProm: Array<TNote> = allNotesSortedByChanged() // Note: deliberately no await: this is resolved later
     CommandBar.onMainThread()// no await
-    // logDebug('', `back on main thread`)
 
     // Get text details from arg2 or user
     const taskText = (textArg != null && textArg !== '')
@@ -166,11 +255,11 @@ export async function addTaskToNoteHeading(
       : await CommandBar.showInput(`Type the task`, `Add task '%@' ${config.textToAppendToTasks}`)
     const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
 
-    // Get heaidng level details from arg3
+    // Get heading level details from arg3
     const headingLevel = (headingLevelArg != null && headingLevelArg !== '')
       ? Number(headingLevelArg)
       : config.headingLevel
-    logDebug('addTextToNoteHeading(qalh)', `headingLevel: ${String(headingLevel)}`)
+    logDebug('addTextToNoteHeading(qath)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
     let allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
@@ -200,8 +289,9 @@ export async function addTaskToNoteHeading(
       logDebug('addTaskToNoteHeading', `Adding task '${taskText}' to '${displayTitleWithRelDate(note)}' below '${heading}'`)
       if (matchedHeading !== '') {
       // Heading does exist in note already
-        note.addTodoBelowHeadingTitle(
+        note.addParagraphBelowHeadingTitle(
           taskText,
+          'open',
           (matchedHeading !== '') ? matchedHeading : heading,
           config.shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
           true, // create heading if needed (possible if supplied via headingArg)
@@ -220,7 +310,7 @@ export async function addTaskToNoteHeading(
       }
     }
   } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
+    logError(pluginJson, `addTaskToNoteHeading: ${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
 }
