@@ -19,7 +19,8 @@
 
 // Times, Dates
 export const RE_SCHEDULED_DATES_G: RegExp = />(today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?))/g // from Eduard, but tweaked to ignore ones that start with @ rather than >
-export const RE_FIRST_SCHEDULED_DATE_CAPTURE: RegExp = />((today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?)))/ // adapted from above
+export const RE_FIRST_SCHEDULED_DATE_CAPTURE: RegExp =
+  />((today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?)))/ // adapted from above
 export const RE_ARROW_DATES_G: RegExp = />(today|tomorrow|yesterday|(([0-9]{4})(-((0[1-9]|1[0-2])(-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))?|Q[1-4]|W0[1-9]|W[1-4]\d|W5[0-3]))?))</g // as above but with a closing '<'
 
 // In helpers/dateTime.js:
@@ -109,14 +110,14 @@ export const RE_MARKDOWN_LINK_PATH_CAPTURE: RegExp = /\[.+?\]\(([^\s]*?)\)/
 export const RE_MARKDOWN_LINK_PATH_CAPTURE_G: RegExp = /\[.+?\]\(([^\s]*?)\)/g
 export const RE_SIMPLE_URI_MATCH: RegExp = /(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/
 export const RE_SIMPLE_URI_MATCH_G: RegExp = /(\w+:\/\/[\w\.\/\?\#\&\d\-\=%*~,]+)/g
-export const RE_SIMPLE_BARE_URI_MATCH_G: RegExp = /((?!([\("'])).|^)(\b\w+:\/{1,3}[\w\.\/\?\#\&\d\-\=\@%*~,]+)/ig // complex because it's still avoiding negative look-behind (though support is apparently coming in Safari 16.4 etc.)
+export const RE_SIMPLE_BARE_URI_MATCH_G: RegExp = /((?!([\("'])).|^)(\b\w+:\/{1,3}[\w\.\/\?\#\&\d\-\=\@%*~,]+)/gi // complex because it's still avoiding negative look-behind (though support is apparently coming in Safari 16.4 etc.)
 
 // Synced lines
 export const RE_SYNC_MARKER: RegExp = /\^[A-Za-z0-9]{6}(?![A-Za-z0-9])/
 
 // Misc
 export const PUNCT_CLASS_STR = `[\[\]!"#\$%&'\(\)\*\+,\-\.\/:;<=>\?@\\\^_\`\{\|\}~]` // using info from https://stackoverflow.com/questions/39967107/regular-expression-using-punct-function-in-java
-export const PUNCT_CLASS_STR_QUOTED = "[\\[\\]!\"#\\$%&'\\(\\)\\*\\+,\\-\\.\\/:;<=>\\?@\\\\\\^_\\`\\{\\|\\}~]" // version suitable for including in larger regexes
+export const PUNCT_CLASS_STR_QUOTED = '[\\[\\]!"#\\$%&\'\\(\\)\\*\\+,\\-\\.\\/:;<=>\\?@\\\\\\^_\\`\\{\\|\\}~]' // version suitable for including in larger regexes
 
 //---------------------------------------------------------------------
 
@@ -147,8 +148,10 @@ export const NP_RE_todo: RegExp = /(^\h*[\*\-]{1} |^\h*[0-9]+[\.\)] )(?:(?!\[[x\
 export const NP_RE_tabbed: RegExp = /^(\t+)(?:[\*\-\>]{1} .*|[0-9]+[\.\)] .*)$/
 export const NP_RE_quote_mark: RegExp = /(^\h*> )(.*)/
 export const NP_RE_quote_content: RegExp = /(^\h*> )(.*)/
-export const NP_RE_link: RegExp = /((\b([0-9a-zA-Z\-\.\+]+):\/\/[^：\s{}\[<>±„\"“]+(?<![\.,;!\"\]\*]))|[^：\*\s{}\(\)\[<>±„\"“]+\.(com|org|edu|gov|uk|net|in|co\.in|co\.uk|co|cn|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|ac|kr|an|aq|at|bb|bw|cd|cy|dz|ec|ee|eg|et|fi|gh|gl|gr|hk|ht|hu|ie|il|iq|is|kh|kg|kz|lr|lv|nz|pe|pa|ph|pk|pl|pt|sg|tw|ua|me|tr|cc)(([\/%]+[^：\s{}\[<>±]*)(?<![\.,;!\"\]„\"“])|$|(?=[^a-zA-Z])))/ // for any URIs
-export const NP_RE_schedule_to_date_link: RegExp = /[>@](today|tomorrow|yesterday|(([0-9]{4})-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])))( ((0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]( ?[aApP][mM])?))?/
+export const NP_RE_link: RegExp =
+  /((\b([0-9a-zA-Z\-\.\+]+):\/\/[^：\s{}\[<>±„\"“]+(?<![\.,;!\"\]\*]))|[^：\*\s{}\(\)\[<>±„\"“]+\.(com|org|edu|gov|uk|net|in|co\.in|co\.uk|co|cn|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|ac|kr|an|aq|at|bb|bw|cd|cy|dz|ec|ee|eg|et|fi|gh|gl|gr|hk|ht|hu|ie|il|iq|is|kh|kg|kz|lr|lv|nz|pe|pa|ph|pk|pl|pt|sg|tw|ua|me|tr|cc)(([\/%]+[^：\s{}\[<>±]*)(?<![\.,;!\"\]„\"“])|$|(?=[^a-zA-Z])))/ // for any URIs
+export const NP_RE_schedule_to_date_link: RegExp =
+  /[>@](today|tomorrow|yesterday|(([0-9]{4})-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])))( ((0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]( ?[aApP][mM])?))?/
 export const NP_RE_done_date: RegExp = /@done\((([0-9]{4})-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))( ((0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]( ?[aApP][mM])?))?\)/
 export const NP_RE_schedule_from_date_link: RegExp = /<(([0-9]{4})-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1]))/
 export const NP_RE_note_title_link: RegExp = /(\[{2})(.*?\]*)(\]{2})/
@@ -169,7 +172,7 @@ export const NP_RE_code_right_backtick: RegExp = /(`)([^`]{1,})(`)/
 
 // To which @jgclark has added:
 export const RE_NOTE_TITLE_CAPTURE: RegExp = /\[\[(.*?)(?:#(.*?))?\]*\]\]/ // to separately get [[title#...]] and [[...#heading]]
-export const NP_RE_checklist: RegExp = /^\h*\+\s(?:(?!\[[x\-\>]\] ))(?:\[\s\] )?/  // open checklist item
+export const NP_RE_checklist: RegExp = /^\h*\+\s(?:(?!\[[x\-\>]\] ))(?:\[\s\] )?/ // open checklist item
 export const RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*(\[[ \>]\]|[\*\-\+]\s[^\[])/
 export const RE_ANY_TYPE_OF_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp = /[\n^]\s*(\[[ \>]\]|[\*\-\+]\s[^\[])/g
 export const RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER: RegExp = /^\s*[\*\-\+]\s*(\[[x\-]\]|s[^\[])/
@@ -183,10 +186,10 @@ export const RE_ANY_TYPE_OF_CLOSED_TASK_OR_CHECKLIST_MARKER_MULTI_LINE: RegExp =
  */
 export function formRegExForUsersOpenTasks(multiLine: boolean): RegExp {
   // read the user's prefs for what counts as a todo
-  const CHECKLIST_TODO = "+"
-  const ASTERISK_TODO = DataStore.preference("isAsteriskTodo") ? "*" : ""
-  const DASH_TODO = DataStore.preference("isDashTodo") ? "-" : ""
-  const NUMBER_TODO = DataStore.preference("isNumbersTodo") ? "|\\d+\\." : ""
+  const CHECKLIST_TODO = '+'
+  const ASTERISK_TODO = DataStore.preference('isAsteriskTodo') ? '*' : ''
+  const DASH_TODO = DataStore.preference('isDashTodo') ? '-' : ''
+  const NUMBER_TODO = DataStore.preference('isNumbersTodo') ? '|\\d+\\.' : ''
   // form the regex to find open items for these type(s) of todos
   let RE: RegExp
   if (multiLine) {
@@ -195,4 +198,12 @@ export function formRegExForUsersOpenTasks(multiLine: boolean): RegExp {
     RE = new RegExp(`^\\s*(([${CHECKLIST_TODO}${ASTERISK_TODO}${DASH_TODO}]${NUMBER_TODO})\\s(?!\\[[x\\-\\]])(\\[[\\s>]\\])?)`)
   }
   return RE
+}
+/**
+ * Test a string to see if it is a calendar note filename - YYYYMMDD.txt|md
+ * @param {string} stringToTest
+ * @returns {boolean}
+ */
+export function isCalendarNoteFilename(stringToTest: string): boolean {
+  return /^\d{4}\d{2}\d{2}\.(md|txt)$/.test(stringToTest)
 }

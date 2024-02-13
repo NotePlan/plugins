@@ -1,12 +1,17 @@
 // @flow
+
 const scriptLoad = new Date()
 
 import moment from 'moment-business-days'
 
 import pluginJson from '../plugin.json'
 import { showMessage, chooseFolder, chooseOption } from '../../helpers/userInput'
+import { getNoteByFilename } from '../../helpers/note'
+import { isCalendarNoteFilename } from '@helpers/regex'
 import { log, logDebug, logError, clo, JSP, timer } from '@helpers/dev'
+import { findProjectNoteUrlInText } from '@helpers/urls'
 import { getAttributes } from '@helpers/NPFrontMatter'
+import { getFolderFromFilename } from '@helpers/folders'
 import NPTemplating from 'NPTemplating'
 
 /**
@@ -58,6 +63,27 @@ export async function insertNoteTemplate(origFileName: string, dailyNoteDate: Da
 }
 
 /**
+ * Ask user which linked note they want to open
+ * @param {*} filenames
+ * @returns {string} - the filename that the user chose or "" if no choice or no linked project noces
+ */
+async function askWhichNoteToOpen(filenames: Array<string>): Promise<string> {
+  const options = filenames
+    .filter((f) => !isCalendarNoteFilename(f)) // ignore the links to the calendar notes
+    .map((f) => {
+      const note = getNoteByFilename(f)
+      return { label: `${note?.title || ''}`, value: f }
+    })
+  const num = options.length
+  if (num) {
+    if (num === 1) return options[0].value
+    return await chooseOption(`${num} notes are linked. Open which?`, options)
+  } else {
+    return ''
+  }
+}
+
+/**
  * Get a calendar event from ID and pass it to newMeetingNote
  * @param {string} eventID
  * @param {string} template
@@ -66,10 +92,44 @@ export async function newMeetingNoteFromID(eventID: string, template?: string): 
   try {
     logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNoteFromID id:${eventID} template:${String(template)}`)
     const selectedEvent: TCalendarItem = await Calendar.eventByID(eventID)
-    logDebug(pluginJson, `${timer(scriptLoad)} - selectedEvent selectedEvent:${JSP(selectedEvent)}`)
     if (selectedEvent) {
       clo(selectedEvent, `${timer(scriptLoad)} - newMeetingNoteFromID: selectedEvent`)
-      await newMeetingNote(selectedEvent, template)
+      // First try to look for an existing meeting note we can just open up
+      // NOTE: a URL is not always written into the note (not written if there are attendees or calendar not writeable)
+      const linkedFilenames = (await selectedEvent.findLinkedFilenames()).filter((l) => !isCalendarNoteFilename(l)) // Assuming that the [0] item will be the meeting note and the 2nd item is the calendar note
+      clo(
+        linkedFilenames.map((f) => decodeURIComponent(f)),
+        `newMeetingNoteFromID: Linked filenames:${linkedFilenames.length}`,
+      )
+      const existingMeetingNoteFilename = linkedFilenames.length === 2 ? linkedFilenames[0] : await askWhichNoteToOpen(linkedFilenames)
+      let forceNewNote = false
+      if (existingMeetingNoteFilename || selectedEvent.notes?.length) {
+        const meetingNoteURL = findProjectNoteUrlInText(selectedEvent.notes)
+        clo(linkedFilenames, `Searching note for meetingNote links yielded: URL:"${meetingNoteURL}"); selectedEvent.findLinkedFilenames=`)
+        if (existingMeetingNoteFilename || meetingNoteURL) {
+          logDebug(pluginJson, `newMeetingNoteFromID Pre-existing note exists.`)
+          if (!selectedEvent.isRecurring) {
+            // this is a one-time event and a meeting note link already exists, so open it
+            existingMeetingNoteFilename ? await Editor.openNoteByFilename(existingMeetingNoteFilename) : NotePlan.openURL(meetingNoteURL)
+            logDebug(pluginJson, `newMeetingNoteFromID is not a recurring event. opening and done.`)
+            return
+          } else {
+            // this is a recurring event so let's show it and aks what to do
+            const options = [
+              { label: `Open the pre-existing Meeting Note for the series`, value: `open` },
+              { label: `Create a new note for this occurrence`, value: `new` },
+            ]
+            const res = await chooseOption(`Note exists, but this is a recurring event, so:`, options)
+            if (res === 'open') {
+              NotePlan.openURL(meetingNoteURL)
+              return
+            } else {
+              forceNewNote = true
+            }
+          }
+        }
+      }
+      await newMeetingNote(selectedEvent, template, forceNewNote)
     }
   } catch (error) {
     logError(pluginJson, `error in newMeetingNoteFromID: ${JSP(error)}`)
@@ -117,7 +177,7 @@ async function renderTemplateForEvent(selectedEvent, templateFilename): Object {
  * @param {Object} attributes
  * @returns {string|null} the title if it exists
  */
-function titleExistsInNote(content: string, attributes: Object): string | null {
+function titleExistsInNote(content: string): string | null {
   // logDebug(pluginJson, `titleExistsInNote attributes?.title=${attributes?.title}`)
   // if (attributes?.title) return attributes.title // commenting this out because attributes is the template's attributes, not the resulting doc
   const lines = content.split('\n')
@@ -150,14 +210,16 @@ function getNoteTitle(_noteTitle: string, renderedTemplateContent: string, attri
  * @param {string} renderedContent - The rendered content.
  * @param {string} folder - The folder.
  * @param {Object} attributes
+ * @param {boolean} forceNewNote - skip "note already exists" check and create new note
  * @returns {Promise<string>} The note title.
  */
-async function handleExistingNotes(_noteTitle: string, renderedContent: string, folder: string, attributes: Object): Promise<string> {
+async function handleExistingNotes(_noteTitle: string, renderedContent: string, folder: string, forceNewNote: boolean = false): Promise<string> {
   let noteTitle = _noteTitle
   const existingNotes = await DataStore.projectNoteByTitle(noteTitle, false, false)
-  const noteContent = titleExistsInNote(renderedContent, attributes) ? renderedContent : `# ${noteTitle}\n${renderedContent}`
+  const noteContent = titleExistsInNote(renderedContent) ? renderedContent : `# ${noteTitle}\n${renderedContent}`
   logDebug(pluginJson, `handleExistingNotes: Found ${String(existingNotes?.length)} existing notes with title ${noteTitle}`)
-  if (existingNotes?.length) {
+  if (!forceNewNote && existingNotes?.length) {
+    // split here
     await Editor.openNoteByFilename(existingNotes[0].filename)
     const options = [
       { label: `Open the existing note (no changes)`, value: `open` },
@@ -190,9 +252,10 @@ async function handleExistingNotes(_noteTitle: string, renderedContent: string, 
  * @param {TCalendarItem | null} selectedEvent - The selected event.
  * @param {string} renderedContent - The rendered content.
  * @param {Object} attrs - The attributes.
+ * @param {boolean} forceNewNote - ignore the "note exists" commandbar and force new note creation
  * @returns {Promise<void>}
  */
-async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, renderedContent: string, attrs: Object): Promise<void> {
+async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, renderedContent: string, attrs: Object, forceNewNote: boolean = false): Promise<void> {
   const folder: string = attrs?.folder || ''
   const append: string = attrs?.append || ''
   const prepend: string = attrs?.prepend || ''
@@ -208,7 +271,7 @@ async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, rende
   } else {
     noteTitle = getNoteTitle(noteTitle, renderedContent, attrs)
     if (selectedEvent && noteTitle) {
-      noteTitle = await handleExistingNotes(noteTitle, renderedContent, folder, attrs)
+      noteTitle = await handleExistingNotes(noteTitle, renderedContent, folder, forceNewNote)
     } else {
       logDebug(pluginJson, `Could not ${selectedEvent ? 'find selected event' : 'determine note title'}`)
       return
@@ -224,14 +287,15 @@ async function createNoteAndLinkEvent(selectedEvent: TCalendarItem | null, rende
  * If arguments are not provided, the user will be prompted to select an event and a template
  * @param {TCalendarItem} _selectedEvent
  * @param {string?} _templateFilename
+ * @param {boolean} forceNewNote - override the "note exists" commandbar and force new note creation
  * @returns {Promise<void>}
  */
-export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string): Promise<void> {
+export async function newMeetingNote(_selectedEvent?: TCalendarItem, _templateFilename?: string, forceNewNote: boolean = false): Promise<void> {
   const { selectedEvent, templateFilename } = await selectEventAndTemplate(_selectedEvent, _templateFilename)
   logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: got selectedEvent and templateFilename`)
   const { result, attrs } = await renderTemplateForEvent(selectedEvent, templateFilename)
   logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: rendered template`)
-  await createNoteAndLinkEvent(selectedEvent, result, attrs)
+  await createNoteAndLinkEvent(selectedEvent, result, attrs, forceNewNote)
   logDebug(pluginJson, `${timer(scriptLoad)} - newMeetingNote: created note and linked event`)
 }
 

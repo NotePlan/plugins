@@ -42,7 +42,7 @@ export async function renameInconsistentNames(): Promise<void> {
     `)
 
     const response = await showMessageYesNoCancel(
-      `Would you like to be prompted before renaming each of these notes?
+      `Would you like to be prompted before renaming each of these note filenames?
       (If you choose 'No', the notes will be renamed automatically. 'Cancel' will stop the process.)`,
     )
 
