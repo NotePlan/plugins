@@ -207,3 +207,18 @@ export function formRegExForUsersOpenTasks(multiLine: boolean): RegExp {
 export function isCalendarNoteFilename(stringToTest: string): boolean {
   return /^\d{4}\d{2}\d{2}\.(md|txt)$/.test(stringToTest)
 }
+
+/**
+ * Escapes RegExp special characters in a string
+ * Because if you are using a user-created string in a `new RegExp()` command, you need to worry about whether
+ * The user has included reserved chars in there. If so, you need to double-escape them so they are treated as strings
+ * Usage:
+ * const sanitizedBlockName = escapeRegExp(unsafeString);
+ * const regex = new RegExp(sanitizedBlockName, 'gi');
+ * @param {string} str - The string to escape.
+ * @return {string} The escaped string.
+ */
+export function escapeRegExp(str: string): string {
+  // RegExp special characters and their escape sequence
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}

@@ -233,7 +233,7 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
   return false
 }
 
-export const hasTemplateTagsInFM = (fmText: string) => fmText.includes('<%')
+export const hasTemplateTagsInFM = (fmText: string): boolean => fmText.includes('<%')
 
 /**
  * Set/update the front matter attributes for a note.
@@ -625,4 +625,23 @@ export function getBody(templateData: string = ''): string {
   if (!templateData) return ''
   const fmData = getSanitizedFmParts(templateData)
   return fmData && fmData?.body ? fmData.body : ''
+}
+
+/**
+ * Check to see if it has been less than a certain time since the last document write (to avoid infinite loops)
+ * Put the example command below at the top of your trigger code which will stop execution
+ * if the time since the last document write is less than the minimum time required (default: 2000ms)
+ * @param {TNote} note - the note in question - must be a note (e.g. Editor.note) not Editor (Editor has no .versions property)
+ * @param {number} minimumTimeRequired (in ms) - default: 2000ms
+ * @returns {boolean} - true if the time since the last document write is less than the minimum time required
+ * @usage Editor.note ? (isTriggerLoop(Editor.note) ? return : null) : null // returns/stopping execution if the time since the last document write is less than than 2000ms
+ */
+export function isTriggerLoop(note: TNote, minimumTimeRequired: number = 2000): boolean {
+  if (!note.versions || !note.versions.length) return false
+  const timeSinceLastEdit: number = Date.now() - note.versions[0].date
+  if (timeSinceLastEdit <= minimumTimeRequired) {
+    logDebug(pluginJson, `isTriggerLoop: only ${String(timeSinceLastEdit)}ms after the last document write. Stopping execution to avoid infinite loop.`)
+    return true
+  }
+  return false
 }
