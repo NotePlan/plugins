@@ -132,6 +132,10 @@ export function clof(obj: any, preamble: string = '', fields: ?Array<string> = n
   const copy = deepCopy(obj, fields, true)
   const topLevel = topLevelArray ? Object.keys(copy).map((k) => copy[k]) : copy
   if (Array.isArray(topLevel)) {
+    if (topLevel.length === 0) {
+      logDebug(`${preamble}: [] (no data)`)
+      return
+    }
     topLevel.forEach((item, i) => {
       logDebug(`${preamble}: [${i}]: ${compactMode ? JSON.stringify(item) : `\n${JSON.stringify(item, null, 2)}`}`)
     })
