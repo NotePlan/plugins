@@ -634,7 +634,7 @@ export function getBody(templateData: string = ''): string {
  * @param {TNote} note - the note in question - must be a note (e.g. Editor.note) not Editor (Editor has no .versions property)
  * @param {number} minimumTimeRequired (in ms) - default: 2000ms
  * @returns {boolean} - true if the time since the last document write is less than the minimum time required
- * @usage Editor.note ? (isTriggerLoop(Editor.note) ? return : null) : null // returns/stopping execution if the time since the last document write is less than than 2000ms
+ * @usage if (Editor?.note && isTriggerLoop(Editor.note)) return // returns/stopping execution if the time since the last document write is less than than 2000ms
  */
 export function isTriggerLoop(note: TNote, minimumTimeRequired: number = 2000): boolean {
   if (!note.versions || !note.versions.length) return false
