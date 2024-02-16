@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Create heatmap charts to use through NP HTML window.
 // Jonathan Clark, @jgclark
-// Last updated 6.10.2023 for v0.20.0, @jgclark
+// Last updated 16.2.2024 for v0.20.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -211,7 +211,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
       heatmapDef.intervalType,
       heatmapDef.fromDateStr,
       heatmapDef.toDateStr,
-      `${heatmapDef.tagName}-heatmap.htnl`,
+      `${heatmapDef.tagName}-heatmap.html`,
       `${pluginID}.${heatmapDef.tagName}-heatmap`
     )
   } catch (e) {

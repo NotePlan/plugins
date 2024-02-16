@@ -3,7 +3,7 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 30.9.2023 for v0.22.0, @jgclark
+// Last updated 16.2.2024 for v0.20.4, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -43,7 +43,7 @@ import {
   //   pad,
   //   setMomentLocaleFromEnvironment,
 } from '@helpers/NPdateTime'
-import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { clo, clof, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 // import { showHTMLV2 } from '@helpers/HTMLView'
 import { clearNote, getOrMakeNote, projectNotesFromFilteredFolders } from '@helpers/note'
@@ -362,22 +362,18 @@ function formatForSimpleCSV(inArray: Array<string>): Array<string> {
 
 /**
  * Generate stats for the specified mentions and hashtags over a period of consecutive
- * weeks, and write as a CSV table, ready for plotting (not gnuplot this time).
- * CSV = term, startDateStr, count, total, average
+ * weeks, and write as a CSV table:
+ *   term, startDateStr, count, total, average
  * Only the specifically 'included' hashtags or mentions are included, as given by those settings.
  * V2 that uses gatherOccurrences()
  * @author @jgclark
  */
-export async function weeklyStats(): Promise<void> {
+export async function weeklyStatsCSV(): Promise<void> {
   try {
     const daysInterval = 7 // in days
-
     let config = await getSummariesSettings()
 
-    // Get number of weeks to look back over
-    // const weeks = config.weeklyStatsDuration ?? 23 // should never need this fallback
-
-    // Calculate week range from answer, asking for date offset _before_ current week.
+    // Calculate week range, asking for date offset _before_ current week.
     // Note: This is horribly complicated given the mismatch between NP and moment, and translation from JS dates needs care re TZs.
     // Note: toISODateString() isn't helpful as doesn't use local time. Instead use hyphenatedDateString().
     const todaysDate = new Date()
@@ -389,7 +385,7 @@ export async function weeklyStats(): Promise<void> {
     // V4: use DW helper function 'getNPWeekData()'
     let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration)
     const firstWeekInfo = getNPWeekData(fromDateStr) ?? {}
-    logDebug('weeklyStats', `firstWeekInfo = ${JSON.stringify(firstWeekInfo)}`)
+    logDebug('weeklyStatsCSV', `firstWeekInfo = ${JSON.stringify(firstWeekInfo)}`)
     const lastWeekInfo = getNPWeekData(todaysDateISOString) ?? {}
     const toDateStr = hyphenatedDateString(lastWeekInfo.endDate)
     // let numWeeks = lastWeekInfo.weekNumber - firstWeekInfo.weekNumber
@@ -439,13 +435,13 @@ export async function weeklyStats(): Promise<void> {
 
           let weekStartDateStr = hyphenatedDateString(weekStartDate)
           let weekEndDateStr = hyphenatedDateString(weekEndDate)
-          logDebug(pluginJson, `-> ${weekStartDateStr} -  ${weekEndDateStr} (V4)`)
+          logDebug('weeklyStatsCSV', `-> ${weekStartDateStr} -  ${weekEndDateStr}`)
           const weekSummaryCSV = occ.summariseToInterval(weekStartDateStr, weekEndDateStr, 'week')
           outputArray.push(weekSummaryCSV)
         }
       }
     } else {
-      logInfo(pluginJson, `no data found in weekly summaries`)
+      logInfo('weeklyStatsCSV', `no data found in weekly summaries`)
     }
 
     await CommandBar.onMainThread()
@@ -457,6 +453,6 @@ export async function weeklyStats(): Promise<void> {
     logInfo(pluginJson, `  written results to data file '${filename}'`)
   }
   catch (err) {
-    logError(pluginJson, err.message)
+    logError(pluginJson, 'weeklyStatsCSV' + err.message)
   }
 }

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 12.10.2023 for v0.20.0 by @jgclark
+// Last updated 16.2.2024 for v0.20.4 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -18,7 +18,7 @@ import {
   unhyphenateString,
   withinDateRange,
 } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
+import { clo, clof, JSP, logDebug, logInfo, logWarn, logError, timer } from '@helpers/dev'
 import {
   CaseInsensitiveMap,
   type headingLevelType,
@@ -232,24 +232,24 @@ export class TMOccurrences {
    * Summarise this TMOcc into a larger time interval.
    * Used by forCharting::weeklyStats2().
    * Note: dates are inclusive and need to be in YYYY-MM-DD form.
-   * @param {string} fromDateStr YYYY-MM-DD
-   * @param {string} toDateStr YYYY-MM-DD
+   * @param {string} fromDateISOStr YYYY-MM-DD
+   * @param {string} toDateISOStr YYYY-MM-DD
    * @param {string} interval to summarise to, e.g. 'week'
    * @returns {string} CSV output, including term
    */
-  summariseToInterval(fromDateStr: string, toDateStr: string, interval: string): string {
+  summariseToInterval(fromDateISOStr: string, toDateISOStr: string, interval: string): string {
     // Create new empty TMOccurrences object
-    let summaryOcc = new TMOccurrences(this.term, this.type, fromDateStr, toDateStr, interval)
-    const momFromDate = new moment(fromDateStr, 'YYYY-MM-DD')
-    const momToDate = new moment(toDateStr, 'YYYY-MM-DD')
+    let summaryOcc = new TMOccurrences(this.term, this.type, fromDateISOStr, toDateISOStr, interval)
+    const momFromDate = new moment(fromDateISOStr, 'YYYY-MM-DD')
+    const momToDate = new moment(toDateISOStr, 'YYYY-MM-DD')
     this.numDays = momToDate.diff(momFromDate, 'days')
-    logDebug('summariseToInterval', `For ${fromDateStr} - ${toDateStr} = ${this.numDays} days`)
+    // logDebug('summariseToInterval', `For ${fromDateISOStr} - ${toDateISOStr} = ${this.numDays} days`)
     // Now calculate summary from this (existing) object
     let count = 0
     let total = 0
     this.valuesMap.forEach((v, k, m) => {
-      // logDebug('summariseToInterval', `- ${k}`)
-      if (withinDateRange(k, unhyphenateString(fromDateStr), unhyphenateString(toDateStr))) {
+      // logDebug('summariseToInterval', `- k=${k}, v=${v}`)
+      if (withinDateRange(k, fromDateISOStr, toDateISOStr)) {
         // logDebug('summariseToInterval', `- ${k} in date range`)
         if (!isNaN(v)) {
           count++
@@ -261,6 +261,7 @@ export class TMOccurrences {
     // Add this to the summaryOcc object
     summaryOcc.total = total
     summaryOcc.count = count
+    // clo(summaryOcc, '', ' ')
 
     // NOTE: tested and looks ok for @mention(...)
     return summaryOcc.getStats('CSV')

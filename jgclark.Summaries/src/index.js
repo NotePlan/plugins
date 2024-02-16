@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Summary plugin commands
 // Jonathan Clark
-// Last updated 10.10.2023 for v0.20.0
+// Last updated 16.2.2024 for v0.20.3
 //-----------------------------------------------------------------------------
 
 // export {
@@ -18,7 +18,8 @@ export {
 } from './forHeatmaps'
 export {
   testTaskGenStats,
-  weeklyStats
+  // weeklyStatsMermaid,
+  weeklyStatsCSV
 } from './forCharts'
 export {
   makeProgressUpdate,
