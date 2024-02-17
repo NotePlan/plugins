@@ -10,7 +10,7 @@ import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
-  type OccurrencesConfig,
+  type OccurrencesToLookFor,
   TMOccurrences,
   type SummariesConfig,
 } from './summaryHelpers'
@@ -76,7 +76,7 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
   try {
     // Get config setting
     let config: SummariesConfig = await getSummariesSettings()
-    let settingsForGO: OccurrencesConfig
+    let settingsForGO: OccurrencesToLookFor
 
     logDebug(pluginJson, `makeProgressUpdate: Starting with params '${paramsIn}' (type: ${typeof paramsIn}) from source '${source}'`)
     // If an object param has been passed, then we've been called by a template (including refreshes), and so turned into JSON string

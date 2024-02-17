@@ -10,7 +10,7 @@ import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
-  type OccurrencesConfig,
+  type OccurrencesToLookFor,
   type SummariesConfig,
 } from './summaryHelpers'
 import {
@@ -122,7 +122,7 @@ export async function makeTodayProgress(itemsToShowArr: Array<string> = [], sour
     logDebug('makeMentionsToShow', mentionsToShow)
     const hashtagsToShow = itemsToShow.filter((f) => f.startsWith('#'))
 
-    let settingsForGO: OccurrencesConfig = {
+    let settingsForGO: OccurrencesToLookFor = {
       GOYesNo: [],
       GOHashtagsCount: [],
       GOHashtagsTotal: (hashtagsToShow.length > 0) ? hashtagsToShow : [],

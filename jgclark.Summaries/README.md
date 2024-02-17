@@ -19,6 +19,9 @@ This Plugin lets you do the following sorts of things:
 
   ![Heatmap example](heatmap-tasks-0164.png)
 
+[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg"/>](https://www.buymeacoffee.com/revjgc)
+
+## How to use this
 **What do you need to do?** Add tags like #closedmyrings or @habit(_number_) in your daily notes. In my case a day might include:
 ```md
 @sleep(5.3) @activeCals(400) @steps(3800) @distance(2.7) @minHR(50) @maxHR(161) @restingHR(66) @fruitveg(4)
@@ -240,12 +243,15 @@ For example the following will add stats for Dec 2023 to the end of the current 
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=periodStats&arg0=month&arg1=12&arg2=2023
 ```
 
-## weeklyStatsToCSV command
-This is a niche command! It generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV file to 'Plugins/data/jgclark.Summaries/weekly_stats.csv'. This is designed to be used by third-party graphing tools.
+## "Weekly Stats as CSV" and "Weekly Stats for Mermaid"  commands
+These are niche commands:
+- "Weekly Stats as CSV" generates stats for the specified mentions and hashtags over a period of consecutive weeks, and write out as a CSV file to 'Plugins/data/jgclark.Summaries/weekly_stats.csv'. This is designed to be used by third-party graphing tools, such as gnuplot.
+- "Weekly Stats for Mermaid" produces the data for Mermaid to produce a chart of the specified mention(s) and hashtag(s) over a period of consecutive weeks, written to 'Plugins/data/jgclark.Summaries/weekly_stats_for_mermaid.txt'.
 
-The relevant settings for this command are:
-- Chart Duration (in weeks): e.g. 26. If this is set to 0, the plugin will generate a sensible longish period up to 1 year. Note, that this is the number of completed weeks. Normally, the current incomplete week will be added.
+The relevant settings for these commands are:
 - Items to Chart: Comma-separated list of @mentions or #hashtags to chart.
+- Chart Duration (in weeks): e.g. 26. Number of weeks to look back when generating stats (including heatmaps), not including sparklines.
+- Include current week? Whether this include the (probably incomplete) current week, or only completed weeks.
 
 ## To do
 - now NotePlan has begun to make HTML content possible, I wish to create proper charts/graphs of numeric summaries. (The 'ASCII art' sparklines were an interim step towards this.)

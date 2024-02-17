@@ -13,7 +13,7 @@ import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
-  type OccurrencesConfig,
+  type OccurrencesToLookFor,
   TMOccurrences,
   type SummariesConfig
 } from './summaryHelpers'
@@ -64,7 +64,7 @@ export async function testJGCHeatmaps(): Promise<void> {
 
     // Get date range to use
     const toDateStr = todaysDateISOString
-    let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration)
+    let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
 
     const heatmapDefinitions: Array<HeatmapDefinition> = [
       {
@@ -112,7 +112,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
     // Set up heatmap definition, from passed parameter, or from asking user and setting defaults
     // Note: parameter can come as string (from callback) or object (from other functions)
     let heatmapDef: HeatmapDefinition
-    let tagName = ''
+    let tagName: boolean | string = ''
     if (typeof heatmapDefArg === "string" && heatmapDefArg !== '') {
       const unencodedHeatmapDefInStr = decodeURIComponent(heatmapDefArg)
       heatmapDef = JSON.parse(unencodedHeatmapDefInStr) ?? null
@@ -150,7 +150,7 @@ export async function showTagHeatmap(heatmapDefArg: HeatmapDefinition | string =
     await CommandBar.onAsyncThread()
 
     // Gather data for the tagName of interest
-    const occConfig: OccurrencesConfig = {
+    const occConfig: OccurrencesToLookFor = {
       GOYesNo: [],
       GOHashtagsCount: [],
       GOHashtagsAverage: [],
@@ -249,7 +249,7 @@ export async function calcTagStatsMap(
 
       // Gather data for the tagName of interest
       // dateCounterMap.set(key, value)
-      const occConfig: OccurrencesConfig = {
+      const occConfig: OccurrencesToLookFor = {
         GOYesNo: [],
         GOHashtagsCount: [],
         GOHashtagsAverage: [],
@@ -342,9 +342,10 @@ export async function generateHeatMap(
       const mom = moment(isoDate, 'YYYY-MM-DD')
       // const weekNum = Number(mom.format('WW')) // moment week number
       const weekInfo = getNPWeekData(mom.toDate()) ?? {}
+      if (!weekInfo?.weekNumber) throw new Error(`Invalid startWeek based on ${isoDate}, so can't continue`)
       const weekNum = weekInfo.weekNumber // NP week number
       // Get string for heatmap column title: week number, or year number if week 1
-      const weekTitle = (weekNum !== 1) ? 'W' + pad(weekNum) : mom.format('YYYY') // with this library the value needs to be identical all week
+      const weekTitle = (weekNum !== 1) ? 'W' + pad(weekNum) : weekInfo.weekYear // with this library the value needs to be identical all week
       const dayAbbrev = mom.format('ddd') // day of week (0-6) is 'd'
       let dataPointObj = { x: weekTitle, y: dayAbbrev, heat: value, isoDate: isoDate }
       if (!withinDateRange(isoDate, fromDateStr, toDateStr)) {
