@@ -4,6 +4,14 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Templating/README.md) for details on available commands and use case.
 
+## [1.10.4] 2024-02-19 @dwertheimer
+
+- Allow basic templates without frontmatter
+
+## [1.10.3] 2024-02-14 @dwertheimer
+
+- Fix: Do not look in @trash or @archive etc. for templates when searching
+
 ## [1.10.2] 2024-01-30 @jgclark
 
 - fixed issue when using `progressUpdate(...)` in template (from Habits & Summaries plugin)

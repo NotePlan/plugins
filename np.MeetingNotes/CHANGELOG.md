@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.MeetingNotes/README.md) for details on available commands and use case.
 
+## [1.2.3] -  2024-02-19 @dwertheimer
+
+- Allow for empty template frontmatter
+
 ## [1.2.2] -  2024-02-07 @dwertheimer
 
 - Update MEETINGNOTE link handling to allow for existing meeting notes to be opened automatically
