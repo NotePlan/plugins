@@ -93,36 +93,42 @@ function deleteItemRow(data) {
  * @param { { ID: string, html: string, innerText:boolean } } data
  */
 async function completeTaskInDisplay(data) {
-  const { itemID } = data
-  console.log(`completeTaskInDisplay: for ID: ${itemID}`)
-  replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked circle icon
-  addClassToID(itemID, "checked") // adds colour + line-through
-  addClassToID(itemID, "fadeOutAndHide")
-  await delay(2000)
-  deleteHTMLItem(itemID)
-  // update the totals and other counts
-  decrementItemCount("totalOpenCount")
-  incrementItemCount("totalDoneCount")
+  try {
+    const itemID = data.itemID
+    console.log(`completeTaskInDisplay: for ID: ${itemID}`)
+    replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked circle icon
+    addClassToID(itemID, "checked") // adds colour + line-through
+    addClassToID(itemID, "fadeOutAndHide")
+    await delay(2000)
+    deleteHTMLItem(itemID)
+    // update the totals and other counts
+    decrementItemCount("totalOpenCount")
+    incrementItemCount("totalDoneCount")
   // update the section count, which is identified as the first part of the itemID
-  const sectionNum = itemID.split('-')[0]
-  const sectionID = `${sectionNum}-Section`
-  const sectionCountID = `section${sectionNum}Count`
-  decrementItemCount(sectionCountID)
+    const sectionID = itemID.split('-')[0]
+    const sectionCountID = `section${sectionID}Count`
+    decrementItemCount(sectionCountID)
 
-  // See if the only remaining item is the '> There are also ... items' line
-  const numItemsRemaining = getNumItemsInSection(sectionID, 'TR')
-  if (numItemsRemaining === 1 && doesIDExist(`${sectionNum}-Filter`)) {
+    // See if the only remaining item is the '> There are also ... items' line
+    const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
+    if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
-    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
-  }
+      console.log(`We need to un-hide the lower-priority items: doing full refresh`)
+      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+    }
 
-  // See if we now have no remaining items at all
-  if (numItemsRemaining === 0) {
-    // Delete the whole section from the display
-    console.log(`completeTaskInDisplay: trying to delete rest of empty section: ${sectionID}`)
-    const sectionDIV = document.getElementById(sectionID)
-    const enclosingTR = findAncestor(sectionDIV, 'TR')
-    enclosingTR.remove()
+    // See if we now have no remaining items at all
+    if (numItemsRemaining === 0) {
+      // Delete the whole section from the display
+      console.log(`completeTaskInDisplay: trying to delete rest of empty section: ${sectionID}`)
+      const sectionItemsTable = document.getElementById(`${sectionID}-Section`)
+      if (!sectionItemsTable) { throw new Error(`Couldn't find ID ${itemID}`) }
+      const enclosingTR = findAncestor(sectionItemsTable, 'TR')
+      // console.log(`Will remove node with textContent:\n${enclosingTR.textContent}`)
+      enclosingTR.remove()
+    }
+  } catch (error) {
+    console.log(`completeTaskInDisplay: ❗ERROR❗ ${error.message}`)
   }
 }
 
@@ -131,36 +137,41 @@ async function completeTaskInDisplay(data) {
  * @param { { ID: string, html: string, innerText:boolean } } data
  */
 async function completeChecklistInDisplay(data) {
-  // const { ID } = data
-  const itemID = data.itemID
-  console.log(`completeChecklistInDisplay: for ID: ${itemID}`)
-  replaceClassInID(`${itemID}I`, "fa-regular fa-box-check") // adds ticked box icon
-  addClassToID(itemID, "checked") // adds colour + line-through text
-  addClassToID(itemID, "fadeOutAndHide")
-  await delay(2000)
-  deleteHTMLItem(itemID)
-  // update the totals
-  decrementItemCount("totalOpenCount")
-  incrementItemCount("totalDoneCount")
-  // update the section count
-  const sectionID = itemID.split('-')[0]
-  const sectionCountID = `section${sectionID}Count`
-  decrementItemCount(sectionCountID)
+  try {
+    const itemID = data.itemID
+    console.log(`completeChecklistInDisplay: for ID: ${itemID}`)
+    replaceClassInID(`${itemID}I`, "fa-regular fa-box-check") // adds ticked box icon
+    addClassToID(itemID, "checked") // adds colour + line-through text
+    addClassToID(itemID, "fadeOutAndHide")
+    await delay(2000)
+    deleteHTMLItem(itemID)
+    // update the totals
+    decrementItemCount("totalOpenCount")
+    incrementItemCount("totalDoneCount")
+    // update the section count
+    const sectionID = itemID.split('-')[0]
+    const sectionCountID = `section${sectionID}Count`
+    decrementItemCount(sectionCountID)
 
-  // See if the only remaining item is the '> There are also ... items' line
-  const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
-  if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
+    // See if the only remaining item is the '> There are also ... items' line
+    const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
+    if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
-    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
-  }
+      console.log(`We need to un-hide the lower-priority items: doing full refresh`)
+      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+    }
 
-  // See if we now have no remaining items at all
-  if (numItemsRemaining === 0) {
-    // Delete the whole section from the display
-    console.log(`completeChecklistInDisplay: trying to delete rest of empty section: ${sectionID}`)
-    const sectionDIV = document.getElementById(sectionID)
-    const enclosingTR = findAncestor(sectionDIV, 'TR')
-    enclosingTR.remove()
+    // See if we now have no remaining items at all
+    if (numItemsRemaining === 0) {
+      // Delete the whole section from the display
+      console.log(`completeChecklistInDisplay: trying to delete rest of empty section: ${sectionID}`)
+      const sectionItemsTable = document.getElementById(`${sectionID}-Section`)
+      if (!sectionItemsTable) { throw new Error(`Couldn't find ID ${itemID}`) }
+      const enclosingTR = findAncestor(sectionItemsTable, 'TR')
+      enclosingTR.remove()
+    }
+  } catch (error) {
+    console.log(`completeChecklistInDisplay: ❗ERROR❗ ${error.message}`)
   }
 }
 
@@ -188,6 +199,7 @@ async function cancelChecklistInDisplay(data) {
   const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
+    console.log(`We need to un-hide the lower-priority items: doing full refresh`)
     sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
   }
 }
@@ -216,6 +228,7 @@ async function cancelTaskInDisplay(data) {
   const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
+    console.log(`We need to un-hide the lower-priority items: doing full refresh`)
     sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
   }
 }
