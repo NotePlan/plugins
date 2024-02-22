@@ -1,5 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
+## [0.8.4] - 2024-02-22
+- changed the Projects list section to now show those ready for review, not just overdue for review (just a one day difference!)
+- hopefully added a workaround to a problem in NP where it returns tasks for the wrong day
+
 ## [0.8.3] - 2024-01-19
 - added new setting "Section heading to add/move new tasks under". When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. If the heading isn't present, it will be added at the top of the note. If this is left empty, then new tasks will appear at the top of the note. (for @dwertheimer)
 - added new setting "Reschedule items in place, rather than move them?".  When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it. (for @dwertheimer)

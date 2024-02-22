@@ -210,7 +210,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     let startTime = new Date() // for timing only
     // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
     const dateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
-    // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day') // ❌
+    // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day') // ❌ seems unreliable
     let currentDailyNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
     if (currentDailyNote) {
       const thisFilename = currentDailyNote?.filename ?? '(error)'
@@ -278,7 +278,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     if (config.showYesterdaySection) {
       const yesterday = new moment().subtract(1, 'days').toDate()
       const dateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
-      // let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day') // ❌
+      // let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day') // ❌ seems unreliable
       let yesterdaysNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
       if (yesterdaysNote) {
         const thisFilename = yesterdaysNote?.filename ?? '(error)'
