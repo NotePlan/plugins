@@ -351,5 +351,14 @@ describe('helpers/dev', () => {
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"age": 30'))
       // This test now checks for the presence of key object details in the log output, ignoring dynamic parts like the timestamp
     })
+
+    it('should handle cases where fields parameter is not provided, logging the entire arrau', () => {
+      const obj = [{ name: 'John', age: 30 }]
+      clof(obj)
+      // Adjust the expectation to match the output format of logDebug, focusing on the object content
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"name": "John"'))
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"age": 30'))
+      // This test now checks for the presence of key object details in the log output, ignoring dynamic parts like the timestamp
+    })
   })
 })

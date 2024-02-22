@@ -1,7 +1,8 @@
 // @flow
 
-import { createMockOutput } from '../dwertheimer.JestHelpers/src/NPPluginMain'
-import { log, logDebug, clo, JSP, getFilteredProps, getAllPropertyNames } from '@helpers/dev'
+import type { SortableParagraphSubset } from './sorting'
+
+import { log, logDebug, clo, clof, JSP } from '@helpers/dev'
 import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
 
 /**
@@ -10,7 +11,9 @@ import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
  * @param {Array<string>} taskTypesToInclude - default is ['open']
  * @returns array of strings with the sync codes attached
  */
-export function getSyncedCopiesAsList(parasToSync: Array<TParagraph> = [], taskTypesToInclude: Array<string> = ['open']): Array<string> {
+export function getSyncedCopiesAsList(parasToSync: Array<SortableParagraphSubset>, taskTypesToInclude: Array<string> = ['open']): Array<string> {
+  clof(parasToSync, `NPSyncedCopies::getSyncedCopiesAsList parasToSync=`, ['lineIndex', 'content'], true)
+  clof(taskTypesToInclude, `NPSyncedCopies::getSyncedCopiesAsList taskTypesToInclude=`, ['lineIndex', 'content'], true)
   const syncedLinesList = []
   parasToSync.forEach((p) => {
     if (taskTypesToInclude.indexOf(p.type) > -1) {

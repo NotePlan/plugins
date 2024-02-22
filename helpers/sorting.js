@@ -20,6 +20,8 @@ export interface SortableParagraphSubset {
   children: Array<SortableParagraphSubset>;
   paragraph: ?TParagraph;
   calculatedType: ?string;
+  blockId?: string;
+  note?: TNote;
 }
 
 export type GroupedTasks = {
