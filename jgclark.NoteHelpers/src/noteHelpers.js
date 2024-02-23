@@ -85,16 +85,17 @@ export async function moveNote(): Promise<void> {
 //-----------------------------------------------------------------
 
 /**
- * Add trigger to the currently open Editor note, with choice offered to user of which trigger to add.
+ * Add trigger to the currently open Editor note, with choice offered to user of which trigger to add (if param not given).
  * It decides which are trigger-related functions by:
  * - if plugin command name is on TRIGGER_LIST
  * - if plugin command description is on TRIGGER_LIST
  * - if either contains string 'trigger'
  * @author @jgclark
+ * @param {string?} triggerName optional
  */
-export async function addTriggerToNote(): Promise<void> {
+export async function addTriggerToNote(triggerName: string = ''): Promise<void> {
   try {
-    if (!Editor) {
+    if (!Editor || !Editor.note) {
       throw new Error("No Editor open, so can't continue")
     }
 
@@ -114,48 +115,59 @@ export async function addTriggerToNote(): Promise<void> {
     }
     // clo(triggerRelatedCommands, 'triggerRelatedCommands')
 
-    // Ask user to select one. Examples:
-    // let trigger = "onEditorWillSave"
-    // let pluginID = "jgclark.RepeatExtensions"
-    // let commandName = "generate repeats"
-    if (triggerRelatedCommands.length === 0) {
-      throw new Error("No triggers are supported in your installed plugins.")
-    }
-    let commandOptions: Array<any> = triggerRelatedCommands.map((pco) => {
-      return { label: `${pco.pluginName} '${pco.name}'`, value: pco }
-    })
-    commandOptions.push({ label: `Pick from whole list of functions ...`, value: "pickFromAll" })
-    let result: PluginCommandObject | string = await chooseOption("Pick the trigger to add", commandOptions)
-    let choice: PluginCommandObject
-    // If user has chosen pick from whole list, then show that full list and get selection
-    if (typeof result === "string" && result === "pickFromAll") {
-      commandOptions = allVisibleCommands.map((pco) => {
+    if (triggerName !== '') {
+      // 
+      if (!TRIGGER_LIST.includes(triggerName)) {
+        logWarn('addTriggerToNote', `Trigger name '${triggerName}' not found in list of triggers, but will still add it.`)
+      }
+      // Add to note
+      const res = convertNoteToFrontmatter(Editor.note, triggerName)
+      logDebug('addTriggerToNote', `convertNoteToFrontmatter() returned ${String(res)}.`)
+    } else {
+
+      // Ask user to select one. Examples:
+      // let trigger = "onEditorWillSave"
+      // let pluginID = "jgclark.RepeatExtensions"
+      // let commandName = "generate repeats"
+      if (triggerRelatedCommands.length === 0) {
+        throw new Error("No triggers are supported in your installed plugins.")
+      }
+      let commandOptions: Array<any> = triggerRelatedCommands.map((pco) => {
         return { label: `${pco.pluginName} '${pco.name}'`, value: pco }
       })
-      choice = await chooseOption("Pick the trigger to add", commandOptions)
-    }
-    else if (typeof result !== "string") {
-      choice = result // this check appeases flow from here on
-    }
-
-    if (choice) {
-      // clo(choice, 'choice')
-      // Get trigger type from either name or description
-      let triggerName = (TRIGGER_LIST.includes(choice.name)) ? choice.name
-        : (TRIGGER_LIST.includes(choice.desc)) ? choice.desc
-          : 'onEditorWillSave' // default to onEditorWillSave if no trigger type is found
-
-      // Add to note
-      let res = await addTrigger(Editor, triggerName, choice.pluginID, choice.name)
-      if (res) {
-        // $FlowIgnore[prop-missing]
-        logDebug('addTriggerToNote', `Trigger ${choice.name} for ${choice.pluginID} was added to note ${displayTitle(Editor)}`)
-      } else {
-        // $FlowIgnore[prop-missing]
-        logError('addTriggerToNote', `Trigger ${choice.name} for ${choice.pluginID} WASN'T added to note ${displayTitle(Editor)}`)
+      commandOptions.push({ label: `Pick from whole list of functions ...`, value: "pickFromAll" })
+      let result: PluginCommandObject | string = await chooseOption("Pick the trigger to add", commandOptions)
+      let choice: PluginCommandObject
+      // If user has chosen pick from whole list, then show that full list and get selection
+      if (typeof result === "string" && result === "pickFromAll") {
+        commandOptions = allVisibleCommands.map((pco) => {
+          return { label: `${pco.pluginName} '${pco.name}'`, value: pco }
+        })
+        choice = await chooseOption("Pick the trigger to add", commandOptions)
       }
-    } else {
-      throw new Error("Couldn't get a valid trigger choice for some reason. Stopping.")
+      else if (typeof result !== "string") {
+        choice = result // this check appeases flow from here on
+      }
+
+      if (choice) {
+        // clo(choice, 'choice')
+        // Get trigger type from either name or description
+        let triggerName = (TRIGGER_LIST.includes(choice.name)) ? choice.name
+          : (TRIGGER_LIST.includes(choice.desc)) ? choice.desc
+            : 'onEditorWillSave' // default to onEditorWillSave if no trigger type is found
+
+        // Add to note
+        let res = await addTrigger(Editor, triggerName, choice.pluginID, choice.name)
+        if (res) {
+          // $FlowIgnore[prop-missing]
+          logDebug('addTriggerToNote', `Trigger ${choice.name} for ${choice.pluginID} was added to note ${displayTitle(Editor)}`)
+        } else {
+          // $FlowIgnore[prop-missing]
+          logError('addTriggerToNote', `Trigger ${choice.name} for ${choice.pluginID} WASN'T added to note ${displayTitle(Editor)}`)
+        }
+      } else {
+        throw new Error("Couldn't get a valid trigger choice for some reason. Stopping.")
+      }
     }
   }
   catch (err) {

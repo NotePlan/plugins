@@ -39,7 +39,7 @@ noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=<encode
 ```
 As with all x-callback-urls, all the arguments (including the command name) need to be URL encoded. For example, spaces need to be turned into '%20'.  **Tip**: use @dwertheimer's Link Creator Plugin's "/Get x-callback-url" command to do the fiddly work for you.
 
-Additionally the **index folders** and **jump to heading** commands can take arguments, which also need to be encoded. 
+Additionally the **add trigger to note**, **index folders** and **jump to heading** commands can take arguments, which also need to be encoded. 
 ```
 noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=<encoded command name>&arg0=<encoded string>[&arg1=<encoded string>]
 ```
@@ -47,6 +47,7 @@ The arguments are:
 
 | Command | encoded command name | arg0 | arg1 |
 |-----|-------------|-----|-----|
+| add trigger to note | `...add%20trigger%20to%20note&` | "triggers: ..." line to add to frontmatter | - |
 | index folders | `...index%20folders&` | folder name | other args as a `key=value;key2=value` string.<br />Possible keys are displayOrder (`alphabetical` (default) or `updatedDate`, `createdDate`),  dateDisplayType (`none` (default) or `timeSince`, `updateDate`), includeSubfolders (`true` or `false`) |
 | jump to heading | `...jump%20to%20heading&` | heading to jump to | - |
 
