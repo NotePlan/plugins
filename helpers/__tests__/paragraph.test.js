@@ -1,4 +1,4 @@
-/* global describe, expect, test, beforeAll, beforeEach */
+/* global describe, expect, test, beforeAll, beforeEach, it */
 import * as p from '../paragraph'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
@@ -443,6 +443,21 @@ describe('paragraph.js', () => {
     })
     test("should not match 'second' as there's no title line that starts with that", () => {
       expect(p.findHeadingStartsWith(noteA, 'second')).toEqual('')
+    })
+  })
+  describe('getTagsFromString', () => {
+    it(`should not find anything if no tags`, () => {
+      const text = `word something nothing`
+      const tags = p.getTagsFromString(text)
+      expect(tags).toEqual({ hashtags: [], mentions: [] })
+    })
+    it(`should find tags/mentions and return them in an object`, () => {
+      const text = `text1 #tag1 #tag2 text2 @mention1 @mention2 text3`
+      const tags = p.getTagsFromString(text)
+      expect(tags).toEqual({
+        hashtags: ['#tag1', '#tag2'],
+        mentions: ['@mention1', '@mention2'],
+      })
     })
   })
 })

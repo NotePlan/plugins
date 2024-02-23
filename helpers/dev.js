@@ -121,26 +121,33 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
  * Prunes object properties that are not in the list, but continues to look deeper as long as properties match the list.
  * @param {object} obj - array or object
  * @param {string} preamble - (optional) text to prepend to the output
- * @param {Array<string>} fields - the field property names to display
+ * @param {Array<string>} fields - the field property names to display (default: null - display all fields)
  * @param {boolean} compactMode - [default: false] if true, will display the fields in a more compact format (less vertical space)
  * @author @dwertheimer
  * @example clof(note.paragraphs, 'paragraphs',['content'],true)
  * @example clof({ foo: { bar: [{ willPrint: 1, ignored:2 }] } }, 'Goes deep as long as it finds a matching field', ['foo', 'bar', 'willPrint'], false)
  */
 export function clof(obj: any, preamble: string = '', fields: ?Array<string> = null, compactMode: ?boolean = false): void {
-  const topLevelArray = Array.isArray(obj)
-  const copy = deepCopy(obj, fields, true)
-  const topLevel = topLevelArray ? Object.keys(copy).map((k) => copy[k]) : copy
+  const topLevelIsArray = Array.isArray(obj)
+  const copy = deepCopy(obj, fields?.length ? fields : null, true)
+  const topLevel = topLevelIsArray ? Object.keys(copy).map((k) => copy[k]) : copy
   if (Array.isArray(topLevel)) {
     if (topLevel.length === 0) {
       logDebug(`${preamble}: [] (no data)`)
       return
     }
+    logDebug(`${preamble} ---`)
     topLevel.forEach((item, i) => {
-      logDebug(`${preamble}: [${i}]: ${compactMode ? JSON.stringify(item) : `\n${JSON.stringify(item, null, 2)}`}`)
+      logDebug(`${preamble}: [${i}]: ${typeof item === 'object' && item !== null ? JSON.stringify(item, null, compactMode ? undefined : 2) : String(item)}`)
     })
+    logDebug(`${preamble} ---`)
   } else {
-    logDebug(`${preamble}:\n`, compactMode ? JSON.stringify(topLevel) : JSON.stringify(topLevel, null, 2))
+    if (topLevel === {}) {
+      const keycheck = fields ? ` for fields: [${fields.join(', ')}] - all other properties are pruned` : ''
+      logDebug(`${preamble}: {} (no data${keycheck})`)
+    } else {
+      logDebug(`${preamble}:\n`, compactMode ? JSON.stringify(topLevel) : JSON.stringify(topLevel, null, 2))
+    }
   }
 }
 
