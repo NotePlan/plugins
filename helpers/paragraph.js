@@ -5,13 +5,9 @@
 
 import { getDateStringFromCalendarFilename } from './dateTime'
 import { clo, logDebug, logError, logWarn } from './dev'
-import {
-  RE_MARKDOWN_LINK_PATH_CAPTURE,
-  RE_NOTELINK_G,
-  RE_SIMPLE_URI_MATCH,
-} from '@helpers/regex'
+import { getElementsFromTask } from './sorting'
+import { RE_MARKDOWN_LINK_PATH_CAPTURE, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH } from '@helpers/regex'
 import { stripLinksFromString } from '@helpers/stringTransforms'
-
 //-----------------------------------------------------------------------------
 /**
  * Perform substring match, ignoring case
@@ -35,9 +31,7 @@ function caseInsensitiveSubstringMatch(searchTerm: string, textToSearch: string)
 export function isTermInURL(term: string, searchString: string): boolean {
   // create version of searchString that doesn't include the URL and test that first
   const searchStringWithoutURL = stripLinksFromString(searchString)
-  const success = caseInsensitiveSubstringMatch(term, searchStringWithoutURL)
-    ? false
-    : RE_SIMPLE_URI_MATCH.test(searchString)
+  const success = caseInsensitiveSubstringMatch(term, searchStringWithoutURL) ? false : RE_SIMPLE_URI_MATCH.test(searchString)
 
   // logDebug('isTermInURL', `looking for ${term} in ${searchString} ${String(caseInsensitiveSubstringMatch(term, searchStringWithoutURL))} / ${searchStringWithoutURL} ${String(RE_SIMPLE_URI_MATCH.test(searchStringWithoutURL))} -> ${String(success)}`)
   return success
@@ -149,8 +143,8 @@ export function displayTitle(n: ?CoreNoteFields): string {
   return !n
     ? '(error)'
     : n.type === 'Calendar'
-      ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
-      : n.title ?? '(error)'
+    ? getDateStringFromCalendarFilename(n.filename) ?? '' // earlier: return n.filename.split('.')[0] // without file extension
+    : n.title ?? '(error)'
 }
 
 /**
@@ -284,17 +278,16 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     // if either there's a #hashtag starting the next line,
     // or 'allowPreamble' is true.
     // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator or any YouTutype of task or checklist also stops the search.
-    if (allowPreamble || paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/)) {
+    if (allowPreamble || (paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/))) {
       logDebug('paragraph/findStartOfActivePartOfNote', `- We want to allow preamble, or found a metadata line.`)
-    // startOfActive += 1
+      // startOfActive += 1
       for (let i = startOfActive; i < paras.length; i++) {
         const p = paras[i]
         if (['open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'code'].includes(p.type)) {
           logDebug('paragraph/findStartOfActivePartOfNote', `  - Found task/checklist/title/code line -> this line.`)
           startOfActive = i
           break
-        }
-        else if (p.type === 'separator' || p.type === 'empty') {
+        } else if (p.type === 'separator' || p.type === 'empty') {
           logDebug('paragraph/findStartOfActivePartOfNote', `  - Found separator/blank -> next line.`)
           startOfActive = i + 1
           break
@@ -303,8 +296,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
       logDebug('paragraph/findStartOfActivePartOfNote', `-> ${String(startOfActive)}  (after finding preamble or metadata line)`)
     }
     return startOfActive
-  }
-  catch (err) {
+  } catch (err) {
     logError('paragraph/findStartOfActivePartOfNote', err.message)
     return NaN // for completeness
   }
@@ -323,10 +315,10 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
  */
 export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
   try {
-  const paras = note.paragraphs
-  let lineCount = paras.length
+    const paras = note.paragraphs
+    let lineCount = paras.length
 
-  // If no lines, return 0
+    // If no lines, return 0
     if (lineCount === 0) {
       return 0
     } else {
@@ -355,8 +347,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
       // logDebug('paragraph/findEndOfActivePartOfNote', `doneHeaderLine = ${doneHeaderLine}, cancelledHeaderLine = ${cancelledHeaderLine} endOfActive = ${endOfActive}`)
       return endOfActive
     }
-  }
-  catch (err) {
+  } catch (err) {
     logError('paragraph/findEndOfActivePartOfNote', err.message)
     return NaN // for completeness
   }
@@ -364,7 +355,7 @@ export function findEndOfActivePartOfNote(note: CoreNoteFields): number {
 
 /**
  * Works out which is the last line of the frontmatter, returning the line index number of the closing separator, or 0 if no frontmatter found.
- * Now 
+ * Now
  * TODO: Move to NPFrontMatter.js ?
  * @author @jgclark
  * @param {TNote} note - the note to assess
@@ -399,8 +390,7 @@ export function endOfFrontmatterLineIndex(note: CoreNoteFields): number {
     }
     // Shouldn't get here ...
     return 0
-  }
-  catch (err) {
+  } catch (err) {
     logError('paragraph/findEndOfActivePartOfNote', err.message)
     return NaN // for completeness
   }
@@ -500,7 +490,8 @@ export function removeDuplicateSyncedLines(paras: $ReadOnlyArray<TParagraph>): $
  */
 export function getTaskPriority(content: string): number {
   let numExclamations = 0
-  if (content.match(/\B\!+\B(?!\[)/)) { // not in middle of word, or starting an image tag
+  if (content.match(/\B\!+\B(?!\[)/)) {
+    // not in middle of word, or starting an image tag
     // $FlowIgnore[incompatible-use]
     numExclamations = content.match(/\B\!+\B/)[0].length
     return numExclamations
@@ -553,4 +544,23 @@ export function cyclePriorityState(input: TParagraph): string {
   const currentPriorityLevel = getTaskPriority(input.content)
   const newPriorityLevel = (currentPriorityLevel + 1) % 5
   return changePriority(input, PRIORITY_LEVELS[newPriorityLevel], true)
+}
+
+export type TagsList = { hashtags: Array<string>, mentions: Array<string> } //include the @ and # characters
+
+// These Regexes are different from the ones in taskHelpers because they include the # or @
+export const HASHTAGS: RegExp = /\B(#[a-zA-Z0-9\/]+\b)/g
+export const MENTIONS: RegExp = /\B(@[a-zA-Z0-9\/]+\b)/g
+
+/**
+ * Takes in a string and returns an object with arrays of #hashtags and @mentions (including the @ and # characters)
+ * @param {string} content : ;
+ * @param {boolean} includeSymbol : if true, includes the @ and # characters in the returned values, if false, it does not [default: true];
+ * @returns {TagsList} {hashtags: [], mentions: []}
+ */
+
+export function getTagsFromString(content: string, includeSymbol: boolean = true): TagsList {
+  const hashtags = getElementsFromTask(content, HASHTAGS).map((tag) => (includeSymbol ? tag : tag.slice(1)))
+  const mentions = getElementsFromTask(content, MENTIONS).map((tag) => (includeSymbol ? tag : tag.slice(1)))
+  return { hashtags, mentions }
 }
