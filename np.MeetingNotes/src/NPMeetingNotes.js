@@ -11,7 +11,6 @@ import { isCalendarNoteFilename } from '@helpers/regex'
 import { log, logDebug, logError, clo, JSP, timer } from '@helpers/dev'
 import { findProjectNoteUrlInText } from '@helpers/urls'
 import { getAttributes } from '@helpers/NPFrontMatter'
-import { getFolderFromFilename } from '@helpers/folders'
 import NPTemplating from 'NPTemplating'
 
 /**

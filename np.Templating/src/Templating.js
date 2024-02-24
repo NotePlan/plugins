@@ -155,7 +155,7 @@ export async function templateInvoke(templateName?: string): Promise<void> {
 
       let selectedTemplateFilename
       if (templateName) {
-        const notes = await DataStore.projectNoteByTitle(templateName, true, true)
+        const notes = await DataStore.projectNoteByTitle(templateName, true)
         if (notes?.length) {
           selectedTemplateFilename = notes[0].filename
         } else {
@@ -633,7 +633,7 @@ export async function templateExecute(templateName?: string): Promise<void> {
   try {
     let selectedTemplateFilename
     if (templateName) {
-      const notes = await DataStore.projectNoteByTitle(templateName, true, true)
+      const notes = await DataStore.projectNoteByTitle(templateName, true)
       if (notes?.length) {
         selectedTemplateFilename = notes[0].filename
       } else {

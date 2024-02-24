@@ -2,10 +2,10 @@
 // Development-related helper functions
 
 /**
- * Returns ISO formatted date time
- * @author @codedungeon
- * @return {string} formatted date time
+ * NotePlan API properties which should not be traversed when stringifying an object
  */
+
+const PARAM_BLACKLIST = ['note', 'referencedBlocks', 'availableThemes', 'currentTheme', 'linkedNoteTitles', 'linkedItems'] // fields not to be traversed (e.g. circular references)
 
 const dt = (): string => {
   const d = new Date()
@@ -27,7 +27,6 @@ const dt = (): string => {
  * @example console.log(JSP(obj, '\t')) // prints the full object with newlines and tabs for indentation
  */
 export function JSP(obj: any, space: string | number = 2): string {
-  const PARAM_BLACKLIST = ['referencedBlocks', 'availableThemes', 'currentTheme'] // fields not to be traversed (e.g. circular references)
   if (typeof obj !== 'object' || obj instanceof Date) {
     return String(obj)
   } else {
@@ -116,6 +115,42 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
   }
 }
 
+/**
+ * CLO + field-limited - Loop through and Console.log only certain names/values of an object to console with text preamble
+ * Like CLO but more concise, only showing certain fields. Useful for large objects with many fields.
+ * Prunes object properties that are not in the list, but continues to look deeper as long as properties match the list.
+ * @param {object} obj - array or object
+ * @param {string} preamble - (optional) text to prepend to the output
+ * @param {Array<string>} fields - the field property names to display (default: null - display all fields)
+ * @param {boolean} compactMode - [default: false] if true, will display the fields in a more compact format (less vertical space)
+ * @author @dwertheimer
+ * @example clof(note.paragraphs, 'paragraphs',['content'],true)
+ * @example clof({ foo: { bar: [{ willPrint: 1, ignored:2 }] } }, 'Goes deep as long as it finds a matching field', ['foo', 'bar', 'willPrint'], false)
+ */
+export function clof(obj: any, preamble: string = '', fields: ?Array<string> = null, compactMode: ?boolean = false): void {
+  const topLevelIsArray = Array.isArray(obj)
+  const copy = deepCopy(obj, fields?.length ? fields : null, true)
+  const topLevel = topLevelIsArray ? Object.keys(copy).map((k) => copy[k]) : copy
+  if (Array.isArray(topLevel)) {
+    if (topLevel.length === 0) {
+      logDebug(`${preamble}: [] (no data)`)
+      return
+    }
+    logDebug(`${preamble} ---`)
+    topLevel.forEach((item, i) => {
+      logDebug(`${preamble}: [${i}]: ${typeof item === 'object' && item !== null ? JSON.stringify(item, null, compactMode ? undefined : 2) : String(item)}`)
+    })
+    logDebug(`${preamble} ---`)
+  } else {
+    if (topLevel === {}) {
+      const keycheck = fields ? ` for fields: [${fields.join(', ')}] - all other properties are pruned` : ''
+      logDebug(`${preamble}: {} (no data${keycheck})`)
+    } else {
+      logDebug(`${preamble}:\n`, compactMode ? JSON.stringify(topLevel) : JSON.stringify(topLevel, null, 2))
+    }
+  }
+}
+
 export function dump(pluginInfo: any, obj: { [string]: mixed }, preamble: string = '', space: string | number = 2): void {
   log(pluginInfo, '-------------------------------------------')
   clo(obj, preamble, space)
@@ -161,7 +196,7 @@ export const getFilteredProps = (object: any): Array<string> => {
 }
 
 /**
- * Copy an object and its prototypes as well, return as a normal object
+ * Copy the first level of an object and its prototypes as well, return as a normal object
  * with no prototypes. This is useful for copying objects that have
  * prototypes that are not normally visible in JSON.stringify
  * (e.g. most objects that come from the NotePlan API)
@@ -174,6 +209,65 @@ export function copyObject(obj: any): any {
     acc[p] = obj[p]
     return acc
   }, {})
+}
+
+/**
+ * Deeply copies an object including its prototype properties. Optionally filters properties by a given list.
+ * For arrays, can optionally modify their representation in the stringified output to include indices.
+ * Handles objects, arrays, Dates, and primitive types.
+ * Result is JSON-safe, free of recursion, and can be stringified.
+ * Use function clof to display objects with certain properties
+ * NOTE: Does not actually copy prototype (does not work for NP), only the properties.
+ *
+ * @template T The type of the value being copied.
+ * @param {T} value The value to copy.
+ * @param {?Array<string>} [propsToInclude=null] Optional array of property names to include in the copy.
+ * @param {boolean} [showIndices=false] Optional parameter to include indices in array representation during stringification.
+ * @return {T|{ [key: string]: any }} The deep copy of the value.
+ */
+export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> = null, showIndices: boolean = false): T | { [key: string]: any } {
+  const propsToInclude = _propsToInclude === [] ? null : _propsToInclude
+
+  // Handle null, undefined, and primitive types
+  if (value === null || typeof value !== 'object') {
+    return value
+  }
+
+  // Handle Date
+  if (value instanceof Date) {
+    return new Date(value.getTime())
+  }
+
+  // Handle Array
+  if (Array.isArray(value)) {
+    const arrayCopy = value.map((item) => deepCopy(item, propsToInclude, showIndices))
+    if (showIndices) {
+      // Convert array to object with index keys for stringification
+      const objectWithIndices = {}
+      arrayCopy.forEach((item, index) => {
+        objectWithIndices[`[${index}]`] = item
+      })
+      return objectWithIndices
+    } else {
+      return arrayCopy
+    }
+  }
+
+  // Handle Object (including objects with prototype properties)
+  const copy = {}
+  const propNames = propsToInclude || Object.keys(value)
+  for (const key of propNames) {
+    if (propsToInclude ? propsToInclude.includes(key) : true) {
+      const isBlacklisted = PARAM_BLACKLIST.indexOf(key) !== -1
+      const isPrivateVar = /^__/.test(key)
+      const isFunction = typeof value[key] === 'function'
+      if (!isBlacklisted && !isPrivateVar && !isFunction) {
+        copy[key] = deepCopy(value[key], propsToInclude, showIndices)
+      }
+    }
+  }
+
+  return copy
 }
 
 /**

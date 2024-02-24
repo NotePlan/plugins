@@ -216,7 +216,7 @@ export async function runShortcut(): Promise<string> {
  */
 export async function getHeadingLink(allowPrettyLink: boolean = true): Promise<string> {
   const selectedPara = await getSelectedParagraph()
-  if (selectedPara && selectedPara?.note?.title !== null && selectedPara.content) {
+  if (selectedPara && selectedPara?.note?.title !== null && (selectedPara.type !== 'title' || (selectedPara.type === 'title' && selectedPara.content))) {
     // if a heading is selected, use that. otherwise look for the heading this note is in
     const heading = selectedPara.type === 'title' ? selectedPara.content : selectedPara.heading
     log(pluginJson, `selectedPara.heading: ${heading}`)

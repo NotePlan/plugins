@@ -28,7 +28,7 @@ import { CaseInsensitiveMap, displayTitle, createRunPluginCallbackUrl } from '@h
 import { getOrMakeNote, printNote, replaceSection } from '@helpers/note'
 import { caseInsensitiveCompare } from '@helpers/sorting'
 import { chooseOption, showMessage } from '@helpers/userInput'
-import type { OccurrencesConfig } from "./summaryHelpers";
+import type { OccurrencesToLookFor } from "./summaryHelpers";
 
 //-------------------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ export async function statsPeriod(periodCodeArg: string = '', calNumber: number 
     await CommandBar.onAsyncThread()
 
     // Main work: calculate the occurrences, using config settings and the time period info
-    const settingsForGO: OccurrencesConfig = {
+    const settingsForGO: OccurrencesToLookFor = {
       GOYesNo: config.periodStatsYesNo,
       GOHashtagsCount: config.includeHashtags,
       GOHashtagsExclude: [],

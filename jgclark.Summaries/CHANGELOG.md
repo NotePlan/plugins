@@ -1,6 +1,12 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.21.0] - 2024-02-???
+- new "Weekly Stats for Mermaid" command. See README for details.
+
+## [0.20.4] - 2024-02-16
+- fix to "Weekly Stats as CSV" command output
+
 ## [0.20.3] - 2024-01-30
 - fixed problem when using `periodStats()` tag from a template (thanks to report by @bhan.me). Requires updating Templating plugin to v1.10.2 as well.
 

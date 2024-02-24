@@ -1062,7 +1062,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
       throw new Error('Empty offsetInterval string')
     }
     const offsetUnit = offsetInterval.charAt(offsetInterval.length - 1) // get last character
-    logDebug('dateTime / cODS', `Starting with ${adaptOutputInterval} adapt for ${baseDateIn} + ${offsetInterval}`)
+    // logDebug('dateTime / cODS', `Starting with ${adaptOutputInterval} adapt for ${baseDateIn} + ${offsetInterval}`)
 
     // calc offset date
     // (Note: library functions cope with negative nums, so just always use 'add' function)

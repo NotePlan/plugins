@@ -3,7 +3,7 @@
 // Create heatmap chart to use with NP HTML, and before then
 // weekly stats for a number of weeks, and format ready to use by gnuplot.
 // Jonathan Clark, @jgclark
-// Last updated 30.9.2023 for v0.22.0, @jgclark
+// Last updated 16.2.2024 for v0.21.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,7 +14,7 @@ import {
   gatherOccurrences,
   generateProgressUpdate,
   getSummariesSettings,
-  type OccurrencesConfig,
+  type OccurrencesToLookFor,
   TMOccurrences,
   type SummariesConfig
 } from './summaryHelpers'
@@ -38,12 +38,10 @@ import {
 import {
   getNPWeekData,
   getUsersFirstDayOfWeekUTC,
-  //   type NotePlanWeekInfo,
-  //   localeDateStr,
-  //   pad,
-  //   setMomentLocaleFromEnvironment,
+  pad,
+  type NotePlanWeekInfo,
 } from '@helpers/NPdateTime'
-import { logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
+import { clo, clof, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 // import { showHTMLV2 } from '@helpers/HTMLView'
 import { clearNote, getOrMakeNote, projectNotesFromFilteredFolders } from '@helpers/note'
@@ -75,29 +73,28 @@ export async function testTaskGenStats(): Promise<void> {
 
 /**
  * Calculate first day at start of week 'numWeeksToGoBack' ago.
+ * If includeCurrentWeek, then one of the weeks will be the current (probably incomplete) week.
  * Note: this uses the user's start-of-week setting.
- * @param {number?} numWeeksToGoBack, or will default to 0
- * @returns {string} YYYY-MM-DD
+ * @param {number} numWeeksToGoBack
+ * @param {boolean} includeCurrentWeek?
+ * @returns {[string, number]} YYYY-MM-DD, numWeeks
  */
-export function getFirstDateForWeeklyStats(numWeeksToGoBack?: number): [string, number] {
-  let numWeeks = numWeeksToGoBack ? numWeeksToGoBack : 0
-  if (numWeeksToGoBack === 0) {
-    const dayOfYear = moment().format('DDD')
-    if (dayOfYear > 182) {
-      numWeeks = Calendar.weekNumber(moment().toDate()) - 1
-    } else {
-      numWeeks = 23
-    }
+export function getFirstDateForWeeklyStats(numWeeksToGoBack: number, includeCurrentWeek: boolean): [string, number] {
+  try {
+    let numWeeks = numWeeksToGoBack
+    let mom = moment().subtract(numWeeks - (includeCurrentWeek ? 1 : 0), 'week')
+
+    // Now get the start of that previous week, using NP week information
+    const weekInfo = getNPWeekData(mom.toDate())
+    if (!weekInfo) throw new Error(`Invalid startWeek based on ${mom.toDate()}, so can't continue`)
+    const fromDateStr = hyphenatedDateString(weekInfo.startDate)
+
+    logDebug('getFirstDateForWeeklyStats', `Will go back ${numWeeks} weeks, starting w/c ${fromDateStr}`)
+    return [fromDateStr, numWeeks]
+  } catch (e) {
+    logError('getFirstDateForWeeklyStats', `Error: ${e.message}`)
+    return ['', 0]
   }
-
-  let mom = moment().subtract(numWeeks, 'week')
-
-  // Now get the start of the week, using NP week information
-  const weekInfo = getNPWeekData(mom.toDate()) ?? {}
-  const fromDateStr = hyphenatedDateString(weekInfo.startDate)
-
-  // logDebug('getFirstDateForWeeklyStats', `Will go back ${numWeeks} weeks, starting w/c ${fromDateStr}`)
-  return [fromDateStr, numWeeks]
 }
 
 /**
@@ -362,22 +359,18 @@ function formatForSimpleCSV(inArray: Array<string>): Array<string> {
 
 /**
  * Generate stats for the specified mentions and hashtags over a period of consecutive
- * weeks, and write as a CSV table, ready for plotting (not gnuplot this time).
- * CSV = term, startDateStr, count, total, average
+ * weeks, and write as a CSV table:
+ *   term, startDateStr, count, total, average
  * Only the specifically 'included' hashtags or mentions are included, as given by those settings.
  * V2 that uses gatherOccurrences()
  * @author @jgclark
  */
-export async function weeklyStats(): Promise<void> {
+export async function weeklyStatsCSV(): Promise<void> {
   try {
     const daysInterval = 7 // in days
-
     let config = await getSummariesSettings()
 
-    // Get number of weeks to look back over
-    // const weeks = config.weeklyStatsDuration ?? 23 // should never need this fallback
-
-    // Calculate week range from answer, asking for date offset _before_ current week.
+    // Calculate week range, asking for date offset _before_ current week.
     // Note: This is horribly complicated given the mismatch between NP and moment, and translation from JS dates needs care re TZs.
     // Note: toISODateString() isn't helpful as doesn't use local time. Instead use hyphenatedDateString().
     const todaysDate = new Date()
@@ -387,26 +380,29 @@ export async function weeklyStats(): Promise<void> {
     // V2: use Moment for all calcs. Problem: different week defintions.
     // V3: use NP's API for week calculations
     // V4: use DW helper function 'getNPWeekData()'
-    let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration)
-    const firstWeekInfo = getNPWeekData(fromDateStr) ?? {}
-    logDebug('weeklyStats', `firstWeekInfo = ${JSON.stringify(firstWeekInfo)}`)
-    const lastWeekInfo = getNPWeekData(todaysDateISOString) ?? {}
-    const toDateStr = hyphenatedDateString(lastWeekInfo.endDate)
-    // let numWeeks = lastWeekInfo.weekNumber - firstWeekInfo.weekNumber
+    let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
+    const startWeekInfo = getNPWeekData(fromDateStr)
+    logDebug('weeklyStatsCSV', `starting for ${String(numWeeks)} weeks, with startWeekInfo = ${JSON.stringify(startWeekInfo)} / fromDateStr = ${fromDateStr} / includeCurrentWeek = ${String(config.weeklyStatsIncludeCurrentWeek)}`)
+    if (!startWeekInfo) throw new Error(`Invalid startWeek based on ${fromDateStr}, so can't continue`)
+    const endWeekInfo = getNPWeekData(fromDateStr, numWeeks - 1, 'week')
+    if (!endWeekInfo) throw new Error(`Invalid startWeek based on ${todaysDateISOString}, so can't continue`)
+    const toDateStr = hyphenatedDateString(endWeekInfo.endDate)
+    // let numWeeks = endWeekInfo.weekNumber - startWeekInfo.weekNumber
     // if (numWeeks < 0) numWeeks += 52
 
     // Prepare config for gatherOccurrences() call
+    const hashtagItems = config.weeklyStatsItems.filter((a) => a.startsWith('#'))
+    const mentionItems = config.weeklyStatsItems.filter((a) => a.startsWith('@'))
     const occConfig = {
       GOYesNo: [],
       GOHashtagsCount: [],
       GOHashtagsAverage: [],
-      GOHashtagsTotal: config.weeklyStatsItems.filter((a) => a.startsWith('#')),
+      GOHashtagsTotal: hashtagItems,
       GOHashtagsExclude: [], // no exclusions used here
       GOMentionsCount: [],
       GOMentionsAverage: [],
-      GOMentionsTotal: config.weeklyStatsItems.filter((a) => a.startsWith('@')),
+      GOMentionsTotal: mentionItems,
       GOMentionsExclude: [], // no exclusions used here
-      GOHashtagsTotal: [],
     }
 
     // Pop up UI wait dialog as this can be a long-running process
@@ -429,23 +425,21 @@ export async function weeklyStats(): Promise<void> {
         // Update UI wait dialog
         CommandBar.showLoading(true, `Calculating stats for ${occs.length} terms of interest`, i / occs.length)
 
-        let counter = -1
-        while (counter < numWeeks) {
-          counter++
+        for (let counter = 0; counter < numWeeks; counter++) {
           // Get the date info for the week of interest (counting up)
-          const thisWeekInfo = getNPWeekData(todaysDateISOString, counter - numWeeks, 'week') ?? {}
-          let weekStartDate = thisWeekInfo.startDate
-          let weekEndDate = thisWeekInfo.endDate
-
+          const weekInfo = getNPWeekData(todaysDateISOString, counter - numWeeks, 'week')
+          if (!weekInfo) throw new Error(`Invalid startWeek based on ${fromDateStr}, so can't continue`)
+          let weekStartDate = weekInfo.startDate
+          let weekEndDate = weekInfo.endDate
           let weekStartDateStr = hyphenatedDateString(weekStartDate)
           let weekEndDateStr = hyphenatedDateString(weekEndDate)
-          logDebug(pluginJson, `-> ${weekStartDateStr} -  ${weekEndDateStr} (V4)`)
-          const weekSummaryCSV = occ.summariseToInterval(weekStartDateStr, weekEndDateStr, 'week')
+          logDebug('weeklyStatsCSV', `-> -> ${String(counter)}: ${weekStartDateStr} -  ${weekEndDateStr}`)
+          const weekSummaryCSV = occ.summaryTextForInterval(weekStartDateStr, weekEndDateStr, 'week', 'CSV')
           outputArray.push(weekSummaryCSV)
         }
       }
     } else {
-      logInfo(pluginJson, `no data found in weekly summaries`)
+      logInfo('weeklyStatsCSV', `no data found in weekly summaries`)
     }
 
     await CommandBar.onMainThread()
@@ -457,6 +451,118 @@ export async function weeklyStats(): Promise<void> {
     logInfo(pluginJson, `  written results to data file '${filename}'`)
   }
   catch (err) {
-    logError(pluginJson, err.message)
+    logError(pluginJson, 'weeklyStatsCSV' + err.message)
+  }
+}
+
+/**
+ * Generate stats for the specified mentions and hashtags over a period of consecutive weeks,
+ * and write to a file suitable for Mermaid charting:
+ *   chart_title
+ *   x-axis: [week labels, ...]
+ *   y_series_name1: [data points, ...]
+ *   y_series_name2: [data points, ...]
+ *   ...
+ * Only the specifically 'included' hashtags or mentions are included, as given by those settings.
+ * The file is written to the plugin data directory.
+ * @author @jgclark
+ */
+export async function weeklyStatsMermaid(): Promise<void> {
+  try {
+    const filename = 'weekly_stats_for_mermaid.txt'
+    let config = await getSummariesSettings()
+
+    // Calculate week range, asking for date offset _before_ current week.
+    // Note: This is horribly complicated given the mismatch between NP and moment, and translation from JS dates needs care re TZs. 
+    // See longer notes in weeklyStatsCSV function definition above.
+    const todaysDate = new Date()
+    let thisYear = todaysDate.getFullYear() // JS uses local time
+    const todayStartMom = moment().startOf('day')
+    let [fromDateStr, numWeeks] = getFirstDateForWeeklyStats(config.weeklyStatsDuration, config.weeklyStatsIncludeCurrentWeek)
+    const startWeekInfo = getNPWeekData(fromDateStr)
+    logDebug('weeklyStatsMermaid', `starting for ${String(numWeeks)} weeks, with startWeekInfo = ${JSON.stringify(startWeekInfo)} / fromDateStr = ${fromDateStr} / includeCurrentWeek = ${String(config.weeklyStatsIncludeCurrentWeek)}`)
+    if (!startWeekInfo) throw new Error(`Invalid startWeek based on ${fromDateStr}, so can't continue`)
+    const endWeekInfo = getNPWeekData(fromDateStr, numWeeks - 1, 'week')
+    if (!endWeekInfo) throw new Error(`Invalid startWeek based on ${todaysDateISOString}, so can't continue`)
+    const toDateStr = hyphenatedDateString(endWeekInfo.endDate)
+    logDebug('weeklyStatsMermaid', `fromDateStr = ${fromDateStr} / toDateStr = ${toDateStr}`)
+    const chartTitle = `Weekly stats for the last ${numWeeks} weeks`
+
+    // Prepare config for gatherOccurrences() call
+    const hashtagItems = config.weeklyStatsItems.filter((a) => a.startsWith('#'))
+    const mentionItems = config.weeklyStatsItems.filter((a) => a.startsWith('@'))
+    const occConfig: OccurrencesToLookFor = {
+      GOYesNo: [],
+      GOHashtagsCount: [],
+      GOHashtagsAverage: [],
+      GOHashtagsTotal: hashtagItems,
+      GOHashtagsExclude: [], // no exclusions used here
+      GOMentionsCount: [],
+      GOMentionsAverage: [],
+      GOMentionsTotal: mentionItems,
+      GOMentionsExclude: [], // no exclusions used here
+    }
+
+    // Pop up UI wait dialog as this can be a long-running process
+    CommandBar.showLoading(true, `Preparing weekly stats over ${numWeeks} weeks`)
+    await CommandBar.onAsyncThread()
+
+    // Gather all the appropriate occurrences of the wanted terms
+    CommandBar.showLoading(true, `Gathering relevant #hashtags and @mentions`)
+    let occs: Array<TMOccurrences> = await gatherOccurrences(
+      'period',
+      fromDateStr, toDateStr, // YYYY-MM-DD
+      occConfig)
+
+    // For every week of interest calculate stats and add to the output array
+    let outputArray = []
+    outputArray.push("xychart-beta")
+    outputArray.push(`\ttitle "${chartTitle}"`)
+    let intervalLabelArr = []
+    for (let i = 0; i < numWeeks; i++) {
+      const weekInfo = getNPWeekData(fromDateStr, i, 'week')
+      if (!weekInfo?.weekNumber) throw new Error(`Invalid startWeek based on ${fromDateStr}, so can't continue`)
+      let weekNum = weekInfo.weekNumber
+      let weekLabel = (weekNum !== 1) ? 'W' + pad(weekNum) : String(startWeekInfo.weekYear)
+      intervalLabelArr.push(weekLabel)
+    }
+    outputArray.push(`\tx-axis "for ${hashtagItems.join(', ')} and ${mentionItems.join(', ')}" [${intervalLabelArr.join(', ')}]`)
+
+    let i = 0
+    if (occs.length > 0) {
+      for (let occ of occs) {
+        i++
+        const thisOccValueArr = []
+        // Update UI wait dialog
+        CommandBar.showLoading(true, `Calculating stats for ${occs.length} terms of interest`, i / occs.length)
+
+        for (let counter = 0; counter < numWeeks; counter++) {
+          // Get the date info for the week of interest (counting up)
+          const thisWeekInfo = getNPWeekData(fromDateStr, counter, 'week') ?? {}
+          if (!thisWeekInfo.startDate || !thisWeekInfo.endDate) throw new Error(`Invalid start/endDate based on ${todaysDateISOString} + ${counter} - ${numWeeks}, so can't continue`)
+          let weekStartDate = thisWeekInfo.startDate
+          let weekEndDate = thisWeekInfo.endDate
+          let weekStartDateStr = hyphenatedDateString(weekStartDate)
+          let weekEndDateStr = hyphenatedDateString(weekEndDate)
+          logDebug('weeklyStatsMermaid', `-> ${String(counter)}: ${weekStartDateStr} -  ${weekEndDateStr}`)
+          const thisWeekValue = occ.summaryTextForInterval(weekStartDateStr, weekEndDateStr, 'week', 'single')
+          thisOccValueArr.push(thisWeekValue)
+        }
+        outputArray.push(`\tline "${occ.term}" [${thisOccValueArr.join(', ')}]`)
+      }
+
+      // Write out to fixed note in plugin data directory
+      DataStore.saveData(outputArray.join('\n'), filename, true)
+      logInfo('weeklyStatsMermaid', `Written results to data file '${filename}'`)
+      logDebug('weeklyStatsMermaid', `Output:\n${outputArray.join('\n')}`)
+    } else {
+      logInfo(pluginJson, `No relevant data found in time range ${fromDateStr} - ${toDateStr}. No output file written.`)
+    }
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
+
+  }
+  catch (err) {
+    logError(pluginJson, 'weeklyStatsMermaid' + err.message)
   }
 }

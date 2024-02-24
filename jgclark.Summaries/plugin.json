@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Summaries/CHANGELOG.md",
-  "plugin.version": "0.20.3",
-  "plugin.lastUpdateInfo": "0.20.3: Bug fix for progressUpdate() in templates.\n0.20.2: Added x-callback options for /periodStats.\n0.20.1: fix refresh after '/append progress update' command. Logging change.\n0.20.0: add new '/today progress' and '/heatmap for tag' commands, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.",
+  "plugin.version": "0.21.0",
+  "plugin.lastUpdateInfo": "0.21.0: Add Mermaid charting command. Fix to simple weekly CSV generation.\n0.20.3: Bug fix for progressUpdate() in templates.\n0.20.2: Added x-callback options for /periodStats.\n0.20.1: fix refresh after '/append progress update' command. Logging change.\n0.20.0: add new '/today progress' and '/heatmap for tag' commands, and add refresh button to /periodStats output.\n0.19.3: bug fixes on 'weekly stats generation' commands.\n0.19.2: change date library.\n0.19.1: bug fix\n. 0.19.0: adds totals and averages for hashtags as well. Improve output of averages.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -94,14 +94,22 @@
       "jsFunction": "showTaskCompletionHeatmap"
     },
     {
-      "name": "weeklyStatsToCSV",
+      "name": "Weekly Stats as CSV",
       "alias": [
         "week",
-        "stats",
-        "count"
+        "stats"
       ],
-      "description": "Generate stats for tags and mentions for all weeks this year, and write CSV to a file",
-      "jsFunction": "weeklyStats"
+      "description": "Generate weekly stats for tags and mentions, and write CSV to a file",
+      "jsFunction": "weeklyStatsCSV"
+    },
+    {
+      "name": "Weekly Stats for Mermaid",
+      "alias": [
+        "week",
+        "stats"
+      ],
+      "description": "Generate weekly stats for tags and mentions, and write to a file ready to chart in Mermaid",
+      "jsFunction": "weeklyStatsMermaid"
     },
     {
       "name": "Habits+Summaries: update plugin settings",
@@ -460,20 +468,28 @@
       "title": "Chart command settings"
     },
     {
-      "key": "weeklyStatsDuration",
-      "title": "Chart Duration (in weeks)",
-      "description": "Number of completed weeks to look back when generating stats (including heatmaps), not including sparklines.\nIf set to 0, the plugin will generate a sensible period between 6 months and 1 year.",
-      "type": "number",
-      "default": 0,
-      "required": true
-    },
-    {
       "key": "weeklyStatsItems",
       "title": "Items to Chart",
       "description": "List of @mentions or #hashtags to generate stats ready to chart.",
       "type": "[string]",
-      "default": [],
-      "required": false
+      "required": false,
+      "default": []
+    },
+    {
+      "key": "weeklyStatsDuration",
+      "title": "Chart Duration (in weeks)",
+      "description": "Number of weeks to look back when generating stats (including heatmaps), not including sparklines.",
+      "type": "number",
+      "required": true,
+      "default": 26
+    },
+    {
+      "key": "weeklyStatsIncludeCurrentWeek",
+      "title": "Include current week?",
+      "description": "Whether this include the (probably incomplete) current week, or only completed weeks.",
+      "type": "bool",
+      "required": true,
+      "default": false
     },
     {
       "type": "separator"

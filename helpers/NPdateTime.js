@@ -268,7 +268,7 @@ export const periodTypesAndDescriptions = [
  *
  * @param {string?} question to show user
  * @param {boolean?} excludeToday? (default true)
- * @param {string?} periodShortCodeArg? lm | mtd | om etc. If not provided ask user
+ * @param {string?} periodShortCodeArg? lm | mtd | om etc. | today | a YYYY-MM-DD date. If not provided ask user.
  * @returns {[Date, Date, string, string, string]}
  */
 export async function getPeriodStartEndDates(
@@ -492,6 +492,7 @@ export async function getPeriodStartEndDates(
     default: {
       // check to see if it's an ISO8601 date instead
       if (new RegExp(`^${RE_DATE}$`).test(periodShortCode)) {
+        // It is, then use that as from date, and today as to date.
         toDateMom = moment(toDate).startOf('day')
         fromDateMom = moment(periodShortCode)
         fromDate = fromDateMom.toDate()
