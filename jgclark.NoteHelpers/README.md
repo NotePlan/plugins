@@ -26,7 +26,7 @@ This plugin provides commands to do things with notes that aren't yet provided i
 - **update all indexes**: updates all the existing folder index notes
 - **list inconsistent note filenames**: lists the names of notes whose filenames are inconsistent with their titles
 - **rename filename to title**: renames the current filename to the title of the note
-- **rename inconsistent note filenames**: renames the files of notes whose filenames are inconsistent with their titles
+- **rename inconsistent note filenames**: renames the files of notes whose filenames are inconsistent with their titles. When run it offers to rename all in one go, or to go one by one so you can choose which ones to rename.
 
 **Tip**: some of these are even more helpful if you assign a keyboard shortcut to them, using macOS's Keyboard > Shortcuts > App Shortcuts system. For example I have mapped ⇧⌘H to `/jump to heading`.
 

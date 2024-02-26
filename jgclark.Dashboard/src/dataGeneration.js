@@ -153,28 +153,13 @@ async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, time
     // (This takes less than 1ms)
     if (config.separateSectionForReferencedNotes) {
       const sortedOpenParas = sortListBy(openParas, ['-priority', 'timeStr'])
-      // // for TEST: remove later
-      // logDebug('getOpenItemParasForCurrent...', `sortedOpenParas...`)
-      // for (let p of sortedOpenParas) {
-      //   console.log(`- '${p.timeStr}' in ${p.content}`)
-      // }
       const sortedRefParas = sortListBy(refParas, ['-priority', 'timeStr'])
-      // // for TEST: remove later
-      // logDebug('getOpenItemParasForCurrent...', `sortedRefParas...`)
-      // for (let p of sortedRefParas) {
-      //   console.log(`- '${p.timeStr}' in ${p.content}`)
-      // }
       // come back to main thread
       // await CommandBar.onMainThread()
       return [sortedOpenParas, sortedRefParas]
     } else {
       const combinedParas = openParas.concat(refParas)
       const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
-      // for TEST: remove later
-      // logDebug('getOpenItemParasForCurrent...', `combinedSortedParas...`)
-      // for (let p of combinedSortedParas) {
-      //   console.log(`- '${p.timeStr}' in ${p.content}`)
-      // }
       // come back to main thread
       // await CommandBar.onMainThread()
       return [combinedSortedParas, []]
@@ -669,7 +654,6 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           totalCount = reducedParas.length
 
           // Sort paragraphs by one of several options
-          // TODO(later): Add a different setting here?
           const sortOrder = (config.overdueSortOrder === 'priority')
             ? ['-priority', '-changedDate']
             : (config.overdueSortOrder === 'earliest')
