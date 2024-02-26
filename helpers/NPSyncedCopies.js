@@ -11,8 +11,9 @@ import { createOpenOrDeleteNoteCallbackUrl } from '@helpers/general'
  * @param {Array<string>} taskTypesToInclude - default is ['open']
  * @returns array of strings with the sync codes attached
  */
-export function getSyncedCopiesAsList(parasToSync: Array<SortableParagraphSubset>, taskTypesToInclude: Array<string> = ['open']): Array<string> {
-  clof(parasToSync, `NPSyncedCopies::getSyncedCopiesAsList parasToSync=`, ['lineIndex', 'content'], true)
+export function getSyncedCopiesAsList(parasToSync: Array<TParagraph>, taskTypesToInclude: Array<string> = ['open']): Array<string> {
+  clof(parasToSync, `NPSyncedCopies::getSyncedCopiesAsList parasToSync=`, null, true)
+  clo(parasToSync, `NPSyncedCopies::getSyncedCopiesAsList clo version parasToSync=`)
   clof(taskTypesToInclude, `NPSyncedCopies::getSyncedCopiesAsList taskTypesToInclude=`, ['lineIndex', 'content'], true)
   const syncedLinesList = []
   parasToSync.forEach((p) => {
@@ -28,6 +29,7 @@ export function getSyncedCopiesAsList(parasToSync: Array<SortableParagraphSubset
     }
   })
   logDebug(`getSyncedCopiesAsList:`, `Input length:${parasToSync.length} items | output length:${syncedLinesList.length} items`)
+  clof(syncedLinesList, `NPSyncedCopies::getSyncedCopiesAsList syncedLinesList=`, null, true)
   return syncedLinesList
 }
 

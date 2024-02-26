@@ -121,13 +121,13 @@ export function clo(obj: any, preamble: string = '', space: string | number = 2)
  * Prunes object properties that are not in the list, but continues to look deeper as long as properties match the list.
  * @param {object} obj - array or object
  * @param {string} preamble - (optional) text to prepend to the output
- * @param {Array<string>} fields - the field property names to display (default: null - display all fields)
+ * @param {Array<string>|string} fields - the field property names to display (default: null - display all fields)
  * @param {boolean} compactMode - [default: false] if true, will display the fields in a more compact format (less vertical space)
  * @author @dwertheimer
  * @example clof(note.paragraphs, 'paragraphs',['content'],true)
  * @example clof({ foo: { bar: [{ willPrint: 1, ignored:2 }] } }, 'Goes deep as long as it finds a matching field', ['foo', 'bar', 'willPrint'], false)
  */
-export function clof(obj: any, preamble: string = '', fields: ?Array<string> = null, compactMode: ?boolean = false): void {
+export function clof(obj: any, preamble: string = '', fields: ?Array<string> | string = null, compactMode: ?boolean = false): void {
   const topLevelIsArray = Array.isArray(obj)
   const copy = deepCopy(obj, fields?.length ? fields : null, true)
   const topLevel = topLevelIsArray ? Object.keys(copy).map((k) => copy[k]) : copy
@@ -136,11 +136,11 @@ export function clof(obj: any, preamble: string = '', fields: ?Array<string> = n
       logDebug(`${preamble}: [] (no data)`)
       return
     }
-    logDebug(`${preamble} ---`)
+    logDebug(`${preamble}: vvv`)
     topLevel.forEach((item, i) => {
       logDebug(`${preamble}: [${i}]: ${typeof item === 'object' && item !== null ? JSON.stringify(item, null, compactMode ? undefined : 2) : String(item)}`)
     })
-    logDebug(`${preamble} ---`)
+    logDebug(`${preamble}: ^^^`)
   } else {
     if (topLevel === {}) {
       const keycheck = fields ? ` for fields: [${fields.join(', ')}] - all other properties are pruned` : ''
@@ -221,12 +221,12 @@ export function copyObject(obj: any): any {
  *
  * @template T The type of the value being copied.
  * @param {T} value The value to copy.
- * @param {?Array<string>} [propsToInclude=null] Optional array of property names to include in the copy.
+ * @param {?Array<string>|string} [propsToInclude=null] Optional single field name or array of property names to include in the copy. As objects are traversed, only these properties will be included in the copy. If null, all properties will be included.
  * @param {boolean} [showIndices=false] Optional parameter to include indices in array representation during stringification.
  * @return {T|{ [key: string]: any }} The deep copy of the value.
  */
-export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> = null, showIndices: boolean = false): T | { [key: string]: any } {
-  const propsToInclude = _propsToInclude === [] ? null : _propsToInclude
+export function deepCopy<T>(value: T, _propsToInclude: ?Array<string> | string = null, showIndices: boolean = false): T | { [key: string]: any } {
+  const propsToInclude = _propsToInclude === [] ? null : typeof _propsToInclude === 'string' ? [_propsToInclude] : _propsToInclude
 
   // Handle null, undefined, and primitive types
   if (value === null || typeof value !== 'object') {
