@@ -4,6 +4,18 @@ README: [How to use AutoTimeBlocking](https://noteplan.co/n/#/1EF12392-B544-4044
 
 ## What's New in AutoTimeBlocking
 
+## [1.20.0] 2024-02-23 @dwertheimer - thx @Werwowolf
+
+- Feature: add named timeframes in settings (e.g. "morning", "early", "afternoon") and a task tagged with #afternoon will get placed there
+- Sort todos by priority then date (oldest to newest), then duration
+- Do not include backlinks which are not todos as todos
+
+## [1.19.1] 2024-02-14 @dwertheimer
+
+- Remove calendar writing in /atb (now that it is included in NP)
+- Allow any character (e.g. emoji) to be your TB char (used to be #hashtag something only)
+- Fix: Remove synced blockId from "No time available" line
+
 ## [1.18.3] 2024-02-02 @dwertheimer
 
 - Added ability for BY_TIMEBLOCK_TAG to work for multiple sessions in a day of the same name, e.g. HighEnergy. Thx @Crambeary

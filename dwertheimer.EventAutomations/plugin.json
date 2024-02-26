@@ -5,8 +5,8 @@
   "plugin.name": "🗓 AutoTimeBlocking / Events",
   "plugin.description": "Various Event Automations:\n- Automatically find time in your calendar and create Time Blocks for items marked for today,\n- Write out synced copies of Today's todos (without the AutoTimeBlocking), and\n- Create calendar events for all text items under a specific heading",
   "plugin.author": "dwertheimer",
-  "plugin.version": "1.18.3",
-  "plugin.lastUpdateInfo": "1.18.3: Adapted /atb to work with NotePlan's new TimeBlocks-to-calendar feature. Thanks for the great bug report @Crambeary!\n1.18.1: Fixed Synced Task creation to make it more reliable in templates. Please see updated code in the README.\nAlso removed the 'Remove Synced Lines' commands, as a more general command now exists in the Tidy Up plugin.\n1.18.0: Major update: Added the ability to map tasks into existing named timeblocks.\nIMPORTANT NOTE: NotePlan recently released the ability to write timeblocks to calendars automatically. This feature is not compatible with AutoTimeBlocking, so you must set this feature off to use the /atb command.",
+  "plugin.version": "1.20.0",
+  "plugin.lastUpdateInfo": "1.20.0: Add timeframes tags to have tasks placed in a time of day (see readme). Also Sort todos by priority then date (oldest to newest), then duration. Bug fix: Ignore backlinks which are not todos",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.url": "https://noteplan.co/n/#/1EF12392-B544-4044-AC7A-428F57EB2DFC",
@@ -46,15 +46,6 @@
         "atbp",
         "abtp",
         "tbp"
-      ]
-    },
-    {
-      "name": "Choose Calendar for /atb to write to",
-      "description": "Select a calendar to write to when using /atb",
-      "jsFunction": "selectCalendar",
-      "alias": [
-        "selectCalendar",
-        "atbcalendar"
       ]
     },
     {
@@ -260,7 +251,7 @@
     },
     {
       "key": "createSyncedCopies",
-      "type": "bool",
+      "type": "hidden",
       "title": "Automatically create synced copies of References items when ATB runs",
       "description": "When /atb (AutoTimeBlocking) command is run, write a synced line (copy) of the Reference item in the calendar note. Can look a little repetitive, but it will save you time when you want to edit the underlying item.",
       "default": false,
@@ -270,7 +261,7 @@
       "key": "syncedCopiesTitle",
       "type": "string",
       "title": "Title/heading for synced copies of today's items",
-      "description": "If you have turned on synced copies, they will be placed under this heading in the calendar note",
+      "description": "When you generate synced copies of tasks, they will be placed under this heading in the calendar note",
       "default": " [Today's Synced Tasks](noteplan://x-callback-url/runPlugin?pluginID=dwertheimer.EventAutomations&command=Insert%20Synced%20Todos%20for%20Open%20Calendar%20Note)",
       "required": true
     },
@@ -337,54 +328,6 @@
     },
     {
       "type": "heading",
-      "title": "Advanced: Calendar-Related Settings (EXPERIMENTAL)"
-    },
-    {
-      "key": "createCalendarEntries",
-      "type": "bool",
-      "title": "Create calendar entries from time blocks",
-      "description": "Write Time Blocks as actual calendar entries rather than ephemeral Time Block overlays. Read the documentation before turning this on.",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "deletePreviousCalendarEntries",
-      "type": "bool",
-      "title": "Delete previously entered time blocks",
-      "description": "Delete Time Blocks the plugin previously wrote to the calendar. Read the documentation before turning this on.",
-      "default": false,
-      "required": true
-    },
-    {
-      "key": "calendarToWriteTo",
-      "title": "Name of Calendar to write to",
-      "description": "You can hand-write the name here, but that's potentially error-prone. The easier way is to run the plugin command '/Choose Calendar for /atb to write to' which will give you a choice of writeable calendars and will set this preference. The calendar name to write events to. Must be a writable calendar.",
-      "type": "string",
-      "default": "",
-      "required": false
-    },
-    {
-      "key": "eventEnteredOnCalTag",
-      "type": "string",
-      "validation": "",
-      "title": "Processed tag name (cannot be empty)",
-      "description": "Tag attached to events which were written into the calendar. ",
-      "default": "#event_created",
-      "required": true
-    },
-    {
-      "key": "insertIntoEditor",
-      "type": "bool",
-      "title": "Insert time blocks into note Editor",
-      "description": "Leave resulting time blocks in the open note in the Editor window. The only reason to set this to false is if you are using the 'CreateCalendarEntries' setting and don't want to see any vestiges of time blocks in the Editor after the events are written to the Calendar as actual calendar events.",
-      "default": true,
-      "required": true
-    },
-    {
-      "type": "separator"
-    },
-    {
-      "type": "heading",
       "title": "Advanced: Other Settings"
     },
     {
@@ -433,8 +376,16 @@
       "key": "presets",
       "type": "json",
       "title": "Presets to temporarily override settings above",
-      "description": "Presets are useful for changing some of the settings above but just for certain runs of the plugin (e.g. on the weekend, etc.). Read the documentation for how to use presets.",
-      "default": "[\n{\n\t\"label\":\"Limit Time Blocks to Work Hours\",\n\t\"workDayStart\":\"08:00\",\n\t\"workDayEnd\":\"17:59\"\n},\n{\n\t\"label\":\"Create Timeblocks on Calendar\",\n\t\"createCalendarEntries\":true,\n\t\"deletePreviousCalendarEntries\":true,\n\t\"todoChar\":\"*\"\n}\n]",
+      "description": "Presets are useful for changing some of the settings above but just for certain runs of the plugin (e.g. on the weekend, etc.). Read the documentation for how to use presets. Use Jsonlint.com to check changes you make in this blank for errors.",
+      "default": "[\n{\n\t\"label\":\"Limit Time Blocks to Work Hours\",\n\t\"workDayStart\":\"08:00\",\n\t\"workDayEnd\":\"17:59\"\n},\n{\n\t\"label\":\"Create Timeblocks on Calendar\",\n\t\"todoChar\":\"*\"\n}\n]",
+      "required": false
+    },
+    {
+      "key": "timeframes",
+      "type": "json",
+      "title": "Time-of-day Timeframes",
+      "description": "When you are operating in 'BY_TIMEBLOCK_TAG' mode, you can have a task slotted into a particular part of the day by tagging it with a timeframe matching one in the above list. Each timeframe has a name (names can be whatever you want), a start and a stop time.\nSo, if you have a task '* read book #late`, /atb will attempt to place it in the 'late' slot. Read the documentation for more on how to use this feature. Use Jsonlint.com to check changes you make in this blank for errors.",
+      "default": "{\n\t\"early\": [\"07:00\",\"08:30\"],\n\t\"morning\": [\"08:30\",\"12:00\"],\n\t\"afternoon\": [\"12:00\",\"18:00\"],\n\t\"evening\": [\"18:00\",\"22:00\"],\n\t\"late\": [\"22:00\",\"23:00\"]\n}",
       "required": false
     },
     {
@@ -488,7 +439,7 @@
       "key": "linkText",
       "type": "hidden",
       "description": "Use this text for the short link to the calendar item. Leave blank for just the date text.",
-      "default": "→"
+      "default": "🔗"
     },
     {
       "type": "separator"

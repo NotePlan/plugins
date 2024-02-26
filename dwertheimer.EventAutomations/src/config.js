@@ -20,33 +20,18 @@ export function getTimeBlockingDefaults(): AutoTimeBlockingConfig {
     mode: 'PRIORITY_FIRST' /* 'PRIORITY_FIRST' or 'LARGEST_FIRST' or 'BY_TIMEBLOCK_TAG' */,
     orphanTagggedTasks: "OUTPUT_FOR_INFO (but don't schedule them)",
     allowEventSplits: false /* allow tasks to be split into multiple timeblocks */,
-    insertIntoEditor: true /* insert timeblocks into the editor */,
     passBackResults: false /* pass back the results to the caller (e.g. for template calls) */,
-    createCalendarEntries: false /* create calendar entries for the timeblocks */,
-    eventEnteredOnCalTag: '#event_created' /* needs to match @jgclark config/events/processedTagName */,
-    deletePreviousCalendarEntries: false /* before creating new calendar entries, delete previous calendar entries for the timeblocks; 
-               to keep a calendar entry around, just remove the timeBlockTag */,
     includeTasksWithText: [] /* limit to tasks with ANY of these tags/text */,
     excludeTasksWithText: [] /* exclude tasks with ANY of these tags/text */,
     includeLinks: 'Pretty Links',
     linkText: '📄',
     syncedCopiesTitle: "Today's Synced Tasks",
-    createSyncedCopies: true,
     foldSyncedCopiesHeading: false,
     runSilently: false,
     timeblockTextMustContainString: '' /* is set automatically when config is pulled */,
     foldersToIgnore: [],
-    calendarToWriteTo: '',
     includeAllTodos: true,
-    presets: [
-      { label: 'Limit Time Blocks to Work Hours', workDayStart: '08:00', workDayEnd: '17:59' },
-      {
-        label: 'Create Timeblocks on Calendar',
-        createCalendarEntries: true,
-        deletePreviousCalendarEntries: true,
-        todoChar: '*',
-      },
-    ] /* presets for the dropdown */,
+    presets: [{ label: 'Limit Time Blocks to Work Hours', workDayStart: '08:00', workDayEnd: '17:59' }] /* presets for the dropdown */,
     /* OPTIONAL: nowStrOverride: "00:00" for testing, e.g. '00:00' */
   }
 }
@@ -56,7 +41,7 @@ const nonEmptyString: RegExp = /^(?!\s*$).+/
 export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): AutoTimeBlockingConfig {
   const configTypeCheck = {
     todoChar: /^(?!(?:.*\*){2})[\*|\-|\+|#{1,}]+$/,
-    timeBlockTag: /^#.*/,
+    timeBlockTag: /^.+/,
     timeBlockHeading: /^[^#+].*/,
     foldTimeBlockHeading: 'boolean',
     workDayStart: /^\d{2}:\d{2}$/,
@@ -64,7 +49,6 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     durationMarker: nonEmptyString,
     intervalMins: 'number',
     removeDuration: 'boolean',
-    createSyncedCopies: 'boolean',
     syncedCopiesTitle: nonEmptyString,
     foldSyncedCopiesHeading: 'boolean',
     defaultDuration: 'number',
@@ -72,17 +56,12 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     orphanTagggedTasks: 'string',
     checkedItemChecksOriginal: 'boolean',
     allowEventSplits: 'boolean',
-    insertIntoEditor: 'boolean',
     runSilently: { type: 'boolean', optional: true },
     passBackResults: { type: 'boolean', optional: true },
-    createCalendarEntries: 'boolean',
-    deletePreviousCalendarEntries: 'boolean',
-    eventEnteredOnCalTag: nonEmptyString,
     includeLinks: nonEmptyString,
     linkText: nonEmptyString,
     includeTasksWithText: { type: 'array', optional: true },
     excludeTasksWithText: { type: 'array', optional: true },
-    calendarToWriteTo: 'string',
     foldersToIgnore: { type: 'array', optional: true },
     presets: { type: 'array', optional: true },
     nowStrOverride: { type: /^\d{2}:\d{2}$/, optional: true },
@@ -95,6 +74,11 @@ export function validateAutoTimeBlockingConfig(config: AutoTimeBlockingConfig): 
     if (validatedConfig.checkedItemChecksOriginal && (validatedConfig.todoChar !== '+' || validatedConfig.includeLinks !== 'Pretty Links')) {
       throw new Error(
         `To use the checklist check to check the original, your timeblock character must be + and the 'Include links to task location in time blocks' setting must be set to 'Pretty Links'`,
+      )
+    }
+    if (config.timeBlockTag === DataStore.preference('timeblockTextMustContainString')) {
+      throw new Error(
+        `Your AutoTimeBlocking Tag must be different from your NotePlan Preferences 'Timeblock Must Contain' setting. /ATB has to be able to identify the items that were created previously by the plugin so it can delete and re-generate them.`,
       )
     }
     // $FlowIgnore
@@ -118,27 +102,23 @@ export type AutoTimeBlockingConfig = {
   durationMarker: string,
   intervalMins: number,
   removeDuration: boolean,
-  createSyncedCopies: boolean,
   syncedCopiesTitle: string,
   foldSyncedCopiesHeading: boolean,
   defaultDuration: number,
   mode: string,
   orphanTagggedTasks: string,
   allowEventSplits: boolean,
-  insertIntoEditor: boolean,
   runSilently?: boolean,
   passBackResults?: boolean,
-  createCalendarEntries: boolean,
-  deletePreviousCalendarEntries: boolean,
-  calendarToWriteTo: string,
-  eventEnteredOnCalTag: string,
   includeLinks: string,
   linkText: string,
   includeTasksWithText?: Array<string>,
   excludeTasksWithText?: Array<string>,
   foldersToIgnore?: Array<string>,
   presets?: any,
+  timeframes?: any,
   nowStrOverride?: string,
   timeblockTextMustContainString: string,
   includeAllTodos: boolean,
+  dateFormat?: string,
 }

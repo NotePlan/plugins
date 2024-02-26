@@ -1037,20 +1037,6 @@ appendLinkIfNecessary
 */
 
 /*
- * getNamedTimeBlocks()
- */
-describe('getNamedTimeBlocks()' /* function */, () => {
-  test('should return empty array if no named blocks', () => {
-    const blocks = [
-      { start: '00:00', end: '00:20', minsAvailable: 20, title: '' },
-      { start: '00:40', end: '01:00', minsAvailable: 20, title: '' },
-    ]
-    const result = tb.getNamedTimeBlocks(blocks)
-    expect(result).toEqual([])
-  })
-})
-
-/*
  * processByTimeBlockTag()
  */
 describe('processByTimeBlockTag()' /* function */, () => {

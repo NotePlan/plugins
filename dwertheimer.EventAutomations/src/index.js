@@ -8,13 +8,13 @@ export { editSettings } from '@helpers/NPSettings'
 export {
   insertTodosAsTimeblocks,
   insertTodosAsTimeblocksWithPresets,
-  selectCalendar,
   insertSyncedCopiesOfTodayTodos,
   removeTimeBlocks,
   removePreviousTimeBlocks,
   markDoneAndRecreateTimeblocks,
-  onEditorWillSave,
 } from './NPTimeblocking'
+
+export { onEditorWillSave } from './triggers'
 
 export { createEvents, createEventPrompt } from './NPEventBlocks'
 
