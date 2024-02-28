@@ -1151,7 +1151,7 @@ describe('processByTimeBlockTag()' /* function */, () => {
     }
     const sortedTaskList = [{ content: 'Do something #foo' }, { content: 'Do something else #foo' }, { content: 'this wont fit #foo' }]
     const res = byTagMode.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
-    expect(res.timeBlockTextList).toEqual(['* 00:25-00:30 Do something #foo #🕑 #byTagMode', '* 00:30-00:35 Do something else #foo #🕑 #tb'])
+    expect(res.timeBlockTextList).toEqual(['* 00:25-00:30 Do something #foo #🕑 #tb', '* 00:30-00:35 Do something else #foo #🕑 #tb'])
   })
   test('should place two tasks in one named timeblock and another in another one', () => {
     // now test line which had no time attached

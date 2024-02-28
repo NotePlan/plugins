@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable import/order */
 /* global jest, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
+import * as configFile from '../src/config'
 import { deleteParagraphsContainingString, insertItemsIntoNote } from '../src/timeblocking-shared'
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Paragraph, Note, mockWasCalledWithString } from '@mocks/index'
