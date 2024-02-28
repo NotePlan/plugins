@@ -1,6 +1,9 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
+## [0.22.0] - 2024-02-28
+- Add support for checklist progress
+
 ## [0.21.0] - 2024-02-???
 - new "Weekly Stats for Mermaid" command. See README for details.
 
