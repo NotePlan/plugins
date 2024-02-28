@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Helper functions for WindowTools plugin
 // Jonathan Clark
-// last update 27.12.2023 for v1.0.0 by @jgclark
+// last update 23.1.2024 for v1.1.0 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -114,8 +114,8 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     const config = await getPluginSettings()
     const noteFolder = (noteFolderArg !== '') ? noteFolderArg : config.folderForDefinitions
     const noteTitle = (noteTitleArg !== '') ? noteTitleArg : config.noteTitleForDefinitions
-    const windowSets = (windowSetsArg.length > 0) ? windowSetsArg : readWindowSetDefinitions()
-    logDebug(pluginJson, `writeWSsToNote() starting for folder '${noteFolder}' title '${noteTitle}'`)
+    const windowSets = (windowSetsArg.length > 0) ? windowSetsArg : await readWindowSetDefinitions()
+    logDebug(pluginJson, `writeWSsToNote() starting for folder '${noteFolder}' title '${noteTitle}' with ${windowSets.length} windowSets`)
     const WSNote: ?TNote = await getOrMakeNote(noteTitle, noteFolder)
     if (!WSNote) {
       throw new Error(`writeWSsToNote() no note found for '${noteTitle}' in folder '${noteFolder}'`)
@@ -271,7 +271,7 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
     const windowSetsObject: any = DataStore.preference('windowSets')
     const thisMachineName = NotePlan.environment.machineName
     if (!windowSetsObject) {
-      logWarn('readWindowSetDefinitions V3', `No saved windowSet objects found in local pref for ${thisMachineName}`)
+      logWarn('readWindowSetDefinitions V3', `No saved windowSet objects found in local pref on ${thisMachineName}`)
 
       // Offer to make two default sets
       await offerToAddExampleWSs()
@@ -353,15 +353,17 @@ export async function logWindowSets(): Promise<void> {
  * @param {string} name of window set to look up
  * @returns {WindowSet | null} window set, if found, otherwise null
  */
-export function getDetailedWindowSetByName(name: string): WindowSet | null {
+export async function getDetailedWindowSetByName(name: string): Promise<WindowSet | null> {
   try {
-    const savedWindowSets = DataStore.preference('windowSets')
+    const thisMachineName = NotePlan.environment.machineName
+    const savedWindowSets: Array<WindowSet> = await readWindowSetDefinitions(thisMachineName)
     if (!savedWindowSets) {
-      logWarn(pluginJson, 'No saved detailed windowSet objects found')
+      logWarn(pluginJson, 'No saved detailed windowSet objects found on ' + thisMachineName)
       return null
     }
-    const windowSets = Array(savedWindowSets ?? [])
-    for (const set of windowSets) {
+    // const windowSets = Array(savedWindowSets ?? [])
+    logDebug('getDetailedWindowSetByName', `Found ${String(savedWindowSets.length)} saved windowSet objects`)
+    for (const set of savedWindowSets) {
       if (set.name === name) {
         return set
       }

@@ -18,7 +18,7 @@ There are two commands:
 
 As monitor dimensions vary widely, a window set layout is specific to the particular Mac computer you've defined it on. If you have more than one then it will only show you the ones for the machine you're currently using.
 
-[<img width="100px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
+[<img width="160px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 ### Known limitations
 Unfortunately because of limitations in the API that plugins use, WindowSets:
@@ -36,14 +36,20 @@ _If you want to dig into more detail, and tweak more of what's going on, please 
 The **/open window set** command can be triggered by opening a a special x-callback URL. The first argument is the name of the window set to open (with spaces replaced by `%20`.)`
 
 For example to restore the 'Days + Weeks' Window Set:
-`noteplan://x-callback-url/runPlugin?pluginID=jgclark.WindowSets&command=open%20window%20set&arg0=Days%20%2B%20Weeks`
+`noteplan://x-callback-url/runPlugin?pluginID=jgclark.WindowTools&command=open%20window%20set&arg0=Days%20%2B%20Weeks`
+
+The **/open note in new split** command can also be run this way. For example:
+- to open 'Note Title': `noteplan://x-callback-url/runPlugin?pluginID=jgclark.WindowTools&command=open%20note%20in%20new%20split&arg0=Note%20Title`
+- to open tomorrow's daily note: `noteplan://x-callback-url/runPlugin?pluginID=jgclark.WindowTools&command=open%20note%20in%20new%20split&arg0=tomorrow` 
+
+Similarly for the **/open note in new window** command, for example `noteplan://x-callback-url/runPlugin?pluginID=jgclark.WindowTools&command=open%20note%20in%20new%20window&arg0=Note%20Title`.
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
 If you would like to support my late-night work extending NotePlan through writing these plugins, you can through:
 
-[<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
+[<img width="180px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
 Thanks!
 

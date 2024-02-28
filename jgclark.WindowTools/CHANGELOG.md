@@ -1,6 +1,13 @@
 # What's changed in 🖥️  Window Tools?
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md)._
 
+<!-- - ??? rename or add 'swap' -->
+
+## [1.1.0] - 2024-02-28
+- added x-callbacks for /open window set, /open note in new split and /open note in new window commands
+- fixed bugs in test command "/write window set pref to note"
+- moved some code around
+
 ## [1.0.0] - 2024-01-02
 Renamed plugin to '**🖥️  Window Tools**' (at v1.0.0) as it now covers more than just Window Sets:
 - new command **/move split to main** (alias: /mstm) that moves the current split pane to be the first one in the main window

@@ -357,7 +357,7 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
     let thisWS: wsh.WindowSet
     let res: wsh.WindowSet | null
     if (setName !== '') {
-      res = wsh.getDetailedWindowSetByName(setName)
+      res = await wsh.getDetailedWindowSetByName(setName)
     }
     if (res) {
       // Use this one

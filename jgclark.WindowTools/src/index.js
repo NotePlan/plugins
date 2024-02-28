@@ -3,7 +3,7 @@
 //---------------------------------------------------------------
 // Window Sets commands
 // Jonathan Clark
-// Last updated 2.1.2024 for v1.0.0 by @jgclark
+// Last updated 28.2.2024 for v1.1.0 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation

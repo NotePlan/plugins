@@ -2,68 +2,81 @@
 //---------------------------------------------------------------
 // Various open window/split functions for WindowTools plugin
 // Jonathan Clark
-// last update 2.1.2024 for v1.0.0 by @jgclark
+// last update 2.1.2024 for v1.1.0 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { allNotesSortedByChanged } from '@helpers/note'
+import { getNoteFromIdentifier } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { chooseNote } from '@helpers/userInput'
 
 /**
  * Open a user-selected note in a new window.
+ * If 'noteTitle' is passed use that; if that is empty, or can't be found, ask user instead.
+ * Note: identifier will be unencoded, as it can be passed in through x-callback
  * @author @jgclark
+ * @param {string} encodedNoteIdentifier: project note title, or date interval (e.g.'{-1d}'), or NotePlan's (internal) calendar date string. Will need to be 
  */
-export async function openNoteNewWindow(): Promise<void> {
+export async function openNoteNewWindow(encodedNoteIdentifier: string = ''): Promise<void> {
   try {
+    let note: TNote | null
+    if (encodedNoteIdentifier !== '') {
+      note = getNoteFromIdentifier(decodeURIComponent(encodedNoteIdentifier))
+    }
     // Ask for the note we want to open
-    const notes = allNotesSortedByChanged()
-    // const re = await CommandBar.showOptions(
-    //   notes.map((n) => displayTitle(n)),
-    //   'Select note to open in new window',
-    // )
-    // const note = notes[re.index]
-    const note = await chooseNote(true, true, [], 'Select note to open in new window', false)
+    if (!note) {
+      note = await chooseNote(true, true, [], 'Select note to open in new window', false)
+    }
     if (note) {
       const filename = note.filename
       // work out where start of main content of the note is
       const startOfMainContentLine = findStartOfActivePartOfNote(note)
-      const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+      const startOfMainContentCharIndex = (startOfMainContentLine > 0)
+        ? note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+        : 0
       // open note, moving cursor to start of main content
       const res = await Editor.openNoteByFilename(filename, true, startOfMainContentCharIndex, startOfMainContentCharIndex, false)
+    } else {
+      logWarn(pluginJson, `openNoteNewWindow: Couldn't find note to open`)
     }
-  } catch (e) {
-    logError('openNoteNewWindow()', e.message)
+  } catch (err) {
+    logError('openNoteNewWindow()', err.message)
   }
 }
 
 /**
  * Open a user-selected note in a new split of the main window.
- * Note: uses API option only available on macOS and from v3.4.
- * It falls back to opening in a new window on unsupported versions.
+ * If 'noteTitle' is passed use that; if that is empty, or can't be found, ask user instead.
+ * Note: identifier will be unencoded, as it can be passed in through x-callback
  * @author @jgclark
+ * @param {string} encodedNoteIdentifier: project note title, or date interval (e.g.'{-1d}'), or NotePlan's (internal) calendar date string. Will need to be 
  */
-export async function openNoteNewSplit(): Promise<void> {
+export async function openNoteNewSplit(encodedNoteIdentifier: string = ''): Promise<void> {
   try {
+    let note: TNote | null
+    if (encodedNoteIdentifier !== '') {
+      note = getNoteFromIdentifier(decodeURIComponent(encodedNoteIdentifier))
+    }
     // Ask for the note we want to open
-    // const notes = allNotesSortedByChanged()
-    // const re = await CommandBar.showOptions(
-    //   notes.map((n) => displayTitle(n)),
-    //   'Select note to open in new split window',
-    // )
-    // const note = notes[re.index]
-    const note = await chooseNote(true, true, [], 'Select note to open in new split window', false)
+    if (!note) {
+      note = await chooseNote(true, true, [], 'Select note to open in new split window', false)
+    }
     if (note) {
       const filename = note.filename
       // work out where start of main content of the note is
       const startOfMainContentLine = findStartOfActivePartOfNote(note)
-      const startOfMainContentCharIndex = note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+      const startOfMainContentCharIndex = (startOfMainContentLine > 0)
+        ? note.paragraphs[startOfMainContentLine].contentRange?.start ?? 0
+        : 0
       // open note, moving cursor to start of main content
       const res = await Editor.openNoteByFilename(filename, false, startOfMainContentCharIndex, startOfMainContentCharIndex, true)
+    } else {
+      logWarn(pluginJson, `openNoteNewSplit: Couldn't find note to open`)
     }
-  } catch (e) {
-    logError('openNoteNewSplit()', e.message)
+  } catch (err) {
+    logError('openNoteNewSplit()', err.message)
   }
 }
 
