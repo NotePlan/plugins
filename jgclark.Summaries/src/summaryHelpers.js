@@ -655,7 +655,7 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
   */
 function gatherCompletedChecklistItems(calendarNotesInPeriod: Array<TNote>, fromDateStr: string, toDateStr: string, occToLookFor: OccurrencesToLookFor): Array<TMOccurrences> {
 
-  let tmOccurrencesArr: Array<TMOccurrences> = []
+  const tmOccurrencesArr: Array<TMOccurrences> = []
   const completedTypes = ['checklistDone', 'checklistScheduled']
 
   let referenceNote
