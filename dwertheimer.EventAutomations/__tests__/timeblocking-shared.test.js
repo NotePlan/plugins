@@ -1,7 +1,8 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable import/order */
 /* global jest, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
-import { deleteParagraphsContainingString } from '../src/timeblocking-shared'
+import * as configFile from '../src/config'
+import { deleteParagraphsContainingString, insertItemsIntoNote } from '../src/timeblocking-shared'
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter, Paragraph, Note, mockWasCalledWithString } from '@mocks/index'
 
@@ -95,7 +96,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = null
         const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list)
+        insertItemsIntoNote(note, list)
         expect(spy).not.toHaveBeenCalled() //inserts nothing
         spy.mockRestore()
       })
@@ -103,7 +104,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = []
         const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list)
+        insertItemsIntoNote(note, list)
         expect(spy).not.toHaveBeenCalled() //inserts nothing
         spy.mockRestore()
       })
@@ -111,7 +112,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'line1', type: 'open' })] })
         const list = ['line1', 'line2']
         const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list)
+        insertItemsIntoNote(note, list)
         expect(spy).toHaveBeenCalledWith(list.join('\n'), 0, 'text')
         spy.mockRestore()
       })
@@ -119,7 +120,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const note = new Note({ type: 'Notes', paragraphs: [new Paragraph({ content: 'title1', rawContent: '# title1', headingLevel: 1, type: 'title' })] })
         const list = ['line1', 'line2']
         const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list)
+        insertItemsIntoNote(note, list)
         expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text')
         spy.mockRestore()
       })
@@ -129,7 +130,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const heading = ''
         const config = configFile.getTimeBlockingDefaults()
         const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list, heading, false, config)
+        insertItemsIntoNote(note, list, heading, false, config)
         expect(spy).toHaveBeenCalledWith(list.join('\n'), 0, 'text')
         spy.mockRestore()
       })
@@ -139,7 +140,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const heading = 'heading'
         const config = configFile.getTimeBlockingDefaults()
         const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list, heading, false, config)
+        insertItemsIntoNote(note, list, heading, false, config)
         const text = `## ${heading}\n`.concat(list.join('\n')).concat('\n')
         expect(spy).toHaveBeenCalledWith(text, 0, 'text')
         spy.mockRestore()
@@ -150,7 +151,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const heading = ''
         const config = configFile.getTimeBlockingDefaults()
         const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list, heading, true, config)
+        insertItemsIntoNote(note, list, heading, true, config)
         expect(spy).toHaveBeenCalledWith(list.join('\n'), 0, 'text') //inserts nothing
         spy.mockRestore()
       })
@@ -167,7 +168,7 @@ describe(`${PLUGIN_NAME}`, () => {
         const heading = 'old1head'
         const config = configFile.getTimeBlockingDefaults()
         const spy = jest.spyOn(note, 'insertParagraph')
-        mainFile.insertItemsIntoNote(note, list, heading, true, config)
+        insertItemsIntoNote(note, list, heading, true, config)
         expect(spy).toHaveBeenCalledWith(list.join('\n'), 1, 'text') //inserts nothing
         spy.mockRestore()
       })

@@ -63,6 +63,33 @@ export async function logWindowsList(): Promise<void> {
   }
 }
 
+export async function setEditorSplitWidth(editorWinIn: number, widthIn: number): Promise<void> {
+  try {
+    if (NotePlan.environment.buildVersion <= 1119) {
+      logWarn("setEditorSplitWidth", "Cannot set editor split window width.");
+      return
+    }
+    const editorWinIndex = editorWinIn ? editorWinIn : await inputIntegerBounded("Set Width", "Which open Editor number to set width for? (0-${String(NotePlan.editors.length - 1)})", NotePlan.editors.length - 1, 0);
+    const editorWin = NotePlan.editors[editorWinIndex];
+    logDebug("setEditorSplitWidth", "- Rect: ".concat(rectToString(editorWin.windowRect)));
+    const width = widthIn ? widthIn : await inputIntegerBounded("Set Width", "Width? (300-".concat(String(NotePlan.environment.screenWidth), ")"), NotePlan.environment.screenWidth, 300);
+    const thisWindowRect = getLiveWindowRectFromWin(editorWin);
+    if (!thisWindowRect) {
+      logError("setEditorSplitWidth", "Can't get window rect for editor ".concat(String(editorWinIn)));
+      return
+    }
+    const existingWidth = thisWindowRect.width
+    logDebug("setEditorSplitWidth", "Attempting to set width for editor #".concat(String(editorWinIndex), " from ").concat(existingWidth, " to ").concat(String(width)));
+    thisWindowRect.width = width
+    editorWin.windowRect = thisWindowRect
+    const newWidth = thisWindowRect.width
+    logDebug("setEditorSplitWidth", "- now width = ".concat(String(newWidth)))
+  } catch (error) {
+    logError("setEditorSplitWidth", error.message)
+    return
+  }
+}
+
 /**
  * Return list of all open window IDs (other than main Editor).
  * Uses API introduced in NP 3.8.1, and extended in 3.9.1 to add .rect.

@@ -5,6 +5,7 @@
 // Note: expect(spy).toHaveBeenNthCalledWith(2, expect.stringMatching(/ERROR/))
 
 import * as mainFile from '../src/NPTimeblocking'
+import * as timeBlockingShared from '../src/timeblocking-shared'
 import * as configFile from '../src/config'
 
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph, mockWasCalledWithString } from '@mocks/index'
@@ -45,21 +46,21 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       //   expect(result).toEqual(true)
       // })
       test('should return default config if getting config fails', () => {
-        const result = mainFile.getConfig()
+        const result = timeBlockingShared.getConfig()
         expect(Object.keys(result).length).toBeGreaterThan(1)
       })
       test('should return default config if no settings set', () => {
         const oldSettings = DataStore.settings
         DataStore.settings = undefined
         const spy = jest.spyOn(console, 'log')
-        const result = mainFile.getConfig()
+        const result = timeBlockingShared.getConfig()
         expect(mockWasCalledWithString(spy, /config was empty/)).toBe(true)
         expect(Object.keys(result).length).toBeGreaterThan(1)
         spy.mockRestore()
         DataStore.settings = oldSettings
       })
       test('should return default config', () => {
-        const result = mainFile.getConfig()
+        const result = timeBlockingShared.getConfig()
         expect(Object.keys(result).length).toBeGreaterThan(1)
       })
       test.skip('should complain about improper config', () => {
@@ -67,7 +68,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
         const oldSettings = { ...DataStore.settings }
         DataStore.settings = { improper: 'key', __logLevel: 'DEBUG' }
         const spy = jest.spyOn(console, 'log')
-        mainFile.getConfig()
+        timeBlockingShared.getConfig()
         expect(mockWasCalledWithString(spy, /Running with default settings/)).toBe(true)
         spy.mockRestore()
         DataStore.settings = oldSettings
@@ -75,7 +76,7 @@ describe('dwertheimer.EventAutomations' /* pluginID */, () => {
       test('should return a proper config', () => {
         const oldSettings = DataStore.settings
         DataStore.settings = configFile.getTimeBlockingDefaults()
-        const c = mainFile.getConfig()
+        const c = timeBlockingShared.getConfig()
         expect(c).toEqual(DataStore.settings)
         DataStore.settings = oldSettings
       })

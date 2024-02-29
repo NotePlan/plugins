@@ -2,6 +2,7 @@
 // import colors from 'chalk'
 // import /* differenceInCalendarDays, endOfDay, startOfDay, eachMinuteOfInterval, */ 'date-fns'
 import * as tb from '../src/timeblocking-helpers'
+import * as byTagMode from '../src/byTagMode'
 import { getTasksByType } from '@helpers/sorting'
 
 import { JSP } from '@helpers/dev'
@@ -1062,7 +1063,7 @@ describe('processByTimeBlockTag()' /* function */, () => {
     }
     const sortedTaskList = [{ content: 'Do something #timblock' }, { content: 'line2' }, { content: 'line3' }]
     const timeBlockTextList = ['* 00:00-00:05 Do something #timblock #🕑 #tb', '* 00:05-00:10 line2 #🕑 #tb', '* 00:40-00:45 line3 #🕑 #tb']
-    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    const res = byTagMode.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
     expect(res.timeBlockTextList).toEqual(timeBlockTextList)
   })
   test('should place one named item', () => {
@@ -1091,7 +1092,7 @@ describe('processByTimeBlockTag()' /* function */, () => {
       timeblockTextMustContainString: '#tb',
     }
     const sortedTaskList = [{ content: 'Do something #foo' }]
-    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    const res = byTagMode.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
     expect(res.timeBlockTextList).toEqual([`* 00:20-00:25 Do something #foo #🕑 #tb`])
   })
   test('should place two tasks in one named timeblock', () => {
@@ -1120,7 +1121,7 @@ describe('processByTimeBlockTag()' /* function */, () => {
       timeblockTextMustContainString: '#tb',
     }
     const sortedTaskList = [{ content: 'Do something #foo' }, { content: 'Do something else #foo' }]
-    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    const res = byTagMode.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
     expect(res.timeBlockTextList).toEqual(['* 00:20-00:25 Do something #foo #🕑 #tb', '* 00:25-00:30 Do something else #foo #🕑 #tb'])
   })
   test('should place two tasks in one named timeblock but not a third that doesnt fit', () => {
@@ -1149,7 +1150,7 @@ describe('processByTimeBlockTag()' /* function */, () => {
       timeblockTextMustContainString: '#tb',
     }
     const sortedTaskList = [{ content: 'Do something #foo' }, { content: 'Do something else #foo' }, { content: 'this wont fit #foo' }]
-    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    const res = byTagMode.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
     expect(res.timeBlockTextList).toEqual(['* 00:25-00:30 Do something #foo #🕑 #tb', '* 00:30-00:35 Do something else #foo #🕑 #tb'])
   })
   test('should place two tasks in one named timeblock and another in another one', () => {
@@ -1176,7 +1177,7 @@ describe('processByTimeBlockTag()' /* function */, () => {
       timeblockTextMustContainString: '#tb',
     }
     const sortedTaskList = [{ content: 'this is another #bar' }, { content: 'Do something #foo' }, { content: 'Do something else #foo' }]
-    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    const res = byTagMode.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
     expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:20-00:25 Do something #foo #🕑 #tb']))
     expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:25-00:30 Do something else #foo #🕑 #tb']))
     expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:40-00:45 this is another #bar #🕑 #tb']))
@@ -1205,7 +1206,7 @@ describe('processByTimeBlockTag()' /* function */, () => {
       timeblockTextMustContainString: '🕑',
     }
     const sortedTaskList = [{ content: 'this is another #bar' }, { content: 'Do something #foo' }, { content: 'Do something outside' }]
-    const res = tb.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
+    const res = byTagMode.processByTimeBlockTag(sortedTaskList, { blockList: timeBlocks, timeMap: timeMap, timeBlockTextList: [] }, cfg)
     expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:00-00:05 Do something outside #🕑']))
     expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:20-00:25 Do something #foo #🕑']))
     expect(res.timeBlockTextList).toEqual(expect.arrayContaining(['* 00:40-00:45 this is another #bar #🕑']))

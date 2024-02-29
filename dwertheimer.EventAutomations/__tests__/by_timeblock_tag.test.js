@@ -59,16 +59,33 @@ describe(`${PLUGIN_NAME}`, () => {
 
     describe('splitItemsByTags', () => {
       test('correctly groups items by matching tags', () => {
-        const arrayOfItems = [{ hashtags: ['foo', 'bar'] }, { hashtags: ['foo'] }, { hashtags: [] }, { hashtags: ['bar'] }]
-        const tags = { foo: ['09:00', '12:00'], bar: ['10:00', '11:00'] }
+        const arrayOfItems = [
+          { content: 'Item with #foo and #bar', duration: 10 }, // Matches foo and bar
+          { content: 'Item with #foo', duration: 5 }, // Matches foo
+          { content: 'Item without hashtags', duration: 3 }, // Matches none
+          { content: 'Item with #bar', duration: 7 }, // Matches bar
+        ]
+
+        const tags = {
+          foo: true,
+          bar: true,
+        }
 
         const result = splitItemsByTags(arrayOfItems, tags)
         const { matched, unmatched } = result
 
-        // Asserting structure based on Flow types
-        expect(matched.foo).toEqual(expect.arrayContaining([{ hashtags: ['foo', 'bar'] }, { hashtags: ['foo'] }]))
-        expect(matched.bar).toEqual(expect.arrayContaining([{ hashtags: ['foo', 'bar'] }, { hashtags: ['bar'] }]))
-        expect(unmatched).toEqual(expect.arrayContaining([{ hashtags: [] }]))
+        // Assert the grouping is correct based on the content structure
+        expect(matched.foo).toEqual(expect.arrayContaining([
+          { content: 'Item with #foo and #bar', duration: 10 },
+          { content: 'Item with #foo', duration: 5 }
+        ]))
+        expect(matched.bar).toEqual(expect.arrayContaining([
+          { content: 'Item with #foo and #bar', duration: 10 },
+          { content: 'Item with #bar', duration: 7 }
+        ]))
+        expect(unmatched).toEqual(expect.arrayContaining([
+          { content: 'Item without hashtags', duration: 3 }
+        ]))
       })
 
       test('handles empty arrayOfItems and tags correctly', () => {
@@ -92,35 +109,36 @@ describe(`${PLUGIN_NAME}`, () => {
       })
       describe('splitItemsByTags handling multiple matches', () => {
         test('places an item with two matching hashtags under both properties in matched', () => {
-          // Define an item that has two hashtags, both of which should match the tags object
-          const arrayOfItems = [
-            { hashtags: ['multiMatch1', 'multiMatch2'] }, // This item matches two tags
-            { hashtags: ['singleMatch'] }, // This item matches only one tag
-            { hashtags: ['noMatch'] }, // This item does not match any tag
-          ]
+        // Assuming getTagsFromString can extract hashtags from the content string
+        const arrayOfItems = [
+          { content: 'This item matches #multiMatch1 and #multiMatch2', duration: 10 }, // This item matches two tags
+          { content: 'This item matches #singleMatch', duration: 5 }, // This item matches only one tag
+          { content: 'This item does not match any tag', duration: 3 }, // This item does not match any tag
+        ]
 
-          // Define tags with two matching tags and one additional tag that won't match
-          const tags = {
-            multiMatch1: ['time1'],
-            multiMatch2: ['time2'],
-            singleMatch: ['time3'],
-            unmatchedTag: ['time3'],
-          }
+        // Define tags with two matching tags and one additional tag that won't match
+        const tags = {
+          multiMatch1: true,
+          multiMatch2: true,
+          singleMatch: true,
+          unmatchedTag: true,
+        }
 
-          const { matched, unmatched } = splitItemsByTags(arrayOfItems, tags)
+        const { matched, unmatched } = splitItemsByTags(arrayOfItems, tags)
 
-          // Assert the item is under both matching tag properties in 'matched'
-          expect(matched.multiMatch1).toEqual(expect.arrayContaining([{ hashtags: ['multiMatch1', 'multiMatch2'] }]))
-          expect(matched.multiMatch2).toEqual(expect.arrayContaining([{ hashtags: ['multiMatch1', 'multiMatch2'] }]))
+        // Assert the item is under both matching tag properties in 'matched'
+        // The expected objects in the assertions have to match the input structure of arrayOfItems
+        expect(matched.multiMatch1).toEqual(expect.arrayContaining([{ content: 'This item matches #multiMatch1 and #multiMatch2', duration: 10 }]))
+        expect(matched.multiMatch2).toEqual(expect.arrayContaining([{ content: 'This item matches #multiMatch1 and #multiMatch2', duration: 10 }]))
 
-          // Assert the single match is correctly placed
-          expect(matched.singleMatch).toEqual(expect.arrayContaining([{ hashtags: ['singleMatch'] }]))
+        // Assert the single match is correctly placed
+        expect(matched.singleMatch).toEqual(expect.arrayContaining([{ content: 'This item matches #singleMatch', duration: 5 }]))
 
-          // Assert that 'unmatched' contains the item without any matching tags
-          expect(unmatched).toEqual(expect.arrayContaining([{ hashtags: ['noMatch'] }]))
+        // Assert that 'unmatched' contains the item without any matching tags
+        expect(unmatched).toEqual(expect.arrayContaining([{ content: 'This item does not match any tag', duration: 3 }]))
 
-          // Assert the unmatchedTag key does not exist in the matched object
-          expect(matched).not.toHaveProperty('unmatchedTag')
+        // Assert the unmatchedTag key does not exist in the matched object
+        expect(matched).not.toHaveProperty('unmatchedTag')
         })
       })
     })
