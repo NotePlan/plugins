@@ -128,6 +128,7 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
         GOMentionsTotal: paramProgressMentionsTotal,
         GOMentionsAverage: paramProgressMentionsAverage,
         GOMentionsExclude: [],
+        GOChecklistRefNote: config.progressChecklistReferenceNote,
       }
     } else {
       settingsForGO = {
@@ -140,6 +141,7 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
         GOMentionsTotal: config.progressMentionsTotal,
         GOMentionsAverage: config.progressMentionsAverage,
         GOMentionsExclude: [],
+        GOChecklistRefNote: config.progressChecklistReferenceNote,
       }
     }
 

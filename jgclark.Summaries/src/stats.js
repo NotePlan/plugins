@@ -94,6 +94,7 @@ export async function statsPeriod(periodCodeArg: string = '', calNumber: number 
       GOMentionsExclude: [],
       GOMentionsAverage: config.periodStatsMentionsAverage,
       GOMentionsTotal: config.periodStatsMentionsTotal,
+      GOChecklistRefNote: config.progressChecklistReferenceNote,
     }
     const tmOccurrencesArray = await gatherOccurrences(periodString,
       fromDateStr,
