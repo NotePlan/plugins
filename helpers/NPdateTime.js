@@ -263,19 +263,20 @@ export const periodTypesAndDescriptions = [
  * - {string} periodShortCode    (e.g. 'lq' for 'Last Quarter')
  * - {string} periodString  (e.g. '2022 Q2 (Apr-June)')
  * - {string} periodAndPartStr (e.g. 'day 4' showing how far through we are in a partial ('... to date') time period)
+ * - {number} periodNumber (e.g. 1 for first month/quarter etc.) or NaN if not valid.
  * Normally does this by asking user, unless param 'periodShortCode' is supplied.
  * @author @jgclark
  *
  * @param {string?} question to show user
  * @param {boolean?} excludeToday? (default true)
  * @param {string?} periodShortCodeArg? lm | mtd | om etc. | today | a YYYY-MM-DD date. If not provided ask user.
- * @returns {[Date, Date, string, string, string]}
+ * @returns {[Date, Date, string, string, string, number]}
  */
 export async function getPeriodStartEndDates(
   question: string = 'Create stats for which period?',
   excludeToday: boolean = true /* currently only used when a date is passed through as periodShortCode */,
   periodShortCodeArg?: string,
-): Promise<[Date, Date, string, string, string]> {
+): Promise<[Date, Date, string, string, string, number]> {
   let periodShortCode: string
   // If we're passed the period, then use that, otherwise ask user
   if (periodShortCodeArg && periodShortCodeArg !== '') {
@@ -291,6 +292,7 @@ export async function getPeriodStartEndDates(
   let toDate: Date = toDateMom.toDate()
   let periodString = ''
   let periodAndPartStr = ''
+  let periodNumber = NaN
 
   logDebug('getPeriodStartEndDates', `starting with periodShortCode = ${periodShortCode}, excludeToday? ${String(excludeToday)}.`)
 
@@ -308,6 +310,7 @@ export async function getPeriodStartEndDates(
       fromDate = fromDateMom.toDate()
       toDate = toDateMom.toDate()
       periodString = `${lastY}`
+      periodNumber = lastY
       break
     }
     case 'ytd': {
@@ -315,6 +318,7 @@ export async function getPeriodStartEndDates(
       fromDate = fromDateMom.toDate()
       periodString = `${y}`
       periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
+      periodNumber = y
       break
     }
     case 'oy': {
@@ -324,6 +328,7 @@ export async function getPeriodStartEndDates(
       fromDate = fromDateMom.toDate()
       toDate = toDateMom.toDate()
       periodString = `${theYear}`
+      periodNumber = theYear
       break
     }
 
@@ -333,6 +338,7 @@ export async function getPeriodStartEndDates(
       fromDate = fromDateMom.toDate()
       toDate = toDateMom.toDate()
       periodString = fromDateMom.format('YYYY [Q]Q (MMM-') + toDateMom.format('MMM)')
+      periodNumber = Number(fromDateMom.format('Q'))
       break
     }
     case 'qtd': {
@@ -340,6 +346,7 @@ export async function getPeriodStartEndDates(
       fromDate = fromDateMom.toDate()
       periodString = fromDateMom.format('YYYY [Q]Q')
       periodAndPartStr = `${periodString} (to ${todaysDateISOString})`
+      periodNumber = Number(fromDateMom.format('Q'))
       break
     }
     case 'oq': {
@@ -351,6 +358,7 @@ export async function getPeriodStartEndDates(
       fromDate = fromDateMom.toDate()
       toDate = toDateMom.toDate()
       periodString = fromDateMom.format('YYYY [Q]Q (MMM-') + toDateMom.format('MMM)')
+      periodNumber = Number(fromDateMom.format('Q'))
       break
     }
 
@@ -360,6 +368,7 @@ export async function getPeriodStartEndDates(
       toDateMom = moment(toDate).startOf('month').subtract(1, 'days')
       toDate = toDateMom.toDate()
       periodString = fromDateMom.format('MMM YYYY')
+      periodNumber = fromDateMom.month() + 1
       break
     }
     case 'mtd': {
@@ -367,6 +376,7 @@ export async function getPeriodStartEndDates(
       fromDate = fromDateMom.toDate()
       periodString = fromDateMom.format('MMM YYYY')
       periodAndPartStr = `${periodString}, day ${d}`
+      periodNumber = fromDateMom.month() + 1
       break
     }
     case 'om': {
@@ -378,6 +388,7 @@ export async function getPeriodStartEndDates(
       fromDate = fromDateMom.toDate()
       toDate = toDateMom.toDate()
       periodString = fromDateMom.format('MMM YYYY')
+      periodNumber = fromDateMom.month() + 1
       break
     }
 
@@ -398,6 +409,7 @@ export async function getPeriodStartEndDates(
       }
       ;[fromDate, toDate] = isoWeekStartEndDates(lastWeekNum, theYear)
       periodString = `${String(theYear)}-W${lastWeekNum < 10 ? `0${String(lastWeekNum)}` : String(lastWeekNum)}`
+      periodNumber = lastWeekNum
       break
     }
     case 'userwtd': {
@@ -417,6 +429,7 @@ export async function getPeriodStartEndDates(
 
       periodString = `this week`
       periodAndPartStr = `at day ${dateWithinInterval} of this week`
+      periodNumber = NaN // TODO: improve this
       break
     }
     case 'wtd': {
@@ -436,6 +449,7 @@ export async function getPeriodStartEndDates(
       const todaysISODayOfWeek = moment().isoWeekday()
       periodAndPartStr = `day ${todaysISODayOfWeek}, ${periodString}`
       logDebug('getPeriodStartEndDates', `wtd: currentWeekNum: ${currentWeekNum}, theYear: ${theYear}, todaysISODayOfWeek: ${todaysISODayOfWeek}`)
+      periodNumber = currentWeekNum
       break
     }
     case 'last7d': {
@@ -446,6 +460,7 @@ export async function getPeriodStartEndDates(
       fromDateMom = toDateMom.subtract(6, 'days')
       fromDate = fromDateMom.toDate()
       logDebug('last7d', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+      periodNumber = NaN
       break
     }
     case 'last2w': {
@@ -456,6 +471,7 @@ export async function getPeriodStartEndDates(
       fromDateMom = toDateMom.subtract(13, 'days')
       fromDate = fromDateMom.toDate()
       logDebug('last2w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+      periodNumber = NaN
       break
     }
     case 'last4w': {
@@ -466,6 +482,7 @@ export async function getPeriodStartEndDates(
       fromDateMom = moment(toDateMom).subtract(27, 'days')
       fromDate = fromDateMom.toDate()
       logDebug('last4w', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+      periodNumber = NaN
       break
     }
     case 'ow': {
@@ -477,6 +494,7 @@ export async function getPeriodStartEndDates(
       fromDate = tempObj[0]
       toDate = tempObj[1]
       periodString = `${theYear}-W${weekNum < 10 ? `0${String(weekNum)}` : String(weekNum)}`
+      periodNumber = weekNum
       break
     }
 
@@ -486,6 +504,7 @@ export async function getPeriodStartEndDates(
       toDateMom = toDateMom.endOf('day')
       toDate = toDateMom.toDate()
       periodString = 'today'
+      periodNumber = NaN // not valid
       break
     }
 
@@ -500,6 +519,7 @@ export async function getPeriodStartEndDates(
         const daysBetween = toDateMom.diff(fromDateMom, 'days')
         periodAndPartStr = `${daysBetween} days since ${periodShortCode}`
         logDebug('getPeriodStartEndDates 8601date', `${fromDateMom.toLocaleString()} - ${toDateMom.toLocaleString()}}`)
+        periodNumber = NaN // not valid
         break
       }
       periodString = `<Error: couldn't parse interval type '${periodShortCode}'>`
@@ -511,11 +531,12 @@ export async function getPeriodStartEndDates(
     toDate = toDateMom.toDate()
   }
   logDebug('getPeriodStartEndDates', `-> ${fromDate.toString()}, ${toDate.toString()}, ${periodString} / ${periodAndPartStr}`)
-  return [fromDate, toDate, periodShortCode, periodString, periodAndPartStr]
+  return [fromDate, toDate, periodShortCode, periodString, periodAndPartStr, periodNumber]
 }
 
 /**
- * Returns a set of details for the supplied date period:
+ * Take a given periodCode (week | month | quarter | year | YYYY-MM-DD) and periodNumber within that, and 
+ * returns a set of details for the supplied date period:
  * - {Date} start (js) date of time period
  * - {Date} end (js) date of time period
  * - {string} periodCode    (e.g. 'lq' for 'Last Quarter')
@@ -524,7 +545,7 @@ export async function getPeriodStartEndDates(
  * @author @jgclark
  * @tests some in jest file; doesn't cover the JS Date returns
  * @param {string} periodCode only week | month | quarter | year | YYYY-MM-DD
- * @param {number} periodNumber e.g. 3 for '3rd Quarter' or '3rd month' etc. (ignored for periodCode year or YYYY-MM-DD)
+ * @param {number} periodNumber e.g. 3 for '3rd Quarter' or '3rd month' etc. (ignored for periodCode 'year' or YYYY-MM-DD)
  * @param {number} year
  * @param {boolean?} excludeToday? (default true)
  * @returns {[Date, Date, string, string, string]}
