@@ -266,7 +266,7 @@ export function createAddTextCallbackUrl(note: TNote | string, options: { text: 
 export function createRunPluginCallbackUrl(pluginID: string, commandName: string, args: Array<string> | string): string {
   let xcb = `noteplan://x-callback-url/runPlugin?pluginID=${pluginID}&command=${encodeURIComponent(commandName)}`
   if (!args || args === undefined) {
-    // no useful input: no params in output
+    // no useful input: so no params in output
   } else if (typeof args !== 'string') {
     if (args?.length) {
       args.forEach((arg, i) => {
@@ -327,11 +327,11 @@ export function createPrettyOpenNoteLink(linkText: string, titleOrFilename: stri
  * @param {string} linkText - the text to display for the link
  * @param {string} pluginID - the plugin's ID
  * @param {boolean} command - the "name" field of the plugin command to run
- * @param {any} args - arguments to pass (optional)
+ * @param {Array<string> | string} args - arguments to pass (optional)
  * @returns {string} arguments as strings (or single argument string) to send through to plugin
  * @tests available
  */
-export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: any): string {
+export function createPrettyRunPluginLink(linkText: string, pluginID: string, command: string, args: Array<string> | string = ''): string {
   return `[${linkText}](${createRunPluginCallbackUrl(pluginID, command, args)})`
 }
 
