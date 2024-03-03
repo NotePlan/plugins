@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Summary commands for notes
 // Jonathan Clark
-// Last updated 16.2.2024 for v0.21.0 by @jgclark
+// Last updated 2.3.2024 for v0.21.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -310,7 +310,7 @@ export class TMOccurrences {
    * Get a 'sparkline' (an inline bar or line chart) for a particular term for the current period, in a specified style.
    * Currently the only style available is 'ascii'.
    */
-  getSparklineForPeriod(style: string = 'ascii'): string {
+  getSparklineForPeriod(style: string = 'ascii', config: any): string {
     let output = ''
     switch (style) {
       case 'ascii': {
@@ -318,7 +318,7 @@ export class TMOccurrences {
           const options = { min: 0, divider: '|', missingDataChar: '·' }
           output = makeSparkline(this.getValues(), options)
         } else {
-          const options = { divider: '|', yesNoChars: '✓·' }
+          const options = { divider: '|', yesNoChars: config.progressYesNoChars }
           output = makeYesNoLine(this.getValues(), options)
         }
         break
@@ -638,9 +638,11 @@ export function gatherOccurrences(periodString: string, fromDateStr: string, toD
  * @param {boolean} sortOutput
  * @returns Array<string>
  */
-export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: string, fromDateStr: string, toDateStr: string, style: string, requestToShowSparklines: boolean, sortOutput: boolean): Array<string> {
+export async function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodString: string, fromDateStr: string, toDateStr: string, style: string, requestToShowSparklines: boolean, sortOutput: boolean): Promise<Array<string>> {
   try {
     logDebug('generateProgressUpdate', `starting for ${periodString} (${fromDateStr} - ${toDateStr}) with ${occObjs.length} occObjs and sparklines? ${String(requestToShowSparklines)}`)
+
+    const config = await getSummariesSettings()
 
     const toDateMom = moment(toDateStr, "YYYY-MM-DD")
     const fromDateMom = moment(fromDateStr, "YYYY-MM-DD")
@@ -657,7 +659,7 @@ export function generateProgressUpdate(occObjs: Array<TMOccurrences>, periodStri
       switch (style) {
         case 'markdown': {
           if (showSparklines) {
-            thisOutput = "`" + occObj.getTerm(maxTermLen) + " " + occObj.getSparklineForPeriod('ascii') + "`"
+            thisOutput = "`" + occObj.getTerm(maxTermLen) + " " + occObj.getSparklineForPeriod('ascii', config) + "`"
           } else {
             thisOutput = "**" + occObj.getTerm() + "**: "
           }

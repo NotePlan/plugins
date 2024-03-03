@@ -184,7 +184,7 @@
     {
       "key": "progressYesNoChars",
       "title": "Yes/No characters",
-      "description": "Pair of characters to use as Yes and No in output of Yes/No progress items. The first is for Yes, the second for No.\nHere are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□.\nYou can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.",
+      "description": "Pair of characters to use as Yes and No in output of Yes/No progress items. The first is for Yes, the second for No.\nHere are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□.\nYou can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.\nDo NOT but a comma between them: this is just the two characters.",
       "type": "string",
       "default": "✓·",
       "required": false

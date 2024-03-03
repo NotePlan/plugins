@@ -146,10 +146,10 @@ export async function makeTodayProgress(itemsToShowArr: Array<string> = [], sour
       settingsForGO
     )
 
-    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', false, false).join('\n')
-
-    await CommandBar.onMainThread()
     CommandBar.showLoading(false)
+    await CommandBar.onMainThread()
+    const output = (await generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', false, false)).join('\n')
+
     logDebug('makeTodayProgress', `- created progress update in ${timer(startTime)}`)
 
     // If we have a heading specified, make heading, using periodAndPartStr or '{{PERIOD}}' if it exists. Add a refresh button.

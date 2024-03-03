@@ -1,8 +1,10 @@
 # What's Changed in ⏱ Habits and Summaries plugin?
 (And see the full [README](https://github.com/NotePlan/plugins/tree/main/jgclark.Summaries).)
 
-## [0.21.0] - 2024-02-???
+## [0.21.0] - 2024-03-03
 - new "Weekly Stats for Mermaid" command. See README for details.
+- added a 'Refresh' button to periodStats outputs (except where the interval cannot be back-computed)
+- fix to 'sparkline' output of 'Yes/No Items' (thanks to report by @thor)
 
 ## [0.20.4] - 2024-02-16
 - fix to "Weekly Stats as CSV" command output

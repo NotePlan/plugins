@@ -165,16 +165,15 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
       toDateStr,
       settingsForGO
     )
-
-    const output = generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, false).join('\n')
-
-    await CommandBar.onMainThread()
     CommandBar.showLoading(false)
+    await CommandBar.onMainThread()
+
+    const output = (await generateProgressUpdate(tmOccurrencesArray, periodString, fromDateStr, toDateStr, 'markdown', config.showSparklines, false)).join('\n')
+
     logDebug('makeProgressUpdate', `- created progress update in ${timer(startTime)}`)
 
     // If we have a heading specified, make heading, using periodAndPartStr or '{{PERIOD}}' if it exists. Add a refresh button.
     // Create x-callback of form `noteplan://x-callback-url/runPlugin?pluginID=jgclark.Summaries&command=progressUpdate&arg0=...` with 'Refresh' pseudo-button
-
     const xCallbackMD = createPrettyRunPluginLink('🔄 Refresh', 'jgclark.Summaries', 'progressUpdate', params)
     const thisHeading = formatWithFields(config.progressHeading, { PERIOD: periodAndPartStr ? periodAndPartStr : periodString })
     const headingAndXCBStr = `${thisHeading} ${xCallbackMD}`

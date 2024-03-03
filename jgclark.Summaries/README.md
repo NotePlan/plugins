@@ -120,7 +120,7 @@ The many **settings** for this command are set in the Plugin Preference pane:
 - @mentions to **count**: e.g. '@work' -- the simple count of all such tags is displayed
 - @mentions to **total**: e.g. '@distance, @run' -- these are counted and displayed as a total
 - @mentions to **average**: e.g. '@sleep, @fruitveg' -- these are counted and displayed as an average (to 3 significant figures)
-- Yes/No characters: sets the pair of characters to use as Yes and No in output of "Yes/No items". The first is for Yes, the second for No. Here are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□. (You can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.)
+- Yes/No characters: sets the pair of characters to use as Yes and No in output of "Yes/No items". The first is for Yes, the second for No (without a comma to separate them). Here are some you might like to use for Yes: ✓✔■⧫▉ and for No: ·◦✕✖◌□. (You can use emojis, such as ✅🟢❌👎🔴, but they are likely to mess up the horizontal spacing.)
 - Exclude today's entries? Whether to exclude today's entries in progress updates. Can be enabled if you tend to run the progress update as part of a start-of-day routine, and only add the updates later in the day.
 
 ### Calling from a Template
@@ -254,7 +254,7 @@ The relevant settings for these commands are:
 - Include current week? Whether this include the (probably incomplete) current week, or only completed weeks.
 
 ## To do
-- now NotePlan has begun to make HTML content possible, I wish to create proper charts/graphs of numeric summaries. (The 'ASCII art' sparklines were an interim step towards this.)
+- now NotePlan has begun to make HTML content possible, I wish to create proper charts/graphs of numeric summaries. (The 'ASCII art' sparklines, and now Mermaid charts, are interim steps towards this.)
 
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
