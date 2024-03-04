@@ -46,8 +46,8 @@ export async function copyNoteLinks(): Promise<number> {
 }
 
 /**
- * Entry point for fileRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
- * @param {?string} params - can pass parameter string e.g. '{"period": "mtd", "progressHeading": "Progress"}'
+ * Entry point for copyRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
+ * @param {string?} params - can pass JSON parameter string e.g. '{"period": "mtd", "progressHeading": "Progress"}'
  * @returns {number} number of paragraphs copied
  */
 export async function copyRecentNoteLinks(params: string = ''): Promise<number> {
@@ -90,7 +90,7 @@ export async function moveNoteLinks(): Promise<number> {
 
 /**
  * Entry point for moveRecentNoteLinks, but will process any passed JSON parameters to override the settings object.
- * @param {?string} params - can pass parameter string e.g. '{"period": "mtd", "progressHeading": "Progress"}'
+ * @param {?string} params - can pass JSON parameter string e.g. '{"period": "mtd", "progressHeading": "Progress"}'
  * @returns {number} number of paragraphs moved
  */
 export async function moveRecentNoteLinks(params: string = ''): Promise<number> {
