@@ -1,12 +1,12 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 16.1.2024 for v0.8.3 by @jgclark
+// Last updated 4.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getSettings } from './dashboardHelpers'
-import { showDashboardHTML } from './main'
+import { showDashboard } from './HTMLGeneratorGrid'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import {
   calcOffsetDateStr,
@@ -22,7 +22,11 @@ import {
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
 import { getNoteByFilename } from '@helpers/note'
-import { cyclePriorityState, getTaskPriority } from '@helpers/paragraph'
+import {
+  cyclePriorityStateDown,
+  cyclePriorityStateUp,
+  getTaskPriority
+} from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import {
   cancelItem,
@@ -68,7 +72,7 @@ export async function onMessageFromHTMLView(type: string, data: any): any {
         await bridgeChangeCheckbox(data) // data is a string
         break
       case 'refresh':
-        await showDashboardHTML() // no await needed, I think
+        await showDashboard() // no await needed, I think
         break
       default:
         logError(pluginJson, `onMessageFromHTMLView(): unknown ${type} cannot be dispatched`)
@@ -91,7 +95,7 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
     logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
     DataStore.setPreference('Dashboard-filterPriorityItems', state)
     // having changed this pref, refresh the dashboard
-    await showDashboardHTML()
+    await showDashboard()
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -112,6 +116,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     }
     const ID = data.itemID
     const type = data.type
+    const controlStr = data.controlStr ?? ''
     const filename = decodeRFC3986URIComponent(data.encodedFilename ?? '')
     const content = decodeRFC3986URIComponent(data.encodedContent ?? '')
     logDebug('', '------------------------- bridgeClickDashboardItem:')
@@ -130,7 +135,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardHTML()
+          await showDashboard()
         }
         break
       }
@@ -147,7 +152,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardHTML('refresh')
+          await showDashboard('refresh')
         }
         break
       }
@@ -164,7 +169,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardHTML('refresh')
+          await showDashboard('refresh')
         }
         break
       }
@@ -181,7 +186,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardHTML('refresh')
+          await showDashboard('refresh')
         }
         break
       }
@@ -198,7 +203,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / cancelChecklist', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardHTML('refresh')
+          await showDashboard('refresh')
         }
         break
       }
@@ -211,20 +216,20 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         sendToHTMLWindow(windowId, 'toggleType', data)
         break
       }
-      case 'cyclePriorityState': {
-        // Send a request to cyclePriorityState to plugin
+      case 'cyclePriorityStateUp': {
+      // Send a request to cyclePriorityStateUp to plugin
 
         // Get para
         const para = findParaFromStringAndFilename(filename, content)
         if (para && typeof para !== 'boolean') {
           const paraContent = para.content ?? 'error'
-          // logDebug('bCDI / cyclePriorityState', `will cycle priority on para {${paraContent}}`)
+          // logDebug('bCDI / cyclePriorityStateUp', `will cycle priority on para {${paraContent}}`)
           // Note: next 2 lines have to be this way around, otherwise a race condition
           const newPriority = (getTaskPriority(paraContent) + 1) % 5
-          const updatedContent = cyclePriorityState(para)
-          logDebug('bCDI / cyclePriorityState', `cycling priority -> {${updatedContent}}`)
+          const updatedContent = cyclePriorityStateUp(para)
+          logDebug('bCDI / cyclePriorityStateUp', `cycling priority -> {${updatedContent}}`)
 
-          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (main.js::) it is simpler to ask for a refresh. = await showDashboardHTML('refresh')
+          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (main.js::) it is simpler to ask for a refresh. = await showDashboard('refresh')
           // Note: But this doesn't work, because of race condition.
           // So we better try that logic after all.
           const updatedData = {
@@ -232,9 +237,36 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
             newContent: updatedContent,
             newPriority: newPriority
           }
-          sendToHTMLWindow(windowId, 'cyclePriorityState', updatedData)
+          sendToHTMLWindow(windowId, 'cyclePriorityStateUp', updatedData)
         } else {
-          logWarn('bCDI / cyclePriorityState', `-> unable to find para {${content}} in filename ${filename}`)
+          logWarn('bCDI / cyclePriorityStateUp', `-> unable to find para {${content}} in filename ${filename}`)
+        }
+        break
+      }
+      case 'cyclePriorityStateDown': {
+        // Send a request to cyclePriorityStateDown to plugin
+
+        // Get para
+        const para = findParaFromStringAndFilename(filename, content)
+        if (para && typeof para !== 'boolean') {
+          const paraContent = para.content ?? 'error'
+          // logDebug('bCDI / cyclePriorityStateDown', `will cycle priority on para {${paraContent}}`)
+          // Note: next 2 lines have to be this way around, otherwise a race condition
+          const newPriority = (getTaskPriority(paraContent) - 1) % 5
+          const updatedContent = cyclePriorityStateDown(para)
+          logDebug('bCDI / cyclePriorityStateDown', `cycling priority -> {${updatedContent}}`)
+
+          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (main.js::) it is simpler to ask for a refresh. = await showDashboard('refresh')
+          // Note: But this doesn't work, because of race condition.
+          // So we better try that logic after all.
+          const updatedData = {
+            itemID: ID,
+            newContent: updatedContent,
+            newPriority: newPriority
+          }
+          sendToHTMLWindow(windowId, 'cyclePriorityStateDown', updatedData)
+        } else {
+          logWarn('bCDI / cyclePriorityStateDown', `-> unable to find para {${content}} in filename ${filename}`)
         }
         break
       }
@@ -252,8 +284,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // Mimic the /skip review command.
         const note = await DataStore.projectNoteByFilename(filename)
         if (note) {
+          let period = data.controlStr.replace('nr', '')
           logDebug('bCDI / setNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
-          let period = data.controlStr.replace('skip', '')
           skipReviewForNote(note, period)
           // Now send a message for the dashboard to update its display
           sendToHTMLWindow(windowId, 'removeItem', data)
@@ -382,7 +414,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         if (res) {
           logDebug('bridgeClickDashboardItem', `-> appeared to move item succesfully`)
           // Unfortunately we seem to have a race condition here, as the following doesn't remove the item
-          // await showDashboardHTML()
+          // await showDashboard()
           // So instead send a message to delete the row in the dashboard
           sendToHTMLWindow(windowId, 'removeItem', { itemID: ID })
         } else {
@@ -439,7 +471,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
             // refresh whole display, as we don't know which if any section the moved task might need to be added to
             logDebug('bridgeClickDashboardItem', `------------ refresh ------------`)
-            await showDashboardHTML()
+            await showDashboard()
           } else {
             logWarn('bridgeClickDashboardItem', `- can't find note to update to {${changedLine}}`)
           }

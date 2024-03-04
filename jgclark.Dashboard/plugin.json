@@ -8,11 +8,11 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.8.5",
-  "plugin.lastUpdateInfo": "v0.8.4: changed Projects section to show due not just overdue.\nv0.8.3: new 'Section heading to add/move new tasks under' and 'Reschedule items in place, rather than move them?' and 'Ignore items in this section with this phrase' settings.\nv0.8.2: Added secondary sorting by time block (if present).\nv0.8.1: added 'finish review' action button. Fix regression in settings.\nv0.8.0: added dashboard-specific Theme option. Added action buttons '≯' to 'unschedule' a task, and '✓then' to mark an overdue item as being comppleted at the time. Added action buttons on Project reviews.",
+  "plugin.version": "1.0.0-a1",
+  "plugin.lastUpdateInfo": "1.0.0-a1: rewrite of layout engine.",
   "plugin.requiredFiles": [
     "dashboard.css",
-    "dashboardHoverControls.css",
+    "dashboardDialog.css",
     "dashboardEvents.js",
     "debounce.js",
     "HTMLWinCommsSwitchboard.js",
@@ -39,7 +39,7 @@
         "sdb"
       ],
       "description": "Show Dashboard window",
-      "jsFunction": "showDashboardHTML"
+      "jsFunction": "showDashboard"
     },
     {
       "name": "refreshDashboard",
@@ -59,7 +59,7 @@
         "ddb"
       ],
       "description": "Show Demo Dashboard",
-      "jsFunction": "showDemoDashboardHTML",
+      "jsFunction": "showDemoDashboard",
       "hidden": true
     },
     {
@@ -99,14 +99,6 @@
       ],
       "description": "Log Dashboard information",
       "jsFunction": "logDashboardData"
-    },
-    {
-      "name": "show dashboard (React)",
-      "alias": [
-        "dbr"
-      ],
-      "description": "Show Dashboard (React method)",
-      "jsFunction": "showDashboardReact"
     }
   ],
   "plugin.settings": [

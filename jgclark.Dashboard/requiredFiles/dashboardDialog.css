@@ -1,0 +1,89 @@
+/**
+  CSS for the items Actions Dialog 
+  Last updated: 26.2.2024 for v0.9.0 by @jgclark
+  */
+
+dialog {
+  /* Unset the margin around it, to allow absolute positioning by left/top */
+  margin: 0px;
+  color: var(--fg-main-color);
+  background: var(--bg-main-color);
+  padding: 0rem;
+  border: solid 1px var(--tint-color);
+  border-radius: 0.5em;
+  box-shadow: 0px 0px 10px 2px #CCC;
+}
+
+.dialogTitle {
+  background: var(--bg-alt-color);
+  padding-block-start: 0.6rem;
+  padding-inline-start: 1rem;
+  padding-inline-end: 1rem;
+  padding-block-end: 0.2rem;
+  border-block-end: 1px solid gray;
+  margin-block-end: 4px;
+}
+
+.dialogItemNote {
+  font-weight: 600;
+}
+
+.dialogBody {
+  padding-block-start: 0.3rem;
+  padding-inline-start: 1rem;
+  padding-inline-end: 1rem;
+  padding-block-end: 0.6rem;
+}
+
+.dialogDescription {
+  padding-block-start: 5px;
+}
+
+.buttonGrid {
+  display: grid;
+  grid-template-columns: auto minmax(15rem, 28rem);
+  column-gap: 4px;
+  row-gap: 4px;
+  /* vertically align content items in center */
+  align-items: center; 
+}
+
+.buttonGrid div:nth-child(odd) {
+  align-self: start;
+  padding-block-start: 5px;
+  justify-self: end;
+}
+
+.buttonGrid div:nth-last-child(1) {
+  /* FIXME: Put last div on RHS */
+  justify-self: end;
+}
+
+@layer A {
+  .dialogBody button {
+    font-size: 0.85rem;
+    font-weight: 400;
+    border-radius: 4px;
+    background: var(--bg-alt-color);
+    border: 1px solid var(--tint-color);
+    /* box-shadow: 1px 1px 1px 0px #BBB; */
+    padding: 1px 4px 1px 4px;
+    margin: 3px 1px;
+  }
+}
+
+.mainButton {
+  /* main UI buttons */
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: var(--bg-main-color);
+  border: 1px var(--fg-main-color);
+  /* box-shadow: 1px 1px 1px 0px #BBB; */
+  padding: 2px 5px 2px 5px;
+  margin: 2px 4px;
+}
+
+.itemActionsDialog {
+  max-width: 32rem;
+  /* max-height: 25rem; */
+}

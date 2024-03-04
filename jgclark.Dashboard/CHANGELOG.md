@@ -1,6 +1,12 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [1.0.0-a1] - 2024-03-04 (unreleased)
+- (under-the-hood) completely re-wrote the layout engine (replacing a table-based layout system with a grid-based one) to solve some layout annoyances, and making it faster to generate
+- replaced hover controls with dialog box for item actions, now opened by clicking the 'pencil edit' button after each item
+- added new '+2d' and '+2w' move-date buttons
+- found some better icons to use
+
 ## [0.8.5] - 2024-02-26 (unreleased)
 - code restructuring, ahead of major rewrite
 

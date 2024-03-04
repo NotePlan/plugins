@@ -1,0 +1,105 @@
+<!-- Dashboard test: grid with items layout.
+Simple, and avoiding column-count breaking inside 'cells' does work.
+JGC, 19.2.2024 -->
+
+<html>
+
+<head>
+  <style type="text/css">
+    body {
+      font-size: 15px;
+      font-family: sans-serif;
+      margin-bottom: 0.50rem;
+      line-height: 1.20rem
+    }
+
+    .section {
+      display: grid;
+      /* grid-template-columns: [info] 6rem [items] auto; */
+      grid-template-columns: [items] auto;
+      border: solid 1px;
+      padding: 2px 2px;
+    }
+
+    .section-items-grid {
+      /* font-size: 1.0rem; */
+      /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
+      column-count: 3;
+      column-fill: auto;
+      /* or balance */
+      column-width: 15rem;
+      column-gap: 2rem;
+      column-rule: 1px dotted orange;
+      column-fill: auto;
+    }
+
+    .section-item-row {
+      display: grid;
+      grid-template-columns: [marker] 1rem [item-details] minmax(12rem, 15rem);
+      padding: 6px 6px;
+      border: 0px none;
+      break-inside: avoid;
+      /* THIS IS THE TRICK */
+    }
+
+    .marker {
+      color: orange;
+    }
+
+    .sectionTitle {
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- <div class="sections"> -->
+  <div class="section">
+    <!-- <div class="section-info">
+      <span class="sectionTitle">
+        B: section name
+      </span>
+    </div> -->
+    <div class="section-items-grid">
+      <div class="section-item-row">
+        <span class="marker">A</span>
+        <span class="details">Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor
+          incididunt ut labore et dolore magna aliqua. Ut enim ad</span>
+      </div>
+      <div class="section-item-row">
+        <span class="marker">B</span>
+        <span class="details">lamco laboris nisi ut aliquip ex ea commodo consequath</span>
+      </div>
+      <div class="section-item-row">
+        <span class="marker">C</span>
+        <span class="details">Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor
+          incididunt ut labore et dolore magna aliqua. Ut enim ad</span>
+      </div>
+      <div class="section-item-row">
+        <span class="marker">D</span>
+        <span class="details">do eiusmod tempor incididunt</span>
+      </div>
+      <div class="section-item-row">
+        <span class="marker">E</span>
+        <span class="details">lamco laboris nisi ut aliquip ex ea commodo consequath</span>
+      </div>
+      <div class="section-item-row">
+        <span class="marker">F</span>
+        <span class="details">lamco laboris nisi ut aliquip ex ea commodo consequath</span>
+      </div>
+      <div class="section-item-row">
+        <span class="marker">G</span>
+        <span class="details">Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor
+          incididunt ut labore et dolore magna aliqua. Ut enim ad</span>
+      </div>
+      <div class="section-item-row">
+        <span class="marker">H</span>
+        <span class="details">LAST ITEM... ut aliquip ex ea commodo consequath</span>
+      </div>
+    </div>
+    <!-- </div> -->
+  </div>
+
+</body>
+
+</html>

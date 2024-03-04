@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 19.1.2024 for v0.8.3 by @jgclark
+// Last updated 1.3.2024 for v0.9.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -347,7 +347,7 @@ export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteT
   try {
     // logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
     // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.filename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.filename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   }
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
@@ -367,7 +367,7 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
     // Pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines"></i> ${noteTitle}</a>`
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   }
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
@@ -387,7 +387,7 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
     const dateFilename = getAPIDateStrFromDisplayDateStr(NPDateStr) + "." + DataStore.defaultFileExtension
     // logDebug('makeNoteTitleWithOpenActionFromNPDateStr', `- making notelink with ${NPDateStr} / ${dateFilename}`)
     // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines"></i> ${NPDateStr}</a>`
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
   }
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromNPDateStr', `${error.message} for input '${NPDateStr}'`)

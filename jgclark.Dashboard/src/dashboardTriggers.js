@@ -1,17 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggering
-// Last updated 5.1.2024 for v0.5.0+ by @jgclark
+// Last updated 29.2.2024 for v0.9.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { showDashboardHTML } from './main'
+import { showDashboard } from './HTMLGeneratorGrid' // './HTMLGenerator'
 import { clo, JSP, /*logDebug,*/ logError, logInfo, logWarn } from '@helpers/dev'
 import { rangeToString } from '@helpers/general'
 import { makeBasicParasFromContent, selectedLinesIndex } from '@helpers/NPparagraph'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
-import { isOpen } from '@helpers/utils'
 import { formRegExForUsersOpenTasks } from '@helpers/regex'
+import { isOpen } from '@helpers/utils'
 
 /**
  * Local version of log, turned on only if we have a special local pref set
@@ -146,7 +146,7 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
 
         // Update the dashboard
         logDebug('decideWhetherToUpdateDashboard', `WILL update dashboard.`)
-        showDashboardHTML('trigger') // indicate this comes from a trigger, so won't take focus
+        showDashboard('trigger') // indicate this comes from a trigger, so won't take focus
       } else {
         logDebug('decideWhetherToUpdateDashboard', `Won't update dashboard.`)
       }

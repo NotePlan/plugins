@@ -1,31 +1,41 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
 /* Last updated 12.8.2023 for v0.6.0 by @jgclark */
 
-table { font-size: 1.0rem; /* used to make text a little smaller at 0.9rem */
-	border-collapse: collapse; /* always! */
-	border: 0px none;
-	empty-cells: show;
+
+/* ------------------------------------------------------------------ */
+/* New settings for Grid-based layout */
+
+/* Large rows on page; don't want these in a grid as we want height to vary */
+.sections {
+	display: block;
+	/* dark blue text */
+	/* color: rgba(20, 80, 160, 0.95) */
 }
-th {
-	text-align: left;
-	vertical-align: bottom;
-	padding: 8px;
-	border: 0px none; /* no borders */
-}
-td {
-	text-align: left;
-	vertical-align: top;
-	padding: 6px 4px;
-	border: 0px none; /* no borders */
-}
-table tr { /* turn on top and bottom border (from theme CSS) */
+
+.section {
+	display: grid;
+	/* turn on top border (from theme CSS) */
 	border-top: solid 1px var(--tint-color);
-	border-bottom: solid 1px var(--tint-color); /* line between rows, not columns */
+	/* light brown-grey */
+	/* background: rgba(160, 80, 20, 0.15); */
+	grid-template-columns: [info] minmax(8rem, 10rem) [items] auto;
+	/* a little spacing at top and bottom of section */
+	padding: 2px 2px;
+	/* a little extra gap between first 2 cols */
+	grid-column-gap: 6px;
+	column-rule: 1px dotted var(--tint-color);
 }
-.no-borders { /* turn off all borders */
+
+.section:last-child {
+	/* turn on bottom border of last item (from theme CSS) */
+	border-bottom: solid 1px var(--tint-color);
+}
+
+/* turn off all borders */
+/* .no-borders { 
 	border-top: none 0px;
 	border-bottom: none 0px;
-}
+} */
 .sectionName { /* column 2's title */
 	font-size: 1.0rem;
 	font-weight: 700; /* make noteTitles bold */
@@ -38,14 +48,67 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	margin: unset;
 }
 .sectionIcon {
+	font-size: 1.2rem;
+	font-weight: 400;
+	text-align: center;
+	padding-right: 0.3rem;
+}
+.sectionInfo {
+	display: block;
+	padding-block-start: 6px;
+	/* grid-auto-flow: column; */
+}
+
+/* Inner grid for details of a section */
+.sectionItemsGrid {
 	font-size: 1.0rem;
+	/* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
+	column-count: 3;
+	column-fill: balance;
+	/* or auto */
+	column-width: 25rem;
+	column-gap: 1rem;
+	column-rule: 1px dotted var(--tint-color);
+	column-fill: auto;
+}
+
+.sectionItemRow {
+	/* The important trick to avoiding bad wrapping at end of columns */
+	break-inside: avoid;
+	display: grid;
+	grid-template-columns: [icon] 1rem [item-details] minmax(20rem, 30rem);
+	padding: 4px 4px 0px 4px; /* no bottom padding */
+	border: 0px none;
+	column-gap: 6px;
+	align-self: start;
+	/* vertical in containing block */
+	justify-self: right;
+	/* horizontal in containing block */
+	/* border-collapse: collapse; */
+	align-items: start;
+	/* vertical for all items this contains */
+	justify-items: start;
+	/* horizontal for all items this contains */
+}
+/* General item icon details */
+.itemIcon {
+	margin-bottom: unset !important;
+	line-height: unset !important;
+	font-size: 1.2rem;
 	font-weight: 400;
 	text-align: center;
 }
+/* Specific item icon details */
 .review {
 	color: var(--tint-color);
 }
-.sectionItem { /* reduce vertical spacing and line below */
+.dialogTrigger {
+  color: var(--fg-main-color);
+  opacity: 0.8;
+}
+/* The actual item's details (was col4) */
+.sectionItem {
+	/* reduce vertical spacing and line below */
 	font-size: 1.0rem;
 	font-weight: 400;
 	padding: 1px 4px;
@@ -53,12 +116,18 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	break-inside: avoid;
 	line-height: 1.2rem; /* get from a variable */
 }
+
+/* ------------------------------------------------------------------ */
+
 .commentLine { /* show as italic */
 	font-weight: 400;
 	font-style: italic;
 }
 .clickTarget { /* change cursor for icons which can be clicked on */
 	cursor: pointer;
+}
+.pad-left {
+	padding-left: 0.3rem;
 }
 .pad-right {	/* add space after icon */
 	padding-right: 0.3em;
