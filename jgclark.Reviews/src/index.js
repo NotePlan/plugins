@@ -81,8 +81,8 @@ export async function onSettingsUpdated(): Promise<void> {
   logInfo(pluginID, 'Have updated settings, so will recalc the review list and display...')
   const config = await getReviewSettings()
   await makeFullReviewList(config, true)
-  // TODO: this actually generates errors, as Editor and HTMLView disappear at this point!
-  await renderProjectLists(config)
+  // TODO: this actually generates errors, as the variables Editor and HTMLView disappear at this point!
+  // await renderProjectLists(config)
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {

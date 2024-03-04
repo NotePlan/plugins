@@ -33,7 +33,7 @@ import {
   redToGreenInterpolation,
   rgbToHex
 } from '@helpers/HTMLView'
-import { noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
+import { getFrontMatterParagraphs, noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import {
   getInputTrimmed,
@@ -111,7 +111,7 @@ export async function getReviewSettings(): Promise<any> {
     // if (!savedValue) {
     //   DataStore.setPreference('Reviews-DisplayOnlyOverdue', false)
     // }
-    logDebug(pluginJson, `Reviews-DisplayOnlyOverdue? = ${String(DataStore.preference('Reviews-DisplayOnlyOverdue'))}`)
+    // logDebug(pluginJson, `Reviews-DisplayOnlyOverdue? = ${String(DataStore.preference('Reviews-DisplayOnlyOverdue'))}`)
 
     // TODO(later): remove this when checkboxes do work
     DataStore.setPreference('Reviews-DisplayFinished', config.displayFinished)
@@ -122,7 +122,7 @@ export async function getReviewSettings(): Promise<any> {
     // if (!savedValue) {
     //   DataStore.setPreference('Reviews-DisplayFinished', true)
     // }
-    logDebug(pluginJson, `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
+    // logDebug(pluginJson, `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
 
     return config
   } catch (err) {
@@ -400,7 +400,7 @@ export class Project {
       this.note = note
       this.title = note.title
       this.filename = note.filename
-      logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag ?? '?'}:`)
+      logDebug('Project constructor', `Starting for Note: ${this.filename} tag type ${noteTypeTag ?? '?'}:`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -424,13 +424,16 @@ export class Project {
       let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
       let metadataLine = paras[metadataLineIndex].content
+
+      // Note: If necessary, fall back to getting mentions just from the frontmatter and the metadataline
+      // $FlowIgnore[prop-missing]
+      const contentAreaToCheck = (noteHasFrontMatter(note)) ? getFrontMatterParagraphs(note, false).map((p) => p.content).join(' ') + metadataLine + ' ' : metadataLine + ' '
       if (mentions.length === 0) {
         logDebug('Project constructor', `- Grr: .mentions empty: will use metadata line instead`)
-        // Note: If necessary, fall back to getting mentions just from the metadataline
-        mentions = (metadataLine + ' ').split(' ').filter((f) => f[0] === '@')
+        mentions = (contentAreaToCheck).split(' ').filter((f) => f[0] === '@')
       }
       if (hashtags.length === 0) {
-        hashtags = (metadataLine + ' ').split(' ').filter((f) => f[0] === '#')
+        hashtags = (contentAreaToCheck).split(' ').filter((f) => f[0] === '#')
       }
 
       // work out noteType:
@@ -450,7 +453,7 @@ export class Project {
       }
 
       // read in various metadata fields (if present)
-      // FIXME: doesn't pick up reviewed() if not in metadata line
+      // TODO: try to pick them from any line, not just metadata line
       let tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('startMentionStr')))
       this.startDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
       // read in due date (if found)
@@ -1137,26 +1140,16 @@ export function makeFakeButton(buttonText: string, commandName: string, commandA
 
 /**
  * Function to save changes to the Editor to the cache to be available elsewhere straight away.
- * Note: From 3.9.3 there's a function for this, but we need something else before then. Try having a basic 1s wait.
- * FIXME: seems to just stop execution, but without error messages??
+ * Note: From 3.9.3 there's a function for this, but wrapping here to aid logging.
+ * TEST: Does this stop execution still, but without error messages?
  */
 export async function saveEditorToCache(completed: any): Promise<void> {
   try {
-    // If 3.9.3alpha or later call specific new function
-    if (NotePlan.environment.buildVersion > 1049) {
-      logDebug('saveEditorToCache', 'waiting for Editor.save ...')
-      await Editor.save()
-      logDebug('saveEditorToCache', '... done')
-    }
-    // else wait for 1 second
-    else {
-      logDebug('saveEditorToCache', 'waiting for 1 second ...')
-      setTimeout(() => {
-        DataStore.updateCache(Editor.note, true)
-        completed()
-      }, 1000)
-      logDebug('saveEditorToCache', '... done')
-    }
+    logDebug('saveEditorToCache', 'waiting for Editor.save ...')
+    await Editor.save()
+    logDebug('saveEditorToCache', '... .save() done')
+    DataStore.updateCache(Editor.note, true)
+    logDebug('saveEditorToCache', '... .updateCache() done')
   } catch (error) {
     logError('saveEditorToCache', error.message)
   }

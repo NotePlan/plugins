@@ -2,6 +2,11 @@
 See [website README for more details](https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews), and how to configure.
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
+
+## [0.13.1] - 2024-03-04
+- added new 'Theme to use in rich project lists' setting for @anton.skliar. If this is set to a valid Theme name from among those you have installed, this one will be used instead of your current one.
+- under-the-hood additions so new Dashboard 'action buttons' can work for Projects.
+
 ## [0.13.0] - 2023-12-26
 ### Added
 - When you complete or cancel a project, and you opt to move it to the Archive, there is a new option that now will move it into the Archive replicating its existing folder structure. (This is the same thing that the Filer plugin's "/archive note using folder structure" command does, though Filer does not need to be installed to use this.)
