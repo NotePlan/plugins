@@ -531,7 +531,7 @@ declare class DataStore {
    * @param {string} data to write
    * @param {string} filename to write to
    * @param {boolean} loadAsString?
-   * @return {boolean}
+   * @returns {boolean}
    */
   static saveData(data: string, filename: string, loadAsString: boolean): boolean;
   /**
@@ -543,7 +543,7 @@ declare class DataStore {
    * Note: Available from v3.2.0; loadAsString option only from v3.6.2.
    * @param {string} filename
    * @param {boolean} loadAsString?
-   * @return {string?}
+   * @returns {string?}
    */
   static loadData(filename: string, loadAsString: boolean): ?string;
   /**
@@ -557,6 +557,8 @@ declare class DataStore {
   /**
    * Returns the calendar note for the given date and timeframe (optional, the default is "day", see below for more options).
    * Note: 'timeframe' available from v3.6.0
+   * WARNING: @jgclark: I think from use in Dashboard, this is unreliable, but I can't yet prove it. Instead use calendarNoteByDateString() below.
+   *
    * @param {Date}
    * @param {string?} - "day" (default), "week", "month", "quarter" or "year"
    * @return {NoteObject}
@@ -729,9 +731,9 @@ declare class DataStore {
    * Note: Available from v3.6.0
    * @param {string} = keyword to search for
    * @param {Array<string> | null?} typesToInclude ["notes", "calendar"] (by default all, or pass `null`)
-   * @param {Array<string> | null?} list (optional)
-   * @param {Array<string> | null?} list (optional)
-   * @param {boolean?} (optional) true to enable date-referenced items to be included in the search
+   * @param {Array<string> | null?} inFolders list (optional)
+   * @param {Array<string> | null?} notInFolderslist (optional)
+   * @param {boolean?} shouldLoadDatedTodos? (optional) true to enable date-referenced items to be included in the search
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
   static search(
@@ -760,11 +762,11 @@ declare class DataStore {
    * Searches all calendar notes for a keyword (uses multiple threads to speed it up).
    * This function is async, use it with `await`, so that the UI is not being blocked during a long search.
    * Note: Available from v3.6.0
-   * @param {string} = keyword to search for
+   * @param {string?} (optional) keyword to search for
    * @param {boolean?} (optional) true to enable date-referenced items to be included in the search
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
-  static searchCalendarNotes(keyword: string, shouldLoadDatedTodos?: boolean): Promise<$ReadOnlyArray<TParagraph>>;
+  static searchCalendarNotes(keyword ?: string, shouldLoadDatedTodos ?: boolean): Promise < $ReadOnlyArray < TParagraph >>;
   /**
    * Returns list of all overdue tasks (i.e. tasks that are open and in the past). Use with await, it runs in the background. If there are a lot of tasks consider showing a loading bar.
    * Note: Available from v3.8.1
@@ -1622,6 +1624,7 @@ declare interface CoreNoteFields {
   +hashtags: $ReadOnlyArray<string>;
   /**
    * All @mentions contained in this note.
+   * WARNING: @jgclark experience shows that can be unreliable, sometimes not returning any entries when it should.
    */
   +mentions: $ReadOnlyArray<string>;
   /**
@@ -1632,11 +1635,9 @@ declare interface CoreNoteFields {
   content: string | void;
   /**
    * Get or set the array of paragraphs contained in this note, such as tasks,
-   * bullets, etc. If you set the paragraphs, the content of the note will be
-   * updated.
-   * TODO: Should this really be $ReadOnlyArray?
+   * bullets, etc. If you set the paragraphs, the content of the note will be updated.
    */
-  paragraphs: $ReadOnlyArray<TParagraph>;
+paragraphs: Array < TParagraph >;
   /**
    * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
    * Note: Available from v3.2.0
