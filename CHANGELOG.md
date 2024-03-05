@@ -2,6 +2,10 @@
 
 ## About Plugins/package.json / package-lock.json
 
+## [3.20.0] - 2024-02-15 (@dwertheimer)
+
+- added clof to eslint and flow rc
+
 ## [3.19.0] - 2024-01-13 (@dwertheimer)
 
 - removed an errant import of libcurl that was crashing builds with node-gyp errors
