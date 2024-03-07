@@ -170,8 +170,101 @@ describe(`${PLUGIN_NAME}`, () => {
         const result = f.ensureFrontmatter(note, true, 'bar')
         expect(result).toEqual(true)
       })
+      test('should not duplicate content in Calendar note (real world data)', () => {
+        const editor = {
+          title: '2025-01-01',
+          filename: '20250101.md',
+          type: 'Calendar',
+          paragraphs: [
+            {
+              content: 'Process NW Bills statement for last month @repeat(1m)',
+              rawContent: '* Process NW Bills statement for last month @repeat(1m)',
+              type: 'open',
+              heading: '',
+              headingLevel: -1,
+              lineIndex: 0,
+              isRecurring: false,
+              indents: 0,
+              noteType: 'Notes',
+            },
+            {
+              content: 'Process NW Everyday statement for last month @repeat(1m)',
+              rawContent: '* Process NW Everyday statement for last month @repeat(1m)',
+              type: 'open',
+              heading: '',
+              headingLevel: -1,
+              lineIndex: 1,
+              isRecurring: false,
+              indents: 0,
+              noteType: 'Notes',
+            },
+            {
+              content: 'Do work CAF Receipts for last month @repeat(1m)',
+              rawContent: '* Do work CAF Receipts for last month @repeat(1m)',
+              type: 'open',
+              heading: '',
+              headingLevel: -1,
+              lineIndex: 2,
+              isRecurring: false,
+              indents: 0,
+              noteType: 'Notes',
+            },
+          ],
+        }
+        const note = new Note(editor)
+        const result = f.ensureFrontmatter(note, true, 'bar')
+        expect(result).toEqual(true)
+        const matches = note.content.match(/CAF Receipts/)
+        expect(matches.length).toEqual(1)
+      })
+      test('should not duplicate content in Project note (real world data)', () => {
+        const editor = {
+          title: 'Foo Bar',
+          filename: 'foo/20250101.md',
+          type: 'Notes',
+          paragraphs: [
+            {
+              content: 'Process NW Bills statement for last month @repeat(1m)',
+              rawContent: '* Process NW Bills statement for last month @repeat(1m)',
+              type: 'open',
+              heading: '',
+              headingLevel: -1,
+              lineIndex: 0,
+              isRecurring: false,
+              indents: 0,
+              noteType: 'Notes',
+            },
+            {
+              content: 'Process NW Everyday statement for last month @repeat(1m)',
+              rawContent: '* Process NW Everyday statement for last month @repeat(1m)',
+              type: 'open',
+              heading: '',
+              headingLevel: -1,
+              lineIndex: 1,
+              isRecurring: false,
+              indents: 0,
+              noteType: 'Notes',
+            },
+            {
+              content: 'Do work CAF Receipts for last month @repeat(1m)',
+              rawContent: '* Do work CAF Receipts for last month @repeat(1m)',
+              type: 'open',
+              heading: '',
+              headingLevel: -1,
+              lineIndex: 2,
+              isRecurring: false,
+              indents: 0,
+              noteType: 'Notes',
+            },
+          ],
+        }
+        const note = new Note(editor)
+        const result = f.ensureFrontmatter(note, true, 'bar')
+        expect(result).toEqual(true)
+        const matches = note.content.match(/CAF Receipts/)
+        expect(matches.length).toEqual(1)
+      })
     })
-
     /*
      * quoteText()
      */
