@@ -41,7 +41,7 @@ import {
 import { stripMailtoLinks, convertMarkdownLinks } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isTimeBlockPara } from '@helpers/timeblocks'
-import { isDone, isOpen, isScheduled, isOpenNotScheduled, isOpenTaskNotScheduled } from '@helpers/utils'
+import { isDone, isOpen, isOpenTask, isScheduled, isOpenNotScheduled, isOpenTaskNotScheduled } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Constants
@@ -135,8 +135,8 @@ async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, time
     if (timePeriodNote) {
       // Now also allow to ignore checklist items.
       refParas = (config.ignoreChecklistItems)
-        ? getReferencedParagraphs(timePeriodNote, false).filter((p) => p.type === 'open' && p.content !== '')
-        : getReferencedParagraphs(timePeriodNote, false).filter(isOpen).filter((p) => p.content !== '')
+        ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
+        : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
 
     // Remove items referenced from items in 'ignoreFolders'

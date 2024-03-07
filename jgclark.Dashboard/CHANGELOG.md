@@ -1,6 +1,10 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [0.8.6] - 2024-03-07
+- fix to handle Project notes being moved or deleted after updating the Project plugin's project list
+- now ignores empty tasks or checklists
+
 ## [0.8.5] - 2024-02-26 (unreleased)
 - code restructuring, ahead of major rewrite
 
