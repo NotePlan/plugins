@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 7.1.2024 for v0.13.1, @jgclark
+// Last updated 24.2.2024 for v0.13.1, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -33,7 +33,7 @@ import {
   redToGreenInterpolation,
   rgbToHex
 } from '@helpers/HTMLView'
-import { getFrontMatterParagraphs, noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
+import { noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import {
   getInputTrimmed,
@@ -58,7 +58,7 @@ export type ReviewConfig = {
   displayOrder: string,
   displayGroupedByFolder: boolean,
   displayFinished: string,
-  displayOnlyOverdue: boolean,
+  displayOnlyDue: boolean,
   hideTopLevelFolder: boolean,
   displayArchivedProjects: boolean,
   finishedListHeading: string,
@@ -103,15 +103,15 @@ export async function getReviewSettings(): Promise<any> {
     DataStore.setPreference('nextReviewMentionStr', config.nextReviewMentionStr)
 
     // TODO(later): remove this when checkboxes do work
-    DataStore.setPreference('Reviews-DisplayOnlyOverdue', config.displayOnlyOverdue)
+    DataStore.setPreference('Reviews-DisplayOnlyDue', config.displayOnlyDue)
     // TODO(later): include this when checkboxes do work
-    // // Set local pref Reviews-DisplayOnlyOverdue to default false if it doesn't exist already
-    // let savedValue = DataStore.preference('Reviews-DisplayOnlyOverdue')
-    // // logDebug(pluginJson, `DisplayOnlyOverdue? savedValue: ${String(savedValue)}`)
+    // // Set local pref Reviews-DisplayOnlyDue to default false if it doesn't exist already
+    // let savedValue = DataStore.preference('Reviews-DisplayOnlyDue')
+    // // logDebug(pluginJson, `DisplayOnlyDue? savedValue: ${String(savedValue)}`)
     // if (!savedValue) {
-    //   DataStore.setPreference('Reviews-DisplayOnlyOverdue', false)
+    //   DataStore.setPreference('Reviews-DisplayOnlyDue', false)
     // }
-    // logDebug(pluginJson, `Reviews-DisplayOnlyOverdue? = ${String(DataStore.preference('Reviews-DisplayOnlyOverdue'))}`)
+    logDebug(pluginJson, `Reviews-DisplayOnlyDue? = ${String(DataStore.preference('Reviews-DisplayOnlyDue'))}`)
 
     // TODO(later): remove this when checkboxes do work
     DataStore.setPreference('Reviews-DisplayFinished', config.displayFinished)
@@ -122,7 +122,7 @@ export async function getReviewSettings(): Promise<any> {
     // if (!savedValue) {
     //   DataStore.setPreference('Reviews-DisplayFinished', true)
     // }
-    // logDebug(pluginJson, `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
+    logDebug(pluginJson, `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
 
     return config
   } catch (err) {
@@ -241,10 +241,10 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
       const progressLine = progressPara.content
       // logDebug('mostRecentProgressParagraph', progressLine)
       const thisDate: Date = (new RegExp(RE_ISO_DATE).test(progressLine))
-        // $FlowIgnore[incompatible-type]
+        // $FlowIgnore
         ? getDateObjFromDateString(progressLine.match(RE_ISO_DATE)[0])
         : (new RegExp(RE_YYYYMMDD_DATE).test(progressLine))
-          // $FlowIgnore[incompatible-type]
+          // $FlowIgnore
           ? getDateFromUnhyphenatedDateString(progressLine.match(RE_YYYYMMDD_DATE)[0])
           : new Date('0001-01-01')
       const tempSplitParts = progressLine.split(/[:@]/)
@@ -400,7 +400,7 @@ export class Project {
       this.note = note
       this.title = note.title
       this.filename = note.filename
-      logDebug('Project constructor', `Starting for Note: ${this.filename} tag type ${noteTypeTag ?? '?'}:`)
+      logDebug('Project constructor', `Starting for Note: ${this.filename} type ${noteTypeTag ?? '?'}:`)
       this.folder = getFolderFromFilename(note.filename)
 
       // Make a (nearly) unique number for this instance (needed for the addressing the SVG circles) -- I can't think of a way of doing this neatly to create one-up numbers, that doesn't create clashes when re-running over a subset of notes
@@ -424,16 +424,13 @@ export class Project {
       let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
       let metadataLine = paras[metadataLineIndex].content
-
-      // Note: If necessary, fall back to getting mentions just from the frontmatter and the metadataline
-      // $FlowIgnore[prop-missing]
-      const contentAreaToCheck = (noteHasFrontMatter(note)) ? getFrontMatterParagraphs(note, false).map((p) => p.content).join(' ') + metadataLine + ' ' : metadataLine + ' '
       if (mentions.length === 0) {
         logDebug('Project constructor', `- Grr: .mentions empty: will use metadata line instead`)
-        mentions = (contentAreaToCheck).split(' ').filter((f) => f[0] === '@')
+        // Note: If necessary, fall back to getting mentions just from the metadataline
+        mentions = (metadataLine + ' ').split(' ').filter((f) => f[0] === '@')
       }
       if (hashtags.length === 0) {
-        hashtags = (contentAreaToCheck).split(' ').filter((f) => f[0] === '#')
+        hashtags = (metadataLine + ' ').split(' ').filter((f) => f[0] === '#')
       }
 
       // work out noteType:
@@ -453,7 +450,7 @@ export class Project {
       }
 
       // read in various metadata fields (if present)
-      // TODO: try to pick them from any line, not just metadata line
+      // FIXME: doesn't pick up reviewed() if not in metadata line
       let tempStr = getParamMentionFromList(mentions, checkString(DataStore.preference('startMentionStr')))
       this.startDate = tempStr !== '' ? getDateObjFromDateString(tempStr) : undefined
       // read in due date (if found)
@@ -543,7 +540,7 @@ export class Project {
 
   /**
    * Is this project ready for review?
-   * Return true if review is overdue and not archived or completed
+   * Return true if review is due and not archived or completed
    * @return {boolean}
    */
   get isReadyForReview(): boolean {
@@ -727,12 +724,11 @@ export class Project {
 
       // re-write the note's metadata line
       logDebug('completeProject', `Completing '${this.title}' ...`)
-      // FIXME: sometimes this chews up @started() and @due()
       const newMetadataLine = this.generateMetadataLine()
       logDebug('completeProject', `- metadata now '${newMetadataLine}'`)
 
       // send update to Editor
-      // TODO: Will need updating when supporting frontmatter for metadata
+      // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
       await saveEditorToCache(null)
@@ -768,7 +764,7 @@ export class Project {
       logDebug('cancelProject', `- metadata now '${newMetadataLine}'`)
 
       // send update to Editor
-      // TODO: Will need updating when supporting frontmatter for metadata
+      // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
       await saveEditorToCache(null)
@@ -804,7 +800,7 @@ export class Project {
       logDebug('togglePauseProject', `- metadata now '${newMetadataLine}'`)
 
       // send update to Editor
-      // TODO: Will need updating when supporting frontmatter for metadata
+      // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
       await saveEditorToCache(null)
@@ -892,7 +888,7 @@ export class Project {
         // Method 1b: x-callback using filename
         const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(this.filename, "filename", "", null, false)
         const noteTitleWithOpenAction = `<span class="noteTitle"><a href="${noteOpenActionURL}"><i class="fa-regular fa-file-lines"></i> ${folderNamePart}${titlePart}</a></span>`
-        // TODO: change to use internal links: see method in Dashboard
+        // TODO: if possible change to use internal links: see method in Dashboard
         // see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
         // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
 
@@ -1139,17 +1135,27 @@ export function makeFakeButton(buttonText: string, commandName: string, commandA
 }
 
 /**
+ * WARNING: DEPRECATED
  * Function to save changes to the Editor to the cache to be available elsewhere straight away.
- * Note: From 3.9.3 there's a function for this, but wrapping here to aid logging.
- * TEST: Does this stop execution still, but without error messages?
+ * Note: From 3.9.3 there's a function for this, but we needed something else before then (now removed) that did a basic 1s wait.
  */
 export async function saveEditorToCache(completed: any): Promise<void> {
   try {
+    // // If 3.9.3alpha or later call specific new function
+    // if (NotePlan.environment.buildVersion > 1049) {
     logDebug('saveEditorToCache', 'waiting for Editor.save ...')
     await Editor.save()
-    logDebug('saveEditorToCache', '... .save() done')
-    DataStore.updateCache(Editor.note, true)
-    logDebug('saveEditorToCache', '... .updateCache() done')
+    logDebug('saveEditorToCache', '... done')
+    // }
+    // // else wait for 1 second
+    // else {
+    //   logDebug('saveEditorToCache', 'waiting for 1 second ...')
+    //   setTimeout(() => {
+    //     DataStore.updateCache(Editor.note, true)
+    //     completed()
+    //   }, 1000)
+    //   logDebug('saveEditorToCache', '... done')
+    // }
   } catch (error) {
     logError('saveEditorToCache', error.message)
   }

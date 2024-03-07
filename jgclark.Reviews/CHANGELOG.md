@@ -6,6 +6,7 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ## [0.13.1] - 2024-03-04
 - added new 'Theme to use in rich project lists' setting for @anton.skliar. If this is set to a valid Theme name from among those you have installed, this one will be used instead of your current one.
 - under-the-hood additions so new Dashboard 'action buttons' can work for Projects.
+- under-the-hood fix to problems in the Dashboard if Project notes in the Project List were moved or deleted.
 
 ## [0.13.0] - 2023-12-26
 ### Added

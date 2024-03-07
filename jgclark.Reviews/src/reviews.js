@@ -9,7 +9,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 13.1.2024 for v0.13.1+, @jgclark
+// Last updated 24.2.2024 for v0.13.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -35,6 +35,7 @@ import { getFilteredFolderList } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import { type HtmlWindowOptions, makeSVGPercentRing, redToGreenInterpolation, showHTML, showHTMLV2 } from '@helpers/HTMLView'
 import { getOrMakeNote } from '@helpers/note'
+import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { findNotesMatchingHashtag } from '@helpers/NPnote'
 import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { fieldSorter, sortListBy } from '@helpers/sorting'
@@ -50,8 +51,6 @@ const windowTitle = `Review List`
 const filenameHTMLCopy = '../../jgclark.Reviews/review_list.html'
 const customRichWinId = `${pluginID}.rich-review-list`
 const customMarkdownWinId = `markdown-review-list`
-// const reviewListPref = `${pluginID}.reviewList`
-// const fullReviewJSONFilename = 'full-review-list.json'
 
 //-------------------------------------------------------------------------------
 
@@ -280,7 +279,7 @@ export async function renderProjectLists(
 ): Promise<void> {
   try {
     // clo(config, 'config at start of renderProjectLists:')
-    logDebug('renderProjectLists', `Started with displayOnlyOverdue? ${String(config.displayOnlyOverdue ?? '(error)')} displayFinished? ${String(config.displayFinished ?? '(error)')}`)
+    logDebug('renderProjectLists', `Started with displayOnlyDue? ${String(config.displayOnlyDue ?? '(error)')} displayFinished? ${String(config.displayFinished ?? '(error)')}`)
 
     // If we want Markdown display, call the relevant function with config, but don't open up the display window unless already open.
     if (config.outputStyle.match(/markdown/i)) {
@@ -418,9 +417,9 @@ export async function renderProjectListsHTML(
 
     // Show date + display settings
     const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
-    const displayOnlyOverdue = DataStore.preference('Reviews-DisplayOnlyOverdue' ?? false)
+    const displayOnlyDue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
     // v1: text labels
-    let togglesValues = (displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects/areas'
+    let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
     togglesValues += (displayFinished === 'hide') ? '' : ', plus finished ones'
     // v1: simple text
     outputArray.push(`<p>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span> (${togglesValues})</p>`)
@@ -430,10 +429,10 @@ export async function renderProjectListsHTML(
     // outputArray.push(`<ul>`)
     // outputArray.push(`  <li>Last updated: <span id="timer">${nowLocaleShortDateTime()}</span></li>`)
     // // Proper checkboxes don't work at all easily ...
-    // // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="DisplayOnlyOverdue" ${displayOnlyOverdue ? "checked" : "unchecked"}><label for="DisplayOnlyOverdue">Show only overdue items?</label></input></span></li>\n`)
+    // // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="DisplayOnlyDue" ${displayOnlyDue ? "checked" : "unchecked"}><label for="DisplayOnlyDue">Show only due items?</label></input></span></li>\n`)
     // // outputArray.push(` <li><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="DisplayFinished" ${displayFinished ? "checked" : "unchecked"}><label for="DisplayFinished">Also show finished items?</label></input></span></li>\n`)
     // // ... so will use fake ones
-    // outputArray.push(` <li><a class="fake-checkbox" id="DisplayOnlyOverdue" href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggleDisplayOnlyOverdue">Show only overdue items? (${displayOnlyOverdue ? "checked" : "unchecked"})</a></li>\n`)
+    // outputArray.push(` <li><a class="fake-checkbox" id="DisplayOnlyDue" href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggleDisplayOnlyDue">Show only due items? (${displayOnlyDue ? "checked" : "unchecked"})</a></li>\n`)
     // outputArray.push(` <li><a class="fake-checkbox" id="DisplayFinished" href="noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=toggleDisplayFinished">??? Show finished items? (${displayFinished ? "checked" : "unchecked"})</a></li>\n`)
     // outputArray.push(`</ul>`)
 
@@ -446,11 +445,11 @@ export async function renderProjectListsHTML(
     let tagCount = 0
     for (const thisTag of config.noteTypeTags) {
       // Get the summary line for each revelant project
-      const [thisSummaryLines, noteCount, overdue] = await generateReviewSummaryLines(thisTag, 'Rich', config)
+      const [thisSummaryLines, noteCount, due] = await generateReviewSummaryLines(thisTag, 'Rich', config)
 
       // Write out all relevant HTML
       outputArray.push('')
-      outputArray.push(`<h2>${thisTag}: ${noteCount} notes, ${overdue} ready for review</h2>`)
+      outputArray.push(`<h2>${thisTag}: ${noteCount} notes, ${due} ready for review</h2>`)
       // Add folder name, but only if we're only looking at 1 folder, and we're not grouping by folder. (If we are then folder names are added inside the table.)
       if (!config.displayGroupedByFolder && config.foldersToInclude.length === 1) {
         outputArray.push(`<h3>${config.foldersToInclude[0]} folder</h3>`)
@@ -575,21 +574,22 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
           const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', encodeURIComponent(`noteTypeTags=${tag}`)) //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=` + encodeURIComponent(`noteTypeTags=${tag}`)
 
           // Get the summary line for each revelant project
-          const [outputArray, noteCount, overdue] = await generateReviewSummaryLines(tag, 'Markdown', config)
-          logDebug('renderProjectListsHTML', `>> after generateReviewSummaryLines(${tag}) for ${String(overdue)} projects: ${timer(funcTimer)}`)
+          const [outputArray, noteCount, due] = await generateReviewSummaryLines(tag, 'Markdown', config)
+          logDebug('renderProjectListsHTML', `>> after generateReviewSummaryLines(${tag}) for ${String(due)} projects: ${timer(funcTimer)}`)
 
           // print header info just the once (if any notes)
-          const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
+          const startReviewButton = `[Start reviewing ${due} ready for review](${startReviewXCallbackURL})`
           const refreshXCallbackButton = `[🔄 Refresh](${refreshXCallbackURL})`
 
-          if (overdue > 0) {
+          if (due > 0) {
             outputArray.unshift(`Review: ${reviewedXCallbackButton} ${nextReviewXCallbackButton} Current open project note: ${addProgressXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
           }
           const displayFinished = DataStore.preference('Reviews-DisplayFinished' ?? 'display at end')
-          const displayOnlyOverdue = DataStore.preference('Reviews-DisplayOnlyOverdue' ?? false)
-          let togglesValues = (displayOnlyOverdue) ? 'showing only projects/areas overdue for review' : 'showing all open projects/areas'
-          togglesValues += (displayFinished === 'hide') ? '' : 'plus finished ones'
-          outputArray.unshift(`Total ${noteCount} active projects${overdue > 0 ? `: **${startReviewButton}**` : '.'} (${togglesValues}.) Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
+          const displayOnlyDue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
+          let togglesValues = (displayOnlyDue) ? 'showing only projects/areas ready for review' : 'showing all open projects/areas'
+          // FIXME:  report that noteCount can be NaN
+          togglesValues += (displayFinished === 'hide') ? '' : ' plus finished ones'
+          outputArray.unshift(`Total ${noteCount} active projects${due > 0 ? `: **${startReviewButton}**` : ''} (${togglesValues}). Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
 
           if (!config.displayGroupedByFolder) {
             outputArray.unshift(`### All folders (${noteCount} notes)`)
@@ -617,8 +617,8 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
       const note: ?TNote = await getOrMakeNote(noteTitle, config.folderToStore)
       if (note != null) {
         // Calculate the Summary list(s)
-        const [outputArray, noteCount, overdue] = await generateReviewSummaryLines('', 'Markdown', config)
-        const startReviewButton = `[Start reviewing ${overdue} ready for review](${startReviewXCallbackURL})`
+        const [outputArray, noteCount, due] = await generateReviewSummaryLines('', 'Markdown', config)
+        const startReviewButton = `[Start reviewing ${due} ready for review](${startReviewXCallbackURL})`
         logDebug('renderProjectListsHTML', `>> after generateReviewSummaryLines: ${timer(funcTimer)}`)
 
         const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'project lists', '') //`noteplan://x-callback-url/runPlugin?pluginID=jgclark.Reviews&command=project%20lists&arg0=`
@@ -627,10 +627,10 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
         if (!config.displayGroupedByFolder) {
           outputArray.unshift(`### All folders (${noteCount} notes)`)
         }
-        if (overdue > 0) {
+        if (due > 0) {
           outputArray.unshift(`${reviewedXCallbackButton} ${nextReviewXCallbackButton} ${pauseXCallbackButton} ${completeXCallbackButton} ${cancelXCallbackButton}`)
         }
-        outputArray.unshift(`Total ${noteCount} active projects${overdue > 0 ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
+        outputArray.unshift(`Total ${noteCount} active projects${due > 0 ? `: **${startReviewButton}**` : '.'} Last updated: ${nowDateTime} ${refreshXCallbackButton}`)
         outputArray.unshift(`# ${noteTitle}`)
 
         // Save the list(s) to this note
@@ -665,7 +665,7 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
 export async function redisplayProjectListHTML(): Promise<void> {
   try {
     // Re-load the saved HTML if it's available.
-    // const config = await getReviewSettings()
+    const config = await getReviewSettings()
     // Try loading HTML saved copy
     const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
     if (savedHTML !== '') {
@@ -709,14 +709,14 @@ export async function redisplayProjectListHTML(): Promise<void> {
  * @param {any} config - from settings (and any passed args)
  * @returns {Array<string>} output summary lines
  * @returns {number} number of notes
- * @returns {number} number of overdue notes (ready to review)
+ * @returns {number} number of due notes (ready to review)
  */
 async function generateReviewSummaryLines(noteTag: string, style: string, config: any): Promise<[Array<string>, number, number]> {
   try {
     logDebug('generateReviewSummaryLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
 
     let noteCount = 0
-    let overdue = 0
+    let due = 0
     const outputArray: Array<string> = []
 
     // Read each line in full-review-list
@@ -726,7 +726,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
       // await makeFullReviewList(config, true)
       // reviewListContents = DataStore.loadData(fullReviewListFilename, true)
       // if (!reviewListContents) {
-        // If still no luck, throw an error
+      // If still no luck, throw an error
       throw new Error('full-review-list note empty or missing. Please try running "Project Lists" command again.')
       // }
     }
@@ -737,21 +737,22 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
 
     let lastFolder = ''
     // Process each line in the file
+    // Note: this logic is ~ repeated in two funcs near the end of this file.
     for (let thisLine of reviewLines) {
       // Split each TSV line into its parts
       const fields = thisLine.split('\t')
       const title = fields[2]
       const folder = fields[3] !== '' ? fields[3] : '(root folder)' // root is a special case
 
-      // If displayOnlyOverdue, then filter out non-overdue
-      const displayOnlyOverdue = DataStore.preference('Reviews-DisplayOnlyOverdue' ?? false)
-      if (displayOnlyOverdue && fields[0] >= 0) {
-        logDebug('generateReviewSummaryLines', `ignoring ${title} as not overdue`)
+      // If displayOnlyDue, then filter out non-due
+      const displayOnlyDue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
+      if (displayOnlyDue && fields[0] > 0) {
+        logDebug('generateReviewSummaryLines', `ignoring ${title} as not due`)
         continue
       }
 
-      const notes = DataStore.projectNoteByTitle(title)
-      if (notes == null || notes.length === 0) {
+      const notes = DataStore.projectNoteByTitle(title) ?? []
+      if (notes.length === 0) {
         logWarn('generateReviewSummaryLines', `No note found matching title '${title}'; skipping.`)
         continue // go on to next line
       }
@@ -761,7 +762,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
 
       // Add to number of notes to review (if appropriate)
       if (!thisProject.isPaused && thisProject.nextReviewDays != null && !isNaN(thisProject.nextReviewDays) && thisProject.nextReviewDays <= 0) {
-        overdue += 1
+        due += 1
       }
 
       // Write new folder header (if change of folder)
@@ -788,7 +789,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
 
       lastFolder = folder
     }
-    return [outputArray, noteCount, overdue]
+    return [outputArray, noteCount, due]
   } catch (error) {
     logError('generateReviewSummaryLines', `${error.message}`)
     return [[], NaN, NaN] // for completeness
@@ -1414,20 +1415,26 @@ async function getNextNoteToReview(): Promise<?TNote> {
     const fmObj = fm(reviewListContents)
     const reviewLines = fmObj.body.split('\n')
 
-    // Now read from the top until we find a line with a negative value in the first column (nextReviewDays)
+    // Now read from the top until we find a line with a negative or zero value in the first column (nextReviewDays)
     for (let i = 0; i < reviewLines.length; i++) {
       const thisLine = reviewLines[i]
       const nextReviewDays = Number(thisLine.split('\t')[0]) ?? NaN // get first field = nextReviewDays
       const nextNoteTitle = thisLine.split('\t')[2] // get third field = title
-      if (nextReviewDays <= 0) {
+
+      if (nextReviewDays <= 0) { // = before today, or today
         logDebug('getNextNoteToReview', `- Next to review -> '${nextNoteTitle}'`)
         const nextNotes = DataStore.projectNoteByTitle(nextNoteTitle, true, false) ?? []
-        return nextNotes[0] // return first matching note
+        if (nextNotes.length > 0) {
+          return nextNotes[0] // return first matching note
+        } else {
+          logWarn('getNextNoteToReview', `Couldn't find note with title '${nextNoteTitle}' -- suggest you should re-run Project Lists to ensure this is up to date`)
+          return
+        }
       }
     }
 
     // If we get here then there are no projects needed for review
-    logInfo('getNextNoteToReview', `- No notes left due for review 🎉`)
+    logInfo('getNextNoteToReview', `- No notes left ready for review 🎉`)
     return
   } catch (error) {
     logError(pluginJson, `getNextNoteToReview: ${error.message}`)
@@ -1445,7 +1452,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
  */
 export function getNextNotesToReview(numToReturn: number): Array<TNote> {
   try {
-    logDebug(pluginJson, `Starting getNextNotesToReview())`)
+    logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
 
     // Get contents of full-review-list
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
@@ -1459,7 +1466,7 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
       const fmObj = fm(reviewListContents)
       const reviewLines = fmObj.body.split('\n')
 
-      // Now read from the top until we find a line with a negative value in the first column (nextReviewDays),
+      // Now read from the top until we find a line with a negative or zero value in the first column (nextReviewDays),
       // and not complete (has a tag of 'finished'),
       // and not the same as the previous line (which can legitimately happen).
       // Continue until we have found up to numToReturn such notes.
@@ -1470,12 +1477,18 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
         const nextReviewDays = Number(thisLine.split('\t')[0]) ?? NaN // get first field = nextReviewDays
         const thisNoteTitle = thisLine.split('\t')[2] // get third field = title
         const tags = thisLine.split('\t')[5] ?? '' // get last field = tags
-        if (nextReviewDays < 0 && !tags.includes('finished') && thisNoteTitle !== lastTitle) {
-          logDebug('dashboard/getNextNotesToReview', `- Next to review = '${thisNoteTitle}'`)
+
+        // Get items with review due before today, or today etc.
+        if (nextReviewDays <= 0 && !tags.includes('finished') && thisNoteTitle !== lastTitle) {
           const nextNotes = DataStore.projectNoteByTitle(thisNoteTitle, true, false) ?? []
-          notesToReview.push(nextNotes[0]) // add first matching note
-          if (notesToReview.length >= numToReturn) {
-            break // stop processing the loop
+          logDebug('reviews/getNextNotesToReview', `- Next to review = '${thisNoteTitle}' with ${nextNotes.length} matches`)
+          if (nextNotes.length > 0) {
+            notesToReview.push(nextNotes[0]) // add first matching note
+            if (notesToReview.length >= numToReturn) {
+              break // stop processing the loop
+            }
+          } else {
+            logWarn('reviews/getNextNotesToReview', `Couldn't find note with title '${thisNoteTitle}' -- suggest you should re-run Project Lists to ensure this is up to date`)
           }
         }
         lastTitle = thisNoteTitle
@@ -1483,12 +1496,12 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
 
       if (notesToReview.length === 0) {
         // If we get here then there are no projects needed for review
-        logDebug('dashboard/getNextNotesToReview', `- No notes due for review 🎉`)
+        logDebug('reviews/getNextNotesToReview', `- No notes ready for review 🎉`)
       }
       return notesToReview
     }
   } catch (error) {
-    logError(pluginJson, `dashboard/getNextNotesToReview: ${error.message}`)
+    logError(pluginJson, `reviews/getNextNotesToReview: ${error.message}`)
     return []
   }
 }
@@ -1509,17 +1522,17 @@ export async function toggleDisplayFinished(): Promise<void> {
   }
 }
 
-export async function toggleDisplayOnlyOverdue(): Promise<void> {
+export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
-    logDebug('toggleDisplayOnlyOverdue', `starting ...`)
-    let savedValue = DataStore.preference('Reviews-DisplayOnlyOverdue' ?? false)
+    logDebug('toggleDisplayOnlyDue', `starting ...`)
+    let savedValue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
     let newValue = !savedValue
-    logDebug('toggleDisplayOnlyOverdue', `DisplayOnlyOverdue? toggled to ${String(newValue)}`)
-    DataStore.setPreference('Reviews-DisplayOnlyOverdue', newValue)
+    logDebug('toggleDisplayOnlyDue', `DisplayOnlyDue? toggled to ${String(newValue)}`)
+    DataStore.setPreference('Reviews-DisplayOnlyDue', newValue)
     let config = await getReviewSettings()
     await renderProjectLists(config, true)
   }
   catch (error) {
-    logError('toggleDisplayOnlyOverdue', error.message)
+    logError('toggleDisplayOnlyDue', error.message)
   }
 }

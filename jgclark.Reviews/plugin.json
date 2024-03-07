@@ -1,5 +1,5 @@
 {
-  "noteplan.minAppVersion": "3.9.3",
+  "noteplan.minAppVersion": "3.9.1",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.Reviews",
   "plugin.name": "🔬 Projects + Reviews",
@@ -9,7 +9,7 @@
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
   "plugin.version": "0.13.1",
-  "plugin.lastUpdateInfo": "0.13.1: can now set a specific Theme for Project Lists in settings.\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.\n0.12.5: now can include files in root folder. When you refresh project list it will keep scroll position.\n0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.",
+  "plugin.lastUpdateInfo": "0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.\n0.12.5: now can include files in root folder. When you refresh project list it will keep scroll position.\n0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.",
   "plugin.requiredFiles": [
     "projectList.css"
   ],
@@ -113,9 +113,9 @@
     },
     {
       "hidden": true,
-      "name": "toggleDisplayOnlyOverdue",
-      "description": "callback entry point for toggleShowOnlyOverdue",
-      "jsFunction": "toggleDisplayOnlyOverdue"
+      "name": "toggleDisplayOnlyDue",
+      "description": "callback entry point for toggleShowOnlyDue",
+      "jsFunction": "toggleDisplayOnlyDue"
     },
     {
       "hidden": true,
@@ -134,8 +134,7 @@
       "jsFunction": "logFullReviewList"
     },
     {
-      "hidden": true,
-      "name": "makeFullReviewList",
+      "name": "test:makeFullReviewList",
       "description": "make/update full review list note",
       "jsFunction": "makeFullReviewList"
     },
@@ -223,7 +222,7 @@
     {
       "key": "folderToStore",
       "title": "Folder to store (markdown) review notes",
-      "description": "Folder where review notes will be stored. It will be created if necessary.\nNote: for the 'Rich' output style, this has no effect.",
+      "description": "Folder where review notes will be stored (will be created if necessary)",
       "type": "string",
       "default": "Reviews",
       "required": true
@@ -241,8 +240,8 @@
     },
     {
       "key": "foldersToInclude",
-      "title": "Folders to include for reviews",
-      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nIf empty, all folders will be processed (apart from ones excluded by the next setting.)",
+      "title": "Folders to use in reviews",
+      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nIf empty, all folders will be processed (apart from the special @Trash, @Templates and @Archive foldeers which are always excluded.)",
       "type": "[string]",
       "default": [
         "Projects"
@@ -251,7 +250,7 @@
     },
     {
       "key": "foldersToIgnore",
-      "title": "Folders to ignore for reviews",
+      "title": "Folders to ignore in reviews",
       "description": "Specify folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is also done anywhere in the folder name. Can be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
       "type": "[string]",
       "default": [
@@ -272,14 +271,6 @@
     {
       "type": "heading",
       "title": "Display settings for 'project lists' command"
-    },
-    {
-      "key": "reviewsTheme",
-      "title": "Theme to use for rich project lists",
-      "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.\nLeave blank to use your current Theme.",
-      "type": "string",
-      "default": "",
-      "required": false
     },
     {
       "key": "displayOrder",
@@ -324,9 +315,9 @@
       ]
     },
     {
-      "key": "displayOnlyOverdue",
-      "title": "Only display overdue projects/areas?",
-      "description": "If true then it will only display overdue project/area notes (plus paused ones).",
+      "key": "displayOnlyDue",
+      "title": "Only display due projects/areas?",
+      "description": "If not ticked then it will display all project/area notes, not just due ones.",
       "type": "bool",
       "default": false,
       "required": true
