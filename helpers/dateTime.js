@@ -148,7 +148,26 @@ export const isQuarterlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_
 
 export const isYearlyNote = (note: CoreNoteFields): boolean => new RegExp(RE_YEARLY_NOTE_FILENAME).test(note.filename)
 
-// See getNoteType in note.js to get the type of a note
+/**
+ * Return timeframe of calendar notes (or false for project notes).
+ * Note: also see getNoteType in note.js to get the type of a note in a more conversational way (e.g. -> 'Monthly')
+ * @author @jgclark
+ * @param {TNote} note - the note to look at
+ * @returns false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project'
+ */
+export function getCalendarNoteTimeframe(note: TNote): false | 'day' | 'week' | 'month' | 'quarter' | 'year' {
+  if (note.type === 'Calendar') {
+    return (
+      (isDailyNote(note) && 'day') ||
+      (isWeeklyNote(note) && 'week') ||
+      (isMonthlyNote(note) && 'month') ||
+      (isQuarterlyNote(note) && 'quarter') ||
+      (isYearlyNote(note) && 'year')
+    )
+  }
+  return false // all other cases
+}
+
 export const isDailyDateStr = (dateStr: string): boolean => new RegExp(RE_DATE).test(dateStr)
 
 export const isWeeklyDateStr = (dateStr: string): boolean => new RegExp(RE_NP_WEEK_SPEC).test(dateStr)
@@ -1107,8 +1126,8 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     const newDateStrFromOffsetDateType = moment(offsetDate).format(offsetMomentFormat)
 
     if (offsetUnit === 'w') {
-      logWarn('dateTime / cODS', `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case.`)
-      logWarn(
+      logWarn('dateTime / cODS', `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case. More details in DEBUG-level log.`)
+      logDebug(
         'dateTime / cODS',
         `  Details: ${adaptOutputInterval} adapt for ${baseDateIn} / ${baseDateUnit} / ${baseDateMomentFormat} / ${offsetMomentFormat} / ${offsetInterval} / ${newDateStrFromOffsetDateType}`,
       )

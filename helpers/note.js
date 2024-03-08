@@ -662,6 +662,7 @@ export function findOverdueDatesInString(line: string): Array<string> {
  * All day, month, quarter, yearly notes are type "Calendar" notes, so we when we need
  * to know the type of calendar note, we can use this function
  * we allow note.type to not exist so we can look up the note based just on the filename
+ * @author @dwertheimer
  * @param {TNote} note - the note to look at
  * @returns false | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Project'
  */
