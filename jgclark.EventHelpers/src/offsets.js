@@ -251,7 +251,7 @@ export async function processDateOffsets(): Promise<void> {
         // As we're about to update the string, let's first unhook it from any sync'd copies
         content = stripBlockIDsFromString(content)
         thisLevel = paragraphs[n].type === 'title' ? (thisLevel = -1) : paragraphs[n].indents
-        logDebug('processDateOffsets', `  Line ${n} (${thisLevel}) '${content}'`)
+        // logDebug('processDateOffsets', `  Line ${n} (${thisLevel}) '${content}'`)
 
         // Decide whether to clear CTD
         // Specifically: clear on lower indent or heading or blank line or separator line
