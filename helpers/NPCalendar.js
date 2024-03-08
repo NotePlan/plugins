@@ -135,30 +135,30 @@ export async function checkOrGetCalendar(calendarName: string, forceUserToChoose
  */
 export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNote | TEditor, showLoadingProgress: boolean = false): Promise<void> {
   try {
-  const { paragraphs } = note
-  if (paragraphs == null || note == null) {
-    logWarn('NPCalendar / writeTimeBlocksToCalendar', 'no content found')
-    return
-  }
-  // $FlowFixMe - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
-  const noteTitle = displayTitle(note)
-  logDebug('NPCalendar / writeTimeBlocksToCalendar', `Starting for note '${noteTitle}' ...`)
-
-  let calendarToWriteTo = '' // NP will then use the default
-  if (config.calendarToWriteTo != null && config.calendarToWriteTo !== '') {
-    // Check that the calendar name we've been given is in the list and is writable
-    const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
-    if (writableCalendars.includes(config.calendarToWriteTo)) {
-      calendarToWriteTo = config.calendarToWriteTo || ''
-      logDebug('NPCalendar / writeTimeBlocksToCalendar', `- will write to calendar '${String(calendarToWriteTo)}'`)
-    } else {
-      logWarn('NPCalendar / writeTimeBlocksToCalendar', `- requested calendar '${String(config.calendarToWriteTo)}' is not writeable. Will use default calendar instead.`)
+    const { paragraphs } = note
+    if (paragraphs == null || note == null) {
+      logWarn('NPCalendar / writeTimeBlocksToCalendar', 'no content found')
+      return
     }
-  }
+    // $FlowFixMe - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
+    const noteTitle = displayTitle(note)
+    logDebug('NPCalendar / writeTimeBlocksToCalendar', `Starting for note '${noteTitle}' ...`)
 
-  // Look through open note to find valid time blocks, but stop at Done or Cancelled sections
-  // $FlowIgnore - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
-  const endOfActive = findEndOfActivePartOfNote(note)
+    let calendarToWriteTo = '' // NP will then use the default
+    if (config.calendarToWriteTo != null && config.calendarToWriteTo !== '') {
+      // Check that the calendar name we've been given is in the list and is writable
+      const writableCalendars: $ReadOnlyArray<string> = Calendar.availableCalendarTitles(true)
+      if (writableCalendars.includes(config.calendarToWriteTo)) {
+        calendarToWriteTo = config.calendarToWriteTo || ''
+        logDebug('NPCalendar / writeTimeBlocksToCalendar', `- will write to calendar '${String(calendarToWriteTo)}'`)
+      } else {
+        logWarn('NPCalendar / writeTimeBlocksToCalendar', `- requested calendar '${String(config.calendarToWriteTo)}' is not writeable. Will use default calendar instead.`)
+      }
+    }
+
+    // Look through open note to find valid time blocks, but stop at Done or Cancelled sections
+    // $FlowIgnore - Flow doesn't like note or Editor being called here. But for these purposes they should be identical
+    const endOfActive = findEndOfActivePartOfNote(note)
     const timeblockParas = paragraphs.filter((p) => isTimeBlockPara(p) && p.lineIndex <= endOfActive && ((p.type !== 'done' && p.type !== 'checklistDone') || config.includeCompletedTasks))
     if (timeblockParas.length > 0) {
       logDebug('NPCalendar / writeTimeBlocksToCalendar', `-   found ${timeblockParas.length} in '${noteTitle}'`)
@@ -169,6 +169,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
       const dateContext = note.type === 'Calendar' && note.filename ? getISODateStringFromYYYYMMDD(note.filename) ?? todaysDateISOString : todaysDateISOString
 
       // Iterate over timeblocks
+      let keepAsking = true
       if (showLoadingProgress && !config.confirmEventCreation) {
         CommandBar.showLoading(true, 'Inserting Calendar Events')
         await CommandBar.onAsyncThread()
@@ -232,7 +233,6 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
             logDebug('NPCalendar / writeTimeBlocksToCalendar', `- Will process time block '${timeBlockString}' for '${restOfTaskWithoutDateTime}'`)
 
             // Do we want to add this particular event?
-            let keepAsking = true
             if (config.confirmEventCreation && keepAsking) {
               const res = await showMessageYesNoCancel(`Add '${restOfTaskWithoutDateTime}' at '${timeBlockString}'?`, ['Yes to all', 'Yes', 'No', 'Cancel'], 'Make event from time block')
               if (res === 'No') {
@@ -242,6 +242,7 @@ export async function writeTimeBlocksToCalendar(config: EventsConfig, note: TNot
                 i = timeblockParas.length
                 continue // cancel out of all time blocks
               } else if (res === 'Yes to all') {
+                logDebug('NPCalendar / writeTimeBlocksToCalendar', `User now asks to continue adding without asking each time.`)
                 keepAsking = false
               }
             }
