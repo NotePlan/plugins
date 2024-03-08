@@ -47,7 +47,7 @@ The time intervals have two parts: number and then a character. The **character*
 - `y` or `Y`: years
 
 When the **number** starts with a **+** (e.g. `+1m`) it will duplicate the task for 1 month after the date the _task was completed_.
-When the number doesn't start with a + (e.g. `1m`) it will duplicate the task for 1 month after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. If this can't be determined, then it defaults to the first option.
+When the number doesn't start with a + (e.g. `1m`) it will duplicate the task for 1 month after the date the _task was last due_. This is found from a `>yyyy-mm-dd` scheduled date. When there is no scheduled date, then for _Calendar notes_ it will duplicate the task for 1 month after the note date, and for _Project notes_ it will duplicate the task for 1 month after the _task was completed_.
 
 From v0.6 you can specify scheduled dates to all the other calendar note types supported by NotePlan:
 - weekly (e.g. `>2023-W28`)

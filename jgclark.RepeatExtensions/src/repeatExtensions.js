@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 7.7.2023 for v0.6.1
+// last updated 3.3.2024 for v0.6.2
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -29,6 +29,7 @@ import {
   RE_SCHEDULED_YEARLY_NOTE_LINK,
   RE_TIME, // find '12:23' with optional '[ ][AM|PM|am|pm]'
   unhyphenateString,
+  hyphenatedDateString,
 } from '@helpers/dateTime'
 import {
   getNPWeekData,
@@ -111,7 +112,7 @@ export async function onEditorWillSave(): Promise<void> {
  * Process any completed (or cancelled) tasks with my extended @repeat(..) tags,
  * and also remove the HH:MM portion of any @done(...) tasks.
  * When interval is of the form '+2w' it will duplicate the task for 2 weeks after the date is was completed.
- * When interval is of the form '2w' it will duplicate the task for 2 weeks after the date the task was last due. If this can't be determined, then default to the first option.
+ * When interval is of the form '2w' it will duplicate the task for 2 weeks after the date the task was last due. If this can't be determined, it uses the note date. If this can't be determined, then default to completed date.
  * Valid intervals are [0-9][bdwmqy].
  * To work it relies on finding @done(YYYY-MM-DD HH:MM) tags that haven't yet been shortened to @done(YYYY-MM-DD).
  * It includes cancelled tasks as well; to remove a repeat entirely, remove the @repeat tag from the task in NotePlan.
@@ -244,9 +245,9 @@ export async function repeats(runSilently: boolean = false): Promise<void> {
               // need to remove the old due date
               updatedLine = updatedLine.replace(` >${dueDate}`, '')
             } else {
-              // but if there is no due date then treat that as today
-              dueDate = completedDate
-              logDebug('repeats', `- no match => use completed date ${dueDate}`)
+              // but if there is no due date, try the note date, otherwise use completed date
+              dueDate = note.date ? hyphenatedDateString(note.date) : completedDate
+              logDebug('repeats', `- no match => use note/completed date ${dueDate}`)
             }
             newRepeatDateStr = calcOffsetDateStr(dueDate, dateIntervalString)
             // newRepeatDate = calcOffsetDate(dueDate, dateIntervalString) ?? new moment().startOf('day')
