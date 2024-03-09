@@ -2,6 +2,9 @@
   CSS for the items Actions Dialog 
   Last updated: 26.2.2024 for v0.9.0 by @jgclark
   */
+dialog:modal {
+  max-width: 80%;
+}
 
 dialog {
   /* Unset the margin around it, to allow absolute positioning by left/top */
@@ -41,7 +44,8 @@ dialog {
 
 .buttonGrid {
   display: grid;
-  grid-template-columns: auto minmax(15rem, 28rem);
+  /* grid-template-columns: max-content minmax(15rem, 28rem); */
+  grid-template-columns: max-content minmax(15rem, auto);
   column-gap: 4px;
   row-gap: 4px;
   /* vertically align content items in center */
@@ -72,13 +76,13 @@ dialog {
   }
 }
 
-.mainButton {
-  /* main UI buttons */
+.submitButton {
+  /* submit buttons (or what appear to be ...) */
   font-size: 0.85rem;
   font-weight: 500;
   background: var(--bg-main-color);
   border: 1px var(--fg-main-color);
-  /* box-shadow: 1px 1px 1px 0px #BBB; */
+  box-shadow: 1px 1px 1px 0px #BBB;
   padding: 2px 5px 2px 5px;
   margin: 2px 4px;
 }
@@ -86,4 +90,10 @@ dialog {
 .itemActionsDialog {
   max-width: 32rem;
   /* max-height: 25rem; */
+}
+
+.fullTextInput {
+  width: calc(100% - 4rem);
+  font-size: 0.85rem;
+  border-radius: 4px;
 }

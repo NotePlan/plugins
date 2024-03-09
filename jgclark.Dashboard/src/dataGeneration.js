@@ -41,7 +41,7 @@ import {
 import { stripMailtoLinks, convertMarkdownLinks } from '@helpers/stringTransforms'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { isTimeBlockPara } from '@helpers/timeblocks'
-import { isDone, isOpen, isScheduled, isOpenNotScheduled, isOpenTaskNotScheduled } from '@helpers/utils'
+import { isDone, isOpen, isOpenTask, isScheduled, isOpenNotScheduled, isOpenTaskNotScheduled } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Constants
@@ -74,15 +74,13 @@ async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, time
     let startTime = new Date() // for timing only
     if (Editor && (Editor?.note?.filename === timePeriodNote.filename)) {
       // If note of interest is open in editor, then use latest version available, as the DataStore is probably stale.
-      logDebug('getOpenItemParasForCurrent...', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras`)
       parasToUse = Editor.paragraphs
+      logDebug('getOpenItemParasForCurrent...', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
     } else {
       // read note from DataStore in the usual way
-      logDebug('getOpenItemParasForCurrent...', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras`)
-      // parasToUse: $ReadOnlyArray<any> = timePeriodNote.paragraphs
       parasToUse = timePeriodNote.paragraphs
+      logDebug('getOpenItemParasForCurrent...', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras (after ${timer(startTime)})`)
     }
-    logInfo('getOpenItemParasForCurrent...', `Got ${parasToUse.length} parasToUse from ${timePeriodNote.filename} (after ${timer(startTime)})`)
 
     // Run following in background thread
     // NB: Has to wait until after Editor has been accessed to start this
@@ -91,53 +89,56 @@ async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, time
 
     // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     // Now also allow to ignore checklist items.
+    // TODO: this operation is 100ms
     let openParas = (config.ignoreChecklistItems)
-      ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content !== '')
-      : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content !== '')
-    // logDebug('getOpenItemParasForCurrent...', `After 'isOpenNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+      ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content.trim() !== '')
+      : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content.trim() !== '')
+    logDebug('getOpenItemParasForCurrent...', `After 'isOpenNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
     const tempSize = openParas.length
 
-    // Filter out any future-scheduled tasks from this calendar note. TEST:
+    // Filter out any future-scheduled tasks from this calendar note
     openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content))
     if (openParas.length !== tempSize) {
-      logInfo('getOpenItemParasForCurrent...', `Removed ${tempSize - openParas.length} future scheduled tasks`)
+      // logDebug('getOpenItemParasForCurrent...', `- removed ${tempSize - openParas.length} future scheduled tasks`)
     }
-    // logDebug('getOpenItemParasForCurrent...', `After 'future' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemParasForCurrent...', `- after 'future' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out anything from 'ignoreTasksWithPhrase' setting
     if (config.ignoreTasksWithPhrase) {
       openParas = openParas.filter((p) => !p.content.includes(config.ignoreTasksWithPhrase))
     }
-    // logDebug('getOpenItemParasForCurrent...', `After 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out tasks with timeblocks, if wanted
     if (config.excludeTasksWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'open' && isTimeBlockPara(p)))
     }
-    // logDebug('getOpenItemParasForCurrent...', `After 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemParasForCurrent...', `- after 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out checklists with timeblocks, if wanted
     if (config.excludeChecklistsWithTimeblocks) {
       openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
     }
-    // logDebug('getOpenItemParasForCurrent...', `After 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    // logDebug('getOpenItemParasForCurrent...', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Temporarily extend TParagraph with the task's priority + start time (if present)
     openParas = addPriorityToParagraphs(openParas)
     openParas = extendParaToAddStartTime(openParas)
-    logDebug('getOpenItemParasForCurrent...', `found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName} took ${timer(startTime)}`)
+    logDebug('getOpenItemParasForCurrent...', `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName} (after ${timer(startTime)})`)
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
     // (This is 2-3x quicker than part above)
-    // startTime = new Date() // for timing only
+    // TODO: the getReferencedParagraphs() operation take 70-140ms
     let refParas: Array<TParagraph> = []
     if (timePeriodNote) {
       // Now also allow to ignore checklist items.
       refParas = (config.ignoreChecklistItems)
-        ? getReferencedParagraphs(timePeriodNote, false).filter((p) => p.type === 'open' && p.content !== '')
-        : getReferencedParagraphs(timePeriodNote, false).filter(isOpen).filter((p) => p.content !== '')
+        ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
+        // try make this a single filter
+        : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
+    logDebug('getOpenItemParasForCurrent...', `- ref 1 after ${timer(startTime)}`)
 
     // Remove items referenced from items in 'ignoreFolders'
     refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders)
@@ -146,20 +147,21 @@ async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, time
     // Temporarily extend TParagraph with the task's priority + start time (if present)
     refParas = addPriorityToParagraphs(refParas)
     refParas = extendParaToAddStartTime(refParas)
-    logDebug('getOpenItemParasForCurrent...', `found ${String(refParas.length ?? 0)} references to ${timePeriodName} in ${timer(startTime)}`)
 
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
-    // (This takes less than 1ms)
+    // TODO: This takes 100ms
     if (config.separateSectionForReferencedNotes) {
       const sortedOpenParas = sortListBy(openParas, ['-priority', 'timeStr'])
       const sortedRefParas = sortListBy(refParas, ['-priority', 'timeStr'])
       // come back to main thread
       // await CommandBar.onMainThread()
+      logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
       return [sortedOpenParas, sortedRefParas]
     } else {
       const combinedParas = openParas.concat(refParas)
       const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
+      logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
       // come back to main thread
       // await CommandBar.onMainThread()
       return [combinedSortedParas, []]
@@ -217,12 +219,10 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
           itemCount++
         })
-        // clo(combinedSortedParas, "today sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-        sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename, byReference: false })
         sectionCount++
 
-        // clo(sortedRefParas, "sortedRefParas")
         if (sortedRefParas.length > 0) {
           itemCount = 0
           sortedRefParas.map((p) => {
@@ -230,7 +230,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+          sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '', byReference: true })
           sectionCount++
         }
       }
@@ -242,8 +242,8 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
           itemCount++
         })
-        // clo(sortedRefParas, "sortedRefParas")
         sections.push({
+          byReference: false,
           ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename
         })
         sectionCount++
@@ -260,11 +260,13 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists from yesterday's daily note (if wanted and it exists)
+    let yesterdaysCombinedSortedParas = []
     if (config.showYesterdaySection) {
       const yesterday = new moment().subtract(1, 'days').toDate()
       const dateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
       // let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day') // ❌ seems unreliable
       let yesterdaysNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
+
       if (yesterdaysNote) {
         const thisFilename = yesterdaysNote?.filename ?? '(error)'
         // const dateStr = getDateStringFromCalendarFilename(thisFilename)
@@ -287,7 +289,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           })
           // clo(combinedSortedParas, "yesterday sortedOpenParas")
           logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-          sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+          sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarDaily", filename: thisFilename, byReference: false })
           sectionCount++
 
           // clo(sortedRefParas, "sortedRefParas")
@@ -298,9 +300,11 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
               sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
               itemCount++
             })
-            sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} scheduled to yesterday`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+            sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} scheduled to yesterday`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '', byReference: true })
             sectionCount++
           }
+          // Save these paras for later deduping
+          yesterdaysCombinedSortedParas = combinedSortedParas.concat(sortedRefParas)
         }
         else {
           // write one combined section
@@ -312,12 +316,16 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           })
           // clo(sortedRefParas, "sortedRefParas")
           sections.push({
+            byReference: false,
             ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} from daily note or scheduled to ${toLocaleDateString(yesterday)}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarDaily", filename: thisFilename
           })
           sectionCount++
+          // Save these paras for later deduping
+          yesterdaysCombinedSortedParas = combinedSortedParas
         }
         // Get count of tasks/checklists done today
         doneCount += yesterdaysNote.paragraphs.filter(isDone).length
+
 
         // Note: ideally also add completed count for yesterday from referenced notes as well
 
@@ -353,7 +361,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         })
         // clo(combinedSortedParas, "weekly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} weekly items`)
-        sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename, byReference: false })
         sectionCount++
 
         // clo(sortedRefParas, "weekly sortedRefParas")
@@ -364,7 +372,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly", filename: '' })
+          sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly", filename: '', byReference: true })
           sectionCount++
         }
       } else {
@@ -376,7 +384,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
         // clo(sortedRefParas, "weekly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename, byReference: false })
         sectionCount++
       }
       // Get count of tasks/checklists done this week
@@ -411,7 +419,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         })
         // clo(combinedSortedParas, "monthly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} monthly items`)
-        sections.push({ ID: sectionCount, name: 'This Month', sectionType: 'M', description: `{count} from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This Month', sectionType: 'M', description: `{count} from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename, byReference: false })
         sectionCount++
 
         // clo(sortedRefParas, "monthly sortedRefParas")
@@ -422,7 +430,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: thisFilename, type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'This month', sectionType: 'M', description: `{count} scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly", filename: '' })
+          sections.push({ ID: sectionCount, name: 'This month', sectionType: 'M', description: `{count} scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly", filename: '', byReference: true })
           sectionCount++
         }
       } else {
@@ -434,7 +442,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
         // clo(sortedRefParas, "monthly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This month', sectionType: 'M', description: `{count} from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This month', sectionType: 'M', description: `{count} from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename, byReference: false })
         sectionCount++
       }
 
@@ -468,7 +476,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         })
         // clo(combinedSortedParas, "quarterly sortedOpenParas")
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} quarterly items`)
-        sections.push({ ID: sectionCount, name: 'This quarter', sectionType: 'Q', description: `{count} from quarterly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This quarter', sectionType: 'Q', description: `{count} from quarterly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename, byReference: false })
         sectionCount++
 
         // clo(sortedRefParas, "quarterly sortedRefParas")
@@ -479,7 +487,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
             itemCount++
           })
-          sections.push({ ID: sectionCount, name: 'This quarter', sectionType: 'Q', description: `{count} scheduled to this quarter`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarQuarterly", filename: '' })
+          sections.push({ ID: sectionCount, name: 'This quarter', sectionType: 'Q', description: `{count} scheduled to this quarter`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarQuarterly", filename: '', byReference: false })
           sectionCount++
         }
       } else {
@@ -491,7 +499,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
         // clo(sortedRefParas, "quarterly sortedRefParas")
-        sections.push({ ID: sectionCount, name: 'This quarter', sectionType: 'Q', description: `{count} from quarterly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'This quarter', sectionType: 'Q', description: `{count} from quarterly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarQuarterly", filename: thisFilename, byReference: false })
         sectionCount++
       }
       // Get count of tasks/checklists done this quarter
@@ -508,17 +516,30 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     // ----------------------------------------------------------
     // Add a section for Overdue tasks, if wanted, and if not running because triggered by a change in the daily notex
     if (config.showOverdueTaskSection && (config.updateOverdueOnTrigger || fullGenerate)) {
-      logDebug('getDataForDashboard', `---------------------------- Looking for Overdue Tasks for section #${String(sectionCount)} -----------------------------`)
+      logInfo('getDataForDashboard', `---------------------------- Looking for Overdue Tasks for section #${String(sectionCount)} -----------------------------`)
       let thisStartTime = new Date()
       let totalOverdue = 0
 
       // $FlowFixMe(incompatible-call)
       const refParas: Array<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
-      logDebug('getDataForDashboard', `Found ${refParas.length} overdue items in ${timer(thisStartTime)}`)
+      logInfo('getDataForDashboard', `Found ${refParas.length} overdue items in ${timer(thisStartTime)}`)
 
       // Remove items referenced from items in 'ignoreFolders'
       const filteredRefParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders)
       logDebug('getDataForDashboard', `- ${filteredRefParas.length} paras after excluding @special + [${String(config.ignoreFolders)}] folders`)
+
+      // TODO: Remove items already in Yesterday section (which can happen)
+      if (config.showYesterdaySection && yesterdaysCombinedSortedParas.length > 0) {
+        // Filter out all items in array filteredRefParas that also appear in array yesterdaysCombinedSortedParas
+        filteredRefParas.map((p) => {
+          if (yesterdaysCombinedSortedParas.filter((y) => y.content === p.content).length > 0) {
+            logDebug('getDataForDashboard', `- removing duplicate item {${p.content}} from overdue list`)
+            filteredRefParas.splice(filteredRefParas.indexOf(p), 1)
+
+          }
+        })
+      }
+      logInfo('getDataForDashboard', `- after deduping with yesterday -> ${filteredRefParas.length} in ${timer(thisStartTime)}`)
 
       if (filteredRefParas.length > 0) {
         // Remove possible dupes from sync'd lines
@@ -555,13 +576,11 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             ? ['changedDate', 'priority']
             : ['-changedDate', 'priority'] // 'most recent'
         const sortedOverdueTaskParas = sortListBy(reducedParas, sortOrder)
-        logDebug('getDataForDashboard', `- Sorted  ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} in ${timer(thisStartTime)}`)
-        // clo(sortedOverdueTaskParas, 'sortedOverdueTaskParas')
+        logInfo('getDataForDashboard', `- Sorted  ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} in ${timer(thisStartTime)}`)
 
         // Apply limit to set of ordered results
         const overdueTaskParasLimited = (sortedOverdueTaskParas.length > maxInSection) ? sortedOverdueTaskParas.slice(0, maxInSection) : sortedOverdueTaskParas
         logDebug('getDataForDashboard', `- after limit, now ${overdueTaskParasLimited.length} items to show`)
-        // clo(overdueTaskParasLimited, 'overdueTaskParasLimited')
         let itemCount = 0
         overdueTaskParasLimited.map((p) => {
           const thisID = `${sectionCount}-${itemCount}`
@@ -572,18 +591,20 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         const overdueSectionDescription = (totalOverdue > itemCount) ? `first {count} of ${String(totalOverdue)} tasks ordered by ${config.overdueSortOrder}`
           : `all {count} tasks ordered by ${config.overdueSortOrder}`
         sections.push({
+          byReference: false,
           ID: sectionCount,
           name: 'Overdue Tasks', sectionType: 'OVERDUE', description: overdueSectionDescription, FAIconClass: "fa-regular fa-alarm-exclamation", sectionTitleClass: "overdue", filename: ''
         })
         sectionCount++
       }
+      logInfo('getDataForDashboard', `- finished finding overdue items after ${timer(startTime)}`)
     }
 
     //-----------------------------------------------------------
     // Add a section for tagToShow, if set
     // Only find those which include open tasks that aren't scheduled in the future
     if (config.tagToShow) {
-      logDebug('getDataForDashboard', `---------------------------- Looking for tag '${config.tagToShow}'  for section #${String(sectionCount)} -----------------------------`)
+      logInfo('getDataForDashboard', `---------------------------- Looking for tag '${config.tagToShow}'  for section #${String(sectionCount)} -----------------------------`)
       let thisStartTime = new Date()
       const isHashtag: boolean = config.tagToShow.startsWith('#')
       const isMention: boolean = config.tagToShow.startsWith('@')
@@ -624,7 +645,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             }
           }
         }
-        logDebug('getDataForDashboard', `- ${filteredTagParas.length} paras (after ${timer(startTime)})`)
+        logInfo('getDataForDashboard', `- ${filteredTagParas.length} paras (after ${timer(startTime)})`)
 
         if (filteredTagParas.length > 0) {
           // Remove possible dupes from sync'd lines
@@ -660,7 +681,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
               ? ['changedDate', 'priority']
               : ['-changedDate', 'priority'] // 'most recent'
           const sortedTagParas = sortListBy(reducedParas, sortOrder)
-          logDebug('getDataForDashboard', `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)} in ${timer(thisStartTime)}`)
+          logInfo('getDataForDashboard', `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)} in ${timer(thisStartTime)}`)
 
           // Apply limit to set of ordered results
           const sortedTagParasLimited = (sortedTagParas.length > maxInSection) ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
@@ -678,6 +699,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           const tagSectionDescription = (totalCount > itemCount) ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}`
             : `all {count} items ordered by ${config.overdueSortOrder}`
           sections.push({
+            byReference: false,
             ID: sectionCount,
             name: `${config.tagToShow}`,
             sectionType: 'TAG',
@@ -697,7 +719,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     //-----------------------------------------------------------
     // If Reviews plugin has produced a review list file, then show up to 4 of the most overdue things from it
     if (DataStore.fileExists(fullReviewListFilename)) {
-      logDebug('getDataForDashboard', `---------------------------- Looking for Project items for section #${String(sectionCount)} -----------------------------`)
+      logInfo('getDataForDashboard', `---------------------------- Looking for Project items for section #${String(sectionCount)} -----------------------------`)
 
       // But first check to see if it is more than a day old
       const fullReviewListContent = DataStore.loadData(fullReviewListFilename, true)
@@ -725,6 +747,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         })
         // clo(nextNotesToReview, "nextNotesToReview")
         sections.push({
+          byReference: false,
           ID: sectionCount,
           name: 'Projects',
           sectionType: 'PROJ',
@@ -743,6 +766,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     //-----------------------------------------------------------
     // Send doneCount through as a special type item:
     sections.push({
+      byReference: false,
       ID: doneCount,
       name: 'Done',
       sectionType: '',

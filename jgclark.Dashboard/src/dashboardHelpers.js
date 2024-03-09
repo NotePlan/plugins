@@ -63,6 +63,7 @@ export type Section = {
   FAIconClass: string,
   sectionTitleClass: string,
   filename: string,
+  byReference: boolean,
 }
 
 // an item within a section

@@ -1,6 +1,26 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+
+TODO: 
+- Add 'Move all to today' button to Yesterday section
+- Add 'Start reviews' button to Projects section
+- Dedupe items in Overdue section that are both open and dated to the date of the note it lives in
+- When using the add-task or add-checklist items on the main screen, now uses existing preference 'Section heading to add/move new tasks under' (if set). (#539 for @dwertheimer)
+- ? try out Tailwind/Daisy for CSS
+- Finish new 'move a new note' action button work
+- Finish updating 'change to X' action button work
+
+## [1.0.0-a2] - 2024-03-09 (unreleased)
+- the text of a task or checklist can now be edited in the control dialog
+- made layout more responsive to make it work better when very narrow (for @dwertheimer)
+- simplified top bar, and made it sticky
+- speeded up display of dashboard
+- overdue section now doesn't show any items also in Yesterday section
+- removed the add-task and add-checklist items from the calendar references Sections (if shown)
+- more layout polish and code clean-up
+- change 'toggle type' button to be either 'change to O' or 'change to ▢'
+
 ## [1.0.0-a1] - 2024-03-04 (unreleased)
 - (under-the-hood) completely re-wrote the layout engine (replacing a table-based layout system with a grid-based one) to solve some layout annoyances, and making it faster to generate
 - replaced hover controls with dialog box for item actions, now opened by clicking the 'pencil edit' button after each item

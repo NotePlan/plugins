@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the Dashboard events
-// Last updated: 4.3.2024 for v1.0.0 by @jgclark
+// Last updated: 9.3.2024 for v1.0.0 by @jgclark
 
 //--------------------------------------------------------------------------------------
 // Add event handlers
@@ -32,10 +32,10 @@ function showItemControlDialog(dataObject) {
   const dateChangeFunctionToUse = (reschedOrMove === 'resched') ? "updateTaskDate" : "moveFromCalToCal"
   // console.log(`- using ${dateChangeFunctionToUse} from ${reschedOrMove}`)
   const thisIDElement = document.getElementById(thisID)
-  const thisEncodedContent = thisIDElement.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
+  const thisEncodedContent = thisIDElement.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
   const thisEncodedFilename = thisIDElement.dataset.encodedFilename
   const thisFilename = decodeRFC3986URIComponent(thisEncodedFilename)
-  console.log(`dataObject() starting for ID ${thisID}, type ${thisSectionType}, filename ${thisEncodedFilename}`)
+  console.log(`dataObject() starting for ID ${thisID}, type ${thisSectionType}, itemType ${thisItemType}, filename ${thisEncodedFilename}`)
 
   const dialog = document.getElementById("itemControlDialog")
   const closeDialogBtn = document.getElementById("closeTaskControlDialog")
@@ -46,7 +46,10 @@ function showItemControlDialog(dataObject) {
   // Update text in the dialog for this particular item, if not empty
   const dialogItemContentElem = document.getElementById('dialogItemContent')
   if (thisEncodedContent !== '') {
-    dialogItemContentElem.innerHTML = `${thisItemType} '${decodeRFC3986URIComponent(thisEncodedContent)}'`
+    // For previous text label:
+    // dialogItemContentElem.innerHTML = `${thisItemType} '${decodeRFC3986URIComponent(thisEncodedContent)}'`
+    // For newer input box
+    dialogItemContentElem.value = decodeRFC3986URIComponent(thisEncodedContent)
     dialogItemContentElem.parentElement.style.display = "block"
   } else {
     dialogItemContentElem.parentElement.style.display = "none"
@@ -63,11 +66,13 @@ function showItemControlDialog(dataObject) {
     { displayString: 'this month', controlStr: '+0m', sectionTypes: ['DT', 'DY', 'W', 'Q', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
     { displayString: '+1m', controlStr: '+1m', sectionTypes: ['M', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
     { displayString: 'this quarter', controlStr: '+0q', sectionTypes: ['M', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: 'move to note', controlStr: 'movetonote', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: 'moveToNote' },
     { displayString: 'unschedule', controlStr: 'unsched', sectionTypes: ['OVERDUE', 'TAG'], handlingFunction: 'unscheduleItem' },
     { displayString: 'priority ↑', controlStr: 'priup', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateUp' },
     { displayString: 'priority ↓', controlStr: 'pridown', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateDown' },
-    { displayString: 'toggle type', controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'toggleType' },
+    { displayString: 'change to X', controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'toggleType' },
     { displayString: 'complete then', controlStr: 'ct', sectionTypes: ['OVERDUE', 'TAG'], handlingFunction: 'completeTaskThen' },
+    { displayString: 'Update', controlStr: 'update', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'updateItemContent' },
   ]
   const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionTypes.includes(thisSectionType))
   const controlStrsForThisSection = controlTypesForThisSection.map((t) => t.controlStr)
@@ -79,15 +84,10 @@ function showItemControlDialog(dataObject) {
   const allDialogButtons = document.getElementById("itemDialogButtons").getElementsByTagName("BUTTON")
   let added = 0
   for (const button of allDialogButtons) {
-    // Ignore the mainButton ('Close')
-    if (button.className === 'mainButton') {
+    // Ignore the submitButton(s) (e.g.'Close')
+    if (button.className === 'submitButton') {
       continue
     }
-    const thisControlStr = button.dataset.controlStr
-    const functionToInvoke = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].handlingFunction ?? '?'
-    const buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
-    // console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
-    // console.log(`  ${button.outerHTML}`)
 
     // remove previous event handlers
     button.removeEventListener('click', function (event) {
@@ -95,13 +95,25 @@ function showItemControlDialog(dataObject) {
       handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, event.metaKey)
     }, false)
 
+    const thisControlStr = button.dataset.controlStr
+    const functionToInvoke = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].handlingFunction ?? '?'
+    let buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
+    if (thisControlStr === 'tog') {
+      // buttonDisplayString = buttonDisplayString.replace('X', (thisItemType === 'checklist') ? 'O' : '⃞')
+      console.log(buttonDisplayString)
+      buttonDisplayString = `change to ${(thisItemType === 'checklist') ? '<i class="fa-regular fa-circle"></i>' : '<i class="fa-regular fa-square"></i>'}`
+      console.log(buttonDisplayString)
+    }
+    console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
+    // console.log(`  ${button.outerHTML}`)
+
     // add event handler and make visible
     // if it's a relevant one for this section
     if (controlStrsForThisSection.includes(thisControlStr)) {
       // console.log(`- displaying button ${thisControlStr}`)
       button.addEventListener('click', function (event) {
         event.preventDefault()
-        handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, event.metaKey)
+        handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, thisItemType, event.metaKey)
       }, false)
       // Set button's text
       button.innerHTML = buttonDisplayString
@@ -115,6 +127,9 @@ function showItemControlDialog(dataObject) {
   }
   console.log(`- ${String(added)} button ELs added`)
 
+  // If we have "change to X" then replace last character with the right icon
+
+
   // Hide or Show button row 1 depending whether it has any non-hidden buttons
   const itemControlDialogMoveControls = document.getElementById("itemControlDialogMoveControls")
   const iCDMCB = itemControlDialogMoveControls.getElementsByTagName("BUTTON")
@@ -126,7 +141,7 @@ function showItemControlDialog(dataObject) {
       numICDMCBShown++
     }
   }
-  console.log(`"Move to" row set to ${(numICDMCBShown === 0) ? "none" : "block"}`)
+  // console.log(`"Move to" row set to ${(numICDMCBShown === 0) ? "none" : "block"}`)
   itemControlDialogMoveControls.style.display = (numICDMCBShown === 0) ? "none" : "block"
   itemControlDialogMoveControls.previousElementSibling.style.display = (numICDMCBShown === 0) ? "none" : "block"
 
@@ -141,7 +156,7 @@ function showItemControlDialog(dataObject) {
       numICDOCBShown++
     }
   }
-  console.log(`"Other controls" row set to ${(numICDOCBShown === 0) ? "none" : "block"}`)
+  // console.log(`"Other controls" row set to ${(numICDOCBShown === 0) ? "none" : "block"}`)
   itemControlDialogOtherControls.style.display = (numICDOCBShown === 0) ? "none" : "block"
   itemControlDialogOtherControls.previousElementSibling.style.display = (numICDOCBShown === 0) ? "none" : "block"
 
@@ -159,11 +174,24 @@ function showItemControlDialog(dataObject) {
   // console.log(dialog.clientWidth, dialog.clientHeight)
 
   // For clicking on dialog buttons
-  function handleButtonClick(id, type, controlStr, encodedFilename, encodedCurrentContent, metaModifier) {
-    console.log(`Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, encodedFilename: ${encodedFilename}, metaModifier: ${metaModifier}`)
-    console.log(`- orig content: {${  encodedCurrentContent  }}`)
+  function handleButtonClick(id, type, controlStr, encodedFilename, encodedCurrentContent, itemType, metaModifier) {
+    console.log(`Button clicked on id: ${id} for controlStr: ${controlStr}, type: ${type}, itemType: ${itemType}, encodedFilename: ${encodedFilename}, metaModifier: ${metaModifier}`)
 
-    onClickDashboardItem({ itemID: id, type: type, controlStr: controlStr, encodedFilename: encodedFilename, encodedContent: encodedCurrentContent }) // = sendMessageToPlugin('onClickDashboardItem', ...)
+    if (controlStr === 'update') {
+      const encodedUpdatedContent = encodeRFC3986URIComponent(document.getElementById("dialogItemContent").value)
+      console.log(`- orig content: {${encodedCurrentContent}} / updated content: {${encodedUpdatedContent}}`)
+
+      onClickDashboardItem({
+        itemID: id, type, controlStr: controlStr,
+        encodedFilename: encodedFilename, encodedContent: encodedCurrentContent,
+        encodedUpdatedContent: encodedUpdatedContent
+      }) // = sendMessageToPlugin('onClickDashboardItem', ...)
+    } else {
+      onClickDashboardItem({
+        itemID: id, type: type, controlStr: controlStr, itemType: itemType,
+        encodedFilename: encodedFilename
+      }) // = sendMessageToPlugin('onClickDashboardItem', ...)
+    }
 
     // Dismiss dialog, unless meta key pressed
     if (!metaModifier) {
@@ -178,6 +206,17 @@ function showItemControlDialog(dataObject) {
     }
   }
 }
+
+// ---------------------------------------------------------------------
+
+// // Handle updating content in the dialog
+// function updateItemContent() {
+//   console.log("Called updateContent")
+//   const dialogInputElem = document.getElementById("dialogItemContent")
+//   const updatedContent = dialogInputElem.value
+//   console.log("-> " + updatedContent)
+//   // TODO: ...
+// }
 
 // ---------------------------------------------------------------------
 
@@ -224,8 +263,8 @@ function showProjectControlDialog(dataObject) {
   const allDialogButtons = document.getElementById("projectDialogButtons").getElementsByTagName("BUTTON")
   let added = 0
   for (const button of allDialogButtons) {
-    // Ignore the mainButton ('Close')
-    if (button.className === 'mainButton') {
+    // Ignore the submitButton(s) (e.g. 'Close')
+    if (button.className === 'submitButton') {
       continue
     }
     const thisControlStr = button.dataset.controlStr
@@ -246,7 +285,7 @@ function showProjectControlDialog(dataObject) {
       console.log(`- displaying button ${thisControlStr}`)
       button.addEventListener('click', function (event) {
         event.preventDefault()
-        handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, event.metaKey)
+        handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, '', event.metaKey)
       }, false)
       // Set button's text
       button.innerHTML = buttonDisplayString
@@ -444,147 +483,163 @@ function addReviewProjectEventListeners() {
 /**
  * Add an event listener to all class="moveButton", "changeDateButton", "completeThen" and "toggleType" items
  */
-function addButtonEventListeners() {
-  function findAncestor(startElement, tagName) {
-    let currentElem = startElement
-    while (currentElem !== document.body) {
-      if (currentElem.tagName.toLowerCase() === tagName.toLowerCase()) { return currentElem }
-      currentElem = currentElem.parentElement
-    }
-    return false
-  }
+// function addButtonEventListeners() {
+//   function findAncestor(startElement, tagName) {
+//     let currentElem = startElement
+//     while (currentElem !== document.body) {
+//       if (currentElem.tagName.toLowerCase() === tagName.toLowerCase()) { return currentElem }
+//       currentElem = currentElem.parentElement
+//     }
+//     return false
+//   }
 
-// Add click handler to all hoverExtraControls' buttons
-// Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
+//   // Add click handler to all hoverExtraControls' buttons
+//   // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
 
-  console.log('Add click handlers to all hoverExtraControls buttons')
-  const allMoveButtons = document.getElementsByClassName("moveButton")
-  for (const button of allMoveButtons) {
-    // const thisTD = button.parentElement.parentElement.parentElement;
-    const thisTD = findAncestor(button, 'TD')
-    const thisID = thisTD.parentElement.id
-    const thisControlStr = button.dataset.controlStr
-    const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
-    // console.log('-', thisID, thisControlStr, thisEncodedContent);
-    const thisFilename = button.parentElement.dataset.dateString
-    // add event handler
-    button.addEventListener('click', function (event) {
-      event.preventDefault()
-      handleButtonClick(thisID, 'moveFromCalToCal', thisControlStr, thisFilename, thisEncodedContent) // , event.metaKey
-    }, false)
-  }
-  console.log(`${String(allMoveButtons.length)} move button ELs added`)
+//   console.log('Add click handlers to all hoverExtraControls buttons')
+//   const allMoveButtons = document.getElementsByClassName("moveButton")
+//   for (const button of allMoveButtons) {
+//     // const thisTD = button.parentElement.parentElement.parentElement;
+//     const thisTD = findAncestor(button, 'TD')
+//     const thisID = thisTD.parentElement.id
+//     const thisControlStr = button.dataset.controlStr
+//     const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
+//     // console.log('-', thisID, thisControlStr, thisEncodedContent);
+//     const thisFilename = button.parentElement.dataset.dateString
+//     // add event handler
+//     button.addEventListener('click', function (event) {
+//       event.preventDefault()
+//       handleButtonClick(thisID, 'moveFromCalToCal', thisControlStr, thisFilename, thisEncodedContent) // , event.metaKey
+//     }, false)
+//   }
+//   console.log(`${String(allMoveButtons.length)} move button ELs added`)
 
-  const allChangeDateButtons = document.getElementsByClassName("changeDateButton")
-  for (const button of allChangeDateButtons) {
-    // const thisTD = button.parentElement.parentElement.parentElement;
-    const thisTD = findAncestor(button, 'TD')
-    const thisID = thisTD.parentElement.id
-    const thisControlStr = button.dataset.controlStr
-    const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
-    const thisEncodedFilename = thisTD.dataset.encodedFilename
-    // add event handler
-    button.addEventListener('click', function (event) {
-      event.preventDefault()
-      handleButtonClick(thisID, 'updateTaskDate', thisControlStr, thisEncodedFilename, thisEncodedContent) // , event.metaKey
-    }, false)
-  }
-  console.log(`${String(allChangeDateButtons.length)} dateChangeButton ELs added`)
+//   const allChangeDateButtons = document.getElementsByClassName("changeDateButton")
+//   for (const button of allChangeDateButtons) {
+//     // const thisTD = button.parentElement.parentElement.parentElement;
+//     const thisTD = findAncestor(button, 'TD')
+//     const thisID = thisTD.parentElement.id
+//     const thisControlStr = button.dataset.controlStr
+//     const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
+//     const thisEncodedFilename = thisTD.dataset.encodedFilename
+//     // add event handler
+//     button.addEventListener('click', function (event) {
+//       event.preventDefault()
+//       handleButtonClick(thisID, 'updateTaskDate', thisControlStr, thisEncodedFilename, thisEncodedContent) // , event.metaKey
+//     }, false)
+//   }
+//   console.log(`${String(allChangeDateButtons.length)} dateChangeButton ELs added`)
 
-  const allCompleteThenButtons = document.getElementsByClassName("completeThenButton")
-  for (const button of allCompleteThenButtons) {
-    const thisTD = findAncestor(button, 'TD')
-    const thisID = thisTD.parentElement.id
-    // console.log('- CT on' + thisID);
-    // const thisControlStr = button.dataset.controlStr
-    const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
-    const thisEncodedFilename = thisTD.dataset.encodedFilename
-    // add event handler
-    button.addEventListener('click', function (event) {
-      event.preventDefault()
-      handleButtonClick(thisID, 'completeTaskThen', '', thisEncodedFilename, thisEncodedContent) // , event.metaKey
-    }, false)
-  }
-  console.log(`${String(allCompleteThenButtons.length)} completeThenButton ELs added`)
+//   const allCompleteThenButtons = document.getElementsByClassName("completeThenButton")
+//   for (const button of allCompleteThenButtons) {
+//     const thisTD = findAncestor(button, 'TD')
+//     const thisID = thisTD.parentElement.id
+//     // console.log('- CT on' + thisID);
+//     // const thisControlStr = button.dataset.controlStr
+//     const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
+//     const thisEncodedFilename = thisTD.dataset.encodedFilename
+//     // add event handler
+//     button.addEventListener('click', function (event) {
+//       event.preventDefault()
+//       handleButtonClick(thisID, 'completeTaskThen', '', thisEncodedFilename, thisEncodedContent) // , event.metaKey
+//     }, false)
+//   }
+//   console.log(`${String(allCompleteThenButtons.length)} completeThenButton ELs added`)
 
-  const allToggleTypeButtons = document.getElementsByClassName("toggleTypeButton")
-  for (const button of allToggleTypeButtons) {
-    const thisTD = findAncestor(button, 'TD')
-    const thisID = thisTD.parentElement.id
-    // console.log('- TT on' + thisID);
-    // const thisControlStr = button.dataset.controlStr
-    const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
-    const thisEncodedFilename = thisTD.dataset.encodedFilename
-    // add event handler
-    button.addEventListener('click', function (event) {
-      event.preventDefault()
-      handleButtonClick(thisID, 'toggleType', '', thisEncodedFilename, thisEncodedContent)
-    }, false)
-  }
-  console.log(`${String(allToggleTypeButtons.length)} toggleTypeButton ELs added`)
+//   const allToggleTypeButtons = document.getElementsByClassName("toggleTypeButton")
+//   for (const button of allToggleTypeButtons) {
+//     const thisTD = findAncestor(button, 'TD')
+//     const thisID = thisTD.parentElement.id
+//     // console.log('- TT on' + thisID);
+//     // const thisControlStr = button.dataset.controlStr
+//     const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
+//     const thisEncodedFilename = thisTD.dataset.encodedFilename
+//     // add event handler
+//     button.addEventListener('click', function (event) {
+//       event.preventDefault()
+//       handleButtonClick(thisID, 'toggleType', '', thisEncodedFilename, thisEncodedContent)
+//     }, false)
+//   }
+//   console.log(`${String(allToggleTypeButtons.length)} toggleTypeButton ELs added`)
 
-  const allPriorityButtons = document.getElementsByClassName("priorityButton")
-  for (const button of allPriorityButtons) {
-    const thisTD = findAncestor(button, 'TD')
-    const thisID = thisTD.parentElement.id
-    // console.log('- P on' + thisID);
-    // const thisControlStr = button.dataset.controlStr
-    const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
-    const thisEncodedFilename = thisTD.dataset.encodedFilename
-    // add event handler
-    button.addEventListener('click', function (event) {
-      event.preventDefault()
-      handleButtonClick(thisID, 'cyclePriorityState', '', thisEncodedFilename, thisEncodedContent)
-    }, false)
-  }
-  console.log(`${String(allPriorityButtons.length)} priorityButton ELs added`)
+//   const allPriorityButtons = document.getElementsByClassName("priorityButton")
+//   for (const button of allPriorityButtons) {
+//     const thisTD = findAncestor(button, 'TD')
+//     const thisID = thisTD.parentElement.id
+//     // console.log('- P on' + thisID);
+//     // const thisControlStr = button.dataset.controlStr
+//     const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
+//     const thisEncodedFilename = thisTD.dataset.encodedFilename
+//     // add event handler
+//     button.addEventListener('click', function (event) {
+//       event.preventDefault()
+//       handleButtonClick(thisID, 'cyclePriorityState', '', thisEncodedFilename, thisEncodedContent)
+//     }, false)
+//   }
+//   console.log(`${String(allPriorityButtons.length)} priorityButton ELs added`)
 
-  const allUnscheduleButtons = document.getElementsByClassName("unscheduleButton")
-  for (const button of allUnscheduleButtons) {
-    const thisTD = findAncestor(button, 'TD')
-    const thisID = thisTD.parentElement.id
-    // console.log('- U on' + thisID);
-    // const thisControlStr = button.dataset.controlStr
-    const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
-    const thisEncodedFilename = thisTD.dataset.encodedFilename
-    // add event handler
-    button.addEventListener('click', function (event) {
-      event.preventDefault()
-      handleButtonClick(thisID, 'unscheduleItem', '', thisEncodedFilename, thisEncodedContent)
-    }, false)
-  }
-  console.log(`${String(allUnscheduleButtons.length)} unscheduleButton ELs added`)
+//   const allUnscheduleButtons = document.getElementsByClassName("unscheduleButton")
+//   for (const button of allUnscheduleButtons) {
+//     const thisTD = findAncestor(button, 'TD')
+//     const thisID = thisTD.parentElement.id
+//     // console.log('- U on' + thisID);
+//     // const thisControlStr = button.dataset.controlStr
+//     const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
+//     const thisEncodedFilename = thisTD.dataset.encodedFilename
+//     // add event handler
+//     button.addEventListener('click', function (event) {
+//       event.preventDefault()
+//       handleButtonClick(thisID, 'unscheduleItem', '', thisEncodedFilename, thisEncodedContent)
+//     }, false)
+//   }
+//   console.log(`${String(allUnscheduleButtons.length)} unscheduleButton ELs added`)
 
-  const allNextReviewButtons = document.getElementsByClassName("nextReviewButton")
-  for (const button of allNextReviewButtons) {
-    const thisTD = findAncestor(button, 'TD')
-    const thisID = thisTD.parentElement.id
-    // console.log('- PNR on' + thisID);
-    const thisControlStr = button.dataset.controlStr
-    const thisEncodedFilename = thisTD.dataset.encodedFilename
-    // add event handler
-    button.addEventListener('click', function (event) {
-      event.preventDefault()
-      handleButtonClick(thisID, 'setNextReviewDate', thisControlStr, thisEncodedFilename, '')
-    }, false)
-  }
-  console.log(`${String(allNextReviewButtons.length)} nextReviewButton ELs added`)
+//   const allUpdateItemButtons = document.getElementsByClassName("updateItemContentButton")
+//   for (const button of allUpdateItemButtons) {
+//     const thisTD = findAncestor(button, 'TD')
+//     const thisID = thisTD.parentElement.id
+//     // console.log('- U on' + thisID);
+//     // const thisControlStr = button.dataset.controlStr
+//     const thisEncodedContent = thisTD.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
+//     const thisEncodedFilename = thisTD.dataset.encodedFilename
+//     // add event handler
+//     button.addEventListener('click', function (event) {
+//       event.preventDefault()
+//       handleButtonClick(thisID, 'unscheduleItem', '', thisEncodedFilename, thisEncodedContent)
+//     }, false)
+//   }
+//   console.log(`${String(allUpdateItemButtons.length)} updateItemButton ELs added`)
 
-  const allReviewFinishedButtons = document.getElementsByClassName("reviewFinishedButton")
-  for (const button of allReviewFinishedButtons) {
-    const thisTD = findAncestor(button, 'TD')
-    const thisID = thisTD.parentElement.id
-    // console.log('- PRF on' + thisID);
-    const thisControlStr = button.dataset.controlStr
-    const thisEncodedFilename = thisTD.dataset.encodedFilename
-    // add event handler
-    button.addEventListener('click', function (event) {
-      event.preventDefault()
-      handleButtonClick(thisID, 'reviewFinished', thisControlStr, thisEncodedFilename, '')
-    }, false)
-  }
-  console.log(`${String(allReviewFinishedButtons.length)} reviewFinishedButton ELs added`)
-}
+//   const allNextReviewButtons = document.getElementsByClassName("nextReviewButton")
+//   for (const button of allNextReviewButtons) {
+//     const thisTD = findAncestor(button, 'TD')
+//     const thisID = thisTD.parentElement.id
+//     // console.log('- PNR on' + thisID);
+//     const thisControlStr = button.dataset.controlStr
+//     const thisEncodedFilename = thisTD.dataset.encodedFilename
+//     // add event handler
+//     button.addEventListener('click', function (event) {
+//       event.preventDefault()
+//       handleButtonClick(thisID, 'setNextReviewDate', thisControlStr, thisEncodedFilename, '')
+//     }, false)
+//   }
+//   console.log(`${String(allNextReviewButtons.length)} nextReviewButton ELs added`)
+
+//   const allReviewFinishedButtons = document.getElementsByClassName("reviewFinishedButton")
+//   for (const button of allReviewFinishedButtons) {
+//     const thisTD = findAncestor(button, 'TD')
+//     const thisID = thisTD.parentElement.id
+//     // console.log('- PRF on' + thisID);
+//     const thisControlStr = button.dataset.controlStr
+//     const thisEncodedFilename = thisTD.dataset.encodedFilename
+//     // add event handler
+//     button.addEventListener('click', function (event) {
+//       event.preventDefault()
+//       handleButtonClick(thisID, 'reviewFinished', thisControlStr, thisEncodedFilename, '')
+//     }, false)
+//   }
+//   console.log(`${String(allReviewFinishedButtons.length)} reviewFinishedButton ELs added`)
+// }
 
 //--------------------------------------------------------------------------------------
 // clickHandlersScript

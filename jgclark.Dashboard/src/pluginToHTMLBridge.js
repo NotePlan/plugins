@@ -1,11 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 4.3.2024 for v1.0.0 by @jgclark
+// Last updated 9.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getSettings } from './dashboardHelpers'
+import { addParasAsText, getFilerSettings } from '../../jgclark.Filer/src/filerHelpers'
+import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { showDashboard } from './HTMLGeneratorGrid'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import {
@@ -20,8 +22,9 @@ import {
   replaceArrowDatesInString,
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
+import { displayTitle } from '@helpers/general'
 import { sendToHTMLWindow } from '@helpers/HTMLView'
-import { getNoteByFilename } from '@helpers/note'
+import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import {
   cyclePriorityStateDown,
   cyclePriorityStateUp,
@@ -41,11 +44,20 @@ import {
 } from '@helpers/NPParagraph'
 import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString, storeWindowRect, getWindowIdFromCustomId } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
+import { chooseHeading, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // Data types + constants
 
-type MessageDataObject = { itemID: string, type: string, encodedFilename: string, encodedContent: string, controlStr: string }
+type MessageDataObject = {
+  itemID: string,
+  type: string,
+  controlStr: string,
+  encodedFilename: string,
+  encodedContent: string,
+  itemType?: string,
+  encodedUpdatedContent?: string
+}
 type SettingDataObject = { settingName: string, state: string }
 
 const windowCustomId = pluginJson['plugin.id'] + '.main'
@@ -107,7 +119,6 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
  */
 export async function bridgeClickDashboardItem(data: MessageDataObject) {
   try {
-    clo(data, 'bridgeClickDashboardItem received data object')
     // const windowId = getWindowIdFromCustomId(windowCustomId);
     const windowId = windowCustomId
     if (!windowId) {
@@ -121,6 +132,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     const content = decodeRFC3986URIComponent(data.encodedContent ?? '')
     logDebug('', '------------------------- bridgeClickDashboardItem:')
     logInfo('bridgeClickDashboardItem', `itemID: ${ID}, type: ${type}, filename: ${filename}, content: {${content}}`)
+    // clo(data, 'bridgeClickDashboardItem received data object')
     switch (type) {
       case 'completeTask': {
         // Complete the task in the actual Note
@@ -217,7 +229,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'cyclePriorityStateUp': {
-      // Send a request to cyclePriorityStateUp to plugin
+        // Send a request to cyclePriorityStateUp to plugin
 
         // Get para
         const para = findParaFromStringAndFilename(filename, content)
@@ -229,7 +241,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           const updatedContent = cyclePriorityStateUp(para)
           logDebug('bCDI / cyclePriorityStateUp', `cycling priority -> {${updatedContent}}`)
 
-          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (main.js::) it is simpler to ask for a refresh. = await showDashboard('refresh')
+          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (HTMLGeneratorGrid::) it is simpler to ask for a refresh. = await showDashboard('refresh')
           // Note: But this doesn't work, because of race condition.
           // So we better try that logic after all.
           const updatedData = {
@@ -256,9 +268,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           const updatedContent = cyclePriorityStateDown(para)
           logDebug('bCDI / cyclePriorityStateDown', `cycling priority -> {${updatedContent}}`)
 
-          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (main.js::) it is simpler to ask for a refresh. = await showDashboard('refresh')
-          // Note: But this doesn't work, because of race condition.
-          // So we better try that logic after all.
+          // Update the content in place
           const updatedData = {
             itemID: ID,
             newContent: updatedContent,
@@ -267,6 +277,41 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'cyclePriorityStateDown', updatedData)
         } else {
           logWarn('bCDI / cyclePriorityStateDown', `-> unable to find para {${content}} in filename ${filename}`)
+        }
+        break
+      }
+      case 'updateItemContent': {
+        // Send a request to change the content of this item
+
+        if (!data.encodedUpdatedContent) {
+          throw new Error(`Trying to updateItemContent but no encodedUpdatedContent was passed`)
+        }
+        const encodedUpdatedContent = data.encodedUpdatedContent
+        const updatedContent = decodeRFC3986URIComponent(encodedUpdatedContent)
+        logDebug('bCDI / updateItemContent', `starting for updated content '${updatedContent}'`)
+
+        // Get para, using original content
+        const para = findParaFromStringAndFilename(filename, content)
+        if (para && typeof para !== 'boolean') {
+          const paraContent = para.content ?? 'error'
+          // logDebug('bCDI / updateItemContent', `found para with original content {${paraContent}}`)
+          logDebug('bCDI / updateItemContent', `calling updateItemContent('${updatedContent}') ...`)
+          // Update the content in place
+          const updatedData = {
+            itemID: ID,
+            updatedContent: updatedContent
+          }
+          sendToHTMLWindow(windowId, 'updateItemContent', updatedData) // unencoded
+
+          // And update in the app itself
+          para.content = updatedContent
+          const thisNote = para.note
+          if (thisNote) {
+            thisNote.updateParagraph(para)
+            logDebug('bCDI / updateItemContent', `- appeared to update line OK`)
+          }
+        } else {
+          logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
         }
         break
       }
@@ -371,6 +416,56 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bridgeClickDashboardItem', `-> unsuccessful call to open title ${wantedTitle} in Editor`)
         }
+        break
+      }
+
+      case 'moveToNote': {
+        // Instruction to move task from a note to a project note.
+        if (!data.itemType) {
+          throw new Error(`Trying to moveToNote but no itemType was passed`)
+        }
+
+        // Note: Requires user input
+        const itemType = data.itemType
+        logDebug('moveToNote', `starting with itemType: ${itemType}`)
+
+        // Start by getting settings from *Filer plugin*
+        const config = await getFilerSettings() ?? { whereToAddInSection: 'start', allowNotePreambleBeforeHeading: true }
+
+        let startDateStr = getDateStringFromCalendarFilename(filename, true)
+
+        // Ask user for destination project note
+        const allNotes = projectNotesSortedByChanged()
+
+        const res = await CommandBar.showOptions(
+          allNotes.map((n) => n.title ?? 'untitled'),
+          `Select note to move this ${itemType} to`)
+        const destNote = allNotes[res.index]
+
+        // Ask to which heading to add the selectedParas
+        const headingToFind = await chooseHeading(destNote, true, true, false)
+        logDebug('noteToNote', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+
+        // Add text to the new location in destination note
+        // Requires QuickCapture plugin, o
+        if (itemType === "task") {
+          addTaskToNoteHeading(destNote.title, headingToFind, content)
+        } else {
+          addChecklistToNoteHeading(destNote.title, headingToFind, content)
+        }
+        // Ask for cache refresh for this note
+        DataStore.updateCache(destNote, false)
+
+        // delete from existing location
+        logDebug('noteToNote', `- Removing 1 para from original note ${filename}`)
+        const origNote = getNoteByFilename(filename)
+        // TODO: origNote.removeParagraphs(parasInBlock)
+        // Ask for cache refresh for this note
+        DataStore.updateCache(origNote, false)
+
+        // Send a message to delete the row in the dashboard
+        logDebug('noteToNote', `- Sending request to window to update`)
+        sendToHTMLWindow(windowId, 'updateItemFilename', { itemID: ID, filename: destNote.filename })
         break
       }
 
@@ -497,6 +592,6 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     //   logError('bridgeClickDashboardItem', `onClickStatus: could not find paragraph for filename:${filename}, lineIndex:${lineIndex}`)
     // }
   } catch (error) {
-    logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${error.message}`)
+    logError(pluginJson, `pluginToHTMLBridge / bridgeClickDashboardItem: ${JSP(error)}`)
   }
 }

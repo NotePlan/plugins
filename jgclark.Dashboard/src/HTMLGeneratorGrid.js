@@ -261,15 +261,16 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       const sectionCountSpan = `<span id="${sectionCountID}">${String(items.length)}</span>`
       const sectionNameWithPossibleLink = section.filename ? addNoteOpenLinkToString(section, section.name) : section.name
       outputArray.push(
-        `    <div class="sectionInfo">\n      <p class="${section.sectionTitleClass} sectionName"><i class="sectionIcon ${section.FAIconClass}"></i>${sectionNameWithPossibleLink}</p>`,
+        `    <div class="sectionInfo">\n      <span class="${section.sectionTitleClass} sectionName"><i class="sectionIcon ${section.FAIconClass}"></i>${sectionNameWithPossibleLink}</span>`,
       )
 
       if (items.length > 0) {
         const sectionDescriptionWithCountSpan = section.description.replace('{count}', sectionCountSpan)
-        outputArray.push(`      <p class="sectionDescription">${sectionDescriptionWithCountSpan}`)
+        outputArray.push(`      <span class="sectionDescription">${sectionDescriptionWithCountSpan}`)
 
-        if (['DT', 'W', 'M', 'Q', 'Y'].includes(section.sectionType)) {
-          // Add 'add task' and 'add checklist' icons
+        // Add 'add task' and 'add checklist' icons, unless this section is byReference
+        // TODO: change from 'byReference' to having placeholder strings to substitute
+        if (['DT', 'W', 'M', 'Q', 'Y'].includes(section.sectionType) && !section.byReference) {
           // TODO: add info tooltip
           const xcbAddTask = createRunPluginCallbackUrl('jgclark.Dashboard', 'addTask', [section.filename])
           outputArray.push(`        <a href="${xcbAddTask}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a>`)
@@ -278,7 +279,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         }
       }
       // Close sectionInfo
-      outputArray.push(`     </p>\n    </div>\n`)
+      outputArray.push(`     </span>\n    </div>\n`)
 
       // Start outer col 2, which is an inner grid
       outputArray.push(`    <!--- Section ${String(sectionNumber)}: ${section.name} Items Grid --->`)
@@ -434,36 +435,53 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     outputArray.push(`  </div>`)
 
     // write header lines before first table
-    const summaryStatStr = `<b><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; <span id="totalDoneCount">${String(
+    // const headerSummary = `<div class="totalCounts"><span id="totalOpenCount">${String(totalOpenItems)}</span> open items</b>; <span id="totalDoneCount">${String(
+    const headerSummary = `<div class="totalCounts"><span id="totalDoneCount">${String(
       totalDoneItems,
-    )}</span> closed. Last updated ${nowLocaleShortTime()}`
+    )}</span> items closed</div>`
 
     // Write time and refresh info
     const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', 'refresh')
-    const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
     // Note: can't use a real HTML button, as it needs to live inside a form to activate. It will work in Safari, but not in NP. Grrr. So will use one of my 'fake buttons' instead.
+    const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
+    const refresh = `<div class="lastUpdated">Last updated ${nowLocaleShortTime()}${refreshXCallbackButton}</div>`
 
     // Add filter checkbox
-    const filterCheckbox = `<span style="float: right;"><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? 'checked' : 'unchecked'
-      }><label for="filterPriorityItems">Filter out lower-priority items?</label></input></span>\n`
+    const filterCheckbox = `<div><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? 'checked' : 'unchecked'
+      }><label for="filterPriorityItems">Filter out lower-priority items?</label></input></div>`
 
-    const header = `<div class="body space-under">${summaryStatStr}\n${refreshXCallbackButton}\n${filterCheckbox}</div>`
+    const header = `<div class="header">${refresh}\n${headerSummary}\n${filterCheckbox}</div>`
+    // const header = `<div class="header">\n  <div>${refreshXCallbackButton}</div>\n  <div>${filterCheckbox}</div>\n</div>`
     outputArray.unshift(header)
 
     // Task item control dialog
     // Note: in the future the draft spec for CSS Anchor Positioning could be helpful for positioning this dialog relative to other things
     const taskDialogHTML = `
   <!----------- Single dialog that can be shown for any task-based item ----------->
+  <script type="text/javascript">
+    function updateContent() {
+    console.log("Called updateContent")
+    const dialogInputElem = document.getElementById("dialogItemContent")
+    const updatedContent = dialogInputElem.value
+    console.log("-> "+ updatedContent)
+  }
+  </script>
+
   <dialog id="itemControlDialog" class="itemControlDialog" aria-labelledby="Actions Dialog"
     aria-describedby="Actions that can be taken on items">
     <div class="dialogTitle">From <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogItemNote">?</span></b></div>
     <div class="dialogBody">
       <div class="buttonGrid" id="itemDialogButtons">
         <div>For</div>
-        <div class="dialogDescription"><span id="dialogItemContent">?</span></div>
+        <div class="dialogDescription">
+          <!--<form name="updateContent" action="javascript:updateItemContent()">-->
+            <!--<label for="dialogItemContent">For</label>-->
+            <input type="text" id="dialogItemContent" class="fullTextInput" />
+            <!--<input type="submit" value="Update" class="submitButton" />-->
+            <button class="updateItemContentButton" data-control-str="update">Update</button>
+          <!--</form>--></div>
         <div>Move to</div>
         <div id="itemControlDialogMoveControls">
-          <!-- TODO: do we need these different classes? -->
           <button class="changeDateButton" data-control-str="t">today</button>
           <button class="changeDateButton" data-control-str="+1d">+1d</button>
           <button class="changeDateButton" data-control-str="+1b">+1b</button>
@@ -476,7 +494,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         </div>
         <div>Other controls</div>
         <div id="itemControlDialogOtherControls">
-          <!-- TODO: do we need these different classes? -->
+          <button class="moveNoteButton" data-control-str="movetonote">Move to note</button>
           <button class="priorityButton" data-control-str="priup">Increase Priority</button>
           <button class="priorityButton" data-control-str="pridown">Decrease Priority</button>
           <button class="toggleTypeButton" data-control-str="tog">Toggle Type</button>
@@ -485,7 +503,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         </div>
         <div></div>
         <div>
-          <button id="closeTaskControlDialog" class="mainButton">Close</button>
+          <button id="closeTaskControlDialog" class="submitButton">Close</button>
         </div>
       </div>
     </div>
@@ -512,7 +530,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         </div>
         <div></div>
         <div>
-          <button id="closeProjectControlDialog" class="mainButton">Close</button>
+          <button id="closeProjectControlDialog" class="submitButton">Close</button>
         </div>
       </div>
     </div>

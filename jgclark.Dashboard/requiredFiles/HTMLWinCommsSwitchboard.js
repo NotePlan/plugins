@@ -56,6 +56,12 @@ async function onMessageFromPlugin(type, data) {
     case 'unscheduleItem':
       await unscheduleItem(data)
       break
+    case 'updateItemContent':
+      updateItemContent(data)
+      break
+    case 'updateItemFilename':
+      updateItemFilename(data)
+      break
     case 'removeItem':
       deleteItemRow(data)
       break
@@ -254,6 +260,53 @@ function toggleTypeInDisplay(data) {
     // console.log("toggling type to todo")
     replaceClassInID(`${itemID}I`, "todo fa-regular fa-circle")
   }
+}
+
+/**
+ * Update display of filename
+ * @param { { itemID: string, newFilename: string } } data
+ */
+function updateItemFilename(data) {
+  const itemID = data.itemID
+  const newFilename = data.filename ?? ''
+
+  console.log(`updateItemFilename: for ID: ${itemID} to '${newFilename}'`)
+  // Find child with class="content"
+  const thisIDElement = document.getElementById(data.itemID)
+  const thisContentElement = findDescendantByClassName(thisIDElement, 'content')
+  // Get its inner content
+  const currentInnerHTML = thisContentElement.innerHTML
+  console.log(`- currentInnerHTML: ${currentInnerHTML}`)
+
+  // TODO: Change the content to reflect the new filename :
+  const newInnerHTML = currentInnerHTML + ' NOW AT ' + newFilename
+  console.log(`- newInnerHTML: ${newInnerHTML}`)
+  replaceHTMLinElement(thisContentElement, newInnerHTML, null)
+}
+
+/**
+ * Update display of item's content
+ * @param { { itemID: string, updatedContent: string } } data
+ */
+function updateItemContent(data) {
+  const itemID = data.itemID
+  const updatedContent = data.updatedContent ?? ''
+  if (!itemID || !updatedContent) {
+    console.log(`updateItemContent: Warning empty itemID and/or updatedContent passed`)
+    return
+  }
+  console.log(`updateItemContent: for ID: ${itemID} to '${updatedContent}'`)
+  // Find child with class="content"
+  const thisIDElement = document.getElementById(data.itemID)
+  const thisContentElement = findDescendantByClassName(thisIDElement, 'content')
+  // Get its inner content
+  const currentInnerHTML = thisContentElement.innerHTML
+  console.log(`- currentInnerHTML: ${currentInnerHTML}`)
+
+  // Change the content TODO: there's more to it than this!
+  const newInnerHTML = updatedContent
+  console.log(`- newInnerHTML: ${newInnerHTML}`)
+  replaceHTMLinElement(thisContentElement, newInnerHTML, null)
 }
 
 /**
