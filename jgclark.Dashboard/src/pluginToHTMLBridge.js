@@ -221,11 +221,16 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       }
       case 'toggleType': {
         // Send a request to toggleType to plugin
-        // logDebug('bCDI / toggleType', `-> placeholder for toggleType on ID ${ID} in filename ${filename}`)
-        const res = toggleTaskChecklistParaType(filename, content)
+        logDebug('bCDI / toggleType', `-> toggleType on ID ${ID} in filename ${filename}`)
 
+        const res = toggleTaskChecklistParaType(filename, content)
+        logDebug('bCDI / toggleType', `-> new type '${String(res)}'`)
         // Update display in Dashboard too
+        // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
         sendToHTMLWindow(windowId, 'toggleType', data)
+        // Only use if necessary: // TODO: necessary given extra complexity now?
+        // logDebug('bCDI', '---------------- refresh ---------------')
+        // await showDashboard('refresh')
         break
       }
       case 'cyclePriorityStateUp': {

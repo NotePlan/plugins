@@ -43,6 +43,7 @@ const pluginJson = 'NPnote.js'
 export function getNoteFromIdentifier(noteIdentifierIn: string): TNote | null {
   try {
     let thisFilename = ''
+    // TODO: Ideally move this to a function, for i18n. Can Moment or Chrono libraries help?
     const noteIdentifier = (noteIdentifierIn === 'today')
       ? '{0d}'
       : (noteIdentifierIn === 'yesterday')

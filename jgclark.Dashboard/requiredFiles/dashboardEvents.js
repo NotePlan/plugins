@@ -90,9 +90,11 @@ function showItemControlDialog(dataObject) {
     }
 
     // remove previous event handlers
+    // FIXME: not getting removed, at least for toggle
+    // Can we list them?
     button.removeEventListener('click', function (event) {
       event.preventDefault()
-      handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, event.metaKey)
+      handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, thisItemType, event.metaKey)
     }, false)
 
     const thisControlStr = button.dataset.controlStr
@@ -104,8 +106,7 @@ function showItemControlDialog(dataObject) {
       buttonDisplayString = `change to ${(thisItemType === 'checklist') ? '<i class="fa-regular fa-circle"></i>' : '<i class="fa-regular fa-square"></i>'}`
       console.log(buttonDisplayString)
     }
-    console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
-    // console.log(`  ${button.outerHTML}`)
+    // console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
 
     // add event handler and make visible
     // if it's a relevant one for this section
@@ -189,7 +190,7 @@ function showItemControlDialog(dataObject) {
     } else {
       onClickDashboardItem({
         itemID: id, type: type, controlStr: controlStr, itemType: itemType,
-        encodedFilename: encodedFilename
+        encodedFilename: encodedFilename, encodedContent: encodedCurrentContent
       }) // = sendMessageToPlugin('onClickDashboardItem', ...)
     }
 
@@ -197,12 +198,12 @@ function showItemControlDialog(dataObject) {
     if (!metaModifier) {
       closeDialog()
     } else {
-      // TODO: re-gather the content part, as it might just have changed
+      // re-gather the content part, as it might just have changed
       const thisElement = document.getElementById(id)
-      // FIXME: doesn't get here??  Is this needed for Priority?
-      console.log(`- ${thisElement.outerText}`)
-      const updatedContent = thisElement.getAttribute('data-encoded-content') ?? '<error>'
-      console.log(`- updated content: {${  updatedContent  }}`)
+      // // TODO: doesn't get here??  Is this needed for Priority?
+      // console.log(`- ${thisElement.outerText}`)
+      // const updatedContent = thisElement.getAttribute('data-encoded-content') ?? '<error>'
+      // console.log(`- updated content: {${  updatedContent  }}`)
     }
   }
 }
@@ -276,7 +277,7 @@ function showProjectControlDialog(dataObject) {
     // remove any previous event handlers
     button.removeEventListener('click', function (event) {
       event.preventDefault()
-      handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, event.metaKey)
+      handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, '', event.metaKey)
     }, false)
 
     // add event handler and make visible

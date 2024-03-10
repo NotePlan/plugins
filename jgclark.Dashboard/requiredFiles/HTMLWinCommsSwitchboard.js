@@ -254,10 +254,10 @@ function toggleTypeInDisplay(data) {
   const iconElement = document.getElementById(`${itemID}I`)
   // Switch the icon
   if (iconElement.className.includes("fa-circle")) {
-    // console.log("toggling type to checklist")
+    console.log("toggling type to checklist")
     replaceClassInID(`${itemID}I`, "todo fa-regular fa-square")
   } else {
-    // console.log("toggling type to todo")
+    console.log("toggling type to todo")
     replaceClassInID(`${itemID}I`, "todo fa-regular fa-circle")
   }
 }
