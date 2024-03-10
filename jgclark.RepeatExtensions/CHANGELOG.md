@@ -1,8 +1,9 @@
 # What's changed in 🔁 Repeat Extensions plugin?
 Please see the [Readme for this plugin](https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions) for more details, including the available settings. For this plugin to work, **you need to have the 'Append Completion Date' setting turned on in Preferences > Todo**.
 
-## [0.6.2] - 2024-03-03
-- adjust new date calculation: when there is no task due date, use the note date if it exists, otherwise default to (current behavior) of task completion date.
+## [0.7.0] - 2024-03-08
+- adjust new date calculation: when there is no task due date, use the note date if it exists, otherwise default to (current behavior) of task completion date. (PR by @ameritrash)
+- fix to @repeat(1m) repeats in a monthly note not being written into a monthly note (etc.)
 
 ## [0.6.1] - 2023-09-29
 - fixed repeats from daily calendar notes (reported by @lnrdgmt)

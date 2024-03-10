@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Repeat Extensions plugin for NotePlan
 // Jonathan Clark
-// last updated 3.3.2024 for v0.6.2
+// last updated 8.3.2024 for v0.6.2
 //-----------------------------------------------------------------------
 
 import pluginJson from "../plugin.json"
@@ -10,6 +10,7 @@ import moment from 'moment'
 import {
   calcOffsetDate,
   calcOffsetDateStr,
+  getCalendarNoteTimeframe,
   getISOWeekString,
   isDailyNote,
   isWeeklyNote,
@@ -189,22 +190,18 @@ export async function repeats(runSilently: boolean = false): Promise<void> {
           let dateIntervalString: string = (reReturnArray.length > 0) ? reReturnArray[1] : ''
           logDebug('repeats', `- Found extended @repeat syntax: '${dateIntervalString}'`)
 
-          // FIXME: need to change more of the Calendar note processing as the following is misleading.
-
           // decide style of new date: daily / weekly / monthly / etc.link
-          let timeframe = 'day'
-          // TEST: should this be now without test "or isWeeklyNote"?
-          if (updatedLine.match(RE_SCHEDULED_WEEK_NOTE_LINK) /** || isWeeklyNote(note)*/) {
-            timeframe = 'week'
-          } else if (updatedLine.match(RE_SCHEDULED_MONTH_NOTE_LINK)) {
-            timeframe = 'month'
-          } else if (updatedLine.match(RE_SCHEDULED_QUARTERLY_NOTE_LINK)) {
-            timeframe = 'quarter'
-          } else if (updatedLine.match(RE_SCHEDULED_YEARLY_NOTE_LINK) /** || isYearlyNote(note)*/) {
-            timeframe = 'year'
+          let outputTimeframe = 'day'
+          if (updatedLine.match(RE_SCHEDULED_WEEK_NOTE_LINK) || isWeeklyNote(note)) {
+            outputTimeframe = 'week'
+          } else if (updatedLine.match(RE_SCHEDULED_MONTH_NOTE_LINK) || isMonthlyNote(note)) {
+            outputTimeframe = 'month'
+          } else if (updatedLine.match(RE_SCHEDULED_QUARTERLY_NOTE_LINK) || isQuarterlyNote(note)) {
+            outputTimeframe = 'quarter'
+          } else if (updatedLine.match(RE_SCHEDULED_YEARLY_NOTE_LINK) || isYearlyNote(note)) {
+            outputTimeframe = 'year'
           }
-          // TEST: use this in >day case in weekly note.
-          logDebug('repeats', `  = timeframe: ${timeframe}`)
+          logDebug('repeats', `  = outputTimeframe: ${outputTimeframe}`)
 
           let newRepeatDateStr = ''
           let newRepeatDate: Date
@@ -245,12 +242,11 @@ export async function repeats(runSilently: boolean = false): Promise<void> {
               // need to remove the old due date
               updatedLine = updatedLine.replace(` >${dueDate}`, '')
             } else {
-              // but if there is no due date, try the note date, otherwise use completed date
+              // there is no due date, so try the note date, otherwise use completed date
               dueDate = note.date ? hyphenatedDateString(note.date) : completedDate
               logDebug('repeats', `- no match => use note/completed date ${dueDate}`)
             }
-            newRepeatDateStr = calcOffsetDateStr(dueDate, dateIntervalString)
-            // newRepeatDate = calcOffsetDate(dueDate, dateIntervalString) ?? new moment().startOf('day')
+            newRepeatDateStr = calcOffsetDateStr(dueDate, dateIntervalString, outputTimeframe)
             logDebug('repeats', `- adding from due date -> ${newRepeatDateStr}`)
           }
 
@@ -289,7 +285,7 @@ export async function repeats(runSilently: boolean = false): Promise<void> {
               logDebug('repeats', `- changed newRepeatDateStr to ${newRepeatDateStr}`)
             }
             let futureNote = await DataStore.calendarNoteByDateString(newRepeatDateStr)
-            // let futureNote = await DataStore.calendarNoteByDate(newRepeatDate, timeframe)
+            // let futureNote = await DataStore.calendarNoteByDate(newRepeatDate, outputTimeframe)
             if (futureNote != null) {
               // Add todo to future note
               await futureNote.appendTodo(outputLine)

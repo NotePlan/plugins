@@ -7,8 +7,8 @@
   "plugin.icon": "",
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.RepeatExtensions/",
-  "plugin.version": "0.6.2",
-  "plugin.lastUpdateInfo": "v0.6.2: adjust calculation on missing dueDate.\nv0.6.1: various fixes.\nv0.6.0 new command to change settings on iOS\nv0.5.2 fix bug when running in calendar notes.\nv0.5.1: Can now use capital letters in date intervals.\nv0.5.0: Now allows automatic generation of new repeats, by using new per-note trigger mechanism in v3.7.2.",
+  "plugin.version": "0.7.0",
+  "plugin.lastUpdateInfo": "v0.7.0: Smarter calculation on missing dueDate. Fix to monthly repeats in monthly notes.\nv0.6.1: various fixes.\nv0.6.0 new command to change settings on iOS\nv0.5.2 fix bug when running in calendar notes.\nv0.5.1: Can now use capital letters in date intervals.\nv0.5.0: Now allows automatic generation of new repeats, by using new per-note trigger mechanism in v3.7.2.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -54,24 +54,6 @@
         "none"
       ],
       "default": "WARN",
-      "required": true
-    }
-  ],
-  "plugin.disabled-settings": [
-    {
-      "type": "heading",
-      "title": "Repeat Settings"
-    },
-    {
-      "key": "mode",
-      "title": "Mode of working",
-      "description": "???",
-      "type": "string",
-      "choices": [
-        "Original",
-        "Newer"
-      ],
-      "default": "Original",
       "required": true
     }
   ]
