@@ -1334,7 +1334,7 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
  * @param {string} content to find
  * @returns {TParagraph | boolean} TParagraph if succesful, false if unsuccesful
  */
-export function findParaFromStringAndFilename(filenameIn: string, content: string): TParagraph | boolean {
+export function findParaFromStringAndFilename(filenameIn: string, content: string): TParagraph | false {
   try {
     // logDebug('NPP/findParaFromStringAndFilename', `starting with filename: ${filenameIn}, content: {${content}}`)
     let filename = filenameIn

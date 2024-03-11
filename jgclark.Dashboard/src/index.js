@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 29.2.2024 for v0.9.0, @jgclark
+// last updated 10.3.2024 for v1.0.0, @jgclark
 // ----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -26,6 +26,7 @@ export {
   showDemoDashboard,
   // resetDashboardWinSize,
 } from './HTMLGeneratorGrid' // previously: './HTMLGenerator'
+export { scheduleAllYesterdayOpenToToday } from './dashboardHelpers'
 export { decideWhetherToUpdateDashboard } from './dashboardTriggers'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge'
 export { getDataForDashboard, logDashboardData } from './dataGeneration'

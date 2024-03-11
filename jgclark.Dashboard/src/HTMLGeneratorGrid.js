@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 1.3.2024 for v0.9.0 by @jgclark
+// Last updated 11.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,8 +11,10 @@ import { getDemoDataForDashboard } from './demoDashboard'
 import {
   addNoteOpenLinkToString,
   getSettings,
+  makeFakeCallbackButton,
   makeNoteTitleWithOpenActionFromFilename,
   makeParaContentToLookLikeNPDisplayInHTML,
+  makeRealCallbackButton,
   type Section,
   type SectionItem,
 } from './dashboardHelpers'
@@ -265,21 +267,81 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       )
 
       if (items.length > 0) {
-        const sectionDescriptionWithCountSpan = section.description.replace('{count}', sectionCountSpan)
-        outputArray.push(`      <span class="sectionDescription">${sectionDescriptionWithCountSpan}`)
+        // Insert count at {count} placeholder
+        let sectionDescriptionToUse = section.description
+        sectionDescriptionToUse = section.description.replace('{count}', sectionCountSpan)
 
-        // Add 'add task' and 'add checklist' icons, unless this section is byReference
-        // TODO: change from 'byReference' to having placeholder strings to substitute
-        if (['DT', 'W', 'M', 'Q', 'Y'].includes(section.sectionType) && !section.byReference) {
+        // Add extra buttons if there are placeholders here
+        // if (section.description.includes('{addTask}')) {
+        //   // TODO: add info tooltip
+        //   const xcb = createRunPluginCallbackUrl('jgclark.Dashboard', 'addTask', [section.filename])
+        //   sectionDescriptionToUse = sectionDescriptionToUse.replace('{addTask}', `<a href="${xcb}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a>`)
+        // }
+        // if (section.description.includes('{addChecklist}')) {
+        //   // TODO: add info tooltip
+        //   const xcb = createRunPluginCallbackUrl('jgclark.Dashboard', 'addChecklist', [section.filename])
+        //   sectionDescriptionToUse = sectionDescriptionToUse.replace('{addChecklist}', `<a href="${xcb}"><i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i></a>`)
+        // }
+        if (section.description.includes('{addItems}')) {
           // TODO: add info tooltip
-          const xcbAddTask = createRunPluginCallbackUrl('jgclark.Dashboard', 'addTask', [section.filename])
-          outputArray.push(`        <a href="${xcbAddTask}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a>`)
-          const xcbAddChecklist = createRunPluginCallbackUrl('jgclark.Dashboard', 'addChecklist', [section.filename])
-          outputArray.push(`        <a href="${xcbAddChecklist}"><i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i></a>`)
+          // sectionDescriptionToUse = sectionDescriptionToUse.replace('{addTask}', `<a href="${xcb}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a>`)
+          const xcbButton1 = makeRealCallbackButton(
+            `<i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i>`,
+            'jgclark.Dashboard',
+            'addTask',
+            section.filename,
+            '')
+          const xcbButton2 = makeRealCallbackButton(
+            `<i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i>`,
+            'jgclark.Dashboard',
+            'addChecklist',
+            section.filename,
+            '')
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItems}', xcbButton1 + "&nbsp;" + xcbButton2)
         }
+        if (section.description.includes('{scheduleAllToday}')) {
+          // const scheduleAllTodayButton = makeFakeCallbackButton(
+          //   `All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today`,
+          //   'jgclark.Dashboard',
+          //   'schedule yesterday to today',
+          //   '',
+          //   '', //tooltip: '???',
+          // )
+          // const xcb = createRunPluginCallbackUrl('jgclark.Dashboard', 'schedule yesterday to today', [])
+          // const scheduleAllTodayButton = `<button class="XCBButton" data-callback-url="${xcb}" data-plugin-id="jgclark.Dashboard" data-command="schedule yesterday to today">All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today</button>`
+          // sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllToday}', scheduleAllTodayButton)
+          const xcbButton = makeRealCallbackButton(
+            'All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today',
+            'jgclark.Dashboard',
+            'schedule yesterday to today',
+            '',
+            '')
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllToday}', xcbButton)
+        }
+        if (section.description.includes('{startReviews}')) {
+          // const startReviewButton = makeFakeCallbackButton(
+          //   `<i class="fa-solid fa-play"></i>\u00A0Start\u00A0Reviews`,
+          //   'jgclark.Dashboard',
+          //   'start reviews',
+          //   '',
+          //   '', //tooltip: 'Opens the next project to review in the NP editor',
+          // )
+          // const xcb = createRunPluginCallbackUrl('jgclark.Reviews', 'start reviews', [])
+          // const startReviewButton = `<button class="XCBButton" data-callback-url="${xcb}" data-plugin-id="jgclark.Reviews" data-command="start reviews"><i class="fa-solid fa-play"></i>\u00A0Start\u00A0Reviews</button>`
+          // sectionDescriptionToUse = sectionDescriptionToUse.replace('{startReviews}', startReviewButton)
+          const xcbButton = makeRealCallbackButton(
+            '<i class="fa-solid fa-play"></i>\u00A0Start\u00A0Reviews',
+            'jgclark.Reviews',
+            'start reviews',
+            '',
+            '')
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{startReviews}', xcbButton)
+        }
+
+        outputArray.push(`        <span class="sectionDescription">${sectionDescriptionToUse}`)
       }
       // Close sectionInfo
-      outputArray.push(`     </span>\n    </div>\n`)
+      outputArray.push(`      </span>\n    </div>\n`)
 
       // Start outer col 2, which is an inner grid
       outputArray.push(`    <!--- Section ${String(sectionNumber)}: ${section.name} Items Grid --->`)
@@ -441,10 +503,17 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     )}</span> items closed</div>`
 
     // Write time and refresh info
-    const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', 'refresh')
-    // Note: can't use a real HTML button, as it needs to live inside a form to activate. It will work in Safari, but not in NP. Grrr. So will use one of my 'fake buttons' instead.
-    const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
-    const refresh = `<div class="lastUpdated">Last updated ${nowLocaleShortTime()}${refreshXCallbackButton}</div>`
+    // const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', 'refresh')
+    // // Note: can't use a real HTML button, as it needs to live inside a form to activate. It will work in Safari, but not in NP. Grrr. So will use one of my 'fake buttons' instead.
+    // const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
+    const refreshXCallbackButton = makeRealCallbackButton(
+      `<i class="fa-regular fa-arrow-rotate-right"></i> Refresh`,
+      'jgclark.Dashboard',
+      'show dashboard',
+      'refresh',
+      '')
+
+    const refresh = `<div class="lastUpdated">Last updated ${nowLocaleShortTime()} ${refreshXCallbackButton}</div>`
 
     // Add filter checkbox
     const filterCheckbox = `<div><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? 'checked' : 'unchecked'
@@ -594,11 +663,12 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
  */
 export async function addTask(calNoteFilename: string): Promise<void> {
   try {
+    logDebug('addTask', `- adding to ${calNoteFilename}`)
     const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    logDebug('addTask', `= date ${calNoteDateStr}`)
     if (!calNoteDateStr) {
-      throw new Error(`calNoteDateStr isn\'t defined`)
+      throw new Error(`calNoteDateStr isn't defined`)
     }
-    logInfo('addTask', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`) // TODO: in time turn me down to Debug
     await prependTodoToCalendarNote('task', calNoteDateStr)
     // trigger window refresh
     await showDashboard('refresh')
@@ -614,11 +684,12 @@ export async function addTask(calNoteFilename: string): Promise<void> {
  */
 export async function addChecklist(calNoteFilename: string): Promise<void> {
   try {
+    logDebug('addTask', `- adding to ${calNoteFilename}`)
     const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    logDebug('addTask', `= date ${calNoteDateStr}`)
     if (!calNoteDateStr) {
-      throw new Error(`calNoteDateStr isn\'t defined`)
+      throw new Error(`calNoteDateStr isn't defined`)
     }
-    logInfo('addChecklist', `- adding checklist to ${calNoteDateStr} from ${calNoteFilename}`) // TODO: in time turn me down to Debug
     await prependTodoToCalendarNote('checklist', calNoteDateStr)
     // trigger window refresh
     await showDashboard('refresh')

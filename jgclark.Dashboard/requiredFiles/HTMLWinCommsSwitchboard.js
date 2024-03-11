@@ -108,10 +108,10 @@ async function completeTaskInDisplay(data) {
     replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked circle icon
     addClassToID(itemID, "checked") // adds colour + line-through
     addClassToID(itemID, "fadeOutAndHide")
-    await delay(2000)
+    await delay(1500)
     deleteHTMLItem(itemID)
     // update the totals and other counts
-    decrementItemCount("totalOpenCount")
+    // decrementItemCount("totalOpenCount")
     incrementItemCount("totalDoneCount")
   // update the section count, which is identified as the first part of the itemID
     const sectionID = itemID.split('-')[0]
@@ -152,10 +152,10 @@ async function completeChecklistInDisplay(data) {
     replaceClassInID(`${itemID}I`, "fa-regular fa-square-check") // adds ticked box icon
     addClassToID(itemID, "checked") // adds colour + line-through text
     addClassToID(itemID, "fadeOutAndHide")
-    await delay(2000)
+    await delay(1500)
     deleteHTMLItem(itemID)
     // update the totals
-    decrementItemCount("totalOpenCount")
+    // decrementItemCount("totalOpenCount")
     incrementItemCount("totalDoneCount")
     // update the section count
     const sectionID = itemID.split('-')[0]
@@ -196,10 +196,10 @@ async function cancelChecklistInDisplay(data) {
   replaceClassInID(`${itemID}I`, "fa-regular fa-square-xmark") // adds x-box icon
   addClassToID(itemID, "cancelled") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
-  await delay(1400)
+  await delay(1500)
   deleteHTMLItem(itemID)
   // update the totals
-  decrementItemCount("totalOpenCount")
+  // decrementItemCount("totalOpenCount")
   // update the section count
   const sectionID = itemID.split('-')[0]
   const sectionCountID = `section${sectionID}Count`
@@ -225,10 +225,10 @@ async function cancelTaskInDisplay(data) {
   replaceClassInID(`${itemID}I`, "fa-regular fa-circle-xmark") // adds x-circle icon
   addClassToID(itemID, "cancelled") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
-  await delay(1400)
+  await delay(1500)
   deleteHTMLItem(itemID)
   // update the totals
-  decrementItemCount("totalOpenCount")
+  // decrementItemCount("totalOpenCount")
   // update the section count
   const sectionID = itemID.split('-')[0]
   const sectionCountID = `section${sectionID}Count`
@@ -279,7 +279,7 @@ function updateItemFilename(data) {
   console.log(`- currentInnerHTML: ${currentInnerHTML}`)
 
   // TODO: Change the content to reflect the new filename :
-  const newInnerHTML = currentInnerHTML + ' NOW AT ' + newFilename
+  const newInnerHTML = `${currentInnerHTML} <a class="noteTitle sectionItem"><i class="fa-regular fa-file-lines pad-right"></i> ${newFilename}`
   console.log(`- newInnerHTML: ${newInnerHTML}`)
   replaceHTMLinElement(thisContentElement, newInnerHTML, null)
 }

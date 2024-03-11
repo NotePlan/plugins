@@ -1,20 +1,23 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 1.3.2024 for v0.9.0 by @jgclark
+// Last updated 11.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+// import { showDashboard } from './HTMLGeneratorGrid'
+import moment from 'moment/min/moment-with-locales'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { RE_EVENT_ID } from '@helpers/calendar'
 import { trimString } from '@helpers/dataManipulation'
-import { getTimeBlockString } from '@helpers/timeblocks'
 import {
   // getDateStringFromCalendarFilename,
   getAPIDateStrFromDisplayDateStr,
+  includesScheduledFutureDate,
+  removeDateTagsAndToday,
   toLocaleTime
 } from '@helpers/dateTime'
-// import { toLocaleDateTimeString } from "@helpers/NPdateTime"
+import { createRunPluginCallbackUrl } from "@helpers/general"
 import {
   simplifyNPEventLinksForHTML,
   simplifyInlineImagesForHTML,
@@ -28,6 +31,8 @@ import {
   convertBoldAndItalicToHTML,
   truncateHTML
 } from '@helpers/HTMLView'
+import { filterOutParasInExcludeFolders } from '@helpers/note'
+import { getReferencedParagraphs } from '@helpers/NPnote'
 import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import {
   getTaskPriority,
@@ -40,7 +45,18 @@ import {
   RE_MARKDOWN_LINKS_CAPTURE_G,
   RE_SCHEDULED_DATES_G,
 } from '@helpers/regex'
-import { getNumericPriority } from '@helpers/sorting'
+import {
+  addPriorityToParagraphs,
+  getNumericPriority,
+  getNumericPriorityFromPara,
+  getTasksByType,
+  sortListBy,
+  // $FlowIgnore(untyped-type-import) as Flow is used in its definition
+  type GroupedTasks,
+  // $FlowIgnore(untyped-type-import) as Flow is used in its definition
+  type SortableParagraphSubset
+} from '@helpers/sorting'
+import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
   changeBareLinksToHTMLLink,
   changeMarkdownLinksToHTMLLink,
@@ -49,7 +65,9 @@ import {
   stripThisWeeksDateRefsFromString,
   stripTodaysDateRefsFromString
 } from '@helpers/stringTransforms'
+import { getTimeBlockString, isTimeBlockPara } from '@helpers/timeblocks'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
+import { isDone, isOpen, isOpenTask, isScheduled, isOpenNotScheduled, isOpenTaskNotScheduled } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Data types
@@ -63,7 +81,6 @@ export type Section = {
   FAIconClass: string,
   sectionTitleClass: string,
   filename: string,
-  byReference: boolean,
 }
 
 // an item within a section
@@ -146,6 +163,131 @@ export async function getSettings(): Promise<any> {
 //-----------------------------------------------------------------
 
 /**
+ * Return list(s) of open task/checklist paragraphs from the current calendar note of type 'timePeriodName'.
+ * Various config.* items are used:
+ * - ignoreFolders? for folders to ignore for referenced notes
+ * - separateSectionForReferencedNotes? if true, then two arrays will be returned: first from the calendar note; the second from references to that calendar note. If false, then both are included in a combined list (with the second being an empty array).
+ * - ignoreTasksWithPhrase
+ * - ignoreTasksScheduledToFuture
+ * - excludeTasksWithTimeblocks & excludeChecklistsWithTimeblocks
+ * @param {string} timePeriodName
+ * @param {TNote} timePeriodNote base calendar note to process
+ * @param {dashboardConfigType} config
+ * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
+ */
+export async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, config: dashboardConfigType): Promise<[Array<TParagraph>, Array<TParagraph>]> {
+  try {
+    let parasToUse: $ReadOnlyArray<TParagraph>
+
+    //------------------------------------------------
+    // Get paras from calendar note
+    // Note: this takes 100-110ms for me
+    let startTime = new Date() // for timing only
+    if (Editor && (Editor?.note?.filename === timePeriodNote.filename)) {
+      // If note of interest is open in editor, then use latest version available, as the DataStore is probably stale.
+      parasToUse = Editor.paragraphs
+      logDebug('getOpenItemParasForCurrent...', `Using EDITOR (${Editor.filename}) for the current time period: ${timePeriodName} which has ${String(Editor.paragraphs.length)} paras (after ${timer(startTime)})`)
+    } else {
+      // read note from DataStore in the usual way
+      parasToUse = timePeriodNote.paragraphs
+      logDebug('getOpenItemParasForCurrent...', `Processing ${timePeriodNote.filename} which has ${String(timePeriodNote.paragraphs.length)} paras (after ${timer(startTime)})`)
+    }
+
+    // Run following in background thread
+    // NB: Has to wait until after Editor has been accessed to start this
+    // Note: Now commented out, as I found it more than doubled the time taken to run this section.
+    // await CommandBar.onAsyncThread()
+
+    // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
+    // Now also allow to ignore checklist items.
+    // TODO: this operation is 100ms
+    let openParas = (config.ignoreChecklistItems)
+      ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content.trim() !== '')
+      : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content.trim() !== '')
+    logDebug('getOpenItemParasForCurrent...', `After 'isOpenNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    const tempSize = openParas.length
+
+    // Filter out any future-scheduled tasks from this calendar note
+    openParas = openParas.filter((p) => !includesScheduledFutureDate(p.content))
+    if (openParas.length !== tempSize) {
+      // logDebug('getOpenItemParasForCurrent...', `- removed ${tempSize - openParas.length} future scheduled tasks`)
+    }
+    // logDebug('getOpenItemParasForCurrent...', `- after 'future' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+
+    // Filter out anything from 'ignoreTasksWithPhrase' setting
+    if (config.ignoreTasksWithPhrase) {
+      openParas = openParas.filter((p) => !p.content.includes(config.ignoreTasksWithPhrase))
+    }
+    // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+
+    // Filter out tasks with timeblocks, if wanted
+    if (config.excludeTasksWithTimeblocks) {
+      openParas = openParas.filter((p) => !(p.type === 'open' && isTimeBlockPara(p)))
+    }
+    // logDebug('getOpenItemParasForCurrent...', `- after 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+
+    // Filter out checklists with timeblocks, if wanted
+    if (config.excludeChecklistsWithTimeblocks) {
+      openParas = openParas.filter((p) => !(p.type === 'checklist' && isTimeBlockPara(p)))
+    }
+    // logDebug('getOpenItemParasForCurrent...', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+
+    // Temporarily extend TParagraph with the task's priority + start time (if present)
+    openParas = addPriorityToParagraphs(openParas)
+    openParas = extendParaToAddStartTime(openParas)
+    logDebug('getOpenItemParasForCurrent...', `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName} (after ${timer(startTime)})`)
+
+    // -------------------------------------------------------------
+    // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
+    // (This is 2-3x quicker than part above)
+    // TODO: the getReferencedParagraphs() operation take 70-140ms
+    // FIXME: Why not finding all items?
+    let refParas: Array<TParagraph> = []
+    if (timePeriodNote) {
+      // Now also allow to ignore checklist items.
+      refParas = (config.ignoreChecklistItems)
+        ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
+        // try make this a single filter
+        : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
+    }
+    logDebug('getOpenItemParasForCurrent...', `- got ${refParas.length} open referenced after ${timer(startTime)}`)
+
+    // Remove items referenced from items in 'ignoreFolders'
+    refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders)
+    // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${refParas.length} paras (after ${timer(startTime)})`)
+    // Remove possible dupes from sync'd lines
+    refParas = eliminateDuplicateSyncedParagraphs(refParas)
+    // logDebug('getOpenItemParasForCurrent...', `- after 'dedupe' filter: ${refParas.length} paras (after ${timer(startTime)})`)
+    // Temporarily extend TParagraph with the task's priority + start time (if present)
+    refParas = addPriorityToParagraphs(refParas)
+    refParas = extendParaToAddStartTime(refParas)
+    logDebug('getOpenItemParasForCurrent...', `- found and extended ${String(refParas.length ?? 0)} referenced items for ${timePeriodName} (after ${timer(startTime)})`)
+
+    // Sort the list by priority then time block, otherwise leaving order the same
+    // Then decide whether to return two separate arrays, or one combined one
+    // TODO: This takes 100ms
+    if (config.separateSectionForReferencedNotes) {
+      const sortedOpenParas = sortListBy(openParas, ['-priority', 'timeStr'])
+      const sortedRefParas = sortListBy(refParas, ['-priority', 'timeStr'])
+      // come back to main thread
+      // await CommandBar.onMainThread()
+      logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
+      return [sortedOpenParas, sortedRefParas]
+    } else {
+      const combinedParas = openParas.concat(refParas)
+      const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
+      logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
+      // come back to main thread
+      // await CommandBar.onMainThread()
+      return [combinedSortedParas, []]
+    }
+  } catch (err) {
+    logError('getOpenItemParasForCurrentTimePeriod', err.message)
+    return [[], []] // for completeness
+  }
+}
+
+/**
  * Alter the provided paragraph's content to display suitably in HTML to mimic NP native display of markdown (as best we can). Currently this:
  * - simplifies NP event links, and tries to colour them
  * - turns MD links -> HTML links
@@ -153,10 +295,11 @@ export async function getSettings(): Promise<any> {
  * - turns NP sync ids -> blue asterisk icon
  * - turns #hashtags and @mentions the colour that the theme displays them
  * - turns >date markers the colour that the theme displays them
- * - truncates the overall string if necessary
  * - styles in bold/italic
- * - if noteTitle is supplied, then either 'append' it as a active NP note title, or make it the active NP note link for 'all' the string.
  * Note: the actual note link is added following load by adding click handler to all items with class "sectionItemContent" (which already have a basic <a>...</a> wrapper).
+ * It additionally:
+ * - truncates the overall string if requested
+ * - if noteTitle is supplied, then either 'append' it as a active NP note title, or make it the active NP note link for 'all' the string.
  * @author @jgclark
  * @param {SectionItem} thisItem
  * @param {string?} noteTitle
@@ -431,7 +574,100 @@ export function extendParaToAddStartTime(paras: Array<TParagraph>): Array<any> {
     return extendedParas
   }
   catch (error) {
-    logError('dashboard / extendParaToAddTimeBlock', `${error.message}`)
+    logError('dashboard / extendParaToAddTimeBlock', `${JSP(error)}`)
     return []
   }
+}
+
+export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean = true): Promise<number> {
+  try {
+    let numberScheduled = 0
+    let config = await getSettings()
+    // For these purposes override one config item:
+    config.separateSectionForReferencedNotes = true
+
+    // Get paras for all open items in yesterday's note
+    const yesterday = new moment().subtract(1, 'days').toDate()
+    const dateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
+    let yesterdaysNote = DataStore.calendarNoteByDateString(dateStr)
+    if (yesterdaysNote) {
+      // Get list of open tasks/checklists from this calendar note
+      const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
+
+      if (combinedSortedParas.length > 0) {
+        // For each para append ' >today'
+        for (const para of combinedSortedParas) {
+          para.content = para.content + ' >today'
+          logDebug('scheduleAllYesterdayOpenToToday', `scheduling {${para.content}} to today`)
+          numberScheduled++
+        }
+        yesterdaysNote.updateParagraphs(combinedSortedParas)
+      }
+      logDebug('scheduleAllYesterdayOpenToToday', `scheduled ${String(numberScheduled)} open items from yesterday's note`)
+
+      // Now do the same for items scheduled to yesterday from other notes
+      if (sortedRefParas.length > 0) {
+        // For each para append ' >today'
+        for (const para of sortedRefParas) {
+          para.content = removeDateTagsAndToday(para.content) + ' >today'
+          logDebug('scheduleAllYesterdayOpenToToday', `scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
+          numberScheduled++
+          para.note?.updateParagraph(para)
+        }
+      }
+      logInfo('scheduleAllYesterdayOpenToToday', `-> scheduled ${String(numberScheduled)} open items from yesterday to today`)
+    } else {
+      logWarn('scheduleAllYesterdayOpenToToday', `Can't find a daily note for yesterday`)
+    }
+
+    if (refreshDashboard) {
+      // await showDashboard('refresh')
+    }
+    return numberScheduled
+  }
+  catch (error) {
+    logError('dashboard / scheduleAllYesterdayOpenToToday', `${JSP(error)}`)
+    return 0
+  }
+}
+
+/**
+ * Make HTML for a 'fake' button that is used to call (via x-callback) one of this plugin's commands.
+ * Note: this is not a real button, bcause at the time I started this real <button> wouldn't work in NP HTML views, and Eduard didn't know why.
+ * @param {string} buttonText to display on button
+ * @param {string} pluginName of command to call
+ * @param {string} commandName to call when button is 'clicked'
+ * @param {string} commandArgs (may be empty)
+ * @param {string?} tooltipText to hover display next to button
+ * @returns {string}
+ */
+export function makeFakeCallbackButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
+  const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
+  let output = (tooltipText)
+    ? `<span class="fake-button tooltip"><a class="button" href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></span>`
+    : `<span class="fake-button"><a class="button" href="${xcallbackURL}">${buttonText}</a></span>`
+  return output
+}
+
+/**
+ * Make HTML for a real button that is used to call  one of this plugin's commands.
+ * Note: this is not a real button, bcause at the time I started this real <button> wouldn't work in NP HTML views, and Eduard didn't know why.
+ * V2: send params for an invokePluginCommandByName call
+ * V1: send URL for x-callback
+ * @param {string} buttonText to display on button
+ * @param {string} pluginName of command to call
+ * @param {string} commandName to call when button is 'clicked'
+ * @param {string} commandArgs (may be empty)
+ * @param {string?} tooltipText to hover display next to button
+ * @returns {string}
+ */
+export function makeRealCallbackButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
+  const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
+  // let output = (tooltipText)
+  // ? `<button class="XCBButton tooltip"><a href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></button>`
+  // : `<button class="XCBButton"><a href="${xcallbackURL}">${buttonText}</a></button>`
+  let output = (tooltipText)
+    ? `<button class="XCBButton tooltip" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}<span class="tooltiptext">${tooltipText}</span></button>`
+    : `<button class="XCBButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}">${buttonText}</button>`
+  return output
 }

@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 9.3.2024 for v1.0.0 by @jgclark
+// Last updated 11.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -86,6 +86,9 @@ export async function onMessageFromHTMLView(type: string, data: any): any {
       case 'refresh':
         await showDashboard() // no await needed, I think
         break
+      case 'runPluginCommand':
+        await runPluginCommand(data) // no await needed, I think
+        break
       default:
         logError(pluginJson, `onMessageFromHTMLView(): unknown ${type} cannot be dispatched`)
         break
@@ -97,12 +100,26 @@ export async function onMessageFromHTMLView(type: string, data: any): any {
 }
 
 /**
+ * HTML View requests running a plugin command
+ * @param {any} data object
+ */
+export async function runPluginCommand(data: any) {
+  try {
+    clo(data, 'runPluginCommand received data object')
+    // logDebug('pluginToHTMLBridge/runPluginCommand', `- settingName: ${settingName}, state: ${state}`)
+    DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs)
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
  * Somebody clicked on a checkbox in the HTML view
  * @param {SettingDataObject} data - setting name
  */
 export async function bridgeChangeCheckbox(data: SettingDataObject) {
   try {
-    // clo(data, 'bridgeChangeChecbox received data object')
+    // clo(data, 'bridgeChangeCheckbox received data object')
     const { settingName, state } = data
     logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
     DataStore.setPreference('Dashboard-filterPriorityItems', state)
@@ -147,7 +164,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard()
+          await showDashboard('refresh')
         }
         break
       }
@@ -462,15 +479,20 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         DataStore.updateCache(destNote, false)
 
         // delete from existing location
-        logDebug('noteToNote', `- Removing 1 para from original note ${filename}`)
         const origNote = getNoteByFilename(filename)
-        // TODO: origNote.removeParagraphs(parasInBlock)
-        // Ask for cache refresh for this note
-        DataStore.updateCache(origNote, false)
-
-        // Send a message to delete the row in the dashboard
+        const origPara = findParaFromStringAndFilename(filename, content)
+        if (origNote && origPara) {
+          logDebug('noteToNote', `- Removing 1 para from original note ${filename}`)
+          origNote.removeParagraph(origPara)
+        } else {
+          logWarn('noteToNote', `couldn't remove para {${content}} from original note ${filename} because note or paragraph couldn't be found`)
+        }
+        // Send a message to update the row in the dashboard
         logDebug('noteToNote', `- Sending request to window to update`)
         sendToHTMLWindow(windowId, 'updateItemFilename', { itemID: ID, filename: destNote.filename })
+
+        // Ask for cache refresh for this note
+        DataStore.updateCache(origNote, false)
         break
       }
 

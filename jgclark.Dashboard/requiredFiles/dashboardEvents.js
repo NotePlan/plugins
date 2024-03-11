@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the Dashboard events
-// Last updated: 9.3.2024 for v1.0.0 by @jgclark
+// Last updated: 11.3.2024 for v1.0.0 by @jgclark
 
 //--------------------------------------------------------------------------------------
 // Add event handlers
@@ -12,6 +12,8 @@ addIconClickEventListeners()
 addContentEventListeners()
 
 addReviewProjectEventListeners()
+
+addButtonEventListeners()
 
 //--------------------------------------------------------------------------------------
 // Show Modal Dialogs
@@ -78,10 +80,29 @@ function showItemControlDialog(dataObject) {
   const controlStrsForThisSection = controlTypesForThisSection.map((t) => t.controlStr)
   console.log(String(controlStrsForThisSection))
 
+  // remove previous event handlers: wasn't working, at least for toggle.
+  //  (this was in the beginning of the main loop below)
+  // button.removeEventListener('click', function (event) {
+  //   event.preventDefault()
+  //   handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, thisItemType, event.metaKey)
+  // }, false)
+
+  // Instead: Workaround suggested by Codeium AI:
+  // Clone all the button elements, and then remove them. Requires re-finding all references afterwards.
+  let allDialogButtons = document.getElementById("itemDialogButtons").getElementsByTagName("BUTTON")
+  let removed = 0
+  for (const button of allDialogButtons) {
+    const clonedButton = button.cloneNode(true)
+    // Replace the original element with the cloned element
+    button.parentNode.replaceChild(clonedButton, button)
+    removed++
+  }
+  console.log(`- removed ${String(removed)} buttons' ELs`)
+
   // Register click handlers for each button in the dialog with details of this item
   // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
   // As we go also (un)hide buttons that aren't relevant for this item type
-  const allDialogButtons = document.getElementById("itemDialogButtons").getElementsByTagName("BUTTON")
+  allDialogButtons = document.getElementById("itemDialogButtons").getElementsByTagName("BUTTON")
   let added = 0
   for (const button of allDialogButtons) {
     // Ignore the submitButton(s) (e.g.'Close')
@@ -89,24 +110,17 @@ function showItemControlDialog(dataObject) {
       continue
     }
 
-    // remove previous event handlers
-    // FIXME: not getting removed, at least for toggle
-    // Can we list them?
-    button.removeEventListener('click', function (event) {
-      event.preventDefault()
-      handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, thisItemType, event.metaKey)
-    }, false)
-
     const thisControlStr = button.dataset.controlStr
     const functionToInvoke = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].handlingFunction ?? '?'
     let buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
+    // console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
+
+    // Extra processing for 'Change to X' type button: update the icon the button label shows
     if (thisControlStr === 'tog') {
       // buttonDisplayString = buttonDisplayString.replace('X', (thisItemType === 'checklist') ? 'O' : '⃞')
-      console.log(buttonDisplayString)
       buttonDisplayString = `change to ${(thisItemType === 'checklist') ? '<i class="fa-regular fa-circle"></i>' : '<i class="fa-regular fa-square"></i>'}`
-      console.log(buttonDisplayString)
+      // console.log(buttonDisplayString)
     }
-    // console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
 
     // add event handler and make visible
     // if it's a relevant one for this section
@@ -127,9 +141,6 @@ function showItemControlDialog(dataObject) {
     }
   }
   console.log(`- ${String(added)} button ELs added`)
-
-  // If we have "change to X" then replace last character with the right icon
-
 
   // Hide or Show button row 1 depending whether it has any non-hidden buttons
   const itemControlDialogMoveControls = document.getElementById("itemControlDialogMoveControls")
@@ -481,10 +492,33 @@ function addReviewProjectEventListeners() {
 
 //--------------------------------------------------------------------------------------
 // addButtonEventListenersScript
+
+function addButtonEventListeners() {
+  // Register click handlers for each 'XCBButton' on the window with URL to call
+  allXCBButtons = document.getElementsByClassName("XCBButton")
+  let added = 0
+  for (const button of allXCBButtons) {
+    const thisURL = button.dataset.callbackUrl
+    // add event handler and make visible
+    console.log(`- displaying button for XCB ${thisURL}`)
+    button.addEventListener('click', function (event) {
+      event.preventDefault()
+      // console.log(`Attempting to call URL ${thisURL} ...`)
+      // const myRequest = new Request(thisURL) // normally has await ...
+      console.log(`Attempting to send message to plugin ${thisURL} ...`)
+      // onClickDashboardItem({ itemID: id, type: type, controlStr: controlStr, encodedFilename: encodedFilename, encodedContent: encodedCurrentContent })
+      const theseCommandArgs = (button.dataset.commandArgs).split(',')
+      sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
+    }, false)
+    added++
+  }
+  console.log(`- ${String(added)} button ELs added`)
+
+}
+
 /**
  * Add an event listener to all class="moveButton", "changeDateButton", "completeThen" and "toggleType" items
  */
-// function addButtonEventListeners() {
 //   function findAncestor(startElement, tagName) {
 //     let currentElem = startElement
 //     while (currentElem !== document.body) {

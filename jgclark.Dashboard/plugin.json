@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "1.0.0-a2",
+  "plugin.version": "1.0.0-a3",
   "plugin.lastUpdateInfo": "1.0.0: rewrite of layout engine, and new features.",
   "plugin.requiredFiles": [
     "dashboard.css",
@@ -79,6 +79,12 @@
       "description": "HTML window entry point to interactively add a new checklist",
       "jsFunction": "addChecklist",
       "hidden": true
+    },
+    {
+      "name": "schedule yesterday to today",
+      "description": "schedule all yesterday's open items to today",
+      "jsFunction": "scheduleAllYesterdayOpenToToday",
+      "hidden": false
     },
     {
       "name": "Dashboard: reset window size",

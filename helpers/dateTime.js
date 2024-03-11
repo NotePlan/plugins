@@ -20,8 +20,9 @@ export const MOMENT_FORMAT_NP_YEAR = 'YYYY'
 
 //-----------------------------------------------------------
 // REGEXES (and strings that help make regexes)
+// FIXME: Most of the RE_* below aren't actually regex objects but strings
 
-// Basic date/time regexes
+// Basic date/time regex strings
 export const RE_TIME = '[0-2]\\d{1}:[0-5]\\d{1}\\s?(?:AM|PM|am|pm)?' // find '12:23' with optional '[ ][AM|PM|am|pm]'
 export const RE_DATE = '\\d{4}-[01]\\d-[0123]\\d' // find ISO dates of form YYYY-MM-DD (stricter than before)
 export const RE_YYYYMMDD_DATE = '\\d{4}[01]\\d[0123]\\d' // version of above that finds dates of form YYYYMMDD
@@ -38,7 +39,7 @@ export const RE_NP_DAY_SPEC = RE_YYYYMMDD_DATE
 export const RE_DAILY_NOTE_FILENAME = `(^|\\/)${RE_YYYYMMDD_DATE}${RE_FILE_EXTENSIONS_GROUP}`
 export const RE_SCHEDULED_DAILY_NOTE_LINK: RegExp = /\s+>\d{4}-[01]\d-[0123]\d/ // find ' >RE_DATE'
 
-// Week regexes
+// Week regex strings
 export const RE_NP_WEEK_SPEC = '\\d{4}\\-W[0-5]\\d' // find dates of form YYYY-Wnn
 export const WEEK_NOTE_LINK = `[\<\>]${RE_NP_WEEK_SPEC}`
 export const SCHEDULED_WEEK_NOTE_LINK = '\\s+>\\d{4}\\-W[0-5]\\d'
@@ -1173,10 +1174,10 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
         break
       }
     }
-    // logDebug('dateTime / cODS', `for '${baseDateIn}' offsetInterval ${offsetInterval} using type ${adaptOutputInterval} -> '${newDateStr}'`)
+    // logDebug('dateTime / cODS', `for '${baseDateIn}' date, offsetInterval ${offsetInterval} using type ${adaptOutputInterval} -> '${newDateStr}'`)
     return newDateStr
   } catch (e) {
-    logError('dateTime / cODS', `${e.message} for '${baseDateIn}' offsetInterval '${offsetInterval}'`)
+    logError('dateTime / cODS', `${e.message} for '${baseDateIn}' date, offsetInterval '${offsetInterval}'`)
     return '(error)'
   }
 }

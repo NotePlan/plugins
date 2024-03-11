@@ -1,15 +1,17 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-
 TODO: 
-- Add 'Move all to today' button to Yesterday section
-- Add 'Start reviews' button to Projects section
 - Dedupe items in Overdue section that are both open and dated to the date of the note it lives in
 - When using the add-task or add-checklist items on the main screen, now uses existing preference 'Section heading to add/move new tasks under' (if set). (#539 for @dwertheimer)
 - ? try out Tailwind/Daisy for CSS
-- Finish new 'move a new note' action button work
-- Finish updating 'change to X' action button work
+
+## [1.0.0-a3] - 2024-03-11 (unreleased)
+- added 'Move all to today' button to Yesterday section
+- added 'Start reviews' button to Projects section
+- added new 'move a new note' action button
+- finish updating 'change to X' action button work
+- replaced 'fake' HTML buttons with real ones
 
 ## [1.0.0-a2] - 2024-03-09 (unreleased)
 - the text of a task or checklist can now be edited in the control dialog

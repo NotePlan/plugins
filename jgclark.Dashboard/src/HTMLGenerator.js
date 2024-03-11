@@ -553,11 +553,12 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
  */
 export async function addTask(calNoteFilename: string): Promise<void> {
   try {
+    logDebug('addTask', `- adding to ${calNoteFilename}`)
     const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    logDebug('addTask', `= date ${calNoteDateStr}`)
     if (!calNoteDateStr) {
-      throw new Error(`calNoteDateStr isn\'t defined`)
+      throw new Error(`calNoteDateStr isn't defined`)
     }
-    logInfo('addTask', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`) // TODO: in time turn me down to Debug
     await prependTodoToCalendarNote('task', calNoteDateStr)
     // trigger window refresh
     await showDashboard('refresh')
@@ -573,9 +574,11 @@ export async function addTask(calNoteFilename: string): Promise<void> {
  */
 export async function addChecklist(calNoteFilename: string): Promise<void> {
   try {
+    logDebug('addTask', `- adding to ${calNoteFilename}`)
     const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    logDebug('addTask', `= date ${calNoteDateStr}`)
     if (!calNoteDateStr) {
-      throw new Error(`calNoteDateStr isn\'t defined`)
+      throw new Error(`calNoteDateStr isn't defined`)
     }
     logInfo('addChecklist', `- adding checklist to ${calNoteDateStr} from ${calNoteFilename}`) // TODO: in time turn me down to Debug
     await prependTodoToCalendarNote('checklist', calNoteDateStr)

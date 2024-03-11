@@ -167,8 +167,34 @@ body {
 	break-inside: avoid;
 	line-height: 1.2rem; /* get from a variable */
 }
+/* Show click pointer over buttons and equivalent */
+.fake-button, .clickTarget {
+	cursor: pointer;
+}
 
 /* ------------------------------------------------------------------ */
+
+/* For buttons that trigger callbacks */
+.XCBButton {
+	color: var(--fg-main-color);
+	background-color: var(--bg-main-color);
+	font-weight: 500;
+	/* border-color: #DFE0E0; */
+	border-style: none;
+	border-radius: 4px;
+	box-shadow: 1px 1px 1px 0px #CBCBCB;
+	padding: 0px 3px 0px 3px;
+	/* margin: 2px 4px; */
+	white-space: nowrap;
+	cursor: pointer;
+	font-size: 0.85rem;
+}
+/* Set link text to plain (again) TODO: if internal calls used this can be removed */
+.XCBButton a {
+	font-size: 0.85rem;
+	text-decoration: none;
+	color: var(--fg-main-color);
+}
 
 .commentLine { /* show as italic */
 	font-weight: 400;
@@ -215,20 +241,20 @@ body {
 .noteTitle { /* add "font-weight: 700;" to make noteTitles bold */
 	color: var(--tint-color) !important;
 }
-.multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
+/* .multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
 	column-count: 3;
 	column-fill: balance;
 	column-width: 25rem;
 	column-gap: 1rem;
 	column-rule: 1px dotted var(--tint-color);
-}
+} */
 .avoidColumnBreakHere { /* apply to a <div> to avoid column break part-way through item */
 	break-inside: avoid;
 }
 .fadeOutAndHide { /* Class to fade out an item, from https://stackoverflow.com/a/20910008 */
 	visibility: hidden;
 	opacity: 0;
-	transition: visibility 0s 1.5s, opacity 1.5s linear;
+	transition: visibility 0s 1.0s, opacity 1.0s linear;
 }
 /* Some headings specified from measuring the colour of NP sidebar elements */
 .sidebarDaily { font-size: 1.0rem; color: #d0703c;  }
