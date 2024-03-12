@@ -79,6 +79,16 @@ export function JSP(obj: any, space: string | number = 2): string {
 }
 
 /**
+ * Returns whether an object is empty
+ * From https://stackoverflow.com/a/679937/3238281
+ * @param {Object} obj 
+ * @returns 
+ */
+export function isObjectEmpty(obj: Object): boolean {
+  return Object.keys(obj).length === 0
+}
+
+/**
  * Remove quoted and escaped characters from a string
  * @param {*} str
  * @returns

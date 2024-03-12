@@ -87,12 +87,13 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
 
     // Test to see if we have any saved window sets (if this is an upgrade)
+    // If we don't, this will offer to add some.
     const saved = await wsh.readWindowSetDefinitions()
-    if (saved.length === 0) {
-      logInfo('WT / onUpdateOrInstall', `No saved WindowSet definitions found. Will offer to add some example ones.`)
-      await wsh.offerToAddExampleWSs()
-    } else {
-      wsh.logWindowSets()
+    if (saved.length > 0) {
+      await wsh.logWindowSets()
+    // } else {
+    //   logInfo('WT / onUpdateOrInstall', `No saved WindowSet definitions found. Will offer to add some example ones.`)
+    //   await wsh.offerToAddExampleWSs()
     }
     return // Placeholder only to try to stop error in logs
   } catch (error) {

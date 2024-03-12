@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Main functions for WindowSets plugin
 // Jonathan Clark
-// last update 2.1.2024 for v1.0.0 by @jgclark
+// last update 12.3.2024 for v1.1.2 by @jgclark
 //---------------------------------------------------------------
 // ARCHITECTURE:
 // - 1 local preference 'windowSets' that contains JS Array<WindowSet>
@@ -311,7 +311,7 @@ export async function saveWindowSet(): Promise<void> {
     DataStore.setPreference('windowSets', WSsToSave)
     logDebug('saveWindowSet', `Saved window sets to local pref`)
     await wsh.logWindowSets()
-    const res = wsh.writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, WSsToSave)
+    const res = await wsh.writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, WSsToSave)
     logDebug('saveWindowSet', `Saved window sets to note`)
 
     // If we have htmlWindows not in our lookup list, then tell user to update the list with the plugin command Name
@@ -368,8 +368,11 @@ export async function openWindowSet(setName: string = ''): Promise<boolean> {
       // Form list of window sets to choose from
       // Get all available windowSets for this machine
       const savedWindowSets = await wsh.readWindowSetDefinitions(thisMachineName)
-      // if (savedWindowSets.length === 0) {
-      //   logInfo('logWindowSets', `No saved windowSets object found for machine '${thisMachineName}'.`)
+      if (savedWindowSets.length === 0) {
+        logInfo('logWindowSets', `No saved windowSets object found for machine '${thisMachineName}', so stopping`)
+        const res = await showMessage(`Sorry: you have no saved Window Sets for machine '${thisMachineName}'.`, 'OK', 'Window Sets', false)
+        return false
+      }
 
       let c = -1
       const setChoices = savedWindowSets.map((sws) => {
@@ -517,33 +520,30 @@ export async function deleteWindowSet(setName: string): Promise<boolean> {
   try {
     let success = false
 
-    // Form list of window sets to choose from
-    let c = -1
-    const savedWindowSets = DataStore.preference('windowSets')
-    clo(savedWindowSets, 'all savedWindowSets')
-    const windowSets = Array(savedWindowSets ?? [])
-    if (windowSets.length === 0) {
-      logWarn(pluginJson, `deleteWindowSet: No window sets found. Stopping.`)
-      return false
-    }
+    // Get list of window sets to choose from
+    const windowSets = await wsh.readWindowSetDefinitions()
     logDebug(pluginJson, `deleteWindowSet: Found ${windowSets.length} window sets`)
 
+    let c = -1
     const setChoices = windowSets.map((sws) => {
       c++
-      return { label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} ${sws.action} windows)`, value: c }
+      return {
+        label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} note${sws.htmlWindows?.length > 0 ? ' + ' + String(sws.htmlWindows?.length) + ' plugin' : ''} windows)`, value: c
+      }
     })
     const num = await chooseOption("Which Window Set to delete?", setChoices)
     if (isNaN(num)) {
       logInfo(pluginJson, `No valid set chosen, so stopping.`)
       return false
     }
-    logInfo('deleteWindowSet', `You have asked to delete window set #${String(num)}`)
+    const setName = windowSets[num].name
+    logInfo('deleteWindowSet', `You have asked to delete window set #${String(num)} '${setName}'`)
 
     // Delete this window set, and save back to preferences store
     windowSets.splice(Number(num), 1)
     DataStore.setPreference('windowSets', windowSets)
-    logDebug('deleteWindowSet', `Window set '${setName}'`)
-    wsh.logWindowSets()
+    // logDebug('deleteWindowSet', `Deleted WS '${setName}'`)
+    const res = await wsh.writeWSsToNote()
 
     return true
   }

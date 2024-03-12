@@ -2,13 +2,13 @@
 //---------------------------------------------------------------
 // Helper functions for WindowTools plugin
 // Jonathan Clark
-// last update 23.1.2024 for v1.1.0 by @jgclark
+// last update 12.3.2024 for v1.1.2 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { getCodeBlocks, getCodeBlocksOfType } from '@helpers/codeBlocks'
 import { toLocaleDateTimeString } from '@helpers/dateTime'
-import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { clo, isObjectEmpty, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getOrMakeNote } from '@helpers/note'
 import { addTrigger } from '@helpers/NPFrontMatter'
@@ -93,14 +93,14 @@ export async function getPluginSettings(): Promise<WindowSetsConfig> {
   try {
     // Get settings
     const config: WindowSetsConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    clo(config, `${pluginID} settings:`)
+    // clo(config, `${pluginID} settings:`)
 
     if (config == null || Object.keys(config).length === 0) {
       logWarn(pluginJson, `Cannot find settings for '${pluginID}' plugin. Looking for previous settings file ...`)
 
       // Now look for previous settings
       const previousConfig: WindowSetsConfig = await DataStore.loadJSON(`../${previousPluginID}/settings.json`)
-      clo(previousConfig, `${previousPluginID} settings:`) // don't know why this doesn't get written out
+      // clo(previousConfig, `${previousPluginID} settings:`) // don't know why this doesn't get written out
       if (previousConfig == null || Object.keys(previousConfig).length === 0) {
         throw new Error(`Cannot find settings for '${pluginID}' plugin, or from previous  '${previousPluginID}' plugin.`)
       }
@@ -293,24 +293,43 @@ export async function syncWSNoteToPrefs(): Promise<void> {
 export async function readWindowSetDefinitions(forMachineName: string = ''): Promise<Array<WindowSet>> {
   try {
     // Read from local preferences
-    const windowSetsObject: any = DataStore.preference('windowSets')
+    let windowSetsObject: any = DataStore.preference('windowSets')
     const thisMachineName = NotePlan.environment.machineName
-    if (!windowSetsObject) {
-      logWarn('readWindowSetDefinitions V3', `No saved windowSet objects found in local 'windowSets' pref on ${thisMachineName}`)
+    if (!windowSetsObject || isObjectEmpty(windowSetsObject)) {
+      logWarn('readWindowSetDefinitions V3', `No saved 'windowSets' pref on ${thisMachineName}, so will offer to add some example ones.`)
 
       // Offer to make two default sets
-      await offerToAddExampleWSs()
-
-      return []
+      const num = await offerToAddExampleWSs()
+      if (num > 0) {
+        logDebug('readWindowSetDefinitions V3', `- have added ${String(num)} example WindowSet objects`)
+        windowSetsObject = DataStore.preference('windowSets')
+      } else {
+        logWarn('readWindowSetDefinitions V3', `- user didn't want to add example Window Sets, so there are none to read.`)
+        return []
+      }
     }
 
+    // Note: windowSetsObject can be non-null, but empty!
+    clo(windowSetsObject, 'windowSetsObject')
+    logDebug('JSON version', JSON.stringify(windowSetsObject))
+
+    if (!windowSetsObject || isObjectEmpty(windowSetsObject)) { // should never happen
+      throw new Error(`Still no saved windowSets object found in local 'windowSets' pref on ${thisMachineName}`)
+    }
+
+    // $FlowFixMe[incompatible-type]
     let windowSets: Array<WindowSet> = windowSetsObject
     let machineDisplayName = ''
     if (forMachineName !== '') {
       windowSets = windowSets.filter((ws) => ws.machineName === forMachineName)
       machineDisplayName = `(for ${forMachineName})`
     }
-    logDebug('readWindowSetDefinitions V3', `Read ${String(windowSets.length)} window sets from 'windowSets' pref on ${thisMachineName}`)
+    if (windowSets.length > 0) {
+      logDebug('readWindowSetDefinitions V3', `Read ${String(windowSets.length)} window sets from local pref ${machineDisplayName}`)
+    } else {
+      logWarn('readWindowSetDefinitions V3', `No window sets found in local pref ${machineDisplayName}: please check the machineName entries in your Window Sets note.`)
+      const res = await showMessage(`No window sets found ${machineDisplayName}: please check 'machineName' entries in your Window Sets note.`, 'OK', 'No window sets found', false)
+    }
     return windowSets
   } catch (err) {
     logError('readWindowSetDefinitions V3', `${err.name}: ${err.message} `)
@@ -442,27 +461,39 @@ export function checkWindowSetBounds(setToCheck: WindowSet): WindowSet {
   }
 }
 
-export async function offerToAddExampleWSs(): Promise<void> {
+/**
+ * Offer to write two default sets to note, and sync to prefs.
+ * @author @jgclark
+ * @returns {number} number of example sets written
+ */
+export async function offerToAddExampleWSs(): Promise<number> {
   try {
     const config = await getPluginSettings()
+    const thisMachineName = NotePlan.environment.machineName
 
     // Offer to make two default sets
     let res = await showMessageYesNo(`There are no Window Set definitions in folder '${config.folderForDefinitions}'. Shall I add some example ones?`, ['Yes please', 'No thanks'], "Window Sets")
     if (res === 'Yes please') {
-      // create two default sets
+      // create default sets
       const newWindowSets: Array<WindowSet> = exampleWSs
+      for (const ws of newWindowSets) {
+        // Now uses the local machine name to avoid user next seeing apparently 0 WSs :-$
+        ws.machineName = thisMachineName
+      }
       DataStore.setPreference('windowSets', newWindowSets)
-      logDebug('onUpdateOrInstall', `Saved window sets to local pref`)
-      logWindowSets()
-      const res = writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, newWindowSets)
-      logDebug('saveWindowSet', `Saved window sets to note`)
-      await showMessage(`I've added 2 example Window Sets, which are saved in note ${config.folderForDefinitions}/${config.noteTitleForDefinitions}. Please run the command again to try them out.`)
-      logInfo(pluginID, `- added 2 `)
+      logDebug('offerToAddExampleWSs', `Saved window sets to local pref:`)
+      await logWindowSets()
+      const res = await writeWSsToNote(config.folderForDefinitions, config.noteTitleForDefinitions, newWindowSets)
+      logDebug('offerToAddExampleWSs', `Saved window sets to note '${config.folderForDefinitions}/${config.noteTitleForDefinitions}'`)
+      await showMessage(`I've added ${newWindowSets.length} example Window Sets, which are saved in note ${config.folderForDefinitions}/${config.noteTitleForDefinitions}. Please run the command again to try them out.`)
+      logInfo(pluginID, `- added ${newWindowSets.length} example Window Sets to note '${config.folderForDefinitions}/${config.noteTitleForDefinitions}'`)
+      return newWindowSets.length
     }
-    return // Placeholder only to try to stop error in logs
+    return 0
   }
   catch (error) {
     logError(pluginID, `onUpdateOrInstall: ${error.message}`)
+    return 0
   }
 }
 
