@@ -18,7 +18,10 @@ import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 
-const pluginID = 'jgclark.WindowSets'
+const previousPluginID = 'jgclark.WindowSets'
+const pluginID = 'jgclark.WindowTools'
+
+//-----------------------------------------------------------------
 
 // Plugin lookup list
 export type PluginWindowCommand = {
@@ -27,7 +30,11 @@ export type PluginWindowCommand = {
   pluginCommandName: string
 }
 
-// Plugin command name lookup list (note: all values are case sensitive!)
+/**
+ * Plugin command name lookup list (note: all values are case sensitive!)
+ * Note: used by saveWindowSet to help automatically identify plugins' HTMLWindows
+ * TODO: really should live somewhere else?
+ */
 export const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
   { pluginWindowId: 'jgclark.Dashboard.main', pluginID: 'jgclark.Dashboard', pluginCommandName: 'show dashboard' },
   { pluginWindowId: 'jgclark.Reviews.rich-review-list', pluginID: 'jgclark.Reviews', pluginCommandName: 'project lists' },
@@ -35,7 +42,6 @@ export const pluginWindowsAndCommands: Array<PluginWindowCommand> = [
   { pluginWindowId: 'jgclark.Summaries.heatmap', pluginID: 'jgclark.Summaries', pluginCommandName: 'heatmap for task completion' },
 ]
 
-//-----------------------------------------------------------------
 // Data types
 // Note: x/y/w/h are available on all window types since v3.9.1 build 1020
 export type EditorWinDetails = {
@@ -76,28 +82,47 @@ export type WindowSet = {
 export type WindowSetsConfig = {
   folderForDefinitions: string,
   noteTitleForDefinitions: string,
-  _logDebug: String,
+  _logDebug: string,
 }
 
 /**
  * Get general config settings for this plugin
- * TODO: Specialise to get or make note for this plugin
  * @return {any} object with configuration
  */
-export async function getPluginSettings(): Promise<any> {
+export async function getPluginSettings(): Promise<WindowSetsConfig> {
   try {
     // Get settings
     const config: WindowSetsConfig = await DataStore.loadJSON(`../${pluginID}/settings.json`)
-    // clo(config, `${pluginID} settings:`)
+    clo(config, `${pluginID} settings:`)
 
     if (config == null || Object.keys(config).length === 0) {
-      throw new Error(`Cannot find settings for '${pluginID}' plugin`)
+      logWarn(pluginJson, `Cannot find settings for '${pluginID}' plugin. Looking for previous settings file ...`)
+
+      // Now look for previous settings
+      const previousConfig: WindowSetsConfig = await DataStore.loadJSON(`../${previousPluginID}/settings.json`)
+      clo(previousConfig, `${previousPluginID} settings:`) // don't know why this doesn't get written out
+      if (previousConfig == null || Object.keys(previousConfig).length === 0) {
+        throw new Error(`Cannot find settings for '${pluginID}' plugin, or from previous  '${previousPluginID}' plugin.`)
+      }
+      const res = DataStore.saveJSON(previousConfig) // "defaults to plugin's settings.json file"
+      // Note: this triggers onSettingsUpdated() call
+      logDebug(pluginJson, `result ${String(res)} from creating new settings file.`)
+
+      // We can't delete the previous settings file,
+      // but instead write a key into it to say it's old
+      // $FlowIgnore[prop-missing] as we want to overload it
+      previousConfig.comment = '**This is a file from a previous version of the plugin. This folder can be deleted.**'
+      const res2 = DataStore.saveJSON(previousConfig, `../${previousPluginID}/settings.json`)
     }
 
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
-    return null // for completeness
+    return {
+      folderForDefinitions: '@Window Sets',
+      noteTitleForDefinitions: 'Window Sets',
+      _logDebug: 'DEBUG',
+    } // for completeness
   }
 }
 
@@ -131,11 +156,11 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     outputLines.push(`---`)
     outputLines.push(`title: ${noteTitle}`)
     // outputLines.push(`Last updated at ${currentDateTime} by WindowSets plugin`)
-    outputLines.push(`triggers: onEditorWillSave => jgclark.WindowSets.sync window set note to pref`)
+    outputLines.push(`triggers: onEditorWillSave => jgclark.WindowTools.sync window set note to pref`)
     outputLines.push(`---`)
-    outputLines.push(`These are the definitions of your currently available **Window Sets**, for use with the Window Sets plugin. You can update the settings if you wish.`)
+    outputLines.push(`These are the definitions of your currently available **Window Sets**, for use with the WindowTools plugin. You can update the settings if you wish.`)
     outputLines.push(`They are specified in JSON, which has to be well-formatted to be usable. In particular check that there aren't any extra commas after the final item of any section.`)
-    outputLines.push(`Note: please leave trigger in the frontmatter above, or changes will not be saved behind the scenes.`)
+    outputLines.push(`Note: please leave the trigger in the frontmatter above, or changes will not be saved behind the scenes. (See the documentation for more detail on this.)`)
     outputLines.push(``)
     outputLines.push('```json')
     outputLines.push('{')
@@ -150,7 +175,7 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
 
     // Add trigger for update pref when note is updated
     // Note: commented out for now, as addTrigger doesn't always seem to work on the right note. Instead it's included in the above.
-    // let res = await addTrigger(Editor, "onEditorWillSave", "jgclark.WindowSets", "syncWSNoteToPrefs")
+    // let res = await addTrigger(Editor, "onEditorWillSave", "jgclark.WindowTools", "syncWSNoteToPrefs")
     // if (!res) {
     //   logWarn('writeWSPrefsToNote', `addTrigger failed`)
     // }
@@ -271,7 +296,7 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
     const windowSetsObject: any = DataStore.preference('windowSets')
     const thisMachineName = NotePlan.environment.machineName
     if (!windowSetsObject) {
-      logWarn('readWindowSetDefinitions V3', `No saved windowSet objects found in local pref on ${thisMachineName}`)
+      logWarn('readWindowSetDefinitions V3', `No saved windowSet objects found in local 'windowSets' pref on ${thisMachineName}`)
 
       // Offer to make two default sets
       await offerToAddExampleWSs()
@@ -285,7 +310,7 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
       windowSets = windowSets.filter((ws) => ws.machineName === forMachineName)
       machineDisplayName = `(for ${forMachineName})`
     }
-    logDebug('readWindowSetDefinitions V3', `Read ${String(windowSets.length)} window sets  ${machineDisplayName}`)
+    logDebug('readWindowSetDefinitions V3', `Read ${String(windowSets.length)} window sets from 'windowSets' pref on ${thisMachineName}`)
     return windowSets
   } catch (err) {
     logError('readWindowSetDefinitions V3', `${err.name}: ${err.message} `)

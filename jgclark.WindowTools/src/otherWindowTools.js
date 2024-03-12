@@ -21,7 +21,7 @@ import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 
-const pluginID = 'jgclark.WindowSets'
+const pluginID = 'jgclark.WindowTools'
 
 //---------------------------------------------------------------
 // Other Windowing tools

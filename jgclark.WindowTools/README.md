@@ -59,11 +59,10 @@ Please see the [CHANGELOG](CHANGELOG.md).
 <hr />
 
 ## Defining Window Sets
-These are defined in a special note; by default this is `@Window Sets/Windows Sets` but can be changed in the plugin Settings. All Window Sets are defined in a code block in JSON format. When first run it will offer to write out some examples for you to use or modify.
+Some people use NotePlan on more than one Mac, and they can have different screen dimensions, and therefore need different Window Sets.. For this reason, each Window Set is tied to the 'machineName' that it was created on. (This picks up the name you set in macOS' System Settings > General > Sharing > Local hostname.) 
 
-Note: to help people who use NotePlan on more than one Mac, each Window Set is tied to the 'machineName' that it was created on. This picks up the name you set in macOS' System Settings > General > Sharing > Local hostname.
 
-In more detail here is an annotated example of the code block:
+In more detail here is an annotated example of the code block in the special note:
 ```jsonc
 "WS":
 [ // array of sets

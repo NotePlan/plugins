@@ -53,7 +53,7 @@ import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessa
 
 //-----------------------------------------------------------------
 
-const pluginID = 'jgclark.WindowSets'
+const pluginID = 'jgclark.WindowTools'
 
 //---------------------------------------------------------------
 // WindowSet functions

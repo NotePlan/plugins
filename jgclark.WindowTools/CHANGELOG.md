@@ -2,6 +2,9 @@
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md)._
 
 <!-- - ??? rename or add 'swap' -->
+## [1.1.1] - 2024-03-12
+- improved settings migration from previous 'WindowSets' plugin
+- improved documentation on where the Window Set definitions live
 
 ## [1.1.0] - 2024-02-28
 - added x-callbacks for /open window set, /open note in new split and /open note in new window commands

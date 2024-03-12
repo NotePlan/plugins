@@ -3,18 +3,17 @@
 //---------------------------------------------------------------
 // Window Sets commands
 // Jonathan Clark
-// Last updated 28.2.2024 for v1.1.0 by @jgclark
+// Last updated 12.3.2024 for v1.1.1 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import * as ws from './windowSets'
 import * as wsh from './WTHelpers'
 import { JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
-const pluginID = 'jgclark.WindowSets'
+const pluginID = 'jgclark.WindowTools'
 
 export {
   saveWindowSet,
@@ -81,17 +80,19 @@ export async function onUpdateOrInstall(testUpdate: boolean = false): Promise<vo
 
     if (testUpdate) {
       updateSettingsResult = 1 // updated
-      logDebug(pluginID, '- forcing pluginUpdated() to run ...')
+      logInfo(pluginID, '- forcing pluginUpdated() to run ...')
     }
 
     // Tell user the plugin has been updated
     await pluginUpdated(pluginJson, { code: updateSettingsResult, message: 'unused?' })
 
     // Test to see if we have any saved window sets (if this is an upgrade)
-    const savedWindowSets = await wsh.readWindowSetDefinitions()
-    if (savedWindowSets.length === 0) {
-      logInfo('onUpdateOrInstall', `No saved windowSets object found. Will offer to add some example ones.`)
+    const saved = await wsh.readWindowSetDefinitions()
+    if (saved.length === 0) {
+      logInfo('WT / onUpdateOrInstall', `No saved WindowSet definitions found. Will offer to add some example ones.`)
       await wsh.offerToAddExampleWSs()
+    } else {
+      wsh.logWindowSets()
     }
     return // Placeholder only to try to stop error in logs
   } catch (error) {
