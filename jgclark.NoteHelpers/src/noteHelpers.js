@@ -2,11 +2,11 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 30.6.2023 for v0.17.2 by @jgclark
+// Last updated 12.3.2024 for v0.19.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { clo, JSP, logDebug, logError, logWarn } from '@helpers/dev'
+import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
 import { convertNoteToFrontmatter } from '@helpers/NPnote'
@@ -93,36 +93,58 @@ export async function moveNote(): Promise<void> {
  * @author @jgclark
  * @param {string?} triggerName optional
  */
-export async function addTriggerToNote(triggerName: string = ''): Promise<void> {
+export async function addTriggerToNote(triggerNameArg: string = ''): Promise<void> {
   try {
     if (!Editor || !Editor.note) {
       throw new Error("No Editor open, so can't continue")
     }
 
     // Get list of available triggers from looking at installed plugins
-    let triggerRelatedCommands = []
     let allVisibleCommands = []
+    let triggerRelatedCommands = []
+    let triggerRelatedStrings = []
     const installedPlugins = DataStore.installedPlugins()
+    logDebug('addTriggerToNote', "Found following trigger-related plugin commands:")
     for (const p of installedPlugins) {
-      for (const pcom of p.commands) {
+      for (const pluginCommand of p.commands) {
         // Only include if this command name or description is a trigger type or contains the string 'trigger' (excluding this one!)
-        if ((pcom.desc.includes("trigger") || pcom.name.includes("trigger") || TRIGGER_LIST.includes(pcom.name) || TRIGGER_LIST.includes(pcom.desc))
-          && pcom.name !== "add trigger to note") {
-          triggerRelatedCommands.push(pcom)
+        if ((pluginCommand.desc.includes("trigger") || pluginCommand.name.includes("trigger") || TRIGGER_LIST.includes(pluginCommand.name) || TRIGGER_LIST.includes(pluginCommand.desc))
+          && pluginCommand.name !== "add trigger to note") {
+          triggerRelatedCommands.push(pluginCommand)
+          const thisTriggerString = `${pluginCommand.name} => ${p.id}.${pluginCommand.name}`
+          logDebug('addTriggerToNote', `- ${thisTriggerString}`)
+          triggerRelatedStrings.push(thisTriggerString)
         }
-        if (!pcom.hidden) allVisibleCommands.push(pcom)
+        if (!pluginCommand.hidden) {
+          allVisibleCommands.push(pluginCommand)
+        }
       }
     }
     // clo(triggerRelatedCommands, 'triggerRelatedCommands')
 
-    if (triggerName !== '') {
-      // 
-      if (!TRIGGER_LIST.includes(triggerName)) {
-        logWarn('addTriggerToNote', `Trigger name '${triggerName}' not found in list of triggers, but will still add it.`)
+    let triggerName = ''
+    let triggerPluginID = ''
+    let funcName = ''
+
+    if (triggerNameArg !== '') {
+      // if (!TRIGGER_LIST.includes(triggerName)) {
+      if (!triggerRelatedStrings.includes(triggerNameArg)) {
+        logInfo('addTriggerToNote', `Trigger '${triggerNameArg}' not found in the list of triggers I can identify, but will still add it.`)
       }
+
       // Add to note
-      const res = convertNoteToFrontmatter(Editor.note, triggerName)
-      logDebug('addTriggerToNote', `convertNoteToFrontmatter() returned ${String(res)}.`)
+      // V1: FIXME(@dwertheimer): not working because of lower level function
+      // $FlowIgnore[incompatible-call]
+      await convertNoteToFrontmatter(Editor.note, "triggers: " + triggerName)
+      return
+
+      // V2: use method below, which is long-winded as we have to break the string back into its constituent parts
+      // Note: borrowing code from NPFrontMatter::getTriggersByCommand()
+      const [part1, part2] = triggerNameArg.split('=>').map((s) => s.trim())
+      triggerName = part1
+      const commandSplit = part2.split('.').map((s) => s.trim())
+      triggerPluginID = commandSplit.slice(0, commandSplit.length - 1).join('.')
+      funcName = commandSplit[commandSplit.length - 1]
     } else {
 
       // Ask user to select one. Examples:
@@ -149,25 +171,26 @@ export async function addTriggerToNote(triggerName: string = ''): Promise<void> 
         choice = result // this check appeases flow from here on
       }
 
-      if (choice) {
+      if (!choice) {
+        throw new Error("Couldn't get a valid trigger choice for some reason. Stopping.")
+      } else {
         // clo(choice, 'choice')
         // Get trigger type from either name or description
-        let triggerName = (TRIGGER_LIST.includes(choice.name)) ? choice.name
+        triggerName = (TRIGGER_LIST.includes(choice.name))
+          ? choice.name
           : (TRIGGER_LIST.includes(choice.desc)) ? choice.desc
             : 'onEditorWillSave' // default to onEditorWillSave if no trigger type is found
-
-        // Add to note
-        let res = await addTrigger(Editor, triggerName, choice.pluginID, choice.name)
-        if (res) {
-          // $FlowIgnore[prop-missing]
-          logDebug('addTriggerToNote', `Trigger ${choice.name} for ${choice.pluginID} was added to note ${displayTitle(Editor)}`)
-        } else {
-          // $FlowIgnore[prop-missing]
-          logError('addTriggerToNote', `Trigger ${choice.name} for ${choice.pluginID} WASN'T added to note ${displayTitle(Editor)}`)
-        }
-      } else {
-        throw new Error("Couldn't get a valid trigger choice for some reason. Stopping.")
+        triggerPluginID = choice.pluginID
+        funcName = choice.name
       }
+    }
+
+    // Add trigger to note
+    let res = await addTrigger(Editor, triggerName, triggerPluginID, funcName)
+    if (res) {
+      logDebug('addTriggerToNote', `Trigger ${triggerName} for ${triggerPluginID} func ${funcName} was added to note ${displayTitle(Editor)}`)
+    } else {
+      logError('addTriggerToNote', `Trigger ${triggerName} for ${triggerPluginID} func ${funcName} WASN'T added to note ${displayTitle(Editor)}`)
     }
   }
   catch (err) {

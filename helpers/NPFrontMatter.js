@@ -297,6 +297,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
 
 /**
  * Ensure that a note has front matter (and optionally has a title you specify).
+ * WARNING: Failing for @jgclark on calendar notes without existing FM.
  * If the note already has front matter, returns true.
  * If the note does not have front matter, adds it and returns true.
  * If optional title is given, it overrides any existing title in the note for the frontmatter title.
@@ -310,6 +311,7 @@ export function setFrontMatterVars(note: CoreNoteFields, varObj: { [string]: str
 export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean = true, title?: string | null): boolean {
   try {
     let retVal = false
+    let front = ''
     if (note == null) {
       // no note - return false
       logError('ensureFrontmatter', `No note found. Stopping conversion.`)
@@ -329,7 +331,6 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
     } else {
       // need to add frontmatter
       let newTitle
-      let front = ''
       if (note.type === 'Notes' && alsoEnsureTitle) {
         // if (!note.title) {
         //   logError('ensureFrontmatter', `'${note.filename}' had no frontmatter or title line, but request requires a title. Stopping conversion.`)
@@ -350,11 +351,15 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         if (titleFromFirstLine) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
         front = `---\ntitle: ${quoteText(newTitle)}\n---\n`
       } else {
+        logDebug('ensureFrontmatter', `- just adding empty frontmatter to this calendar note`)
         front = `---\n---\n`
       }
-      const newContent = `${front}${note?.content || ''}`
-      note.content = '' // in reality, we can just set this to newContent, but for the mocks to work, we need to do it the long way
-      note.insertParagraph(newContent, 0, 'text')
+      // const newContent = `${front}${note?.content || ''}`
+      // logDebug('ensureFrontmatter', `newContent = ${newContent}`)
+      // note.content = '' // in reality, we can just set this to newContent, but for the mocks to work, we need to do it the long way
+      logDebug('ensureFrontmatter', `front to add: ${front}`)
+      // FIXME: this doesn't do anything for @jgclark
+      note.insertParagraph(front, 0, 'text')
       retVal = true
       logDebug('ensureFrontmatter', `-> Note '${displayTitle(note)}' converted to use frontmatter.`)
     }
