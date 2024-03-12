@@ -59,7 +59,10 @@ declare interface TEditor extends CoreNoteFields {
   /**
    * Get an array of selected paragraphs. The cursor doesn't have to select the
    * full paragraph, NotePlan returns all complete paragraphs the cursor
-   * "touches".
+   * "touches". NOTE: note all of the paragraph object data is complete, e.g.
+   * "headingLevel", "heading" and other properties may not be set properly.
+   * Use the result and a map to get all the correct data, e.g.:
+   * const selectedParagraphs = Editor.selectedParagraphs.map((p) => Editor.paragraphs[p.lineIndex])
    */
   +selectedParagraphs: $ReadOnlyArray<TParagraph>;
   /**
@@ -766,7 +769,7 @@ declare class DataStore {
    * @param {boolean?} (optional) true to enable date-referenced items to be included in the search
    * @return {$ReadOnlyArray<TParagraph>} array of results
    */
-  static searchCalendarNotes(keyword ?: string, shouldLoadDatedTodos ?: boolean): Promise < $ReadOnlyArray < TParagraph >>;
+  static searchCalendarNotes(keyword?: string, shouldLoadDatedTodos?: boolean): Promise<$ReadOnlyArray<TParagraph>>;
   /**
    * Returns list of all overdue tasks (i.e. tasks that are open and in the past). Use with await, it runs in the background. If there are a lot of tasks consider showing a loading bar.
    * Note: Available from v3.8.1
@@ -1637,7 +1640,7 @@ declare interface CoreNoteFields {
    * Get or set the array of paragraphs contained in this note, such as tasks,
    * bullets, etc. If you set the paragraphs, the content of the note will be updated.
    */
-paragraphs: Array < TParagraph >;
+  paragraphs: Array<TParagraph>;
   /**
    * Get paragraphs contained in this note which contain a link to another [[project note]] or [[YYYY-MM-DD]] daily note.
    * Note: Available from v3.2.0
