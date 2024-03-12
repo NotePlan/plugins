@@ -34,6 +34,7 @@ import { getTodaysDateAsArrowDate, getTodaysDateUnhyphenated } from '../../helpe
 import pluginJson from '../plugin.json'
 import { log, logInfo, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 
+
 const todo_api: string = 'https://api.todoist.com/rest/v2'
 
 // set some defaults that can be changed in settings
@@ -398,7 +399,7 @@ function checkParagraph(paragraph: TParagraph) {
 
   if (paragraph.type === 'done' || paragraph.type === 'cancelled') {
     const content: string = paragraph.content
-    logDebug(pluginJson, `Task content: ${content}`)
+    logDebug(pluginJson, `Done or Cancelled Task content: ${content}`)
 
     // close these ones in Todoist if they are closed in Noteplan and are todoist tasks
     const found: ?Array<string> = content.match(/showTask\?id=(.*)\)/)
@@ -409,7 +410,7 @@ function checkParagraph(paragraph: TParagraph) {
     }
   } else if (paragraph.type === 'open') {
     const content: string = paragraph.content
-    logDebug(pluginJson, `Task content: ${content}`)
+    logDebug(pluginJson, `Open Task content: ${content}`)
     const found: ?Array<string> = content.match(/showTask\?id=(.*)\)/)
     if (found && found.length > 1) {
       logInfo(pluginJson, `Todoist ID found in Noteplan note (${found[1]})`)
@@ -519,7 +520,7 @@ function setSettings() {
 async function writeOutTask(note: TNote, task: Object) {
   if (note) {
     //console.log(note.content)
-    //console.log(task.content)
+    logDebug(pluginJson, task)
     const formatted = formatTaskDetails(task)
     if (task.section_id !== null) {
       let section = await fetch(`${todo_api}/sections/${task.section_id}`, getRequestObject())
@@ -665,6 +666,7 @@ async function getTodoistProjects() {
 async function closeTodoistTask(task_id: string) {
   try {
     await fetch(`${todo_api}/tasks/${task_id}/close`, postRequestObject())
+    logInfo(pluginJson, `Closed task (${task_id}) in Todoist`)
   } catch (error) {
     logError(pluginJson, `Unable to close task (${task_id}) ${JSON.stringify(error)}`)
   }
