@@ -471,14 +471,14 @@ export function getLiveWindowRectFromWin(win: Window): Rect | false {
  * @param {Rect} rect - {x,y,w,h} to set the window
  * @param {HTMLView?} thisWinId (optional) window reference
  */
-export function applyRectToWindow(rect: Rect, customId?: string): void {
+export function applyRectToHTMLWindow(rect: Rect, customId?: string): void {
   const winToUse = customId ? getWindowFromCustomId(customId) : NotePlan.htmlWindows[0]
-  // logDebug('applyRectToWindow', `Trying to set Rect for window '${customId ?? 'HTML[0]'}'`)
+  // logDebug('applyRectToHTMLWindow', `Trying to set Rect for HTML window '${customId ?? 'HTML[0]'}'`)
   if (winToUse) {
     winToUse.windowRect = rect
-    logDebug('applyRectToWindow', `Set Rect for window '${customId ?? 'HTML[0]'}' -> ${rectToString(winToUse.windowRect)}`)
+    logDebug('applyRectToHTMLWindow', `Set Rect for HTML window '${customId ?? 'HTML[0]'}' -> ${rectToString(winToUse.windowRect)}`)
   } else {
-    logWarn('applyRectToWindow', `Can't get valid window from ${customId ?? 'HTML[0]'}`)
+    logWarn('applyRectToHTMLWindow', `Can't get valid window from ${customId ?? 'HTML[0]'}`)
   }
 }
 

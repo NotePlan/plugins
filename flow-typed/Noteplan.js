@@ -387,7 +387,8 @@ declare interface TEditor extends CoreNoteFields {
    *   rect.height -= 50
    *   Editor.windowRect = rect
    *
-   * Note: for split windows, or any others in the 'main' window, this returns the position and size of the whole window, including any sidebars that are showing.
+   * Note from JGC: for split & main windows, x/y returns the position and size of the whole window
+   * Note from JGC: for split & main windows, height is reliable, but width doesn't always seem to be consistent.
    * Note: Available with v3.9.1 build 1020
    */
   windowRect: Rect;
@@ -1864,9 +1865,8 @@ declare interface CoreNoteFields {
   updateParagraph(paragraph: TParagraph): void;
 
   /**
-   * Updates an array paragraphs. Get the paragraphs, then modify them and update the text in the note or editor using this method.
+   * Updates an array of paragraphs. Get the paragraphs, then modify them and update the text in the note or editor using this method.
    * @param {Array<TParagraph>} paragraphs - Paragraph objects to update, get it from `.paragraphs`
-   * TODO: Should this really be $ReadOnlyArray?
    */
   updateParagraphs(paragraphs: $ReadOnlyArray<TParagraph>): void;
 
