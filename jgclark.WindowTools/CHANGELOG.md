@@ -2,6 +2,10 @@
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md)._
 
 <!-- - ??? rename or add 'swap' -->
+## [1.1.3] - 2024-03-13
+- **breaking change** update trigger name to make it consistent with others
+- fix to main Editor window not being relocated correctly at times
+
 ## [1.1.2] - 2024-03-12
 - when it writes example Window Sets it now uses the local machine name, to avoid it appearing that there are no saved Window Sets, and it now  automatically syncs it to the pref as well.
 - bug fix in /delete window set.

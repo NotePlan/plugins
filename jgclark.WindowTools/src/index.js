@@ -1,9 +1,10 @@
+/* eslint-disable require-await */
 // @flow
 
 //---------------------------------------------------------------
 // Window Sets commands
 // Jonathan Clark
-// Last updated 12.3.2024 for v1.1.1 by @jgclark
+// Last updated 14.3.2024 for v1.1.3 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -11,7 +12,6 @@ import pluginJson from '../plugin.json'
 import * as wsh from './WTHelpers'
 import { JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
-import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
 const pluginID = 'jgclark.WindowTools'
 
@@ -36,8 +36,8 @@ export {
 
 export {
   logWindowSets,
+  onEditorWillSave,
   readWindowSetDefinitions,
-  syncWSNoteToPrefs,
   writeWSNoteToPrefs,
   writeWSsToNote,
 } from './WTHelpers'
@@ -68,7 +68,7 @@ export async function onSettingsUpdated(): Promise<void> {
 }
 
 export async function testUpdate(): Promise<void> {
-  onUpdateOrInstall(true)
+  await onUpdateOrInstall(true)
   return
 }
 

@@ -2,16 +2,19 @@
 //---------------------------------------------------------------
 // Helper functions for WindowTools plugin
 // Jonathan Clark
-// last update 12.3.2024 for v1.1.2 by @jgclark
+// last update 14.3.2024 for v1.1.2 by @jgclark
 //---------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getCodeBlocks, getCodeBlocksOfType } from '@helpers/codeBlocks'
+import {
+  // getCodeBlocks,
+  getCodeBlocksOfType
+} from '@helpers/codeBlocks'
 import { toLocaleDateTimeString } from '@helpers/dateTime'
 import { clo, isObjectEmpty, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { getOrMakeNote } from '@helpers/note'
-import { addTrigger } from '@helpers/NPFrontMatter'
+// import { addTrigger } from '@helpers/NPFrontMatter'
 import { constrainWindowSizeAndPosition } from '@helpers/NPWindows'
 import { showMessage, showMessageYesNo } from '@helpers/userInput'
 
@@ -112,6 +115,7 @@ export async function getPluginSettings(): Promise<WindowSetsConfig> {
       // but instead write a key into it to say it's old
       // $FlowIgnore[prop-missing] as we want to overload it
       previousConfig.comment = '**This is a file from a previous version of the plugin. This folder can be deleted.**'
+      // eslint-disable-next-line no-unused-vars
       const res2 = DataStore.saveJSON(previousConfig, `../${previousPluginID}/settings.json`)
     }
 
@@ -156,7 +160,7 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
     outputLines.push(`---`)
     outputLines.push(`title: ${noteTitle}`)
     // outputLines.push(`Last updated at ${currentDateTime} by WindowSets plugin`)
-    outputLines.push(`triggers: onEditorWillSave => jgclark.WindowTools.sync window set note to pref`)
+    outputLines.push(`triggers: onEditorWillSave => jgclark.WindowTools.onEditorWillSave`)
     outputLines.push(`---`)
     outputLines.push(`These are the definitions of your currently available **Window Sets**, for use with the WindowTools plugin. You can update the settings if you wish.`)
     outputLines.push(`They are specified in JSON, which has to be well-formatted to be usable. In particular check that there aren't any extra commas after the final item of any section.`)
@@ -175,7 +179,7 @@ export async function writeWSsToNote(noteFolderArg: string = '', noteTitleArg: s
 
     // Add trigger for update pref when note is updated
     // Note: commented out for now, as addTrigger doesn't always seem to work on the right note. Instead it's included in the above.
-    // let res = await addTrigger(Editor, "onEditorWillSave", "jgclark.WindowTools", "syncWSNoteToPrefs")
+    // let res = await addTrigger(Editor, "onEditorWillSave", "jgclark.WindowTools", "onEditorWillSave")
     // if (!res) {
     //   logWarn('writeWSPrefsToNote', `addTrigger failed`)
     // }
@@ -228,23 +232,27 @@ export async function writeWSNoteToPrefs(calledFromSaveTrigger: boolean = false)
     const firstCBStr = noteCBs[0].code
 
     // Get object from this JSON string
-    let WSs: Array<WindowSet> = JSON.parse(firstCBStr).WS
+    const WSs: Array<WindowSet> = JSON.parse(firstCBStr).WS
+
+    // Only keep WSs that are for this machineName
+    const thisMachineName = NotePlan.environment.machineName
+    const WSsForThisMachine = WSs.filter((w) => w.machineName === thisMachineName)
 
     // check bounds for each WS
-    // for (const ws of WSs) {
-    for (let i = 0; i < WSs.length; i++) {
-      const ws = WSs[i]
-      WSs[i] = checkWindowSetBounds(ws)
+    for (let i = 0; i < WSsForThisMachine.length; i++) {
+      const ws = WSsForThisMachine[i]
+      WSsForThisMachine[i] = checkWindowSetBounds(ws)
     }
 
     // Get list of WS names from this JSON
-    // TODO: update to just for this machine?
-    const WSNames = WSs.map((w) => w.name)
+    const WSNames = WSsForThisMachine.map((w) => w.name)
 
     // Send the resulting WS definitions to the preferences store as an object
-    DataStore.setPreference('windowSets', WSs)
-    logDebug('writeWSNoteToPrefs', `Set windowSets pref from note '${config.noteTitleForDefinitions}' with set names [${String(WSNames)}]`)
-
+    DataStore.setPreference('windowSets', WSsForThisMachine)
+    logDebug('writeWSNoteToPrefs', `Set windowSets pref from note '${config.noteTitleForDefinitions}' (with ${String(WSsForThisMachine.length)}, named  [${String(WSNames)}])`)
+    if (!calledFromSaveTrigger) {
+      const res = await showMessage(`Written ${String(WSsForThisMachine.length)} Window Sets [${String(WSNames)}] for this machine '${thisMachineName}' from the definition note to the preferences`, 'OK, thanks', 'Write Window Set note to pref', false)
+    }
   } catch (error) {
     logError(pluginJson, `writeWSNoteToPrefs: ${error.name}: ${error.message}`)
   }
@@ -253,17 +261,17 @@ export async function writeWSNoteToPrefs(calledFromSaveTrigger: boolean = false)
 /**
  * Decide whether to sync the WindowSet note to Prefs.
  */
-export async function syncWSNoteToPrefs(): Promise<void> {
+export async function onEditorWillSave(): Promise<void> {
   try {
     // Check to stop it running on iOS
     if (NotePlan.environment.platform !== 'macOS') {
-      logDebug('syncWSNoteToPrefs', `Designed only to run on macOS. Stopping.`)
+      logWarn('onEditorWillSave', `Designed only to run on macOS. Stopping.`)
       return
     }
 
     // Do we have the Editor open? If not, stop
     if (!(Editor.content && Editor.note)) {
-      logWarn('syncWSNoteToPrefs', `Cannot get Editor details. Please open a note.`)
+      logWarn('onEditorWillSave', `Cannot get Editor details. Please open a note.`)
       return
     }
 
@@ -271,15 +279,15 @@ export async function syncWSNoteToPrefs(): Promise<void> {
     const noteReadOnly: CoreNoteFields = Editor.note
     const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
     if (timeSinceLastEdit <= 3000) {
-      logDebug('syncWSNoteToPrefs', `syncWSNoteToPrefs fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
+      logDebug('onEditorWillSave', `onEditorWillSave fired, but ignored, as it was called only ${String(timeSinceLastEdit)}ms after the last one`)
       return
     }
     // write from note to local preference, indicating that this is from a trigger, so work around stale data problem
-    logDebug('syncWSNoteToPrefs', `Will write note to local pref`)
+    logDebug('onEditorWillSave', `Will write note to local pref`)
     await writeWSNoteToPrefs(true)
 
   } catch (error) {
-    logError(pluginJson, `syncWSNoteToPrefs: ${error.name}: ${error.message}`)
+    logError(pluginJson, `onEditorWillSave: ${error.name}: ${error.message}`)
   }
 }
 
@@ -310,8 +318,8 @@ export async function readWindowSetDefinitions(forMachineName: string = ''): Pro
     }
 
     // Note: windowSetsObject can be non-null, but empty!
-    clo(windowSetsObject, 'windowSetsObject')
-    logDebug('JSON version', JSON.stringify(windowSetsObject))
+    // clo(windowSetsObject, 'windowSetsObject')
+    // logDebug('JSON version', JSON.stringify(windowSetsObject))
 
     if (!windowSetsObject || isObjectEmpty(windowSetsObject)) { // should never happen
       throw new Error(`Still no saved windowSets object found in local 'windowSets' pref on ${thisMachineName}`)
@@ -348,7 +356,7 @@ export async function logWindowSets(): Promise<void> {
       logWarn('logWindowSets', `Window Sets only runs on macOS. Stopping.`)
       return
     }
-    const config = await getPluginSettings()
+    // const config = await getPluginSettings()
     const thisMachineName = NotePlan.environment.machineName
 
     const windowSets: Array<WindowSet> = await readWindowSetDefinitions()
@@ -402,7 +410,7 @@ export async function getDetailedWindowSetByName(name: string): Promise<WindowSe
     const thisMachineName = NotePlan.environment.machineName
     const savedWindowSets: Array<WindowSet> = await readWindowSetDefinitions(thisMachineName)
     if (!savedWindowSets) {
-      logWarn(pluginJson, 'No saved detailed windowSet objects found on ' + thisMachineName)
+      logWarn(pluginJson, `No saved detailed windowSet objects found on ${thisMachineName}`)
       return null
     }
     // const windowSets = Array(savedWindowSets ?? [])
@@ -430,7 +438,7 @@ export async function getDetailedWindowSetByName(name: string): Promise<WindowSe
 export function checkWindowSetBounds(setToCheck: WindowSet): WindowSet {
   try {
     logDebug('checkWindowSetBounds', `Starting check for window set '${setToCheck.name}' against screen dimensions for ${NotePlan.environment.machineName}: ${NotePlan.environment.screenWidth}x${NotePlan.environment.screenHeight}`)
-    let checkedSet = setToCheck
+    const checkedSet = setToCheck
 
     // check bounds for each WS in turn
     // for (let thisWS of checkedSet) {
@@ -472,7 +480,7 @@ export async function offerToAddExampleWSs(): Promise<number> {
     const thisMachineName = NotePlan.environment.machineName
 
     // Offer to make two default sets
-    let res = await showMessageYesNo(`There are no Window Set definitions in folder '${config.folderForDefinitions}'. Shall I add some example ones?`, ['Yes please', 'No thanks'], "Window Sets")
+    const res = await showMessageYesNo(`There are no Window Set definitions in folder '${config.folderForDefinitions}'. Shall I add some example ones?`, ['Yes please', 'No thanks'], "Window Sets")
     if (res === 'Yes please') {
       // create default sets
       const newWindowSets: Array<WindowSet> = exampleWSs

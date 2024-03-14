@@ -2,8 +2,8 @@
 
 This plugin (which requires NotePlan version 3.9.8 or higher) gives some tools to help manage NotePlan's windows more easily:
 - **save different layouts** ('Window Sets') of your NotePlan windows on macOS, and then **restore them** in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins. (See more detail below.)
-- **/move split to main** command (alias: **/mstm**) moves the current split pane to be the first one in the main window.
-- **/constrain main window** command (alias: **/cmw**) moves the main window to make sure its fully in the screen area, shrinking it if it needs to.
+- **move split to main** command (alias: **mstm**) moves the current split pane to be the first one in the main window.
+- **constrain main window** command (alias: **cmw**) moves the main window to make sure its fully in the screen area, shrinking it if it needs to.
 - **open note in new split**: (alias: /onns) opens a user-selected note in a new split of the main window (*)
 - **open note in new window** (alias: /onnw) opens a user-selected note in a new window (*)
 - **open current in new split**: (alias: /ocns) opens the current note again in a new split of the main window (*)
@@ -12,11 +12,13 @@ This plugin (which requires NotePlan version 3.9.8 or higher) gives some tools t
 (*) these were originally released in the Note Helpers plugin.
 
 ## Window Set commands
-There are two commands:
+There are two main commands:
 - **/open window set** (alias **/ows**): Open a saved set of windows/panes. You're shown a list of all existing window sets to choose from.
 - **/save window set** (alias **/sws**): Save the size and position of currently open NotePlan windows and 'split' panes as a set. You're given the option to save any open calendar notes as either relative to today (e.g. 'yesterday' or 'next week'), or as a fixed note.
 
 As monitor dimensions vary widely, a window set layout is specific to the particular Mac computer you've defined it on. If you have more than one then it will only show you the ones for the machine you're currently using.
+
+You can also **delete window set** (alias **/sws**): Delete a saved set. You are shown a list of all existing window sets to choose from.
 
 [<img width="160px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg" />](https://www.buymeacoffee.com/revjgc)
 
@@ -44,6 +46,8 @@ The **/open note in new split** command can also be run this way. For example:
 
 Similarly for the **/open note in new window** command, for example `noteplan://x-callback-url/runPlugin?pluginID=jgclark.WindowTools&command=open%20note%20in%20new%20window&arg0=Note%20Title`.
 
+You can trigger the **/delete window set** command for a particular named Window Set, for example `noteplan://x-callback-url/runPlugin?pluginID=jgclark.WindowTools&command=delete%20window%20nset&arg0=WS%20Name`.
+
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise a [Bug or Feature 'Issue'](https://github.com/NotePlan/plugins/issues).
 
@@ -60,7 +64,6 @@ Please see the [CHANGELOG](CHANGELOG.md).
 
 ## Defining Window Sets
 Some people use NotePlan on more than one Mac, and they can have different screen dimensions, and therefore need different Window Sets.. For this reason, each Window Set is tied to the 'machineName' that it was created on. (This picks up the name you set in macOS' System Settings > General > Sharing > Local hostname.) 
-
 
 In more detail here is an annotated example of the code block in the special note:
 ```jsonc
