@@ -1,23 +1,26 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 11.3.2024 for v1.0.0 by @jgclark
+// Last updated 13.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { getSettings } from './dashboardHelpers'
-import { addParasAsText, getFilerSettings } from '../../jgclark.Filer/src/filerHelpers'
+// import {
+//   addParasAsText,
+//   getFilerSettings
+// } from '../../jgclark.Filer/src/filerHelpers'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
-import { showDashboard } from './HTMLGeneratorGrid'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
+import { getSettings } from './dashboardHelpers'
+import { showDashboard } from './HTMLGeneratorGrid'
 import {
   calcOffsetDateStr,
-  getNPWeekStr,
+  // getNPWeekStr,
   getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
-  getTodaysDateUnhyphenated,
+  // getTodaysDateUnhyphenated,
   RE_DATE_INTERVAL,
-  RE_DATE_TIME,
+  // RE_DATE_TIME,
   RE_NP_WEEK_SPEC,
   replaceArrowDatesInString,
 } from '@helpers/dateTime'
@@ -36,15 +39,22 @@ import {
   completeItem,
   completeItemEarlier,
   findParaFromStringAndFilename,
-  getParagraphFromStaticObject,
+  // getParagraphFromStaticObject,
   highlightParagraphInEditor,
   moveItemBetweenCalendarNotes,
   toggleTaskChecklistParaType,
   unscheduleItem,
 } from '@helpers/NPParagraph'
-import { applyRectToWindow, getLiveWindowRectFromWin, getWindowFromCustomId, logWindowsList, rectToString, storeWindowRect, getWindowIdFromCustomId } from '@helpers/NPWindows'
+import {
+  // applyRectToWindow,
+  getLiveWindowRectFromWin, getWindowFromCustomId,
+  // getWindowIdFromCustomId
+  logWindowsList,
+  // rectToString,
+  storeWindowRect,
+} from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'
-import { chooseHeading, showMessage } from '@helpers/userInput'
+import { chooseHeading } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // Data types + constants
@@ -60,7 +70,7 @@ type MessageDataObject = {
 }
 type SettingDataObject = { settingName: string, state: string }
 
-const windowCustomId = pluginJson['plugin.id'] + '.main'
+const windowCustomId = `${pluginJson['plugin.id']}.main`
 
 //-----------------------------------------------------------------
 
@@ -107,7 +117,7 @@ export async function runPluginCommand(data: any) {
   try {
     clo(data, 'runPluginCommand received data object')
     // logDebug('pluginToHTMLBridge/runPluginCommand', `- settingName: ${settingName}, state: ${state}`)
-    DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs)
+    await DataStore.invokePluginCommandByName(data.commandName, data.pluginID, data.commandArgs)
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -144,7 +154,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
     }
     const ID = data.itemID
     const type = data.type
-    const controlStr = data.controlStr ?? ''
+    // const controlStr = data.controlStr ?? ''
     const filename = decodeRFC3986URIComponent(data.encodedFilename ?? '')
     const content = decodeRFC3986URIComponent(data.encodedContent ?? '')
     logDebug('', '------------------------- bridgeClickDashboardItem:')
@@ -243,9 +253,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         const res = toggleTaskChecklistParaType(filename, content)
         logDebug('bCDI / toggleType', `-> new type '${String(res)}'`)
         // Update display in Dashboard too
-        // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
         sendToHTMLWindow(windowId, 'toggleType', data)
-        // Only use if necessary: // TODO: necessary given extra complexity now?
+        // Only use if necessary:
         // logDebug('bCDI', '---------------- refresh ---------------')
         // await showDashboard('refresh')
         break
@@ -305,36 +314,40 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'updateItemContent': {
         // Send a request to change the content of this item
 
-        if (!data.encodedUpdatedContent) {
-          throw new Error(`Trying to updateItemContent but no encodedUpdatedContent was passed`)
-        }
-        const encodedUpdatedContent = data.encodedUpdatedContent
-        const updatedContent = decodeRFC3986URIComponent(encodedUpdatedContent)
-        logDebug('bCDI / updateItemContent', `starting for updated content '${updatedContent}'`)
+        // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
+        logDebug('bCDI', '---------------- refresh ---------------')
+        await showDashboard('refresh')
 
-        // Get para, using original content
-        const para = findParaFromStringAndFilename(filename, content)
-        if (para && typeof para !== 'boolean') {
-          const paraContent = para.content ?? 'error'
-          // logDebug('bCDI / updateItemContent', `found para with original content {${paraContent}}`)
-          logDebug('bCDI / updateItemContent', `calling updateItemContent('${updatedContent}') ...`)
-          // Update the content in place
-          const updatedData = {
-            itemID: ID,
-            updatedContent: updatedContent
-          }
-          sendToHTMLWindow(windowId, 'updateItemContent', updatedData) // unencoded
+        // if (!data.encodedUpdatedContent) {
+        //   throw new Error(`Trying to updateItemContent but no encodedUpdatedContent was passed`)
+        // }
+        // const encodedUpdatedContent = data.encodedUpdatedContent
+        // const updatedContent = decodeRFC3986URIComponent(encodedUpdatedContent)
+        // logDebug('bCDI / updateItemContent', `starting for updated content '${updatedContent}'`)
 
-          // And update in the app itself
-          para.content = updatedContent
-          const thisNote = para.note
-          if (thisNote) {
-            thisNote.updateParagraph(para)
-            logDebug('bCDI / updateItemContent', `- appeared to update line OK`)
-          }
-        } else {
-          logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
-        }
+        // // Get para, using original content
+        // const para = findParaFromStringAndFilename(filename, content)
+        // if (para && typeof para !== 'boolean') {
+        //   // const paraContent = para.content ?? 'error'
+        //   // logDebug('bCDI / updateItemContent', `found para with original content {${paraContent}}`)
+        //   logDebug('bCDI / updateItemContent', `calling updateItemContent('${updatedContent}') ...`)
+        //   // Update the content in place
+        //   const updatedData = {
+        //     itemID: ID,
+        //     updatedContent: updatedContent
+        //   }
+        //   sendToHTMLWindow(windowId, 'updateItemContent', updatedData) // unencoded
+
+        //   // And update in the app itself
+        //   para.content = updatedContent
+        //   const thisNote = para.note
+        //   if (thisNote) {
+        //     thisNote.updateParagraph(para)
+        //     logDebug('bCDI / updateItemContent', `- appeared to update line OK`)
+        //   }
+        // } else {
+        //   logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
+        // }
         break
       }
       case 'unscheduleItem': {
@@ -351,7 +364,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // Mimic the /skip review command.
         const note = await DataStore.projectNoteByFilename(filename)
         if (note) {
-          let period = data.controlStr.replace('nr', '')
+          const period = data.controlStr.replace('nr', '')
           logDebug('bCDI / setNextReviewDate', `-> will skip review by '${period}' for filename ${filename}.`)
           skipReviewForNote(note, period)
           // Now send a message for the dashboard to update its display
@@ -452,9 +465,9 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         logDebug('moveToNote', `starting with itemType: ${itemType}`)
 
         // Start by getting settings from *Filer plugin*
-        const config = await getFilerSettings() ?? { whereToAddInSection: 'start', allowNotePreambleBeforeHeading: true }
+        // const config = await getFilerSettings() ?? { whereToAddInSection: 'start', allowNotePreambleBeforeHeading: true }
 
-        let startDateStr = getDateStringFromCalendarFilename(filename, true)
+        // const startDateStr = getDateStringFromCalendarFilename(filename, true)
 
         // Ask user for destination project note
         const allNotes = projectNotesSortedByChanged()
@@ -548,7 +561,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'updateTaskDate': {
         // Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)
         const dateInterval = data.controlStr
-        let startDateStr = ''
+        // const startDateStr = ''
         let newDateStr = ''
         if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
           logError('bridgeClickDashboardItem', `bad move date interval: ${dateInterval}`)
@@ -561,7 +574,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
           // Get today's date, ignoring current date on task. Note: this means we always start with a *day* base date, not week etc.
-          let startDateStr = getTodaysDateHyphenated()
+          const startDateStr = getTodaysDateHyphenated()
           // Get the new date, but output using the longer of the two types of dates given
           newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'longer')
 

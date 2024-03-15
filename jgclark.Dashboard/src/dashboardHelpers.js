@@ -1,21 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 11.3.2024 for v1.0.0 by @jgclark
+// Last updated 13.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 // import { showDashboard } from './HTMLGeneratorGrid'
-import moment from 'moment/min/moment-with-locales'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import { RE_EVENT_ID } from '@helpers/calendar'
-import { trimString } from '@helpers/dataManipulation'
 import {
-  // getDateStringFromCalendarFilename,
   getAPIDateStrFromDisplayDateStr,
   includesScheduledFutureDate,
   removeDateTagsAndToday,
-  toLocaleTime
+  // toLocaleTime
 } from '@helpers/dateTime'
 import { createRunPluginCallbackUrl } from "@helpers/general"
 import {
@@ -33,34 +30,34 @@ import {
 } from '@helpers/HTMLView'
 import { filterOutParasInExcludeFolders } from '@helpers/note'
 import { getReferencedParagraphs } from '@helpers/NPnote'
-import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
+// import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import {
   getTaskPriority,
-  isTermInNotelinkOrURI,
-  isTermInURL,
+  // isTermInNotelinkOrURI,
+  // isTermInURL,
   removeTaskPriorityIndicators,
 } from '@helpers/paragraph'
 import {
   RE_ARROW_DATES_G,
-  RE_MARKDOWN_LINKS_CAPTURE_G,
+  // RE_MARKDOWN_LINKS_CAPTURE_G,
   RE_SCHEDULED_DATES_G,
 } from '@helpers/regex'
 import {
   addPriorityToParagraphs,
-  getNumericPriority,
-  getNumericPriorityFromPara,
-  getTasksByType,
+  // getNumericPriority,
+  // getNumericPriorityFromPara,
+  // getTasksByType,
   sortListBy,
   // $FlowIgnore(untyped-type-import) as Flow is used in its definition
-  type GroupedTasks,
+  // type GroupedTasks,
   // $FlowIgnore(untyped-type-import) as Flow is used in its definition
-  type SortableParagraphSubset
+  // type SortableParagraphSubset
 } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
   changeBareLinksToHTMLLink,
   changeMarkdownLinksToHTMLLink,
-  encodeRFC3986URIComponent,
+  // encodeRFC3986URIComponent,
   stripBackwardsDateRefsFromString,
   stripThisWeeksDateRefsFromString,
   stripTodaysDateRefsFromString
@@ -175,14 +172,16 @@ export async function getSettings(): Promise<any> {
  * @param {dashboardConfigType} config
  * @returns {[Array<TParagraph>, Array<TParagraph>]} see description above
  */
-export async function getOpenItemParasForCurrentTimePeriod(timePeriodName: string, timePeriodNote: TNote, config: dashboardConfigType): Promise<[Array<TParagraph>, Array<TParagraph>]> {
+export function getOpenItemParasForCurrentTimePeriod(
+  timePeriodName: string, timePeriodNote: TNote, config: dashboardConfigType
+): [Array<TParagraph>, Array<TParagraph>] {
   try {
     let parasToUse: $ReadOnlyArray<TParagraph>
 
     //------------------------------------------------
     // Get paras from calendar note
     // Note: this takes 100-110ms for me
-    let startTime = new Date() // for timing only
+    const startTime = new Date() // for timing only
     if (Editor && (Editor?.note?.filename === timePeriodNote.filename)) {
       // If note of interest is open in editor, then use latest version available, as the DataStore is probably stale.
       parasToUse = Editor.paragraphs
@@ -388,7 +387,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
         // Replace >date< with HTML link, aware that this will interrupt the <a>...</a> that will come around the whole string, and so it needs to make <a>...</a> regions for the rest of the string before and after the capture.
         const dateFilenamePart = capture.slice(1, -1)
         const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromNPDateStr(dateFilenamePart, thisItem.ID)
-        output = output.replace(capture, '</a>' + noteTitleWithOpenAction + '<a class="content">')
+        output = output.replace(capture, `</a>${noteTitleWithOpenAction}<a class="content">`)
       }
     }
 
@@ -410,7 +409,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
         // logDebug('makeParaContet...', `- making notelink with ${thisItem.filename}, ${capturedTitle}`)
         // Replace [[notelinks]] with HTML equivalent, aware that this will interrupt the <a>...</a> that will come around the whole string, and so it needs to make <a>...</a> regions for the rest of the string before and after the capture.
         const noteTitleWithOpenAction = makeNoteTitleWithOpenActionFromTitle(capturedTitle)
-        output = output.replace('[[' + capturedTitle + ']]', '</a>' + noteTitleWithOpenAction + '<a>')
+        output = output.replace(`[[${capturedTitle}]]`, `</a>${noteTitleWithOpenAction}<a>`)
       }
     }
 
@@ -425,7 +424,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
       // logDebug('makeParaContet...', `- before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
       switch (noteLinkStyle) {
         case 'append': {
-          output = addNoteOpenLinkToString(thisItem, output) + ' ' + makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)
+          output = `${addNoteOpenLinkToString(thisItem, output)} ${makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)}`
           break
         }
         case 'all': {
@@ -439,7 +438,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
     // If we already know (from above) there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority5.
     // Note: this wrapping needs to go last.
     if (taskPriority > 0) {
-      output = '<span class="priority' + String(taskPriority) + '">' + output + '</span>'
+      output = `<span class="priority${String(taskPriority)}">${output}</span>`
     }
 
     // logDebug('makeParaContet...', `\n-> ${output}`)
@@ -528,7 +527,7 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
  */
 export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, itemID: string): string {
   try {
-    const dateFilename = getAPIDateStrFromDisplayDateStr(NPDateStr) + "." + DataStore.defaultFileExtension
+    const dateFilename = `${getAPIDateStrFromDisplayDateStr(NPDateStr)}.${DataStore.defaultFileExtension}`
     // logDebug('makeNoteTitleWithOpenActionFromNPDateStr', `- making notelink with ${NPDateStr} / ${dateFilename}`)
     // Pass request back to plugin, as a single object
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
@@ -552,11 +551,11 @@ export function extendParaToAddStartTime(paras: Array<TParagraph>): Array<any> {
     const extendedParas = []
     for (const p of paras) {
       const thisTimeStr = getTimeBlockString(p.content)
-      let extendedPara = p
+      const extendedPara = p
       if (thisTimeStr !== '') {
         let startTimeStr = thisTimeStr.split('-')[0]
         if (startTimeStr[1] === ':') {
-          startTimeStr = "0" + startTimeStr
+          startTimeStr = `0${startTimeStr}`
         }
         if (startTimeStr.endsWith("PM")) {
           startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
@@ -582,14 +581,13 @@ export function extendParaToAddStartTime(paras: Array<TParagraph>): Array<any> {
 export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean = true): Promise<number> {
   try {
     let numberScheduled = 0
-    let config = await getSettings()
+    const config = await getSettings()
     // For these purposes override one config item:
     config.separateSectionForReferencedNotes = true
 
     // Get paras for all open items in yesterday's note
-    const yesterday = new moment().subtract(1, 'days').toDate()
-    const dateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
-    let yesterdaysNote = DataStore.calendarNoteByDateString(dateStr)
+    const yesterdayDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
+    const yesterdaysNote = DataStore.calendarNoteByDateString(yesterdayDateStr)
     if (yesterdaysNote) {
       // Get list of open tasks/checklists from this calendar note
       const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
@@ -597,7 +595,7 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
       if (combinedSortedParas.length > 0) {
         // For each para append ' >today'
         for (const para of combinedSortedParas) {
-          para.content = para.content + ' >today'
+          para.content = `${para.content} >today`
           logDebug('scheduleAllYesterdayOpenToToday', `scheduling {${para.content}} to today`)
           numberScheduled++
         }
@@ -609,7 +607,7 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
       if (sortedRefParas.length > 0) {
         // For each para append ' >today'
         for (const para of sortedRefParas) {
-          para.content = removeDateTagsAndToday(para.content) + ' >today'
+          para.content = `${removeDateTagsAndToday(para.content)} >today`
           logDebug('scheduleAllYesterdayOpenToToday', `scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
           numberScheduled++
           para.note?.updateParagraph(para)
@@ -643,7 +641,7 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
  */
 export function makeFakeCallbackButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
   const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
-  let output = (tooltipText)
+  const output = (tooltipText)
     ? `<span class="fake-button tooltip"><a class="button" href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></span>`
     : `<span class="fake-button"><a class="button" href="${xcallbackURL}">${buttonText}</a></span>`
   return output
@@ -662,11 +660,11 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
  * @returns {string}
  */
 export function makeRealCallbackButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
-  const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
+  // const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
   // let output = (tooltipText)
   // ? `<button class="XCBButton tooltip"><a href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></button>`
   // : `<button class="XCBButton"><a href="${xcallbackURL}">${buttonText}</a></button>`
-  let output = (tooltipText)
+  const output = (tooltipText)
     ? `<button class="XCBButton tooltip" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}<span class="tooltiptext">${tooltipText}</span></button>`
     : `<button class="XCBButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}">${buttonText}</button>`
   return output

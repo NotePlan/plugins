@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "1.0.0-a3",
+  "plugin.version": "1.0.0-a4",
   "plugin.lastUpdateInfo": "1.0.0: rewrite of layout engine, and new features.",
   "plugin.requiredFiles": [
     "dashboard.css",

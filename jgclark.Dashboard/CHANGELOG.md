@@ -2,9 +2,14 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 TODO: 
-- Dedupe items in Overdue section that are both open and dated to the date of the note it lives in
 - When using the add-task or add-checklist items on the main screen, now uses existing preference 'Section heading to add/move new tasks under' (if set). (#539 for @dwertheimer)
-- ? try out Tailwind/Daisy for CSS
+
+## [1.0.0-a4] - 2024-03-15 (unreleased)
+- after an item's content is edited in the control dialog, a full refresh is now run
+- dedupe items in Yesterday section from appearing in Overdue as well
+- dedupe items in Overdue section
+- dedupe items in Tag section
+- turned off auto-refresh after updating settings, given the NP issue it triggers
 
 ## [1.0.0-a3] - 2024-03-11 (unreleased)
 - added 'Move all to today' button to Yesterday section

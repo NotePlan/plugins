@@ -1,48 +1,48 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 11.3.2024 for v1.0.0 by @jgclark
+// Last updated 15.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
-import fm from 'front-matter' // For reviewList functionality
+import pluginJson from '../plugin.json'
+// import fm from 'front-matter' // For reviewList functionality
 import {
-  extendParaToAddStartTime,
+  getNextNotesToReview,
+  makeFullReviewList
+} from '../../jgclark.Reviews/src/reviews.js'
+import {
   getOpenItemParasForCurrentTimePeriod,
   getSettings,
   type dashboardConfigType,
   type Section, type SectionItem
 } from './dashboardHelpers'
 import {
-  getNextNotesToReview,
-  makeFullReviewList
-} from '../../jgclark.Reviews/src/reviews.js'
-import {
   getDateStringFromCalendarFilename,
   includesScheduledFutureDate,
-  toISOShortDateTimeString,
+  // toISOShortDateTimeString,
   toLocaleDateString,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
 import { filterOutParasInExcludeFolders } from '@helpers/note'
-import { findNotesMatchingHashtagOrMention, getReferencedParagraphs } from '@helpers/NPnote'
 import {
-  // addPriorityToParagraphs,
-  // getNumericPriorityFromPara,
-  getTasksByType,
+  findNotesMatchingHashtagOrMention,
+  // getReferencedParagraphs
+} from '@helpers/NPnote'
+import {
+  addPriorityToParagraphs,
   sortListBy,
   // $FlowIgnore(untyped-type-import) as Flow is used in its definition
-  type GroupedTasks,
+  // type GroupedTasks,
   // $FlowIgnore(untyped-type-import) as Flow is used in its definition
-  type SortableParagraphSubset
+  // type SortableParagraphSubset
 } from '@helpers/sorting'
-import { stripMailtoLinks, convertMarkdownLinks } from '@helpers/stringTransforms'
-import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-// import { isTimeBlockPara } from '@helpers/timeblocks'
-import { isDone, isOpen, isOpenTask, isScheduled, isOpenNotScheduled, isOpenTaskNotScheduled } from '@helpers/utils'
+// import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import {
+  isDone, isOpen, removeDuplicates,
+} from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Constants
@@ -74,11 +74,11 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists from current daily note (if it exists)
-    let startTime = new Date() // for timing only
+    const startTime = new Date() // for timing only
     // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day')
     const dateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
     // let currentDailyNote = DataStore.calendarNoteByDate(today, 'day') // ❌ seems unreliable
-    let currentDailyNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
+    const currentDailyNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
     if (currentDailyNote) {
       const thisFilename = currentDailyNote?.filename ?? '(error)'
       // const dateStr = getDateStringFromCalendarFilename(thisFilename)
@@ -88,7 +88,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -139,12 +139,12 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists from yesterday's daily note (if wanted and it exists)
-    let yesterdaysCombinedSortedParas = []
+    let yesterdaysCombinedSortedParas: Array<TParagraph> = []
     if (config.showYesterdaySection) {
       const yesterday = new moment().subtract(1, 'days').toDate()
       const dateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
       // let yesterdaysNote = DataStore.calendarNoteByDate(yesterday, 'day') // ❌ seems unreliable
-      let yesterdaysNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
+      const yesterdaysNote = DataStore.calendarNoteByDateString(dateStr) // ✅ 
 
       if (yesterdaysNote) {
         const thisFilename = yesterdaysNote?.filename ?? '(error)'
@@ -155,7 +155,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         }
 
         // Get list of open tasks/checklists from this calendar note
-        const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
+        const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
 
         // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
         if (config.separateSectionForReferencedNotes) {
@@ -226,7 +226,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("week", currentWeeklyNote, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("week", currentWeeklyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -284,7 +284,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       logDebug('getDataForDashboard', `---------------------------- Looking for Month items for section #${String(sectionCount)} -----------------------------`)
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("month", currentMonthlyNote, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("month", currentMonthlyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -341,7 +341,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       logDebug('getDataForDashboard', `---------------------------- Looking for Quarter items for section #${String(sectionCount)} -----------------------------`)
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("quarter", currentQuarterlyNote, config)
+      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("quarter", currentQuarterlyNote, config)
 
       // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
       if (config.separateSectionForReferencedNotes) {
@@ -406,14 +406,13 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       const filteredRefParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders)
       logDebug('getDataForDashboard', `- ${filteredRefParas.length} paras after excluding @special + [${String(config.ignoreFolders)}] folders`)
 
-      // TODO: Remove items already in Yesterday section (which can happen)
+      // Remove items already in Yesterday section (if turned on)
       if (config.showYesterdaySection && yesterdaysCombinedSortedParas.length > 0) {
         // Filter out all items in array filteredRefParas that also appear in array yesterdaysCombinedSortedParas
         filteredRefParas.map((p) => {
           if (yesterdaysCombinedSortedParas.filter((y) => y.content === p.content).length > 0) {
             logDebug('getDataForDashboard', `- removing duplicate item {${p.content}} from overdue list`)
             filteredRefParas.splice(filteredRefParas.indexOf(p), 1)
-
           }
         })
       }
@@ -421,22 +420,23 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
       if (filteredRefParas.length > 0) {
         // Remove possible dupes from sync'd lines
-        // TODO: currently commented out, to save 2? secs of processing
-        // const dedupedParas = eliminateDuplicateSyncedParagraphs(filteredRefParas)
-        // logDebug('getDataForDashboard', `- after dedupe ->  ${dedupedParas.length}`)
+        // Note: currently commented out, to save 2? secs of processing
+        // BUT now covered by the later removeDuplicates() call
+        // filteredRefParas = eliminateDuplicateSyncedParagraphs(filteredRefParas)
+        // logDebug('getDataForDashboard', `- after sync lines dedupe ->  ${filteredRefParas.length}`)
 
         // Temporarily extend Paragraphs with the task's priority
-        // $FlowFixMe(incompatible-call)
         const overdueTaskParasWithPriority = addPriorityToParagraphs(filteredRefParas)
+        logInfo('getDataForDashboard', `- after adding priority -> ${overdueTaskParasWithPriority.length} in ${timer(thisStartTime)}`)
 
         // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
-        let reducedParas = overdueTaskParasWithPriority.map((p) => {
+        // TODO: this takes >600ms for 1,000 items
+        const reducedParas = overdueTaskParasWithPriority.map((p) => {
           const note = p.note
-          const tempDate = note ? toISOShortDateTimeString(note.changedDate) : '?'
           const fieldSet = {
             filename: note?.filename ?? '<error>',
             changedDate: note?.changedDate,
-            title: displayTitle(note),
+            title: displayTitle(note), // this isn't expensive
             content: p.content,
             rawContent: p.rawContent,
             type: p.type,
@@ -444,7 +444,15 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           }
           return fieldSet
         })
-        totalOverdue = reducedParas.length
+        logInfo('getDataForDashboard', `- after reducing paras -> ${reducedParas.length} in ${timer(thisStartTime)}`)
+
+        // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
+        // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time
+        // Note: this is a quick operation
+        const filteredReducedParas = removeDuplicates(reducedParas, ['content'])
+        logInfo('getDataForDashboard', `- after deduping overdue -> ${filteredReducedParas.length} in ${timer(thisStartTime)}`)
+
+        totalOverdue = filteredReducedParas.length
 
         // Sort paragraphs by one of several options
         thisStartTime = new Date()
@@ -453,7 +461,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           : (config.overdueSortOrder === 'earliest')
             ? ['changedDate', 'priority']
             : ['-changedDate', 'priority'] // 'most recent'
-        const sortedOverdueTaskParas = sortListBy(reducedParas, sortOrder)
+        const sortedOverdueTaskParas = sortListBy(filteredReducedParas, sortOrder)
         logInfo('getDataForDashboard', `- Sorted  ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} in ${timer(thisStartTime)}`)
 
         // Apply limit to set of ordered results
@@ -469,7 +477,6 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         const overdueSectionDescription = (totalOverdue > itemCount) ? `first {count} of ${String(totalOverdue)} tasks ordered by ${config.overdueSortOrder}`
           : `all {count} tasks ordered by ${config.overdueSortOrder}`
         sections.push({
-          byReference: false,
           ID: sectionCount,
           name: 'Overdue Tasks', sectionType: 'OVERDUE', description: overdueSectionDescription, FAIconClass: "fa-regular fa-alarm-exclamation", sectionTitleClass: "overdue", filename: ''
         })
@@ -483,16 +490,17 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     // Only find those which include open tasks that aren't scheduled in the future
     if (config.tagToShow) {
       logInfo('getDataForDashboard', `---------------------------- Looking for tag '${config.tagToShow}'  for section #${String(sectionCount)} -----------------------------`)
-      let thisStartTime = new Date()
+      const thisStartTime = new Date()
       const isHashtag: boolean = config.tagToShow.startsWith('#')
       const isMention: boolean = config.tagToShow.startsWith('@')
       if (isHashtag || isMention) {
         let itemCount = 0
         let totalCount = 0
-        let filteredTagParas: Array<TParagraph> = []
+        const filteredTagParas: Array<TParagraph> = []
 
         // From notes with matching hashtag or mention
         const notesWithTag = findNotesMatchingHashtagOrMention(config.tagToShow)
+
         for (const n of notesWithTag) {
           // // Remove items referenced from items in 'ignoreFolders'
           // logDebug('getDataForDashboard', `- ${notesWithTag.length} tag notes`)
@@ -503,12 +511,12 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           // Don't continue if this note is in an excluded folder
           const thisNoteFolder = getFolderFromFilename(n.filename)
           if (config.ignoreFolders.includes(thisNoteFolder)) {
-            logDebug('getDataForDashboard', `- ignoring ${n.filename} as it is in an ignored folder`)
+            logDebug('getDataForDashboard', `- ignoring note '${n.filename}' as it is in an ignored folder`)
             continue
           }
 
           // Get the relevant paras from this note
-          let tagParasFromNote = n.paragraphs.filter(p => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
+          const tagParasFromNote = n.paragraphs.filter(p => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
           // logDebug('getDataForDashboard', `- found ${tagParasFromNote.length} paras`)
 
           // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
@@ -532,13 +540,13 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           // logDebug('getDataForDashboard', `- after dedupe ->  ${dedupedParas.length}`)
 
           // Temporarily extend Paragraphs with the task's priority
-          // $FlowFixMe(incompatible-call)
           const filteredTagParasWithPriority = addPriorityToParagraphs(filteredTagParas)
+          logInfo('getDataForDashboard', `- after adding priority -> ${filteredTagParasWithPriority.length} in ${timer(thisStartTime)}`)
 
           // Create a much cut-down version of this array that just leaves the content, priority, but also the note's title, filename and changedDate.
-          let reducedParas = filteredTagParasWithPriority.map((p) => {
+          // Note: this is a quick operation
+          const reducedParas = filteredTagParasWithPriority.map((p) => {
             const note = p.note
-            const tempDate = note ? toISOShortDateTimeString(note.changedDate) : '?'
             const fieldSet = {
               filename: note?.filename ?? '<error>',
               changedDate: note?.changedDate,
@@ -550,7 +558,13 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             }
             return fieldSet
           })
-          totalCount = reducedParas.length
+
+          // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
+          // Note: this is a quick operation
+          const filteredReducedParas = removeDuplicates(reducedParas, ['content', 'filename'])
+          logInfo('getDataForDashboard', `- after deduping overdue -> ${filteredReducedParas.length} in ${timer(thisStartTime)}`)
+
+          totalCount = filteredReducedParas.length
 
           // Sort paragraphs by one of several options
           const sortOrder = (config.overdueSortOrder === 'priority')
@@ -558,8 +572,8 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
             : (config.overdueSortOrder === 'earliest')
               ? ['changedDate', 'priority']
               : ['-changedDate', 'priority'] // 'most recent'
-          const sortedTagParas = sortListBy(reducedParas, sortOrder)
-          logInfo('getDataForDashboard', `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)} in ${timer(thisStartTime)}`)
+          const sortedTagParas = sortListBy(filteredReducedParas, sortOrder)
+          logInfo('getDataForDashboard', `- Filtered, Reduced & Sorted  ${sortedTagParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
 
           // Apply limit to set of ordered results
           const sortedTagParasLimited = (sortedTagParas.length > maxInSection) ? sortedTagParas.slice(0, maxInSection) : sortedTagParas
@@ -577,7 +591,6 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           const tagSectionDescription = (totalCount > itemCount) ? `first {count} from ${String(totalCount)} items ordered by ${config.overdueSortOrder}`
             : `all {count} items ordered by ${config.overdueSortOrder}`
           sections.push({
-            byReference: false,
             ID: sectionCount,
             name: `${config.tagToShow}`,
             sectionType: 'TAG',
@@ -625,7 +638,6 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         })
         // clo(nextNotesToReview, "nextNotesToReview")
         sections.push({
-          byReference: false,
           ID: sectionCount,
           name: 'Projects',
           sectionType: 'PROJ',
@@ -644,7 +656,6 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
     //-----------------------------------------------------------
     // Send doneCount through as a special type item:
     sections.push({
-      byReference: false,
       ID: doneCount,
       name: 'Done',
       sectionType: '',

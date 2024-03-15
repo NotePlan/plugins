@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the Dashboard events
-// Last updated: 11.3.2024 for v1.0.0 by @jgclark
+// Last updated: 13.3.2024 for v1.0.0 by @jgclark
 
 //--------------------------------------------------------------------------------------
 // Add event handlers
@@ -247,7 +247,7 @@ function showProjectControlDialog(dataObject) {
   const thisNoteTitle = decodeRFC3986URIComponent(dataObject.encodedTitle)
   const thisSectionType = 'PROJ'
   const thisIDElement = document.getElementById(thisID)
-  const thisEncodedContent = thisIDElement.dataset.encodedContent; // i.e. the "data-encoded-content" element, with auto camelCase transposition
+  const thisEncodedContent = thisIDElement.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
   const thisEncodedFilename = thisIDElement.dataset.encodedFilename
   const thisFilename = decodeRFC3986URIComponent(thisEncodedFilename)
   console.log(`dataObject() starting for ID ${thisID}, type ${thisSectionType}, filename ${thisEncodedFilename}`)

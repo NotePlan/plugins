@@ -13,6 +13,7 @@
  * Blocking delay
  * @param {number} time in milliseconds
  */
+// eslint-disable-next-line require-await
 async function delay(time) {
   return new Promise(resolve => setTimeout(resolve, time))
 }
@@ -286,6 +287,8 @@ function updateItemFilename(data) {
 
 /**
  * Update display of item's content
+ * Note: this is a basic level of update that can be done quickly.
+ * Until all the rendering functions are in the frontend, the assumption is that a full refresh follows within a second or two.
  * @param { { itemID: string, updatedContent: string } } data
  */
 function updateItemContent(data) {
@@ -303,7 +306,7 @@ function updateItemContent(data) {
   const currentInnerHTML = thisContentElement.innerHTML
   console.log(`- currentInnerHTML: ${currentInnerHTML}`)
 
-  // Change the content TODO: there's more to it than this!
+  // Basic update of the content
   const newInnerHTML = updatedContent
   console.log(`- newInnerHTML: ${newInnerHTML}`)
   replaceHTMLinElement(thisContentElement, newInnerHTML, null)

@@ -1,17 +1,17 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 11.3.2024 for v1.0.0 by @jgclark
+// Last updated 14.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
+import pluginJson from '../plugin.json'
 import { getDataForDashboard } from './dataGeneration'
 import { getDemoDataForDashboard } from './demoDashboard'
 import {
   addNoteOpenLinkToString,
   getSettings,
-  makeFakeCallbackButton,
+  // makeFakeCallbackButton,
   makeNoteTitleWithOpenActionFromFilename,
   makeParaContentToLookLikeNPDisplayInHTML,
   makeRealCallbackButton,
@@ -20,38 +20,38 @@ import {
 } from './dashboardHelpers'
 import {
   getDateStringFromCalendarFilename,
-  getTodaysDateUnhyphenated,
+  // getTodaysDateUnhyphenated,
   isValidCalendarNoteFilename
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import { createPrettyOpenNoteLink, createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle, returnNoteLink } from '@helpers/general'
+import {
+  // createPrettyOpenNoteLink,
+  // createPrettyRunPluginLink,
+  // createRunPluginCallbackUrl,
+  displayTitle,
+  // returnNoteLink
+} from '@helpers/general'
 import { showHTMLV2 } from '@helpers/HTMLView'
-import { getNoteType } from '@helpers/note'
+// import { getNoteType } from '@helpers/note'
 import { nowLocaleShortTime } from '@helpers/NPdateTime'
-import { unsetPreference } from '@helpers/NPdev'
+// import { unsetPreference } from '@helpers/NPdev'
 import { addTrigger } from '@helpers/NPFrontMatter'
 import { getTaskPriority } from '@helpers/paragraph'
 import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
-import { decodeRFC3986URIComponent, encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import {
-  applyRectToWindow,
-  closeWindowFromCustomId,
-  focusHTMLWindowIfAvailable,
-  getLiveWindowRectFromWin,
-  getStoredWindowRect,
-  getWindowFromCustomId,
-  rectToString,
-} from '@helpers/NPWindows'
+  // decodeRFC3986URIComponent,
+  encodeRFC3986URIComponent
+} from '@helpers/stringTransforms'
 import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // HTML resources
 
-const windowCustomId = pluginJson['plugin.id'] + '.main'
+const windowCustomId = `${pluginJson['plugin.id']}.main`
 
 // Note: this "../np.Shared" path works to the flattened np.Shared structure, but it does *not* work when running the locally-written copy of the HTML output file.
 export const resourceLinksInHeader = `
@@ -190,8 +190,8 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
     const shouldFocus = (callType === 'manual')
     const config = await getSettings()
-    const todaysFilenameDate = getTodaysDateUnhyphenated()
-    let filterPriorityItems = DataStore.preference('Dashboard-filterPriorityItems') ?? false
+    // const todaysFilenameDate = getTodaysDateUnhyphenated()
+    const filterPriorityItems = DataStore.preference('Dashboard-filterPriorityItems') ?? false
     await checkForRequiredSharedFiles(pluginJson)
     let sections: Array<Section> = []
     let sectionItems: Array<SectionItem> = []
@@ -214,7 +214,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     const weeklyNoteTitle = displayTitle(DataStore.calendarNoteByDate(today, 'week'))
     const monthlyNoteTitle = displayTitle(DataStore.calendarNoteByDate(today, 'month'))
     const quarterlyNoteTitle = displayTitle(DataStore.calendarNoteByDate(today, 'quarter'))
-    const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '')
+    // const startReviewXCallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', 'next project review', '')
 
     //--------------------------------------------------------------
     // Create nice HTML display for this data
@@ -297,7 +297,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
             'addChecklist',
             section.filename,
             '')
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItems}', xcbButton1 + "&nbsp;" + xcbButton2)
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItems}', `${xcbButton1}&nbsp;${xcbButton2}`)
         }
         if (section.description.includes('{scheduleAllToday}')) {
           // const scheduleAllTodayButton = makeFakeCallbackButton(
@@ -371,7 +371,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         if (filteredOut > 0) {
           items = filteredItems
           items.push({
-            ID: section.ID + '-Filter',
+            ID: `${section.ID}-Filter`,
             content: `There are also ${filteredOut} lower-priority items currently hidden`,
             rawContent: 'Filtered out',
             filename: '',
@@ -383,9 +383,8 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
       for (const item of items) {
         const isItemFromCalendarNote = isValidCalendarNoteFilename(item.filename)
-        let encodedFilename = encodeRFC3986URIComponent(item.filename)
-        let encodedContent = encodeRFC3986URIComponent(item.content)
-        let reviewNoteCount = 0 // count of note-review items
+        const encodedFilename = encodeRFC3986URIComponent(item.filename)
+        const encodedContent = encodeRFC3986URIComponent(item.content)
         // outputArray.push(`       <tr class="no-borders" id="${item.ID}">`)
         outputArray.push(`      <div class="sectionItemRow"  id="${item.ID}" data-section-type="${section.sectionType}" data-encoded-filename="${encodedFilename}" data-encoded-content="${encodedContent}">`)
 
@@ -463,7 +462,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
               outputArray.push(`         <div id="${item.ID}I" class="reviewProject itemIcon todo"><i class="fa-regular fa-circle-play"></i></div>`) // earlier had "fa-calendar-check"
 
               // do item details col (was col4): review note link as internal calls
-              const folderNamePart = config.includeFolderName && getFolderFromFilename(item.filename) !== '' ? getFolderFromFilename(item.filename) + ' / ' : ''
+              const folderNamePart = config.includeFolderName && getFolderFromFilename(item.filename) !== '' ? `${getFolderFromFilename(item.filename)} / ` : ''
               const paraContent = `${folderNamePart}${makeNoteTitleWithOpenActionFromFilename(item, itemNoteTitle)}`
 
               let itemDetails = `        <div class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}">\n`
@@ -473,8 +472,6 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
               itemDetails += `        </div>\n      </div>`
               outputArray.push(itemDetails)
               totalOpenItems++
-
-              reviewNoteCount++
             } else {
               logError('showDashboard', `Cannot find note for '${item.content}'`)
             }
@@ -622,12 +619,11 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       makeModal: false,
       shouldFocus: shouldFocus, // shouuld focus window?
       preBodyScript: '', // no extra pre-JS
-      postBodyScript: `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
+      postBodyScript: `${`<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
 ` +
         `<script type="text/javascript" src="./dashboardEvents.js"></script>
-      ` +
-        commsBridge +
-        shortcutsScript,
+      `}${commsBridge
+        }${shortcutsScript}`,
       // + resizeListenerScript
       // + unloadListenerScript
       savedFilename: filenameHTMLCopy,
@@ -649,7 +645,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       const res = addTrigger(Editor, 'onEditorWillSave', 'jgclark.Dashboard', 'decideWhetherToUpdateDashboard')
       if (!res) {
         logWarn(pluginJson, 'Dashboard trigger could not be added for some reason.')
-        const res2 = await showMessage(`Warning: Couldn't add auto-update trigger for the Dashboard for some reason.`)
+        const res = await showMessage(`Warning: Couldn't add auto-update trigger for the Dashboard for some reason.`)
       }
     }
   } catch (error) {

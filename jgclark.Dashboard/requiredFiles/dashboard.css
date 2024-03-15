@@ -182,7 +182,7 @@ body {
 	/* border-color: #DFE0E0; */
 	border-style: none;
 	border-radius: 4px;
-	box-shadow: 1px 1px 1px 0px #CBCBCB;
+	box-shadow: 1px 1px 1px 0px var(--bg-alt-color);
 	padding: 0px 3px 0px 3px;
 	/* margin: 2px 4px; */
 	white-space: nowrap;

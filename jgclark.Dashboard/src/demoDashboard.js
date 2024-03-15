@@ -213,7 +213,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
       })
       // clo(combinedSortedParas, "daily sortedOpenParas")
       logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-      sections.push({ ID: sectionCount, name: 'Today', sectionType: 'D', description: `from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
       sectionCount++
 
       clo(sortedRefParas, "sortedRefParas")
@@ -224,7 +224,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
           sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
           itemCount++
         })
-        sections.push({ ID: sectionCount, name: 'Today', sectionType: 'D', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+        sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
         sectionCount++
       }
     } else {
@@ -236,7 +236,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         itemCount++
       })
       // clo(sortedRefParas, "sortedRefParas")
-      sections.push({ ID: sectionCount, name: 'Today', sectionType: 'D', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
       sectionCount++
     }
     // Make up count of tasks/checklists done today
@@ -256,7 +256,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "prefix": "+ ",
         "contentRange": {},
         "lineIndex": 2,
+        "date": "2023-02-27T00:00:00.000Z",
         "heading": "",
+        "headingRange": {},
         "headingLevel": -1,
         "isRecurring": false,
         "indents": 0,
@@ -275,7 +277,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 3,
+        "date": "2023-02-27T00:00:00.000Z",
         "heading": "",
+        "headingRange": {},
         "headingLevel": -1,
         "isRecurring": false,
         "indents": 0,
@@ -294,7 +298,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "prefix": "+ ",
         "contentRange": {},
         "lineIndex": 4,
+        "date": "2023-02-27T00:00:00.000Z",
         "heading": "",
+        "headingRange": {},
         "headingLevel": -1,
         "isRecurring": false,
         "indents": 0,
@@ -314,7 +320,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 5,
+        "date": "2023-02-27T00:00:00.000Z",
         "heading": "",
+        "headingRange": {},
         "headingLevel": -1,
         "isRecurring": false,
         "indents": 0,
@@ -583,9 +591,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
     // Notes to review
     const nextNotesToReview = [
       {
-        "filename": "CCC Areas/Staff/Staff Induction (JW).md",
+        "filename": "CCC Projects/Facilities/Hearing Support.md",
         "type": "Notes",
-        "title": "Staff Induction (JW)",
+        "title": "Hearing Support at CCC",
         "changedDate": "2023-02-28T13:11:30.000Z",
         "createdDate": "2023-02-28T13:11:30.000Z",
         "hashtags": [

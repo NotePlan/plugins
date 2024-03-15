@@ -1,22 +1,21 @@
+/* eslint-disable require-await */
 // @flow
 
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 10.3.2024 for v1.0.0, @jgclark
+// last updated 15.3.2024 for v1.0.0, @jgclark
 // ----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getPluginJson, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+// import { getPluginJson, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 import { isHTMLWindowOpen, logWindowsList } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
-import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
-import moment from 'moment/min/moment-with-locales'
 
-import { showDashboard } from './HTMLGeneratorGrid'
+// import { showDashboard } from './HTMLGeneratorGrid'
 
 export { getDemoDataForDashboard } from './demoDashboard'
 export {
@@ -48,7 +47,7 @@ export async function init(): Promise<void> {
 export async function onSettingsUpdated(): Promise<any> {
   // FIXME(Eduard): this fails because the Editor is out of scope when the settings screen is shown
   if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-    await showDashboard('refresh', false) // probably don't need await
+    //   await showDashboard('refresh', false) // probably don't need await
   }
 }
 
