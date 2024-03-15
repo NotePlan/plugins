@@ -2,7 +2,8 @@
 
 This plugin (which requires NotePlan version 3.9.8 or higher) gives some tools to help manage NotePlan's windows more easily:
 - **save different layouts** ('Window Sets') of your NotePlan windows on macOS, and then **restore them** in just a few clicks. This includes ordinary notes, calendar notes and special 'html' windows created by some Plugins. (See more detail below.)
-- **move split to main** command (alias: **mstm**) moves the current split pane to be the first one in the main window.
+- **swap split to main** command (alias: **swap**) swaps the currently-selected split to main, or if no split is currently selected, asks the user which to swap
+- **move split to main** command (alias: **mstm**) moves the currently-selected split pane to be the first one in the main window.
 - **constrain main window** command (alias: **cmw**) moves the main window to make sure its fully in the screen area, shrinking it if it needs to.
 - **open note in new split**: (alias: /onns) opens a user-selected note in a new split of the main window (*)
 - **open note in new window** (alias: /onnw) opens a user-selected note in a new window (*)
@@ -26,6 +27,7 @@ You can also **delete window set** (alias **/sws**): Delete a saved set. You are
 Unfortunately because of limitations in the API that plugins use, WindowSets:
 1. can't control the width of split windows within the main NotePlan window.
 2. can't control the order of windows that overlap, as the API doesn't supply the z-order of windows when saving a set. (Nor can it control the z-order of windows when opening a set.)
+3. doesn't seem to be able to set size/position of floating Editor windows.
 
 ## Configuration
 Click the gear button on the **Window Tools** line in the Plugin Preferences panel, and configure the two settings accordingly:

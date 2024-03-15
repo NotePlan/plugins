@@ -2,7 +2,7 @@
 //---------------------------------------------------------------
 // Other windowing functions
 // Jonathan Clark
-// last update 27.12.2023 for v1.0.0 by @jgclark
+// last update 15.3.2024 for v1.2.0 by @jgclark
 // Minimum NP version: v3.9.8
 //---------------------------------------------------------------
 
@@ -10,18 +10,18 @@ import pluginJson from '../plugin.json'
 import * as wth from './WTHelpers'
 import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
+import { getNoteTitleFromFilename } from '@helpers/NPnote'
 import {
   closeWindowFromId,
   constrainWindowSizeAndPosition,
   openNoteInNewSplitIfNeeded,
-  // openNoteInNewWindowIfNeeded,
   rectToString,
 } from '@helpers/NPWindows'
-import { showMessage } from '@helpers/userInput'
+import { chooseOption, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 
-const pluginID = 'jgclark.WindowTools'
+// const pluginID = 'jgclark.WindowTools'
 
 //---------------------------------------------------------------
 // Other Windowing tools
@@ -30,7 +30,7 @@ const pluginID = 'jgclark.WindowTools'
  * Constrain main window, so it actually all shows on the screen
  * @author @jgclark
  */
-export async function constrainMainWindow(): Promise<void> {
+export function constrainMainWindow(): void {
   try {
     // Get current editor window details
     const mainWindowRect: Rect = NotePlan.editors[0].windowRect
@@ -41,13 +41,13 @@ export async function constrainMainWindow(): Promise<void> {
     logDebug(pluginJson, `- updatedRect: ${rectToString(updatedRect)}`)
 
     NotePlan.editors[0].windowRect = updatedRect
-  } catch (err) {
-    logError(pluginJson, err)
+  } catch (error) {
+    logError(pluginJson, error.message)
   }
 }
 
 /**
- * Move a split window to the main window (first) positionl.
+ * Move a split window to the main window (first) position.
  * @author @jgclark
  */
 export async function moveCurrentSplitToMain(): Promise<void> {
@@ -56,8 +56,6 @@ export async function moveCurrentSplitToMain(): Promise<void> {
       logInfo(pluginJson, `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
       return
     }
-
-    // const config = await wth.getPluginSettings()
 
     // Get filename of Editor
     if (!Editor) {
@@ -70,7 +68,7 @@ export async function moveCurrentSplitToMain(): Promise<void> {
     const originalSplitNoteType = Editor.type
 
     // Get set of currently open main/split windows
-    const originalWinDetails: Array<wth.EditorWinDetails> = NotePlan.editors
+    const subWinDetails: Array<wth.EditorWinDetails> = NotePlan.editors
       .filter((win) => win.windowType === 'main' || win.windowType === 'split')
       .map((win) => {
         const winRect = win.windowRect
@@ -85,15 +83,15 @@ export async function moveCurrentSplitToMain(): Promise<void> {
           height: winRect.height,
         }
       })
-    logDebug(pluginJson, `moveCurrentSplitToMain starting with ${String(originalWinDetails.length)} editor main/split windows`)
-    if ((originalWinDetails.length) < 2) {
+    logDebug(pluginJson, `moveCurrentSplitToMain starting with ${String(subWinDetails.length)} editor main/split windows`)
+    if ((subWinDetails.length) < 2) {
       throw new Error("There's only 1 open window, so cannot proceed.")
     }
 
     // Close all current split windows
-    for (const ew of originalWinDetails) {
+    for (const ew of subWinDetails) {
       if (ew.windowType === 'split') {
-        logDebug('openWindowSet', `Closing split window with id ${ew.id ?? '?'}`)
+        logDebug('moveCurrentSplitToMain', `Closing split window with id ${ew.id ?? '?'}`)
         closeWindowFromId(ew.id ?? '?')
       }
     }
@@ -112,14 +110,14 @@ export async function moveCurrentSplitToMain(): Promise<void> {
     }
 
     // Open a split with previous main window
-    const originalFirstWindow = originalWinDetails[0]
+    const originalFirstWindow = subWinDetails[0]
     logDebug('moveCurrentSplitToMain', `Attempting to open project note ${originalSplitFilename} in first split`)
     let res = openNoteInNewSplitIfNeeded(originalFirstWindow.filename)
 
     // Open any other remaining split windows
-    if ((originalWinDetails.length) > 2) {
-      for (let i = 2; i < originalWinDetails.length; i++) {
-        const ew = originalWinDetails[i]
+    if ((subWinDetails.length) > 2) {
+      for (let i = 2; i < subWinDetails.length; i++) {
+        const ew = subWinDetails[i]
         if (ew.windowType === 'split') {
           res = openNoteInNewSplitIfNeeded(ew.filename)
         } else {
@@ -129,7 +127,122 @@ export async function moveCurrentSplitToMain(): Promise<void> {
     }
   }
   catch (error) {
-    logError('moveCurrentSplitToMain', JSP(error))
+    logError('moveCurrentSplitToMain', error.message)
+    await showMessage(error.message)
+  }
+}
+/**
+ * Swap the order of sub-windows in the main window.
+ * If there are only two sub-windows, it swaps them.
+ * If the currently selected sub-window is a split, then swap that one.
+ * Otherwise ask which split to move to main.
+ * Note: Here sub-window means all visible 'windows' in the main Editor window (i.e. both 'main' and 'split's). It does *not* cover separate floating windows.
+ * @author @jgclark
+ */
+export async function swapSplitWindows(): Promise<void> {
+  try {
+    if (NotePlan.environment.platform !== 'macOS' || NotePlan.environment.buildVersion < 1100) {
+      logInfo(pluginJson, `Window Sets needs NotePlan v3.9.8 or later on macOS. Stopping.`)
+      return
+    }
+
+    // Get filename of Editor
+    if (!Editor) {
+      throw new Error(`There is no Editor open, so cannot continue.`)
+    }
+
+    // Get set of currently open main/split windows
+    const subWinDetails: Array<wth.EditorWinDetails> = NotePlan.editors
+      .filter((win) => win.windowType === 'main' || win.windowType === 'split')
+      .map((win) => {
+        const winRect = win.windowRect
+        return {
+          id: win.id,
+          noteType: win.type,
+          windowType: win.windowType,
+          filename: win.filename,
+          x: winRect.x,
+          y: winRect.y,
+          width: winRect.width,
+          height: winRect.height,
+        }
+      })
+    logDebug(pluginJson, `moveCurrentSplitToMain starting with ${String(subWinDetails.length)} editor sub-windows`)
+    // clo(subWinDetails)
+    if ((subWinDetails.length) < 2) {
+      throw new Error("There's only 1 open window, so there's nothing to swap. Stopping.")
+    }
+
+    // Now work out which sub-window to swap
+    let splitNumberToMove = NaN
+    if (Editor.windowType === 'split') {
+      const thisFilename = Editor.filename
+      // Find first item in subWinDetails that matches thisFilename
+      const thisWD = subWinDetails.find(obj => obj.filename === thisFilename)
+      splitNumberToMove = subWinDetails.indexOf(thisWD)
+      logDebug('swapSplitWindows', `Will swap sub-window #${String(splitNumberToMove)}`)
+    }
+    else if ((subWinDetails.length) === 2) {
+      // only 2 sub-windows so just swap them
+      splitNumberToMove = 1
+      logDebug('swapSplitWindows', `Will swap sub-window #${String(splitNumberToMove)}`)
+    }
+    else {
+      // Ask user which split to swap to main
+      // Form list of sub-window display names
+      let c = 0
+      const splitOptions: Array<Object> = []
+      for (const wd of subWinDetails) {
+        if (wd.windowType === 'split') {
+          splitOptions.push({ label: getNoteTitleFromFilename(wd.filename), value: c })
+          c++
+        }
+      }
+      const res = await chooseOption('Which sub-window do you want to swap to the first position?', splitOptions)
+      // Note: if user cancels then this stops
+      splitNumberToMove = res + 1
+      logDebug('swapSplitWindows', `User selected to swap sub-window #${String(splitNumberToMove)} (${res.label})`)
+    }
+
+    // swap the original array to make the following easier
+    const originalMainDetails = subWinDetails[0]
+    subWinDetails[0] = subWinDetails[splitNumberToMove]
+    subWinDetails[splitNumberToMove] = originalMainDetails
+
+    // Close all current split windows
+    for (const wd of subWinDetails) {
+      if (wd.windowType === 'split') {
+        logDebug('swapSplitWindows', `Closing split window with id ${wd.id ?? '?'}`)
+        closeWindowFromId(wd.id ?? '?')
+      }
+    }
+
+    // Constrain window to be fully on the screen while we're at it
+    await constrainMainWindow()
+
+    // Now open first sub-window as main
+    const firstSubWinFilename = subWinDetails[0].filename
+    const firstSubWinNoteType = subWinDetails[0].noteType
+    if (firstSubWinNoteType === 'Notes') {
+      logDebug('swapSplitWindows', `Attempting to open project note ${firstSubWinFilename} as first sub-window (main)`)
+      const res = await Editor.openNoteByFilename(firstSubWinFilename, false)
+    } else {
+      const noteNPDate = getDateStringFromCalendarFilename(firstSubWinFilename)
+      logDebug('swapSplitWindows', `Attempting to open calendar date ${noteNPDate} as first sub-window (main)`)
+      const res = await Editor.openNoteByDateString(noteNPDate, false)
+    }
+
+    // Open all other sub-windows as splits
+    if ((subWinDetails.length) > 1) {
+      for (let i = 1; i < subWinDetails.length; i++) {
+        const wd = subWinDetails[i]
+        // logDebug('swapSplitWindows', `Attempting to open  ${wd.filename} in sub-window #${i} (split)`)
+        const res = openNoteInNewSplitIfNeeded(wd.filename)
+      }
+    }
+  }
+  catch (error) {
+    logError('swapSplitWindows', error.message)
     await showMessage(error.message)
   }
 }

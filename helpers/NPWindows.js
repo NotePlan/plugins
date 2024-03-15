@@ -22,8 +22,7 @@ export function rectToString(rect: Rect): string {
  * Uses API introduced in NP 3.8.1, and extended in 3.9.1 to add .rect.
  * @author @jgclark
  */
-/* eslint-disable-next-line require-await */
-export async function logWindowsList(): Promise<void> {
+export function logWindowsList(): void {
   const outputLines = []
   const numWindows = NotePlan.htmlWindows.length + NotePlan.editors.length
   if (NotePlan.environment.buildVersion >= 1100) { // v3.9.8a
@@ -40,7 +39,6 @@ export async function logWindowsList(): Promise<void> {
     }
     c = 0
     for (const win of NotePlan.htmlWindows) {
-      // clo(win)
       outputLines.push(`- ${String(c)}: ${win.type}: customId:'${win.customId ?? ''}' ID:${win.id} Rect:${rectToString(win.windowRect)}`)
       c++
     }
@@ -59,7 +57,7 @@ export async function logWindowsList(): Promise<void> {
     outputLines.unshift(`${outputLines.length} Windows:`)
     logInfo('logWindowsList', outputLines.join('\n'))
   } else {
-    logInfo('logWindowsList', `(Cannot list windows: needs NP v3.8.1+)`)
+    logInfo('logWindowsList', `Cannot list windows: needs NP v3.8.1+`)
   }
 }
 
@@ -197,6 +195,31 @@ export function setEditorWindowId(openNoteFilename: string, customId: string): v
   } else {
     logInfo('setEditorWindowId', `Cannot set window title: needs NP v3.8.1+`)
   }
+}
+
+/**
+ * Set customId for the given Editor window
+ * Note: Hopefully in time, this will be removed, when @EduardMe rolls it into an API call
+ * @author @jgclark
+ * @param {string} filenameToFind, i.e. note that is open in an Editor that we're trying to set customID for
+ * @returns {Editor} the Editor window
+ */
+export function findEditorWindowByFilename(filenameToFind: string): TEditor | false {
+  if (NotePlan.environment.buildVersion >= 973) {
+    logWindowsList()
+
+    const allEditorWindows = NotePlan.editors
+    for (const thisEditorWindow of allEditorWindows) {
+      if (thisEditorWindow.filename === filenameToFind) {
+        logDebug('findEditorWindowByFilename', `found Editor Window for filename ${filenameToFind}. ID=${thisEditorWindow.id}`)
+        return thisEditorWindow
+      }
+    }
+    logWarn('findEditorWindowByFilename', `Couldn't match '${filenameToFind}' to an Editor window`)
+  } else {
+    logInfo('findEditorWindowByFilename', `This needs NP v3.8.1+`)
+  }
+  return false
 }
 
 /**
@@ -458,7 +481,7 @@ export function getLiveWindowRectFromWin(win: Window): Rect | false {
   }
   if (win) {
     const windowRect: Rect = win.windowRect
-    // clo(windowRect, `getLiveWindowRectFromWin(): Retrieved Rect ${rectToString(windowRect)}:`)
+    clo(windowRect, `getLiveWindowRectFromWin(): Retrieved Rect ${rectToString(windowRect)}:`)
     return windowRect
   } else {
     logWarn('getLiveWindowRectFromWin', `Invalid window parameter`)

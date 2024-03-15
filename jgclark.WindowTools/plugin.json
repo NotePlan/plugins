@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.WindowTools/CHANGELOG.md",
-  "plugin.version": "1.1.3",
-  "plugin.lastUpdateInfo": "v1.1.3: bug fixes\nv1.1.2: Bug fixes.\nv1.1.1: improve migration from previous plugin ('WindowSets')\nv1.1.0: added x-callbacks for /open window set, /open note in new split and /open note in new window commands.\nv1.0.0: 3 new commands, and renamed plugin from 'Window Sets'. Also moved 3 window-related commands from 'Note Helpers' plugin.\nv0.4.0: First public release, and requires NP v3.9.8.",
+  "plugin.version": "1.2.0",
+  "plugin.lastUpdateInfo": "v1.2.0: new command 'swap splits', plus positioning bug fix\nv1.1.2: Bug fixes.\nv1.1.1: improve migration from previous plugin ('WindowSets')\nv1.1.0: added x-callbacks for /open window set, /open note in new split and /open note in new window commands.\nv1.0.0: 3 new commands, and renamed plugin from 'Window Sets'. Also moved 3 window-related commands from 'Note Helpers' plugin.\nv0.4.0: First public release, and requires NP v3.9.8.",
   "plugin.dependencies": [],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -48,6 +48,14 @@
       ],
       "description": "Move current split window to be the main window",
       "jsFunction": "moveCurrentSplitToMain"
+    },
+    {
+      "name": "swap splits",
+      "alias": [
+        "swap"
+      ],
+      "description": "Swap order of split windows",
+      "jsFunction": "swapSplitWindows"
     },
     {
       "name": "open note in new window",

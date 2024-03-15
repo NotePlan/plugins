@@ -29,17 +29,17 @@ import {
 import { clo, isObjectEmpty, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { logPreference, unsetPreference } from '@helpers/NPdev'
 import { displayTitle } from '@helpers/general'
-import { relativeDateFromDateString } from '@helpers/NPdateTime'
+import {
+  getCalendarFilenameFromDateString,
+  relativeDateFromDateString
+} from '@helpers/NPdateTime'
 import {
   applyRectToHTMLWindow,
   closeWindowFromId,
+  findEditorWindowByFilename,
   getNonMainWindowIds,
   rectToString
 } from '@helpers/NPWindows'
-// import {
-//   openNoteInNewSplit,
-//   openNoteInNewWindow
-// } from "@helpers/NPWindows";
 import { chooseOption, getInputTrimmed, showMessage, showMessageYesNo, showMessageYesNoCancel } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
@@ -387,7 +387,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
 
     // First close other windows (if requested)
     if (thisWS.closeOtherWindows) {
-      logDebug('openWindowSet', `Attempting to close any other windows that aren't part of the set`)
+      logDebug('openWindowSet', `Closing any other windows that aren't part of the set`)
 
       // Get list of currently open non-main windows
       const openWindowIds = getNonMainWindowIds()
@@ -407,7 +407,7 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
           logDebug('openWindowSet', `- Calling Plugin '${hw.pluginID}::${hw.pluginCommandName}' ...`)
           await DataStore.invokePluginCommandByName(hw.pluginCommandName, hw.pluginID)
           // If x,y,w,h given, then update window position/size
-          if (hw.x && hw.y && hw.width && hw.height) {
+          if (Number.isFinite(hw.x) && Number.isFinite(hw.y) && Number.isFinite(hw.width) && Number.isFinite(hw.height)) {
             const rect = { x: hw.x, y: hw.y, width: hw.width, height: hw.height }
             logDebug('openWindowSet', `  - applying Rect definition ${rectToString(rect)}`)
             applyRectToHTMLWindow(rect, hw.customId)
@@ -421,96 +421,130 @@ export async function openWindowSet(setNameArg: string = ''): Promise<boolean> {
     }
 
     logDebug('openWindowSet', `Attempting to open ${String(thisWS.editorWindows.length)} note window(s)`)
-    let mainRect = {} // to save whatever the 'main' Editor is in this WS
+    let mainRect: Rect // to save whatever the 'main' Editor is in this WS
     for (const ew of thisWS.editorWindows) {
       if (ew.filename === '') {
         logWarn('openWindowSet', `- WS '${thisWS.name}' has an empty Editor filename: ignoring. Please check the definitions in the Window Set note.`)
         continue
       }
-      clo(ew, 'ew')
       // Decide which 'resource' (project note/calendar note/plugin) to open
-      let resourceToOpen = ew.filename
+      let resourceFilenameToOpen = ew.filename
 
       if (ew.windowType === 'floating') {
         // Open in a full window pane
         switch (ew.noteType) {
           case 'Calendar': {
+            // We need to have a related dateString as well as calendar note filename:
+            let resourceDateStrToOpen = resourceFilenameToOpen
+
             // if this is a relative date, calculate the actual date
-            if (resourceToOpen.match(RE_OFFSET_DATE)) {
-              const dateOffsetStrings = resourceToOpen.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
-              logDebug('dateOffsetStrings', String(dateOffsetStrings))
+            if (resourceFilenameToOpen.match(RE_OFFSET_DATE)) {
+              const dateOffsetStrings = resourceFilenameToOpen.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
               const dateOffsetString = dateOffsetStrings[1] // first capture group
-              logDebug('dateOffsetStrings', `- calculated relative date ${dateOffsetString}`)
-              resourceToOpen = calcOffsetDateStr(getTodaysDateHyphenated(), dateOffsetString, 'offset')
+              // logDebug('openWindowSet', `- calculated relative date ${dateOffsetString}`)
+
+              resourceDateStrToOpen = calcOffsetDateStr(getTodaysDateHyphenated(), dateOffsetString, 'offset')
               // Grr, need to change back to YYYYMMDD if daily note
-              resourceToOpen = getFilenameDateStrFromDisplayDateStr(resourceToOpen)
-              logDebug('dateOffsetStrings', `- resourceToOpen = ${resourceToOpen}`)
+              resourceDateStrToOpen = getFilenameDateStrFromDisplayDateStr(resourceDateStrToOpen)
+              logDebug('openWindowSet', `- resourceDateStrToOpen = ${resourceDateStrToOpen}`)
+              resourceFilenameToOpen = getCalendarFilenameFromDateString(resourceDateStrToOpen)
+              logDebug('openWindowSet', `  -> resourceFilenameToOpen = ${resourceFilenameToOpen}`)
             }
-            logDebug('openWindowSet', `- will open Calendar '${resourceToOpen}' in split`)
-            const res = await Editor.openNoteByDateString(resourceToOpen, (openCount > 0), 0, 0, false)
-            // TODO: move window
+            logDebug('openWindowSet', `- opening Calendar '${resourceDateStrToOpen}' (${resourceFilenameToOpen}) in new floating window`)
+            const res = await Editor.openNoteByDateString(resourceDateStrToOpen, (openCount > 0), 0, 0, false)
+
+            // then move/resize window
+            // need to find new window's reference to use in the next line from the filename
+            const thisEditorWindow = findEditorWindowByFilename(resourceFilenameToOpen)
+            if (!thisEditorWindow) {
+              logWarn('openWindowSet', `  - unable to find new Editor window with filename ${resourceFilenameToOpen} so cannot set its size/position.`)
+            } else {
+              const thisRect = wsh.formRectFromWindowDetails(ew, resourceFilenameToOpen)
+              logDebug('openWindowSet', `  - applying Rect definition ${rectToString(thisRect)} to new floating Editor window`)
+              thisEditorWindow.windowRect = thisRect
+              // FIXME(Eduard): following shows that it doesn't seem to set correctly
+              logDebug('openWindowSet', `  - ⛳️ check: this rect reports as: ${rectToString(thisEditorWindow.windowRect)}`)
+            }
             openCount++
             break
           }
           default: { // 'Note'
-            const res = await Editor.openNoteByFilename(resourceToOpen, (openCount > 0), 0, 0, false, false)
-            // TODO: move window
+            logDebug('openWindowSet', `- opening Note '${resourceFilenameToOpen}' in new floating window`)
+            const res = await Editor.openNoteByFilename(resourceFilenameToOpen, (openCount > 0), 0, 0, false, false)
+
+            // then move/resize window
+            // need to find new window's reference to use in the next line ...
+            const thisEditorWindow = findEditorWindowByFilename(resourceFilenameToOpen)
+            if (!thisEditorWindow) {
+              logWarn('openWindowSet', `  - unable to find new Editor window with filename ${resourceFilenameToOpen} so cannot set its size/position.`)
+            } else {
+              const thisRect = wsh.formRectFromWindowDetails(ew, resourceFilenameToOpen)
+              logDebug('openWindowSet', `  - applying Rect definition ${rectToString(thisRect)} to new floating Editor window`)
+              thisEditorWindow.windowRect = thisRect
+              // FIXME(Eduard): following shows that it doesn't seem to set correctly
+              logDebug('openWindowSet', `  - ⛳️ check: this rect reports as: ${rectToString(thisEditorWindow.windowRect)}`)
+            }
             openCount++
             break
           }
         }
-        logDebug('openWindowSet', `- opened '${resourceToOpen}' in float`)
+        // logDebug('openWindowSet', `- opened '${resourceFilenameToOpen}' in float`)
       }
       else {
         // Open in a main or split window. (Main only for the first one.)
         if (ew.windowType === 'main') {
-          if (ew.x && ew.y && ew.width && ew.height) {
-            mainRect = { x: ew.x, y: ew.y, width: ew.width, height: ew.height }
-          } else {
-            logWarn('openWindowSet', `- WS '${thisWS.name}' is missing some rect definition elements. Please re-save this window set.`)
-          }
+          mainRect = wsh.formRectFromWindowDetails(ew, ew.filename)
         }
 
         switch (ew.noteType) {
           case 'Calendar': {
+            // We need to have a related dateString as well as calendar note filename:
+            let resourceDateStrToOpen = resourceFilenameToOpen
+
             // if this is a relative date, calculate the actual date
-            if (resourceToOpen.match(RE_OFFSET_DATE)) {
+            if (resourceFilenameToOpen.match(RE_OFFSET_DATE)) {
               logDebug('openWindowSet', `  - trying note filename '${ew.filename}' with windowType ${ew.windowType}`)
-              const dateOffsetStrings = resourceToOpen.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
+              const dateOffsetStrings = resourceFilenameToOpen.match(RE_OFFSET_DATE_CAPTURE) ?? ['']
               const dateOffsetString = dateOffsetStrings[1] // first capture group
-              logDebug('dateOffsetStrings', `  - dateOffsetString = ${dateOffsetString}`)
-              resourceToOpen = calcOffsetDateStr(getTodaysDateUnhyphenated(), dateOffsetString, 'offset')
-              logDebug('dateOffsetStrings', `  - resourceToOpen = ${resourceToOpen}`)
+              logDebug('openWindowSet', `  - dateOffsetString = ${dateOffsetString}`)
+              resourceDateStrToOpen = calcOffsetDateStr(getTodaysDateUnhyphenated(), dateOffsetString, 'offset')
+              // Grr, need to change back to YYYYMMDD if daily note
+              resourceDateStrToOpen = getFilenameDateStrFromDisplayDateStr(resourceDateStrToOpen)
+              logDebug('openWindowSet', `  - resourceDateStrToOpen = ${resourceDateStrToOpen}`)
+              resourceFilenameToOpen = getCalendarFilenameFromDateString(resourceDateStrToOpen)
+              logDebug('openWindowSet', `  -> resourceFilenameToOpen = ${resourceFilenameToOpen}`)
             }
-            const res = await Editor.openNoteByDateString(resourceToOpen, false, 0, 0, (openCount > 0))
+            logDebug('openWindowSet', `- opening Calendar '${resourceDateStrToOpen}' (${resourceFilenameToOpen}) in sub-window`)
+            const res = await Editor.openNoteByDateString(resourceDateStrToOpen, false, 0, 0, (openCount > 0))
             if (res) {
-              logDebug('openWindowSet', `- opened Calendar note ${resourceToOpen} in ${(openCount > 0) ? 'split' : 'main'}`)
+              logDebug('openWindowSet', `- opened Calendar note ${resourceFilenameToOpen} in ${(openCount > 0) ? 'split' : 'main'}`)
               openCount++
             } else {
-              logWarn('openWindowSet', `- problem opening Calendar note ${resourceToOpen} in ${(openCount > 0) ? 'split' : 'main'}`)
+              logWarn('openWindowSet', `- problem opening Calendar note ${resourceFilenameToOpen} in ${(openCount > 0) ? 'split' : 'main'}`)
             }
             break
           }
           default: { // 'Note'
-            const res = await Editor.openNoteByFilename(resourceToOpen, false, 0, 0, (openCount > 0), false)
+            const res = await Editor.openNoteByFilename(resourceFilenameToOpen, false, 0, 0, (openCount > 0), false)
             if (res) {
-              logDebug('openWindowSet', `- opened Note ${resourceToOpen} in split`)
+              logDebug('openWindowSet', `- opened Note ${resourceFilenameToOpen} in split`)
               openCount++
             } else {
-              logError('openWindowSet', `- problem opening Note ${resourceToOpen} in split`)
+              logWarn('openWindowSet', `- problem opening Note ${resourceFilenameToOpen} in split`)
             }
             break
           }
         }
       }
-      // Now set windowRect for whole Editor, using saved x,y,w,h from the 'main' part of this WS
+    }
+
+    // Now set windowRect for whole main Editor, using saved x,y,w,h from the 'main' part of this WS
       if (mainRect && !isObjectEmpty(mainRect)) {
         logDebug('openWindowSet', `  - applying Rect definition ${rectToString(mainRect)} to whole main Editor window`)
         Editor.windowRect = mainRect
       } else {
         logWarn('openWindowSet', `Couldn't find rect details for main window to apply to whole Editor, so won't.`)
       }
-    }
 
     return true
   }

@@ -4,7 +4,7 @@
 //---------------------------------------------------------------
 // Window Sets commands
 // Jonathan Clark
-// Last updated 14.3.2024 for v1.1.3 by @jgclark
+// Last updated 15.3.2024 for v1.2.0 by @jgclark
 //---------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -31,7 +31,8 @@ export {
 
 export {
   constrainMainWindow,
-  moveCurrentSplitToMain
+  moveCurrentSplitToMain,
+  swapSplitWindows
 } from './otherWindowTools'
 
 export {

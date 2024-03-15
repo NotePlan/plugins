@@ -177,7 +177,7 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-  openNoteByDateString(filename: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
+openNoteByDateString(dateString: string, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean): Promise < TNote | void>;
   /**
    * Opens a weekly calendar note by the given year and week number
    * Note: available from v3.6
@@ -387,8 +387,9 @@ declare interface TEditor extends CoreNoteFields {
    *   rect.height -= 50
    *   Editor.windowRect = rect
    *
-   * Note from JGC: for split & main windows, x/y returns the position and size of the whole window
-   * Note from JGC: for split & main windows, height is reliable, but width doesn't always seem to be consistent.
+   * Note: from JGC: for split & main windows, x/y returns the position and size of the whole window
+   * WARNING: from JGC: for split & main windows, height is reliable, but width doesn't always seem to be consistent.
+   * WARNING: from JGC: for floating Editor windows, setting this doesn't seem reliable
    * Note: Available with v3.9.1 build 1020
    */
   windowRect: Rect;

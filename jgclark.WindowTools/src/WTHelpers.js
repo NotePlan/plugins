@@ -470,6 +470,27 @@ export function checkWindowSetBounds(setToCheck: WindowSet): WindowSet {
 }
 
 /**
+ * Form a Rect from the x/y/width/height attributes of an EditorWinDetails or HTMLWindowDetails
+ * @param {EditorWinDetails | HTMLWinDetails} winDetails 
+ * @param {string} label to use for logging these details
+ * @returns {Rect} 
+ */
+export function formRectFromWindowDetails(winDetails: EditorWinDetails | HTMLWinDetails, label: string): Rect {
+  // logDebug('formRectFromWindowDetails', `${String(Number.isFinite(winDetails.x))} ${String(winDetails.x)}`)
+  // logDebug('formRectFromWindowDetails', `${String(Number.isFinite(winDetails.y))} ${String(winDetails.y)}`)
+  // logDebug('formRectFromWindowDetails', `${String(Number.isFinite(winDetails.width))} ${String(winDetails.width)}`)
+  // logDebug('formRectFromWindowDetails', `${String(Number.isFinite(winDetails.height))} ${String(winDetails.height)}`)
+  const x = Number.isFinite(winDetails.x) ? winDetails.x : 0
+  const y = Number.isFinite(winDetails.y) ? winDetails.y : 0
+  const width = Number.isFinite(winDetails.width) ? winDetails.width : 1000
+  const height = Number.isFinite(winDetails.height) ? winDetails.height : 800
+  if (x !== winDetails.x || y !== winDetails.y || width !== winDetails.width || height !== winDetails.height) {
+    logWarn('formRectFromWindowDetails', `- some rect definition elements were missing in '${label}', so have fallen back to defaults. Please check your Window Set definitions.`)
+  }
+  return { x: winDetails.x, y: winDetails.y, width: winDetails.width, height: winDetails.height }
+}
+
+/**
  * Offer to write two default sets to note, and sync to prefs.
  * @author @jgclark
  * @returns {number} number of example sets written

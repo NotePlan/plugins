@@ -1,10 +1,10 @@
 # What's changed in 🖥️  Window Tools?
 _Please also see the Plugin [README](https://github.com/NotePlan/plugins/blob/main/jgclark.WindowSets/README.md)._
 
-<!-- - ??? rename or add 'swap' -->
-## [1.1.3] - 2024-03-13
-- **breaking change** update trigger name to make it consistent with others
-- fix to main Editor window not being relocated correctly at times
+## [1.2.0] - 2024-03-15
+- new **swap splits** command that swaps the currently-selected split to main, or if no split is currently selected, asks the user which to swap (thanks to suggestion by @antony-skylar)
+- fix to main Editor window not being relocated correctly at times (thanks to report by @dwertheimer)
+- update automatic trigger name on special Window Sets definition note to make it consistent with others. (If you don't know what this is, you don't need to worry about it!)
 
 ## [1.1.2] - 2024-03-12
 - when it writes example Window Sets it now uses the local machine name, to avoid it appearing that there are no saved Window Sets, and it now  automatically syncs it to the pref as well.
