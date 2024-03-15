@@ -314,40 +314,43 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'updateItemContent': {
         // Send a request to change the content of this item
 
-        // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
-        logDebug('bCDI', '---------------- refresh ---------------')
-        await showDashboard('refresh')
+        if (!data.encodedUpdatedContent) {
+          throw new Error(`Trying to updateItemContent but no encodedUpdatedContent was passed`)
+        }
+        const encodedUpdatedContent = data.encodedUpdatedContent
+        const updatedContent = decodeRFC3986URIComponent(encodedUpdatedContent)
+        logDebug('bCDI / updateItemContent', `starting for updated content '${updatedContent}'`)
 
-        // if (!data.encodedUpdatedContent) {
-        //   throw new Error(`Trying to updateItemContent but no encodedUpdatedContent was passed`)
-        // }
-        // const encodedUpdatedContent = data.encodedUpdatedContent
-        // const updatedContent = decodeRFC3986URIComponent(encodedUpdatedContent)
-        // logDebug('bCDI / updateItemContent', `starting for updated content '${updatedContent}'`)
+        // Get para, using original content
+        const para = findParaFromStringAndFilename(filename, content)
+        if (para && typeof para !== 'boolean') {
+          const paraContent = para.content ?? 'error'
+          logDebug('bCDI / updateItemContent', `found para with original content {${paraContent}}`)
 
-        // // Get para, using original content
-        // const para = findParaFromStringAndFilename(filename, content)
-        // if (para && typeof para !== 'boolean') {
-        //   // const paraContent = para.content ?? 'error'
-        //   // logDebug('bCDI / updateItemContent', `found para with original content {${paraContent}}`)
-        //   logDebug('bCDI / updateItemContent', `calling updateItemContent('${updatedContent}') ...`)
-        //   // Update the content in place
-        //   const updatedData = {
-        //     itemID: ID,
-        //     updatedContent: updatedContent
-        //   }
-        //   sendToHTMLWindow(windowId, 'updateItemContent', updatedData) // unencoded
+          // And update in the app itself
+          para.content = updatedContent
+          const thisNote = para.note
+          if (thisNote) {
+            thisNote.updateParagraph(para)
+            logDebug('bCDI / updateItemContent', `- appeared to update line OK`)
+            // I think this will help as we're about to refresh, and need to pick up this changed note
+            DataStore.updateCache(thisNote)
+          }
 
-        //   // And update in the app itself
-        //   para.content = updatedContent
-        //   const thisNote = para.note
-        //   if (thisNote) {
-        //     thisNote.updateParagraph(para)
-        //     logDebug('bCDI / updateItemContent', `- appeared to update line OK`)
-        //   }
-        // } else {
-        //   logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
-        // }
+          //   logDebug('bCDI / updateItemContent', `calling updateItemContent('${updatedContent}') ...`)
+          //   // Update the content in place
+          //   const updatedData = {
+          //     itemID: ID,
+          //     updatedContent: updatedContent
+          //   }
+          //   sendToHTMLWindow(windowId, 'updateItemContent', updatedData) // unencoded
+          // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
+          logDebug('bCDI', '---------------- refresh ---------------')
+          await showDashboard('refresh')
+
+        } else {
+          logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
+        }
         break
       }
       case 'unscheduleItem': {
