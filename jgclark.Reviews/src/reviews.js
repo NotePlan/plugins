@@ -9,38 +9,56 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 24.2.2024 for v0.13.1+, @jgclark
+// Last updated 17.3.2024 for v0.13.1+, @jgclark
 //-----------------------------------------------------------------------------
 
-import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
 import fm from 'front-matter'
+import pluginJson from '../plugin.json'
 import { checkForWantedResources, logAvailableSharedResources, logProvidedSharedResources } from '../../np.Shared/src/index.js'
 import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
-  getOrMakeMetadataLine,
+  // getOrMakeMetadataLine,
   getReviewSettings,
   makeFakeButton,
   Project,
+  type ReviewConfig,
   saveEditorToCache,
   updateMetadataInEditor,
   updateMetadataInNote,
 } from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
-import { calcOffsetDate, calcOffsetDateStr, getDateObjFromDateString, getJSDateStartOfToday, getTodaysDateHyphenated, hyphenatedDateString, RE_DATE, RE_DATE_INTERVAL, todaysDateISOString } from '@helpers/dateTime'
+import {
+  // calcOffsetDate,
+  calcOffsetDateStr, getDateObjFromDateString,
+  // getJSDateStartOfToday,
+  getTodaysDateHyphenated,
+  // hyphenatedDateString,
+  RE_DATE, RE_DATE_INTERVAL, todaysDateISOString
+} from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import { getFilteredFolderList } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
-import { type HtmlWindowOptions, makeSVGPercentRing, redToGreenInterpolation, showHTML, showHTMLV2 } from '@helpers/HTMLView'
+import {
+  // type HtmlWindowOptions, makeSVGPercentRing, redToGreenInterpolation, showHTML,
+  showHTMLV2
+} from '@helpers/HTMLView'
 import { getOrMakeNote } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { findNotesMatchingHashtag } from '@helpers/NPnote'
-import { findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { fieldSorter, sortListBy } from '@helpers/sorting'
+// import { findStartOfActivePartOfNote } from '@helpers/paragraph'
+import {
+  // fieldSorter,
+  sortListBy
+} from '@helpers/sorting'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
-import { focusHTMLWindowIfAvailable, isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId, setHTMLWindowId } from '@helpers/NPWindows'
+import {
+  // focusHTMLWindowIfAvailable,
+  isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId,
+  // setHTMLWindowId
+} from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------------------
 
@@ -175,19 +193,18 @@ function setRefreshButtonURL(h) {
  * @param {string} settingName of checkbox
  * @param {boolean} state that it now has
  */
-function onChangeCheckbox(settingName: string, state: boolean) {
+// function onChangeCheckbox(settingName: string, state: boolean) {
   // const data = { settingName, state }
   // console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
   // sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
-}
-
+// }
 
 // TODO: in time make a 'timeago' relative display, e.g. using MOMENT moment.duration(-1, "minutes").humanize(true); // a minute ago
 // or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html
 // or https://theprogrammingexpert.com/javascript-count-up-timer/
 export const timeAgoClockJSFunc: string = `
 <script type="text/javascript">
-function timeAgo() {
+function showTimeAgo() {
   const startTime = document.getElementsByName('startTime')[0].getAttribute('content'); // Get startTime from meta tag
   const now = Date.now();
 	const diff = (Math.abs(now - startTime)/1000.0/60.0);  // in Mins
@@ -205,7 +222,7 @@ function timeAgo() {
 		output = String(Math.round(diff / 60.0 / 24.0 / 30.4 / 365.0)) + ' yrs';
 	}
   document.getElementById('timer').innerHTML = output + ' ago';
-  setTimeout(startTime, 5000);
+  setTimeout(showTimeAgo, 10000);
 }
 </script>`
 
@@ -244,9 +261,11 @@ function setPercentRing(percent, ID) {
  */
 export async function makeProjectLists(argsIn?: string | null = null, scrollPos: number = 1000): Promise<void> {
   try {
-    let args = argsIn?.toString() || ''
-    logDebug(pluginJson, `makeProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPos)}`)
     let config = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
+    const args = argsIn?.toString() || ''
+    logDebug(pluginJson, `makeProjectLists: starting with JSON args <${args}> and scrollPos ${String(scrollPos)}`)
     if (args !== '') {
       config = overrideSettingsWithEncodedTypedArgs(config, args)
       // clo(config, 'Review settings updated with args:')
@@ -273,7 +292,7 @@ export async function makeProjectLists(argsIn?: string | null = null, scrollPos:
  * @param {number?} scrollPos scroll position to set (pixels) for HTML display (default: 0)
  */
 export async function renderProjectLists(
-  config: any,
+  config: ReviewConfig,
   shouldOpen: boolean = true,
   scrollPos: number = 0
 ): Promise<void> {
@@ -340,7 +359,7 @@ export async function renderProjectListsHTML(
     if (typeof config.noteTypeTags === 'string') config.noteTypeTags = [config.noteTypeTags]
 
     // String array to save all output
-    let outputArray = []
+    const outputArray = []
 
     // Add (pseduo-)buttons for various commands
     // Note: this is not a real button, bcause at the time I started this real < button > wouldn't work in NP HTML views, and Eduard didn't know why.
@@ -409,7 +428,7 @@ export async function renderProjectListsHTML(
     // write lines before first table
     outputArray.push(`<h1>${windowTitle}</h1>`)
     // Add a sticky area for buttons
-    let controlButtons = `<b>Reviews</b>: ${startReviewButton} \n${reviewedXCallbackButton} \n${nextReviewXCallbackButton}\n${skipReviewXCallbackButton}\n<br /><b>List</b>: \n${refreshXCallbackButton} \n<b>Project</b>: ${updateProgressXCallbackButton} ${pauseXCallbackButton} \n${completeXCallbackButton} \n${cancelXCallbackButton}`
+    const controlButtons = `<b>Reviews</b>: ${startReviewButton} \n${reviewedXCallbackButton} \n${nextReviewXCallbackButton}\n${skipReviewXCallbackButton}\n<br /><b>List</b>: \n${refreshXCallbackButton} \n<b>Project</b>: ${updateProgressXCallbackButton} ${pauseXCallbackButton} \n${completeXCallbackButton} \n${cancelXCallbackButton}`
     // TODO: remove test lines to see scroll position:
     // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
     // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
@@ -442,7 +461,7 @@ export async function renderProjectListsHTML(
     logDebug('renderProjectListsHTML', `>> before main loop: ${timer(funcTimer)}`)
 
     // Make the Summary list, for each noteTag in turn
-    let tagCount = 0
+    // let tagCount = 0
     for (const thisTag of config.noteTypeTags) {
       // Get the summary line for each revelant project
       const [thisSummaryLines, noteCount, due] = await generateReviewSummaryLines(thisTag, 'Rich', config)
@@ -488,7 +507,7 @@ export async function renderProjectListsHTML(
         outputArray.push('</tbody>')
         outputArray.push('</table>')
       }
-      tagCount++
+      // tagCount++
       logDebug('renderProjectListsHTML', `>> end of loop for ${thisTag}: ${timer(funcTimer)}`)
     }
     outputArray.push(`</div>`)
@@ -504,13 +523,13 @@ export async function renderProjectListsHTML(
 
     const winOptions = {
       windowTitle: windowTitle,
-      headerTags: faLinksInHeader + `\n<meta name="startTime" content="${String(Date.now())}">`,
+      headerTags: `${faLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/reviewListCSS instead
       makeModal: false, // = not modal window
-      bodyOptions: '', // TODO: find a different way to get this working 'onload="timeAgo()"',
+      bodyOptions: 'onload="showTimeAgo()"', // TODO: find a different way to get this working 'onload="showTimeAgo()"',
       preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
-      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS, // timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
+      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 800, // = default width of window (px)
@@ -665,19 +684,21 @@ export async function renderProjectListsMarkdown(config: any, shouldOpen: boolea
 export async function redisplayProjectListHTML(): Promise<void> {
   try {
     // Re-load the saved HTML if it's available.
-    const config = await getReviewSettings()
+    // $FlowIgnore[incompatible-type]
+    const config: ?ReviewConfig = await getReviewSettings()
+
     // Try loading HTML saved copy
     const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
     if (savedHTML !== '') {
       const winOptions = {
         windowTitle: windowTitle,
-        headerTags: faLinksInHeader + `\n<meta name="startTime" content="${String(Date.now())}">`,
+        headerTags: `${faLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
         generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
         specificCSS: '', // now provided by separate projectList.css
         makeModal: false, // = not modal window
-        bodyOptions: '', // TODO: find a different way to get this working  'onload="timeAgo()"',
+        bodyOptions: 'onload="timeAgo()"', // TODO: find a different way to get this working  'onload="timeAgo()"',
         preBodyScript: setPercentRingJSFunc,
-        postBodyScript: checkboxHandlerJSFunc, // timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
+        postBodyScript: checkboxHandlerJSFunc + timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
         savedFilename: savedHTML,
         reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
         width: 800, // = default width of window (px)
@@ -711,7 +732,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
  * @returns {number} number of notes
  * @returns {number} number of due notes (ready to review)
  */
-async function generateReviewSummaryLines(noteTag: string, style: string, config: any): Promise<[Array<string>, number, number]> {
+function generateReviewSummaryLines(noteTag: string, style: string, config: any): [Array<string>, number, number] {
   try {
     logDebug('generateReviewSummaryLines', `Starting for tag(s) '${noteTag}' in ${style} style`)
 
@@ -720,7 +741,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
     const outputArray: Array<string> = []
 
     // Read each line in full-review-list
-    let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
+    const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // Try to make the full-review-list
       // await makeFullReviewList(config, true)
@@ -733,12 +754,12 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
 
     // Ignore its frontmatter and sort rest by days before next review (first column), ignoring those for a different noteTag than we're after.
     const fmObj = fm(reviewListContents)
-    let reviewLines = fmObj.body.split('\n').filter((f) => f.match(noteTag))
+    const reviewLines = fmObj.body.split('\n').filter((f) => f.match(noteTag))
 
     let lastFolder = ''
     // Process each line in the file
     // Note: this logic is ~ repeated in two funcs near the end of this file.
-    for (let thisLine of reviewLines) {
+    for (const thisLine of reviewLines) {
       // Split each TSV line into its parts
       const fields = thisLine.split('\t')
       const title = fields[2]
@@ -800,7 +821,7 @@ async function generateReviewSummaryLines(noteTag: string, style: string, config
  * Log the machine-readable list of project-type notes
  * @author @jgclark
  */
-export async function logFullReviewList(): Promise<void> {
+export function logFullReviewList(): void {
   const content = DataStore.loadData(fullReviewListFilename, true) ?? `<error reading ${fullReviewListFilename}>`
   console.log(`Contents of ${fullReviewListFilename}:\n${content}`)
 }
@@ -816,6 +837,8 @@ export async function logFullReviewList(): Promise<void> {
 export async function makeFullReviewList(configIn: any, runInForeground: boolean = false): Promise<void> {
   try {
     const config = configIn ? configIn : await getReviewSettings() // get config from passed config if possible
+    if (!config) throw new Error('No config found. Stopping.')
+
     logDebug('makeFullReviewList', `Starting for ${String(config.noteTypeTags)} tags, running in ${runInForeground ? 'foreground' : 'background'}`)
     let startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
@@ -859,7 +882,7 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
       // Get notes that include noteTag in this folder, ignoring subfolders
       // Note: previous method using (plural) findNotesMatchingHashtags can't distinguish between a note with multiple tags of interest
       for (const tag of tags) {
-        let funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+        const funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
         const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, [], true, filteredDataStore, false)
         logDebug('makeFullReviewList', `>> findNotesMatchingHashtag(${tag}, ${folder}): ${timer(funcTimer)}`)
         if (projectNotesArr.length > 0) {
@@ -879,7 +902,7 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
     }
 
     // Get machineSummaryLine for each of the projectInstances
-    let reviewLines: Array<string> = []
+    const reviewLines: Array<string> = []
     // let lineArrayObjs = []
     for (const p of projectInstances) {
       const mSL = p.machineSummaryLine()
@@ -980,8 +1003,8 @@ function filterAndSortReviewList(linesIn: Array<string>, config: any): Array<str
     const sortedlineArrayObjs = sortListBy(lineArrayObjs, sortingSpecification)
 
     // turn each lineArrayObj back to a TSV string
-    for (let lineObj of sortedlineArrayObjs) {
-      outputArray.push(lineObj.reviewDays + '\t' + lineObj.dueDays + '\t' + lineObj.title + '\t' + lineObj.folder + '\t' + lineObj.tags + '\t' + lineObj.state)
+    for (const lineObj of sortedlineArrayObjs) {
+      outputArray.push(`${lineObj.reviewDays}\t${lineObj.dueDays}\t${lineObj.title}\t${lineObj.folder}\t${lineObj.tags}\t${lineObj.state}`)
     }
 
     // Write some metadata to start
@@ -1009,7 +1032,8 @@ function filterAndSortReviewList(linesIn: Array<string>, config: any): Array<str
  */
 export async function startReviews(): Promise<void> {
   try {
-    const config = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
 
     // Make/update list of projects ready for review
     await makeFullReviewList(config, true)
@@ -1042,14 +1066,16 @@ export async function startReviews(): Promise<void> {
  */
 export async function finishReview(): Promise<void> {
   try {
-    const config = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
     const currentNote = Editor // note: not Editor.note
     if (currentNote && currentNote.type === 'Notes') {
       logInfo(pluginJson, `finishReview: Starting with Editor ${displayTitle(currentNote)}`)
       const thisNoteAsProject = new Project(currentNote)
 
       const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-      const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, 'gi')
+      // const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, 'gi')
       const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
       // logDebug('finishReview', String(RE_REVIEWED_MENTION))
 
@@ -1091,14 +1117,15 @@ export async function finishReview(): Promise<void> {
  */
 export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
   try {
-    const config = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
 
     if (noteToUse && noteToUse.type === 'Notes') {
       logInfo(pluginJson, `finishReviewForNote: Starting for passed note '${displayTitle(noteToUse)}'`)
       const thisNoteAsProject = new Project(noteToUse)
 
       const reviewedMentionStr = checkString(DataStore.preference('reviewedMentionStr'))
-      const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, 'gi')
+      // const RE_REVIEWED_MENTION = new RegExp(`${reviewedMentionStr}\\(${RE_DATE}\\)`, 'gi')
       const reviewedTodayString = `${reviewedMentionStr}(${getTodaysDateHyphenated()})`
       // logDebug('finishReviewForNote', String(RE_REVIEWED_MENTION))
 
@@ -1138,7 +1165,8 @@ export async function finishReviewForNote(noteToUse: TNote): Promise<void> {
 export async function finishReviewAndStartNextReview(): Promise<void> {
   try {
     logDebug('finishReviewAndStartNextReview', `Starting`)
-    const config = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
 
     // Finish review
     await finishReview()
@@ -1175,7 +1203,9 @@ export async function finishReviewAndStartNextReview(): Promise<void> {
  */
 export async function skipReview(): Promise<void> {
   try {
-    const config = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
     const currentNote = Editor
     if (!currentNote || currentNote.type !== 'Notes') {
       logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
@@ -1191,7 +1221,7 @@ export async function skipReview(): Promise<void> {
       return
     }
     // Get new date from input in the common ISO format, and create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)` below.
-    let newDateStr: string = reply.match(RE_DATE)
+    const newDateStr: string = reply.match(RE_DATE)
       ? reply
       : reply.match(RE_DATE_INTERVAL)
         ? calcOffsetDateStr(todaysDateISOString, reply)
@@ -1227,7 +1257,7 @@ export async function skipReview(): Promise<void> {
     // Read review list to work out what's the next one to review
     const noteToReview: ?TNote = await getNextNoteToReview()
     if (noteToReview != null) {
-      if (config.confirmskipReview) {
+      if (config.confirmNextReview) {
         // Check whether to open that note in editor
         const res = await showMessageYesNo(`Ready to review '${displayTitle(noteToReview)}'?`, ['OK', 'Cancel'])
         if (res !== 'OK') {
@@ -1247,7 +1277,9 @@ export async function skipReview(): Promise<void> {
 
 export async function skipReviewForNote(note: TNote, skipPeriod: string): Promise<void> {
   try {
-    const config = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
+
     if (!note || note.type !== 'Notes') {
       logWarn('skipReview', `- There's no project note in the Editor to finish reviewing, so will just go to next review.`)
     }
@@ -1256,7 +1288,7 @@ export async function skipReviewForNote(note: TNote, skipPeriod: string): Promis
     const thisNoteAsProject = new Project(note)
 
     // Get new date from input in the common ISO format, and create new metadata `@nextReview(date)`. Note: different from `@reviewed(date)` below.
-    let newDateStr: string = skipPeriod.match(RE_DATE_INTERVAL)
+    const newDateStr: string = skipPeriod.match(RE_DATE_INTERVAL)
       ? calcOffsetDateStr(todaysDateISOString, skipPeriod)
       : ''
     if (newDateStr === '') {
@@ -1324,16 +1356,16 @@ export async function updateReviewListAfterChange(
         throw new Error('full-review-list note empty or missing')
       }
     }
-    const fileLines = reviewListContents.split('\n')
+    // const fileLines = reviewListContents.split('\n')
 
     // Use front-matter library to get past frontmatter
     const fmObj = fm(reviewListContents)
-    let reviewLines = fmObj.body.split('\n')
+    const reviewLines = fmObj.body.split('\n')
     // const firstLineAfterFrontmatter = fmObj.bodyBegin - 1
 
     // Find right line to update
     let thisLineNum: number = NaN
-    let thisTitle = ''
+    // let thisTitle = ''
     // for (let i = firstLineAfterFrontmatter; i < fileLines.length; i++) {
     for (let i = 0; i < reviewLines.length; i++) {
       // const line = fileLines[i]
@@ -1342,7 +1374,7 @@ export async function updateReviewListAfterChange(
       const titleField = line.split('\t')[2] ?? ''
       if (titleField === reviewedTitle) {
         thisLineNum = i
-        thisTitle = reviewedTitle
+        // thisTitle = reviewedTitle
         logDebug('updateReviewListAfterChange', `- Found '${reviewedTitle}' to update from '${line}' at line number ${String(thisLineNum)}`)
         break
       }
@@ -1396,7 +1428,7 @@ export async function updateReviewListAfterChange(
 async function getNextNoteToReview(): Promise<?TNote> {
   try {
     logDebug('getNextNoteToReview', `Started`)
-    const config = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
 
     // Get contents of full-review-list
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
@@ -1409,7 +1441,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
         throw new Error('full-review-list note empty or missing')
       }
     }
-    const fileLines = reviewListContents.split('\n')
+    // const fileLines = reviewListContents.split('\n')
 
     // Use front-matter library to get past frontmatter
     const fmObj = fm(reviewListContents)
@@ -1455,12 +1487,12 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
     logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
 
     // Get contents of full-review-list
-    let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
+    const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
     if (!reviewListContents) {
       // If we get here, give a warning, as the file should exist and not be empty
       throw new Error(`full-review-list note empty or missing`)
     } else {
-      const fileLines = reviewListContents.split('\n')
+      // const fileLines = reviewListContents.split('\n')
 
       // Use front-matter library to get past frontmatter
       const fmObj = fm(reviewListContents)
@@ -1510,11 +1542,12 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
 export async function toggleDisplayFinished(): Promise<void> {
   try {
     logDebug('toggleDisplayFinished', `starting ...`)
-    let savedValue = DataStore.preference('Reviews-DisplayFinished' ?? false)
-    let newValue = !savedValue
+    const savedValue = DataStore.preference('Reviews-DisplayFinished' ?? false)
+    const newValue = !savedValue
     logDebug('toggleDisplayFinished', `displayFinished? toggled to ${String(newValue)}`)
     DataStore.setPreference('Reviews-DisplayFinished', newValue)
-    let config = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
     await renderProjectLists(config, true)
   }
   catch (error) {
@@ -1525,11 +1558,12 @@ export async function toggleDisplayFinished(): Promise<void> {
 export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
     logDebug('toggleDisplayOnlyDue', `starting ...`)
-    let savedValue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
-    let newValue = !savedValue
+    const savedValue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
+    const newValue = !savedValue
     logDebug('toggleDisplayOnlyDue', `DisplayOnlyDue? toggled to ${String(newValue)}`)
     DataStore.setPreference('Reviews-DisplayOnlyDue', newValue)
-    let config = await getReviewSettings()
+    const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
     await renderProjectLists(config, true)
   }
   catch (error) {

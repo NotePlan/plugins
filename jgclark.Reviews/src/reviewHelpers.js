@@ -2,36 +2,39 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 24.2.2024 for v0.13.1, @jgclark
+// Last updated 17.3.2024 for v0.13.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Import Helper functions
-import pluginJson from '../plugin.json'
 import moment from 'moment/min/moment-with-locales'
+import pluginJson from '../plugin.json'
 import { checkString } from '@helpers/checkType'
 import {
-  calcOffsetDate, calcOffsetDateStr, daysBetween,
+  calcOffsetDate,
+  // calcOffsetDateStr,
+  daysBetween,
   getDateFromUnhyphenatedDateString,
   getDateObjFromDateString,
   getJSDateStartOfToday,
-  hyphenatedDateString,
+  // hyphenatedDateString,
   includesScheduledFutureDate,
   RE_ISO_DATE, RE_YYYYMMDD_DATE,
-  relativeDateFromDate,
+  // relativeDateFromDate,
   todaysDateISOString,
-  toISODateString, unhyphenateString
+  toISODateString,
+  // unhyphenateString
 } from '@helpers/dateTime'
 import { localeRelativeDateFromNumber } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { createOpenOrDeleteNoteCallbackUrl, createRunPluginCallbackUrl, displayTitle, getContentFromBrackets, getStringFromList } from '@helpers/general'
 import {
-  getCallbackCodeString,
-  makeSVGPauseIcon,
+  // getCallbackCodeString,
+  // makeSVGPauseIcon,
   makeSVGPercentRing,
   redToGreenInterpolation,
-  rgbToHex
+  // rgbToHex
 } from '@helpers/HTMLView'
 import { noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
@@ -41,7 +44,6 @@ import {
   showMessage
 } from '@helpers/userInput'
 import { isDone, isOpen } from '@helpers/utils'
-import { isNull } from 'mathjs'
 
 //------------------------------
 // Config setup
@@ -80,7 +82,7 @@ export type ReviewConfig = {
  * @author @jgclark
  * @return {ReviewConfig} object with configuration
  */
-export async function getReviewSettings(): Promise<any> {
+export async function getReviewSettings(): Promise<?ReviewConfig> {
   // logDebug(pluginJson, `Start of getReviewSettings()`)
   try {
     // Get settings
@@ -88,7 +90,7 @@ export async function getReviewSettings(): Promise<any> {
 
     if (config == null || Object.keys(config).length === 0) {
       await showMessage(`Cannot find settings for the 'Reviews' plugin. Please make sure you have installed it from the Plugin Preferences pane.`)
-      return
+      return null
     }
     // clo(config, `Review settings`)
 
@@ -128,7 +130,7 @@ export async function getReviewSettings(): Promise<any> {
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
-    return
+    return null
   }
 }
 
@@ -226,8 +228,8 @@ export type Progress = {
 function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress {
   try {
     let lastDate = new Date('0000-01-01') // earliest possible YYYY-MM-DD date
-    let lastIndex = 0 // Default to returning first line
-    let i = 0
+    // let lastIndex = 0 // Default to returning first line
+    // let i = 0
     let outputProgress: Progress = {
       lineIndex: 1,
       percentComplete: NaN,
@@ -270,7 +272,7 @@ function mostRecentProgressParagraph(progressParas: Array<TParagraph>): Progress
       lastDate = thisDate
 
       // }
-      i++
+      // i++
     }
     // clo(outputProgress, 'mostRecentProgressParagraph ->')
     return outputProgress
@@ -423,14 +425,14 @@ export class Project {
       this.metadataPara = paras[metadataLineIndex]
       let mentions: $ReadOnlyArray<string> = note.mentions ?? [] // Note: can be out of date, and I can't find a way of fixing this, even with updateCache()
       let hashtags: $ReadOnlyArray<string> = note.hashtags ?? [] // Note: can be out of date
-      let metadataLine = paras[metadataLineIndex].content
+      const metadataLine = paras[metadataLineIndex].content
       if (mentions.length === 0) {
         logDebug('Project constructor', `- Grr: .mentions empty: will use metadata line instead`)
         // Note: If necessary, fall back to getting mentions just from the metadataline
-        mentions = (metadataLine + ' ').split(' ').filter((f) => f[0] === '@')
+        mentions = (`${metadataLine} `).split(' ').filter((f) => f[0] === '@')
       }
       if (hashtags.length === 0) {
-        hashtags = (metadataLine + ' ').split(' ').filter((f) => f[0] === '#')
+        hashtags = (`${metadataLine} `).split(' ').filter((f) => f[0] === '#')
       }
 
       // work out noteType:
@@ -566,11 +568,11 @@ export class Project {
       if (this.startDate) {
         const momTSD = moment(this.startDate)
         if (this.completedDate != null) {
-          this.completedDuration = 'after ' + momTSD.to(moment(this.completedDate), true)
+          this.completedDuration = `after ${momTSD.to(moment(this.completedDate), true)}`
           // logDebug('calcDurations', `-> completedDuration = ${this.completedDuration}`)
         }
         else if (this.cancelledDate != null) {
-          this.cancelledDuration = 'after ' + momTSD.to(moment(this.cancelledDate), true)
+          this.cancelledDuration = `after ${momTSD.to(moment(this.cancelledDate), true)}`
           // logDebug('calcDurations', `-> cancelledDuration = ${this.cancelledDuration}`)
         }
       }
@@ -877,11 +879,11 @@ export class Project {
    * @return {string} - title as wikilink
    */
   decoratedProjectTitle(style: string, includeFolderName: boolean): string {
-    const folderNamePart = includeFolderName ? this.folder + ' ' : ''
+    const folderNamePart = includeFolderName ? `${this.folder} ` : ''
     const titlePart = this.title ?? '(error, not available)'
-    const titlePartEncoded = encodeURIComponent(this.title) ?? '(error, not available)'
+    // const titlePartEncoded = encodeURIComponent(this.title) ?? '(error, not available)'
     switch (style) {
-      case 'Rich':
+      case 'Rich': {
         // Method 1: make [[notelinks]] via x-callbacks
         // Method 1a: x-callback using note title
         // const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(this.title, "title", "", "splitView", false)
@@ -901,8 +903,9 @@ export class Project {
         } else {
           return `${noteTitleWithOpenAction}`
         }
+      }
 
-      case 'Markdown':
+      case 'Markdown': {
         if (this.isCompleted) {
           return `[x] ${folderNamePart}[[${titlePart}]]`
         } else if (this.isCancelled) {
@@ -912,6 +915,7 @@ export class Project {
         } else {
           return `${folderNamePart}[[${titlePart}]]` // if this has a [ ] prefix then it of course turns it into a task, which is probably not what we want.
         }
+      }
 
       default:
         logWarn('Project::decoratedProjectTitle', `Unknown style '${style}'; nothing returned.`)
@@ -940,19 +944,19 @@ export class Project {
 
         // Column 1: circle indicator
         if (this.isCompleted) {
-          output += '<td class="first-col-indicator checked">' + this.addFAIcon('fa-solid fa-circle-check') + '</td>' // ('checked' gives colour)
+          output += `<td class="first-col-indicator checked">${this.addFAIcon('fa-solid fa-circle-check')}</td>` // ('checked' gives colour)
         }
         else if (this.isCancelled) {
-          output += '<td class="first-col-indicator cancelled">' + this.addFAIcon('fa-solid fa-circle-xmark') + '</td>' // ('cancelled' gives colour)
+          output += `<td class="first-col-indicator cancelled">${this.addFAIcon('fa-solid fa-circle-xmark')}</td>` // ('cancelled' gives colour)
         }
         else if (this.isPaused) {
-          output += '<td class="first-col-indicator">' + this.addFAIcon("fa-solid fa-circle-pause", "#888888") + '</td>'
+          output += `<td class="first-col-indicator">${this.addFAIcon("fa-solid fa-circle-pause", "#888888")}</td>`
         }
         else if (this.percentComplete === 0 || isNaN(this.percentComplete)) {
-          output += '<td class="first-col-indicator">' + this.addSVGPercentRing(100, '#FF000088', '0') + '</td>'
+          output += `<td class="first-col-indicator">${this.addSVGPercentRing(100, '#FF000088', '0')}</td>`
         }
         else {
-          output += '<td class="first-col-indicator">' + this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete)) + '</td>'
+          output += `<td class="first-col-indicator">${this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete))}</td>`
         }
 
         // Column 2a: Project name / link
@@ -1128,7 +1132,7 @@ export class Project {
  */
 export function makeFakeButton(buttonText: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
   const xcallbackURL = createRunPluginCallbackUrl('jgclark.Reviews', commandName, commandArgs)
-  let output = (tooltipText)
+  const output = (tooltipText)
     ? `<span class="fake-button tooltip"><a class="button" href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></span>`
     : `<span class="fake-button"><a class="button" href="${xcallbackURL}">${buttonText}</span>`
   return output
@@ -1139,6 +1143,7 @@ export function makeFakeButton(buttonText: string, commandName: string, commandA
  * Function to save changes to the Editor to the cache to be available elsewhere straight away.
  * Note: From 3.9.3 there's a function for this, but we needed something else before then (now removed) that did a basic 1s wait.
  */
+// $FlowIgnore[no-unused-vars]
 export async function saveEditorToCache(completed: any): Promise<void> {
   try {
     // // If 3.9.3alpha or later call specific new function
@@ -1174,13 +1179,14 @@ export async function saveEditorToCache(completed: any): Promise<void> {
 //   }
 // }
 
-const delay = (ms: number) => {
-  const start = Date.now()
-  let now = start
-  while (now - start < ms) {
-    now = Date.now()
-  }
-}
+// Note: commented out, as not currently used, and I can't remember what this was for
+// const delay = (ms: number) => {
+//   const start = Date.now()
+//   let now = start
+//   while (now - start < ms) {
+//     now = Date.now()
+//   }
+// }
 
 
 //-------------------------------------------------------------------------------
@@ -1191,7 +1197,7 @@ const delay = (ms: number) => {
  * @param {Array<string>} mentions to update:
  * @returns { ?TNote } current note
  */
-export async function updateMetadataInEditor(updatedMetadataArr: Array<string>): Promise<?TNote> {
+export function updateMetadataInEditor(updatedMetadataArr: Array<string>): ?TNote {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
@@ -1202,7 +1208,7 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
 
     const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
     // Re-read paragraphs, as they might have changed
-    let metadataPara = Editor.paragraphs[metadataLineIndex]
+    const metadataPara = Editor.paragraphs[metadataLineIndex]
     if (!metadataPara) {
       throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
     }
@@ -1219,7 +1225,7 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
       const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
       updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
       // Then append this @mention
-      updatedLine += ' ' + item
+      updatedLine += ` ${item}`
       // logDebug('updateMetadataInEditor', `-> ${updatedLine}`)
     }
 
@@ -1244,7 +1250,7 @@ export async function updateMetadataInEditor(updatedMetadataArr: Array<string>):
  * @param {TNote} noteToUse
  * @param {Array<string>} mentions to update:
  */
-export async function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<string>): Promise<void> {
+export function updateMetadataInNote(note: TNote, updatedMetadataArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (note == null || note.type === 'Calendar' || note.paragraphs.length < 2) {
@@ -1254,7 +1260,7 @@ export async function updateMetadataInNote(note: TNote, updatedMetadataArr: Arra
 
     const metadataLineIndex: number = getOrMakeMetadataLine(note)
     // Re-read paragraphs, as they might have changed
-    let metadataPara = note.paragraphs[metadataLineIndex]
+    const metadataPara = note.paragraphs[metadataLineIndex]
     if (!metadataPara) {
       throw new Error(`Couldn't get or make metadataPara for ${displayTitle(note)}`)
     }
@@ -1271,7 +1277,7 @@ export async function updateMetadataInNote(note: TNote, updatedMetadataArr: Arra
       const RE_THIS_MENTION_ALL = new RegExp(`${mentionName}(\\([\\d\\-\\.]+\\))?`, 'gi')
       updatedLine = updatedLine.replace(RE_THIS_MENTION_ALL, '')
       // Then append this @mention
-      updatedLine += ' ' + item
+      updatedLine += ` ${item}`
       logDebug('updateMetadataInNote', `-> ${updatedLine}`)
     }
 
@@ -1294,7 +1300,7 @@ export async function updateMetadataInNote(note: TNote, updatedMetadataArr: Arra
  * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
  * @returns { ?TNote } current note
  */
-export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>): Promise<?TNote> {
+export function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<string>): ?TNote {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (Editor.note == null || Editor.note.type === 'Calendar' || Editor.note.paragraphs.length < 2) {
@@ -1305,7 +1311,7 @@ export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<s
 
     const metadataLineIndex: number = getOrMakeMetadataLine(Editor)
     // Re-read paragraphs, as they might have changed
-    let metadataPara = Editor.paragraphs[metadataLineIndex]
+    const metadataPara = Editor.paragraphs[metadataLineIndex]
     if (!metadataPara) {
       throw new Error(`Couldn't get or make metadataPara for ${displayTitle(Editor)}`)
     }
@@ -1343,7 +1349,7 @@ export async function deleteMetadataMentionInEditor(mentionsToDeleteArr: Array<s
  * @param {TNote} noteToUse
  * @param {Array<string>} mentions to update (just the @mention name, not and bracketed date)
  */
-export async function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteArr: Array<string>): Promise<void> {
+export function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDeleteArr: Array<string>): void {
   try {
     // only proceed if we're in a valid Project note (with at least 2 lines)
     if (noteToUse == null || noteToUse.type === 'Calendar' || noteToUse.paragraphs.length < 2) {
@@ -1352,7 +1358,7 @@ export async function deleteMetadataMentionInNote(noteToUse: TNote, mentionsToDe
     }
 
     const metadataLineIndex: number = getOrMakeMetadataLine(noteToUse)
-    let metadataPara = noteToUse.paragraphs[metadataLineIndex]
+    const metadataPara = noteToUse.paragraphs[metadataLineIndex]
     if (!metadataPara) {
       throw new Error(`Couldn't get or make metadataPara for ${displayTitle(noteToUse)}`)
     }

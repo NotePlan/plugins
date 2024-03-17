@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 24.2.2024 for v0.13.1, @jgclark
+// Last updated 17.3.2024 for v0.13.2, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -57,7 +57,7 @@ export {
 
 const pluginID = 'jgclark.Reviews'
 
-export async function init(): Promise<void> {
+export function init(): void {
   try {
 
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message. Do this in the background.
