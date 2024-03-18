@@ -1,9 +1,20 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+**NB: The documentation has not yet been updated for 1.0.0 ... none of the settings have changed (I think), but the UX certainly has.**
+
 TODO: 
-- When using the add-task or add-checklist items on the main screen, now uses existing preference 'Section heading to add/move new tasks under' (if set). (#539 for @dwertheimer)
-- improve button shadow in dark mode
+* improve button shadow in dark mode
+* added 'Move all to today' button to the Overdue section as well
+
+## [1.0.0-a5] - 2024-03-17 (unreleased)
+- the new 'Move all to today' button in Yesterday's section now honours the 'reschedule not move?' setting
+- added new 'add task to tomorrow' and 'add checklist to tomorrow' buttons in the Today Section description
+- added tooltips to buttons
+- when using the add-task or add-checklist items on the main screen, now uses existing preference 'Section heading to add/move new tasks under' (if set). (#539 for @dwertheimer)
+- Overdue tasks unhides lower priority items when required
+- added a little more space to top and bottom of sections
+- added a "time since" last update, rather than a time
 
 ## [1.0.0-a4] - 2024-03-15 (unreleased)
 - after an item's content is edited in the control dialog, a full refresh is now run, and note cache updated
@@ -37,6 +48,8 @@ TODO:
 
 ## [0.8.5] - 2024-02-26 (unreleased)
 - code restructuring, ahead of major rewrite
+
+---
 
 ## [0.8.4] - 2024-02-22
 - changed the Projects list section to now show those ready for review, not just overdue for review (just a one day difference!)

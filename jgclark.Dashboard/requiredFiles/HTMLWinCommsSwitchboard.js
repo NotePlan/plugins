@@ -120,7 +120,9 @@ async function completeTaskInDisplay(data) {
     decrementItemCount(sectionCountID)
 
     // See if the only remaining item is the '> There are also ... items' line
-    const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'DIV')
+    const numItemsRemaining = getNumItemsInSectionByClass(`${sectionID}-Section`, 'sectionItemRow')
+    console.log(`- ${numItemsRemaining}`)
+    console.log(`- ${String(doesIDExist(`${sectionID}-Filter`))}`)
     if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
       console.log(`We need to un-hide the lower-priority items: doing full refresh`)
@@ -548,11 +550,11 @@ function decrementItemCount(counterID) {
  */
 function getNumItemsInSection(sectionID, tagName) {
   // console.log(`getNumItemsInSection: ${sectionID} by ${tagName}`)
-  const sectionTable = document.getElementById(sectionID)
-  // console.log(`${sectionTable.innerHTML}`)
-  if (sectionTable) {
+  const sectionElem = document.getElementById(sectionID)
+  // console.log(`${sectionElem.innerHTML}`)
+  if (sectionElem) {
     let c = 0
-    const items = sectionTable.getElementsByTagName(tagName)
+    const items = sectionElem.getElementsByTagName(tagName)
     // I think this is a collection not an array, so can't use a .filter?
     for (i = 0; i < items.length; i++) {
       if (items[i].innerHTML !== '') {
@@ -563,6 +565,34 @@ function getNumItemsInSection(sectionID, tagName) {
     return c
   } else {
     console.log(`- ❗error❗ in getNumItemsInSection: couldn't find section with ID ${sectionID}`)
+    return 0
+  }
+}
+
+/**
+ * Count how many children of type 'tagName' are in DOM under sectionID.
+ * Additionally ignore children with no innerHTML
+ * @param {string} sectionID
+ * @param {string} tagName uppercase version of HTML tag e.g. 'TR'
+ * @returns {number}
+ */
+function getNumItemsInSectionByClass(sectionID, className) {
+  console.log(`getNumItemsInSectionByClass: ${sectionID} by ${className}`)
+  const sectionElem = document.getElementById(sectionID)
+  // console.log(`${sectionElem.innerHTML}`)
+  if (sectionElem) {
+    let c = 0
+    const items = sectionElem.getElementsByClassName(className)
+    // I think this is a collection not an array, so can't use a .filter?
+    for (i = 0; i < items.length; i++) {
+      if (items[i].innerHTML !== '') {
+        c++
+      }
+    }
+    console.log(`=> ${String(c)} items left in this section`)
+    return c
+  } else {
+    console.log(`- ❗error❗ in getNumItemsInSectionByClass: couldn't find section with ID ${sectionID}`)
     return 0
   }
 }

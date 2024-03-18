@@ -5,22 +5,16 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-// import {
-//   addParasAsText,
-//   getFilerSettings
-// } from '../../jgclark.Filer/src/filerHelpers'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
 import { getSettings } from './dashboardHelpers'
 import { showDashboard } from './HTMLGeneratorGrid'
 import {
   calcOffsetDateStr,
-  // getNPWeekStr,
   getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
   // getTodaysDateUnhyphenated,
   RE_DATE_INTERVAL,
-  // RE_DATE_TIME,
   RE_NP_WEEK_SPEC,
   replaceArrowDatesInString,
 } from '@helpers/dateTime'
@@ -39,18 +33,14 @@ import {
   completeItem,
   completeItemEarlier,
   findParaFromStringAndFilename,
-  // getParagraphFromStaticObject,
   highlightParagraphInEditor,
   moveItemBetweenCalendarNotes,
   toggleTaskChecklistParaType,
   unscheduleItem,
 } from '@helpers/NPParagraph'
 import {
-  // applyRectToWindow,
   getLiveWindowRectFromWin, getWindowFromCustomId,
-  // getWindowIdFromCustomId
   logWindowsList,
-  // rectToString,
   storeWindowRect,
 } from '@helpers/NPWindows'
 import { decodeRFC3986URIComponent } from '@helpers/stringTransforms'

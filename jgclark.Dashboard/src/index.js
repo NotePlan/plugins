@@ -25,7 +25,7 @@ export {
   showDemoDashboard,
   // resetDashboardWinSize,
 } from './HTMLGeneratorGrid' // previously: './HTMLGenerator'
-export { scheduleAllYesterdayOpenToToday } from './dashboardHelpers'
+export { scheduleAllYesterdayOpenToToday } from './dashboardHelpersWithRefresh'
 export { decideWhetherToUpdateDashboard } from './dashboardTriggers'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge'
 export { getDataForDashboard, logDashboardData } from './dataGeneration'

@@ -84,7 +84,7 @@ body {
 
 .sectionInfo {
 	display: block;
-	padding-block-start: 3px;
+	padding-block-start: 7px;
 	padding-block-end: 3px;
 	padding-inline-start: 0.5rem;
 	padding-inline-end: 0.5rem;
@@ -95,6 +95,7 @@ body {
 	font-weight: 400;
 	text-align: center;
 	padding-right: 0.3rem;
+	padding-block-start: 1px;
 }
 .sectionName { /* column 1's title */
 	font-size: 1.0rem;
@@ -120,6 +121,8 @@ body {
 	/* column-gap: 1rem; */
 	column-rule: 1px dotted var(--tint-color);
 	column-fill: auto;
+	padding-block-start: 4px;
+	padding-block-end: 4px;
 }
 
 .sectionItemRow {
@@ -127,7 +130,7 @@ body {
 	break-inside: avoid;
 	display: grid;
 	grid-template-columns: [icon] 1rem [item-details] minmax(20rem, 30rem);
-	padding: 4px 4px 0px 4px; /* no bottom padding */
+	padding: 3px 4px 0px 4px; /* no bottom padding */
 	border: 0px none;
 	column-gap: 6px;
 	align-self: start;
@@ -195,6 +198,47 @@ body {
 	text-decoration: none;
 	color: var(--fg-main-color);
 }
+/* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
+.tooltip {
+	position: relative;
+	/* cursor: help; */
+}
+.tooltip::before, .tooltip::after {
+	position: absolute;
+	left: 50%;
+	/* opacity:0;  -- problem is that this interferes with cursor selection because it still grabs cursor -- so switching to display: instead */
+	display: none;
+	transition: all ease 0.3s;
+	transition-delay: 0.8;
+}
+/* Set tooltip little bit*/
+.tooltip::before {
+	content: "";
+	border-width: 10px 8px 0 8px;
+	border-style: solid;
+	border-color: var(--bg-main-color) transparent transparent transparent;
+	margin-left: -8px;
+	top: -12px;
+}
+.tooltip::after {
+	content: attr(data-tooltip);
+	margin-left: -10px;
+	padding: 0.3rem;
+	top: -12px;
+	font-size: 0.85rem;
+	color: var(--fg-main-color);
+	background: var(--bg-main-color);
+	border: 1px solid var(--tint-color);
+	border-radius: 6px;
+	transform: translateY(-100%);
+}
+
+.tooltip:hover::before, .tooltip:hover::after {
+	/* opacity: 1; */
+	display: block;
+}
+
+/* ------------------------------------------------------------------ */
 
 .commentLine { /* show as italic */
 	font-weight: 400;

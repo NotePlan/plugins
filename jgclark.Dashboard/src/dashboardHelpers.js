@@ -1,18 +1,15 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 13.3.2024 for v1.0.0 by @jgclark
+// Last updated 15.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
-import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 // import { showDashboard } from './HTMLGeneratorGrid'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
   getAPIDateStrFromDisplayDateStr,
   includesScheduledFutureDate,
-  removeDateTagsAndToday,
-  // toLocaleTime
 } from '@helpers/dateTime'
 import { createRunPluginCallbackUrl } from "@helpers/general"
 import {
@@ -30,7 +27,6 @@ import {
 } from '@helpers/HTMLView'
 import { filterOutParasInExcludeFolders } from '@helpers/note'
 import { getReferencedParagraphs } from '@helpers/NPnote'
-// import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import {
   getTaskPriority,
   // isTermInNotelinkOrURI,
@@ -63,8 +59,8 @@ import {
   stripTodaysDateRefsFromString
 } from '@helpers/stringTransforms'
 import { getTimeBlockString, isTimeBlockPara } from '@helpers/timeblocks'
-import { showMessage, showMessageYesNo } from '@helpers/userInput'
-import { isDone, isOpen, isOpenTask, isScheduled, isOpenNotScheduled, isOpenTaskNotScheduled } from '@helpers/utils'
+import { showMessage } from '@helpers/userInput'
+import { isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Data types
@@ -103,7 +99,7 @@ export type dashboardConfigType = {
   includeFolderName: boolean,
   includeTaskContext: boolean,
   newTaskSectionHeading: string,
-  rescheduleNotMove: Boolean,
+  rescheduleNotMove: boolean,
   autoAddTrigger: boolean,
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
@@ -459,7 +455,8 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
 export function addNoteOpenLinkToString(item: SectionItem | Section, displayStr: string): string {
   try {
     // Method 2: pass request back to plugin
-    const filenameEncoded = encodeURIComponent(item.filename)
+    // TODO: is it right that this basically does nothing?
+    // const filenameEncoded = encodeURIComponent(item.filename)
 
     if (item.rawContent) {
       // call showLineinEditor... with the filename and rawConetnt
@@ -578,57 +575,6 @@ export function extendParaToAddStartTime(paras: Array<TParagraph>): Array<any> {
   }
 }
 
-export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean = true): Promise<number> {
-  try {
-    let numberScheduled = 0
-    const config = await getSettings()
-    // For these purposes override one config item:
-    config.separateSectionForReferencedNotes = true
-
-    // Get paras for all open items in yesterday's note
-    const yesterdayDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
-    const yesterdaysNote = DataStore.calendarNoteByDateString(yesterdayDateStr)
-    if (yesterdaysNote) {
-      // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
-
-      if (combinedSortedParas.length > 0) {
-        // For each para append ' >today'
-        for (const para of combinedSortedParas) {
-          para.content = `${para.content} >today`
-          logDebug('scheduleAllYesterdayOpenToToday', `scheduling {${para.content}} to today`)
-          numberScheduled++
-        }
-        yesterdaysNote.updateParagraphs(combinedSortedParas)
-      }
-      logDebug('scheduleAllYesterdayOpenToToday', `scheduled ${String(numberScheduled)} open items from yesterday's note`)
-
-      // Now do the same for items scheduled to yesterday from other notes
-      if (sortedRefParas.length > 0) {
-        // For each para append ' >today'
-        for (const para of sortedRefParas) {
-          para.content = `${removeDateTagsAndToday(para.content)} >today`
-          logDebug('scheduleAllYesterdayOpenToToday', `scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
-          numberScheduled++
-          para.note?.updateParagraph(para)
-        }
-      }
-      logInfo('scheduleAllYesterdayOpenToToday', `-> scheduled ${String(numberScheduled)} open items from yesterday to today`)
-    } else {
-      logWarn('scheduleAllYesterdayOpenToToday', `Can't find a daily note for yesterday`)
-    }
-
-    if (refreshDashboard) {
-      // await showDashboard('refresh')
-    }
-    return numberScheduled
-  }
-  catch (error) {
-    logError('dashboard / scheduleAllYesterdayOpenToToday', `${JSP(error)}`)
-    return 0
-  }
-}
-
 /**
  * Make HTML for a 'fake' button that is used to call (via x-callback) one of this plugin's commands.
  * Note: this is not a real button, bcause at the time I started this real <button> wouldn't work in NP HTML views, and Eduard didn't know why.
@@ -665,7 +611,8 @@ export function makeRealCallbackButton(buttonText: string, pluginName: string, c
   // ? `<button class="XCBButton tooltip"><a href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></button>`
   // : `<button class="XCBButton"><a href="${xcallbackURL}">${buttonText}</a></button>`
   const output = (tooltipText)
-    ? `<button class="XCBButton tooltip" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}<span class="tooltiptext">${tooltipText}</span></button>`
-    : `<button class="XCBButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}">${buttonText}</button>`
+    // ? `<button class="XCBButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}<span class="tooltiptext">${tooltipText}</span></button>`
+    ? `<button class="XCBButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}</button>`
+    : `<button class="XCBButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}" >${buttonText}</button>`
   return output
 }

@@ -100,7 +100,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
         logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-        sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from daily note ${toLocaleDateString(today)} {addItems}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+        sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from daily note ${toLocaleDateString(today)} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
         sectionCount++
 
         if (sortedRefParas.length > 0) {
@@ -123,7 +123,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
         sections.push({
-          ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from daily note or scheduled to ${toLocaleDateString(today)} {addItems}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename
+          ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from daily note or scheduled to ${toLocaleDateString(today)} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename
         })
         sectionCount++
       }
@@ -179,7 +179,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
               sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.note?.filename ?? '', type: p.type })
               itemCount++
             })
-            sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} scheduled to yesterday`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+            sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} scheduled to yesterday {scheduleAllToday}`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
             sectionCount++
           }
           // Save these paras for later deduping

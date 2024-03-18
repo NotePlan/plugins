@@ -6,6 +6,10 @@
 
 import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
+import {
+  addTaskToNoteHeading,
+  addTextToNoteHeading
+} from '../../jgclark.QuickCapture/src/quickCapture'
 import { getDataForDashboard } from './dataGeneration'
 import { getDemoDataForDashboard } from './demoDashboard'
 import {
@@ -33,15 +37,14 @@ import {
   // returnNoteLink
 } from '@helpers/general'
 import { showHTMLV2 } from '@helpers/HTMLView'
-// import { getNoteType } from '@helpers/note'
-import { nowLocaleShortTime } from '@helpers/NPdateTime'
-// import { unsetPreference } from '@helpers/NPdev'
+// import { nowLocaleShortTime } from '@helpers/NPdateTime'
+// import { getNoteFilenameFromTitle } from '@helpers/NPnote'
 import { addTrigger } from '@helpers/NPFrontMatter'
-import { getTaskPriority } from '@helpers/paragraph'
 import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
+import { getTaskPriority } from '@helpers/paragraph'
 import {
   // decodeRFC3986URIComponent,
   encodeRFC3986URIComponent
@@ -169,9 +172,9 @@ export async function refreshDashboard(): Promise<void> {
 /**
  * Show the generated dashboard data using native HTML.
  * The HTML item IDs are defined as:
- * - x-y = section x item y, used in FIXME: <tr> tags and onClick references
- * - <filename> = encoded filename of task, used in both 'col 3' <td> tags
- * - x-yI = icon for section x item y, used in 'col 3' <i> tag
+ * - x-y = section x item y, used in class "sectionItemRow" div tags and onClick references
+ * - "data-encoded-filename" = encoded filename of task
+ * - x-yI = icon for section x item y, used in class "itemIcon" FA <i> tags under "sectionItemRow" divs
  *
  * @author @jgclark
  * @param {string?} callType (default: 'manual', 'trigger', 'refresh')
@@ -272,69 +275,59 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         sectionDescriptionToUse = section.description.replace('{count}', sectionCountSpan)
 
         // Add extra buttons if there are placeholders here
-        // if (section.description.includes('{addTask}')) {
-        //   // TODO: add info tooltip
-        //   const xcb = createRunPluginCallbackUrl('jgclark.Dashboard', 'addTask', [section.filename])
-        //   sectionDescriptionToUse = sectionDescriptionToUse.replace('{addTask}', `<a href="${xcb}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a>`)
-        // }
-        // if (section.description.includes('{addChecklist}')) {
-        //   // TODO: add info tooltip
-        //   const xcb = createRunPluginCallbackUrl('jgclark.Dashboard', 'addChecklist', [section.filename])
-        //   sectionDescriptionToUse = sectionDescriptionToUse.replace('{addChecklist}', `<a href="${xcb}"><i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i></a>`)
-        // }
         if (section.description.includes('{addItems}')) {
-          // TODO: add info tooltip
-          // sectionDescriptionToUse = sectionDescriptionToUse.replace('{addTask}', `<a href="${xcb}"><i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i></a>`)
           const xcbButton1 = makeRealCallbackButton(
             `<i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i>`,
             'jgclark.Dashboard',
             'addTask',
             section.filename,
-            '')
+            'Add a new task to today\'s note')
           const xcbButton2 = makeRealCallbackButton(
             `<i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i>`,
             'jgclark.Dashboard',
             'addChecklist',
             section.filename,
-            '')
+            'Add a new checklist to today\'s note')
           sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItems}', `${xcbButton1}&nbsp;${xcbButton2}`)
         }
+
+        if (section.description.includes('{addItemsNextPeriod}')) {
+          // Also add 'add to tomorrow' buttons
+          // TODO: Broaden to allow on week, month as well
+          const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'days').toDate(), 'day')?.filename
+          if (nextPeriodFilename) {
+            const xcbButton1 = makeRealCallbackButton(
+              `<i class="fa-regular fa-circle-arrow-right ${section.sectionTitleClass}"></i>`,
+              'jgclark.Dashboard',
+              'addTask',
+              nextPeriodFilename,
+              'Add a new task to tomorrow\'s note')
+            const xcbButton2 = makeRealCallbackButton(
+              `<i class="fa-regular fa-square-arrow-right ${section.sectionTitleClass}"></i>`,
+              'jgclark.Dashboard',
+              'addChecklist',
+              nextPeriodFilename,
+              'Add a new checklist to tomorrow\'s note')
+            sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItemsNextPeriod}', `${xcbButton1}&nbsp;${xcbButton2}`)
+          }
+        }
+
         if (section.description.includes('{scheduleAllToday}')) {
-          // const scheduleAllTodayButton = makeFakeCallbackButton(
-          //   `All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today`,
-          //   'jgclark.Dashboard',
-          //   'schedule yesterday to today',
-          //   '',
-          //   '', //tooltip: '???',
-          // )
-          // const xcb = createRunPluginCallbackUrl('jgclark.Dashboard', 'schedule yesterday to today', [])
-          // const scheduleAllTodayButton = `<button class="XCBButton" data-callback-url="${xcb}" data-plugin-id="jgclark.Dashboard" data-command="schedule yesterday to today">All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today</button>`
-          // sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllToday}', scheduleAllTodayButton)
           const xcbButton = makeRealCallbackButton(
             'All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today',
             'jgclark.Dashboard',
             'schedule yesterday to today',
-            '',
-            '')
+            'true', // = refresh afterwards
+            'Move or schedule all to today\'s note')
           sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllToday}', xcbButton)
         }
         if (section.description.includes('{startReviews}')) {
-          // const startReviewButton = makeFakeCallbackButton(
-          //   `<i class="fa-solid fa-play"></i>\u00A0Start\u00A0Reviews`,
-          //   'jgclark.Dashboard',
-          //   'start reviews',
-          //   '',
-          //   '', //tooltip: 'Opens the next project to review in the NP editor',
-          // )
-          // const xcb = createRunPluginCallbackUrl('jgclark.Reviews', 'start reviews', [])
-          // const startReviewButton = `<button class="XCBButton" data-callback-url="${xcb}" data-plugin-id="jgclark.Reviews" data-command="start reviews"><i class="fa-solid fa-play"></i>\u00A0Start\u00A0Reviews</button>`
-          // sectionDescriptionToUse = sectionDescriptionToUse.replace('{startReviews}', startReviewButton)
           const xcbButton = makeRealCallbackButton(
             '<i class="fa-solid fa-play"></i>\u00A0Start\u00A0Reviews',
             'jgclark.Reviews',
             'start reviews',
             '',
-            '')
+            'Start reviewing your project notes')
           sectionDescriptionToUse = sectionDescriptionToUse.replace('{startReviews}', xcbButton)
         }
 
@@ -467,7 +460,6 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
               let itemDetails = `        <div class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}">\n`
               itemDetails += `          <a class="content">${paraContent}</a>`
-              // TODO: Also pass in note title
               itemDetails += `          <a class="dialogTrigger" onclick="showProjectControlDialog({itemID:'${item.ID}', encodedTitle:'${encodeRFC3986URIComponent(itemNoteTitle)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
               itemDetails += `        </div>\n      </div>`
               outputArray.push(itemDetails)
@@ -500,24 +492,20 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     )}</span> items closed</div>`
 
     // Write time and refresh info
-    // const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'show dashboard', 'refresh')
-    // // Note: can't use a real HTML button, as it needs to live inside a form to activate. It will work in Safari, but not in NP. Grrr. So will use one of my 'fake buttons' instead.
-    // const refreshXCallbackButton = `<span class="fake-button"><a class="button" href="${refreshXCallbackURL}"><i class="fa-solid fa-arrow-rotate-right"></i>&nbsp;Refresh</a></span>`
     const refreshXCallbackButton = makeRealCallbackButton(
       `<i class="fa-regular fa-arrow-rotate-right"></i> Refresh`,
       'jgclark.Dashboard',
       'show dashboard',
       'refresh',
       '')
-
-    const refresh = `<div class="lastUpdated">Last updated ${nowLocaleShortTime()} ${refreshXCallbackButton}</div>`
+    // const refresh = `<div class="lastUpdated">Last updated ${nowLocaleShortTime()} ${refreshXCallbackButton}</div>`
+    const refresh = `<div class="lastUpdated">Last updated: <span id="timer"></span> ${refreshXCallbackButton}</div>`
 
     // Add filter checkbox
     const filterCheckbox = `<div><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? 'checked' : 'unchecked'
       }><label for="filterPriorityItems">Filter out lower-priority items?</label></input></div>`
 
     const header = `<div class="header">${refresh}\n${headerSummary}\n${filterCheckbox}</div>`
-    // const header = `<div class="header">\n  <div>${refreshXCallbackButton}</div>\n  <div>${filterCheckbox}</div>\n</div>`
     outputArray.unshift(header)
 
     // Task item control dialog
@@ -613,14 +601,16 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     const winOptions = {
       windowTitle: windowTitle,
       customId: windowCustomId,
-      headerTags: resourceLinksInHeader,
+      headerTags: `${resourceLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
       makeModal: false,
+      bodyOptions: 'onload="showTimeAgo()"',
       shouldFocus: shouldFocus, // shouuld focus window?
       preBodyScript: '', // no extra pre-JS
       postBodyScript: `${`<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
 ` +
+        `<script type="text/javascript" src="./showTimeAgo.js"></script>` + 
         `<script type="text/javascript" src="./dashboardEvents.js"></script>
       `}${commsBridge
         }${shortcutsScript}`,
@@ -660,12 +650,18 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 export async function addTask(calNoteFilename: string): Promise<void> {
   try {
     logDebug('addTask', `- adding to ${calNoteFilename}`)
-    const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    // const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename, false)
+    const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename, true)
     logDebug('addTask', `= date ${calNoteDateStr}`)
     if (!calNoteDateStr) {
       throw new Error(`calNoteDateStr isn't defined`)
     }
-    await prependTodoToCalendarNote('task', calNoteDateStr)
+    // V1: simple prepend
+    // await prependTodoToCalendarNote('task', calNoteDateStr)
+    // V2: more complex function
+    const config = await getSettings()
+    const textToAdd = await CommandBar.showInput('Type the task to add', `Add task '%@'`)
+    await addTaskToNoteHeading(calNoteDateStr, config.newTaskSectionHeading, textToAdd)
     // trigger window refresh
     await showDashboard('refresh')
   }
@@ -681,12 +677,20 @@ export async function addTask(calNoteFilename: string): Promise<void> {
 export async function addChecklist(calNoteFilename: string): Promise<void> {
   try {
     logDebug('addTask', `- adding to ${calNoteFilename}`)
-    const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    // const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename, true)
     logDebug('addTask', `= date ${calNoteDateStr}`)
     if (!calNoteDateStr) {
       throw new Error(`calNoteDateStr isn't defined`)
     }
-    await prependTodoToCalendarNote('checklist', calNoteDateStr)
+    // V1: simple prepend
+    // await prependTodoToCalendarNote('checklist', calNoteDateStr)
+    // V2: more complex function
+    const config = await getSettings()
+    const textRes = await CommandBar.showInput('Type the checklist to add', `Add checklist '%@'`)
+    const textToAdd = '+ ' + textRes // need to fake a checklist type
+    await addTextToNoteHeading(calNoteDateStr, config.newTaskSectionHeading, textToAdd)
+
     // trigger window refresh
     await showDashboard('refresh')
   }
