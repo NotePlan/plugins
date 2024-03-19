@@ -19,7 +19,7 @@ import {
   isYearlyNote,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
+import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { sortListBy } from '@helpers/sorting'
@@ -284,12 +284,12 @@ export function getUniqueNoteTitle(title: string): string {
  * Return array of all project notes, excluding those in list of folders to exclude, and (if requested) from special '@...' folders
  * @author @jgclark
  * @param {Array<string>} foldersToExclude
- * @param {boolean} excludeSpecialFolders
+ * @param {boolean} excludeSpecialFolders?
  * @returns {Array<TNote>} wanted notes
  */
 export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>, excludeSpecialFolders: boolean): Array<TNote> {
   // Get list of wanted folders
-  const filteredFolders = getFilteredFolderList(foldersToExclude, excludeSpecialFolders)
+  const filteredFolders = getFolderListMinusExclusions(foldersToExclude, excludeSpecialFolders)
 
   // Iterate over all project notes and keep the notes in the wanted folders ...
   const allProjectNotes = DataStore.projectNotes
@@ -603,7 +603,7 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
 }
 
 /**
- * Filter a list of paras against a list of folders to ignore and return the filtered list
+ * Filter a list of paras against a list of folders to ignore (and the @... special folders) and return the filtered list
  * Obviously requires going via the notes array and not the paras array
  * @author @jgclark building on @dwertheimer's work
  * @param {Array<TNote>} notes - array of notes to review
@@ -622,7 +622,7 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
     // logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
 
     if (dedupedNoteFilenameList.length > 0) {
-      const wantedFolders = getFilteredFolderList(excludedFolders)
+      const wantedFolders = getFolderListMinusExclusions(excludedFolders, true)
       // filter out paras not in these notes
       const parasFiltered = paras.filter((p) => {
         const thisNoteFilename = p.note?.filename ?? 'error'

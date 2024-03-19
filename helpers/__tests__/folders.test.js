@@ -1,6 +1,6 @@
 /* globals describe, expect, test, afterAll, beforeAll */
 import * as f from '../folders'
-import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, Note, Paragraph } from '@mocks/index'
+import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, /*Note, Paragraph*/ } from '@mocks/index'
 
 beforeAll(() => {
   global.Calendar = Calendar
@@ -10,88 +10,105 @@ beforeAll(() => {
   global.Editor = Editor
   global.NotePlan = NotePlan
   DataStore.settings['_logLevel'] = 'DEBUG' //change this to DEBUG to get more logging,
-  DataStore.folders = ['@Templates', '/', 'CCC Areas', 'CCC Areas/Staff', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3']
+  DataStore.folders = ['@Templates', '/', 'CCC Areas', 'CCC Areas/Staff', 'CCC Projects', 'Home Areas', 'TEST', 'TEST/TEST LEVEL 2', 'TEST/TEST LEVEL 2/TEST LEVEL 3', '@Archive/CCC Areas/Staff']
 })
 
 afterAll(() => {
   delete global.DataStore
 })
 
-/**
- * Tests for filteredFolderList:
- * Parameters:
- * - {Array<string>} exclusions
- * - {boolean} excludeSpecialFolders? [default true]
- * - {Array<string>} inclusions? [default empty array]
- * - {boolean} includeRootFolder? (default: true)
- */
 describe('helpers/folders', () => {
-  describe('getFilteredFolderList tests', () => {
+  /**
+   * Tests for getFoldersMatching:
+   * Parameters:
+   * - {Array<string>} inclusions
+   * - {boolean} excludeSpecialFolders?
+   */
+  describe('getFoldersMatching tests', () => {
+    test('no inclusions -> error', () => {
+      const inclusions = []
+      const folders = Object.keys(f.getFoldersMatching(inclusions, true))
+      expect(folders.length).toBe(0)
+    })
+    test('just / inclusions -> 1', () => {
+      const inclusions = ['/']
+      const folders = Object.keys(f.getFoldersMatching(inclusions, true))
+      expect(folders.length).toBe(1)
+    })
+    test('CCC inclusion no @specials -> 3 left', () => {
+      const inclusions = ['CCC']
+      const folders = Object.keys(f.getFoldersMatching(inclusions, true))
+      expect(folders.length).toBe(3)
+    })
+    test('CCC Areas, / inclusion no @specials -> 3 left', () => {
+      const inclusions = ['CCC Areas', '/']
+      const folders = Object.keys(f.getFoldersMatching(inclusions, true))
+      expect(folders.length).toBe(3)
+    })
+    test('CCC inclusion with @specials -> 4 left', () => {
+      const inclusions = ['CCC']
+      const folders = Object.keys(f.getFoldersMatching(inclusions, false))
+      expect(folders.length).toBe(4)
+    })
+    test('CCC, LEVEL 2 inclusion with @specials -> 6 left', () => {
+      const inclusions = ['CCC', 'LEVEL 2']
+      const folders = Object.keys(f.getFoldersMatching(inclusions, false))
+      expect(folders.length).toBe(6)
+    })
+  })
+
+  /**
+   * Tests for getFolderListMinusExclusions:
+   * Parameters:
+   * - {Array<string>} exclusions
+   * - {boolean} excludeSpecialFolders? (default: true)
+   * - {boolean} forceExcludeRootFolder? (default: false)
+   */
+  describe('getFolderListMinusExclusions tests', () => {
     test('no exclusions; specials false -> should return same list', () => {
       const exclusions = []
-      const folders = Object.keys(f.getFilteredFolderList(exclusions, false))
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions, false, false))
+      expect(folders.length).toBe(10)
+    })
+    test("exclude none -> 10 left", () => {
+      const exclusions = []
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions, false, true))
       expect(folders.length).toBe(9)
     })
-    test("exclude none -> 9 left", () => {
+    test('no exclusions; no specials no root -> 7 left', () => {
       const exclusions = []
-      const inclusions = []
-      const folders = Object.keys(f.getFilteredFolderList(exclusions, false, inclusions, true))
-      expect(folders.length).toBe(9)
-    })
-    test("exclude none but root -> 8 left", () => {
-      const exclusions = []
-      const inclusions = []
-      const folders = Object.keys(f.getFilteredFolderList(exclusions, false, inclusions, false))
-      expect(folders.length).toBe(8)
-    })
-    test('no exclusions; specials false -> 8 left', () => {
-      const exclusions = []
-      const folders = Object.keys(f.getFilteredFolderList(exclusions, true))
-      expect(folders.length).toBe(8)
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions, true, true))
+      expect(folders.length).toBe(7)
     })
     test('TEST exclusions -> 5 left', () => {
       const exclusions = ['TEST']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions))
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions))
       expect(folders.length).toBe(5)
     })
     test('TEST+CCC Areas exclusions -> 3 left', () => {
       const exclusions = ['TEST', 'CCC Areas']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions))
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions))
       expect(folders.length).toBe(3)
     })
     test('Subfolder exclusion -> 6 left', () => {
       const exclusions = ['TEST/TEST LEVEL 2']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions))
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions))
       expect(folders.length).toBe(6)
     })
     test('Subfolder exclusion not matching -> 8 left', () => {
       const exclusions = ['TEST/NOT IN LIST']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions))
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions))
       expect(folders.length).toBe(8)
     })
-    test('no exclusions; CCC inclusion -> 4 left', () => {
+    test("no exclusion, no specials, exclude root -> 7 left", () => {
       const exclusions = []
-      const inclusions = ['CCC']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions, true, inclusions))
-      expect(folders.length).toBe(4)
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions, true, true))
+      expect(folders.length).toBe(7)
     })
-    test('no exclusions; CCC, LEVEL 2 inclusion -> 6 left', () => {
+    test("no exclusion, no specials, can include root -> 8 left", () => {
       const exclusions = []
-      const inclusions = ['CCC', 'LEVEL 2']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions, true, inclusions))
-      expect(folders.length).toBe(6)
-    })
-    test("'CCC Projects' exclusion; 'CCC', 'LEVEL 2' inclusion -> 5 left", () => {
-      const exclusions = ['CCC Projects']
-      const inclusions = ['CCC', 'LEVEL 2']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions, true, inclusions))
-      expect(folders.length).toBe(5)
-    })
-    test("'LEVEL 3' exclusion; 'CCC', 'LEVEL 2' inclusion -> 6 left", () => {
-      const exclusions = ['LEVEL 3']
-      const inclusions = ['CCC', 'LEVEL 2']
-      const folders = Object.keys(f.getFilteredFolderList(exclusions, true, inclusions))
-      expect(folders.length).toBe(6)
+      const folders = Object.keys(f.getFolderListMinusExclusions(exclusions, true, false))
+      expect(folders.length).toBe(8)
     })
   })
 

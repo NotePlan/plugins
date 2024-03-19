@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // listStubs function for Tidy
 // Jonathan Clark
-// Last updated 27.8.2023 for v0.9.0, @jgclark
+// Last updated 19.3.2024 for v0.9.0+, @jgclark
 //-----------------------------------------------------------------------------
 
 import { getSettings, type TidyConfig } from './tidyHelpers'
@@ -10,7 +10,7 @@ import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { isValidCalendarNoteTitleStr } from '@helpers/dateTime'
 import {
-  getFilteredFolderList,
+  getFolderListMinusExclusions,
   getFolderFromFilename,
   getJustFilenameFromFullFilename
 } from '@helpers/folders'
@@ -56,12 +56,12 @@ function getStubs(
     const outputArray: Array<stubDetails> = []
 
     // get folder list, minus any to exclude
-    let folderList = getFilteredFolderList(foldersToExclude, true, [], true)
-    logDebug('getDuplicateNotes', `- Found ${folderList.length} folders to check`)
+    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
+    logDebug('getDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
 
     // Get all notes to check
     let notes: Array<TNote> = []
-    for (const thisFolder of folderList) {
+    for (const thisFolder of relevantFolderList) {
       const theseNotes = getProjectNotesInFolder(thisFolder) //.filter((n) => n.title?.startsWith('T')) // used in testing
       notes = notes.concat(theseNotes)
     }

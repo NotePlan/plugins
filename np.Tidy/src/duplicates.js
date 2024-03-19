@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 20.6.2023 for v0.6.0 by @jgclark
+// Last updated 19.3.2024  for v0.6.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -12,7 +12,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
 import {
-  getFilteredFolderList,
+  getFolderListMinusExclusions,
   getFolderFromFilename,
   getJustFilenameFromFullFilename
 } from '@helpers/folders'
@@ -49,11 +49,11 @@ function getDuplicateNotes(foldersToExclude: Array<string> = []): Array<dupeDeta
     logDebug(pluginJson, `getDuplicateNotes() starting`)
 
     const outputArray: Array<dupeDetails> = []
-    let folderList = getFilteredFolderList(foldersToExclude, true, [], true)
-    logDebug('getDuplicateNotes', `- Found ${folderList.length} folders to check`)
+    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
+    logDebug('getDuplicateNotes', `- Found ${relevantFolderList.length} folders to check`)
     // Get all notes to check
     let notes: Array<TNote> = []
-    for (const thisFolder of folderList) {
+    for (const thisFolder of relevantFolderList) {
       const theseNotes = getProjectNotesInFolder(thisFolder)
       notes = notes.concat(theseNotes)
     }

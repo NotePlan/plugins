@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 7.11.2023 for v0.9.2 by @jgclark
+// Last updated 19.3.2024 for v0.9.2+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,7 +14,7 @@ import {
   nowLocaleShortDateTime,
 } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
-import { getFilteredFolderList, getFolderFromFilename } from '@helpers/folders'
+import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
 import {
   createOpenOrDeleteNoteCallbackUrl,
   createPrettyRunPluginLink,
@@ -56,11 +56,11 @@ async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise
     logDebug(pluginJson, `getConflictedNotes() starting`)
 
     const outputArray: Array<conflictDetails> = []
-    let folderList = getFilteredFolderList(foldersToExclude, true, [], true)
-    logDebug('getConflictedNotes', `- Found ${folderList.length} folders to check`)
+    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
+    logDebug('getConflictedNotes', `- Found ${relevantFolderList.length} folders to check`)
     // Get all notes to check
     let notes: Array<TNote> = []
-    for (const thisFolder of folderList) {
+    for (const thisFolder of relevantFolderList) {
       const theseNotes = getProjectNotesInFolder(thisFolder)
       notes = notes.concat(theseNotes)
     }

@@ -2,13 +2,13 @@
 //-----------------------------------------------------------------------------
 // Main functions for Tidy plugin
 // Jonathan Clark
-// Last updated 20.6.2023+ for v0.8.1, @jgclark
+// Last updated 19.3.2024 for v0.8.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 import { getSettings, type TidyConfig } from './tidyHelpers'
 import pluginJson from '../plugin.json'
 import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getFilteredFolderList } from '@helpers/folders'
+import { getFolderListMinusExclusions } from '@helpers/folders'
 import { getProjectNotesInFolder } from '@helpers/note'
 import { appendStringToSettingArray } from '@helpers/NPSettings'
 import { chooseOption, chooseHeading, getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
@@ -32,17 +32,17 @@ export async function fileRootNotes(): Promise<void> {
     const rootNotesToUse = rootNotes.filter((n) => !excludedNotes.includes(n.title))
     logDebug('rootNotesToUse', rootNotesToUse.map((n) => n.title))
 
-    // Make list of all folders (other than root!)
-    const allFolders = getFilteredFolderList([], true, [], false)
-    logDebug('allFolders', String(allFolders))
+    // Make list of all folders (other than @specials and root!)
+    const allRelevantFolders = getFolderListMinusExclusions(['/'], true, false)
+    logDebug('allRelevantFolders', String(allRelevantFolders))
 
     // Pre-pend some special items
-    allFolders.unshift(`🗑️ Delete this note`)
-    allFolders.unshift(`❌ Stop processing`)
-    if (NotePlan.environment.buildVersion >= 1045) { allFolders.unshift(`➡️ Ignore this note from now on`) } // what this calls fails before 3.9.2b
-    allFolders.unshift(`➡️ Leave this note in root`)
-    logDebug('allFolders', String(allFolders))
-    const options = allFolders.map((f) => ({
+    allRelevantFolders.unshift(`🗑️ Delete this note`)
+    allRelevantFolders.unshift(`❌ Stop processing`)
+    if (NotePlan.environment.buildVersion >= 1045) { allRelevantFolders.unshift(`➡️ Ignore this note from now on`) } // what this calls fails before 3.9.2b
+    allRelevantFolders.unshift(`➡️ Leave this note in root`)
+    logDebug('allRelevantFolders', String(allRelevantFolders))
+    const options = allRelevantFolders.map((f) => ({
       label: f,
       value: f,
     }))
@@ -59,7 +59,7 @@ export async function fileRootNotes(): Promise<void> {
         // open the note we're going to move in the Editor to help user assess what to do
         const res = await Editor.openNoteByFilename(thisFilename)
 
-        const chosenFolder = await chooseOption(`Move '${thisTitle}' to which folder?`, options)
+        const chosenFolder: string = await chooseOption(`Move '${thisTitle}' to which folder?`, options)
         switch (chosenFolder) {
           case '❌ Stop processing': {
             logInfo('fileRootNotes', `User cancelled operation.`)
