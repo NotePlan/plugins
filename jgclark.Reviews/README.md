@@ -100,9 +100,12 @@ Notes about the displays:
 - each project title is also an active link which can be clicked to take you to that project note. (Or Option-click to open that in a new split window, which keeps the review list open.)
 
 Other settings:
-- Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders). This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.
-- Folders to Ignore (optional): Specify which folders to ignore (which includes any of their sub-folders too).  This match is done anywhere in the folder name.
-- Confirm next Review?: When running '/next project review' it asks whether to start the next review.
+- Folders to Include (optional): Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`. Note also: 
+  - if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders. 
+  - If empty, all folders will be used apart from those in the next setting.
+- Folders to Ignore (optional): If 'Folders to use in reviews' above is empty, then this setting specifies folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is also done anywhere in the folder name. Can be empty. Note also:
+  - if you specify the root folder `/` this only ignores the root folder, and not all sub-folders.
+  - the special @Trash, @Templates and @Archive folders are always excluded.
 - Display order for projects: The sort options  are by 'due' date, by 'review' date or 'title'.
 - Display projects grouped by folder? Whether to group the projects by their folder.
 - Hide top level folder in output? Whether to suppress higher-level folder names in project list headings.
@@ -110,7 +113,7 @@ Other settings:
 - Only display overdue projects/areas?: If true then it will only display overdue project/area notes (plus paused ones).
 - Display project dates?  Whether to display the project's review and due dates (where set).
 - Display project's latest progress?  Whether to show the project's latest progress (where available). If some lines have a specific 'Progress:' field. (See above for details.)
-- Display archived projects? Whether to display project notes marked as `#archive`.
+- Confirm next Review?: When running '/next project review' it asks whether to start the next review.
 - Theme to use in rich project lists: if set to a valid installed Theme name, then that will always be used in place of the currently active theme for the rest of NotePlan.
 
 ## The Commands

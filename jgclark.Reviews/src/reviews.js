@@ -39,7 +39,7 @@ import {
 } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
-import { getFilteredFolderList } from '@helpers/folders'
+import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import {
   // type HtmlWindowOptions, makeSVGPercentRing, redToGreenInterpolation, showHTML,
@@ -205,24 +205,29 @@ function setRefreshButtonURL(h) {
 export const timeAgoClockJSFunc: string = `
 <script type="text/javascript">
 function showTimeAgo() {
+  let output = '';
   const startTime = document.getElementsByName('startTime')[0].getAttribute('content'); // Get startTime from meta tag
   const now = Date.now();
-	const diff = (Math.abs(now - startTime)/1000.0/60.0);  // in Mins
-	if (diff === 0) {
+	const diff = (Math.round(now - startTime)/1000.0/60.0);  // in Mins
+	if (diff <= 0.1) {
 		output = 'just now';
+	} else if (diff <= 1) {
+		output = '<1 min ago';
+	} else if (diff < 1.5) {
+		output = '1 min ago';
 	} else if (diff <= 90) {
-		output = String(diff) + ' mins';
+		output = String(Math.round(diff)) + ' mins ago';
 	} else if (diff <= 1440) {
-		output = String(Math.round(diff / 60.0)) + ' hours';
+		output = String(Math.round(diff / 60.0)) + ' hours ago';
 	} else if (diff <= 43776) {
-		output = String(Math.round(diff / 60.0 / 24.0)) + ' days';
+		output = String(Math.round(diff / 60.0 / 24.0)) + ' days ago';
 	} else if (diff <= 525312) {
-		output = String(Math.round(diff / 60.0 / 24.0 / 30.4)) + ' mon';
+		output = String(Math.round(diff / 60.0 / 24.0 / 30.4)) + ' mon ago';
 	} else {
-		output = String(Math.round(diff / 60.0 / 24.0 / 30.4 / 365.0)) + ' yrs';
+		output = String(Math.round(diff / 60.0 / 24.0 / 30.4 / 365.0)) + ' yrs ago';
 	}
-  document.getElementById('timer').innerHTML = output + ' ago';
-  setTimeout(showTimeAgo, 10000);
+  document.getElementById('timer').innerHTML = output;
+  setTimeout(showTimeAgo, 30000); // call again in 30s
 }
 </script>`
 
@@ -527,7 +532,7 @@ export async function renderProjectListsHTML(
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/reviewListCSS instead
       makeModal: false, // = not modal window
-      bodyOptions: 'onload="showTimeAgo()"', // TODO: find a different way to get this working 'onload="showTimeAgo()"',
+      bodyOptions: 'onload="showTimeAgo()"',
       preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
       postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
@@ -686,6 +691,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
     // Re-load the saved HTML if it's available.
     // $FlowIgnore[incompatible-type]
     const config: ?ReviewConfig = await getReviewSettings()
+    if (!config) throw new Error('No config found. Stopping.')
 
     // Try loading HTML saved copy
     const savedHTML = DataStore.loadData(filenameHTMLCopy, true) ?? ''
@@ -842,8 +848,10 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
     logDebug('makeFullReviewList', `Starting for ${String(config.noteTypeTags)} tags, running in ${runInForeground ? 'foreground' : 'background'}`)
     let startTime = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
 
-    // Get list of folders, excluding @specials and our foldersToIgnore setting
-    const filteredFolderList = getFilteredFolderList(config.foldersToIgnore, true, config.foldersToInclude, true).sort()
+    // Get list of folders, excluding @specials and our foldersToInclude or foldersToIgnore settings -- include takes priority over ignore.
+    const filteredFolderList = (config.foldersToInclude.length > 0)
+      ? getFoldersMatching(config.foldersToInclude, true).sort()
+      : getFolderListMinusExclusions(config.foldersToIgnore, true, false).sort()
     // For filtering DataStore, no need to look at folders which are in other folders on the list already
     const filteredFolderListWithoutSubdirs = filteredFolderList.reduce((acc: Array<string>, f: string) => {
       const exists = acc.some((s) => f.startsWith(s))
@@ -1447,6 +1455,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
     const fmObj = fm(reviewListContents)
     const reviewLines = fmObj.body.split('\n')
 
+    // FIXME: cope better with valid case of no lines to return
     // Now read from the top until we find a line with a negative or zero value in the first column (nextReviewDays)
     for (let i = 0; i < reviewLines.length; i++) {
       const thisLine = reviewLines[i]
@@ -1502,6 +1511,7 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
       // and not complete (has a tag of 'finished'),
       // and not the same as the previous line (which can legitimately happen).
       // Continue until we have found up to numToReturn such notes.
+      // FIXME: cope better with valid case of no lines to return
       const notesToReview: Array<TNote> = []
       let lastTitle = ''
       for (let i = 0; i < reviewLines.length; i++) {

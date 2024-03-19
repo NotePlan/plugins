@@ -3,6 +3,10 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
 
+## [0.13.2] - 2024-03-19
+- replace the "time" that Project List was updated with a "time since"
+- clarified how the 'Folders to include in reviews' and 'Folders to ignore in reviews' settings work. (If the first is set, the second is ignored.) This also fixes project notes in the root folder being included when they shouldn't. (Reported by @dwertheimer.)
+
 ## [0.13.1] - 2024-03-04
 - added new 'Theme to use in rich project lists' setting for @anton.skliar. If this is set to a valid Theme name from among those you have installed, this one will be used instead of your current one.
 - under-the-hood additions so new Dashboard 'action buttons' can work for Projects.

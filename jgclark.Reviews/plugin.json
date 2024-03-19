@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Reviews",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Reviews/CHANGELOG.md",
-  "plugin.version": "0.13.1",
-  "plugin.lastUpdateInfo": "0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.\n0.12.5: now can include files in root folder. When you refresh project list it will keep scroll position.\n0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.",
+  "plugin.version": "0.13.2",
+  "plugin.lastUpdateInfo": "0.13.2: clarified the 'include' and 'exclude' folder settings. Fixed bug about project notes in root folder always displaying.\n0.13.1: change review list to show 'due' not just 'overdue' (i.e. include items ready to review today.)\n0.13.0: add option to archive completed/cancelled projects using existing folder structure.\n0.12.5: now can include files in root folder. When you refresh project list it will keep scroll position.\n0.12.4: bug fixes.\n0.12.3: small improvements, and ready for NP v3.9.6.\n0.12.2: bug fix\n0.12.1: under-the-hood change to help Dashboard plugin.\n0.12.0: More flexible 'Progress:' lines, and new button to make it easier to write them. Can now edit settings on iOS.\n0.11.1: window size and position should now be reused. Added 'add progress line' command.",
   "plugin.requiredFiles": [
     "projectList.css"
   ],
@@ -204,28 +204,7 @@
   "plugin.settings": [
     {
       "type": "heading",
-      "title": "Project + Reviews main settings"
-    },
-    {
-      "key": "outputStyle",
-      "title": "Output style to use",
-      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use NotePlan's original 'Markdown' output style.\nNote: the 'Rich' output can't result in a saved note, so that's why there's also an option to do both.",
-      "type": "string",
-      "choices": [
-        "Rich",
-        "Markdown",
-        "Rich + Markdown"
-      ],
-      "default": "Rich",
-      "required": true
-    },
-    {
-      "key": "folderToStore",
-      "title": "Folder to store (markdown) review notes",
-      "description": "Folder where review notes will be stored (will be created if necessary)",
-      "type": "string",
-      "default": "Reviews",
-      "required": true
+      "title": "What do you want to Review?"
     },
     {
       "key": "noteTypeTags",
@@ -241,7 +220,7 @@
     {
       "key": "foldersToInclude",
       "title": "Folders to use in reviews",
-      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nIf empty, all folders will be processed (apart from the special @Trash, @Templates and @Archive foldeers which are always excluded.)",
+      "description": "Specify which folders to include (which includes any of their sub-folders) as a comma-separated list. This match is done anywhere in the folder name, so you could simply say `Project` which would match for `Client A/Projects` as well as `Client B/Projects`.\nNote: if you specify the root folder `/` this only includes the root folder itself, and not all its sub-folders.\nIf empty, all folders will be used apart from those in the next setting.",
       "type": "[string]",
       "default": [
         "Projects"
@@ -251,7 +230,7 @@
     {
       "key": "foldersToIgnore",
       "title": "Folders to ignore in reviews",
-      "description": "Specify folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is also done anywhere in the folder name. Can be empty. (Note that @Trash, @Templates and @Archive are always excluded.)",
+      "description": "If 'Folders to use in reviews' above is empty, then this setting specifies folders to ignore (which includes any of their sub-folders too) as a comma-separated list. This match is also done anywhere in the folder name. Can be empty.\nNote: if you specify the root folder `/` this only ignores the root folder, and not all sub-folders.\nNote: the special @Trash, @Templates and @Archive folders are always excluded.",
       "type": "[string]",
       "default": [
         "Reviews",
@@ -261,21 +240,26 @@
       "required": false
     },
     {
-      "key": "confirmNextReview",
-      "title": "Confirm next Review?",
-      "description": "When running '/next project review' it asks whether to start the next review.",
-      "type": "bool",
-      "default": false,
-      "required": true
-    },
-    {
       "type": "heading",
       "title": "Display settings for 'project lists' command"
     },
     {
+      "key": "outputStyle",
+      "title": "Output style to use",
+      "description": "Use 'Rich' (HTML) output (an experimental style available from NotePlan v3.7).\nOr use NotePlan's original 'Markdown' output style.\nNote: the 'Rich' output can't result in a saved note, so that's why there's also an option to do both.",
+      "type": "string",
+      "choices": [
+        "Rich",
+        "Markdown",
+        "Rich + Markdown"
+      ],
+      "default": "Rich",
+      "required": true
+    },
+    {
       "key": "displayOrder",
-      "title": "Display order for projects",
-      "description": "The sort options  are by 'due' date, by next 'review' date or 'title'.",
+      "title": "Project Display order",
+      "description": "The ordering options are by 'due' date, by next 'review' date or 'title'.",
       "type": "string",
       "choices": [
         "due",
@@ -339,6 +323,14 @@
       "required": true
     },
     {
+      "key": "folderToStore",
+      "title": "Folder to store (markdown) review notes",
+      "description": "Folder where review notes will be stored (will be created if necessary)",
+      "type": "string",
+      "default": "Reviews",
+      "required": true
+    },
+    {
       "key": "width",
       "title": "Window width",
       "description": "Width of the Review List window (pixels)",
@@ -352,6 +344,18 @@
       "description": "Height of the Review List window (pixels)",
       "type": "hidden",
       "default": 1200,
+      "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Setting for 'next project review' command"
+    },
+    {
+      "key": "confirmNextReview",
+      "title": "Confirm next Review?",
+      "description": "When running '/next project review' it asks whether to start the next review.",
+      "type": "bool",
+      "default": false,
       "required": true
     },
     {
@@ -454,16 +458,6 @@
         "none"
       ],
       "default": "INFO",
-      "required": true
-    }
-  ],
-  "plugin.settings.unused": [
-    {
-      "key": "displayArchivedProjects",
-      "title": "Display archived projects?",
-      "description": "Whether to display project notes marked as #archive.",
-      "type": "bool",
-      "default": true,
       "required": true
     }
   ]

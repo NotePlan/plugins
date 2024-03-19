@@ -1143,7 +1143,7 @@ export function makeFakeButton(buttonText: string, commandName: string, commandA
  * Function to save changes to the Editor to the cache to be available elsewhere straight away.
  * Note: From 3.9.3 there's a function for this, but we needed something else before then (now removed) that did a basic 1s wait.
  */
-// $FlowIgnore[no-unused-vars]
+// eslint-disable-next-line no-unused-vars
 export async function saveEditorToCache(completed: any): Promise<void> {
   try {
     // // If 3.9.3alpha or later call specific new function
