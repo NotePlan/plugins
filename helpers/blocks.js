@@ -13,7 +13,7 @@
 export function breakParagraphsIntoBlocks(array: Array<TParagraph>): Array<Array<TParagraph>> {
   const breakBlockTypes = ['empty', 'separator']
   const blocks = []
-  let currentBlock = []
+  let currentBlock: Array<TParagraph> = []
   let lowestHeadingLevel = Infinity
 
   for (const item of array) {
@@ -59,6 +59,6 @@ export function isBreakBlock(item: TParagraph, breakBlockTypes: Array<string> = 
  * @param {number} level - The lowest heading level in the block.
  * @return {boolean} True if the title's heading level is lower than the specified level, false otherwise.
  */
-export function isTitleWithEqualOrLowerHeadingLevel(item: TParagraph, prevLowestLevel: number) {
+export function isTitleWithEqualOrLowerHeadingLevel(item: TParagraph, prevLowestLevel: number): boolean {
   return item.type === 'title' && item.headingLevel <= prevLowestLevel
 }

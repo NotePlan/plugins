@@ -577,7 +577,7 @@ export function findNotesMatchingHashtags(
   }
 
   // Filter by tags
-  const projectNotesWithTags = [[]]
+  const projectNotesWithTags: Array<Array<TNote>> = [[]]
   for (const tag of tags) {
     const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
     // logDebug('NPnote/findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)

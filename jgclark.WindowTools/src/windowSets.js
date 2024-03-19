@@ -118,7 +118,7 @@ export async function saveWindowSet(): Promise<void> {
         const thisWindowSet = savedWindowSets[i]
         nameOptions.push({ value: i + 1, label: thisWindowSet.name ?? '(error)' })
       }
-      const res = await chooseOption('Select window set', nameOptions, 0)
+      const res: $FlowFixMe = await chooseOption('Select window set', nameOptions, 0)
       if (typeof res === 'boolean' && !res) {
         logInfo('saveWindowSet', `User cancelled operation: ${String(res)}.`)
         return
@@ -587,12 +587,12 @@ export async function deleteWindowSet(setNameArg: string): Promise<boolean> {
           label: `${sws.name} (with ${String(sws.editorWindows?.length ?? 0)} note${sws.htmlWindows?.length > 0 ? ` + ${String(sws.htmlWindows?.length)} plugin` : ''} windows)`, value: c
         }
       })
-      const num = await chooseOption("Which Window Set to delete?", setChoices)
+      const num: number = await chooseOption("Which Window Set to delete?", setChoices)
       if (isNaN(num)) {
         logInfo(pluginJson, `No valid set chosen, so stopping.`)
         return false
       }
-      const setName = windowSets[num].name
+      const setName: $FlowFixMe = windowSets[num].name
       logInfo('deleteWindowSet', `You have asked to delete window set #${String(num)} '${setName}'`)
     }
 

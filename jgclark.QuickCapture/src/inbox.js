@@ -9,12 +9,15 @@ import pluginJson from '../plugin.json'
 import {
   getNoteFromParamOrUser,
   getQuickCaptureSettings,
-  type QCConfigType,
+  // type QCConfigType,
 } from './quickCaptureHelpers'
 import { logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { smartAppendPara, smartPrependPara } from '@helpers/paragraph'
-import { chooseFolder, chooseHeading, showMessage } from '@helpers/userInput'
+import {
+  // chooseFolder, chooseHeading,
+  showMessage
+} from '@helpers/userInput'
 
 /** /int
  * This adds a task to a special 'inbox' note. Possible configuration:
@@ -30,8 +33,8 @@ export async function addTaskToInbox(
   inboxTitleArg?: string = '',
 ): Promise<void> {
   try {
-    addItemToInbox('task', taskArg, inboxTitleArg)
-  } catch (error) {
+    await addItemToInbox('task', taskArg, inboxTitleArg)
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
@@ -51,8 +54,8 @@ export async function addJotToInbox(
   inboxTitleArg?: string = '',
 ): Promise<void> {
   try {
-    addItemToInbox('jot', textArg, inboxTitleArg)
-  } catch (error) {
+    await addItemToInbox('jot', textArg, inboxTitleArg)
+  } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
     await showMessage(err.message)
   }
@@ -80,7 +83,7 @@ async function addItemToInbox(
     logDebug(pluginJson, `addItemToInbox(): starting for ${itemType} (= paraType ${paraType}) with ${config.inboxLocation}`)
 
     // TEST: Extra possible arg
-    let inboxNote: ?TNote
+    // let inboxNote: ?TNote
     let inboxTitleToUse = ''
     if (!inboxTitleArg || inboxTitleArg === '') {
       switch (config.inboxLocation) {
@@ -110,14 +113,14 @@ async function addItemToInbox(
       logDebug('addItemToInbox', `Title arg given: inboxTitleToUse=${inboxTitleToUse}`)
     }
 
-    inboxNote = await getNoteFromParamOrUser(`Inbox ${itemType}`, inboxTitleToUse, false)
+    const inboxNote = await getNoteFromParamOrUser(`Inbox ${itemType}`, inboxTitleToUse, false)
 
     if (!inboxNote) {
       throw new Error("Quick Add to Inbox: Couldn't get or make valid Inbox note.")
     }
 
     // Get item title either from passed argument or ask user
-    let itemText = (itemArg != null && itemArg != '')
+    let itemText = (itemArg != null && itemArg !== '')
       ? itemArg
       : await CommandBar.showInput(`Type the ${itemType} to add to ${displayTitle(inboxNote)}`, `Add ${itemType} '%@' ${config.textToAppendToTasks}`)
     if (itemType === 'task') {

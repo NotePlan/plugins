@@ -1,3 +1,4 @@
+/* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
 // Search Extensions helpers
@@ -7,9 +8,9 @@
 
 import pluginJson from '../plugin.json'
 import {
-  formatNoteDate,
+  // formatNoteDate,
   getDateStrForStartofPeriodFromCalendarFilename,
-  toISOShortDateTimeString,
+  // toISOShortDateTimeString,
   withinDateRange,
 } from '@helpers/dateTime'
 import {
@@ -17,15 +18,23 @@ import {
 } from '@helpers/NPdateTime'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import { clo, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
-import { getFilteredFolderList } from '@helpers/folders'
-import { displayTitle, type headingLevelType, titleAsLink } from '@helpers/general'
-import { getNoteByFilename, getNoteContextAsSuffix, getOrMakeNote, getProjectNotesInFolder, replaceSection } from '@helpers/note'
+// import { getFolderListMinusExclusions } from '@helpers/folders'
+import {
+  displayTitle,
+  type headingLevelType,
+  // titleAsLink
+} from '@helpers/general'
+import {
+  getNoteByFilename, getNoteContextAsSuffix, getOrMakeNote,
+  // getProjectNotesInFolder,
+  replaceSection
+} from '@helpers/note'
 import { getNoteTitleFromFilename } from '@helpers/NPnote'
 import { isTermInMarkdownPath, isTermInURL } from '@helpers/paragraph'
 import { trimAndHighlightTermInLine } from '@helpers/search'
 import { sortListBy } from '@helpers/sorting'
-import { showMessage, showMessageYesNo } from '@helpers/userInput'
-import { isOpen } from '@helpers/utils'
+import { showMessageYesNo } from '@helpers/userInput'
+// import { isOpen } from '@helpers/utils'
 
 //------------------------------------------------------------------------------
 // Data types
@@ -177,9 +186,9 @@ export function normaliseSearchTerms(searchArg: string): Array<string> {
     const reResults = searchArgPadded.match(RE_WOW)
     if (reResults) {
       logDebug('validateAndTypeSearchTerms', `-> [${String(reResults)}] from [${searchArgPadded}]`)
-      let carryForward = ''
+      // const carryForward = ''
       for (const rr of reResults) {
-        let r = rr.trim()
+        const r = rr.trim()
         // Add term as long as it doesn't start with a * or ? or is empty
         if (r !== '') {
           // logDebug('r', `[${r}]`)
@@ -259,7 +268,7 @@ export function validateAndTypeSearchTerms(searchArg: string, allowEmptyOrOnlyNe
     }
   }
 
-  let validTermsStr = `[${validatedTerms.map((t) => t.termRep).join(', ')}]`
+  const validTermsStr = `[${validatedTerms.map((t) => t.termRep).join(', ')}]`
   logDebug('search/validateAndTypeSearchTerms', `Validated ${String(validatedTerms.length)} terms -> ${validTermsStr}`)
   return validatedTerms
 }
@@ -326,14 +335,14 @@ export function differenceByPropVal<P: string, T: { +[P]: mixed, ... }> (
  * @test in jest file
  */
 export function compareObjects(o1: Object, o2: Object): boolean {
-  for (let p in o1) {
+  for (const p in o1) {
     if (o1.hasOwnProperty(p)) {
       if (o1[p] !== o2[p]) {
         return false
       }
     }
   }
-  for (let p in o2) {
+  for (const p in o2) {
     if (o2.hasOwnProperty(p)) {
       if (o1[p] !== o2[p]) {
         return false
@@ -377,7 +386,7 @@ export function noteAndLineIntersection(arrA: Array<noteAndLine>, arrB: Array<no
   const modB = arrB.map((m) => m.noteFilename + ':::' + String(m.index) + ':::' + m.line)
   const intersectionModArr = modA.filter(f => modB.includes(f))
   const intersectionArr: Array<noteAndLine> = intersectionModArr.map((m) => {
-    let parts = m.split(':::')
+    const parts = m.split(':::')
     return { noteFilename: parts[0], index: Number(parts[1]), line: parts[2] }
   })
   return intersectionArr
@@ -422,7 +431,7 @@ export function applySearchOperators(
   let consolidatedNALs: Array<noteAndLine> = []
   let consolidatedNoteCount = 0
   let consolidatedLineCount = 0
-  let uniquedFilenames: Array<string> = []
+  // const uniquedFilenames: Array<string> = []
 
   // ------------------------------------------------------------
   // Write any *first* 'must' search results to consolidated set
@@ -455,7 +464,7 @@ export function applySearchOperators(
     // Write any *subsequent* 'must' search results to consolidated set,
     // having computed the intersection with the consolidated set
     if (mustResultObjects.length > 1) {
-      let addedAny = false
+      // const addedAny = false
       let j = 0
       for (const r of mustResultObjects) {
         // ignore first item; we compute the intersection of the others
@@ -499,7 +508,7 @@ export function applySearchOperators(
   // Check if we can add the 'may' search results to consolidated set
   let addedAny = false
   for (const r of mayResultObjects) {
-    const tempArr: Array<noteAndLine> = consolidatedNALs
+    // const tempArr: Array<noteAndLine> = consolidatedNALs
     // Add this result if 0 must terms, or it matches 1+ must results
     if (mustResultObjects.length === 0) {
       logDebug('applySearchOperators', `- may: as 0 'must' terms, we can add all for ${r.searchTerm.term}`)
@@ -535,8 +544,8 @@ export function applySearchOperators(
   // Delete any results from the consolidated set that match 'not-...' terms
   let removedAny = false
   for (const r of notResultObjects) {
-    let searchTermStr = r.searchTerm.termRep
-    let tempArr: Array<noteAndLine> = consolidatedNALs
+    const searchTermStr = r.searchTerm.termRep
+    const tempArr: Array<noteAndLine> = consolidatedNALs
     // Get number of results kept so far
     let lastResultNotesCount = numberOfUniqueFilenames(tempArr)
     let lastResultLinesCount = tempArr.length
@@ -557,8 +566,8 @@ export function applySearchOperators(
     }
     removedAny = true
     // clo(reducedArr, 'reducedArr: ')
-    let removedNotes = lastResultNotesCount - numberOfUniqueFilenames(reducedArr)
-    let removedLines = lastResultLinesCount - reducedArr.length
+    const removedNotes = lastResultNotesCount - numberOfUniqueFilenames(reducedArr)
+    const removedLines = lastResultLinesCount - reducedArr.length
     consolidatedLineCount -= removedLines
     logDebug('applySearchOperators', `  - not: removed ${String(removedLines)} results from ${String(removedNotes)} notes`)
 
@@ -581,13 +590,13 @@ export function applySearchOperators(
     logDebug('applySearchOperators', `- Will now filter out Calendar note results outside ${fromDateStr}-${toDateStr} from ${consolidatedLineCount} results`)
     // Keep results only from within the date range (measured at the first date of the Calendar note's period)
     // TODO: ideally change to cover whole of a calendar note's date range
-    consolidatedNALs = consolidatedNALs.filter((f) => /** !f.noteFilename.match(/^\d{4}/) || */ withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
+    consolidatedNALs = consolidatedNALs.filter((f) => withinDateRange(getDateStrForStartofPeriodFromCalendarFilename(f.noteFilename), fromDateStr, toDateStr))
     consolidatedLineCount = consolidatedNALs.length
     consolidatedNoteCount = numberOfUniqueFilenames(consolidatedNALs)
     logDebug('applySearchOperators', `- After filtering out by date: ${consolidatedLineCount} results`)
   }
 
-  let fullResultCount = consolidatedLineCount
+  const fullResultCount = consolidatedLineCount
 
   // ------------------------------------------------------------
   // Now check to see if we have more than config.resultLimit: if so only use the first amount to return
@@ -612,7 +621,6 @@ export function applySearchOperators(
   return consolidatedResultsObject
 }
 
-
 /**
  * Take possibly duplicative array, and reduce to unique items, retaining order.
  * There's an almost-same solution at https://stackoverflow.com/questions/53452875/find-if-two-arrays-are-repeated-in-array-and-then-select-them/53453045#53453045
@@ -628,7 +636,7 @@ export function reduceNoteAndLineArray(inArray: Array<noteAndLine>): Array<noteA
   // const sortedArray = simplifiedArray.sort()
   const reducedArray = [... new Set(simplifiedArray)]
   const outputArray: Array<noteAndLine> = reducedArray.map((m) => {
-    let parts = m.split(':::')
+    const parts = m.split(':::')
     return { noteFilename: parts[0], index: Number(parts[1]), line: parts[2] }
   })
   // clo(outputArray, 'output')
@@ -682,7 +690,7 @@ export async function runSearchesV2(
     // Get results for each search term independently and save
     // let lastTermType = ''
     for (const typedSearchTerm of termsToMatchArr) {
-      let thisTermType = typedSearchTerm.type
+      const thisTermType = typedSearchTerm.type
       logDebug('runSearchesV2', `  - searching for term [${typedSearchTerm.termRep}] type '${thisTermType}':`)
       const innerStartTime = new Date()
 
@@ -755,7 +763,7 @@ export async function runSearchV2(
   paraTypesToInclude?: Array<ParagraphType> = [],
 ): Promise<resultObjectTypeV3> {
   try {
-    const headingMarker = '#'.repeat(config.headingLevel)
+    // const headingMarker = '#'.repeat(config.headingLevel)
     const fullSearchTerm = typedSearchTerm.term
     let searchTerm = fullSearchTerm
     let resultParas: Array<TParagraph> = []
@@ -782,11 +790,11 @@ export async function runSearchV2(
 
     // if search term includes * or ? then we need to do further wildcard filtering
     // reduce search term to just the part before the wildcard
-    let beforeWildcardSearchTerm = ''
-    let wildcardOnwardsSearchTerm = ''
+    // const beforeWildcardSearchTerm = ''
+    // let wildcardOnwardsSearchTerm = ''
     if (searchTerm.includes("*") || searchTerm.includes("?")) {
       searchTerm = searchTerm.split(/[\*\?]/, 1)[0]
-      wildcardOnwardsSearchTerm = fullSearchTerm.slice(searchTerm.length)
+      // wildcardOnwardsSearchTerm = fullSearchTerm.slice(searchTerm.length)
       wildcardedSearch = true
       logDebug('runSearchV2', `wildcard: will now use [${searchTerm}] for [${fullSearchTerm}]`)
     }
@@ -844,7 +852,7 @@ export async function runSearchV2(
       // Try creating much smaller data sets, without full Note or Para. Use filename for disambig later.
       let resultFieldSets: Array<reducedFieldSet> = resultParas.map((p) => {
         const note = p.note
-        const tempDate = note ? toISOShortDateTimeString(note.createdDate) : '?'
+        // const tempDate = note ? toISOShortDateTimeString(note.createdDate) : '?'
         const fieldSet = {
           filename: note?.filename ?? '<error>',
           changedDate: note?.changedDate,
@@ -900,7 +908,7 @@ export async function runSearchV2(
         })
       }
     }
-    let resultCount = noteAndLineArr.length
+    const resultCount = noteAndLineArr.length
     logDebug('runSearchV2', `- end of runSearchV2 for [${searchTerm}]: ${resultCount} results from ${numberOfUniqueFilenames(noteAndLineArr)} notes`)
 
     const returnObject: resultObjectTypeV3 = {
@@ -912,7 +920,7 @@ export async function runSearchV2(
   }
   catch (err) {
     logError('runSearchV2', err.message)
-    const emptyResultObject = { searchTerm: '', resultsLines: [], resultCount: 0 }
+    // const emptyResultObject = { searchTerm: '', resultsLines: [], resultCount: 0 }
     // $FlowFixMe[incompatible-return]
     return null // for completeness
   }
@@ -947,7 +955,6 @@ export async function writeSearchResultsToNote(
   justReplaceSection: boolean = false,
 ): Promise<string> {
   try {
-    let outputNote: ?TNote
     let noteFilename = ''
     const headingMarker = '#'.repeat(config.headingLevel)
     const searchTermsRepStr = `'${resultSet.searchTermsRepArr.join(' ')}'`.trim() // Note: we normally enclose in [] but here need to use '' otherwise NP Editor renders the link wrongly
@@ -957,7 +964,7 @@ export async function writeSearchResultsToNote(
 
     // Add each result line to output array
     // let titleLines = `# ${requestedTitle}\n${timestampAndRefreshLine}`
-    let titleLines = `# ${requestedTitle}`
+    const titleLines = `# ${requestedTitle}`
     let headingLine = ''
     let resultsContent = ''
     // First check if we have any results
@@ -976,7 +983,7 @@ export async function writeSearchResultsToNote(
     // logDebug('writeSearchResultsToNote', `resultsContent is ${resultsContent.length} bytes`)
 
     // Get existing note by start-of-string match on titleToMatch, if that is supplied, or requestedTitle if not.
-    outputNote = await getOrMakeNote(requestedTitle, config.folderToStore, titleToMatch)
+    const outputNote = await getOrMakeNote(requestedTitle, config.folderToStore, titleToMatch)
     if (outputNote) {
       // If the relevant note has more than just a title line, decide whether to replace all contents, or just replace a given heading section
       if (justReplaceSection && outputNote.paragraphs.length > 1) {
@@ -1039,7 +1046,7 @@ export function createFormattedResultLines(resultSet: resultOutputTypeV3, config
       // clo(rnal, `resultNoteAndLineArr[${nc}]`)
       if (config.groupResultsByNote) {
         // Write each line without transformation, grouped by Note, with Note headings inserted accordingly
-        let thisFilename = rnal.noteFilename
+        const thisFilename = rnal.noteFilename
         if (thisFilename !== lastFilename && thisFilename !== '') {
           // though only insert heading if noteFilename isn't blank
           resultOutputLines.push(`${headingMarker} ${getNoteTitleFromFilename(rnal.noteFilename, true)}`)
@@ -1053,7 +1060,8 @@ export function createFormattedResultLines(resultSet: resultOutputTypeV3, config
         // - do I need to remove this non-grouped option entirely?
 
         // Write the line, first transforming it to add context on the end, and make other changes according to what the user has configured
-        const outputLine = trimAndHighlightTermInLine(rnal.line, notEmptyMayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength) + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
+        const outputLine = trimAndHighlightTermInLine(rnal.line, notEmptyMayOrMustTerms, simplifyLine, config.highlightResults, config.resultPrefix, config.resultQuoteLength)
+          + getNoteContextAsSuffix(rnal.noteFilename, config.dateStyle)
         resultOutputLines.push(outputLine)
         nc++
       }
@@ -1077,9 +1085,9 @@ export function createFormattedResultLines(resultSet: resultOutputTypeV3, config
 export async function makeAnySyncs(input: resultOutputTypeV3): Promise<resultOutputTypeV3> {
   try {
     // Go through each line looking for open tasks
-    let linesToSync = []
+    const linesToSync = []
     let rnalCount = 0
-    for (let rnal of input.resultNoteAndLineArr) {
+    for (const rnal of input.resultNoteAndLineArr) {
       // Get the line details (have to get from DataStore)
       const thisIndex = rnalCount
       const thisLine = rnal.line
@@ -1103,10 +1111,11 @@ export async function makeAnySyncs(input: resultOutputTypeV3): Promise<resultOut
       }
     }
 
-    let output = input
+    const output = input
     if (linesToSync.length > 0) {
       for (const lineDetails of linesToSync) {
-        let [thisIndex, thisLine, thisNote, thisPara, thisType] = lineDetails
+        // eslint-disable-next-line no-unused-vars
+        const [thisIndex, thisLine, thisNote, thisPara, thisType] = lineDetails
         // Add blockID to source
         // logDebug('makeAnySyncs', `- will add blockId to source line '${thisLine}' index ${thisIndex}`)
         thisNote.addBlockID(thisPara)

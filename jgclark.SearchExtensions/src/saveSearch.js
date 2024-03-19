@@ -11,7 +11,7 @@ import {
   createFormattedResultLines,
   getSearchSettings,
   getSearchTermsRep,
-  makeAnySyncs,
+  // makeAnySyncs,
   OPEN_PARA_TYPES,
   optimiseOrderOfSearchTerms,
   resultCounts,
@@ -21,9 +21,12 @@ import {
   writeSearchResultsToNote,
 } from './searchHelpers'
 import { clo, logDebug, logInfo, logError, logWarn } from '@helpers/dev'
-import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
+import {
+  createRunPluginCallbackUrl,
+  // displayTitle
+} from '@helpers/general'
 import { replaceSection } from '@helpers/note'
-import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
+// import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import {
   chooseOption,
@@ -94,7 +97,7 @@ export async function searchOverNotes(searchTermsArg?: string, paraTypeFilterArg
  * Call the main function, searching over all notes, but using a fixed note for results
  */
 export async function quickSearch(searchTermsArg?: string, paraTypeFilterArg?: string, noteTypesToIncludeArg?: string): Promise<void> {
-  logDebug('quickSearch', `starting with searchTermsArg=${searchTermsArg}, paraTypeFilterArg=${paraTypeFilterArg}, noteTypesToIncludeArg=${noteTypesToIncludeArg}`)
+  logDebug('quickSearch', `starting with searchTermsArg=${searchTermsArg ?? ''}, paraTypeFilterArg=${paraTypeFilterArg ?? ''}, noteTypesToIncludeArg=${noteTypesToIncludeArg ?? ''}`)
   await saveSearch(
     searchTermsArg,
     noteTypesToIncludeArg ?? 'both',
@@ -129,7 +132,7 @@ export async function saveSearch(
     logDebug(pluginJson, `arg0 -> searchTermsArg '${searchTermsArg ?? '(not supplied)'}'`)
 
     // work out if we're being called non-interactively (i.e. via x-callback) by seeing whether originatorCommand is not empty
-    let calledNonInteractively = (searchTermsArg !== undefined)
+    const calledNonInteractively = (searchTermsArg !== undefined)
     logDebug(pluginJson, `- called non-interactively? ${String(calledNonInteractively)}`)
 
     // Get the noteTypes to include
@@ -223,7 +226,7 @@ export async function saveSearch(
     //---------------------------------------------------------
     // End of main work started above
 
-    let resultSet = await resultsProm // here's where we resolve the promise
+    const resultSet = await resultsProm // here's where we resolve the promise
     CommandBar.showLoading(false)
 
     if (resultSet.resultCount === 0) {

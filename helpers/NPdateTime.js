@@ -1070,31 +1070,21 @@ export function relativeDateFromDateString(dateStrA: string, relDateIn: string =
   }
 }
 
-/**
+/**n
  * Returns the NP string representation of a Calendar note's date, from its filename. Covers daily to yearly notes.
  * @param {string} dateStr YYYYMMDD.md / YYYY-Wnn.txt / YYYY-mm.md etc. (some only from NP v3.7.2)
  * @returns {string} filename
- * TODO: @tests in jest file
  */
 export function getCalendarFilenameFromDateString(dateStr: string): string {
   try {
     const usersNoteExtension = DataStore.defaultFileExtension
     // logDebug('gCFFDS', `for ${filename} ...`)
-    if (dateStr.match(RE_YYYYMMDD_DATE)) {
-      // logDebug('gCFFDS', `= daily`)
-      return dateStr + "." + usersNoteExtension
-    } else if (dateStr.match(RE_NP_WEEK_SPEC)) {
-      // logDebug('gCFFDS', `${filename} = weekly`)
-      return dateStr + "." + usersNoteExtension
-    } else if (dateStr.match(RE_NP_MONTH_SPEC)) {
-      // logDebug('gCFFDS', `${filename} = monthly`)
-      return dateStr + "." + usersNoteExtension
-    } else if (dateStr.match(RE_NP_QUARTER_SPEC)) {
-      // logDebug('gCFFDS', `${filename} = quarterly`)
-      return dateStr + "." + usersNoteExtension
-    } else if (dateStr.match(RE_NP_YEAR_SPEC)) {
-      // logDebug('gCFFDS', `${filename} = yearly`)
-      return dateStr + "." + usersNoteExtension
+    if (dateStr.match(RE_YYYYMMDD_DATE)
+      || dateStr.match(RE_NP_WEEK_SPEC)
+      || dateStr.match(RE_NP_MONTH_SPEC)
+      || dateStr.match(RE_NP_QUARTER_SPEC)
+      || dateStr.match(RE_NP_YEAR_SPEC)) {
+      return `${dateStr}.${usersNoteExtension}`
     } else {
       throw new Error(`Invalid dateStr: ${dateStr}`)
     }
