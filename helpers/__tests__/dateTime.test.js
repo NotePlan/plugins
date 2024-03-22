@@ -637,8 +637,12 @@ describe(`${PLUGIN_NAME}`, () => {
   })
 
   describe('includesScheduledFutureDate()', () => {
-    test('should return false for "a >2022-04-21 date"', () => {
-      expect(dt.includesScheduledFutureDate('a >2022-04-21 date')).toEqual(false)
+    // Note: this date definitely in the past
+    test('should return false for "a >2020-04-21 date"', () => {
+      expect(dt.includesScheduledFutureDate('a >2020-04-21 date')).toEqual(false)
+    })
+    test('should return false for "a >2020-W02 date"', () => {
+      expect(dt.includesScheduledFutureDate('a >2020-W02 date')).toEqual(false)
     })
     // Note: most have far future dates to avoid having to work out how to mock this with today's date
     test('should find in "a >2122-04-21 date"', () => {
@@ -655,6 +659,9 @@ describe(`${PLUGIN_NAME}`, () => {
     })
     test('should not find in "a 2122-04-21 date"', () => {
       expect(dt.includesScheduledFutureDate('a 2122-04-21 date')).toEqual(false)
+    })
+    test('should find in "a >2122-W04 date"', () => {
+      expect(dt.includesScheduledFutureDate('a >2122-W04< date')).toEqual(true)
     })
   })
 
