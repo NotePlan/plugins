@@ -26,6 +26,12 @@ export {
   // resetDashboardWinSize,
 } from './HTMLGeneratorGrid' // previously: './HTMLGenerator'
 export {
+  togglePriorityFilter,
+  toggleMonthSection,
+  toggleOverdueSection,
+  toggleWeekSection,
+} from './settingControllers'
+export {
   scheduleAllOverdueOpenToToday,
   scheduleAllYesterdayOpenToToday
 } from './dashboardHelpersWithRefresh'

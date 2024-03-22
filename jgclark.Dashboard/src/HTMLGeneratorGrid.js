@@ -70,15 +70,40 @@ export const resourceLinksInHeader = `
 `
 
 /**
- * Script to add Cmd+R shortcut to refresh dashboard. (Meta=Cmd here.)
+ * Script to add some keyboard shortcuts to control the dashboard. (Meta=Cmd here.)
  */
 const shortcutsScript = `
 <!-- shortcuts script -->
 <script type="text/javascript" src="./shortcut.js"></script>
 <script>
-shortcut.add("meta+r", function() {
-  console.log("Shortcut cmd+s triggered");
-  sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' })
+<!-- send 'toggleOverdueSection' command -->
+shortcut.add("o", function() {
+  console.log("Shortcut 'o' triggered: will call toggleOverdueSection command");
+  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleOverdueSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
+});
+
+<!-- send 'toggleMonthSection' command -->
+shortcut.add("m", function() {
+  console.log("Shortcut 'm' triggered: will call toggleMonthSection command");
+  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleMonthSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
+});
+
+<!-- for this need to simulate checkboxClick -->
+shortcut.add("p", function() {
+  console.log("Shortcut 'p' triggered: will call togglePriorityFilter");
+  sendMessageToPlugin('runPluginCommand', { commandName: 'togglePriorityFilter', pluginID: 'jgclark.Dashboard', commandArgs: [] });
+});
+
+<!-- send 'refresh' command -->
+shortcut.add("r", function() {
+  console.log("Shortcut 'r' triggered: will call refresh");
+  sendMessageToPlugin('refresh', {});
+});
+
+<!-- send 'toggleWeekSection' command -->
+shortcut.add("w", function() {
+  console.log("Shortcut 'w' triggered: will call toggleWeekSection command");
+  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleWeekSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
 });
 </script>
 `
@@ -619,8 +644,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 ` +
         `<script type="text/javascript" src="./showTimeAgo.js"></script>` + 
         `<script type="text/javascript" src="./dashboardEvents.js"></script>
-      `}${commsBridge
-        }${shortcutsScript}`,
+      `}${commsBridge}${shortcutsScript}`,
       // + resizeListenerScript
       // + unloadListenerScript
       savedFilename: filenameHTMLCopy,

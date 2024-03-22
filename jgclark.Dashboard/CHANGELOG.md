@@ -3,8 +3,20 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 **NB: The documentation has not yet been updated for 1.0.0 ... none of the settings have changed (I think), but the UX certainly has.**
 
+## [1.0.0-a7] - 2024-03-22 (unreleased)
+- new keyboard shortcuts that work when the Dashboard has focus (so you might need to click in it once):
+  - m: toggle showing Month section
+  - o: toggle showing Overdue section
+  <!-- - p: toggle 'Priority' filter -->
+  - r: refresh
+  - w: toggle showing Week section
+- items in Tag section can now have their scheduled dates changed in the action dialog
+- fixed problem in Tag section sometimes ignoring open scheduled items (reported by @George65)
+- fixed problem in Tag section if its 'Ignore items...' setting was blank  (reported by @George65)
+- bracketed part of @mentions with brackets are now themed like the rest of the @mention
+
 ## [1.0.0-a6] - 2024-03-22 (unreleased)
-- **UNTESTED** added 'Move all to today' button to the Overdue section as well
+- [**UNTESTED**] added 'Move all to today' button to the Overdue section as well
 - improved button appearance
 - fixed regression on the dialog Close button
 

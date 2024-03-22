@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 13.3.2024 for v1.0.0 by @jgclark
+// Last updated 22.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -13,7 +13,6 @@ import {
   calcOffsetDateStr,
   getDateStringFromCalendarFilename,
   getTodaysDateHyphenated,
-  // getTodaysDateUnhyphenated,
   RE_DATE_INTERVAL,
   RE_NP_WEEK_SPEC,
   replaceArrowDatesInString,
@@ -527,13 +526,15 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           newDateStr = calcOffsetDateStr(startDateStr, dateInterval, 'offset') // 'longer'
 
           // But, we now know the above doesn't observe NP week start, so override with an NP-specific function where offset is of type 'week' but startDateStr is not of type 'week'
-          // FIXME: can land up as "NaN-W01" because getNPWeekData() doesn't cope with weekly note titles
           if (offsetUnit === 'w' && !startDateStr.match(RE_NP_WEEK_SPEC)) {
             const offsetNum = Number(dateInterval.substr(0, dateInterval.length - 1)) // return all but last character
-            // $FlowFixMe(incompatible-type)
-            const NPWeekData: NotePlanWeekInfo = getNPWeekData(startDateStr, offsetNum, 'week')
-            newDateStr = NPWeekData.weekString
-            logDebug('bridgeClickDashboardItem', `- used NPWeekData instead -> ${newDateStr}`)
+            const NPWeekData = getNPWeekData(startDateStr, offsetNum, 'week')
+            if (NPWeekData) {
+              newDateStr = NPWeekData.weekString
+              logDebug('bridgeClickDashboardItem', `- used NPWeekData instead -> ${newDateStr}`)
+            } else {
+              throw new Error(`Error moving task from ${filename} (${startDateStr}) with offset ${String(offsetNum)}`)
+            }
           }
           logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> ${newDateStr}`)
         }

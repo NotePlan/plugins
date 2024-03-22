@@ -30,7 +30,8 @@ function showItemControlDialog(dataObject) {
   const thisID = dataObject.itemID
   const thisSectionType = dataObject.sectionType
   const reschedOrMove = dataObject.reschedOrMove // sending as a string, as I couldn't get boolean to be passed correctly
-  const thisItemType = dataObject.itemType // 'task' or 'checklist'
+  const thisItemType = dataObject.itemType // 'task' | 'checklist'
+  // Items can be moved or rescheduled -- we work out which is relevant in HTMLGeneratorGrid
   const dateChangeFunctionToUse = (reschedOrMove === 'resched') ? "updateTaskDate" : "moveFromCalToCal"
   // console.log(`- using ${dateChangeFunctionToUse} from ${reschedOrMove}`)
   const thisIDElement = document.getElementById(thisID)
@@ -57,16 +58,16 @@ function showItemControlDialog(dataObject) {
   }
 
   const possibleControlTypes = [
-    { displayString: 'today', controlStr: 't', sectionTypes: ['DY', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse }, // special controlStr to indicate change to '>today'
-    { displayString: '+1d', controlStr: '+1d', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+1b', controlStr: '+1b', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+2d', controlStr: '+2d', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: 'this week', controlStr: '+0w', sectionTypes: ['DT', 'DY', 'M', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+1w', controlStr: '+1w', sectionTypes: ['DT', 'DY', 'W', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+2w', controlStr: '+2w', sectionTypes: ['DT', 'DY', 'W', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: 'this month', controlStr: '+0m', sectionTypes: ['DT', 'DY', 'W', 'Q', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+1m', controlStr: '+1m', sectionTypes: ['M', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: 'this quarter', controlStr: '+0q', sectionTypes: ['M', 'OVERDUE'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: 'today', controlStr: 't', sectionTypes: ['DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse }, // special controlStr to indicate change to '>today'
+    { displayString: '+1d', controlStr: '+1d', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: '+1b', controlStr: '+1b', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: '+2d', controlStr: '+2d', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: 'this week', controlStr: '+0w', sectionTypes: ['DT', 'DY', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: '+1w', controlStr: '+1w', sectionTypes: ['DT', 'DY', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: '+2w', controlStr: '+2w', sectionTypes: ['DT', 'DY', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: 'this month', controlStr: '+0m', sectionTypes: ['DT', 'DY', 'W', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: '+1m', controlStr: '+1m', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: 'this quarter', controlStr: '+0q', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     { displayString: 'move to note', controlStr: 'movetonote', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: 'moveToNote' },
     { displayString: 'unschedule', controlStr: 'unsched', sectionTypes: ['OVERDUE', 'TAG'], handlingFunction: 'unscheduleItem' },
     { displayString: 'priority ↑', controlStr: 'priup', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateUp' },
@@ -171,6 +172,33 @@ function showItemControlDialog(dataObject) {
   itemControlDialogOtherControls.style.display = (numICDOCBShown === 0) ? "none" : "block"
   itemControlDialogOtherControls.previousElementSibling.style.display = (numICDOCBShown === 0) ? "none" : "block"
 
+  // Add a keyboardEvent listener
+  // document.addEventListener(
+  //   "keypress",
+  //   (event) => {
+  //     const keyName = event.key
+  //     console.log(keyName)
+  //     console.log(String(event.ctrlKey))
+  //     console.log(String(event.metaKey))
+
+  //     // if (keyName === "Control") {
+  //     //   // do not alert when only Control key is pressed.
+  //     //   return
+  //     // }
+
+  //     // if (event.ctrlKey) {
+  //     //   // Even though event.key is not 'Control' (e.g., 'a' is pressed),
+  //     //   // event.ctrlKey may be true if Ctrl key is pressed at the same time.
+  //     //   alert(`Combination of ctrl + ${keyName}`)
+  //     // } else if (event.metaKey) {
+  //     //   alert(`Combination of meta + ${keyName}`)
+  //     // } else {
+  //     //   alert(`Key pressed ${keyName}`)
+  //     // }
+  //   },
+  //   false,
+  // )
+
   // Set place on the screen for dialog to appear
   const approxDialogWidth = 530 // TODO: can we do better than this?
   const approxDialogHeight = 180
@@ -178,7 +206,7 @@ function showItemControlDialog(dataObject) {
 
   // Actually show the dialog
   dialog.showModal()
-  // This does work:
+  // This then does work:
   // console.log(dialog.clientWidth, dialog.clientHeight)
 
   // For clicking on dialog buttons

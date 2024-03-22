@@ -8,7 +8,7 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "1.0.0-a6",
+  "plugin.version": "1.0.0-a7",
   "plugin.lastUpdateInfo": "1.0.0: rewrite of layout engine, and new features.",
   "plugin.requiredFiles": [
     "dashboard.css",
@@ -85,13 +85,37 @@
       "name": "schedule yesterday to today",
       "description": "schedule all yesterday's open items to today",
       "jsFunction": "scheduleAllYesterdayOpenToToday",
-      "hidden": false
+      "hidden": true
     },
     {
       "name": "schedule overdue to today",
       "description": "schedule all overdue items to today",
       "jsFunction": "scheduleAllOverdueOpenToToday",
-      "hidden": false
+      "hidden": true
+    },
+    {
+      "name": "toggleOverdueSection",
+      "description": "toggle whether Overdue section is shown",
+      "jsFunction": "toggleOverdueSection",
+      "hidden": true
+    },
+    {
+      "name": "toggleMonthSection",
+      "description": "toggle whether Month section is shown",
+      "jsFunction": "toggleMonthSection",
+      "hidden": true
+    },
+    {
+      "name": "togglePriorityFilter",
+      "description": "toggle priority filter",
+      "jsFunction": "togglePriorityFilter",
+      "hidden": true
+    },
+    {
+      "name": "toggleWeekSection",
+      "description": "toggle whether Week section is shown",
+      "jsFunction": "toggleWeekSection",
+      "hidden": true
     },
     {
       "name": "Dashboard: reset window size",
@@ -145,7 +169,7 @@
     },
     {
       "key": "ignoreFolders",
-      "title": "Folders to ignore when finding linked items",
+      "title": "Folders to ignore when finding items",
       "description": "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results.",
       "type": "[string]",
       "default": [
@@ -311,7 +335,7 @@
     {
       "key": "tagToShow",
       "title": "#tag/@mention to show",
-      "description": "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to make this a 'deferred' section, by setting the tag to show here to the same tag that is also set to be ignored in the calendar sections above.\nNote: This is limited to hashtags and mentions for speed, and it can show tasks duplicated from other sections.",
+      "description": "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.\nNote: This is limited to a signle hashtag or mention for speed, and it can show tasks duplicated from other sections.",
       "type": "string",
       "default": "",
       "required": false

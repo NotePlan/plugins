@@ -34,10 +34,6 @@ import {
 import {
   addPriorityToParagraphs,
   sortListBy,
-  // $FlowIgnore(untyped-type-import) as Flow is used in its definition
-  // type GroupedTasks,
-  // $FlowIgnore(untyped-type-import) as Flow is used in its definition
-  // type SortableParagraphSubset
 } from '@helpers/sorting'
 // import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
@@ -489,7 +485,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
     //-----------------------------------------------------------
     // Add a section for tagToShow, if set
-    // Only find those which include open tasks that aren't scheduled in the future
+    // Only find paras with this *single* tag/mention which include open tasks that aren't scheduled in the future
     if (config.tagToShow) {
       logInfo('getDataForDashboard', `---------------------------- Looking for tag '${config.tagToShow}'  for section #${String(sectionCount)} -----------------------------`)
       const thisStartTime = new Date()
@@ -500,16 +496,10 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
         let totalCount = 0
         const filteredTagParas: Array<TParagraph> = []
 
-        // From notes with matching hashtag or mention
+        // Get notes with matching hashtag or mention (as can't get list of paras directly)
         const notesWithTag = findNotesMatchingHashtagOrMention(config.tagToShow)
 
         for (const n of notesWithTag) {
-          // // Remove items referenced from items in 'ignoreFolders'
-          // logDebug('getDataForDashboard', `- ${notesWithTag.length} tag notes`)
-          // const filteredTagParasFromNote = filterOutParasInExcludeFolders(tagParasFromNote, config.ignoreFolders)
-          // filteredTagParas.push(...filteredTagParasFromNote)
-          // logDebug('getDataForDashboard', `- ${filteredTagParas.length} paras after excluding @special + [${String(config.ignoreFolders)}] folders`)
-
           // Don't continue if this note is in an excluded folder
           const thisNoteFolder = getFolderFromFilename(n.filename)
           if (config.ignoreFolders.includes(thisNoteFolder)) {
@@ -519,19 +509,18 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
 
           // Get the relevant paras from this note
           const tagParasFromNote = n.paragraphs.filter(p => p.content?.includes(config.tagToShow) && isOpen(p) && !includesScheduledFutureDate(p.content))
-          // logDebug('getDataForDashboard', `- found ${tagParasFromNote.length} paras`)
+          logDebug('getDataForDashboard', `- found ${tagParasFromNote.length} paras`)
 
           // Save this para, unless in matches the 'ignoreTagMentionsWithPhrase' setting
-          // if (config.ignoreTagMentionsWithPhrase !== '') {
-          //   filteredTagParas = tagParasFromNote.filter((p) => !p.content.includes(config.ignoreTagMentionsWithPhrase))
-          // }
+
           for (const p of tagParasFromNote) {
-            if (!p.content.includes(config.ignoreTagMentionsWithPhrase)) {
-              filteredTagParas.push(p)
-            } else {
-              logDebug('getDataForDashboard', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
+              if (config.ignoreTagMentionsWithPhrase === '' || !p.content.includes(config.ignoreTagMentionsWithPhrase)) {
+                filteredTagParas.push(p)
+              } else {
+                logDebug('getDataForDashboard', `- ignoring para {${p.content}} as it contains '${config.ignoreTagMentionsWithPhrase}'`)
+              }
             }
-          }
+
         }
         logInfo('getDataForDashboard', `- ${filteredTagParas.length} paras (after ${timer(startTime)})`)
 
