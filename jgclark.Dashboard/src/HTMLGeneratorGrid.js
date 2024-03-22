@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 14.3.2024 for v1.0.0 by @jgclark
+// Last updated 22.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -40,7 +40,7 @@ import { showHTMLV2 } from '@helpers/HTMLView'
 // import { nowLocaleShortTime } from '@helpers/NPdateTime'
 // import { getNoteFilenameFromTitle } from '@helpers/NPnote'
 import { addTrigger } from '@helpers/NPFrontMatter'
-import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
+// import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
@@ -312,15 +312,25 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           }
         }
 
-        if (section.description.includes('{scheduleAllToday}')) {
+        if (section.description.includes('{scheduleAllYesterdayToday}')) {
           const xcbButton = makeRealCallbackButton(
             'All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today',
             'jgclark.Dashboard',
             'schedule yesterday to today',
             'true', // = refresh afterwards
-            'Move or schedule all to today\'s note')
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllToday}', xcbButton)
+            'Move or schedule all open items from yesteday to today')
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllYesterdayToday}', xcbButton)
         }
+        if (section.description.includes('{scheduleAllOverdueToday}')) {
+          const xcbButton = makeRealCallbackButton(
+            'All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today',
+            'jgclark.Dashboard',
+            'schedule overdue to today',
+            'true', // = refresh afterwards
+            'Move or schedule all overdue items to today')
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllOverdueToday}', xcbButton)
+        }
+
         if (section.description.includes('{startReviews}')) {
           const xcbButton = makeRealCallbackButton(
             '<i class="fa-solid fa-play"></i>\u00A0Start\u00A0Reviews',
@@ -556,9 +566,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           <button class="unscheduleButton" data-control-str="unsched">Unschedule</button>
         </div>
         <div></div>
-        <div>
-          <button id="closeTaskControlDialog" class="submitButton">Close</button>
-        </div>
+        <div><form onsubmit="closeDialog()"><button type="submit" class="mainButton">Close</button></form></div>
       </div>
     </div>
   </dialog>
@@ -583,8 +591,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           <button class="skipReviewButton" data-control-str="nr+1q">Skip 1q</button>
         </div>
         <div></div>
-        <div>
-          <button id="closeProjectControlDialog" class="submitButton">Close</button>
+        <div><form onsubmit="closeDialog()"><button type="submit" class="mainButton">Close</button></form></div>
         </div>
       </div>
     </div>

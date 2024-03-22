@@ -168,7 +168,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           })
           // clo(combinedSortedParas, "yesterday sortedOpenParas")
           logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-          sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} from daily note ${toLocaleDateString(today)} {scheduleAllToday}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+          sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} from daily note ${toLocaleDateString(today)} {scheduleAllYesterdayToday}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarDaily", filename: thisFilename })
           sectionCount++
 
           // clo(sortedRefParas, "sortedRefParas")
@@ -195,7 +195,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           })
           // clo(sortedRefParas, "sortedRefParas")
           sections.push({
-            ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} from daily note or scheduled to ${toLocaleDateString(yesterday)} {scheduleAllToday}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarDaily", filename: thisFilename
+            ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} from daily note or scheduled to ${toLocaleDateString(yesterday)} {scheduleAllYesterdayToday}`, FAIconClass: "fa-light fa-calendar-days", sectionTitleClass: "sidebarDaily", filename: thisFilename
           })
           sectionCount++
           // Save these paras for later deduping
@@ -398,7 +398,7 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
       let thisStartTime = new Date()
       let totalOverdue = 0
 
-      // $FlowFixMe(incompatible-call)
+      // $FlowFixMe(incompatible-call) returns $ReadOnlyArray type
       const refParas: Array<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
       logInfo('getDataForDashboard', `Found ${refParas.length} overdue items in ${timer(thisStartTime)}`)
 
@@ -474,8 +474,10 @@ export async function getDataForDashboard(fullGenerate: boolean = true): Promise
           itemCount++
         })
 
-        const overdueSectionDescription = (totalOverdue > itemCount) ? `first {count} of ${String(totalOverdue)} tasks ordered by ${config.overdueSortOrder}`
+        let overdueSectionDescription = (totalOverdue > itemCount)
+          ? `first {count} of ${String(totalOverdue)} tasks ordered by ${config.overdueSortOrder}`
           : `all {count} tasks ordered by ${config.overdueSortOrder}`
+        overdueSectionDescription += ` {scheduleAllOverdueToday}`
         sections.push({
           ID: sectionCount,
           name: 'Overdue Tasks', sectionType: 'OVERDUE', description: overdueSectionDescription, FAIconClass: "fa-regular fa-alarm-exclamation", sectionTitleClass: "overdue", filename: ''

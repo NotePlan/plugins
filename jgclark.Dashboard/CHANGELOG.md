@@ -3,9 +3,10 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 **NB: The documentation has not yet been updated for 1.0.0 ... none of the settings have changed (I think), but the UX certainly has.**
 
-TODO: 
-* improve button shadow in dark mode
-* added 'Move all to today' button to the Overdue section as well
+## [1.0.0-a6] - 2024-03-22 (unreleased)
+- **UNTESTED** added 'Move all to today' button to the Overdue section as well
+- improved button appearance
+- fixed regression on the dialog Close button
 
 ## [1.0.0-a5] - 2024-03-17 (unreleased)
 - the new 'Move all to today' button in Yesterday's section now honours the 'reschedule not move?' setting

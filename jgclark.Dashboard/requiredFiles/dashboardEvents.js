@@ -40,7 +40,6 @@ function showItemControlDialog(dataObject) {
   console.log(`dataObject() starting for ID ${thisID}, type ${thisSectionType}, itemType ${thisItemType}, filename ${thisEncodedFilename}`)
 
   const dialog = document.getElementById("itemControlDialog")
-  const closeDialogBtn = document.getElementById("closeTaskControlDialog")
 
   // Set the dialog title from the filename
   const dialogItemNoteElem = document.getElementById('dialogItemNote')
@@ -105,8 +104,8 @@ function showItemControlDialog(dataObject) {
   allDialogButtons = document.getElementById("itemDialogButtons").getElementsByTagName("BUTTON")
   let added = 0
   for (const button of allDialogButtons) {
-    // Ignore the submitButton(s) (e.g.'Close')
-    if (button.className === 'submitButton') {
+    // Ignore the mainButton(s) (e.g.'Close')
+    if (button.className === 'mainButton') {
       continue
     }
 
@@ -172,9 +171,6 @@ function showItemControlDialog(dataObject) {
   itemControlDialogOtherControls.style.display = (numICDOCBShown === 0) ? "none" : "block"
   itemControlDialogOtherControls.previousElementSibling.style.display = (numICDOCBShown === 0) ? "none" : "block"
 
-  // Add close button event
-  closeDialogBtn.addEventListener("click", closeDialog)
-
   // Set place on the screen for dialog to appear
   const approxDialogWidth = 530 // TODO: can we do better than this?
   const approxDialogHeight = 180
@@ -209,12 +205,10 @@ function showItemControlDialog(dataObject) {
     if (!metaModifier) {
       closeDialog()
     } else {
-      // re-gather the content part, as it might just have changed
-      const thisElement = document.getElementById(id)
-      // // TODO: doesn't get here??  Is this needed for Priority?
-      // console.log(`- ${thisElement.outerText}`)
-      // const updatedContent = thisElement.getAttribute('data-encoded-content') ?? '<error>'
-      // console.log(`- updated content: {${  updatedContent  }}`)
+      console.log(`Option key pressed. But closing dialog anyway.`)
+      // Note: this is where we would want to update and re-gather the data-encoded-content, as it might well have changed.
+      // But id might have changed, so so for now this is just as a future idea.
+      closeDialog()
     }
   }
 }
@@ -253,7 +247,10 @@ function showProjectControlDialog(dataObject) {
   console.log(`dataObject() starting for ID ${thisID}, type ${thisSectionType}, filename ${thisEncodedFilename}`)
 
   const dialog = document.getElementById("projectControlDialog")
-  const closeDialogBtn = document.getElementById("closeProjectControlDialog")
+
+  // Add close button event handler
+  // const closeDialogBtn = document.getElementById("closeProjectControlDialog")
+  // closeDialogBtn.addEventListener("click", closeDialog)
 
   // Set the dialog title from the filename
   const dialogItemNoteElem = document.getElementById('dialogProjectNote')
@@ -275,8 +272,8 @@ function showProjectControlDialog(dataObject) {
   const allDialogButtons = document.getElementById("projectDialogButtons").getElementsByTagName("BUTTON")
   let added = 0
   for (const button of allDialogButtons) {
-    // Ignore the submitButton(s) (e.g. 'Close')
-    if (button.className === 'submitButton') {
+    // Ignore the mainButton(s) (e.g. 'Close')
+    if (button.className === 'mainButton') {
       continue
     }
     const thisControlStr = button.dataset.controlStr
@@ -310,9 +307,6 @@ function showProjectControlDialog(dataObject) {
     }
   }
   console.log(`- ${String(added)} button ELs added`)
-
-  // Add close button event handler
-  closeDialogBtn.addEventListener("click", closeDialog)
 
   // Actually show the dialog
   dialog.showModal()
@@ -522,10 +516,10 @@ function addButtonEventListeners() {
  * Handle various clicks
  */
 // For clicking on item icons
-function handleIconClick(id, itemType, filename, content, metaModifier) {
-  console.log(`handleIconClick( ${id} / ${itemType} / ${filename}/ {${content}} / ${String(metaModifier)} )`)
-  const encodedFilename = filename // already encoded at this point. Was: encodeRFC3986URIComponent(filename);
-  const encodedContent = content // already encoded at this point. Was: encodeRFC3986URIComponent(content);
+function handleIconClick(id, itemType, encodedfilename, encodedcontent, metaModifier) {
+  console.log(`handleIconClick( ${id} / ${itemType} / ${encodedfilename}/ {${encodedcontent}} / ${String(metaModifier)} )`)
+  const encodedFilename = encodedfilename
+  const encodedContent = encodedcontent
 
   switch (itemType) {
     case 'open': {
@@ -547,12 +541,12 @@ function handleIconClick(id, itemType, filename, content, metaModifier) {
   }
 }
 
-// For clicking on main 'paragraph content'
-function handleContentClick(event, id, filename, content) {
-  console.log(`handleContentClick( ${id} / ${filename} / ${content} ) for event currentTarget: ${event.currentTarget}`)
-  const encodedFilename = filename // already encoded at this point. Was: encodeRFC3986URIComponent(filename);
-  const encodedContent = content // already encoded at this point. Was: encodeRFC3986URIComponent(content);
-  onClickDashboardItem({ itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent }) // TEST: change from showNote.. to showLine...
+// For clicking on main 'paragraph encodedcontent'
+function handleContentClick(event, id, encodedfilename, encodedcontent) {
+  console.log(`handleContentClick( ${id} / ${encodedfilename} / ${encodedcontent} ) for event currentTarget: ${event.currentTarget}`)
+  const encodedFilename = encodedfilename
+  const encodedContent = encodedcontent
+  onClickDashboardItem({ itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent })
 }
 
 // For clicking on checkbox
