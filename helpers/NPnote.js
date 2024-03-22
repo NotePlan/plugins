@@ -429,9 +429,9 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
 }
 
 /**
- * Return array of notes with a particular hashtag, with further optional parameters about which (sub)folders to look in
+ * Return array of notes with a particular #hashtag or @mention, with further optional parameters about which (sub)folders to look in
  * @author @jgclark
- * @param {string} tag - tag name to look for
+ * @param {string} tag - tag/mention name to look for
  * @param {string?} folder - optional folder to limit to
  * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @param {Array<string>?} tagsToExclude - optional list of tags that if found in the note, excludes the note
@@ -455,9 +455,9 @@ export function findNotesMatchingHashtagOrMention(
 }
 
 /**
- * Return list of notes with a particular hashtag (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
+ * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
  * @author @jgclark
- * @param {string} tag - tag name to look for
+ * @param {string} tag - tag/mention name to look for
  * @param {string?} folder - optional folder to limit to
  * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @param {Array<string>?} tagsToExclude - optional list of tags that if found in the note, excludes the note
@@ -578,7 +578,7 @@ export function findNotesMatchingHashtags(
   }
 
   // Filter by tags
-  const projectNotesWithTags = [[]]
+  const projectNotesWithTags: Array<Array<TNote>> = [[]]
   for (const tag of tags) {
     const projectNotesWithTag = projectNotesInFolder.filter((n) => n.hashtags.includes(tag))
     // logDebug('NPnote/findNotesMatchingHashtags', `In folder '${folder ?? '<all>'}' found ${projectNotesWithTag.length} notes matching '${tag}'`)
