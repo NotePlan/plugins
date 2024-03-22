@@ -80,7 +80,7 @@ describe(`${FILE}`, () => {
     })
     test('should do nothing if nothing to trim 2', () => {
       const orig = { foo: 'bar' }
-      const expected = {}
+      // const expected = {}
       const result = h.pruneTheme(orig)
       expect(result).toEqual(orig)
     })
