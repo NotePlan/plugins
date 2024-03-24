@@ -432,6 +432,7 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
  * Return array of notes with a particular #hashtag or @mention, with further optional parameters about which (sub)folders to look in
  * @author @jgclark
  * @param {string} tag - tag/mention name to look for
+ * @param {boolean?} alsoSearchCalendarNotes - (optional, defaults to false)
  * @param {string?} folder - optional folder to limit to
  * @param {boolean?} includeSubfolders? - if folder given, whether to look in subfolders of this folder or not (optional, defaults to false)
  * @param {Array<string>?} tagsToExclude - optional list of tags that if found in the note, excludes the note
@@ -441,7 +442,8 @@ export function getNoteTitleFromFilename(filename: string, makeLink?: boolean = 
  */
 export function findNotesMatchingHashtagOrMention(
   tag: string,
-  folder: ?string,
+  alsoSearchCalendarNotes: boolean = false,
+  folder: string = '',
   includeSubfolders: boolean = false,
   tagsToExclude: Array<string> = [],
   caseInsensitiveMatch: boolean = true,
@@ -451,11 +453,12 @@ export function findNotesMatchingHashtagOrMention(
     `NPNote/findNotesMatchingHashtagOrMention`,
     `tag:${tag} folder:${folder ?? '(none)'} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} caseInsensitiveMatch:${String(caseInsensitiveMatch)}`,
   )
-  return findNotesMatchingHashtag(tag, folder, includeSubfolders, tagsToExclude, caseInsensitiveMatch, notesToSearchIn, true)
+  return findNotesMatchingHashtag(tag, folder, includeSubfolders, tagsToExclude, caseInsensitiveMatch, notesToSearchIn, true, alsoSearchCalendarNotes)
 }
 
 /**
- * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on.
+ * Return list of notes with a given #hashtag or @mention (singular), with further optional parameters about which (sub)folders to look in, and a term to defeat on. 
+ * Originally only looked in Project Notes, but 'alsoSearchCalendarNotes' allows it to look further.
  * @author @jgclark
  * @param {string} tag - tag/mention name to look for
  * @param {string?} folder - optional folder to limit to
@@ -464,6 +467,7 @@ export function findNotesMatchingHashtagOrMention(
  * @param {boolean?} caseInsensitiveMatch - whether to ignore case when matching (optional, defaults to true)
  * @param {Array<TNote>?} notesToSearchIn - optional array of notes to search in
  * @param {boolean?} alsoSearchMentions - whether to search @mentions as well (optional, defaults to false)
+ * @param {boolean?} alsoSearchCalendarNotes - (optional, defaults to false)
  * @return {Array<TNote>}
  */
 export function findNotesMatchingHashtag(
@@ -473,20 +477,24 @@ export function findNotesMatchingHashtag(
   tagsToExclude: Array<string> = [],
   caseInsensitiveMatch: boolean = true,
   notesToSearchIn?: Array<TNote>,
-  alsoSearchMentions: boolean = false
+  alsoSearchMentions: boolean = false,
+  alsoSearchCalendarNotes: boolean = false
 ): Array<TNote> {
   // Check for special conditions first
   if (tag === '') {
     logError('NPnote/findNotesMatchingHashtag', `No hashtag given. Stopping`)
     return [] // for completeness
   }
-  const notesToSearch = notesToSearchIn ?? DataStore.projectNotes
-  logDebug('NPnote/findNotesMatchingHashtag', `starting with ${notesToSearch.length} notes${notesToSearchIn ? ' (from the notesToSearchIn param)' : ' (from DataStore.projectNotes)'}`)
-  const startTime = new Date()
+  let notesToSearch = notesToSearchIn ?? DataStore.projectNotes
+  if (alsoSearchCalendarNotes) {
+    notesToSearch = notesToSearch.concat(DataStore.calendarNotes)
+  }
+  logDebug('NPnote/findNotesMatchingHashtag', `starting with ${notesToSearch.length} notes (${notesToSearchIn ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
 
+  const startTime = new Date()
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
-  if (folder != null) {
+  if (folder && folder !== '') {
     if (includeSubfolders) {
       // use startsWith as filter to include subfolders
       projectNotesInFolder = notesToSearch.slice().filter((n) => n.filename.startsWith(`${folder}/`))

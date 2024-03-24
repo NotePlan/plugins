@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 22.3.2024 for v1.0.0 by @jgclark
+// Last updated 23.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -265,8 +265,8 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       let items = sectionItems.filter((i) => i.ID.startsWith(String(section.ID)))
 
       if (items.length === 0) {
+        // If there are no items in first section, then add a congratulatory message
         if (sectionNumber === 0) {
-          // If there are no items in first section, then add a congratulatory message
           items.push({
             ID: '0-Congrats',
             type: 'congrats',

@@ -4,6 +4,7 @@
 // Last updated 15.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 // import { showDashboard } from './HTMLGeneratorGrid'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -60,7 +61,10 @@ import {
 } from '@helpers/stringTransforms'
 import { getTimeBlockString, isTimeBlockPara } from '@helpers/timeblocks'
 import { showMessage } from '@helpers/userInput'
-import { isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled } from '@helpers/utils'
+import {
+  isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled,
+  removeDuplicates
+} from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Data types
@@ -279,6 +283,53 @@ export function getOpenItemParasForCurrentTimePeriod(
   } catch (err) {
     logError('getOpenItemParasForCurrentTimePeriod', err.message)
     return [[], []] // for completeness
+  }
+}
+
+/**
+ * @params {dashboardConfigType} config Settings
+ * @returns {}
+ */
+export async function getRelevantOverdueTasks(config: dashboardConfigType): Promise<Array<TParagraph>> {
+  try {
+    const thisStartTime = new Date()
+    const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
+    logInfo('getRelevantOverdueTasks', `Found ${overdueParas.length} overdue items in ${timer(thisStartTime)}`)
+
+    // Remove items referenced from items in 'ignoreFolders'
+    // $FlowFixMe(incompatible-call) returns $ReadOnlyArray type
+    let filteredOverdueParas = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders)
+    logDebug('getRelevantOverdueTasks', `- ${filteredOverdueParas.length} paras after excluding @special + [${String(config.ignoreFolders)}] folders`)
+
+    // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
+    // Note: not fully accurate, as it doesn't check the filename is identical, but this catches sync copies, which saves a lot of time
+    // Note: this is a quick operation
+    filteredOverdueParas = removeDuplicates(filteredOverdueParas, ['content'])
+    logInfo('getDataForDashboard', `- after deduping overdue -> ${filteredOverdueParas.length} in ${timer(thisStartTime)}`)
+
+    // Remove items already in Yesterday section (if turned on)
+    if (config.showYesterdaySection) {
+      const dateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
+      const yesterdaysNote = DataStore.calendarNoteByDateString(dateStr)
+      // $FlowFixMe(incompatible-call)
+      const [combinedSortedParas, sortedOverdueParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
+      const yesterdaysCombinedSortedParas = combinedSortedParas.concat(sortedOverdueParas)
+      if (yesterdaysCombinedSortedParas.length > 0) {
+        // Filter out all items in array filteredOverdueParas that also appear in array yesterdaysCombinedSortedParas
+        filteredOverdueParas.map((p) => {
+          if (yesterdaysCombinedSortedParas.filter((y) => y.content === p.content).length > 0) {
+            logDebug('getRelevantOverdueTasks', `- removing duplicate item {${p.content}} from overdue list`)
+            filteredOverdueParas.splice(filteredOverdueParas.indexOf(p), 1)
+          }
+        })
+      }
+    }
+
+    logInfo('getRelevantOverdueTasks', `- after deduping with yesterday -> ${filteredOverdueParas.length} in ${timer(thisStartTime)}`)
+    return filteredOverdueParas
+  } catch (error) {
+    logError('getRelevantOverdueTasks', error.message)
+    return []
   }
 }
 

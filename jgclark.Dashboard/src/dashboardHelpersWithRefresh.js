@@ -1,12 +1,13 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 22.3.2024 for v1.0.0 by @jgclark
+// Last updated 23.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import {
   getOpenItemParasForCurrentTimePeriod,
+  getRelevantOverdueTasks,
   getSettings
 } from './dashboardHelpers'
 import { showDashboard } from './HTMLGeneratorGrid'
@@ -129,8 +130,9 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
 
 //-----------------------------------------------------------------
 /**
- * Function to schedule or move all open overdue items from their notes to today
+ * Function to schedule or move all open overdue tasks from their notes to today
  * Uses config setting 'rescheduleNotMove' to decide whether to reschedule or move.
+ * Note: API call does not include open checklist items
  * @param {boolean?} refreshDashboard?
  * @returns 
  */
@@ -142,10 +144,11 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
     // For these purposes override one config item:
     config.separateSectionForReferencedNotes = true
 
+    // FIXME: need to start a spinner here
+
     // Get paras for all overdue items in notes
     const thisStartTime = new Date()
-    // $FlowFixMe(incompatible-call) returns $ReadOnlyArray type
-    const overdueParas: Array<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
+    const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config) // note: does not include open checklist items
     const totalOverdue = overdueParas.length
     if (totalOverdue === 0) {
       logWarn('scheduleAllYesterdayOpenToToday', `Can't find any overdue items, which was not expected.`)
@@ -158,7 +161,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
 
     // If there are lots, then double check whether to proceed
     if (totalOverdue > checkThreshold) {
-      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'nove'} ${totalOverdue} overdue items to today? This can be a slow operation.`, ['Yes', 'No'], 'Move Overdue to Today', false)
+      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'nove'} ${totalOverdue} overdue items to today? This can be a slow operation, and can't easily be undone.`, ['Yes', 'No'], 'Move Overdue to Today', false)
       if (res !== 'Yes') {
         logDebug('scheduleAllOverdueOpenToToday', 'User cancelled operation.')
         return 0

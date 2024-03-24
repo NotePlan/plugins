@@ -3,7 +3,11 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 
 **NB: The documentation has not yet been updated for 1.0.0 ... none of the settings have changed (I think), but the UX certainly has.**
 
-## [1.0.0-a7] - 2024-03-22 (unreleased)
+## [1.0.0-a8] - 2024-03-24 (unreleased)
+- the Tag/Mention Section now looks over Calendar notes, not just Project notes
+- fix to inconsistent number of overdue tasks reported in dialog box
+
+## [1.0.0-a7] - 2024-03-23 (unreleased)
 - new keyboard shortcuts that work when the Dashboard has focus (so you might need to click in it once):
   - m: toggle showing Month section
   - o: toggle showing Overdue section
