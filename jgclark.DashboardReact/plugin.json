@@ -1,0 +1,70 @@
+{
+  "noteplan.minAppVersion": "3.7",
+  "macOS.minVersion": "10.13.0",
+  "plugin.id": "jgclark.DashboardReact",
+  "plugin.name": "Dashboard React Version",
+  "plugin.description": "Basic skeleton of a React app that can be used in a NotePlan plugin",
+  "plugin.author": "@jgclark",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "1.0.0 Initial skeleton",
+  "plugin.dependencies": [],
+  "plugin.requiredFiles": [
+    "css.plugin.css",
+    "react.c.WebView.bundle.min.js",
+    "react.c.WebView.bundle.dev.js"
+  ],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DashboardReact/readme.md",
+  "plugin.commands": [
+    {
+      "name": "Test React Window",
+      "description": "React Window",
+      "jsFunction": "testReactWindow",
+      "hidden": false,
+      "alias": [
+      ],
+      "arguments": []
+    },
+    {
+      "name": "onMessageFromHTMLView",
+      "description": "React Window calling back to plugin",
+      "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
+    }
+  ],
+  "plugin.settings": [
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "NOTE": "Be sure to change this to your plugin's ID so that the interactive settings will work on iOS etc.",
+      "default": "jgclark.DashboardReact"
+    },
+    {
+      "type": "heading",
+      "title": "ReactSkeleton Settings"
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much output will be displayed for this plugin the NotePlan > Help > Plugin Console. DEBUG is the most verbose; NONE is the least (silent)",
+      "default": "LOG",
+      "required": true
+    }
+  ]
+}
