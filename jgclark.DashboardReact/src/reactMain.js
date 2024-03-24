@@ -208,7 +208,9 @@ export async function testReactWindow(): Promise<void> {
     // w3.css reference: https://www.w3schools.com/w3css/defaulT.asp
     // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
     const cssTagsString = `
-      <link rel="stylesheet" href="../np.Shared/css.w3.css">
+      <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
+      <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css">
+      <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardHoverControls.css">
 		  <link rel="stylesheet" href="../jgclark.DashboardReact/css.plugin.css">\n`
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/saved.html` /* for saving a debug version of the html file */,

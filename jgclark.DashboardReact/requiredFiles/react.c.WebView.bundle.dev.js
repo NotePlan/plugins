@@ -149,8 +149,7 @@ var WebViewBundle = (function (exports, React) {
       pluginData,
       debug
     } = data;
-    console.log(`Webview: data: ${JSON.stringify(data, null, 2)}`);
-    console.log(`Webview: pluginData: ${JSON.stringify(pluginData, null, 2)}`);
+    logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData, null, 2)}`);
 
     /****************************************************************************************************************************
      *                             HANDLERS
