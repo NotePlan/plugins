@@ -7,7 +7,7 @@ See [CHANGELOG](changelog.md) for latest updates/changes to this plugin.
 This is a basic skeleton of a Dashboard React app . 
 
 1. Build and test the code as detailed below (confirm everything works)
-1. Then edit `reactMain.js` (the plugin-side code) and `WebView.jsx` (the HTML/React-side code) as you wish (See "Editing the Code" below)
+1. Then edit `reactMain.js` (the plugin-side code) and `Dashboard.jsx` and other components in the src/react/components directory (the HTML/React-side code) as you wish (See "Editing the Code" below)
 
 
 > **NOTE:** There are some peculiarities of writing an app that uses React, so make sure to read this whole document
