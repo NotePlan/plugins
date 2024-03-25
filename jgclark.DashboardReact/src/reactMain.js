@@ -130,7 +130,8 @@ function getSections() {
 export function getInitialDataForReactWindow(): { [string]: mixed } {
   return {
     sections: getSections(),
-    lastUpdated: Date.now().toLocaleString() /* placeholder */,
+    lastUpdated: new Date().toLocaleString() /* placeholder */,
+    settings: DataStore.settings,
     totalItems: 999 /* placeholder */,
   }
   // we return tableRows just as an example, but there's nothing magic about that property name

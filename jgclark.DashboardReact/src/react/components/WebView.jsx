@@ -31,6 +31,7 @@ type Props = {
 import React, { useEffect, type Node } from 'react'
 import { type PassedData } from '../../reactMain.js'
 import Dashboard from './Dashboard.jsx'
+import { AppProvider } from './AppContext.jsx'
 
 /****************************************************************************************************************************
  *                             CONSOLE LOGGING
@@ -65,12 +66,11 @@ export function WebView({ data, dispatch }: Props): Node {
 
   // destructure all the startup data we expect from the plugin
   const { pluginData, debug } = data
-  logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData,null,2)}`)
+  logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData, null, 2)}`)
 
   /****************************************************************************************************************************
    *                             HANDLERS
    ****************************************************************************************************************************/
-
 
   /****************************************************************************************************************************
    *                             EFFECTS
@@ -150,6 +150,8 @@ export function WebView({ data, dispatch }: Props): Node {
    ****************************************************************************************************************************/
 
   return (
-    <Dashboard data={pluginData} dispatch={dispatch} sendActionToPlugin={sendActionToPlugin} />
+    <AppProvider sendActionToPlugin={sendActionToPlugin} sendToPlugin={sendToPlugin} dispatch={dispatch} pluginData={pluginData}>
+      <Dashboard pluginData={pluginData} />
+    </AppProvider>
   )
 }

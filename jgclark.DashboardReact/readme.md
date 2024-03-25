@@ -35,3 +35,16 @@ I open these side-by-side in a terminal in VSCode.
 
 ## Plugin Code
 The main plugin code that will invoke the React Window is in the file `src/reactMain.js`. This is the entrypoint to your plugin. This is also where the callback function is that will receive the calls back from the React view. Of course, these functions could be moved/renamed in `index.js`.
+
+```mermaid
+graph TD
+    WebView --> AppProvider
+    AppProvider --> Dashboard
+    Dashboard --> Header
+    Dashboard --> Section
+    Section --> ItemGrid
+    ItemGrid --> ItemRow
+    Section --> AddButtons
+    Header --> Button
+    AddButtons --> Button
+  ```

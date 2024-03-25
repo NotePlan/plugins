@@ -1,27 +1,29 @@
 // @flow
 import React from 'react'
 import Button from './Button.jsx'
+import { useAppContext } from './AppContext.jsx'
 
 type Props = {
   lastUpdated: string,
-  totalItems: number,
-  refreshHandler: () => void,
-}
-
-const handleCheckboxClick = () => {
-  console.log('Checkbox clicked. need to do something here')
 }
 
 /**
  * Displays the dashboard's header.
  */
-const Header = ({ lastUpdated, totalItems, refreshHandler }: Props): React$Node => {
+const Header = ({ lastUpdated }: Props): React$Node => {
+  const { sendActionToPlugin /*, sendToPlugin, dispatch, pluginData */ } = useAppContext()
+
+  const handleCheckboxClick = () => {
+    console.log('Checkbox clicked. need to do something here')
+    sendActionToPlugin('refresh', {})
+  }
+
   return (
     <div className="header">
       <div className="lastUpdated">
         Last updated: <span id="timer">{lastUpdated}</span>{' '}
       </div>
-      <Button className="XCBButton" clickHandler={refreshHandler} text={'Refresh'} />
+      <Button className="XCBButton" clickHandler={handleCheckboxClick} text={'Refresh'} />
       <div className="totalCounts">
         <span id="totalDoneCount">0</span> items closed
       </div>
