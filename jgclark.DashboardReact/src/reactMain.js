@@ -6,7 +6,7 @@ import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
-const REACT_WINDOW_TITLE = 'React View Skeleton Test' // change this to what you want window title to display
+const REACT_WINDOW_TITLE = 'Dashboard (XXX items)' // change this to what you want window title to display
 
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
@@ -208,10 +208,16 @@ export async function testReactWindow(): Promise<void> {
     // w3.css reference: https://www.w3schools.com/w3css/defaulT.asp
     // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
     const cssTagsString = `
+      <link rel="stylesheet" href="../np.Shared/css.w3.css">
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css">
       <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardHoverControls.css">
-		  <link rel="stylesheet" href="../jgclark.DashboardReact/css.plugin.css">\n`
+		  <link rel="stylesheet" href="../jgclark.DashboardReact/css.plugin.css">
+      <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
+      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
+      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
     const windowOptions = {
       savedFilename: `../../${pluginJson['plugin.id']}/saved.html` /* for saving a debug version of the html file */,
       headerTags: cssTagsString,
