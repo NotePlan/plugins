@@ -20,15 +20,14 @@ const Header = ({ lastUpdated, totalItems, refreshHandler }: Props): React$Node 
     <div className="header">
       <div className="lastUpdated">
         Last updated: <span id="timer">{lastUpdated}</span>{' '}
-        <Button className="XCBButton" clickHandler={refreshHandler} text={'Refresh'}>
-        </Button>
-        <div className="totalCounts">
-          <span id="totalDoneCount">0</span> items closed
-        </div>
-        <div>
-          <input type="checkbox" className="apple-switch" onChange={handleCheckboxClick} name="filterPriorityItems" id="filterPriorityItems" />
-          <label htmlFor="filterPriorityItems">Filter out lower-priority items?</label>
-        </div>
+      </div>
+      <Button className="XCBButton" clickHandler={refreshHandler} text={'Refresh'} />
+      <div className="totalCounts">
+        <span id="totalDoneCount">0</span> items closed
+      </div>
+      <div>
+        <input type="checkbox" className="apple-switch" onChange={handleCheckboxClick} name="filterPriorityItems" id="filterPriorityItems" />
+        <label htmlFor="filterPriorityItems">Filter out lower-priority items?</label>
       </div>
     </div>
   )

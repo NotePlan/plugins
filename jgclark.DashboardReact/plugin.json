@@ -10,6 +10,9 @@
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "css.plugin.css",
+    "dashboard.css",
+    "dashboardDialog.css",
+    "dashboardHoverControls.css",
     "react.c.WebView.bundle.min.js",
     "react.c.WebView.bundle.dev.js"
   ],
