@@ -28,6 +28,7 @@ return (
     data-plugin-id="jgclark.Dashboard"
     data-command="addChecklist"
     data-command-args="20240324.md"
+    onClick={()=>sendActionToPlugin('addChecklist', '20240324.md')}
   >
     <i className="fa-regular fa-square-plus sidebarDaily"></i>
   </button>{' '}
@@ -37,6 +38,7 @@ return (
     data-plugin-id="jgclark.Dashboard"
     data-command="addTask"
     data-command-args="20240325.md"
+    onClick={()=>sendActionToPlugin('addTask', '20240325.md')}
   >
     <i className="fa-regular fa-circle-arrow-right sidebarDaily"></i>
   </button>
@@ -47,6 +49,7 @@ return (
     data-plugin-id="jgclark.Dashboard"
     data-command="addChecklist"
     data-command-args="20240325.md"
+    onClick={()=>sendActionToPlugin('addChecklist', '20240325.md')}
   >
     <i className="fa-regular fa-square-arrow-right sidebarDaily"></i>
   </button></>

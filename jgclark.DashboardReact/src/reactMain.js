@@ -49,6 +49,7 @@ function getTodaySectionData() {
   return {
     name: 'Today',
     description: '14 items from daily note or scheduled to 3/23/2024',
+    iconString: 'fa-calendar-star',
     items: [
       {
         id: '0-0',
@@ -68,6 +69,7 @@ function getYesterdaySectionData() {
   return {
     name: 'Yesterday',
     description: '1 item from daily note or scheduled to 3/22/2024',
+    iconString: 'fa-calendar-days',
     items: [
       {
         id: '1-0',
@@ -82,6 +84,7 @@ function getProjectsSectionData() {
   return {
     name: 'Projects',
     description: '6 next projects to review',
+    iconString: 'fa-calendar-check',
     items: [
       {
         id: '5-0',
@@ -102,6 +105,7 @@ function getTaggedSectionData() {
   return {
     name: '#home',
     description: 'All items ordered by priority',
+    iconString: 'fa-hashtag',
     items: [
       {
         id: '4-0',
