@@ -25,7 +25,7 @@ const Dashboard = ({ data, dispatch, sendActionToPlugin }: Props): React$Node =>
         <Header lastUpdated={lastUpdated} totalItems={totalItems} refreshHandler={refreshHandler} />
         {/* Assuming sections data is fetched or defined elsewhere and passed as props */}
         {sections.map((section, index) => (
-          <Section key={index} {...section} />
+          <Section key={index} {...section} sendActionToPlugin={sendActionToPlugin}/>
         ))}
       </div>
     </div>
