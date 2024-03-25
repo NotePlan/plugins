@@ -2,7 +2,6 @@
 import React from 'react'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
-// More imports as necessary
 
 type Props = {
   data: Object /* the data that was sent from the plugin in the field "pluginData" */,
