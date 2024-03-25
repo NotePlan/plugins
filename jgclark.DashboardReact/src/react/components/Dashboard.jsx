@@ -15,10 +15,15 @@ type Props = {
  */
 const Dashboard = ({ data, dispatch, sendActionToPlugin }: Props): React$Node => {
   const {sections, lastUpdated, totalItems} =  data 
+
+  const refreshHandler = () => {
+    sendActionToPlugin('refresh', {})
+  }
+
   return (
     <div style={{ maxWidth: '100vw', width: '100vw' }}>
       <div className="dashboard">
-        <Header lastUpdated={lastUpdated} totalItems={totalItems} />
+        <Header lastUpdated={lastUpdated} totalItems={totalItems} refreshHandler={refreshHandler} />
         {/* Assuming sections data is fetched or defined elsewhere and passed as props */}
         {sections.map((section, index) => (
           <Section key={index} {...section} />
