@@ -13,7 +13,7 @@ type Props = {
  * A grid layout for items within a section.
  */
 const ItemGrid = ({ items }: Props):React$Node => (
-  <div className="itemGrid">
+  <div className="sectionItemsGrid">
     {items.map((item, index) => (
       <ItemRow key={index} {...item} />
     ))}
