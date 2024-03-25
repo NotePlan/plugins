@@ -29,7 +29,8 @@ type Props = {
  ****************************************************************************************************************************/
 
 import React, { useEffect, type Node } from 'react'
-import { type PassedData } from '../reactMain.js'
+import { type PassedData } from '../../reactMain.js'
+import { AppProvider } from '../../../jgclark.DashboardReact/src/react/components/AppContext.jsx'
 import CompositeLineExample from './CompositeLineExample.jsx'
 import Button from './Button.jsx'
 
@@ -180,19 +181,25 @@ export function WebView({ data, dispatch }: Props): Node {
    ****************************************************************************************************************************/
 
   return (
-    <div style={{ maxWidth: '100vw', width: '100vw' }}>
-      <Button onClick={scrambleLines} className="w3-light-blue">
-        Randomize Lines Locally in React (without calling Plugin)
-      </Button>
-      <div className="w3-container w3-green w3-margin-top">
-        <div className="w3-cell-row" style={{ fontWeight: 'bold' }}>
-          <div className="w3-cell">Text</div>
-          <div className="w3-cell">Submit Change to Plugin</div>
+    <AppProvider sendActionToPlugin={sendActionToPlugin} sendToPlugin={sendToPlugin} dispatch={dispatch} pluginData={pluginData}>
+      <>
+        {/* replace all this code with your own component(s) */}
+        <div style={{ maxWidth: '100vw', width: '100vw' }}>
+          <Button onClick={scrambleLines} className="w3-light-blue">
+            Randomize Lines Locally in React (without calling Plugin)
+          </Button>
+          <div className="w3-container w3-green w3-margin-top">
+            <div className="w3-cell-row" style={{ fontWeight: 'bold' }}>
+              <div className="w3-cell">Text</div>
+              <div className="w3-cell">Submit Change to Plugin</div>
+            </div>
+          </div>
+          {tableRows.map((row) => (
+            <CompositeLineExample index={row.id} onSubmitClick={onSubmitClick} key={row.id} textValue={row.textValue} buttonText={row.buttonText} />
+          ))}
         </div>
-      </div>
-      {tableRows.map((row) => (
-        <CompositeLineExample index={row.id} onSubmitClick={onSubmitClick} key={row.id} textValue={row.textValue} buttonText={row.buttonText} />
-      ))}
-    </div>
+        {/* end of replace */}
+      </>
+    </AppProvider>
   )
 }
