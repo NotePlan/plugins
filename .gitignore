@@ -20,3 +20,4 @@ coverage/
 docs/assets/
 docs/index.html
 Documentation-Helpers
+*.bundle.*.js
