@@ -152,7 +152,7 @@ describe(`${PLUGIN_NAME}`, () => {
       test('in project note, should gracefully add frontmatter even it does not have title and NP is seeing the ```mermaid', () => {
         const note = new Note({
           paragraphs: [{ content: '```mermaid', headingLevel: 0, type: 'text' }],
-          content: 'foo\nbar',
+          content: '```mermaid',
           title: '```mermaid',
         })
         const result = f.ensureFrontmatter(note)
