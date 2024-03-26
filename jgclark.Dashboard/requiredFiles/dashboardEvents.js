@@ -13,11 +13,15 @@ addContentEventListeners()
 
 addReviewProjectEventListeners()
 
-addButtonEventListeners()
+addCallbackButtonEventListeners()
 
 //--------------------------------------------------------------------------------------
 // Show Modal Dialogs
 
+/**
+ * Show the action dialog to use on all items other than Projects
+ * @param {any} dataObject 
+ */
 function showItemControlDialog(dataObject) {
   const openDialog = () => {
     dialog.showModal()
@@ -28,6 +32,7 @@ function showItemControlDialog(dataObject) {
   }
 
   const thisID = dataObject.itemID
+  const thisNoteType = dataObject.noteType
   const thisSectionType = dataObject.sectionType
   const reschedOrMove = dataObject.reschedOrMove // sending as a string, as I couldn't get boolean to be passed correctly
   const thisItemType = dataObject.itemType // 'task' | 'checklist'
@@ -38,7 +43,7 @@ function showItemControlDialog(dataObject) {
   const thisEncodedContent = thisIDElement.dataset.encodedContent // i.e. the "data-encoded-content" element, with auto camelCase transposition
   const thisEncodedFilename = thisIDElement.dataset.encodedFilename
   const thisFilename = decodeRFC3986URIComponent(thisEncodedFilename)
-  console.log(`dataObject() starting for ID ${thisID}, type ${thisSectionType}, itemType ${thisItemType}, filename ${thisEncodedFilename}`)
+  console.log(`dataObject() starting for ID:${thisID}, noteType:${thisNoteType}, sectionType:${thisSectionType}, itemType:${thisItemType}, filename:${thisEncodedFilename}`)
 
   const dialog = document.getElementById("itemControlDialog")
 
@@ -47,10 +52,8 @@ function showItemControlDialog(dataObject) {
   dialogItemNoteElem.innerHTML = thisFilename
   // Update text in the dialog for this particular item, if not empty
   const dialogItemContentElem = document.getElementById('dialogItemContent')
+  // If we have some content, show an input control to edit it
   if (thisEncodedContent !== '') {
-    // For previous text label:
-    // dialogItemContentElem.innerHTML = `${thisItemType} '${decodeRFC3986URIComponent(thisEncodedContent)}'`
-    // For newer input box
     dialogItemContentElem.value = decodeRFC3986URIComponent(thisEncodedContent)
     dialogItemContentElem.parentElement.style.display = "block"
   } else {
@@ -58,6 +61,7 @@ function showItemControlDialog(dataObject) {
   }
 
   const possibleControlTypes = [
+    // date change controls
     { displayString: 'today', controlStr: 't', sectionTypes: ['DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse }, // special controlStr to indicate change to '>today'
     { displayString: '+1d', controlStr: '+1d', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     { displayString: '+1b', controlStr: '+1b', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
@@ -68,26 +72,22 @@ function showItemControlDialog(dataObject) {
     { displayString: 'this month', controlStr: '+0m', sectionTypes: ['DT', 'DY', 'W', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     { displayString: '+1m', controlStr: '+1m', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     { displayString: 'this quarter', controlStr: '+0q', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    // other controls
     { displayString: 'move to note', controlStr: 'movetonote', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: 'moveToNote' },
-    { displayString: 'unschedule', controlStr: 'unsched', sectionTypes: ['OVERDUE', 'TAG'], handlingFunction: 'unscheduleItem' },
+    { displayString: 'unschedule', controlStr: 'unsched', sectionTypes: ['OVERDUE', 'TAG'], notNoteType: 'Calendar', handlingFunction: 'unscheduleItem' }, // NB: only valid for noteType 'Note'
     { displayString: 'priority ↑', controlStr: 'priup', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateUp' },
     { displayString: 'priority ↓', controlStr: 'pridown', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateDown' },
     { displayString: 'change to X', controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'toggleType' },
     { displayString: 'complete then', controlStr: 'ct', sectionTypes: ['OVERDUE', 'TAG'], handlingFunction: 'completeTaskThen' },
     { displayString: 'Update', controlStr: 'update', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'updateItemContent' },
   ]
-  const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionTypes.includes(thisSectionType))
+  const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionTypes.includes(thisSectionType) && t.notNoteType !== thisNoteType)
   const controlStrsForThisSection = controlTypesForThisSection.map((t) => t.controlStr)
-  console.log(String(controlStrsForThisSection))
+  console.log(controlStrsForThisSection)
 
-  // remove previous event handlers: wasn't working, at least for toggle.
-  //  (this was in the beginning of the main loop below)
-  // button.removeEventListener('click', function (event) {
-  //   event.preventDefault()
-  //   handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, thisItemType, event.metaKey)
-  // }, false)
-
-  // Instead: Workaround suggested by Codeium AI:
+  // remove previous event handlers
+  // V1: simple 'button.removeEventListener('click', function (event) { ...}, false) didn't work for some reason
+  // V2 Instead: Workaround suggested by Codeium AI:
   // Clone all the button elements, and then remove them. Requires re-finding all references afterwards.
   let allDialogButtons = document.getElementById("itemDialogButtons").getElementsByTagName("BUTTON")
   let removed = 0
@@ -172,36 +172,9 @@ function showItemControlDialog(dataObject) {
   itemControlDialogOtherControls.style.display = (numICDOCBShown === 0) ? "none" : "block"
   itemControlDialogOtherControls.previousElementSibling.style.display = (numICDOCBShown === 0) ? "none" : "block"
 
-  // Add a keyboardEvent listener
-  // document.addEventListener(
-  //   "keypress",
-  //   (event) => {
-  //     const keyName = event.key
-  //     console.log(keyName)
-  //     console.log(String(event.ctrlKey))
-  //     console.log(String(event.metaKey))
-
-  //     // if (keyName === "Control") {
-  //     //   // do not alert when only Control key is pressed.
-  //     //   return
-  //     // }
-
-  //     // if (event.ctrlKey) {
-  //     //   // Even though event.key is not 'Control' (e.g., 'a' is pressed),
-  //     //   // event.ctrlKey may be true if Ctrl key is pressed at the same time.
-  //     //   alert(`Combination of ctrl + ${keyName}`)
-  //     // } else if (event.metaKey) {
-  //     //   alert(`Combination of meta + ${keyName}`)
-  //     // } else {
-  //     //   alert(`Key pressed ${keyName}`)
-  //     // }
-  //   },
-  //   false,
-  // )
-
   // Set place on the screen for dialog to appear
-  const approxDialogWidth = 530 // TODO: can we do better than this?
-  const approxDialogHeight = 180
+  const approxDialogWidth = 490 // TODO: can we do better than this?
+  const approxDialogHeight = 210
   setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event)
 
   // Actually show the dialog
@@ -243,17 +216,10 @@ function showItemControlDialog(dataObject) {
 
 // ---------------------------------------------------------------------
 
-// // Handle updating content in the dialog
-// function updateItemContent() {
-//   console.log("Called updateContent")
-//   const dialogInputElem = document.getElementById("dialogItemContent")
-//   const updatedContent = dialogInputElem.value
-//   console.log("-> " + updatedContent)
-//   // TODO: ...
-// }
-
-// ---------------------------------------------------------------------
-
+/**
+ * Show the action dialog to use on only Project items
+ * @param {any} dataObject 
+ */
 function showProjectControlDialog(dataObject) {
   const openDialog = () => {
     dialog.showModal()
@@ -294,10 +260,24 @@ function showProjectControlDialog(dataObject) {
   const possibleCcontrolStrs = possibleControlTypes.map((t) => t.controlStr)
   console.log(String(possibleCcontrolStrs))
 
+
+  let allDialogButtons = document.getElementById("projectDialogButtons").getElementsByTagName("BUTTON")
+  // remove previous event handlers
+  // V1: simple 'button.removeEventListener('click', function (event) { ...}, false) didn't work for some reason
+  // V2 Instead: Workaround suggested by Codeium AI:
+  // Clone all the button elements, and then remove them. Requires re-finding all references afterwards.
+  let removed = 0
+  for (const button of allDialogButtons) {
+    const clonedButton = button.cloneNode(true)
+    // Replace the original element with the cloned element
+    button.parentNode.replaceChild(clonedButton, button)
+    removed++
+  }
+  console.log(`- removed ${String(removed)} buttons' ELs`)
+
   // Register click handlers for each button in the dialog with details of this item
   // Using [HTML data attributes](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes)
-  // As we go also (un)hide buttons that aren't relevant for this item type
-  const allDialogButtons = document.getElementById("projectDialogButtons").getElementsByTagName("BUTTON")
+  allDialogButtons = document.getElementById("projectDialogButtons").getElementsByTagName("BUTTON")
   let added = 0
   for (const button of allDialogButtons) {
     // Ignore the mainButton(s) (e.g. 'Close')
@@ -340,7 +320,7 @@ function showProjectControlDialog(dataObject) {
   dialog.showModal()
 
   // Set place on the screen for dialog to appear
-  const approxDialogWidth = 530 // TODO: can we do better than this?
+  const approxDialogWidth = 480 // TODO: can we do better than this?
   const approxDialogHeight = 110
   setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event)
 
@@ -357,9 +337,9 @@ function showProjectControlDialog(dataObject) {
 }
 
 //--------------------------------------------------------------------------------------
-// Set place on the screen for dialog to appear
+// Set place in the HTML window for dialog to appear
 function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event) {
-  const fudgeFactor = 20 // pixels
+  const fudgeFactor = 20 // pixels to take account of scrollbars etc.
   const mousex = event.clientX  // Horizontal
   const mousey = event.clientY  // Vertical
 
@@ -367,32 +347,43 @@ function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, eve
   // And, in Safari, it leaves quite a clear area around edge of window where it will not put the dialog.
   // Note: in the future the draft spec for CSS Anchor Positioning could be helpful for positioning this dialog relative to other things
   // Check if this is going to be outside available window width
-  // Note: this doesn't work, as dialog is not yet drawn
-  // console.log(dialog.clientWidth, dialog.clientHeight)
-  let x = mousex - ((approxDialogWidth+fudgeFactor) / 3)
-  if (x < 0) { x = 0 }
-  if ((x + (approxDialogWidth + fudgeFactor)) > window.innerWidth) { x = window.innerWidth - (approxDialogWidth + fudgeFactor) }
-  let y = mousey - ((approxDialogHeight+fudgeFactor) / 2)
-  if (y < 0) { y = 0 }
-  if ((y + (approxDialogHeight + fudgeFactor)) > window.innerHeight) { y = window.innerHeight - (approxDialogHeight + fudgeFactor) }
-  // // Now treat as if origin is in centre of screen
-  // x -= (window.innerWidth / 2)
-  // y -= (window.innerHeight / 2)
+  // Note: accessing dialog.clientWidth doesn't work, as dialog is not yet drawn
+  // Note: not sure why window.clientWidth doesn't work either, so using inner... which then requires a fudge factor for scrollbars
+  // console.log(`Mouse at x${mousex}, y${mousey}`)
+  // console.log(`Window dimensions (approx): w${window.innerWidth}, h${window.innerHeight}`)
+  // console.log(`Dialog dimesnions: w${approxDialogWidth}, h${approxDialogHeight}`)
+  let x = mousex - Math.round((approxDialogWidth + fudgeFactor) / 3)
+  if (x < fudgeFactor) { x = fudgeFactor }
+  if ((x + (approxDialogWidth + fudgeFactor)) > window.innerWidth) {
+    x = window.innerWidth - (approxDialogWidth + fudgeFactor)
+    // console.log(`Too wide: now ${String(x)}`)
+  }
+  if (x < fudgeFactor) {
+    x = fudgeFactor
+    dialog.style.width = `${String(window.innerWidth)}px`
+    // console.log(`Off left: now x=0; width=w${dialog.style.width}`)
+  }
 
-  // // New Method:
-  // x = mousex - (window.innerWidth / 2)
-  // y = mousey - (window.innerHeight / 2)
+  let y = mousey - Math.round((approxDialogHeight + fudgeFactor) / 2)
+  if (y < fudgeFactor) { y = fudgeFactor }
+  if ((y + (approxDialogHeight + fudgeFactor)) > window.innerHeight) {
+    y = window.innerHeight - (approxDialogHeight + fudgeFactor)
+    // console.log(`Too tall: now ${String(y)}`)
+  }
+  if (y < fudgeFactor) {
+    y = fudgeFactor
+    dialog.style.height = `${String(window.innerHeight)}px`
+    // console.log(`Off top: now y=0; height=w${dialog.style.height}`)
+  }
+
   dialog.style.left = `${String(x)}px`
   dialog.style.top = `${String(y)}px`
-  // console.log(`Mouse at x${mousex}, y${mousey}`)
-  // console.log(`Window dimensions: w${window.innerWidth}, h${window.innerHeight}`)
-  // console.log(`Dialog dimesnions: w${approxDialogWidth}, h${approxDialogHeight}`)
-  // console.log(`-> x${x}, y${y}`)
-  
+  console.log(`-> x${x}, y${y}`)
 }
 
 //--------------------------------------------------------------------------------------
-// addIconClickEventListeners
+// add various Event Listeners
+
 /**
  * Add event listener added to all todo + checklist icons
  */
@@ -430,8 +421,6 @@ function addIconClickEventListeners() {
   console.log(`${String(allChecklists.length)} sectionItemChecklist ELs added (to icons)`)
 }
 
-//--------------------------------------------------------------------------------------
-// addContentEventListenersScript
 /**
  * Add an event listener to all content items (not the icons),
  * except ones with class 'noteTitle', as they get their own onClick definition
@@ -486,11 +475,8 @@ function addContentEventListeners() {
     // already encoded at this point. Was: const encodedContent = encodeRFC3986URIComponent(content);
     onClickDashboardItem({ itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent }) // TEST: change from showNote.. to showLine...
   }
-
 }
 
-//--------------------------------------------------------------------------------------
-// addReviewProjectEventListenersScript
 /**
  * Add an event listener to all class="reviewProject" items
  */
@@ -512,10 +498,10 @@ function addReviewProjectEventListeners() {
   console.log(`${String(allReviewItems.length)} review ELs added`)
 }
 
-//--------------------------------------------------------------------------------------
-// addButtonEventListenersScript
-
-function addButtonEventListeners() {
+/**
+ * Add an event listener to all class="XCButton" items
+ */
+function addCallbackButtonEventListeners() {
   // Register click handlers for each 'XCBButton' on the window with URL to call
   allXCBButtons = document.getElementsByClassName("XCBButton")
   let added = 0
@@ -539,11 +525,11 @@ function addButtonEventListeners() {
 }
 
 //--------------------------------------------------------------------------------------
-// clickHandlersScript
+// Handle various clicks
+
 /**
- * Handle various clicks
+ * Handle clicking on item icons
  */
-// For clicking on item icons
 function handleIconClick(id, itemType, encodedfilename, encodedcontent, metaModifier) {
   console.log(`handleIconClick( ${id} / ${itemType} / ${encodedfilename}/ {${encodedcontent}} / ${String(metaModifier)} )`)
   const encodedFilename = encodedfilename
@@ -569,7 +555,9 @@ function handleIconClick(id, itemType, encodedfilename, encodedcontent, metaModi
   }
 }
 
-// For clicking on main 'paragraph encodedcontent'
+/** 
+ *  For clicking on main 'paragraph encodedcontent'
+ */
 function handleContentClick(event, id, encodedfilename, encodedcontent) {
   console.log(`handleContentClick( ${id} / ${encodedfilename} / ${encodedcontent} ) for event currentTarget: ${event.currentTarget}`)
   const encodedFilename = encodedfilename
@@ -577,7 +565,9 @@ function handleContentClick(event, id, encodedfilename, encodedcontent) {
   onClickDashboardItem({ itemID: id, type: 'showLineInEditorFromFilename', encodedFilename: encodedFilename, encodedContent: encodedContent })
 }
 
-// For clicking on checkbox
+/** 
+ *  For clicking on checkboxes
+ */
 function handleCheckboxClick(cb) {
   console.log(`Checkbox for ${cb.name} clicked, new value = ${cb.checked}`)
   onChangeCheckbox(cb.name, cb.checked) // = sendMessageToPlugin('onChangeCheckbox', ...)

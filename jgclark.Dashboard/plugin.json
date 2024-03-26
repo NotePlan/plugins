@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "1.0.0-a8",
-  "plugin.lastUpdateInfo": "1.0.0: rewrite of layout engine, and new features.",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
   "plugin.requiredFiles": [
     "dashboard.css",
     "dashboardDialog.css",
@@ -118,6 +118,12 @@
       "hidden": true
     },
     {
+      "name": "turnOnAllSections",
+      "description": "turn on all sections",
+      "jsFunction": "turnOnAllSections",
+      "hidden": true
+    },
+    {
       "name": "Dashboard: reset window size",
       "description": "reset Dashboard window size",
       "jsFunction": "resetDashboardWinSize"
@@ -126,16 +132,6 @@
       "name": "Dashboard: update plugin settings",
       "description": "Settings interface (even for iOS)",
       "jsFunction": "updateSettings"
-    }
-  ],
-  "plugin.disabledCommands": [
-    {
-      "name": "log dashboard",
-      "alias": [
-        "ldb"
-      ],
-      "description": "Log Dashboard information",
-      "jsFunction": "logDashboardData"
     }
   ],
   "plugin.settings": [
@@ -305,14 +301,6 @@
       "required": true
     },
     {
-      "key": "updateOverdueOnTrigger",
-      "title": "Update Overdue section when triggered?",
-      "description": "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
       "key": "overdueSortOrder",
       "title": "Sort order for Overdue tasks",
       "description": "The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.",
@@ -323,6 +311,15 @@
         "most recent"
       ],
       "default": "priority",
+      "required": true
+    },
+    {
+      "key": "updateOverdueOnTrigger",
+      "hidden": true,
+      "title": "Update Overdue section when triggered?",
+      "description": "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
+      "type": "bool",
+      "default": true,
       "required": true
     },
     {
@@ -347,6 +344,15 @@
       "type": "string",
       "default": "",
       "required": false
+    },
+    {
+      "key": "updateTagMentionsOnTrigger",
+      "hidden": true,
+      "title": "Update items in this section when triggered?",
+      "description": "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "type": "separator"

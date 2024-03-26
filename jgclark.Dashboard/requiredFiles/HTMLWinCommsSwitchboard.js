@@ -109,15 +109,16 @@ async function completeTaskInDisplay(data) {
     replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked circle icon
     addClassToID(itemID, "checked") // adds colour + line-through
     addClassToID(itemID, "fadeOutAndHide")
-    await delay(1500)
+    await delay(1400)
     deleteHTMLItem(itemID)
     // update the totals and other counts
-    // decrementItemCount("totalOpenCount")
     incrementItemCount("totalDoneCount")
-  // update the section count, which is identified as the first part of the itemID
+    // update the section count(s) if spans with the right ID are present
     const sectionID = itemID.split('-')[0]
     const sectionCountID = `section${sectionID}Count`
     decrementItemCount(sectionCountID)
+    const sectionTotalCountID = `section${sectionID}TotalCount`
+    decrementItemCount(sectionTotalCountID)
 
     // See if the only remaining item is the '> There are also ... items' line
     const numItemsRemaining = getNumItemsInSectionByClass(`${sectionID}-Section`, 'sectionItemRow')
@@ -155,15 +156,16 @@ async function completeChecklistInDisplay(data) {
     replaceClassInID(`${itemID}I`, "fa-regular fa-square-check") // adds ticked box icon
     addClassToID(itemID, "checked") // adds colour + line-through text
     addClassToID(itemID, "fadeOutAndHide")
-    await delay(1500)
+    await delay(1400)
     deleteHTMLItem(itemID)
     // update the totals
-    // decrementItemCount("totalOpenCount")
     incrementItemCount("totalDoneCount")
-    // update the section count
+    // update the section count(s) if spans with the right ID are present
     const sectionID = itemID.split('-')[0]
     const sectionCountID = `section${sectionID}Count`
     decrementItemCount(sectionCountID)
+    const sectionTotalCountID = `section${sectionID}TotalCount`
+    decrementItemCount(sectionTotalCountID)
 
     // See if the only remaining item is the '> There are also ... items' line
     const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'DIV')
@@ -189,24 +191,24 @@ async function completeChecklistInDisplay(data) {
 }
 
 /**
- * A task has been cancelled (details in data); now update window accordingly
+ * A checklist has been cancelled (details in data); now update window accordingly
  * @param { { ID: string, html: string, innerText:boolean } } data
  */
-async function cancelChecklistInDisplay(data) {
+async function cancelTaskInDisplay(data) {
   // const { ID } = data
   const itemID = data.itemID
-  console.log(`cancelChecklistInDisplay: for ID: ${itemID}`)
-  replaceClassInID(`${itemID}I`, "fa-regular fa-square-xmark") // adds x-box icon
+  console.log(`cancelTaskInDisplay: for ID: ${itemID}`)
+  replaceClassInID(`${itemID}I`, "fa-regular fa-circle-xmark") // adds x-circle icon
   addClassToID(itemID, "cancelled") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
-  await delay(1500)
+  await delay(1400)
   deleteHTMLItem(itemID)
-  // update the totals
-  // decrementItemCount("totalOpenCount")
-  // update the section count
+  // update the section count(s) if spans with the right ID are present
   const sectionID = itemID.split('-')[0]
   const sectionCountID = `section${sectionID}Count`
   decrementItemCount(sectionCountID)
+  const sectionTotalCountID = `section${sectionID}TotalCount`
+  decrementItemCount(sectionTotalCountID)
 
   // See if the only remaining item is the '> There are also ... items' line
   const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'DIV')
@@ -218,24 +220,24 @@ async function cancelChecklistInDisplay(data) {
 }
 
 /**
- * A checklist has been cancelled (details in data); now update window accordingly
+ * A task has been cancelled (details in data); now update window accordingly
  * @param { { ID: string, html: string, innerText:boolean } } data
  */
-async function cancelTaskInDisplay(data) {
+async function cancelChecklistInDisplay(data) {
   // const { ID } = data
   const itemID = data.itemID
-  console.log(`cancelTaskInDisplay: for ID: ${itemID}`)
-  replaceClassInID(`${itemID}I`, "fa-regular fa-circle-xmark") // adds x-circle icon
+  console.log(`cancelChecklistInDisplay: for ID: ${itemID}`)
+  replaceClassInID(`${itemID}I`, "fa-regular fa-square-xmark") // adds x-box icon
   addClassToID(itemID, "cancelled") // adds colour + line-through text
   addClassToID(itemID, "fadeOutAndHide")
-  await delay(1500)
+  await delay(1400)
   deleteHTMLItem(itemID)
-  // update the totals
-  // decrementItemCount("totalOpenCount")
-  // update the section count
+  // update the section count(s) if spans with the right ID are present
   const sectionID = itemID.split('-')[0]
   const sectionCountID = `section${sectionID}Count`
   decrementItemCount(sectionCountID)
+  const sectionTotalCountID = `section${sectionID}TotalCount`
+  decrementItemCount(sectionTotalCountID)
 
   // See if the only remaining item is the '> There are also ... items' line
   const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'DIV')
@@ -315,7 +317,7 @@ function updateItemContent(data) {
 }
 
 /**
- * Remove a scheduled date from an item: in the display simply remove it
+ * Remove a scheduled date from an item: in the display simply remove it and update counts
  * @param { { ID: string, ... } } data
  */
 async function unscheduleItem(data) {
@@ -324,6 +326,12 @@ async function unscheduleItem(data) {
   addClassToID(itemID, "fadeOutAndHide")
   await delay(1400)
   deleteHTMLItem(itemID)
+  // update the section count(s) if spans with the right ID are present
+  const sectionID = itemID.split('-')[0]
+  const sectionCountID = `section${sectionID}Count`
+  decrementItemCount(sectionCountID)
+  const sectionTotalCountID = `section${sectionID}TotalCount`
+  decrementItemCount(sectionTotalCountID)
 }
 
 /**
@@ -521,23 +529,23 @@ function setCounter(counterID, value) {
 
 function incrementItemCount(counterID) {
   // console.log(`incrementItemCount('${counterID}') ...`)
-  const div = document.getElementById(counterID)
-  if (div) {
-    const value = parseInt(div.innerText)
+  const elem = document.getElementById(counterID)
+  if (elem) {
+    const value = parseInt(elem.innerText)
     replaceHTMLinID(counterID, String(value + 1), true)
   } else {
-    console.log(`- ❗error❗ in incrementItemCount: couldn't find a div for counterID ${counterID}`)
+    console.log(`incrementItemCount: couldn't find an elem for counterID ${counterID}`)
   }
 }
 
 function decrementItemCount(counterID) {
   // console.log(`decrementItemCount('${counterID}') ...`)
-  const div = document.getElementById(counterID)
-  if (div) {
-    const value = parseInt(div.innerText)
+  const elem = document.getElementById(counterID)
+  if (elem) {
+    const value = parseInt(elem.innerText)
     replaceHTMLinID(counterID, String(value - 1), true)
   } else {
-    console.log(`- ❗error❗ in decrementItemCount: couldn't find a div for counterID ${counterID}`)
+    console.log(`decrementItemCount: no element for counterID ${counterID}`)
   }
 }
 

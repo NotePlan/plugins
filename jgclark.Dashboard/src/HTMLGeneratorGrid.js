@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 23.3.2024 for v1.0.0 by @jgclark
+// Last updated 26.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -24,31 +24,18 @@ import {
 } from './dashboardHelpers'
 import {
   getDateStringFromCalendarFilename,
-  // getTodaysDateUnhyphenated,
   isValidCalendarNoteFilename
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
-import {
-  // createPrettyOpenNoteLink,
-  // createPrettyRunPluginLink,
-  // createRunPluginCallbackUrl,
-  displayTitle,
-  // returnNoteLink
-} from '@helpers/general'
+import { displayTitle } from '@helpers/general'
 import { showHTMLV2 } from '@helpers/HTMLView'
-// import { nowLocaleShortTime } from '@helpers/NPdateTime'
-// import { getNoteFilenameFromTitle } from '@helpers/NPnote'
 import { addTrigger } from '@helpers/NPFrontMatter'
-// import { prependTodoToCalendarNote } from '@helpers/NPParagraph'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { getTaskPriority } from '@helpers/paragraph'
-import {
-  // decodeRFC3986URIComponent,
-  encodeRFC3986URIComponent
-} from '@helpers/stringTransforms'
+import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import { showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
@@ -76,6 +63,12 @@ const shortcutsScript = `
 <!-- shortcuts script -->
 <script type="text/javascript" src="./shortcut.js"></script>
 <script>
+<!-- send 'turnOnAllSections' command -->
+shortcut.add("a", function() {
+  console.log("Shortcut 'a' triggered: will call turnOnAllSections command");
+  sendMessageToPlugin('runPluginCommand', { commandName: 'turnOnAllSections', pluginID: 'jgclark.Dashboard', commandArgs: [] });
+});
+
 <!-- send 'toggleOverdueSection' command -->
 shortcut.add("o", function() {
   console.log("Shortcut 'o' triggered: will call toggleOverdueSection command");
@@ -133,34 +126,34 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
  * Note: doesn't fire on window *move* alone.
  * TODO: seems to fire immediately, which is unhelpful. So currently disabled.
  */
-const resizeListenerScript = `
-<!-- resizeListenerScript -->
-<script type="text/javascript" src="./debounce.js"></script>
-<script type="text/javascript">
-function addResizeHandler() {
-  // const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.innerHeight };
-  console.log("resize event triggered in window: inner dimensions now w"+String(window.innerWidth)+":h"+String(window.innerHeight)+"/"+String(window.outerHeight));
-  onClickDashboardItem({itemID: 'dummy', type: 'windowResized', encodedFilename: 'dummy', encodedContent: 'dummy'});
-}
+// const resizeListenerScript = `
+// <!-- resizeListenerScript -->
+// <script type="text/javascript" src="./debounce.js"></script>
+// <script type="text/javascript">
+// function addResizeHandler() {
+//   // const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.innerHeight };
+//   console.log("resize event triggered in window: inner dimensions now w"+String(window.innerWidth)+":h"+String(window.innerHeight)+"/"+String(window.outerHeight));
+//   onClickDashboardItem({itemID: 'dummy', type: 'windowResized', encodedFilename: 'dummy', encodedContent: 'dummy'});
+// }
 
-window.addEventListener("resize", debounce(addResizeHandler, 250, false), false);
-</script>
-`
+// window.addEventListener("resize", debounce(addResizeHandler, 250, false), false);
+// </script>
+//`
 
 /**
  * Before window is closed, attempt to send dimensions to plugin.
  * Note: currently disabled, as I don't think it was working
  */
-const unloadListenerScript = `
-<!-- unloadListenerScript -->
-<script type="text/javascript">
-window.addEventListener("beforeunload", function(){
-  const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.innerHeight };
-  console.log('beforeunload event triggered in window');
-  onClickDashboardItem({itemID: 'dummy', type: 'windowResized', encodedFilename: 'dummy', encodedContent: JSON.stringify(rect)});
-})
-</script>
-`
+// const unloadListenerScript = `
+// <!-- unloadListenerScript -->
+// <script type="text/javascript">
+// window.addEventListener("beforeunload", function(){
+//   const rect = { x: window.screenX, y: window.screenY, width: window.innerWidth, height: window.innerHeight };
+//   console.log('beforeunload event triggered in window');
+//   onClickDashboardItem({itemID: 'dummy', type: 'windowResized', encodedFilename: 'dummy', encodedContent: JSON.stringify(rect)});
+// })
+// </script>
+// `
 
 /**
  * Show the dashboard HTML window, _but with some pre-configured demo data_.
@@ -196,7 +189,7 @@ export async function refreshDashboard(): Promise<void> {
 
 /**
  * Show the generated dashboard data using native HTML.
- * The HTML item IDs are defined as:
+ * The generated HTML item IDs are defined as:
  * - x-y = section x item y, used in class "sectionItemRow" div tags and onClick references
  * - "data-encoded-filename" = encoded filename of task
  * - x-yI = icon for section x item y, used in class "itemIcon" FA <i> tags under "sectionItemRow" divs
@@ -225,7 +218,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     let sectionItems: Array<SectionItem> = []
 
     //---------------------------------------------------
-    // Main preparation Work
+    // Gather the actual data to display
 
     if (demoMode) {
       ;[sections, sectionItems] = await getDemoDataForDashboard()
@@ -286,18 +279,30 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       outputArray.push(`  <!---------- Section ${String(sectionNumber)}: ${section.name} --------->\n  <div class="section">`)
 
       // Prepare outer col 1 (section icon + title + description)
-      // Now prepend a sectionNCount ID and populate it. This needs a span with an ID so that it can be updated later.
-      const sectionCountID = `section${String(section.ID)}Count`
-      const sectionCountSpan = `<span id="${sectionCountID}">${String(items.length)}</span>`
       const sectionNameWithPossibleLink = section.filename ? addNoteOpenLinkToString(section, section.name) : section.name
       outputArray.push(
         `    <div class="sectionInfo">\n      <span class="${section.sectionTitleClass} sectionName"><i class="sectionIcon ${section.FAIconClass}"></i>${sectionNameWithPossibleLink}</span>`,
       )
 
       if (items.length > 0) {
-        // Insert count at {count} placeholder
         let sectionDescriptionToUse = section.description
+
+        // Now prepend a sectionNCount ID and populate it. This needs a span with an ID so that it can be updated later.
+        const sectionCountID = `section${String(section.ID)}Count`
+        const sectionCountSpan = `<span id="${sectionCountID}">${String(items.length)}</span>`
+        // Insert count at {count} placeholder
         sectionDescriptionToUse = section.description.replace('{count}', sectionCountSpan)
+
+        // Insert total count at {totalCount:...} placeholder
+        if (sectionDescriptionToUse.match(/{totalCount:\d+}/)) {
+          const resArr = sectionDescriptionToUse.match(/{totalCount:(\d+)}/)
+          if (resArr && resArr.length >= 1) {
+            const totalCount = Number(resArr[1])
+            const sectionTotalCountID = `section${String(section.ID)}TotalCount`
+            const sectionTotalCountSpan = `<span id="${sectionTotalCountID}">${String(totalCount)}</span>`
+            sectionDescriptionToUse = sectionDescriptionToUse.replace(/{totalCount:\d+}/, sectionTotalCountSpan)
+          }
+        }
 
         // Add extra buttons if there are placeholders here
         if (section.description.includes('{addItems}')) {
@@ -319,20 +324,24 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         if (section.description.includes('{addItemsNextPeriod}')) {
           // Also add 'add to tomorrow' buttons
           // TODO: Broaden to allow on week, month as well
-          const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'days').toDate(), 'day')?.filename
+          const durationType = (section.sectionType === 'DT') ? 'day'
+            : (section.sectionType === 'W') ? 'week'
+              : (section.sectionType === 'M') ? 'month' : '(error)'
+          const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, durationType).toDate(), durationType)?.filename
+          logDebug('showDashboard', nextPeriodFilename)
           if (nextPeriodFilename) {
             const xcbButton1 = makeRealCallbackButton(
               `<i class="fa-regular fa-circle-arrow-right ${section.sectionTitleClass}"></i>`,
               'jgclark.Dashboard',
               'addTask',
               nextPeriodFilename,
-              'Add a new task to tomorrow\'s note')
+              `Add a new task to note for next ${durationType}`)
             const xcbButton2 = makeRealCallbackButton(
               `<i class="fa-regular fa-square-arrow-right ${section.sectionTitleClass}"></i>`,
               'jgclark.Dashboard',
               'addChecklist',
               nextPeriodFilename,
-              'Add a new checklist to tomorrow\'s note')
+              `Add a new checklist to note for next ${durationType}`)
             sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItemsNextPeriod}', `${xcbButton1}&nbsp;${xcbButton2}`)
           }
         }
@@ -422,6 +431,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         // Decide whether to reschedule or move the item: if it's a project note it must be rescheduled.
         const reschedOrMove = (!isItemFromCalendarNote) ? "resched"
           : config.rescheduleNotMove ? "resched" : "move"
+        const thisNoteType = (isItemFromCalendarNote) ? "Calendar" : "Note"
 
         // Do main work for the item
         switch (item.type) {
@@ -444,7 +454,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
             }
             let itemDetails = `        <div class="sectionItemContent sectionItem">\n`
             itemDetails += `          <a class="content">${paraContent}</a>\n`
-            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'task'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'task', noteType:'${thisNoteType}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
             itemDetails += `        </div>\n      </div>\n`
             outputArray.push(itemDetails)
             totalOpenItems++
@@ -467,7 +477,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
             let itemDetails = `        <div class="sectionItemContent sectionItem">\n`
             itemDetails += `          <a class="content">${paraContent}</a>`
-            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'checklist'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'checklist', noteType:'${thisNoteType}}')"><i class="fa-light fa-edit pad-left"></i></a>\n`
             itemDetails += `        </div>\n      </div>`
             outputArray.push(itemDetails)
             totalOpenItems++

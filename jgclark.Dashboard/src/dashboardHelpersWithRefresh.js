@@ -1,14 +1,14 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 23.3.2024 for v1.0.0 by @jgclark
+// Last updated 24.3.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
 import {
   getOpenItemParasForCurrentTimePeriod,
   getRelevantOverdueTasks,
-  getSettings
+  getSettings,
 } from './dashboardHelpers'
 import { showDashboard } from './HTMLGeneratorGrid'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -17,6 +17,7 @@ import {
   getTodaysDateHyphenated,
   removeDateTagsAndToday,
 } from '@helpers/dateTime'
+// import { getNoteByFilename } from '@helpers/note'
 import { moveItemBetweenCalendarNotes } from '@helpers/NPParagraph'
 import { showMessageYesNo } from '@helpers/userInput'
 
@@ -45,7 +46,7 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
     const todayDateStr = getTodaysDateHyphenated()
     const yesterdaysNote = DataStore.calendarNoteByDateString(yesterdayDateStr)
     if (!yesterdaysNote) {
-      logWarn('scheduleAllYesterdayOpenToToday', `Can't find a daily note for yesterday`)
+      logWarn('scheduleAllYesterdayOpenToToday', `Oddly I can't find a daily note for yesterday`)
       return 0
     } else {
       logDebug('scheduleAllYesterdayOpenToToday', `Starting, with refreshDashboard = ${String(refreshDashboard)}`)
@@ -65,8 +66,8 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
     }
 
     let c = 0
-    await CommandBar.onAsyncThread() // Note: this is needed for showLoading to work, though I don't know why
     if (combinedSortedParas.length > 0) {
+      await CommandBar.onAsyncThread() // Note: this is needed for showLoading to work, though I don't know why
       if (config.rescheduleNotMove) {
         // For each para append ' >today'
         for (const para of combinedSortedParas) {
@@ -86,7 +87,7 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
           CommandBar.showLoading(true, `Moving item ${c} to today`, c / totalToMove)
           const res = moveItemBetweenCalendarNotes(yesterdayDateStr, todayDateStr, para.content, config.newTaskSectionHeading ?? '')
           if (res) {
-            logDebug('scheduleAllYesterdayOpenToToday', `-> appeared to move item succesfully`)
+            // logDebug('scheduleAllYesterdayOpenToToday', `-> appeared to move item succesfully`)
             numberScheduled++
           } else {
             logWarn('scheduleAllYesterdayOpenToToday', `-> moveFromCalToCal from {yesterdayDateStr} to ${todayDateStr} not successful`)
@@ -94,7 +95,6 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
         }
         logDebug('scheduleAllYesterdayOpenToToday', `moved ${String(numberScheduled)} open items from yesterday to today's note`)
         // Update cache to allow it to be re-read on refresh
-        // FIXME: this bit still not working ... is this the wrong logic?
         DataStore.updateCache(yesterdaysNote)
       }
     }
@@ -105,10 +105,17 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
       for (const para of sortedRefParas) {
         c++
         CommandBar.showLoading(true, `Scheduling item ${c} to today`, c / totalToMove)
-        para.content = `${removeDateTagsAndToday(para.content)} >today`
-        logDebug('scheduleAllYesterdayOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
-        numberScheduled++
-        para.note?.updateParagraph(para)
+        const thisNote = para.note
+        if (!thisNote) {
+          logWarn('scheduleAllYesterdayOpenToToday', `Oddly I can't find the note for {${para.content}}, so can't process this item`)
+        } else {
+          para.content = `${removeDateTagsAndToday(para.content)} >today`
+          logDebug('scheduleAllYesterdayOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
+          thisNote.updateParagraph(para)
+          numberScheduled++
+          // TEST:
+          DataStore.updateCache(thisNote)
+        }
       }
       logDebug('scheduleAllYesterdayOpenToToday', `-> scheduled ${String(numberScheduled)} open items from yesterday to today`)
     }
@@ -132,13 +139,12 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
 /**
  * Function to schedule or move all open overdue tasks from their notes to today
  * Uses config setting 'rescheduleNotMove' to decide whether to reschedule or move.
- * Note: API call does not include open checklist items
+ * Note: This uses an API call that doesn't include open checklist items
  * @param {boolean?} refreshDashboard?
  * @returns 
  */
 export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = true): Promise<number> {
   try {
-
     let numberChanged = 0
     const config = await getSettings()
     // For these purposes override one config item:
@@ -147,8 +153,17 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
     // FIXME: need to start a spinner here
 
     // Get paras for all overdue items in notes
+    // Note: we need full TParagraphs, not ReducedParagraphs
     const thisStartTime = new Date()
-    const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config) // note: does not include open checklist items
+    // Get list of open tasks/checklists from yesterday note
+    const filenameDateStr = new moment().subtract(1, 'days').format('YYYYMMDD')
+    const yesterdaysNote = DataStore.calendarNoteByDateString(filenameDateStr)
+    if (!yesterdaysNote) {
+      throw new Error(`Couldn't find yesterday's note, which shouldn't happen.`)
+    }
+    const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", yesterdaysNote, config)
+    const yesterdaysCombinedSortedParas = combinedSortedParas.concat(sortedRefParas)
+    const overdueParas: Array<TParagraph> = await getRelevantOverdueTasks(config, yesterdaysCombinedSortedParas) // note: does not include open checklist items
     const totalOverdue = overdueParas.length
     if (totalOverdue === 0) {
       logWarn('scheduleAllYesterdayOpenToToday', `Can't find any overdue items, which was not expected.`)
@@ -181,7 +196,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
         }
         CommandBar.showLoading(true, `Scheduling item ${c} to today`, c / totalOverdue)
         para.content = `${removeDateTagsAndToday(para.content)} >today`
-        logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
+        logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.filename ?? '?'}`)
         numberChanged++
         thisNote.updateParagraph(para)
         // Update cache to allow it to be re-read on refresh

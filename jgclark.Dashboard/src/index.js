@@ -4,7 +4,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 22.3.2024 for v1.0.0, @jgclark
+// last updated 24.3.2024 for v1.0.0, @jgclark
 // ----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -30,6 +30,7 @@ export {
   toggleMonthSection,
   toggleOverdueSection,
   toggleWeekSection,
+  turnOnAllSections,
 } from './settingControllers'
 export {
   scheduleAllOverdueOpenToToday,
@@ -37,7 +38,7 @@ export {
 } from './dashboardHelpersWithRefresh'
 export { decideWhetherToUpdateDashboard } from './dashboardTriggers'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge'
-export { getDataForDashboard, logDashboardData } from './dataGeneration'
+export { getDataForDashboard } from './dataGeneration'
 
 const thisPluginID = 'jgclark.Dashboard'
 
