@@ -1334,7 +1334,7 @@ export function highlightParagraphInEditor(objectToTest: any, thenStopHighlight:
  * @param {string} content to find
  * @returns {TParagraph | boolean} TParagraph if succesful, false if unsuccesful
  */
-export function findParaFromStringAndFilename(filenameIn: string, content: string): TParagraph | boolean {
+export function findParaFromStringAndFilename(filenameIn: string, content: string): TParagraph | false {
   try {
     // logDebug('NPP/findParaFromStringAndFilename', `starting with filename: ${filenameIn}, content: {${content}}`)
     let filename = filenameIn
@@ -1719,20 +1719,23 @@ export function toggleTaskChecklistParaType(filename: string, content: string): 
     if (typeof possiblePara === 'boolean') {
       throw new Error('toggleTaskChecklistParaType: no para found')
     }
+    // logDebug('toggleTaskChecklistParaType', `toggling type for {${content}} in filename: ${filename}`)
     // Get the paragraph to change
     const thisPara = possiblePara
     const thisNote = thisPara.note
+    if (!thisNote) throw new Error(`Could not get note for filename ${filename}`)
+
     const existingType = thisPara.type
-    logDebug('toggleTaskChecklistParaType', `toggling in filename: ${filename}`)
+    logDebug('toggleTaskChecklistParaType', `toggling type from ${existingType} in filename: ${filename}`)
     if (existingType === 'checklist') {
       thisPara.type = 'open'
-      // $FlowIgnore(incompatible-use)
       thisNote.updateParagraph(thisPara)
+      DataStore.updateCache(thisNote, false)
       return 'open'
     } else {
       thisPara.type = 'checklist'
-      // $FlowIgnore(incompatible-use)
       thisNote.updateParagraph(thisPara)
+      DataStore.updateCache(thisNote, false)
       return 'checklist'
     }
   } catch (error) {

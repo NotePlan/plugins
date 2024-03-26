@@ -171,7 +171,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     // Set core button style from macOS based on dark or light:
     // Similarly for fake-buttons (i.e. from <a href ...>)
     if (isLightTheme) {
-      output.push(makeCSSSelector('button', [
+      output.push(makeCSSSelector('button, input', [
         'color: var(--fg-main-color)',
         'background-color: #FFFFFF',
         `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
@@ -196,7 +196,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       )
     } else {
       // dark theme
-      output.push(makeCSSSelector('button', [
+      output.push(makeCSSSelector('button, input', [
         'color: var(--fg-main-color)',
         'background-color: #5E5E5E',
         `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls

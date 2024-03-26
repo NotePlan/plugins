@@ -13,6 +13,7 @@
  * Blocking delay
  * @param {number} time in milliseconds
  */
+// eslint-disable-next-line require-await
 async function delay(time) {
   return new Promise(resolve => setTimeout(resolve, time))
 }
@@ -47,11 +48,20 @@ async function onMessageFromPlugin(type, data) {
     case 'toggleType':
       toggleTypeInDisplay(data)
       break
-    case 'cyclePriorityState':
-      cyclePriorityInDisplay(data)
+    case 'cyclePriorityStateDown':
+      setPriorityInDisplay(data)
+      break
+    case 'cyclePriorityStateUp':
+      setPriorityInDisplay(data)
       break
     case 'unscheduleItem':
       await unscheduleItem(data)
+      break
+    case 'updateItemContent':
+      updateItemContent(data)
+      break
+    case 'updateItemFilename':
+      updateItemFilename(data)
       break
     case 'removeItem':
       deleteItemRow(data)
@@ -99,33 +109,36 @@ async function completeTaskInDisplay(data) {
     replaceClassInID(`${itemID}I`, "fa-regular fa-circle-check") // adds ticked circle icon
     addClassToID(itemID, "checked") // adds colour + line-through
     addClassToID(itemID, "fadeOutAndHide")
-    await delay(2000)
+    await delay(1400)
     deleteHTMLItem(itemID)
     // update the totals and other counts
-    decrementItemCount("totalOpenCount")
     incrementItemCount("totalDoneCount")
-  // update the section count, which is identified as the first part of the itemID
+    // update the section count(s) if spans with the right ID are present
     const sectionID = itemID.split('-')[0]
     const sectionCountID = `section${sectionID}Count`
     decrementItemCount(sectionCountID)
+    const sectionTotalCountID = `section${sectionID}TotalCount`
+    decrementItemCount(sectionTotalCountID)
 
     // See if the only remaining item is the '> There are also ... items' line
-    const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
+    const numItemsRemaining = getNumItemsInSectionByClass(`${sectionID}-Section`, 'sectionItemRow')
+    console.log(`- ${numItemsRemaining}`)
+    console.log(`- ${String(doesIDExist(`${sectionID}-Filter`))}`)
     if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
       console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // = actionName, data
     }
 
     // See if we now have no remaining items at all
     if (numItemsRemaining === 0) {
       // Delete the whole section from the display
       console.log(`completeTaskInDisplay: trying to delete rest of empty section: ${sectionID}`)
-      const sectionItemsTable = document.getElementById(`${sectionID}-Section`)
-      if (!sectionItemsTable) { throw new Error(`Couldn't find ID ${itemID}`) }
-      const enclosingTR = findAncestor(sectionItemsTable, 'TR')
-      // console.log(`Will remove node with textContent:\n${enclosingTR.textContent}`)
-      enclosingTR.remove()
+      const sectionItemsGrid = document.getElementById(`${sectionID}-Section`)
+      if (!sectionItemsGrid) { throw new Error(`Couldn't find ID ${itemID}`) }
+      const enclosingDIV = sectionItemsGrid.parentNode
+      console.log(`Will remove node with outerHTML:\n${enclosingDIV.outerHTML}`)
+      enclosingDIV.remove()
     }
   } catch (error) {
     console.log(`completeTaskInDisplay: ❗ERROR❗ ${error.message}`)
@@ -140,67 +153,40 @@ async function completeChecklistInDisplay(data) {
   try {
     const itemID = data.itemID
     console.log(`completeChecklistInDisplay: for ID: ${itemID}`)
-    replaceClassInID(`${itemID}I`, "fa-regular fa-box-check") // adds ticked box icon
+    replaceClassInID(`${itemID}I`, "fa-regular fa-square-check") // adds ticked box icon
     addClassToID(itemID, "checked") // adds colour + line-through text
     addClassToID(itemID, "fadeOutAndHide")
-    await delay(2000)
+    await delay(1400)
     deleteHTMLItem(itemID)
     // update the totals
-    decrementItemCount("totalOpenCount")
     incrementItemCount("totalDoneCount")
-    // update the section count
+    // update the section count(s) if spans with the right ID are present
     const sectionID = itemID.split('-')[0]
     const sectionCountID = `section${sectionID}Count`
     decrementItemCount(sectionCountID)
+    const sectionTotalCountID = `section${sectionID}TotalCount`
+    decrementItemCount(sectionTotalCountID)
 
     // See if the only remaining item is the '> There are also ... items' line
-    const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
+    const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'DIV')
     if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
       console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+      sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // = actionName, data
     }
 
     // See if we now have no remaining items at all
     if (numItemsRemaining === 0) {
       // Delete the whole section from the display
       console.log(`completeChecklistInDisplay: trying to delete rest of empty section: ${sectionID}`)
-      const sectionItemsTable = document.getElementById(`${sectionID}-Section`)
-      if (!sectionItemsTable) { throw new Error(`Couldn't find ID ${itemID}`) }
-      const enclosingTR = findAncestor(sectionItemsTable, 'TR')
-      enclosingTR.remove()
+      const sectionItemsGrid = document.getElementById(`${sectionID}-Section`)
+      if (!sectionItemsGrid) { throw new Error(`Couldn't find ID ${itemID}`) }
+      const enclosingDIV = sectionItemsGrid.parentNode
+      console.log(`Will remove node with outerHTML:\n${enclosingDIV.outerHTML}`)
+      enclosingDIV.remove()
     }
   } catch (error) {
     console.log(`completeChecklistInDisplay: ❗ERROR❗ ${error.message}`)
-  }
-}
-
-/**
- * A task has been cancelled (details in data); now update window accordingly
- * @param { { ID: string, html: string, innerText:boolean } } data
- */
-async function cancelChecklistInDisplay(data) {
-  // const { ID } = data
-  const itemID = data.itemID
-  console.log(`cancelChecklistInDisplay: for ID: ${itemID}`)
-  replaceClassInID(`${itemID}I`, "fa-regular fa-square-xmark") // adds x-box icon
-  addClassToID(itemID, "cancelled") // adds colour + line-through text
-  addClassToID(itemID, "fadeOutAndHide")
-  await delay(1400)
-  deleteHTMLItem(itemID)
-  // update the totals
-  decrementItemCount("totalOpenCount")
-  // update the section count
-  const sectionID = itemID.split('-')[0]
-  const sectionCountID = `section${sectionID}Count`
-  decrementItemCount(sectionCountID)
-
-  // See if the only remaining item is the '> There are also ... items' line
-  const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
-  if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
-    // We need to un-hide the lower-priority items: do full refresh
-    console.log(`We need to un-hide the lower-priority items: doing full refresh`)
-    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
   }
 }
 
@@ -217,15 +203,44 @@ async function cancelTaskInDisplay(data) {
   addClassToID(itemID, "fadeOutAndHide")
   await delay(1400)
   deleteHTMLItem(itemID)
-  // update the totals
-  decrementItemCount("totalOpenCount")
-  // update the section count
+  // update the section count(s) if spans with the right ID are present
   const sectionID = itemID.split('-')[0]
   const sectionCountID = `section${sectionID}Count`
   decrementItemCount(sectionCountID)
+  const sectionTotalCountID = `section${sectionID}TotalCount`
+  decrementItemCount(sectionTotalCountID)
 
   // See if the only remaining item is the '> There are also ... items' line
-  const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'TR')
+  const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'DIV')
+  if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
+    // We need to un-hide the lower-priority items: do full refresh
+    console.log(`We need to un-hide the lower-priority items: doing full refresh`)
+    sendMessageToPlugin('refresh', { itemID: '', type: '', filename: '', rawContent: '' }) // actionName, data
+  }
+}
+
+/**
+ * A task has been cancelled (details in data); now update window accordingly
+ * @param { { ID: string, html: string, innerText:boolean } } data
+ */
+async function cancelChecklistInDisplay(data) {
+  // const { ID } = data
+  const itemID = data.itemID
+  console.log(`cancelChecklistInDisplay: for ID: ${itemID}`)
+  replaceClassInID(`${itemID}I`, "fa-regular fa-square-xmark") // adds x-box icon
+  addClassToID(itemID, "cancelled") // adds colour + line-through text
+  addClassToID(itemID, "fadeOutAndHide")
+  await delay(1400)
+  deleteHTMLItem(itemID)
+  // update the section count(s) if spans with the right ID are present
+  const sectionID = itemID.split('-')[0]
+  const sectionCountID = `section${sectionID}Count`
+  decrementItemCount(sectionCountID)
+  const sectionTotalCountID = `section${sectionID}TotalCount`
+  decrementItemCount(sectionTotalCountID)
+
+  // See if the only remaining item is the '> There are also ... items' line
+  const numItemsRemaining = getNumItemsInSection(`${sectionID}-Section`, 'DIV')
   if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
     console.log(`We need to un-hide the lower-priority items: doing full refresh`)
@@ -244,16 +259,65 @@ function toggleTypeInDisplay(data) {
   const iconElement = document.getElementById(`${itemID}I`)
   // Switch the icon
   if (iconElement.className.includes("fa-circle")) {
-    // console.log("toggling type to checklist")
+    console.log("toggling type to checklist")
     replaceClassInID(`${itemID}I`, "todo fa-regular fa-square")
   } else {
-    // console.log("toggling type to todo")
+    console.log("toggling type to todo")
     replaceClassInID(`${itemID}I`, "todo fa-regular fa-circle")
   }
 }
 
 /**
- * Remove a scheduled date from an item: in the display simply remove it
+ * Update display of filename
+ * @param { { itemID: string, newFilename: string } } data
+ */
+function updateItemFilename(data) {
+  const itemID = data.itemID
+  const newFilename = data.filename ?? ''
+
+  console.log(`updateItemFilename: for ID: ${itemID} to '${newFilename}'`)
+  // Find child with class="content"
+  const thisIDElement = document.getElementById(data.itemID)
+  const thisContentElement = findDescendantByClassName(thisIDElement, 'content')
+  // Get its inner content
+  const currentInnerHTML = thisContentElement.innerHTML
+  console.log(`- currentInnerHTML: ${currentInnerHTML}`)
+
+  // TODO: Change the content to reflect the new filename :
+  const newInnerHTML = `${currentInnerHTML} <a class="noteTitle sectionItem"><i class="fa-regular fa-file-lines pad-right"></i> ${newFilename}`
+  console.log(`- newInnerHTML: ${newInnerHTML}`)
+  replaceHTMLinElement(thisContentElement, newInnerHTML, null)
+}
+
+/**
+ * Update display of item's content
+ * Note: this is a basic level of update that can be done quickly.
+ * Until all the rendering functions are in the frontend, the assumption is that a full refresh follows within a second or two.
+ * @param { { itemID: string, updatedContent: string } } data
+ */
+function updateItemContent(data) {
+  const itemID = data.itemID
+  const updatedContent = data.updatedContent ?? ''
+  if (!itemID || !updatedContent) {
+    console.log(`updateItemContent: Warning empty itemID and/or updatedContent passed`)
+    return
+  }
+  console.log(`updateItemContent: for ID: ${itemID} to '${updatedContent}'`)
+  // Find child with class="content"
+  const thisIDElement = document.getElementById(data.itemID)
+  const thisContentElement = findDescendantByClassName(thisIDElement, 'content')
+  // Get its inner content
+  const currentInnerHTML = thisContentElement.innerHTML
+  console.log(`- currentInnerHTML: ${currentInnerHTML}`)
+
+  // Basic update of the content
+  const newInnerHTML = updatedContent
+  console.log(`- newInnerHTML: ${newInnerHTML}`)
+  replaceHTMLinElement(thisContentElement, newInnerHTML, null)
+}
+
+/**
+ * Remove a scheduled date from an item: in the display simply remove it and update counts
  * @param { { ID: string, ... } } data
  */
 async function unscheduleItem(data) {
@@ -262,37 +326,45 @@ async function unscheduleItem(data) {
   addClassToID(itemID, "fadeOutAndHide")
   await delay(1400)
   deleteHTMLItem(itemID)
+  // update the section count(s) if spans with the right ID are present
+  const sectionID = itemID.split('-')[0]
+  const sectionCountID = `section${sectionID}Count`
+  decrementItemCount(sectionCountID)
+  const sectionTotalCountID = `section${sectionID}TotalCount`
+  decrementItemCount(sectionTotalCountID)
 }
 
 /**
- * Cycle through priority of a task
+ * Display a task with a given priority class
  * @param { {itemID: string, newContent: string, newPriority: number} } data
  */
-function cyclePriorityInDisplay(data) {
-  console.log(`starting cyclePriorityInDisplay for ID ${data.itemID} with new pri ${data.newPriority}`)
-  const thisIDTRElement = document.getElementById(data.itemID)
-  // console.log(`- thisIDTRElement class: ${thisIDTRElement.className}`)
-  // Find 2nd child DIV > DIV > A class="content"
-  const thisContentElement = findDescendantByClassName(thisIDTRElement, 'content')
+function setPriorityInDisplay(data) {
+  console.log(`starting setPriorityInDisplay for ID ${data.itemID} with new pri ${data.newPriority}`)
+  const thisIDElement = document.getElementById(data.itemID)
+  console.log(`- thisIDElement class: ${thisIDElement.className}`)
+  // Find child with class="content"
+  const thisContentElement = findDescendantByClassName(thisIDElement, 'content')
   // Get its inner content
   const currentInnerHTML = thisContentElement.innerHTML
-  // console.log(`- currentInnerHTML: ${currentInnerHTML}`)
+  console.log(`- currentInnerHTML: ${currentInnerHTML}`)
 
   // Change the class of the content visible to users, to reflect the new priority colours
   const newInnerHTML = (data.newPriority > 0)
     ? `<span class="priority${data.newPriority}">${data.newContent}</span>`
     : data.newContent
-  // console.log(`- newInnerHTML: ${newInnerHTML}`)
+  console.log(`- newInnerHTML: ${newInnerHTML}`)
   replaceHTMLinElement(thisContentElement, newInnerHTML, null)
 
   // We also need to update the two "data-encoded-content" attributes in *both* TDs in the TR with this ID.
   // Note this time it needs to be encoded.
-  const tdElements = thisIDTRElement.getElementsByTagName('td')
-  for (let i = 0; i < tdElements.length; i++) {
-    const tdElement = tdElements[i]
+  // FIXME: update for Grid (simpler: just the item itself?)
+  // const tdElements = thisIDElement.getElementsByTagName('DIV')
+  // for (let i = 0; i < tdElements.length; i++) {
+  // const tdElement = tdElements[i]
+  const tdElement = thisIDElement
     tdElement.setAttribute('data-encoded-content', data.newContent)
-    // console.log(`- set tdElement #${i} data-encoded-content: ${tdElement.getAttribute('data-encoded-content')}`)
-  }
+  console.log(`- set tdElement #${i} data-encoded-content: ${tdElement.getAttribute('data-encoded-content')}`)
+  // }
 }
 
 /******************************************************************************
@@ -457,23 +529,23 @@ function setCounter(counterID, value) {
 
 function incrementItemCount(counterID) {
   // console.log(`incrementItemCount('${counterID}') ...`)
-  const div = document.getElementById(counterID)
-  if (div) {
-    const value = parseInt(div.innerText)
+  const elem = document.getElementById(counterID)
+  if (elem) {
+    const value = parseInt(elem.innerText)
     replaceHTMLinID(counterID, String(value + 1), true)
   } else {
-    console.log(`- ❗error❗ in incrementItemCount: couldn't find a div for counterID ${counterID}`)
+    console.log(`incrementItemCount: couldn't find an elem for counterID ${counterID}`)
   }
 }
 
 function decrementItemCount(counterID) {
   // console.log(`decrementItemCount('${counterID}') ...`)
-  const div = document.getElementById(counterID)
-  if (div) {
-    const value = parseInt(div.innerText)
+  const elem = document.getElementById(counterID)
+  if (elem) {
+    const value = parseInt(elem.innerText)
     replaceHTMLinID(counterID, String(value - 1), true)
   } else {
-    console.log(`- ❗error❗ in decrementItemCount: couldn't find a div for counterID ${counterID}`)
+    console.log(`decrementItemCount: no element for counterID ${counterID}`)
   }
 }
 
@@ -486,21 +558,49 @@ function decrementItemCount(counterID) {
  */
 function getNumItemsInSection(sectionID, tagName) {
   // console.log(`getNumItemsInSection: ${sectionID} by ${tagName}`)
-  const sectionTable = document.getElementById(sectionID)
-  // console.log(`${sectionTable.innerHTML}`)
-  if (sectionTable) {
+  const sectionElem = document.getElementById(sectionID)
+  // console.log(`${sectionElem.innerHTML}`)
+  if (sectionElem) {
     let c = 0
-    const items = sectionTable.getElementsByTagName(tagName)
+    const items = sectionElem.getElementsByTagName(tagName)
     // I think this is a collection not an array, so can't use a .filter?
     for (i = 0; i < items.length; i++) {
       if (items[i].innerHTML !== '') {
         c++
       }
     }
-    // console.log(`= ${String(c)}`)
+    console.log(`=> ${String(c)} items left in this section`)
     return c
   } else {
     console.log(`- ❗error❗ in getNumItemsInSection: couldn't find section with ID ${sectionID}`)
+    return 0
+  }
+}
+
+/**
+ * Count how many children of type 'tagName' are in DOM under sectionID.
+ * Additionally ignore children with no innerHTML
+ * @param {string} sectionID
+ * @param {string} tagName uppercase version of HTML tag e.g. 'TR'
+ * @returns {number}
+ */
+function getNumItemsInSectionByClass(sectionID, className) {
+  console.log(`getNumItemsInSectionByClass: ${sectionID} by ${className}`)
+  const sectionElem = document.getElementById(sectionID)
+  // console.log(`${sectionElem.innerHTML}`)
+  if (sectionElem) {
+    let c = 0
+    const items = sectionElem.getElementsByClassName(className)
+    // I think this is a collection not an array, so can't use a .filter?
+    for (i = 0; i < items.length; i++) {
+      if (items[i].innerHTML !== '') {
+        c++
+      }
+    }
+    console.log(`=> ${String(c)} items left in this section`)
+    return c
+  } else {
+    console.log(`- ❗error❗ in getNumItemsInSectionByClass: couldn't find section with ID ${sectionID}`)
     return 0
   }
 }

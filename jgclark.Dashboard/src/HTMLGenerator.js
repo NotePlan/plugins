@@ -151,7 +151,7 @@ export async function showDemoDashboardHTML(): Promise<void> {
     return
   }
 
-  await showDashboardHTML('manual', true)
+  await showDashboard('manual', true)
 }
 
 /**
@@ -163,7 +163,7 @@ export async function refreshDashboard(): Promise<void> {
     // Only continue if dashboard is already open
     if (isHTMLWindowOpen(windowCustomId)) {
       logDebug(pluginJson, `refreshDashboard(): Dashboard is open`)
-      await showDashboardHTML('refresh')
+      await showDashboard('refresh')
     } else {
       logDebug(pluginJson, `refreshDashboard(): Dashboard is NOT open`)
     }
@@ -183,7 +183,7 @@ export async function refreshDashboard(): Promise<void> {
  * @param {string?} callType (default: 'manual', 'trigger', 'refresh')
  * @param {boolean?} demoMode? if true, show the demo data, otherwise show the real data
  */
-export async function showDashboardHTML(callType: string = 'manual', demoMode: boolean = false): Promise<void> {
+export async function showDashboard(callType: string = 'manual', demoMode: boolean = false): Promise<void> {
   try {
     // Check to stop it running on iOS
     if (NotePlan.environment.platform === 'iOS') {
@@ -192,7 +192,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
       return
     }
 
-    logDebug(pluginJson, `showDashboardHTML() started ${demoMode ? '*and will use demo data*' : ''}`)
+    logDebug(pluginJson, `showDashboard() started ${demoMode ? '*and will use demo data*' : ''}`)
 
     const shouldFocus = (callType === 'manual')
     const config = await getSettings()
@@ -231,7 +231,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
     outputArray.push(`\n<table id="mainTable" style="table-layout: auto; word-wrap: break-word;">`)
     let sectionNumber = 0
     for (const section of sections) {
-      logDebug('showDashboardHTML', `Section ${section.name} ID:${String(section.ID)} filename:${section.filename}`)
+      logDebug('showDashboard', `Section ${section.name} ID:${String(section.ID)} filename:${section.filename}`)
       // Special case to handle count of done items
       if (section.name === 'Done') {
         totalDoneItems = section.ID
@@ -253,7 +253,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
           })
         } else {
           // don't add this section: go on to next section
-          logDebug('showDashboardHTML', `Section ${String(sectionNumber)} (${section.name}) is empty so will skip it`)
+          logDebug('showDashboard', `Section ${String(sectionNumber)} (${section.name}) is empty so will skip it`)
           sectionNumber++
           continue // to next loop item
         }
@@ -386,7 +386,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
         // Do main work for the item
         switch (item.type) {
           case 'open': { // open todo type
-            // logDebug('showDashboardHTML', `- adding open task: {${item.content}} / filename:${itemNoteTitle}`)
+            // logDebug('showDashboard', `- adding open task: {${item.content}} / filename:${itemNoteTitle}`)
             // do icon col (was col3)
             outputArray.push(
               `         <td id="${encodedFilename}" class="sectionItemTodo sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-circle"></i></td>`,
@@ -410,7 +410,7 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
             break
           }
           case 'checklist': { // open checklist type
-            // logDebug('showDashboardHTML', `- adding checklist: {${item.content}} / filename:${itemNoteTitle}`)
+            // logDebug('showDashboard', `- adding checklist: {${item.content}} / filename:${itemNoteTitle}`)
             // do icon col (was col3)
             outputArray.push(
               `         <td id="${encodedFilename}" class="sectionItemChecklist sectionItem no-borders" data-encoded-content="${encodedContent}"><i id="${item.ID}I" class="todo fa-regular fa-square"></i></td>`,
@@ -487,9 +487,8 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
     // Note: can't use a real HTML button, as it needs to live inside a form to activate. It will work in Safari, but not in NP. Grrr. So will use one of my 'fake buttons' instead.
 
     // Add filter checkbox
-    const filterCheckbox = `<span style="float: right;"><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${
-      filterPriorityItems ? 'checked' : 'unchecked'
-    }><label for="filterPriorityItems">Filter out lower-priority items?</label></input></span>\n`
+    const filterCheckbox = `<span style="float: right;"><input type="checkbox" class="apple-switch" onchange='handleCheckboxClick(this);' name="filterPriorityItems" ${filterPriorityItems ? 'checked' : 'unchecked'
+      }><label for="filterPriorityItems">Filter out lower-priority items?</label></input></span>\n`
 
     const header = `<div class="body space-under">${summaryStatStr}\n${refreshXCallbackButton}\n${filterCheckbox}</div>`
     outputArray.unshift(header)
@@ -554,14 +553,15 @@ export async function showDashboardHTML(callType: string = 'manual', demoMode: b
  */
 export async function addTask(calNoteFilename: string): Promise<void> {
   try {
+    logDebug('addTask', `- adding to ${calNoteFilename}`)
     const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    logDebug('addTask', `= date ${calNoteDateStr}`)
     if (!calNoteDateStr) {
-      throw new Error(`calNoteDateStr isn\'t defined`)
+      throw new Error(`calNoteDateStr isn't defined`)
     }
-    logInfo('addTask', `- adding task to ${calNoteDateStr} from ${calNoteFilename}`) // TODO: in time turn me down to Debug
     await prependTodoToCalendarNote('task', calNoteDateStr)
     // trigger window refresh
-    await showDashboardHTML('refresh')
+    await showDashboard('refresh')
   }
   catch (err) {
     logError('addTask', `${err.message} for ${calNoteFilename}`)
@@ -574,14 +574,16 @@ export async function addTask(calNoteFilename: string): Promise<void> {
  */
 export async function addChecklist(calNoteFilename: string): Promise<void> {
   try {
+    logDebug('addTask', `- adding to ${calNoteFilename}`)
     const calNoteDateStr = getDateStringFromCalendarFilename(calNoteFilename)
+    logDebug('addTask', `= date ${calNoteDateStr}`)
     if (!calNoteDateStr) {
-      throw new Error(`calNoteDateStr isn\'t defined`)
+      throw new Error(`calNoteDateStr isn't defined`)
     }
     logInfo('addChecklist', `- adding checklist to ${calNoteDateStr} from ${calNoteFilename}`) // TODO: in time turn me down to Debug
     await prependTodoToCalendarNote('checklist', calNoteDateStr)
     // trigger window refresh
-    await showDashboardHTML('refresh')
+    await showDashboard('refresh')
   }
   catch (err) {
     logError('addChecklist', `${err.message} for ${calNoteFilename}`)
@@ -595,7 +597,7 @@ export async function addChecklist(calNoteFilename: string): Promise<void> {
 export async function resetDashboardWinSize(): Promise<void> {
   unsetPreference('WinRect_Dashboard')
   closeWindowFromCustomId(pluginJson['plugin.id'])
-  await showDashboardHTML('refresh', false)
+  await showDashboard('refresh', false)
 }
 
 //------------------------------------------------------------------------------

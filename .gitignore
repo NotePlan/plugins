@@ -20,5 +20,7 @@ coverage/
 docs/assets/
 docs/index.html
 Documentation-Helpers
-.eslintrc
-.flowconfig
+# .eslintrc
+# .flowconfig
+**/*.bundle.dev.js
+**/*.bundle.min.js

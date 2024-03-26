@@ -75,15 +75,15 @@ export function setMomentLocaleFromEnvironment(): void {
 
 export function nowLocaleShortDateTime(): string {
   setMomentLocaleFromEnvironment()
-  return moment().format('L LT')
+  return moment().format('l lt') // format('L LT')
 }
 export function nowLocaleDate(): string {
   setMomentLocaleFromEnvironment()
-  return moment().format('L')
+  return moment().format('l') // format('L')
 }
 export function nowLocaleShortTime(): string {
   setMomentLocaleFromEnvironment()
-  return moment().format('LT')
+  return moment().format('lt') // format('LT')
 }
 
 // TODO: Finish moving references to this file from dateTime.js
@@ -104,12 +104,12 @@ export const nowLocaleDateTime: string = moment().toDate().toLocaleString()
 
 export function localeDateStr(dateIn: Date): string {
   setMomentLocaleFromEnvironment()
-  return moment(dateIn).format('L')
+  return moment(dateIn).format('l') // format('L')
 }
 
 // TODO: Finish moving references to this file from dateTime.js
 // TODO: Or can this now be deprecated in favour of newer functions above?
-export function toLocaleDateString(dateObj: Date, locale: string | Array<string> = [], options: Intl$DateTimeFormatOptions = {}): string {
+export function toNPLocaleDateString(dateObj: Date, dateStyle: string = "short"): string {
   /**
    * TODO: use details from NotePlan.environment...
    *  "languageCode": "en",
@@ -118,7 +118,11 @@ export function toLocaleDateString(dateObj: Date, locale: string | Array<string>
    *     "en-GB"
    *   ],
    */
-  return dateObj.toLocaleDateString(locale, options)
+  const shortDateFmt = new Intl.DateTimeFormat(NotePlan.environment.preferredLanguages[0],
+    {
+      dateStyle: dateStyle,
+    })
+  return shortDateFmt.format(dateObj)
 }
 
 // TODO: Finish moving references to this file from dateTime.js

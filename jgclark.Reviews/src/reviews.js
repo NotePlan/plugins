@@ -1494,6 +1494,7 @@ async function getNextNoteToReview(): Promise<?TNote> {
 export function getNextNotesToReview(numToReturn: number): Array<TNote> {
   try {
     logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
+    logDebug(pluginJson, `Starting getNextNotesToReview(${String(numToReturn)}))`)
 
     // Get contents of full-review-list
     const reviewListContents = DataStore.loadData(fullReviewListFilename, true)
@@ -1539,10 +1540,12 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
       if (notesToReview.length === 0) {
         // If we get here then there are no projects needed for review
         logDebug('reviews/getNextNotesToReview', `- No notes ready for review 🎉`)
+        logDebug('reviews/getNextNotesToReview', `- No notes ready for review 🎉`)
       }
       return notesToReview
     }
   } catch (error) {
+    logError(pluginJson, `reviews/getNextNotesToReview: ${error.message}`)
     logError(pluginJson, `reviews/getNextNotesToReview: ${error.message}`)
     return []
   }

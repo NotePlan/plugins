@@ -15,10 +15,10 @@ import {
   getNPMonthStr,
   getNPWeekStr,
   getTodaysDateUnhyphenated,
-  todaysDateISOString,
   toLocaleDateString,
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, timer } from '@helpers/dev'
+import { toNPLocaleDateString } from '@helpers/NPdateTime'
 
 //-----------------------------------------------------------------
 
@@ -37,19 +37,19 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
     let doneCount = 0
     let itemCount = 0
     const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+    const todayDateLocale = toNPLocaleDateString(new Date(), "short") // uses moment's locale info from NP
 
     //-----------------------------------------------------------
     // Demo data for Today
 
-    let todayStr = todaysDateISOString
-    let thisFilename = getTodaysDateUnhyphenated() + ".md"
+    let thisFilename = `${getTodaysDateUnhyphenated()}.md`
     // Note: in following, the filenames need to be real otherwise there will be 'error' in the display
-    const openParas = [
+    const openTodayParas = [
       {
-        "priority": "W",
+        "priority": "4",
         "type": "open",
         "content": ">> #editvideo from CFL visit",
-        "rawContent": ">> * #editvideo from CFL visit",
+        "rawContent": "* >> #editvideo from CFL visit",
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 4,
@@ -84,7 +84,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "note": {}
       }
     ]
-    const sortedRefParas = [
+    const refTodayParas = [
       {
         "priority": 1,
         "type": "open",
@@ -132,6 +132,98 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         ],
         "note": {}
       },
+    ]
+    let combinedSortedParas = openTodayParas.concat(refTodayParas)
+
+    // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
+    if (config.separateSectionForReferencedNotes) {
+      // make a sectionItem for each item, and then make a section too.
+      itemCount = 0
+      logDebug('2', todayDateLocale)
+      openTodayParas.map((p) => {
+        const thisID = `${sectionCount}-${itemCount}`
+        sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
+        itemCount++
+      })
+      // clo(combinedSortedParas, "daily sortedOpenTodayParas")
+      logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
+      sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from daily note ${todayDateLocale} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+      sectionCount++
+
+      clo(refTodayParas, "refTodayParas")
+      if (refTodayParas.length > 0) {
+        itemCount = 0
+        refTodayParas.map((p) => {
+          const thisID = `${sectionCount}-${itemCount}`
+          sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
+          itemCount++
+        })
+        sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+        sectionCount++
+      }
+    } else {
+      // write one combined section
+      itemCount = 0
+      combinedSortedParas.map((p) => {
+        const thisID = `${sectionCount}-${itemCount}`
+        sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
+        itemCount++
+      })
+      // clo(refTodayParas, "refTodayParas")
+      sections.push({ ID: sectionCount, name: 'Today', sectionType: 'DT', description: `{count} from daily note ${todayDateLocale} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+      sectionCount++
+    }
+    // Make up count of tasks/checklists done today
+    doneCount += 4
+
+    //-----------------------------------------------------------
+    // Demo data for Yesterday
+
+    const yesterday = new moment().subtract(1, 'days').toDate()
+    const yesterdayDateLocale = toNPLocaleDateString(yesterday, "short") // uses moment's locale info from NP
+    thisFilename = `${moment(yesterday).format("YYYYMMDD")}.md`
+    // Note: in following, the filenames need to be real otherwise there will be 'error' in the display
+    const openYesterdayParas = [
+      {
+        "priority": "0",
+        "type": "open",
+        "content": "film video at CFL visit",
+        "rawContent": "* film video at CFL visit",
+        "prefix": "* ",
+        "contentRange": {},
+        "lineIndex": 4,
+        "heading": "",
+        "headingLevel": -1,
+        "isRecurring": false,
+        "indents": 0,
+        "filename": thisFilename,
+        "noteType": "Calendar",
+        "linkedNoteTitles": [],
+        "subItems": [],
+        "referencedBlocks": [],
+        "note": {}
+      },
+      {
+        "priority": -1,
+        "type": "checklist",
+        "content": "update SW contract following review comments",
+        "rawContent": "* update SW contract following review comments",
+        "prefix": "* ",
+        "contentRange": {},
+        "lineIndex": 5,
+        "heading": "",
+        "headingLevel": -1,
+        "isRecurring": false,
+        "indents": 0,
+        "filename": thisFilename,
+        "noteType": "Calendar",
+        "linkedNoteTitles": [],
+        "subItems": [],
+        "referencedBlocks": [],
+        "note": {}
+      }
+    ]
+    const refYesterdayParas = [
       {
         "priority": 1,
         "type": "open",
@@ -194,59 +286,55 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "linkedNoteTitles": [],
         "subItems": [],
         "referencedBlocks": [
-          {},
-          {}
         ],
         "note": {}
       },
     ]
-    let combinedSortedParas = openParas.concat(sortedRefParas)
+    const combinedYesterdaySortedParas = openYesterdayParas.concat(refYesterdayParas)
 
     // If we want this separated from the referenced items, then form its section (otherwise hold over to the next section formation)
     if (config.separateSectionForReferencedNotes) {
       // make a sectionItem for each item, and then make a section too.
       itemCount = 0
-      openParas.map((p) => {
+      openYesterdayParas.map((p) => {
         const thisID = `${sectionCount}-${itemCount}`
         sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
         itemCount++
       })
-      // clo(combinedSortedParas, "daily sortedOpenParas")
+      // clo(combinedSortedParas, "daily sortedOpenYesterdayParas")
       logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-      sections.push({ ID: sectionCount, name: 'Today', sectionType: 'D', description: `from daily note ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DT', description: `{count} from daily note ${yesterdayDateLocale} {scheduleAllYesterdayToday}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
       sectionCount++
 
-      clo(sortedRefParas, "sortedRefParas")
-      if (sortedRefParas.length > 0) {
+      clo(refYesterdayParas, "refYesterdayParas")
+      if (refYesterdayParas.length > 0) {
         itemCount = 0
-        sortedRefParas.map((p) => {
+        refYesterdayParas.map((p) => {
           const thisID = `${sectionCount}-${itemCount}`
           sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
           itemCount++
         })
-        sections.push({ ID: sectionCount, name: 'Today', sectionType: 'D', description: `scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
+        sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DT', description: `{count} scheduled to today`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarDaily", filename: '' })
         sectionCount++
       }
     } else {
       // write one combined section
       itemCount = 0
-      combinedSortedParas.map((p) => {
+      combinedYesterdaySortedParas.map((p) => {
         const thisID = `${sectionCount}-${itemCount}`
         sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
         itemCount++
       })
-      // clo(sortedRefParas, "sortedRefParas")
-      sections.push({ ID: sectionCount, name: 'Today', sectionType: 'D', description: `from daily note or scheduled to ${toLocaleDateString(today)}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
+      // clo(refYesterdayParas, "refYesterdayParas")
+      sections.push({ ID: sectionCount, name: 'Yesterday', sectionType: 'DY', description: `{count} from daily note ${yesterdayDateLocale} {scheduleAllYesterdayToday}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename })
       sectionCount++
     }
-    // Make up count of tasks/checklists done today
-    doneCount += 4
 
     //-----------------------------------------------------------
     // Demo data for This Week
 
-    let dateStr = getNPWeekStr(today)
-    thisFilename = dateStr + ".md"
+    const dateStr = getNPWeekStr(today)
+    thisFilename = `${dateStr}.md`
     const demoOpenWeekParas: Array<TParagraph> = [
       {
         "priority": 2,
@@ -256,7 +344,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "prefix": "+ ",
         "contentRange": {},
         "lineIndex": 2,
+        "date": "2023-02-27T00:00:00.000Z",
         "heading": "",
+        "headingRange": {},
         "headingLevel": -1,
         "isRecurring": false,
         "indents": 0,
@@ -275,7 +365,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 3,
+        "date": "2023-02-27T00:00:00.000Z",
         "heading": "",
+        "headingRange": {},
         "headingLevel": -1,
         "isRecurring": false,
         "indents": 0,
@@ -294,7 +386,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "prefix": "+ ",
         "contentRange": {},
         "lineIndex": 4,
+        "date": "2023-02-27T00:00:00.000Z",
         "heading": "",
+        "headingRange": {},
         "headingLevel": -1,
         "isRecurring": false,
         "indents": 0,
@@ -314,7 +408,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "prefix": "* ",
         "contentRange": {},
         "lineIndex": 5,
+        "date": "2023-02-27T00:00:00.000Z",
         "heading": "",
+        "headingRange": {},
         "headingLevel": -1,
         "isRecurring": false,
         "indents": 0,
@@ -323,7 +419,6 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "linkedNoteTitles": [],
         "subItems": [],
         "referencedBlocks": [
-          {}
         ],
         "note": {}
       },
@@ -385,7 +480,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         "headingLevel": 3,
         "isRecurring": false,
         "indents": 0,
-        "filename": "Home 🏠 Areas/Macs 🖥.md",
+        "filename": "Home 🏠 Areas/Macs.md",
         "noteType": "Notes",
         "linkedNoteTitles": [],
         "subItems": [],
@@ -406,7 +501,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
       })
       // clo(demoOpenWeekParas, "weekly demoOpenWeekParas")
       logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} daily items`)
-      sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `from weekly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} from weekly note ${dateStr} {addItems}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
       sectionCount++
 
       // clo(demoSortedWeekRefParas, "demoSortedWeekRefParas")
@@ -417,7 +512,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
           sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
           itemCount++
         })
-        sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly", filename: '' })
+        sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} scheduled to this week`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarWeekly", filename: '' })
         sectionCount++
       }
     } else {
@@ -429,7 +524,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         itemCount++
       })
       // clo(combinedSortedParas, "combinedSortedParas")
-      sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `from weekly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'This week', sectionType: 'W', description: `{count} from weekly note or scheduled to ${dateStr} {addItems}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename })
       sectionCount++
     }
     // Get count of tasks/checklists done today
@@ -439,7 +534,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
     // Demo data for This Month
 
     const monthDateStr = getNPMonthStr(today)
-    thisFilename = monthDateStr + ".md"
+    thisFilename = `${monthDateStr}.md`
     const openMonthParas = [
       {
         "priority": 0,
@@ -494,7 +589,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
       })
       // clo(openMonthParas, "monthly openMonthParas")
       logDebug('getDataForDashboard', `-> ${String(sectionItems.length)} monthly items`)
-      sections.push({ ID: sectionCount, name: 'This Month', sectionType: 'M', description: `from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'This Month', sectionType: 'M', description: `{count} from monthly note ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
       sectionCount++
 
       // clo(sortedMonthRefParas, "monthly sortedMonthRefParas")
@@ -505,7 +600,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
           sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type })
           itemCount++
         })
-        sections.push({ ID: sectionCount, name: 'This month', sectionType: 'M', description: `scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly", filename: '' })
+        sections.push({ ID: sectionCount, name: 'This month', sectionType: 'M', description: `{count} scheduled to this month`, FAIconClass: "fa-regular fa-clock", sectionTitleClass: "sidebarMonthly", filename: '' })
         sectionCount++
       }
     } else {
@@ -517,7 +612,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         itemCount++
       })
       // clo(combinedSortedParas, "monthly combinedSortedParas")
-      sections.push({ ID: sectionCount, name: 'This month', sectionType: 'M', description: `from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
+      sections.push({ ID: sectionCount, name: 'This month', sectionType: 'M', description: `{count} from monthly note or scheduled to ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", filename: thisFilename })
       sectionCount++
     }
 
@@ -546,7 +641,6 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
       if (tagParasFromNote.length > 0) {
         for (const p of tagParasFromNote) {
           const thisID = `${sectionCount}-${itemCount}`
-          const thisFilename = p.note?.filename ?? ''
           sectionItems.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename, type: p.type })
           itemCount++
         }
@@ -556,7 +650,7 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
         sections.push({
           ID: sectionCount,
           name: `${tagToShow}`,
-          description: `open task(s)`,
+          description: `${String(itemCount)} open task(s)`,
           FAIconClass: (isHashtag) ? 'fa-solid fa-hashtag' : 'fa-solid fa-at',
           sectionTitleClass: 'sidebarDaily',
           filename: ''
@@ -583,9 +677,9 @@ export async function getDemoDataForDashboard(): Promise<[Array<Section>, Array<
     // Notes to review
     const nextNotesToReview = [
       {
-        "filename": "CCC Areas/Staff/Staff Induction (JW).md",
+        "filename": "CCC Projects/Facilities/Hearing Support.md",
         "type": "Notes",
-        "title": "Staff Induction (JW)",
+        "title": "Hearing Support at CCC",
         "changedDate": "2023-02-28T13:11:30.000Z",
         "createdDate": "2023-02-28T13:11:30.000Z",
         "hashtags": [

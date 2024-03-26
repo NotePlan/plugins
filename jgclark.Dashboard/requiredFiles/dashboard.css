@@ -1,51 +1,169 @@
 /* CSS specific to showDashboard() from jgclark.Dashboard plugin */
-/* Last updated 12.8.2023 for v0.6.0 by @jgclark */
+/* Last updated 9.3.2024 for v1.0.0 by @jgclark */
 
-table { font-size: 1.0rem; /* used to make text a little smaller at 0.9rem */
-	border-collapse: collapse; /* always! */
-	border: 0px none;
-	empty-cells: show;
+:root {
+	/* FIXME: not working */
+	--minBreakPoint: 500px;
 }
-th {
-	text-align: left;
-	vertical-align: bottom;
-	padding: 8px;
-	border: 0px none; /* no borders */
+
+body {
+	margin: 0px;
 }
-td {
-	text-align: left;
-	vertical-align: top;
-	padding: 6px 4px;
-	border: 0px none; /* no borders */
+
+/* ------------------------------------------------------------------ */
+/* New settings for Grid-based layout */
+.header {
+	display: grid;
+	grid-template-columns: [refresh] auto [info] 1fr [controls] auto;
+	/* a little spacing around this */
+	padding: 0.4rem 0.5rem 0.2rem;
+	/* a little extra gap between first 2 cols */
+	grid-column-gap: 0.5rem;
+	background-color: var(--bg-alt-color);
+	font-size: 0.85rem;
+	/* fix position to top */
+	position: sticky;
+	top: 0px;
+	border-bottom: 1.0px solid var(--tint-color);
 }
-table tr { /* turn on top and bottom border (from theme CSS) */
-	border-top: solid 1px var(--tint-color);
-	border-bottom: solid 1px var(--tint-color); /* line between rows, not columns */
+
+.header div:last-child {
+	/* right align  */
+	justify-self: end;
 }
-.no-borders { /* turn off all borders */
-	border-top: none 0px;
-	border-bottom: none 0px;
+
+.totalCounts {
+	display: block;
+	align-self: end;
 }
-.sectionName { /* column 2's title */
+/* Unless the screen size is 500px wide or less, hide the element */
+/* @media screen and (width <= var(--minBreakPoint)) { */
+@media screen and (width <= 500px) {
+  div.totalCounts {
+    display: none;
+  }
+}
+
+/* Large rows on page; don't want these in a grid as we want height to vary */
+.sections {
+	display: block;
+	/* dark blue text */
+	/* color: rgba(20, 80, 160, 0.95) */
+}
+
+.section {
+	display: grid;
+  grid-template-columns: [info] minmax(6rem,10rem) [items] auto;
+  grid-template-rows: min-content;
+	/* grid-auto-flow: column; */
+  
+	/* a little extra gap between first 2 cols */
+	grid-column-gap: 6px;
+	column-rule: 1px dotted var(--tint-color);
+
+	/* a little spacing at top and bottom of section */
+	/* padding: 2px 2px; */
+	/* turn on top border (from theme CSS) */
+	border-bottom: solid 1px var(--tint-color);
+}
+
+/* New for a2: [items] slides under [info] if too narrow */
+/* @media screen and (width <= var(--minBreakPoint)) { */
+@media screen and (width <= 600px) {
+  .section {
+    grid-template-columns: 1fr;
+  }
+	.sectionInfo {
+		border-bottom: solid 0.5px var(--tint-color);
+	}
+}
+
+/* turn on bottom border of last item (from theme CSS) */
+/* .section:last-child {
+	border-bottom: solid 1px var(--tint-color);
+} */
+
+.sectionInfo {
+	display: block;
+	padding-block-start: 8px;
+	padding-block-end: 6px;
+	padding-inline-start: 0.5rem;
+	padding-inline-end: 0.5rem;
+	background-color: var(--bg-alt-color);
+}
+.sectionIcon {
+	font-size: 1.2rem;
+	font-weight: 400;
+	text-align: center;
+	padding-right: 0.3rem;
+	padding-block-start: 1px;
+}
+.sectionName { /* column 1's title */
 	font-size: 1.0rem;
 	font-weight: 700; /* make noteTitles bold */
 	margin: unset;
 	padding-block-start: 0.1rem;
 	padding-block-end: 0.3rem;
 }
-.sectionDescription { /* column 2's description */
+.sectionDescription { /* column 1's description */
 	font-size: 0.85rem; /* smaller */
 	margin: unset;
 }
-.sectionIcon {
+
+/* Inner grid for details of a section */
+.sectionItemsGrid {
+	padding-inline-start: 0.3rem;
 	font-size: 1.0rem;
+	/* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
+	column-count: 3;
+	column-fill: balance;
+	/* or auto */
+	column-width: 25rem;
+	/* column-gap: 1rem; */
+	column-rule: 1px dotted var(--tint-color);
+	column-fill: auto;
+	padding-block-start: 4px;
+	padding-block-end: 4px;
+}
+
+.sectionItemRow {
+	/* The important trick to avoiding bad wrapping at end of columns */
+	break-inside: avoid;
+	display: grid;
+	grid-template-columns: [icon] 1rem [item-details] minmax(20rem, 30rem);
+	padding: 3px 4px 0px 4px; /* no bottom padding */
+	border: 0px none;
+	column-gap: 6px;
+	align-self: start;
+	/* vertical in containing block */
+	justify-self: right;
+	/* horizontal in containing block */
+	/* border-collapse: collapse; */
+	align-items: start;
+	/* vertical for all items this contains */
+	justify-items: start;
+	/* horizontal for all items this contains */
+}
+/* General item icon details */
+.itemIcon {
+	margin-bottom: unset !important;
+	line-height: unset !important;
+	font-size: 1.2rem;
 	font-weight: 400;
 	text-align: center;
 }
+/* Specific item icon details */
 .review {
 	color: var(--tint-color);
 }
-.sectionItem { /* reduce vertical spacing and line below */
+.dialogTrigger {
+  color: var(--fg-main-color);
+  opacity: 0.8;
+	cursor: pointer;
+}
+/* The actual item's details (was col4) */
+.sectionItem {
+	/* reduce vertical spacing and line below */
 	font-size: 1.0rem;
 	font-weight: 400;
 	padding: 1px 4px;
@@ -53,12 +171,96 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	break-inside: avoid;
 	line-height: 1.2rem; /* get from a variable */
 }
+/* Show click pointer over buttons and equivalent */
+.fake-button, .clickTarget {
+	cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ */
+
+/* for main UI buttons */
+.mainButton { /* main UI action buttons: a little more pronounced */
+	background-color: var(--bg-alt-color);
+	font-size: 0.9rem;
+	font-weight: 600;
+	border: 1px var(--tint-color);
+	box-shadow: 0 1px 1px 0px rgba(0,0,0,0.3); /*#888;*/
+	padding: 2px 5px 2px 5px;
+	margin: 2px 4px;
+}
+
+/* For buttons that trigger callbacks */
+.XCBButton {
+	color: var(--fg-main-color);
+	background-color: var(--bg-main-color);
+	font-weight: 500;
+	/* border-color: #DFE0E0; */
+	border-style: none;
+	border-radius: 4px;
+	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
+	padding: 2px 3px 0px 3px;
+	margin: 0px 2px; /* a little L and R */
+	white-space: nowrap;
+	cursor: pointer;
+	font-size: 0.85rem;
+}
+/* Set link text to plain (again) TODO: if internal calls used this can be removed */
+.XCBButton a {
+	font-size: 0.85rem;
+	text-decoration: none;
+	color: var(--fg-main-color);
+}
+/* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
+.tooltip {
+	position: relative;
+	/* cursor: help; */
+}
+.tooltip::before, .tooltip::after {
+	position: absolute;
+	left: 50%;
+	/* opacity:0;  -- problem is that this interferes with cursor selection because it still grabs cursor -- so switching to display: instead */
+	display: none;
+	transition: all ease 0.3s;
+	transition-delay: 0.8;
+}
+/* Set tooltip little bit*/
+.tooltip::before {
+	content: "";
+	border-width: 10px 8px 0 8px;
+	border-style: solid;
+	border-color: var(--bg-main-color) transparent transparent transparent;
+	margin-left: -8px;
+	top: -12px;
+}
+.tooltip::after {
+	content: attr(data-tooltip);
+	margin-left: -10px;
+	padding: 0.3rem;
+	top: -12px;
+	font-size: 0.85rem;
+	color: var(--fg-main-color);
+	background: var(--bg-main-color);
+	border: 1px solid var(--tint-color);
+	border-radius: 6px;
+	transform: translateY(-100%);
+}
+
+.tooltip:hover::before, .tooltip:hover::after {
+	/* opacity: 1; */
+	display: block;
+}
+
+/* ------------------------------------------------------------------ */
+
 .commentLine { /* show as italic */
 	font-weight: 400;
 	font-style: italic;
 }
 .clickTarget { /* change cursor for icons which can be clicked on */
 	cursor: pointer;
+}
+.pad-left {
+	padding-left: 0.3rem;
 }
 .pad-right {	/* add space after icon */
 	padding-right: 0.3em;
@@ -95,20 +297,20 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 .noteTitle { /* add "font-weight: 700;" to make noteTitles bold */
 	color: var(--tint-color) !important;
 }
-.multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
+/* .multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
 	column-count: 3;
 	column-fill: balance;
 	column-width: 25rem;
 	column-gap: 1rem;
 	column-rule: 1px dotted var(--tint-color);
-}
+} */
 .avoidColumnBreakHere { /* apply to a <div> to avoid column break part-way through item */
 	break-inside: avoid;
 }
 .fadeOutAndHide { /* Class to fade out an item, from https://stackoverflow.com/a/20910008 */
 	visibility: hidden;
 	opacity: 0;
-	transition: visibility 0s 1.5s, opacity 1.5s linear;
+	transition: visibility 0s 1.0s, opacity 1.0s linear;
 }
 /* Some headings specified from measuring the colour of NP sidebar elements */
 .sidebarDaily { font-size: 1.0rem; color: #d0703c;  }
@@ -122,12 +324,15 @@ table tr { /* turn on top and bottom border (from theme CSS) */
 	padding-left: 10px;
 }
 
+/* ------------------------------------------------------------------- */
+
 /* For fancy toggle as checkbox */
 /* from [Pure CSS3 iOS switch checkbox. A switch allows the user to quickly… | by Pedro M. S. Duarte | codeburst](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb)
  */
 input.apple-switch {
   position: relative;
-  -webkit-appearance: none;
+  appearance: none;
+	vertical-align: top;
   outline: none;
   width: 2.0rem; /* 50px; */
   height: 1.1rem; /* 30px; */
@@ -141,6 +346,7 @@ input.apple-switch {
 
 input.apple-switch:after {
   content: "";
+	vertical-align: top;
   position: absolute;
   top: 0px;
   left: 1px;
@@ -153,26 +359,13 @@ input.apple-switch:after {
 }
 
 input.apple-switch:checked {
+	vertical-align: top;
   box-shadow: inset 0.8rem 0 0 0 #4ed164; /* 20px; */
   border-color: #4ed164;
 }
 
 input.apple-switch:checked:after {
-  left: 0.8rem; /* 20px; */
-  box-shadow: -2px 4px 3px rgba(0,0,0,0.05);
-}
-
-input, label {
 	vertical-align: top;
-}
-
-.mainButton { /* main UI buttons */
-	/* background-color: #FFF; /* should be inherited */
-	font-size: 1.0rem;
-	font-weight: 500;
-	/* border-radius: 4px; */
-	border: 1px var(--tint-color);
-	box-shadow: 0 1px 1px 0px #CBCBCB;
-	padding: 2px 5px 2px 5px;
-	margin: 2px 4px;
+  left: 0.8rem; /* 20px; */
+  box-shadow: -2px 4px 3px rgba(0,0,0,0.1); /* 0.05;*/
 }
