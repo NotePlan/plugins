@@ -55,11 +55,13 @@ function getTodaySectionData() {
         id: '0-0',
         content: 'Lorem ipsum dolor sit amet, #VidAI',
         noteTitle: '20240307',
+        priority: 0 /** assumes you send numeric priority with the content, use getNumericPriorityFromPara() (from helpers/sorting.js) **/,
       },
       {
         id: '0-1',
         content: 'Consectetur adipiscing elit, maybe buy a TrackRig',
         noteTitle: '',
+        priority: 2,
       },
     ],
   }
@@ -95,6 +97,7 @@ function getProjectsSectionData() {
         id: '5-1',
         content: 'Plugin Splitting into Smaller Plugins',
         noteTitle: '',
+        priority: 1,
       },
       // Add more project items as needed
     ],
