@@ -642,6 +642,7 @@ export function rgbToHex(r: number, g: number, b: number): string {
  * Convert a Markdown link to HTML
  * @param {string} str
  * @returns {string} the new URL HTML anchor
+ * @tests in jest file
  */
 export function replaceMarkdownLinkWithHTMLLink(str: string): string {
   return str.replace(/\[(.*?)\]\((.*?)\)/gm, `<a href="$2">$1</a>`)
@@ -840,13 +841,13 @@ export function convertHashtagsToHTML(input: string): string {
   return output
 }
 
-// Display mentions with .attag style
+// Display mentions with .attag style. Now includes also parts in brackets directly after it.
 // Note: need to make only one capture group, and use 'g'lobal flag
 export function convertMentionsToHTML(input: string): string {
   let output = input
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d[:punct:]]+(\s|$))(@([^[:punct:]\s]|[\-_\/])+?\(.*?\)|@([^[:punct:]\s]|[\-_\/])+)/) // regex from @EduardMe's file
   // const captures = output.match(/(\s|^|\"|\'|\(|\[|\{)(?!@[\d\`\"]+(\s|$))(@([^\`\"\s]|[\-_\/])+?\(.*?\)|@([^\`\"\s]|[\-_\/])+)/) // regex from @EduardMe's file, without [:punct:]
-  const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60}))/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
+  const captures = output.match(/\B@((?![\p{N}_]+(?:$|\b|\s))(?:[\p{L}\p{M}\p{N}_]{1,60})(\(.*?\))?)/gu) // copes with Unicode characters, with help from https://stackoverflow.com/a/74926188/3238281
   if (captures) {
     // clo(captures, 'results from mention matches:')
     for (const capture of captures) {

@@ -534,15 +534,28 @@ export function changePriority(inputPara: TParagraph, prioStr: string, commitCha
 const PRIORITY_LEVELS = ['', '!', '!!', '!!!', '>>']
 
 /**
- * Cycle the priority level of a task: none -> ! -> !! -> !!! -> >> -> none
- * Written to suit a single UI window in the Dashboard.
+ * Cycle the priority level of a task up: none -> ! -> !! -> !!! -> >> -> none
+ * Written originally to suit a single UI window in the Dashboard.
  * @author @jgclark
  * @param {TParagraph} input - the task/pagraph to be processed
  * @returns {string} the resulting updated paragraph's content
  */
-export function cyclePriorityState(input: TParagraph): string {
+export function cyclePriorityStateUp(input: TParagraph): string {
   const currentPriorityLevel = getTaskPriority(input.content)
   const newPriorityLevel = (currentPriorityLevel + 1) % 5
+  return changePriority(input, PRIORITY_LEVELS[newPriorityLevel], true)
+}
+
+/**
+ * Cycle the priority level of a task down: none -> >> -> !!! -> !! -> ! -> none
+ * Written for the Dashboard.
+ * @author @jgclark
+ * @param {TParagraph} input - the task/pagraph to be processed
+ * @returns {string} the resulting updated paragraph's content
+ */
+export function cyclePriorityStateDown(input: TParagraph): string {
+  const currentPriorityLevel = getTaskPriority(input.content)
+  const newPriorityLevel = (currentPriorityLevel - 1) % 5
   return changePriority(input, PRIORITY_LEVELS[newPriorityLevel], true)
 }
 

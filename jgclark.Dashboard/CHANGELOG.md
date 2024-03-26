@@ -1,12 +1,115 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [1.0.0] - 2024-03-26
+Complete re-write of the display, and added significant new features:
+- replaced the 'hover bar' with a proper dialog box, opened by clicking on a new pencil icon after every item. This has more space to make clearer buttons, and more of them:
+  - new '+2d' and '+2w' move-date buttons
+  - new `move to note` button that opens the command bar asking which note + heading you want to move this item to
+  - new `priority ↑` and `priority ↓` buttons to increase/decrease the priority of the current item
+  - new text input that allows you to update the text of the item
+  - new `Start reviews` button (on Projects section)
+- the display is now more responsive: there's a new 'narrow' layout, as well as multi-column layout depending how wide you set the window
+- added keyboard controls, which work when the window has focus:
+  - <kbd>r</kbd>: refresh display
+  - <kbd>w</kbd>: toggle showing Week section
+  - <kbd>m</kbd>: toggle showing Month section
+  - <kbd>o</kbd>: toggle showing Overdue section
+  - <kbd>a</kbd>: turn on all available sections
+  <!-- - <kbd>p</kbd>: toggle 'Priority' filter -->
+  - these can also be run from x-callbacks (for @George65)
+- now de-duplicates items in Overdue and Tag sections
+- new 'add task to next day/week/month' and 'add task to next day/week/month' buttons in section header
+- some speed improvements
+- new Move `All → today` button available in Yesterday section
+- simplified top bar, and added a "time since" last update, rather than the last time run
+- added tooltips to more buttons
+- when using the add-task or add-checklist items on the main screen, now uses existing preference 'Section heading to add/move new tasks under' (if set). (#539 for @dwertheimer)
+- items in Tag section can now have their scheduled dates changed in the action dialog
+- the Tag/Mention Section now looks over Calendar notes, not just Project notes
+- when finishing items in Overdue section, it will now decrement total count as well
+- day dates in the section descriptions should now show in your locale format
+- fixed problem in Tag section sometimes ignoring open scheduled items (reported by @George65)
+- fixed problem in Tag section if its 'Ignore items...' setting was blank  (reported by @George65)
+- bracketed part of @mentions with brackets are now themed like the rest of the @mention
+<!-- 
+## [1.0.0-a9] - 2024-03-25 (unreleased)
+- improve horizontal positioning of control dialog on narrow windows
+- fix to 'move all to yesterday' updates not being cached, and so not appearing to refresh
+- day dates in the section descriptions should now show in your locale format
+- when finishing items in Overdue section, it will now decrement total count as well
+- stopped display of 'unschedule' button on items from calendar notes
+- now dedupes sync'd lines in Tag section
+- added new hidden command 'turnOnAllSections' for @George65 to use as a x-callback call
+
+## [1.0.0-a8] - 2024-03-24 (unreleased)
+- the Tag/Mention Section now looks over Calendar notes, not just Project notes
+- fix to inconsistent number of overdue tasks reported in dialog box
+
+## [1.0.0-a7] - 2024-03-23 (unreleased)
+- new keyboard shortcuts that work when the Dashboard has focus (so you might need to click in it once):
+  - m: toggle showing Month section
+  - o: toggle showing Overdue section
+  - r: refresh
+  - w: toggle showing Week section
+- these shortcuts are also available as x-callback calls
+- items in Tag section can now have their scheduled dates changed in the action dialog
+- fixed problem in Tag section sometimes ignoring open scheduled items (reported by @George65)
+- fixed problem in Tag section if its 'Ignore items...' setting was blank  (reported by @George65)
+- bracketed part of @mentions with brackets are now themed like the rest of the @mention
+
+## [1.0.0-a6] - 2024-03-22 (unreleased)
+- [**UNTESTED**] added 'Move all to today' button to the Overdue section as well
+- improved button appearance
+- fixed regression on the dialog Close button
+
+## [1.0.0-a5] - 2024-03-17 (unreleased)
+- the new 'Move all to today' button in Yesterday's section now honours the 'reschedule not move?' setting
+- added new 'add task to tomorrow' and 'add checklist to tomorrow' buttons in the Today Section description
+- added tooltips to buttons
+- when using the add-task or add-checklist items on the main screen, now uses existing preference 'Section heading to add/move new tasks under' (if set). (#539 for @dwertheimer)
+- Overdue tasks unhides lower priority items when required
+- added a little more space to top and bottom of sections
+- added a "time since" last update, rather than a time
+
+## [1.0.0-a4] - 2024-03-15 (unreleased)
+- after an item's content is edited in the control dialog, a full refresh is now run, and note cache updated
+- dedupe items in Yesterday section from appearing in Overdue as well
+- dedupe items in Overdue section
+- dedupe items in Tag section
+- turned off auto-refresh after updating settings, given the NP issue it triggers
+
+## [1.0.0-a3] - 2024-03-11 (unreleased)
+- added 'Move all to today' button to Yesterday section
+- added 'Start reviews' button to Projects section
+- added new 'move to new note' action button
+- finish updating 'change to X' action button work
+- replaced 'fake' HTML buttons with real ones
+
+## [1.0.0-a2] - 2024-03-09 (unreleased)
+- the text of a task or checklist can now be edited in the control dialog
+- made layout more responsive to make it work better when very narrow (for @dwertheimer)
+- simplified top bar, and made it sticky
+- speeded up display of dashboard
+- overdue section now doesn't show any items also in Yesterday section
+- removed the add-task and add-checklist items from the calendar references Sections (if shown)
+- more layout polish and code clean-up
+- change 'toggle type' button to be either 'change to O' or 'change to ▢'
+
+## [1.0.0-a1] - 2024-03-04 (unreleased)
+- (under-the-hood) completely re-wrote the layout engine (replacing a table-based layout system with a grid-based one) to solve some layout annoyances, and making it faster to generate
+- replaced hover controls with dialog box for item actions, now opened by clicking the 'pencil edit' button after each item
+- added new '+2d' and '+2w' move-date buttons
+- found some better icons to use
+
 ## [0.8.6] - 2024-03-07
 - fix to handle Project notes being moved or deleted after updating the Project plugin's project list
 - now ignores empty tasks or checklists
 
 ## [0.8.5] - 2024-02-26 (unreleased)
-- code restructuring, ahead of major rewrite
+- code restructuring, ahead of major rewrite -->
+
+---
 
 ## [0.8.4] - 2024-02-22
 - changed the Projects list section to now show those ready for review, not just overdue for review (just a one day difference!)

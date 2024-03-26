@@ -8,15 +8,16 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "0.8.6",
-  "plugin.lastUpdateInfo": "v0.8.6: fixes to project notes. v0.8.4: changed Projects section to show due not just overdue.\nv0.8.3: new 'Section heading to add/move new tasks under' and 'Reschedule items in place, rather than move them?' and 'Ignore items in this section with this phrase' settings.\nv0.8.2: Added secondary sorting by time block (if present).\nv0.8.1: added 'finish review' action button. Fix regression in settings.\nv0.8.0: added dashboard-specific Theme option. Added action buttons '≯' to 'unschedule' a task, and '✓then' to mark an overdue item as being comppleted at the time. Added action buttons on Project reviews.",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
   "plugin.requiredFiles": [
     "dashboard.css",
-    "dashboardHoverControls.css",
+    "dashboardDialog.css",
     "dashboardEvents.js",
     "debounce.js",
     "HTMLWinCommsSwitchboard.js",
-    "shortcut.js"
+    "shortcut.js",
+    "showTimeAgo.js"
   ],
   "plugin.requiredSharedFiles": [
     "fontawesome.css",
@@ -39,7 +40,7 @@
         "sdb"
       ],
       "description": "Show Dashboard window",
-      "jsFunction": "showDashboardHTML"
+      "jsFunction": "showDashboard"
     },
     {
       "name": "refreshDashboard",
@@ -59,7 +60,7 @@
         "ddb"
       ],
       "description": "Show Demo Dashboard",
-      "jsFunction": "showDemoDashboardHTML",
+      "jsFunction": "showDemoDashboard",
       "hidden": true
     },
     {
@@ -81,6 +82,48 @@
       "hidden": true
     },
     {
+      "name": "schedule yesterday to today",
+      "description": "schedule all yesterday's open items to today",
+      "jsFunction": "scheduleAllYesterdayOpenToToday",
+      "hidden": true
+    },
+    {
+      "name": "schedule overdue to today",
+      "description": "schedule all overdue items to today",
+      "jsFunction": "scheduleAllOverdueOpenToToday",
+      "hidden": true
+    },
+    {
+      "name": "toggleOverdueSection",
+      "description": "toggle whether Overdue section is shown",
+      "jsFunction": "toggleOverdueSection",
+      "hidden": true
+    },
+    {
+      "name": "toggleMonthSection",
+      "description": "toggle whether Month section is shown",
+      "jsFunction": "toggleMonthSection",
+      "hidden": true
+    },
+    {
+      "name": "togglePriorityFilter",
+      "description": "toggle priority filter",
+      "jsFunction": "togglePriorityFilter",
+      "hidden": true
+    },
+    {
+      "name": "toggleWeekSection",
+      "description": "toggle whether Week section is shown",
+      "jsFunction": "toggleWeekSection",
+      "hidden": true
+    },
+    {
+      "name": "turnOnAllSections",
+      "description": "turn on all sections",
+      "jsFunction": "turnOnAllSections",
+      "hidden": true
+    },
+    {
       "name": "Dashboard: reset window size",
       "description": "reset Dashboard window size",
       "jsFunction": "resetDashboardWinSize"
@@ -89,24 +132,6 @@
       "name": "Dashboard: update plugin settings",
       "description": "Settings interface (even for iOS)",
       "jsFunction": "updateSettings"
-    }
-  ],
-  "plugin.disabledCommands": [
-    {
-      "name": "log dashboard",
-      "alias": [
-        "ldb"
-      ],
-      "description": "Log Dashboard information",
-      "jsFunction": "logDashboardData"
-    },
-    {
-      "name": "show dashboard (React)",
-      "alias": [
-        "dbr"
-      ],
-      "description": "Show Dashboard (React method)",
-      "jsFunction": "showDashboardReact"
     }
   ],
   "plugin.settings": [
@@ -140,7 +165,7 @@
     },
     {
       "key": "ignoreFolders",
-      "title": "Folders to ignore when finding linked items",
+      "title": "Folders to ignore when finding items",
       "description": "Comma-separated list of folder(s) to ignore when searching for open or closed tasks/checklists. This is useful where you are using sync'd lines in search results.",
       "type": "[string]",
       "default": [
@@ -276,14 +301,6 @@
       "required": true
     },
     {
-      "key": "updateOverdueOnTrigger",
-      "title": "Update Overdue section when triggered?",
-      "description": "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
-      "type": "bool",
-      "default": true,
-      "required": true
-    },
-    {
       "key": "overdueSortOrder",
       "title": "Sort order for Overdue tasks",
       "description": "The order to show the Overdue tasks: 'priority' shows the higher priority (from `>>`, `!!!`, `!!` and `!` markers), 'earliest' by earliest modified date of the note, or 'most recent' changed note.",
@@ -297,6 +314,15 @@
       "required": true
     },
     {
+      "key": "updateOverdueOnTrigger",
+      "hidden": true,
+      "title": "Update Overdue section when triggered?",
+      "description": "If true then the 'Overdue' section will be updated even when the update comes from being triggered by a change to the daily note.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
       "type": "separator"
     },
     {
@@ -306,7 +332,7 @@
     {
       "key": "tagToShow",
       "title": "#tag/@mention to show",
-      "description": "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to make this a 'deferred' section, by setting the tag to show here to the same tag that is also set to be ignored in the calendar sections above.\nNote: This is limited to hashtags and mentions for speed, and it can show tasks duplicated from other sections.",
+      "description": "If this is set as a #hashtag or @mention, then all open tasks that contain it are shown in a separate section. This is a good way to show all `#next` actions, for example. Further, this can be used to turn this into a 'deferred' section, by setting the tag to show here the same tag that is also set to be ignored in the calendar sections above.\nNote: This is limited to a signle hashtag or mention for speed, and it can show tasks duplicated from other sections.",
       "type": "string",
       "default": "",
       "required": false
@@ -318,6 +344,15 @@
       "type": "string",
       "default": "",
       "required": false
+    },
+    {
+      "key": "updateTagMentionsOnTrigger",
+      "hidden": true,
+      "title": "Update items in this section when triggered?",
+      "description": "If true then the 'Tag/Mention' section will be updated even when the update comes from being triggered by a change to the daily note.",
+      "type": "bool",
+      "default": true,
+      "required": true
     },
     {
       "type": "separator"

@@ -1,29 +1,44 @@
+/* eslint-disable require-await */
 // @flow
 
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 14.1.2024 for v0.7.5+, @jgclark
+// last updated 24.3.2024 for v1.0.0, @jgclark
 // ----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { showDashboardHTML } from './main'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
-import { getPluginJson, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
+// import { getPluginJson, pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 import { isHTMLWindowOpen, logWindowsList } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
 
-// import { getNPWeekData } from '@helpers/NPdateTime'
-import { getDateStringFromCalendarFilename } from '@helpers/dateTime'
-import moment from 'moment/min/moment-with-locales'
+// import { showDashboard } from './HTMLGeneratorGrid'
 
 export { getDemoDataForDashboard } from './demoDashboard'
-export { addTask, addChecklist, refreshDashboard, showDashboardHTML, showDemoDashboardHTML, resetDashboardWinSize } from './main'
+export {
+  addTask, addChecklist,
+  refreshDashboard,
+  showDashboard,
+  showDemoDashboard,
+  // resetDashboardWinSize,
+} from './HTMLGeneratorGrid' // previously: './HTMLGenerator'
+export {
+  togglePriorityFilter,
+  toggleMonthSection,
+  toggleOverdueSection,
+  toggleWeekSection,
+  turnOnAllSections,
+} from './settingControllers'
+export {
+  scheduleAllOverdueOpenToToday,
+  scheduleAllYesterdayOpenToToday
+} from './dashboardHelpersWithRefresh'
 export { decideWhetherToUpdateDashboard } from './dashboardTriggers'
 export { onMessageFromHTMLView } from './pluginToHTMLBridge'
-export { getDataForDashboard, logDashboardData } from './dataGeneration'
+export { getDataForDashboard } from './dataGeneration'
 
 const thisPluginID = 'jgclark.Dashboard'
 
@@ -42,7 +57,7 @@ export async function init(): Promise<void> {
 export async function onSettingsUpdated(): Promise<any> {
   // FIXME(Eduard): this fails because the Editor is out of scope when the settings screen is shown
   if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-    await showDashboardHTML('refresh', false) // probably don't need await
+    //   await showDashboard('refresh', false) // probably don't need await
   }
 }
 
