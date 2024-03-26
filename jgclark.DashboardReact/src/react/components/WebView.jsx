@@ -66,6 +66,7 @@ export function WebView({ data, dispatch }: Props): Node {
 
   // destructure all the startup data we expect from the plugin
   const { pluginData, debug } = data
+  if (!pluginData) throw new Error('WebView: pluginData must be called with an object')
   logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData, null, 2)}`)
 
   /****************************************************************************************************************************
@@ -145,12 +146,30 @@ export function WebView({ data, dispatch }: Props): Node {
     dispatch('SEND_TO_PLUGIN', [command, data], `WebView: sendToPlugin: ${String(command)} ${additionalDetails}`)
   }
 
+  /**
+   * Updates the pluginData with the provided new data (must be the whole pluginData object)
+   *
+   * @param {Object} newData - The new data to update the plugin with,
+   * @param {string} messageForLog - An optional message to log with the update
+   * @throws {Error} Throws an error if newData is not provided or if it does not have more keys than the current pluginData.
+   * @return {void}
+   */
+  const updatePluginData = (newData, messageForLog?: string) => {
+    if (!newData) throw new Error('updatePluginData: newData must be called with an object')
+    if (Object.keys(newData).length < Object.keys(pluginData).length) {
+      throw new Error('updatePluginData: newData must be called with an object that has more keys than the current pluginData. You must send a full pluginData object')
+    }
+    const newFullData = { ...data, pluginData: newData }
+    dispatch('UPDATE_DATA', newFullData, messageForLog) // save the data at the Root React Component level, which will give the plugin access to this data also
+  }
+  if (!pluginData.reactSettings) pluginData.reactSettings = {}
+
   /****************************************************************************************************************************
    *                             RENDER
    ****************************************************************************************************************************/
 
   return (
-    <AppProvider sendActionToPlugin={sendActionToPlugin} sendToPlugin={sendToPlugin} dispatch={dispatch} pluginData={pluginData}>
+    <AppProvider sendActionToPlugin={sendActionToPlugin} sendToPlugin={sendToPlugin} dispatch={dispatch} pluginData={pluginData} updatePluginData={updatePluginData}>
       <Dashboard pluginData={pluginData} />
     </AppProvider>
   )

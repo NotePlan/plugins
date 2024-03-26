@@ -11,24 +11,41 @@ type Props = {
  * Displays the dashboard's header.
  */
 const Header = ({ lastUpdated }: Props): React$Node => {
-  const { sendActionToPlugin /*, sendToPlugin, dispatch, pluginData */ } = useAppContext()
+  const { reactSettings, updateReactSettings, sendActionToPlugin /*, sendToPlugin, dispatch, pluginData, */ } = useAppContext()
 
-  const handleCheckboxClick = () => {
-    console.log('Checkbox clicked. need to do something here')
+  const handleCheckboxClick = (e) => {
+    const isChecked = e?.target.checked || false
+    console.log(`Checkbox clicked. setting in global Context reactSettings.filterPriorityItems to ${String(isChecked)}`)
+    updateReactSettings({ ...reactSettings, filterPriorityItems: isChecked }, `reactSettings.filterPriorityItems set to ${String(isChecked)}`)
+  }
+
+  const handleRefreshClick = () => {
+    console.log('Refresh button clicked')
     sendActionToPlugin('refresh', {})
+  }
+
+  const calculateTimeSince = () => {
+    return lastUpdated // placeholder - replace with the time since function
   }
 
   return (
     <div className="header">
       <div className="lastUpdated">
-        Last updated: <span id="timer">{lastUpdated}</span>{' '}
+        Last updated: <span id="timer">{calculateTimeSince()}</span>{' '}
       </div>
-      <Button className="XCBButton" clickHandler={handleCheckboxClick} text={'Refresh'} />
+      <Button className="XCBButton" clickHandler={handleRefreshClick} text={'Refresh'} />
       <div className="totalCounts">
         <span id="totalDoneCount">0</span> items closed
       </div>
       <div>
-        <input type="checkbox" className="apple-switch" onChange={handleCheckboxClick} name="filterPriorityItems" id="filterPriorityItems" />
+        <input
+          type="checkbox"
+          className="apple-switch"
+          onChange={handleCheckboxClick}
+          name="filterPriorityItems"
+          id="filterPriorityItems"
+          checked={reactSettings.filterPriorityItems || false}
+        />
         <label htmlFor="filterPriorityItems">Filter out lower-priority items?</label>
       </div>
     </div>

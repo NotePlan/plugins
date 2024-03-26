@@ -1,15 +1,11 @@
 // @flow
 import React from 'react'
-
-type Props = {
-  status: string,
-  content: string,
-};
+import type { ItemRowType } from './flow-types'
 
 /**
  * Represents a single item within a section, displaying its status, content, and actions.
  */
-const ItemRow = ({ status, content }: Props):React$Node => (
+const ItemRow = ({ status, content }: ItemRowType): React$Node => (
   <div className="itemRow">
     <span>{status}</span>
     <span>{content}</span>

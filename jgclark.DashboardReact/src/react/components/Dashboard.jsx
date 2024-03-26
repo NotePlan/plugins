@@ -1,4 +1,5 @@
 // @flow
+
 import React from 'react'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
@@ -11,12 +12,15 @@ type Props = {
 /**
  * Dashboard component aggregating data and layout for the dashboard.
  */
-const Dashboard = ({pluginData}:Props): React$Node => {
-//   const { sendActionToPlugin, sendToPlugin, dispatch, pluginData }  = useAppContext()
-  const {sections, lastUpdated} =  pluginData 
-
+const Dashboard = ({ pluginData }: Props): React$Node => {
+  //   const { sendActionToPlugin, sendToPlugin, dispatch, pluginData }  = useAppContext()
+  const { sections, lastUpdated } = pluginData
+  const dashboardContainerStyle = {
+    maxWidth: '100vw',
+    width: '100vw',
+  }
   return (
-    <div style={{ maxWidth: '100vw', width: '100vw' }}>
+    <div style={dashboardContainerStyle}>
       <div className="dashboard">
         <Header lastUpdated={lastUpdated} />
         {/* Assuming sections data is fetched or defined elsewhere and passed as props */}

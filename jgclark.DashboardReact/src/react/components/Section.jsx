@@ -2,17 +2,13 @@
 import React from 'react'
 import ItemGrid from './ItemGrid.jsx'
 import AddButtons from './AddButtons.jsx'
-
-type ItemProps = {
-  status: string,
-  content: string,
-}
+import type { ItemRowType } from './flow-types.js'
 
 type Props = {
   name: string,
   iconString: string,
   description: string,
-  items: Array<ItemProps>,
+  items: Array<ItemRowType>,
 }
 
 /**
