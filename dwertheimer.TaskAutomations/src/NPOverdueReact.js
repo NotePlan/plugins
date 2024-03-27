@@ -13,7 +13,7 @@ import { appendTaskToCalendarNote } from '../../jgclark.QuickCapture/src/quickCa
 import { chooseFolder } from '../../helpers/userInput'
 import { findOpenTodosInNote } from '../../helpers/NPnote'
 import { followUpInFuture, followUpSaveHere } from './NPFollowUp'
-import { getLimitedLastUsedChoices, updateLastUsedChoices } from './lastUsedChoices'
+import { /* getLimitedLastUsedChoices, */ updateLastUsedChoices } from './lastUsedChoices'
 
 import {
   getNotesAndTasksToReview,
@@ -212,7 +212,7 @@ export function paragraphUpdateReceived(data: { rows: Array<any>, field: string 
  * @param {any} data - the updated rows object
  */
 export async function updateRowDataAndSend(updateInfo: any, updateText: string = '') {
-  // clo(updateInfo, `updateRowDataAndSend updateText=${updateText} updateInfo=`)
+  clo(updateInfo, `updateRowDataAndSend updateText=${updateText} updateInfo=`)
   const updatedRows = updateInfo.updatedRows
   const currentJSData = await getGlobalSharedData(WEBVIEW_WINDOW_ID)
   const overdueParas = currentJSData.overdueParas
@@ -231,6 +231,7 @@ export async function updateRowDataAndSend(updateInfo: any, updateText: string =
 export async function dropdownChangeReceived(data: { rows: Array<any>, choice: string }): Promise<Array<any>> {
   const { rows, choice } = data
   const commandBarStyleChoice = createOptionChoice(choice)
+  logDebug(pluginJson, `dropdownChangeReceived data:${JSON.stringify(data)}`)
   updateLastUsedChoices(commandBarStyleChoice)
   if (rows?.length && choice) {
     const updatedStatics = []
@@ -244,7 +245,7 @@ export async function dropdownChangeReceived(data: { rows: Array<any>, choice: s
         clo(paragraph, `dropdownChangeReceived found paragraph "${row.content}" in note "${row.filename}"; calling processUserAction:${String(choice)} for paragraph:`)
         const result = await processUserAction(paragraph, commandBarStyleChoice)
         clo(paragraph, `dropdownChangeReceived: processUserAction returned:${JSON.stringify(result)}`)
-        if (result !== SEE_TASK_AGAIN) {
+        if (true /*result !== SEE_TASK_AGAIN*/) {
           // const para = await finalizeChanges(result)
           //FIXME: if paragraph is deleted or something, this could be wrong
           //FIXME: The can't update line-by-line may a big problem here. We used to
@@ -271,11 +272,11 @@ export async function dropdownChangeReceived(data: { rows: Array<any>, choice: s
         )
       }
     }
-    Object.keys(updatesByNote).forEach((filename) => {
-      if (updatesByNote[filename].length) {
-        updatesByNote[filename][0].note.updateParagraphs(updatesByNote[filename])
-      }
-    })
+    // Object.keys(updatesByNote).forEach((filename) => {
+    //   if (updatesByNote[filename].length) {
+    //     updatesByNote[filename][0].note.updateParagraphs(updatesByNote[filename])
+    //   }
+    // })
     clo(updatedStatics, `dropdownChangeReceived finished updates. returning updatedStatics=`)
     return updatedStatics
   }
@@ -284,7 +285,7 @@ export async function dropdownChangeReceived(data: { rows: Array<any>, choice: s
 
 /**
  * onUserModifiedParagraphs
- * Plugin entrypoint for "/onUserModifiedParagraphs - item was changed in HTML"
+ * Plugin entrypoint for "/onUserModifiedParagraphs - item was changed in the React window"
  * This is a callback
  * @author @dwertheimer
  */
@@ -304,11 +305,13 @@ export async function onUserModifiedParagraphs(actionType: string, data: any): P
       default:
         break
     }
-    if (returnValue?.updatedRows?.length) {
-      returnValue.updatedRows = createCleanContent(returnValue.updatedRows)
-      await updateRowDataAndSend({ updatedRows: returnValue.updatedRows }, `Plugin Changed: ${JSON.stringify(returnValue.updatedRows)}`)
-      // sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'RETURN_VALUE', { type: actionType, dataSent: data, returnValue: returnValue })
+    if (!returnValue?.updatedRows?.length) {
+      logDebug(`onUserModifiedParagraphs returnValue?.updatedRows?.length was empty`)
+      return {}
     }
+    returnValue.updatedRows = createCleanContent(returnValue.updatedRows)
+    await updateRowDataAndSend({ updatedRows: returnValue.updatedRows }, `Plugin Changed: ${JSON.stringify(returnValue.updatedRows)}`)
+    // sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'RETURN_VALUE', { type: actionType, dataSent: data, returnValue: returnValue })
     return {} // this return value is ignored but needs to exist or we get an error
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -425,6 +428,8 @@ export function getStaticParagraph(para: TParagraph, additionalPropsObj: any = {
 
 /**
  * Create cleanContent for each item in the static array
+ * - strip all markers from the content
+ * - convert all links to HTML links
  * @param {Array<any>} statics
  * @returns
  */
@@ -514,7 +519,7 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
   const startReactDataPackaging = new Date()
   // clo(staticParasToReview, `processOverdueReact: staticParasToReview length=${staticParasToReview.length}`)
   const ENV_MODE = 'development'
-  const lastChoices = getLimitedLastUsedChoices()
+  // const lastChoices = getLimitedLastUsedChoices() // not using this until the saving is more stable
   const data = {
     overdueParas: staticParasToReview,
     title: `Overdue Tasks`,
@@ -525,7 +530,7 @@ export async function getDataForReactView(testData?: boolean = false, noteFolder
     /* ... +any other data you want to be available to your react components */
     dropdownOptionsAll: getSpecializedOptions(false),
     dropdownOptionsLine: getSpecializedOptions(true),
-    contextButtons: getButtons(lastChoices),
+    contextButtons: getButtons([]),
     showDaysTilDueColumn: reactShowDueInColumn,
     startTime,
   }
@@ -662,7 +667,6 @@ export async function testOverdueReact() {
 * overdue14 >2022-03-01    
 * overdue15 >2022-04-01
 * overdue16 >2022-05-01
-* overdue16 >2022-02-01
 * overdue17 >2022-03-01    
 * overdue18 >2022-04-01
 * overdue19 >2022-05-01

@@ -23,21 +23,6 @@ beforeAll(() => {
 const PLUGIN_NAME = `${colors.yellow('dwertheimer.TaskAutomations')}`
 const section = colors.blue
 describe(`${PLUGIN_NAME}`, () => {
-  describe(section('getTagsFromString'), () => {
-    it(`should not find anything if no tags`, () => {
-      const text = `word something nothing`
-      const tags = tt.getTagsFromString(text)
-      expect(tags).toEqual({ hashtags: [], mentions: [] })
-    })
-    it(`should find tags/mentions and return them in an object`, () => {
-      const text = `text1 #tag1 #tag2 text2 @mention1 @mention2 text3`
-      const tags = tt.getTagsFromString(text)
-      expect(tags).toEqual({
-        hashtags: ['#tag1', '#tag2'],
-        mentions: ['@mention1', '@mention2'],
-      })
-    })
-  })
   describe(section('getUnduplicatedMergedTagArray'), () => {
     it(`should return nothing if there are no tags`, () => {
       const existingTags = []

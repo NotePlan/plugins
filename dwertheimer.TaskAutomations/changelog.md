@@ -5,8 +5,16 @@
 
 ## What's Changed in this Plugin?
 
+NOTE: A COUPLE OF RELEASES AFTER 3.0.0 DELETE THE SETTINGS THAT PERTAIN TO TASKS
+
+## [3.0.0] @dwertheimer 2024-03-26
+
+- Migrate Task Sorting Commands to Task Sorter Plugin
+- Rename this plugin from TaskAutomations - Overdue Task Processing
+
 ## [2.18.0] @dwertheimer 2023-12-?? 
 
+- Changed commands from short command names to conform to new method
 - Started saving most frequently used choices in prefs for future potential use in commandbar options sorting per user
 - Refactored much of the overdue processing under the hood to make it more modular and testable for the future
 - Bug fixes under the hood

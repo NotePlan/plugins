@@ -169,7 +169,7 @@ export function WebView({ data, dispatch }: Props): Node {
     let changes = false
     const tableData = overdueParas.map((p, i) => {
       if (typeof p.id === 'undefined') {
-        logDebug(`Webview: add id to data: ${i} ${JSON.stringify(p)}`)
+        // logDebug(`Webview: add id to data: ${i} ${JSON.stringify(p)}`)
         changes = true
         return { ...p, id: i }
       }

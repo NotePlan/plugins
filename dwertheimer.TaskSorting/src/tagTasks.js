@@ -7,14 +7,8 @@ TODO: /ctt is working, but future commands could easily rewrite the order so the
 import { clo, JSP, log, logDebug } from '../../helpers/dev'
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
-import { getElementsFromTask } from '@helpers/sorting'
+import { getTagsFromString, type TagsList } from '../../helpers/paragraph'
 import { getSelectedParagraph, getParagraphContainingPosition } from '@helpers/NPParagraph'
-
-type TagsList = { hashtags: Array<string>, mentions: Array<string> } //include the @ and # characters
-
-// These Regexes are different from the ones in taskHelpers because they include the # or @
-export const HASHTAGS: RegExp = /\B(#[a-zA-Z0-9\/]+\b)/g
-export const MENTIONS: RegExp = /\B(@[a-zA-Z0-9\/]+\b)/g
 
 /**
  * Get a paragraph by its index (mostly unnecessary)
@@ -24,17 +18,6 @@ export const MENTIONS: RegExp = /\B(@[a-zA-Z0-9\/]+\b)/g
  */
 const getParagraphByIndex = (note: CoreNoteFields, index: number): TParagraph | null => {
   return note.paragraphs[index]
-}
-
-/**
- * Takes in a string and returns an object with arrays of #hashtags and @mentions (including the @ and # characters)
- * @param {string} content : ;
- * @returns {TagsList} {hashtags: [], mentions: []}
- */
-export function getTagsFromString(content: string): TagsList {
-  const hashtags = getElementsFromTask(content, HASHTAGS)
-  const mentions = getElementsFromTask(content, MENTIONS)
-  return { hashtags, mentions }
 }
 
 /**

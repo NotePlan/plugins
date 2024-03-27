@@ -1,0 +1,331 @@
+{
+  "macOS.minVersion": "10.13.0",
+  "noteplan.minAppVersion": "3.4.0",
+  "plugin.id": "dwertheimer.TaskSorting",
+  "plugin.name": "🥷 Task Sorting & Tools",
+  "plugin.version": "1.0.0",
+  "plugin.lastUpdateInfo": "Initial release of commands moved from the Task Automations plugin to the TaskSorter plugin.",
+  "plugin.description": "Commands for sorting tasks in a note",
+  "plugin.author": "dwertheimer",
+  "plugin.requiredFiles-EDIT_ME": [
+    "html-plugin-comms.js"
+  ],
+  "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/README.md",
+  "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskSorting/CHANGELOG.md",
+  "plugin.commands": [
+    {
+      "note": "================== COMMMANDS ========================"
+    },
+    {
+      "name": "Sort tasks on the page ",
+      "description": "ts",
+      "jsFunction": "sortTasks",
+      "alias": [
+        "ts"
+      ],
+      "arguments": [
+        "prompt user to choose options",
+        "sortFields (array of strings)",
+        "withHeadings (default: false)",
+        "subHeadingCategory (default: false)"
+      ]
+    },
+    {
+      "name": "Sort tasks under heading (choose)",
+      "description": "sth",
+      "jsFunction": "sortTasksUnderHeading",
+      "alias": [
+        "tsh"
+      ]
+    },
+    {
+      "name": "Tasks Sort by User Default (in settings)",
+      "description": "tsd",
+      "jsFunction": "sortTasksDefault",
+      "alias": [
+        "tsd"
+      ]
+    },
+    {
+      "name": "Tasks Sort by calendar due date",
+      "description": "tsc",
+      "jsFunction": "sortTasksByDue",
+      "alias": [
+        "tsc"
+      ]
+    },
+    {
+      "name": "Tasks Sort by @Mention/person",
+      "description": "tsm",
+      "jsFunction": "sortTasksByPerson",
+      "alias": [
+        "tsm"
+      ]
+    },
+    {
+      "name": "Tasks Sort by #Tag",
+      "description": "tst",
+      "jsFunction": "sortTasksByTag",
+      "alias": [
+        "tst"
+      ]
+    },
+    {
+      "name": "Tasks Sort by #Tag + @Mention",
+      "description": "tstm",
+      "jsFunction": "sortTasksTagMention",
+      "alias": [
+        "tstm"
+      ]
+    },
+    {
+      "name": "Tasks to Top - Bring all tasks in note to top",
+      "description": "tt",
+      "jsFunction": "tasksToTop",
+      "alias": [
+        "tt"
+      ]
+    },
+    {
+      "name": "Mark All Tasks on Page (open or complete)",
+      "description": "mat",
+      "jsFunction": "markTasks",
+      "alias": [
+        "mat"
+      ]
+    },
+    {
+      "name": "cta - Copy tags from previous line",
+      "description": "Copy #tags and @mentions from previous line",
+      "jsFunction": "copyTagsFromLineAbove"
+    },
+    {
+      "name": "cth - Copy tags from heading above",
+      "description": "Copy #tags/@mentions from heading to all lines between",
+      "jsFunction": "copyTagsFromHeadingAbove"
+    },
+    {
+      "name": "ctm - Copy line for each mention",
+      "description": "Copy line for each @mention, listing it first",
+      "jsFunction": "copyLineForEachMention"
+    },
+    {
+      "name": "ctt - Copy line for each hashtag",
+      "description": "Copy line for each #hashtag, listing it first",
+      "jsFunction": "copyLineForEachHashtag"
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Task Sorting: Version",
+      "description": "Update + Check Version",
+      "jsFunction": "versionCheck"
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onOpen",
+      "jsFunction": "onOpen",
+      "hidden": true
+    },
+    {
+      "description": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onEditorWillSave",
+      "jsFunction": "onEditorWillSave",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "onMessageFromHTMLView",
+      "description": "dwertheimer.TaskSorting: Callback function to receive messages from HTML view",
+      "jsFunction": "onMessageFromHTMLView",
+      "hidden": true
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Task Sorting: Update Plugin Settings",
+      "description": "Preferences",
+      "jsFunction": "editSettings"
+    }
+  ],
+  "plugin.settings": [
+    {
+      "note": "================== SETTINGS ========================"
+    },
+    {
+      "COMMENT": "Plugin settings documentation: https://help.noteplan.co/article/123-plugin-configuration",
+      "type": "heading",
+      "title": "Task Sorting Settings"
+    },
+    {
+      "type": "hidden",
+      "key": "pluginID",
+      "default": "dwertheimer.TaskSorting",
+      "COMMENT": "This is for use by the editSettings helper function. PluginID must match the plugin.id in the top of this file"
+    },
+    {
+      "type": "heading",
+      "title": "Task Sorting Default Settings"
+    },
+    {
+      "key": "defaultSort1",
+      "title": "Default Sort: Primary Sort Field",
+      "description": "When invoking the default sorting method (/tsd), sort first by this field. Note: a minus in front means sort that key in reverse order. hashtags are for #tags, mentions are for @mentions, priority is the number of !!!'s and content is alphabetical.",
+      "type": "string",
+      "default": "-priority",
+      "required": true,
+      "choices": [
+        "priority",
+        "-priority",
+        "due",
+        "-due",
+        "mentions",
+        "-mentions",
+        "hashtags",
+        "-hashtags",
+        "content",
+        "-content"
+      ]
+    },
+    {
+      "key": "defaultSort2",
+      "title": "Default Sort: Secondary Sort Field",
+      "description": "When invoking the default sorting method (/tsd), sort secondly by this field (for all fields in the first sort pass above which were the same). Note: a minus in front means sort that key in reverse order. hashtags are for #tags, mentions are for @mentions, priority is the number of !!!'s and content is alphabetical.",
+      "type": "string",
+      "default": "hashtags",
+      "required": true,
+      "choices": [
+        "priority",
+        "-priority",
+        "due",
+        "-due",
+        "mentions",
+        "-mentions",
+        "hashtags",
+        "-hashtags",
+        "content",
+        "-content"
+      ]
+    },
+    {
+      "key": "defaultSort3",
+      "title": "Default Sort: Tertiary Sort Field",
+      "description": "When invoking the default sorting method (/tsd), sort thirdly by this field (for all fields in the first sorts pass above which were the same). Note: a minus in front means sort that key in reverse order. hashtags are for #tags, mentions are for @mentions, priority is the number of !!!'s and content is alphabetical.",
+      "type": "string",
+      "default": "mentions",
+      "required": true,
+      "choices": [
+        "priority",
+        "-priority",
+        "due",
+        "-due",
+        "mentions",
+        "-mentions",
+        "hashtags",
+        "-hashtags",
+        "content",
+        "-content"
+      ]
+    },
+    {
+      "key": "outputOrder",
+      "title": "Output order (by type)",
+      "description": "After tasks are sorted, tasks are grouped by their type (status). In what order do you want the task groups outputted?",
+      "choices": [
+        "open, scheduled, done, cancelled",
+        "open, scheduled, cancelled, done",
+        "done, cancelled, open, scheduled",
+        "open, done, cancelled, scheduled",
+        "open, cancelled, done, scheduled",
+        "scheduled, open, done, cancelled",
+        "scheduled, open, cancelled, done",
+        "scheduled, done, cancelled, open",
+        "scheduled, cancelled, done, open",
+        "done, open, cancelled, scheduled",
+        "done, scheduled, cancelled, open",
+        "cancelled, open, done, scheduled",
+        "cancelled, scheduled, done, open",
+        "cancelled, done, open, scheduled",
+        "cancelled, done, scheduled, open"
+      ],
+      "type": "string",
+      "default": "open, scheduled, done, cancelled",
+      "required": true
+    },
+    {
+      "key": "sortInHeadings",
+      "title": "Sort tasks separately for each heading?",
+      "description": "For all quick task sorting commands (other than /ts), do you want each set of tasks under each heading to be sorted separately and placed back underneath the heading? Uncheck this if you want to ignore the headings in the sort.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "tasksToTop",
+      "title": "Put tasks at the top (before any textual items)?",
+      "description": "After tasks are sorted, do you want to put all the tasks at the top of the note (or section), before any other text? Uncheck this if you want the tasks to float to the bottom beneath any other text.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "includeHeading",
+      "title": "Include Task Status Heading in Output?",
+      "description": "For all quick task sorting commands (other than /ts), you can specify whether you want the headings to be in the output or not. Task Status headings are, e.g. 'Open Tasks', 'Completed Tasks’, etc.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "includeSubHeading",
+      "title": "Include Primary Sort Key Heading in Output?",
+      "description": "For all quick task sorting commands (other than /ts), you can specify whether you want the subheadings to be in the output or not. Sort Key headings are, e.g. '#tagA', or '@PersonB', etc.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
+      "key": "eliminateSpinsters",
+      "title": "Eliminate Headings with No Content",
+      "description": "After running this command multiple times, you may end up with widowed headings that have no content underneath. If this is checked, after tasks are sorted, the plugin will delete any third/fourth level headings with no content underneath.\nBEWARE: It's pretty smart/careful about what empty headings it deletes, but if you have other empty 4th level headings ending in a colon in your document, don't!",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "stopAtDoneHeading",
+      "title": "Stop at 'Done' or 'Cancelled' heading",
+      "description": "Some people like to archive tasks on a page under a '## Done' or '## Cancelled' heading. If this is option is checked, tasks under the Done/Cancelled heading will be ignored for sorts. If there is no Done or Canclled heading, it will process the entire page.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "note": "================== DEBUGGING SETTINGS ========================"
+    },
+    {
+      "NOTE": "DO NOT CHANGE THE FOLLOWING SETTINGS; ADD YOUR SETTINGS ABOVE ^^^",
+      "type": "separator"
+    },
+    {
+      "type": "heading",
+      "title": "Debugging"
+    },
+    {
+      "key": "_logLevel",
+      "type": "string",
+      "title": "Log Level",
+      "choices": [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "none"
+      ],
+      "description": "Set how much logging output will be displayed when executing Task Sorting commands in NotePlan Plugin Console Logs (NotePlan -> Help -> Plugin Console)\n\n - DEBUG: Show All Logs\n - INFO: Only Show Info, Warnings, and Errors\n - WARN: Only Show Errors or Warnings\n - ERROR: Only Show Errors\n - none: Don't show any logs",
+      "default": "INFO",
+      "required": true
+    }
+  ]
+}
