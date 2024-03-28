@@ -8,8 +8,16 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
+  "plugin.version": "1.1.0",
+  "plugin.lastUpdateInfo": "1.1.0: add new 'Tomorrow' section (off by default). Fix to Overdue missing Calendar notes, markdown links. Layout tweaks.\n1.0.1: fix refresion with checklist items\n1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
+  "plugin.depdencies": {
+    "id": "np.Shared",
+    "minVersion": "0.4.7"
+  },
+  "plugin.AnotherDepdency": {
+    "id": "jgclark.QuickCapture",
+    "minVersion": "0.13.0"
+  },
   "plugin.requiredFiles": [
     "dashboard.css",
     "dashboardDialog.css",
@@ -88,6 +96,12 @@
       "hidden": true
     },
     {
+      "name": "schedule today to tomorrow",
+      "description": "schedule all open items from today to tomorrow",
+      "jsFunction": "scheduleAllTodayTomorrow",
+      "hidden": true
+    },
+    {
       "name": "schedule overdue to today",
       "description": "schedule all overdue items to today",
       "jsFunction": "scheduleAllOverdueOpenToToday",
@@ -109,6 +123,12 @@
       "name": "togglePriorityFilter",
       "description": "toggle priority filter",
       "jsFunction": "togglePriorityFilter",
+      "hidden": true
+    },
+    {
+      "name": "toggleTomorrowSection",
+      "description": "toggle whether Tomorrow section is shown",
+      "jsFunction": "toggleTomorrowSection",
       "hidden": true
     },
     {
@@ -257,6 +277,14 @@
       "key": "showYesterdaySection",
       "title": "Show section for Yesterday?",
       "description": "Whether to show a 'Yesterday' section for Yesterday's open items, after the 'Today' section.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "showTomorrowSection",
+      "title": "Show section for Tomorrow?",
+      "description": "Whether to show a 'Tomorrow' section for Tomorrow's open items, after the 'Today' section.",
       "type": "bool",
       "default": false,
       "required": true

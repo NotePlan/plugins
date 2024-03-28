@@ -1,6 +1,24 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+<!-- - added keyboard controls, which work when the window has focus: 
+   - <kbd>p</kbd>: toggle 'Priority' filter -->
+
+## [1.1.0] - 2024-03-28
+### New
+- added 'Tomorrow' section. This can be toggled on/off with 't' shortcut. (This is off by default: go to settings to turn it on.)
+- added move 'All Today → Tomorrow' button in Today section
+### Improved
+- now finds tasks from notes in the root folder (thx @drb)
+- wider layout uses full width
+### Fixes
+- fixed regression ignoring calendar notes in Overdue section (thx @dwertheimer)
+- fixed text in some tooltips (thx @drb)
+- fixed display of markdown links with very long URLs (thx @dwertheimer)
+
+## [1.0.1] - 2024-03-27
+- fix regression with checklist items
+
 ## [1.0.0] - 2024-03-26
 Complete re-write of the display, and added significant new features:
 - replaced the 'hover bar' with a proper dialog box, opened by clicking on a new pencil icon after every item. This has more space to make clearer buttons, and more of them:
@@ -32,6 +50,7 @@ Complete re-write of the display, and added significant new features:
 - fixed problem in Tag section sometimes ignoring open scheduled items (reported by @George65)
 - fixed problem in Tag section if its 'Ignore items...' setting was blank  (reported by @George65)
 - bracketed part of @mentions with brackets are now themed like the rest of the @mention
+
 <!-- 
 ## [1.0.0-a9] - 2024-03-25 (unreleased)
 - improve horizontal positioning of control dialog on narrow windows

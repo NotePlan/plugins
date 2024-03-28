@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 24.3.2024 for v1.0.0 by @jgclark
+// Last updated 28.3.2024 for v1.1.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -110,10 +110,11 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
           logWarn('scheduleAllYesterdayOpenToToday', `Oddly I can't find the note for {${para.content}}, so can't process this item`)
         } else {
           para.content = `${removeDateTagsAndToday(para.content)} >today`
-          logDebug('scheduleAllYesterdayOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
+          logDebug('scheduleAllYesterdayOpenToToday', `- scheduling referenced para from note ${thisNote.filename} with new content {${para.content}} `)
+          // FIXME: This fails, and I can't see why
           thisNote.updateParagraph(para)
           numberScheduled++
-          // TEST:
+          // Note: Whether this is used seems not to make any difference
           DataStore.updateCache(thisNote)
         }
       }
@@ -131,6 +132,114 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
   }
   catch (error) {
     logError('dashboard / scheduleAllYesterdayOpenToToday', error.message)
+    return 0
+  }
+}
+
+/**
+ * Function to schedule or move all open items from today to tomorrow
+ * Uses config setting 'rescheduleNotMove' to decide whether to reschedule or move.
+ * @param {boolean?} refreshDashboard?
+ * @returns 
+ */
+export async function scheduleAllTodayTomorrow(refreshDashboard: boolean = true): Promise<number> {
+  try {
+
+    let numberScheduled = 0
+    const config = await getSettings()
+    // For these purposes override one config item:
+    config.separateSectionForReferencedNotes = true
+
+    // Get paras for all open items in yesterday's note
+    const todayDateStr = getTodaysDateHyphenated()
+    const tomorrowDateStr = new moment().add(1, 'days').format('YYYYMMDD')
+    const tomorrowISODateStr = new moment().add(1, 'days').format('YYYY-MM-DD')
+    const todaysNote = DataStore.calendarNoteByDateString(todayDateStr)
+    if (!todaysNote) {
+      logWarn('scheduleAllTodayTomorrow', `Oddly I can't find a daily note for today`)
+      return 0
+    } else {
+      logDebug('scheduleAllTodayTomorrow', `Starting, with refreshDashboard = ${String(refreshDashboard)}`)
+    }
+
+    // Get list of open tasks/checklists from this calendar note
+    const [combinedSortedParas, sortedRefParas] = await getOpenItemParasForCurrentTimePeriod("day", todaysNote, config)
+    const totalToMove = combinedSortedParas.length + sortedRefParas.length
+
+    // If there are lots, then double check whether to proceed
+    if (totalToMove > checkThreshold) {
+      const res = await showMessageYesNo(`Are you sure you want to ${config.rescheduleNotMove ? 'schedule' : 'nove'} ${totalToMove} items to tomorrow?`, ['Yes', 'No'], 'Move Yesterday to Today', false)
+      if (res !== 'Yes') {
+        logDebug('scheduleAllTodayTomorrow', 'User cancelled operation.')
+        return 0
+      }
+    }
+
+    let c = 0
+    if (combinedSortedParas.length > 0) {
+      await CommandBar.onAsyncThread() // Note: this is needed for showLoading to work, though I don't know why
+      if (config.rescheduleNotMove) {
+        // For each para append ' >' and tomorrow's ISO date
+        for (const para of combinedSortedParas) {
+          c++
+          CommandBar.showLoading(true, `Scheduling item ${c} to tomorrow`, c / totalToMove)
+          para.content = `${para.content} >${tomorrowISODateStr}`
+          logDebug('scheduleAllTodayTomorrow', `- scheduling {${para.content}} to tomorrow`)
+          numberScheduled++
+        }
+        todaysNote.updateParagraphs(combinedSortedParas)
+        logDebug('scheduleAllTodayTomorrow', `scheduled ${String(numberScheduled)} open items from today's note`)
+      } else {
+        // For each para move to tomorrow's note
+        for (const para of combinedSortedParas) {
+          logDebug('scheduleAllTodayTomorrow', `- moving {${para.content}} to tomorrow`)
+          c++
+          CommandBar.showLoading(true, `Moving item ${c} to tomorrow`, c / totalToMove)
+          const res = moveItemBetweenCalendarNotes(todayDateStr, tomorrowDateStr, para.content, config.newTaskSectionHeading ?? '')
+          if (res) {
+            // logDebug('scheduleAllTodayTomorrow', `-> appeared to move item succesfully`)
+            numberScheduled++
+          } else {
+            logWarn('scheduleAllTodayTomorrow', `-> moveFromCalToCal from {todayDateStr} to ${tomorrowDateStr} not successful`)
+          }
+        }
+        logDebug('scheduleAllTodayTomorrow', `moved ${String(numberScheduled)} open items from today to tomorrow's note`)
+        // Update cache to allow it to be re-read on refresh
+        DataStore.updateCache(todaysNote)
+      }
+    }
+
+    // Now do the same for items scheduled to today from other notes
+    if (sortedRefParas.length > 0) {
+      // For each para append ' >tomorrow'
+      for (const para of sortedRefParas) {
+        c++
+        CommandBar.showLoading(true, `Scheduling item ${c} to tomorrow`, c / totalToMove)
+        const thisNote = para.note
+        if (!thisNote) {
+          logWarn('scheduleAllTodayTomorrow', `Oddly I can't find the note for {${para.content}}, so can't process this item`)
+        } else {
+          para.content = `${removeDateTagsAndToday(para.content)} >${tomorrowISODateStr}`
+          logDebug('scheduleAllTodayTomorrow', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
+          thisNote.updateParagraph(para)
+          numberScheduled++
+          DataStore.updateCache(thisNote)
+        }
+      }
+      logDebug('scheduleAllTodayTomorrow', `-> scheduled ${String(numberScheduled)} open items from today to tomorrow`)
+    }
+    await CommandBar.onMainThread()
+    CommandBar.showLoading(false)
+
+    if (refreshDashboard && numberScheduled > 0) {
+      logInfo('scheduleAllTodayTomorrow', `moved/scheduled ${String(numberScheduled)} open items from today to tomorrow`)
+      logDebug('scheduleAllTodayTomorrow', `-------- Refresh -------------------`)
+      await showDashboard('refresh')
+    }
+    return numberScheduled
+  }
+  catch (error) {
+    logError('dashboard / scheduleAllTodayTomorrow', error.message)
     return 0
   }
 }

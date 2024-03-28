@@ -62,24 +62,24 @@ function showItemControlDialog(dataObject) {
 
   const possibleControlTypes = [
     // date change controls
-    { displayString: 'today', controlStr: 't', sectionTypes: ['DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse }, // special controlStr to indicate change to '>today'
-    { displayString: '+1d', controlStr: '+1d', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+1b', controlStr: '+1b', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+2d', controlStr: '+2d', sectionTypes: ['DT', 'DY', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: 'this week', controlStr: '+0w', sectionTypes: ['DT', 'DY', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+1w', controlStr: '+1w', sectionTypes: ['DT', 'DY', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+2w', controlStr: '+2w', sectionTypes: ['DT', 'DY', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: 'this month', controlStr: '+0m', sectionTypes: ['DT', 'DY', 'W', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: 'today', controlStr: 't', sectionTypes: ['DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse }, // special controlStr to indicate change to '>today'
+    { displayString: '+1d', controlStr: '+1d', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: '+1b', controlStr: '+1b', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: '+2d', controlStr: '+2d', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: 'this week', controlStr: '+0w', sectionTypes: ['DT', 'DY', 'DO', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: '+1w', controlStr: '+1w', sectionTypes: ['DT', 'DY', 'DO', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: '+2w', controlStr: '+2w', sectionTypes: ['DT', 'DY', 'DO', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { displayString: 'this month', controlStr: '+0m', sectionTypes: ['DT', 'DY', 'DO', 'W', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     { displayString: '+1m', controlStr: '+1m', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     { displayString: 'this quarter', controlStr: '+0q', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     // other controls
-    { displayString: 'move to note', controlStr: 'movetonote', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: 'moveToNote' },
+    { displayString: 'move to note', controlStr: 'movetonote', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: 'moveToNote' },
     { displayString: 'unschedule', controlStr: 'unsched', sectionTypes: ['OVERDUE', 'TAG'], notNoteType: 'Calendar', handlingFunction: 'unscheduleItem' }, // NB: only valid for noteType 'Note'
-    { displayString: 'priority ↑', controlStr: 'priup', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateUp' },
-    { displayString: 'priority ↓', controlStr: 'pridown', sectionTypes: ['DT', 'DY', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateDown' },
-    { displayString: 'change to X', controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'toggleType' },
+    { displayString: 'priority ↑', controlStr: 'priup', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateUp' },
+    { displayString: 'priority ↓', controlStr: 'pridown', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateDown' },
+    { displayString: 'change to X', controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'toggleType' },
     { displayString: 'complete then', controlStr: 'ct', sectionTypes: ['OVERDUE', 'TAG'], handlingFunction: 'completeTaskThen' },
-    { displayString: 'Update', controlStr: 'update', sectionTypes: ['OVERDUE', 'DT', 'DY', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'updateItemContent' },
+    { displayString: 'Update', controlStr: 'update', sectionTypes: ['OVERDUE', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'updateItemContent' },
   ]
   const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionTypes.includes(thisSectionType) && t.notNoteType !== thisNoteType)
   const controlStrsForThisSection = controlTypesForThisSection.map((t) => t.controlStr)
@@ -251,7 +251,7 @@ function showProjectControlDialog(dataObject) {
   dialogItemNoteElem.innerHTML = thisNoteTitle // thisFilename
 
   const possibleControlTypes = [
-    { displayString: 'finish review', controlStr: 'reviewed', handlingFunction: 'reviewFinished' },
+    { displayString: 'finish review <i class="fa-solid fa-flag-checkered"></i>', controlStr: 'reviewed', handlingFunction: 'reviewFinished' },
     { displayString: 'skip +1w', controlStr: 'nr+1w', handlingFunction: 'setNextReviewDate' },
     { displayString: 'skip +2w', controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate' },
     { displayString: 'skip +1m', controlStr: 'nr+1m', handlingFunction: 'setNextReviewDate' },
@@ -287,8 +287,7 @@ function showProjectControlDialog(dataObject) {
     const thisControlStr = button.dataset.controlStr
     const functionToInvoke = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].handlingFunction ?? '?'
     const buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
-    console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
-    console.log(`  ${button.outerHTML}`)
+    // console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
 
     // remove any previous event handlers
     button.removeEventListener('click', function (event) {
@@ -299,7 +298,7 @@ function showProjectControlDialog(dataObject) {
     // add event handler and make visible
     // if it's a relevant one for this section
     if (possibleCcontrolStrs.includes(thisControlStr)) {
-      console.log(`- displaying button ${thisControlStr}`)
+      // console.log(`- displaying button ${thisControlStr}`)
       button.addEventListener('click', function (event) {
         event.preventDefault()
         handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, '', event.metaKey)

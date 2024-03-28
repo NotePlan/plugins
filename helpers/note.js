@@ -576,7 +576,7 @@ export function updateDatePlusTags(note: TNote, options: { openOnly: boolean, pl
 }
 
 /**
- * Filter a list of notes against a list of folders to ignore and return the filtered list
+ * Filter a list of notes against a list of folders to ignore and return the filtered list.
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
  * @param {boolean} excludeNonMarkdownFiles - if true, exclude non-markdown files (must have .txt or .md to get through)
@@ -603,23 +603,23 @@ export function filterNotesAgainstExcludeFolders(notes: Array<TNote>, excludedFo
 }
 
 /**
- * Filter a list of paras against a list of folders to ignore (and the @... special folders) and return the filtered list
+ * Filter a list of paras against a list of folders to ignore (and the @... special folders) and return the filtered list.
  * Obviously requires going via the notes array and not the paras array
  * @author @jgclark building on @dwertheimer's work
  * @param {Array<TNote>} notes - array of notes to review
  * @param {Array<string>} excludedFolders - array of folder names to exclude/ignore (if a file is in one of these folders, it will be removed)
+ * @param {boolean} includeCalendar? - whether to include Calendar notes (default: true)
  * @returns {Array<TNote>} - array of notes that are not in excluded folders
  */
-export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>): Array<TParagraph> {
+export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, excludedFolders: Array<string>, includeCalendar: boolean = true): Array<TParagraph> {
   try {
     if (!excludedFolders) {
       logDebug('note/filterOutParasInExcludeFolders', `excludedFolders list is empty, so will return all paras`)
       return paras
     }
-    // $FlowIgnore(incompatible-type)
-    const noteFilenameList: Array<string> = paras.map((p) => p.note.filename)
+    const noteFilenameList: Array<string> = paras.map((p) => p.note?.filename ?? '(unknown)')
     const dedupedNoteFilenameList = [...new Set(noteFilenameList)]
-    // logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
+    logDebug('note/filterOutParasInExcludeFolders', `noteFilenameList ${noteFilenameList.length} long; dedupedNoteFilenameList ${dedupedNoteFilenameList.length} long`)
 
     if (dedupedNoteFilenameList.length > 0) {
       const wantedFolders = getFolderListMinusExclusions(excludedFolders, true)
@@ -627,8 +627,8 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
       const parasFiltered = paras.filter((p) => {
         const thisNoteFilename = p.note?.filename ?? 'error'
         const thisNoteFolder = getFolderFromFilename(thisNoteFilename)
-        const isInWantedFolder = wantedFolders.includes(thisNoteFolder)
-        // console.log(`${thisNoteFilename} isInWantedFolder = ${String(isInWantedFolder)}`)
+        const isInWantedFolder = (includeCalendar && p.noteType === 'Calendar') || wantedFolders.includes(thisNoteFolder)
+        console.log(`${thisNoteFilename} isInWantedFolder = ${String(isInWantedFolder)}`)
         return isInWantedFolder
       })
       return parasFiltered

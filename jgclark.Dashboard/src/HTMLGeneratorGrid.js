@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 26.3.2024 for v1.0.0 by @jgclark
+// Last updated 27.3.2024 for v1.0.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -91,6 +91,12 @@ shortcut.add("p", function() {
 shortcut.add("r", function() {
   console.log("Shortcut 'r' triggered: will call refresh");
   sendMessageToPlugin('refresh', {});
+});
+
+<!-- send 'toggleTomorrowSection' command -->
+shortcut.add("t", function() {
+  console.log("Shortcut 't' triggered: will call toggleTomorrowSection command");
+  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleTomorrowSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
 });
 
 <!-- send 'toggleWeekSection' command -->
@@ -281,7 +287,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       // Prepare outer col 1 (section icon + title + description)
       const sectionNameWithPossibleLink = section.filename ? addNoteOpenLinkToString(section, section.name) : section.name
       outputArray.push(
-        `    <div class="sectionInfo">\n      <span class="${section.sectionTitleClass} sectionName"><i class="sectionIcon ${section.FAIconClass}"></i>${sectionNameWithPossibleLink}</span>`,
+        `    <div class="sectionInfo">\n      <div class="${section.sectionTitleClass} sectionName"><i class="sectionIcon ${section.FAIconClass}"></i>${sectionNameWithPossibleLink}</div>`,
       )
 
       if (items.length > 0) {
@@ -306,24 +312,25 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
         // Add extra buttons if there are placeholders here
         if (section.description.includes('{addItems}')) {
+          const durationName = (section.sectionType === 'DT') ? 'today'
+            : (section.sectionType === 'W') ? 'this week'
+              : (section.sectionType === 'M') ? 'this month' : '(error)'
           const xcbButton1 = makeRealCallbackButton(
             `<i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i>`,
             'jgclark.Dashboard',
             'addTask',
             section.filename,
-            'Add a new task to today\'s note')
+            `Add a new task to ${durationName}'s note`)
           const xcbButton2 = makeRealCallbackButton(
             `<i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i>`,
             'jgclark.Dashboard',
             'addChecklist',
             section.filename,
-            'Add a new checklist to today\'s note')
+            `Add a new checklist to ${durationName}'s note`)
           sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItems}', `${xcbButton1}&nbsp;${xcbButton2}`)
         }
 
         if (section.description.includes('{addItemsNextPeriod}')) {
-          // Also add 'add to tomorrow' buttons
-          // TODO: Broaden to allow on week, month as well
           const durationType = (section.sectionType === 'DT') ? 'day'
             : (section.sectionType === 'W') ? 'week'
               : (section.sectionType === 'M') ? 'month' : '(error)'
@@ -348,7 +355,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
         if (section.description.includes('{scheduleAllYesterdayToday}')) {
           const xcbButton = makeRealCallbackButton(
-            'All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today',
+            'All\u00A0<i class="fa-solid fa-right-long"></i>\u00A0Today',
             'jgclark.Dashboard',
             'schedule yesterday to today',
             'true', // = refresh afterwards
@@ -357,17 +364,26 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         }
         if (section.description.includes('{scheduleAllOverdueToday}')) {
           const xcbButton = makeRealCallbackButton(
-            'All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today',
+            'All\u00A0<i class="fa-solid fa-right-long"></i>\u00A0Today',
             'jgclark.Dashboard',
             'schedule overdue to today',
             'true', // = refresh afterwards
             'Move or schedule all overdue items to today')
           sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllOverdueToday}', xcbButton)
         }
+        if (section.description.includes('{scheduleAllTodayTomorrow}')) {
+          const xcbButton = makeRealCallbackButton(
+            'All\u00A0Today\u00A0<i class="fa-solid fa-right-long"></i>\u00A0Tomorrow',
+            'jgclark.Dashboard',
+            'schedule today to tomorrow',
+            'true', // = refresh afterwards
+            'Move or schedule all remaining open items to tomorrow')
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllTodayTomorrow}', xcbButton)
+        }
 
         if (section.description.includes('{startReviews}')) {
           const xcbButton = makeRealCallbackButton(
-            '<i class="fa-solid fa-play"></i>\u00A0Start\u00A0Reviews',
+            '<i class="fa-regular fa-play"></i>\u00A0Start\u00A0Reviews',
             'jgclark.Reviews',
             'start reviews',
             '',
@@ -375,10 +391,10 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           sectionDescriptionToUse = sectionDescriptionToUse.replace('{startReviews}', xcbButton)
         }
 
-        outputArray.push(`        <span class="sectionDescription">${sectionDescriptionToUse}`)
+        outputArray.push(`        <div class="sectionDescription">${sectionDescriptionToUse}`)
       }
       // Close sectionInfo
-      outputArray.push(`      </span>\n    </div>\n`)
+      outputArray.push(`      </div>\n    </div>\n`)
 
       // Start outer col 2, which is an inner grid
       outputArray.push(`    <!--- Section ${String(sectionNumber)}: ${section.name} Items Grid --->`)
@@ -477,7 +493,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
             let itemDetails = `        <div class="sectionItemContent sectionItem">\n`
             itemDetails += `          <a class="content">${paraContent}</a>`
-            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'checklist', noteType:'${thisNoteType}}')"><i class="fa-light fa-edit pad-left"></i></a>\n`
+            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'checklist', noteType:'${thisNoteType}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
             itemDetails += `        </div>\n      </div>`
             outputArray.push(itemDetails)
             totalOpenItems++
@@ -601,7 +617,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           <button class="unscheduleButton" data-control-str="unsched">Unschedule</button>
         </div>
         <div></div>
-        <div><form onsubmit="closeDialog()"><button type="submit" class="mainButton">Close</button></form></div>
+        <div><form><button type="submit" class="mainButton">Close</button></form></div>
       </div>
     </div>
   </dialog>
@@ -626,7 +642,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           <button class="skipReviewButton" data-control-str="nr+1q">Skip 1q</button>
         </div>
         <div></div>
-        <div><form onsubmit="closeDialog()"><button type="submit" class="mainButton">Close</button></form></div>
+        <div><form><button type="submit" class="mainButton">Close</button></form></div>
         </div>
       </div>
     </div>
@@ -638,7 +654,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
     const windowTitle = `Dashboard (${totalOpenItems} items)`
-    const filenameHTMLCopy = config._logLevel === 'DEBUG' || config._logLevel === 'INFO' ? '../../jgclark.Dashboard/dashboard-grid.html' : '' // TODO(later): change back
+    const filenameHTMLCopy = config._logLevel === 'DEBUG' || config._logLevel === 'INFO' ? '../../jgclark.Dashboard/dashboard-grid.html' : ''
 
     const winOptions = {
       windowTitle: windowTitle,
