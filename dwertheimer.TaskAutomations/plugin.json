@@ -2,11 +2,29 @@
   "noteplan.minAppVersion": "3.7",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "dwertheimer.TaskAutomations",
-  "plugin.name": "✅ Task Automations",
+  "plugin.name": "✅ Overdue Task Processing",
   "plugin.description": "Automations for handling Tasks:\n- Overdue/Forgotten task scanning\n- Task sorting within a note\n- Copying #tags/@mentions from one task to another\n- Mark all tasks in note open/completed\n- Automatically opening URLs of task lines",
   "plugin.author": "@dwertheimer",
-  "plugin.version": "2.18.0-notreleasedyet",
-  "plugin.lastUpdateInfo": "2.18.0: Overdue processing: stability/bugfixes.\n2.17.0: Overdue processing: added p1,p2,p3 options. Thx @george!",
+  "plugin.version": "3.0.0",
+  "plugin.lastUpdateInfo": "\n- Moved sorting to Task Sorting plugin.\n- Renamed this plugin Overdue Task Processing",
+  "DELETE_ME": "DON'T DELETE commandMigrationMessage or offerToDownloadPlugin until they are documented somewhere",
+  "commandMigrationMessage": "NOTE: Task Sorting commands have been moved from the Task Automations plugin to the Task Sorting plugin. This plugin has been renamed to 'Overdue Task Processing'.",
+  "offerToDownloadPlugin": {
+    "id": "dwertheimer.TaskSorting",
+    "minVersion": "1.0.0"
+  },
+  "settingsToCopy": [
+    "defaultSort1",
+    "defaultSort2",
+    "defaultSort3",
+    "outputOrder",
+    "sortInHeadings",
+    "tasksToTop",
+    "includeHeading",
+    "includeSubHeading",
+    "eliminateSpinsters",
+    "stopAtDoneHeading"
+  ],
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
     "css.plugin.css",
@@ -18,83 +36,21 @@
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.TaskAutomations/readme.md",
   "plugin.commands": [
     {
-      "name": "Task Automations: Update Plugin Settings",
+      "name": "TEST onUpdateOrInstall command - DELETEME",
+      "jsFunction": "testOnUpdateOrInstall",
+      "description": "Use xcallback to hit it",
+      "hidden": true
+    },
+    {
+      "name": "Update Plugin Settings",
       "description": "Preferences",
       "jsFunction": "editSettings"
-    },
-    {
-      "name": "ts",
-      "description": "Tasks Sort - Sort tasks on the page",
-      "jsFunction": "sortTasks"
-    },
-    {
-      "name": "sth",
-      "description": "Sort tasks under heading (choose)",
-      "jsFunction": "sortTasksUnderHeading",
-      "alias": [
-        "tsh"
-      ]
-    },
-    {
-      "name": "tsd",
-      "description": "Tasks Sort by User Default (in settings)",
-      "jsFunction": "sortTasksDefault"
-    },
-    {
-      "name": "tsc",
-      "description": "Tasks Sort by calendar due date",
-      "jsFunction": "sortTasksByDue"
-    },
-    {
-      "name": "tsm",
-      "description": "Tasks Sort by @Mention - Sort tasks on the page by mention/person",
-      "jsFunction": "sortTasksByPerson"
-    },
-    {
-      "name": "tst",
-      "description": "Tasks Sort by #Tag - Sort tasks on the page by hashtag",
-      "jsFunction": "sortTasksByTag"
-    },
-    {
-      "name": "tstm",
-      "description": "Tasks Sort by #Tag and then @Mention",
-      "jsFunction": "sortTasksTagMention"
-    },
-    {
-      "name": "tt",
-      "description": "Tasks to Top - Bring all tasks in note to top",
-      "jsFunction": "tasksToTop"
-    },
-    {
-      "name": "mat",
-      "description": "Mark All Tasks (choose open or complete)",
-      "jsFunction": "markTasks"
-    },
-    {
-      "name": "cta - Copy tags from previous line",
-      "description": "Copy #tags and @mentions from previous line",
-      "jsFunction": "copyTagsFromLineAbove"
-    },
-    {
-      "name": "cth - Copy tags from heading above",
-      "description": "Copy #tags/@mentions from heading to all lines between",
-      "jsFunction": "copyTagsFromHeadingAbove"
-    },
-    {
-      "name": "ctm - Copy line for each mention",
-      "description": "Copy line for each @mention, listing it first",
-      "jsFunction": "copyLineForEachMention"
-    },
-    {
-      "name": "ctt - Copy line for each hashtag",
-      "description": "Copy line for each #hashtag, listing it first",
-      "jsFunction": "copyLineForEachHashtag"
     },
     {
       "name": "Task Sync",
       "description": "Create synced copies of tasks containing a string in a new document",
       "jsFunction": "taskSync",
-      "hidden": false,
+      "hidden": true,
       "arguments": [
         "search string",
         "type of notes to search in (['calendar', 'notes'])",
@@ -178,6 +134,7 @@
       "name": "Process Overdue Items in a Separate Window",
       "description": "Mac-only - Uses HTML Popup/React",
       "jsFunction": "processOverdueReact",
+      "hidden": true,
       "alias": [
         "react"
       ],
@@ -189,6 +146,7 @@
       "name": "Process Overdue Items in a Specific Folder",
       "description": "Uses HTML Popup/React",
       "jsFunction": "processFolderReact",
+      "hidden": true,
       "alias": [
         "reactFolder"
       ],
@@ -269,6 +227,7 @@
       "jsFunction": "openTasksToTop"
     }
   ],
+  "SEP": "***********************************************************************************************",
   "plugin.settings": [
     {
       "type": "hidden",
@@ -304,11 +263,15 @@
       "required": true
     },
     {
+      "DELETE_ME_IN_FUTURE": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv",
+      "DELETE_ME_IN_FUTURE2": "Task Sorter settings to be removed in a future release"
+    },
+    {
       "type": "separator"
     },
     {
       "type": "heading",
-      "title": "Task Sorting Default Settings"
+      "title": "Task Sorting Default Settings (these commands have been moved to the Task Sorting plugin. Settings remain here temporarily to migrate them if you auto-installed the new plugin)"
     },
     {
       "key": "defaultSort1",
@@ -444,6 +407,10 @@
       "required": true
     },
     {
+      "DELETE_ME_IN_FUTURE3": "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+      "DELETE_ME_IN_FUTURE4": "Task Sorter settings to be removed in a future release"
+    },
+    {
       "type": "separator"
     },
     {
@@ -457,7 +424,13 @@
       "type": "[string]",
       "default": 5,
       "required": true,
-      "choices": ["0","1","3","5","10"]
+      "choices": [
+        "0",
+        "1",
+        "3",
+        "5",
+        "10"
+      ]
     },
     {
       "type": "hidden",

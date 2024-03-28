@@ -259,7 +259,7 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
       const version = newPluginJson['plugin.version']
       const openReadme = await showMessageYesNo(
         `The '${newPluginJson['plugin.name']}' plugin ${
-          wasUpdated ? 'was automatically updated to' : 'was installed.'
+          wasUpdated ? 'was automatically updated to' : 'was installed.' // Plugin was installed
         } v${version}. ${updateMessage}Would you like to open the Plugin's ${wasUpdated && hasChangelog ? 'Change Log' : 'Documentation'} to see more details?`,
         ['Yes', 'No'],
         `'${newPluginJson['plugin.name']}' Plugin ${wasUpdated ? 'Updated' : 'Installed'}`,
@@ -371,7 +371,8 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
       }
       logDebug(pluginJson, `migrateCommandsIfNecessary() copying settings from old (${pluginJson['plugin.id']}) to new (${r.id})`)
       if (pluginJson.settingsToCopy?.length) await copySpecificSettings(pluginJson['plugin.id'], r.id, pluginJson.settingsToCopy)
-      await pluginUpdated({ 'plugin.id': r.id }, { code: 2, message: 'Installed' }) //FIXME: I am here. Need to pass the proper values
+      // clo(r, `migrateCommandsIfNecessary() after plugin download: ${r.id} / ${r.name} / ${r.version}`)
+      await pluginUpdated({ 'plugin.id': r?.id, 'plugin.version': r?.version }, { code: 2, message: 'Installed' })
     }
   } else {
     logDebug(pluginJson, `migrateCommandsIfNecessary() did not find offerToDownloadPlugin; doing nothing`)

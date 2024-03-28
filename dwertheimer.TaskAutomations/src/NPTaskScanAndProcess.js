@@ -466,7 +466,7 @@ function dedupeSyncedLines(notesWithTasks: Array<Array<TParagraph>>): Array<Arra
   const flatTasks = notesWithTasks.reduce((acc, n) => acc.concat(n), []) //flatten the array
   // clo(flatTasks, `dedupeSyncedLines  flatTasks`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length BEFORE deduping ${flatTasks.length}`)
-  const noDupes = eliminateDuplicateSyncedParagraphs(flatTasks)
+  const noDupes = eliminateDuplicateSyncedParagraphs(flatTasks, 'most-recent', true)
   // clo(noDupes, `dedupeSyncedLines  noDupes`)
   logDebug(pluginJson, `dedupeSyncedLines  flatTasks.length AFTER deduping ${noDupes.length}`)
   return createArrayOfNotesAndTasks(noDupes)

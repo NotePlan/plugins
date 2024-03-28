@@ -34,22 +34,6 @@ export async function askToReviewWeeklyTasks(byTask: boolean = false, forDateStr
   }
 }
 
-export async function createFakeOverdues() {
-  const content = `# TEST Fake Overdue Tasks
-  * task 1 >2000-11-01
-  * task 2 >2000-11-02
-  * task 3 >2000-11-03
-  * task 4 >2000-11-04
-  * task 5 >2000-11-05
-  * task 6 >2000-11-06
-    `
-  const note = DataStore.noteByFilename(`DELETEME_TEST_Overdues.md`, 'Notes')
-  if (note) note.content = content
-  logWarn(`createFakeOverdues: created fake overdues note: TEST Fake Overdue Tasks`)
-  // await Editor.save()
-  // DataStore.updateCache()
-}
-
 /**
  * After an overdue task scan is complete,
  * ask user if they want to review all the items marked for >today or today's date
@@ -204,7 +188,6 @@ export async function runInteractiveReviewForDate(asOfDateString?: string = getT
  */
 export async function reviewOverdueTasksByTask(asOfDateString: string): Promise<void> {
   try {
-    await createFakeOverdues()
     const aods = new RegExp(RE_DATE).test(asOfDateString) ? asOfDateString : getTodaysDateHyphenated()
     logDebug(pluginJson, `reviewOverdueTasksByTask asOfDateString=${asOfDateString}; will use: ${aods}`)
     await runInteractiveReviewForDate(aods)

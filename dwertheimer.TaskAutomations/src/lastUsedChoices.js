@@ -91,6 +91,7 @@ export function shouldSaveChoice(commandBarSelection: CommandBarSelection): bool
     )
     return false
   }
+  logDebug(pluginJson, `Saving "${value}" ("${label}") because it's not a specific day/week choice`)
   return true
 }
 

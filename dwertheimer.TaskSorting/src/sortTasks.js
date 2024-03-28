@@ -160,7 +160,11 @@ export async function sortTasksByTag() {
 
 export async function sortTasksDefault() {
   try {
+    logDebug('sortTasksDefault(): startng sortTasksDefault()')
     const { defaultSort1, defaultSort2, defaultSort3, includeHeading, includeSubHeading } = DataStore.settings
+    logDebug(
+      `sortTasksDefault(): defaultSort1=${defaultSort1}, defaultSort2=${defaultSort2}, defaultSort3=${defaultSort3}, includeHeading=${includeHeading}, includeSubHeading=${includeSubHeading}\nCalling sortTasks now`,
+    )
     await sortTasks(false, [defaultSort1, defaultSort2, defaultSort3], includeHeading, includeSubHeading)
   } catch (error) {
     logError(pluginJson, JSP(error))
@@ -598,7 +602,7 @@ export async function sortTasks(
   withHeadings: boolean | null = null,
   subHeadingCategory: boolean | null = null,
 ) {
-  const { eliminateSpinsters, sortInHeadings } = DataStore.settings
+  const { eliminateSpinsters, sortInHeadings, includeSubHeading } = DataStore.settings
 
   const byHeading = withUserInput ? await sortInsideHeadings() : sortInHeadings
 
@@ -617,7 +621,8 @@ export async function sortTasks(
   let sortField1 = ''
   if (sortOrder.length) {
     sortField1 = sortOrder[0][0] === '-' ? sortOrder[0].substring(1) : sortOrder[0]
-    printSubHeadings = ['hashtags', 'mentions'].indexOf(sortField1) !== -1 ? (subHeadingCategory === null ? await wantSubHeadings() : true) : false
+    printSubHeadings =
+      includeSubHeading === false ? false : ['hashtags', 'mentions'].indexOf(sortField1) !== -1 ? (subHeadingCategory === null ? await wantSubHeadings() : true) : false
     logDebug(`\tsubHeadingCategory=${String(subHeadingCategory)} printSubHeadings=${String(printSubHeadings)}  cat=${printSubHeadings ? sortField1 : 'none'}`)
   }
   // logDebug(`\tFinished wantSubHeadings()=${String(printSubHeadings)}, now running sortParagraphsByType`)
