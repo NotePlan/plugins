@@ -36,7 +36,8 @@
       2,
       {
         "args": "all",
-        "varsIgnorePattern": "^clo$|^timer$|^log|^JSP$|^clof$|^res$"
+        "varsIgnorePattern": "^_|^clo$|^timer$|^log|^JSP$|^clof$|^res$",
+        "argsIgnorePattern": "^_"
       }
     ],
     "prefer-template": "warn",
