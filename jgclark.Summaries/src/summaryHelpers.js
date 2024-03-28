@@ -673,7 +673,7 @@ function gatherCompletedChecklistItems(calendarNotesInPeriod: Array<TNote>, from
   for (const para of referenceNote.paragraphs) {
     if (para.type === 'checklist') {
         logDebug('gatherCompletedChecklistItems', `Found checklist in reference note ${para.content}`)
-        const thisOcc = new TMOccurrences(para.content, 'yesno', fromDateStr, toDateStr)
+        const thisOcc = new TMOccurrences(para.rawContent, 'yesno', fromDateStr, toDateStr)
         tmOccurrencesArr.push(thisOcc)
     }
   }
@@ -684,7 +684,7 @@ function gatherCompletedChecklistItems(calendarNotesInPeriod: Array<TNote>, from
     for (const para of currentNote.paragraphs) {
       if (completedTypes.includes(para.type)) {
         for (const checklistTMO of tmOccurrencesArr) {
-          if (caseInsensitiveMatch(checklistTMO.term, para.content)) {
+          if (caseInsensitiveMatch(checklistTMO.term, para.rawContent)) {
             logDebug('gatherCompletedChecklistItems', `Found matching occurrence ${para.content} on date ${currentNote.filename}`)
             checklistTMO.addOccurrence(checklistTMO.term, thisDateStr)
           }
