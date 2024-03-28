@@ -27,6 +27,7 @@ import {
 import {
   caseInsensitiveMatch,
   caseInsensitiveStartsWith,
+  caseInsensitiveSubstringMatch,
   isHashtagWanted,
   isMentionWanted,
 } from '@helpers/search'
@@ -684,7 +685,7 @@ function gatherCompletedChecklistItems(calendarNotesInPeriod: Array<TNote>, from
     for (const para of currentNote.paragraphs) {
       if (completedTypes.includes(para.type)) {
         for (const checklistTMO of tmOccurrencesArr) {
-          if (caseInsensitiveMatch(checklistTMO.term, para.rawContent)) {
+          if (checklistTMO.term === para.rawContent) {
             logDebug('gatherCompletedChecklistItems', `Found matching occurrence ${para.content} on date ${currentNote.filename}`)
             checklistTMO.addOccurrence(checklistTMO.term, thisDateStr)
           }
