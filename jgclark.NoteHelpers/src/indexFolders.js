@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 9.2.2024 for v0.19.0 by @jgclark
+// Last updated 30.3.2024 for v0.19.0+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -9,11 +9,11 @@ import { getSettings, type noteHelpersConfigType } from './noteHelpers'
 import {
   daysBetween,
   relativeDateFromNumber,
-  toISOShortDateTimeString,
+  // toISOShortDateTimeString,
 } from '@helpers/dateTime'
 import {
   nowLocaleShortDateTime,
-  toLocaleDateString,
+  toNPLocaleDateString,
 } from '@helpers/NPdateTime'
 import {
   JSP, logDebug, logError, logInfo,
@@ -25,7 +25,11 @@ import {
   displayTitle,
   returnNoteLink,
 } from '@helpers/general'
-import { notesInFolderSortedByTitle, pastCalendarNotes, projectNotesFromFilteredFolders } from '@helpers/note'
+import {
+  notesInFolderSortedByTitle,
+  // pastCalendarNotes,
+  projectNotesFromFilteredFolders
+} from '@helpers/note'
 import { openNoteByFilename } from "@helpers/NPnote"
 import {
   chooseFolder,
@@ -42,9 +46,10 @@ const pluginID = 'jgclark.NoteHelpers'
  *
  * @param {string} folder - folder name (without trailling /)
  * @param {any} config - config object
+ * @param {boolean} includeSubfolders?
  * @returns {Array<string>} array of strings, one for each output line
 */
-function makeFolderIndex(folder: string, config: any): Array<string> {
+function makeFolderIndex(folder: string, config: any, includeSubfolders: boolean): Array<string> {
   try {
     logDebug(pluginJson, `makeFolderIndex() starting for '${folder}', displayOrder:${config.displayOrder} / dateDisplayType:${config.dateDisplayType} / ${config.includeSubfolders ? 'with' : 'without'} subfolders`)
 
@@ -121,7 +126,7 @@ function makeFolderIndex(folder: string, config: any): Array<string> {
         for (const note of notes) {
           // add type of date suffix (if wanted)
           const dateSuffix = (config.dateDisplayType === "updatedDate")
-            ? '\t' + toLocaleDateString(note.changedDate)
+            ? '\t' + toNPLocaleDateString(note.changedDate)
             : (config.dateDisplayType === "timeSince")
               ? '\t' + relativeDateFromNumber(daysBetween(new Date(), note.changedDate))
               : ''
@@ -161,7 +166,7 @@ function makeFolderIndex(folder: string, config: any): Array<string> {
 export async function indexFolders(folder: string = "", args: string = ''): Promise<void> {
   try {
     let folderToUse: ?string = ''
-    let fullFilename = ''
+    // let fullFilename = ''
 
     // Use parameters if passed, otherwise fallback to the settings
     // v2 method
@@ -287,7 +292,7 @@ export async function indexFolders(folder: string = "", args: string = ''): Prom
  */
 export async function updateAllIndexes(): Promise<void> {
   try {
-    let config: noteHelpersConfigType = await getSettings()
+    // let config: noteHelpersConfigType = await getSettings()
 
     // Find all existing index Notes
     const allProjectNotesToCheck = projectNotesFromFilteredFolders([], true)
