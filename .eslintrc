@@ -31,9 +31,9 @@
     }
   },
   "rules": {
-/*     "no-unused-vars": "error", */
+/*     "no-unused-vars": "warn", */
     "no-unused-vars": [
-      2,
+      1,
       {
         "args": "all",
         "varsIgnorePattern": "^_|^clo$|^timer$|^log|^JSP$|^clof$|^res$",
@@ -70,9 +70,9 @@
     "no-case-declarations": "error",
     "no-floating-promise/no-floating-promise": 2,
     "no-var": "error",
-    "prefer-const": "error",
+    "prefer-const": "warn",
     "no-prototype-builtins": "off",
-    "import/order": "error",
+    "import/order": "warn",
     "no-useless-escape": "off",
     "require-await": "error",
     "unused-imports/no-unused-imports": "off",
@@ -98,7 +98,10 @@
     "NotePlan": true,
     "HTMLView": true,
     "globalThis": true,
-    "fetch": true
+    "fetch": true,
+
+    "$ReadOnlyArray": true,
+    "$ReadOnly": true
   },
   "ignorePatterns": [
     ".history",

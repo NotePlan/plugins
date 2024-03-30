@@ -62,10 +62,10 @@ async function getReadwise(force: boolean): Promise<any> {
   log(pluginJson, `last fetch time is : ${lastFetchTime}`)
   logDebug(pluginJson, `base folder is : ${DataStore.settings.baseFolder}`)
 
-  return doReadWiseFetch(accessToken, lastFetchTime, 0, '')
+  return await doReadWiseFetch(accessToken, lastFetchTime, 0, '')
 }
 
-async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downloadCount: int, nextPageCursor: string): Promise<any> {
+async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downloadCount: number, nextPageCursor: string): Promise<any> {
   try {
     const url = `https://readwise.io/api/v2/export/?updatedAfter=${lastFetchTime}&pageCursor=${nextPageCursor}`
 
@@ -83,7 +83,7 @@ async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downl
     const pageCursor = parsedJson.nextPageCursor
     logDebug(pluginJson, `page cursor is : ${pageCursor}`)
 
-    let data = []
+    let data: any = []
     const count = parsedJson.count + downloadCount
     if (pageCursor !== null && pageCursor !== '') {
       data = await doReadWiseFetch(accessToken, lastFetchTime, count, pageCursor)
