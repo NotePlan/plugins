@@ -4,15 +4,66 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.testPluginWithDependencies",
   "plugin.name": "zzz_TestPluginWithDependencies",
-  "plugin.version": "0.1.0",
-  "plugin.lastUpdateInfo": "Describe this update",
+  "plugin.version": "0.1.7",
+  "plugin.lastUpdateInfo": "This plugin is for testing dependencies. The two plugins it depends on (dwertheimer.hiddenTest1, dwertheimer.hiddenTest2) should now be in your plugins folder. Pls check.",
   "plugin.description": "My Plugin for NotePlan",
   "plugin.author": "dwertheimer",
-  "hidden": true,
-  "plugin.requiredFiles-EDIT_ME": ["html-plugin-comms.js"],
+  "plugin.hidden": true,
+  "plugin.requiredFiles-EDIT_ME": [
+    "html-plugin-comms.js"
+  ],
   "plugin.requiredFiles-NOTE": "If you want to use HTML windows, remove the '-EDIT_ME' ABOVE",
-  "plugin.dependencies": ["dwertheimer.hiddenTest1", "dwertheimer.hiddenTest2"],
-  "plugin.dependencies2": [{"id":"dwertheimer.hiddenTest1"}, {"id":"dwertheimer.hiddenTest2"}],
+  "plugin.dependsOn": [
+    "dwertheimer.hiddenTest1",
+    "dwertheimer.hiddenTest2"
+  ],
+  "plugin.dependsOn.2.works": [
+    {
+      "testNote": "array of plugin object ids",
+      "id": "dwertheimer.hiddenTest1"
+    },
+    {
+      "id": "dwertheimer.hiddenTest2"
+    }
+  ],
+  "plugin.dependsOn.3.works": [
+    {
+      "testNote": "one should fail b/c doesn't match version minimum",
+      "id": "dwertheimer.hiddenTest1",
+      "minVersion": "0.0.0"
+    },
+    {
+      "id": "dwertheimer.hiddenTest2",
+      "minVersion": "0.2.0"
+    }
+  ],
+  "plugin.dependsOn.4.works": [
+    {
+      "testNote": "displays a specific pre-install message",
+      "id": "dwertheimer.hiddenTest1",
+      "minVersion": "0.0.0",
+      "preInstallMessage": "This plugin requires hiddenTest1 to be installed."
+    }
+  ],
+  "plugin.dependsOn.5.works": [
+    {
+      "testNote": "migrates settings (same as offerToDownloadPlugin)",
+      "id": "dwertheimer.hiddenTest1",
+      "preInstallMessage": "This plugin requires hiddenTest1 to be installed.",
+      "settingsToCopy": [
+        "settingsString"
+      ]
+    }
+  ],
+  "offerToDownloadPlugin.works": {
+    "testNote": "Migrate commands test, downloads a plugin that depends on another plugin. should download both.",
+    "id": "dwertheimer.hiddenTest1",
+    "minVersion": "0.0.0",
+    "preInstallMessage": "This plugin requires hiddenTest1 to be installed.",
+    "settingsToCopy": [
+      "settingsString"
+    ]
+  },
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.deleteme/README.md",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/dwertheimer.deleteme/CHANGELOG.md",
@@ -45,7 +96,7 @@
       "title": "A string in prefs",
       "key": "settingsString",
       "type": "string",
-      "description": "Enter some string and see it change when the plugin is run",
+      "description": "This string was in the main plugin",
       "default": "This default setting was set in plugin preferences!"
     },
     {
