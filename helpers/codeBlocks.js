@@ -16,35 +16,6 @@ export function addCodeBlock(destNote: CoreNoteFields, textToAdd: string, codeBl
   }
 }
 
-/**
- * WARNING: Incomplete, so not exported. I had a better idea when I was part-way through it.
- * @param {CoreNoteFields} note
- * @param {string} textToAdd
- * @param {string} codeBlockType, e.g. 'json'
- * @returns {boolean} success?
- */
-function updateCodeBlock(note: CoreNoteFields, textToAdd: string, codeBlockType: string): boolean {
-  try {
-    const updatedCodeBlock = `\`\`\` ${codeBlockType}\n${textToAdd}\n\`\`\`\n`
-    const existingCodeBlocks: Array<$ReadOnly<CodeBlock>> = getCodeBlocks(note).slice() // copy
-
-    // Find match to existingCodeBlocks by having the same codeBlockType and the same WindowSet.name item in the JSON object
-    const RE_FOR_THIS_SET_NAME = new RegExp(`"name":\s*"${codeBlockType}"`)
-    const matchedCodeBlocks = existingCodeBlocks.filter((cb) => cb.type === codeBlockType && RE_FOR_THIS_SET_NAME.test(cb.code)) // un-tested
-    clo(matchedCodeBlocks, 'matchedCodeBlocks')
-    if (matchedCodeBlocks.length > 0) {
-      // TODO:
-      existingCodeBlocks.delete({ type: codeBlockType, code: matchedCodeBlocks[0].code })
-      existingCodeBlocks.push({ type: codeBlockType, code: updatedCodeBlock, paragraphs: [] })
-      return true
-    }
-    // clo(codeBlocks, 'codeBlocks')
-    return true
-  } catch (err) {
-    logError('updateCodeBlock()', JSP(err))
-    return false
-  }
-}
 
 export function getCodeBlocks(note: CoreNoteFields): $ReadOnlyArray<$ReadOnly<CodeBlock>> {
   const paragraphs = note.paragraphs ?? []
