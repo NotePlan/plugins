@@ -247,6 +247,7 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
     logInfo(pluginJson, `Plugin was ${wasUpdated ? 'updated' : 'installed'}`)
     const newPluginJson = await getPluginJson(pluginJson['plugin.id'])
     logDebug(pluginJson, `pluginUpdated: newPluginJson:  ${newPluginJson['plugin.id']} ${newPluginJson['plugin.version']}`)
+    // CommandBar.hide() // hide any open CommandBar before we open another prompt
     if (newPluginJson) {
       const hasChangelog = newPluginJson['plugin.changelog']
       const hasUpdateMessage = newPluginJson['plugin.lastUpdateInfo']
@@ -349,7 +350,7 @@ async function installPlugin(pluginInfo: any): Promise<PluginObject | void> {
     return
   }
 
-  const githubReleasedPlugins = await DataStore.listPlugins(true, true, false) // Released plugins .isOnline is true for all of them
+  const githubReleasedPlugins = await DataStore.listPlugins(false, true, false) // Released plugins .isOnline is true for all of them
   const newPlugin = await findPluginInList(githubReleasedPlugins, id, minVersion) // minversion can be null/undefined - means just look for any version installed
   if (!newPlugin) {
     logError(`installPlugin() could not find plugin on github: ${id} >= ${minVersion}`)
@@ -453,7 +454,7 @@ export async function getPluginList(showInstalledOnly: boolean = false, installe
     // clo(installedPlugins, ` generatePluginCommandList installedPlugins`)
     // .listPlugins(showLoading, showHidden, skipMatchingLocalPlugins)
     logDebug(`getPluginList  calling: DataStore.listPlugins`)
-    const githubReleasedPlugins = await DataStore.listPlugins(true, false, true) //released plugins .isOnline is true for all of them
+    const githubReleasedPlugins = await DataStore.listPlugins(false, false, true) //released plugins .isOnline is true for all of them
     logDebug(`getPluginList  back from: DataStore.listPlugins`)
 
     // githubReleasedPlugins.forEach((p) => logDebug(`generatePluginCommandList githubPlugins`, `${p.id}`))
