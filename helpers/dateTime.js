@@ -1127,7 +1127,7 @@ export function calcOffsetDateStr(baseDateIn: string, offsetInterval: string, ad
     const newDateStrFromOffsetDateType = moment(offsetDate).format(offsetMomentFormat)
 
     if (offsetUnit === 'w') {
-      logWarn('dateTime / cODS', `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case. More details in DEBUG-level log.`)
+      logInfo('dateTime / cODS', `- This output will only be accurate if your week start is a Monday. Please raise an issue if this is not the case. More details in DEBUG-level log.`)
       logDebug(
         'dateTime / cODS',
         `  Details: ${adaptOutputInterval} adapt for ${baseDateIn} / ${baseDateUnit} / ${baseDateMomentFormat} / ${offsetMomentFormat} / ${offsetInterval} / ${newDateStrFromOffsetDateType}`,

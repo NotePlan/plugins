@@ -4,11 +4,12 @@
 //-----------------------------------------------------------------------------
 
 import { getDateStringFromCalendarFilename } from './dateTime'
-import { clo, logDebug, logError, logWarn } from './dev'
+import { clo, logDebug, logError, logInfo, logWarn } from './dev'
 import { getElementsFromTask } from './sorting'
 import { RE_MARKDOWN_LINK_PATH_CAPTURE, RE_NOTELINK_G, RE_SIMPLE_URI_MATCH } from '@helpers/regex'
 import { stripLinksFromString } from '@helpers/stringTransforms'
 //-----------------------------------------------------------------------------
+
 /**
  * Perform substring match, ignoring case
  * Note: COPY TO AVOID CIRCULAR DEPENDENCY
@@ -246,7 +247,7 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
     let paras = note.paragraphs
     // First check there's actually anything at all! If note, add a first empty paragraph
     if (paras.length === 0) {
-      // logDebug(`paragraph/findStartOfActivePartOfNote`, `Note was empty; adding a blank line to make writing to the note work`)
+      logInfo(`paragraph/findStartOfActivePartOfNote`, `Note was empty; adding a blank line to make writing to the note work`)
       note.appendParagraph('', 'empty')
       return 0
     }
@@ -262,33 +263,33 @@ export function findStartOfActivePartOfNote(note: CoreNoteFields, allowPreamble?
         startOfActive = 0
       }
     } else {
-      // logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, finishing at line ${String(endOfFMIndex)}, so looking at line after it`)
+      logDebug(`paragraph/findStartOfActivePartOfNote`, `Frontmatter found, finishing at line ${String(endOfFMIndex)}, so looking at line after it`)
       startOfActive = endOfFMIndex + 1
     }
     // If there is no line after title or FM, add a blank line to use (NB: length = line index + 1)
     if (paras.length === startOfActive) {
-      // logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
+      logDebug('paragraph/findStartOfActivePartOfNote', `Added a blank line after title/frontmatter of '${displayTitle(note)}'`)
       note.appendParagraph('', 'empty')
       paras = note.paragraphs
       startOfActive = paras.length
     }
 
-    logDebug('paragraph/findStartOfActivePartOfNote', `- startOfActive so far = ${String(startOfActive)}. allowPreamble: ${allowPreamble ? 'true' : 'false'}`)
+    // logDebug('paragraph/findStartOfActivePartOfNote', `- startOfActive so far = ${String(startOfActive)}. allowPreamble: ${allowPreamble ? 'true' : 'false'}`)
     // Additionally, skip past any front-matter-like section in a project note,
     // if either there's a #hashtag starting the next line,
     // or 'allowPreamble' is true.
     // If there is, run on to next heading or blank line (if found) otherwise, just the next line. Finding a separator or any YouTutype of task or checklist also stops the search.
     if (allowPreamble || (paras[startOfActive].type === 'text' && paras[startOfActive].content.match(/^#\w/))) {
-      logDebug('paragraph/findStartOfActivePartOfNote', `- We want to allow preamble, or found a metadata line.`)
+      // logDebug('paragraph/findStartOfActivePartOfNote', `- We want to allow preamble, or found a metadata line.`)
       // startOfActive += 1
       for (let i = startOfActive; i < paras.length; i++) {
         const p = paras[i]
         if (['open', 'done', 'scheduled', 'cancelled', 'checklist', 'checklistDone', 'checklistScheduled', 'checklistCancelled', 'title', 'code'].includes(p.type)) {
-          logDebug('paragraph/findStartOfActivePartOfNote', `  - Found task/checklist/title/code line -> this line.`)
+          // logDebug('paragraph/findStartOfActivePartOfNote', `  - Found task/checklist/title/code line -> this line.`)
           startOfActive = i
           break
         } else if (p.type === 'separator' || p.type === 'empty') {
-          logDebug('paragraph/findStartOfActivePartOfNote', `  - Found separator/blank -> next line.`)
+          // logDebug('paragraph/findStartOfActivePartOfNote', `  - Found separator/blank -> next line.`)
           startOfActive = i + 1
           break
         }
