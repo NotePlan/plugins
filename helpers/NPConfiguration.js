@@ -9,7 +9,7 @@
 import json5 from 'json5'
 import { showMessage, showMessageYesNo } from './userInput'
 import { castStringFromMixed } from '@helpers/dataManipulation'
-import { logDebug, logError, logInfo, JSP, clo, copyObject } from '@helpers/dev'
+import { logDebug, logWarn, logError, logInfo, JSP, clo, copyObject, timer } from '@helpers/dev'
 import { sortListBy } from '@helpers/sorting'
 
 /**
@@ -111,14 +111,11 @@ export function updateSettingData(pluginJsonData: any): number {
  */
 export async function copySpecificSettings(oldPluginID: string, newPluginID: string, settingsList: Array<string>) {
   const oldPluginSettings = await getSettings(oldPluginID)
-  clo(oldPluginSettings, `copySpecificSettings - oldPluginSettings`)
   const newPluginSettings = await getSettings(newPluginID)
-  clo(newPluginSettings, `copySpecificSettings - newPluginSettings before updating settings`)
   if (!oldPluginSettings) throw `copySpecificSettings: Could not load pluginJson for ${oldPluginID}`
   if (!newPluginSettings) throw `copySpecificSettings: Could not load pluginJson for ${newPluginID}`
-  logDebug(`oldPluginID:${oldPluginID} pluginID in settings: ${oldPluginSettings.pluginID} newPluginID:${newPluginID} pluginID in settings: ${newPluginSettings.pluginID}`)
   settingsList.forEach((settingName) => (oldPluginSettings.hasOwnProperty(settingName) ? (newPluginSettings[settingName] = oldPluginSettings[settingName]) : null)) // if the setting was set previously, copy it
-  clo(newPluginSettings, `About to save revised ${newPluginID}`)
+  clo(newPluginSettings, `About to save revised settings after command migration to: ${newPluginID}`)
   await saveSettings(newPluginID, newPluginSettings, false)
 }
 
@@ -174,7 +171,6 @@ export async function savePluginJson(pluginId: string = '', value: any = {}, tri
 }
 
 export async function getPluginJson(pluginId: string = ''): any {
-  logDebug('NPConfiguration', `getting ${pluginId}/plugin.json`)
   return await DataStore.loadJSON(`../../${pluginId}/plugin.json`)
 }
 
@@ -249,26 +245,23 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
   if (result.code >= 1) {
     const wasUpdated = result.code === 1
     logInfo(pluginJson, `Plugin was ${wasUpdated ? 'updated' : 'installed'}`)
-    logDebug(pluginJson, `calling getPluginJson pluginJson['plugin.id'] = ${pluginJson['plugin.id']}`)
     const newPluginJson = await getPluginJson(pluginJson['plugin.id'])
-    clo(newPluginJson, 'pluginUpdated - newPluginJson')
+    logDebug(pluginJson, `pluginUpdated: newPluginJson:  ${newPluginJson['plugin.id']} ${newPluginJson['plugin.version']}`)
     if (newPluginJson) {
       const hasChangelog = newPluginJson['plugin.changelog']
       const hasUpdateMessage = newPluginJson['plugin.lastUpdateInfo']
       const updateMessage = hasUpdateMessage ? `Latest changes include:\n"${hasUpdateMessage}"\n\n` : ''
       const version = newPluginJson['plugin.version']
-      const openReadme = await showMessageYesNo(
-        `The '${newPluginJson['plugin.name']}' plugin ${
-          wasUpdated ? 'was automatically updated to' : 'was installed.' // Plugin was installed
-        } v${version}. ${updateMessage}Would you like to open the Plugin's ${wasUpdated && hasChangelog ? 'Change Log' : 'Documentation'} to see more details?`,
-        ['Yes', 'No'],
-        `'${newPluginJson['plugin.name']}' Plugin ${wasUpdated ? 'Updated' : 'Installed'}`,
-      )
+      const dialogMsg = `The '${newPluginJson['plugin.name']}' plugin ${
+        wasUpdated ? 'was automatically updated to' : 'was installed.' // Plugin was installed
+      } v${version}. ${updateMessage}Would you like to open the Plugin's ${wasUpdated && hasChangelog ? 'Change Log' : 'Documentation'} to see more details?`
+      const openReadme = await showMessageYesNo(dialogMsg, ['Yes', 'No'], `Plugin ${wasUpdated ? 'Updated' : 'Installed'}`)
       if (openReadme === 'Yes') {
         const url = wasUpdated ? (hasChangelog ? newPluginJson['plugin.changelog'] : newPluginJson['plugin.url'] || '') : newPluginJson['plugin.url']
         NotePlan.openURL(url)
       }
-      await migrateCommandsIfNecessary(newPluginJson)
+      await checkForDependenciesAndCommandMigrations(newPluginJson)
+      logDebug(pluginJson, `${dialogMsg.replace('\n', '')}: ${openReadme}; ${result.message || ''}`)
     } else {
       logInfo(
         pluginJson,
@@ -313,8 +306,19 @@ export type PluginObjectWithUpdateField = {
  * @param {*} minVersion - min version to find (optional)
  * @returns the plugin object if the id is found and the minVersion matches (>= the minVersion)
  */
-export const findPluginInList = (list: Array<any>, id: string, minVersion?: string): any =>
-  list.find((p) => p.id === id && (minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true))
+export const findPluginInList = (list: Array<any>, id: string, minVersion?: string = '0.0.0'): any => {
+  return list.find((p) => {
+    if (p.id === id) {
+      logDebug(
+        `findPluginInList: ${p.id} ${p.version} (${semverVersionToNumber(p.version)}) >= ${minVersion} ${String(
+          minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true,
+        )}`,
+      )
+      return minVersion ? semverVersionToNumber(p.version) >= semverVersionToNumber(minVersion) : true
+    }
+    return false
+  })
+}
 
 /**
  * @param {string} id - the id of the plugin
@@ -327,57 +331,115 @@ export async function pluginIsInstalled(id: string, minVersion?: string): Promis
 }
 
 /**
- * When commands move from one plugin to another, we tell the user about it and invite them to download the new plugin if they don't have it already.
- * The plugin update process will automatically look for these fields in the plugin.json:
- * - "offerToDownloadPlugin": {"id": "np.Tidy", "minVersion": "2.18.0"},
- * - "commandMigrationMessage": "NOTE: Task Sorting commands have been moved from the Task Automations plugin to the TaskSorter plugin.",
- * - "settingsToCopy": ["settingName1","settingName2"] // copies the settings values from old plugin to the new plugin
- * @param {any} pluginJson - the old plugin
- * @returns {void}
+ * Attempts to install a plugin if it's not already installed, and optionally shows a message to the user.
+ * @param {any} pluginInfo - Information about the plugin to be installed.
+ * @param {boolean} showMessageToUser - Whether to show a message to the user. Defaults to false.
+ * @param {string} [messageToShowUser] - Optional message to show to the user if showMessageToUser is true.
+ * @returns {Promise<any>} - returns either the pluginInstalled object
  */
-export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void> {
-  const newPluginInfo = pluginJson['offerToDownloadPlugin']
-  if (newPluginInfo && newPluginInfo.id) {
-    const { id, minVersion } = newPluginInfo
-    const isInstalled = await pluginIsInstalled(id, minVersion)
-    if (isInstalled) {
-      logDebug(pluginJson, `migrateCommandsIfNecessary() ran but ${newPluginInfo.id} >= ${newPluginInfo.minVersion} was installed, so no need to do anything.`)
-      return
-    }
-    const commandMigrationMessage = pluginJson['commandMigrationMessage']
-    const githubReleasedPlugins = await DataStore.listPlugins(false, true, false) //released plugins .isOnline is true for all of them
-    // clo(githubReleasedPlugins, 'migrateCommandsIfNecessary: githubReleasedPlugins')
-    // logDebug(pluginJson, `migrateCommandsIfNecessary: githubReleasedPlugins ^^^^`)
-    const newPlugin = await findPluginInList(githubReleasedPlugins, id, minVersion)
-    clo(newPlugin, 'migrateCommandsIfNecessary: newPlugin found:')
-    if (!newPlugin) {
-      logDebug(pluginJson, `migrateCommandsIfNecessary() could not find plugin on github: ${id} >= ${minVersion}`)
-      await showMessage(`Could not find ${id} plugin to download. Please try to use the NotePlan preferences panel.`, 'OK', 'Plugin Not Found')
-      return
-    }
-    const msg = `${commandMigrationMessage || ''}\nWould you like to download the plugin "${newPlugin.name}" now?`
-    const res = await showMessageYesNo(msg, ['Yes', 'No'], 'Download New Plugin')
-    if (res === 'Yes') {
-      clo(newPlugin, `migrateCommandsIfNecessary() before plugin download: ${id} >= ${minVersion}. Will try to install:`)
-      // const r = await DataStore.installOrUpdatePluginsByID([id], true, false, false)
-      const r = await DataStore.installPlugin(newPlugin, false)
+async function installPlugin(pluginInfo: any): Promise<PluginObject | void> {
+  if (!pluginInfo || !pluginInfo.id) {
+    return
+  }
+  const { id, minVersion, preInstallMessage } = pluginInfo
+  logDebug(`installPlugin: Start install process for: ${id}`)
+  const isInstalled = await pluginIsInstalled(id, minVersion)
+  if (isInstalled) {
+    logDebug(`installPlugin() ran but ${id} >= ${minVersion || '0.0.0'} was installed, so no need to do anything.`)
+    return
+  }
 
-      logDebug(pluginJson, `migrateCommandsIfNecessary() after plugin download: ${r.id} / ${r.name} / ${r.version}`)
-      const installedPlugins = DataStore.installedPlugins()
-      const newPluginInstalled = findPluginInList(installedPlugins, id, minVersion)
-      if (!newPluginInstalled) {
-        logError(pluginJson, `migrateCommandsIfNecessary() after plugin download but did not find plugin installed: ${id} >= ${minVersion}`)
-        return
-      }
-      logDebug(pluginJson, `migrateCommandsIfNecessary() copying settings from old (${pluginJson['plugin.id']}) to new (${r.id})`)
-      if (pluginJson.settingsToCopy?.length) await copySpecificSettings(pluginJson['plugin.id'], r.id, pluginJson.settingsToCopy)
-      // clo(r, `migrateCommandsIfNecessary() after plugin download: ${r.id} / ${r.name} / ${r.version}`)
-      await pluginUpdated({ 'plugin.id': r?.id, 'plugin.version': r?.version }, { code: 2, message: 'Installed' })
+  const githubReleasedPlugins = await DataStore.listPlugins(true, true, false) // Released plugins .isOnline is true for all of them
+  const newPlugin = await findPluginInList(githubReleasedPlugins, id, minVersion) // minversion can be null/undefined - means just look for any version installed
+  if (!newPlugin) {
+    logError(`installPlugin() could not find plugin on github: ${id} >= ${minVersion}`)
+    await showMessage(`Could not find ${id} plugin to download >= v${minVersion}.`, 'OK', 'Plugin/Dependency Not Found')
+    return
+  }
+  logDebug(`installPlugin(): ${id}, found version: ${newPlugin?.version} (>= ${minVersion}). Will install it now.`)
+  if (preInstallMessage) {
+    const res = await showMessageYesNo(preInstallMessage, ['Download', 'Cancel'], 'Download New Plugin')
+    if (res !== 'Download') {
+      logDebug(`installPlugin() cancelled by user for: ${id}`)
+      return
     }
-  } else {
-    logDebug(pluginJson, `migrateCommandsIfNecessary() did not find offerToDownloadPlugin; doing nothing`)
+  }
+
+  const installed = await DataStore.installPlugin(newPlugin, false)
+  if (installed) logDebug(`installPlugin() after plugin download/install/settingsUpdate for: ${installed.id} / ${installed.name} / ${installed.version}`)
+  return installed
+}
+
+/**
+ * Install multiple plugins (either for dependencies or command migrations)
+ * Copy settings from old plugin to new one if settingsToCopy field is set in plugin.json of the plugin kicking off the misgration
+ * @param {Array<any>} pluginsToInstall - list of plugins to install, minimally, each with an id, e.g. {id}
+ * @param {string|null} messageToShowUser
+ * @param {any} migrateCommandsFrom - the pluginjson of the original plugin which is asking for other plugins to be installed
+ */
+export async function installPlugins(pluginsToInstall: Array<any>, migrateCommandsFrom: Object = null): Promise<void> {
+  for (let i = 0; i < pluginsToInstall.length; i++) {
+    const pluginToInstall = typeof pluginsToInstall[i] === 'string' ? { id: pluginsToInstall[i] } : pluginsToInstall[i]
+    const pluginInstalledInfo = await installPlugin(pluginToInstall)
+    if (pluginInstalledInfo) {
+      const settingsToCopy = pluginToInstall.settingsToCopy // was migrateCommandsFrom?.settingsToCopy previously
+      if (settingsToCopy) {
+        logDebug(
+          migrateCommandsFrom,
+          `installPlugins() copying settings from old (${migrateCommandsFrom['plugin.id']}) to new (${pluginInstalledInfo.id}), ${settingsToCopy.length} settings.`,
+        )
+        if (settingsToCopy?.length) await copySpecificSettings(migrateCommandsFrom['plugin.id'], pluginInstalledInfo.id, settingsToCopy)
+      }
+      if (pluginToInstall.preInstallMessage) {
+        // show an "installed" message if there was a preInstallMessage (otherwise it's a silent install)
+        await pluginUpdated({ 'plugin.id': pluginInstalledInfo?.id, 'plugin.version': pluginInstalledInfo?.version }, { code: 2, message: 'Installed' })
+      }
+    }
   }
 }
+
+/**
+ * Migrates commands if necessary, iterating over plugins with an index and handling optional user messages.
+ * @param {any} pluginJson - JSON object containing the plugin's information, potentially with multiple plugins to migrate.
+ * @returns {Promise<void>
+ */
+export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void> {
+  if (!pluginJson['offerToDownloadPlugin']) return
+  const start = new Date()
+  const pluginsToMigrate = Array.isArray(pluginJson['offerToDownloadPlugin']) ? pluginJson['offerToDownloadPlugin'] : [pluginJson['offerToDownloadPlugin']]
+  if (pluginsToMigrate.length) {
+    await installPlugins(pluginsToMigrate, pluginJson)
+  }
+  logDebug(pluginJson, `migrateCommandsIfNecessary() took ${timer(start)}`)
+}
+
+/**
+ * Install plugins which are dependencies of the given plugin
+ * @param {any} pluginJson - JSON object containing the original plugin's information, potentially with multiple plugins to check/install.
+ */
+export async function installDependencies(pluginJson: any): Promise<void> {
+  if (!pluginJson['plugin.dependsOn']) return
+  const start = new Date()
+  const pluginsToMigrate = Array.isArray(pluginJson['plugin.dependsOn']) ? pluginJson['plugin.dependsOn'] : [pluginJson['plugin.dependsOn']]
+  if (pluginsToMigrate.length) {
+    await installPlugins(pluginsToMigrate, pluginJson)
+  }
+  logDebug(pluginJson, `installDependencies() took ${timer(start)}`)
+}
+
+/**
+ * checkForDependenciesAndCommandMigrations
+ * @param {any} pluginJson
+ */
+export async function checkForDependenciesAndCommandMigrations(pluginJson: any): Promise<void> {
+  const start = new Date()
+  await installDependencies(pluginJson)
+  await migrateCommandsIfNecessary(pluginJson)
+  logDebug(pluginJson, `checkForDependenciesAndCommandMigrations() took ${timer(start)}`)
+}
+
+//FIXME: I AM HERE -- need to go through the flow of original function to make sure it still prompts user correctly etc
+// Also add the message to the object optionally and confirm on succcess/fail
 
 /**
  * Get a list of plugins to ouput, either (depending on user choice):

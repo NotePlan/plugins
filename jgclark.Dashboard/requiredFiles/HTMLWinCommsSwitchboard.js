@@ -569,7 +569,7 @@ function getNumItemsInSection(sectionID, tagName) {
         c++
       }
     }
-    console.log(`=> ${String(c)} items left in this section`)
+    // console.log(`=> ${String(c)} items left in this section`)
     return c
   } else {
     console.log(`- ❗error❗ in getNumItemsInSection: couldn't find section with ID ${sectionID}`)
@@ -585,7 +585,7 @@ function getNumItemsInSection(sectionID, tagName) {
  * @returns {number}
  */
 function getNumItemsInSectionByClass(sectionID, className) {
-  console.log(`getNumItemsInSectionByClass: ${sectionID} by ${className}`)
+  // console.log(`getNumItemsInSectionByClass: ${sectionID} by ${className}`)
   const sectionElem = document.getElementById(sectionID)
   // console.log(`${sectionElem.innerHTML}`)
   if (sectionElem) {

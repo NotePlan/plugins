@@ -75,6 +75,7 @@ export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall running`)
     await updateSettingData(pluginJson)
+    await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` })
   } catch (error) {
     logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
   }

@@ -7,18 +7,16 @@
 
 import pluginJson from "../plugin.json"
 import { addParasAsText, getFilerSettings } from './filerHelpers'
-import {
-  hyphenatedDate,
-  toLocaleDateTimeString
-} from '@helpers/dateTime'
+import { hyphenatedDate, toLocaleDateTimeString } from '@helpers/dateTime'
+import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { clo, logDebug, logError, logWarn } from '@helpers/dev'
 import {
   displayTitle,
-  rangeToString
+  // rangeToString
 } from '@helpers/general'
 import { allNotesSortedByChanged } from '@helpers/note'
 import {
-  findStartOfActivePartOfNote,
+  // findStartOfActivePartOfNote,
   parasToText,
 } from '@helpers/paragraph'
 import {
@@ -29,7 +27,7 @@ import { chooseHeading, showMessage } from '@helpers/userInput'
 
 //-----------------------------------------------------------------------------
 
-const pluginID = pluginJson['plugin.id']
+// const pluginID = pluginJson['plugin.id']
 
 /**
  * Move text to a different note, forcing treating this as a block.
@@ -213,8 +211,8 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     // Find the Weekly note to move to
     const destNote = DataStore.calendarNoteByDate(destDate, 'week')
     if (destNote == null) {
-      await showMessage(`Sorry: I can't find the Weekly note for ${destDate.toLocaleDateString()}.`)
-      logError(pluginJson, `Failed to open the Weekly note for ${destDate.toLocaleDateString()}. Stopping.`)
+      await showMessage(`Sorry: I can't find the Weekly note for ${toNPLocaleDateString(destDate)}.`)
+      logError(pluginJson, `Failed to open the Weekly note for ${toNPLocaleDateString(destDate)}. Stopping.`)
       return
     }
 
@@ -228,7 +226,7 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
     // Get paragraph indexes for the start and end of the selection (can be the same)
     let firstStartIndex = 0
     let parasInBlock: Array<TParagraph>
-    const [firstSelParaIndex, lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
+    const [firstSelParaIndex, _lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
     // Get paragraphs for the selection or block
     if (withBlockContext) {
       // user has requested working on the surrounding block
@@ -242,7 +240,7 @@ export async function moveParasToCalendarWeekly(destDate: Date, withBlockContext
 
     // Now attempt to highlight them to help user check all is well (but only works from v3.6.2, build 844)
     if (NotePlan.environment.buildVersion > 844) {
-      firstStartIndex = parasInBlock[0].contentRange?.start ?? null
+      firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
       const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
       if (firstStartIndex && lastEndIndex) {
         const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)
@@ -323,8 +321,8 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
     // Find the Daily note to move to
     const destNote = DataStore.calendarNoteByDate(destDate, 'day')
     if (destNote == null) {
-      await showMessage(`Sorry: I can't find the Daily note for ${destDate.toLocaleDateString()}.`)
-      logError(pluginJson, `Failed to open the Daily note for ${destDate.toLocaleDateString()}. Stopping.`)
+      await showMessage(`Sorry: I can't find the Daily note for ${toNPLocaleDateString(destDate)}.`)
+      logError(pluginJson, `Failed to open the Daily note for ${toNPLocaleDateString(destDate)}. Stopping.`)
       return
     }
 
@@ -335,7 +333,7 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
       return
     }
     // Get paragraph indexes for the start and end of the selection (can be the same)
-    const [firstSelParaIndex, lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
+    const [firstSelParaIndex, _lastSelParaIndex] = selectedLinesIndex(selection, paragraphs)
 
     // Get paragraphs for the selection or block
     let firstStartIndex = 0
@@ -352,7 +350,7 @@ export async function moveParasToCalendarDate(destDate: Date, withBlockContext: 
 
     // Now attempt to highlight them to help user check all is well (but only works from v3.6.2, build 844)
     if (NotePlan.environment.buildVersion > 844) {
-      firstStartIndex = parasInBlock[0].contentRange?.start ?? null
+      firstStartIndex = parasInBlock[0].contentRange?.start ?? NaN
       const lastEndIndex = parasInBlock[parasInBlock.length - 1].contentRange?.end ?? null
       if (firstStartIndex && lastEndIndex) {
         const parasCharIndexRange: TRange = Range.create(firstStartIndex, lastEndIndex)

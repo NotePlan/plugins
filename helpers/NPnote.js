@@ -213,7 +213,7 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
 }
 
 /**
- * Get the paragraphs in the note which are tagged for today (or this week) that may not actually be in the current note.
+ * Get the paragraphs in 'note' which are scheduled for date of the 'calendar' note.
  * @author @dwertheimer extended by @jgclark
  * @param {CoreNoteFields} calendar note to look for links to (the note or Editor)
  * @param {CoreNoteFields} includeHeadings? (default to true for backwards compatibility)

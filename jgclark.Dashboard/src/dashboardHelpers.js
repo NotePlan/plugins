@@ -63,7 +63,7 @@ import {
 export type Section = {
   ID: number,
   name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
-  sectionType: '' | 'DT' | 'DY' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG' | 'PROJ', // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
+  sectionType: 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG' | 'PROJ', // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,
@@ -109,6 +109,7 @@ export type dashboardConfigType = {
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
   showYesterdaySection: boolean,
+  showTomorrowSection: boolean,
   showWeekSection: boolean,
   showMonthSection: boolean,
   showQuarterSection: boolean,
@@ -192,7 +193,7 @@ export function reduceParagraphs(origParas: Array<TParagraph>): Array<ReducedPar
 //-----------------------------------------------------------------
 
 /**
- * Return list(s) of open task/checklist paragraphs from the current calendar note of type 'timePeriodName'.
+ * Return list(s) of open task/checklist paragraphs in calendar note of type 'timePeriodName', or scheduled to that same date.
  * Various config.* items are used:
  * - ignoreFolders? for folders to ignore for referenced notes
  * - separateSectionForReferencedNotes? if true, then two arrays will be returned: first from the calendar note; the second from references to that calendar note. If false, then both are included in a combined list (with the second being an empty array).
@@ -231,11 +232,11 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     // Now also allow to ignore checklist items.
-    // TODO: this operation is 100ms
+    // Note: this operation is 100ms
     let openParas = (config.ignoreChecklistItems)
       ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content.trim() !== '')
       : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content.trim() !== '')
-    logDebug('getOpenItemParasForCurrent...', `After 'isOpenNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    logDebug('getOpenItemParasForCurrent...', `After 'isOpenTaskNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
     const tempSize = openParas.length
 
     // Filter out any future-scheduled tasks from this calendar note
@@ -271,11 +272,10 @@ export function getOpenItemParasForCurrentTimePeriod(
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
     // (This is 2-3x quicker than part above)
-    // TODO: the getReferencedParagraphs() operation take 70-140ms
-    // FIXME: Why not finding all items?
+    // Note: the getReferencedParagraphs() operation take 70-140ms
     let refParas: Array<TParagraph> = []
     if (timePeriodNote) {
-      // Now also allow to ignore checklist items.
+      // Allow to ignore checklist items.
       refParas = (config.ignoreChecklistItems)
         ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
         // try make this a single filter
@@ -284,7 +284,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     logDebug('getOpenItemParasForCurrent...', `- got ${refParas.length} open referenced after ${timer(startTime)}`)
 
     // Remove items referenced from items in 'ignoreFolders'
-    refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders)
+    refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders, true)
     // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${refParas.length} paras (after ${timer(startTime)})`)
     // Remove possible dupes from sync'd lines
     refParas = eliminateDuplicateSyncedParagraphs(refParas)
@@ -296,7 +296,7 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
-    // TODO: This takes 100ms
+    // Note: This takes 100ms
     if (config.separateSectionForReferencedNotes) {
       const sortedOpenParas = sortListBy(openParas, ['-priority', 'timeStr'])
       const sortedRefParas = sortListBy(refParas, ['-priority', 'timeStr'])
@@ -328,10 +328,9 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
     logInfo('getRelevantOverdueTasks', `Found ${overdueParas.length} overdue items in ${timer(thisStartTime)}`)
 
-    // Remove items referenced from items in 'ignoreFolders'
-    // let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders)
-    // $FlowFixMe(incompatible-call) returns $ReadOnlyArray type
-    let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders)
+    // Remove items referenced from items in 'ignoreFolders' (but keep calendar note matches)
+    // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
+    let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders, true)
     logDebug('getRelevantOverdueTasks', `- ${filteredOverdueParas.length} paras after excluding @special + [${String(config.ignoreFolders)}] folders`)
 
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)

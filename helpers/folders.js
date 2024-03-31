@@ -96,7 +96,7 @@ export function getFolderListMinusExclusions(
     // Get all folders as array of strings (other than @Trash). Also remove root as a special case
     const fullFolderList = DataStore.folders
     let excludeRoot = forceExcludeRootFolder
-    logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`)
+    // logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`)
 
     // if excludeSpecialFolders, filter fullFolderList to only folders that don't start with the character '@' (special folders)
     const reducedFolderList = (excludeSpecialFolders)
@@ -128,16 +128,15 @@ export function getFolderListMinusExclusions(
     reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => !exclusionsTerminatedWithSlash.some((ee) => folder.startsWith(ee)))
     // logDebug('getFolderListMinusExclusions', `- after exclusions reducedTerminatedWithSlash: ${reducedTerminatedWithSlash.length} folders: ${reducedTerminatedWithSlash.toString()}\n`)
 
-
     // now remove trailing slash characters
-    const outputList = reducedTerminatedWithSlash.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
+    const outputList = reducedTerminatedWithSlash.map((folder) => (folder !== '/' && folder.endsWith('/') ? folder.slice(0, -1) : folder))
 
     // remove root folder if wanted
     if (excludeRoot) {
       const itemToRemove = outputList.indexOf('/')
       outputList.splice(itemToRemove, 1)
     }
-    logDebug('getFolderListMinusExclusions', `-> outputList: ${outputList.length} items: [${outputList.toString()}] with excludeRoot? ${String(excludeRoot)}`)
+    logDebug('folders/getFolderListMinusExclusions', `-> outputList: ${outputList.length} items: [${outputList.toString()}] with excludeRoot? ${String(excludeRoot)}`)
     return outputList
 
   } catch (error) {

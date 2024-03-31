@@ -937,34 +937,49 @@ export function convertNPBlockIDToHTML(input: string): string {
 }
 
 /**
- * Truncate visible part of HTML string, without breaking the HTML tags
+ * Truncate visible part of HTML string, without breaking the HTML tags, or markdown links.
  * @param {string} htmlIn
  * @param {number} maxLength of output
  * @param {boolean} dots - add ellipsis to end?
  * @returns {string} truncated HTML
+ * TODO: write tests for this
  */
 export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = true): string {
-  let holdCounter = false
+  let inHTMLTag = false
+  let inMDLink = false
   let truncatedHTML = ''
-  let limit = maxLength
+  let lengthLeft = maxLength
   for (let index = 0; index < htmlIn.length; index++) {
-    if (!limit || limit === 0) {
+    if (!lengthLeft || lengthLeft === 0) {
+    // no lengthLeft: stop processing
       break
     }
-    if (htmlIn[index] === '<') {
-      holdCounter = true
+    if (htmlIn[index] === '<' && htmlIn.slice(index).includes('>')) {
+      // if we've started an HTML tag stop counting
+      logDebug('truncateHTML', `started HTML tag at ${String(index)}`)
+      inHTMLTag = true
     }
-    if (!holdCounter) {
-      limit--
+    if (htmlIn[index] === '[' && htmlIn.slice(index).match(/\]\(.*\)/)) {
+      // if we've started a MD link tag stop counting
+      logDebug('truncateHTML', `started MD link at ${String(index)}`)
+      inMDLink = true
     }
-    if (htmlIn[index] === '>') {
-      holdCounter = false
+    if (!inHTMLTag && !inMDLink) {
+      lengthLeft--
+    }
+    if (htmlIn[index] === '>' && inHTMLTag) {
+      logDebug('truncateHTML', `stopped HTML tag at ${String(index)}`)
+      inHTMLTag = false
+    }
+    if (htmlIn[index] === ')' && inMDLink) {
+      logDebug('truncateHTML', `stopped MD link at ${String(index)}`)
+      inMDLink = false
     }
     truncatedHTML += htmlIn[index]
   }
   if (dots) {
     truncatedHTML = `${truncatedHTML} …`
   }
-  // logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
+  logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
   return truncatedHTML
 }

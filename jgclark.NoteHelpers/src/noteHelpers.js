@@ -2,17 +2,21 @@
 //-----------------------------------------------------------------------------
 // Note Helpers plugin for NotePlan
 // Jonathan Clark & Eduard Metzger
-// Last updated 12.3.2024 for v0.19.2 by @jgclark
+// Last updated 15.3.2024 for v0.19.2+ by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { allNotesSortedByChanged } from '@helpers/note'
+// import { allNotesSortedByChanged } from '@helpers/note'
 import { convertNoteToFrontmatter } from '@helpers/NPnote'
 import { addTrigger, TRIGGER_LIST } from '@helpers/NPFrontMatter'
-import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
-import { chooseFolder, chooseHeading, chooseOption, getInput, showMessage } from '@helpers/userInput'
+// import { getParaFromContent, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import {
+  chooseFolder,
+  // chooseHeading,
+  chooseOption, getInput, showMessage
+} from '@helpers/userInput'
 
 //-----------------------------------------------------------------
 // Settings
@@ -100,9 +104,9 @@ export async function addTriggerToNote(triggerNameArg: string = ''): Promise<voi
     }
 
     // Get list of available triggers from looking at installed plugins
-    let allVisibleCommands = []
-    let triggerRelatedCommands = []
-    let triggerRelatedStrings = []
+    const allVisibleCommands = []
+    const triggerRelatedCommands = []
+    const triggerRelatedStrings = []
     const installedPlugins = DataStore.installedPlugins()
     logDebug('addTriggerToNote', "Found following trigger-related plugin commands:")
     for (const p of installedPlugins) {
@@ -133,10 +137,10 @@ export async function addTriggerToNote(triggerNameArg: string = ''): Promise<voi
       }
 
       // Add to note
-      // V1: FIXME(@dwertheimer): not working because of lower level function
+      // V1: WARNING: not working when used in a Template because of the way Templates work
       // $FlowIgnore[incompatible-call]
-      await convertNoteToFrontmatter(Editor.note, "triggers: " + triggerName)
-      return
+      // await convertNoteToFrontmatter(Editor.note, `triggers: ${  triggerName}`)
+      // return
 
       // V2: use method below, which is long-winded as we have to break the string back into its constituent parts
       // Note: borrowing code from NPFrontMatter::getTriggersByCommand()
@@ -158,7 +162,7 @@ export async function addTriggerToNote(triggerNameArg: string = ''): Promise<voi
         return { label: `${pco.pluginName} '${pco.name}'`, value: pco }
       })
       commandOptions.push({ label: `Pick from whole list of functions ...`, value: "pickFromAll" })
-      let result: PluginCommandObject | string = await chooseOption("Pick the trigger to add", commandOptions)
+      const result: PluginCommandObject | string = await chooseOption("Pick the trigger to add", commandOptions)
       let choice: PluginCommandObject
       // If user has chosen pick from whole list, then show that full list and get selection
       if (typeof result === "string" && result === "pickFromAll") {
@@ -186,7 +190,7 @@ export async function addTriggerToNote(triggerNameArg: string = ''): Promise<voi
     }
 
     // Add trigger to note
-    let res = await addTrigger(Editor, triggerName, triggerPluginID, funcName)
+    const res = await addTrigger(Editor, triggerName, triggerPluginID, funcName)
     if (res) {
       logDebug('addTriggerToNote', `Trigger ${triggerName} for ${triggerPluginID} func ${funcName} was added to note ${displayTitle(Editor)}`)
     } else {
@@ -218,8 +222,7 @@ export function convertLocalLinksToPluginLinks(): void {
     const content = para.content
     const newContent = content.replace(/\[(.*?)\]\(\#(.*?)\)/g, (match, label, link) => {
       const newLink =
-        `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg1=` +
-        encodeURIComponent(link)
+        `noteplan://x-callback-url/runPlugin?pluginID=jgclark.NoteHelpers&command=jump%20to%20heading&arg1=${encodeURIComponent(link)}`
       return `[${label}](${newLink})`
     })
     if (newContent !== content) {
