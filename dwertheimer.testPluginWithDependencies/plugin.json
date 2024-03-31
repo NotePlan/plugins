@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.testPluginWithDependencies",
   "plugin.name": "zzz_TestPluginWithDependencies",
-  "plugin.version": "0.1.7",
-  "plugin.lastUpdateInfo": "This plugin is for testing dependencies. The two plugins it depends on (dwertheimer.hiddenTest1, dwertheimer.hiddenTest2) should now be in your plugins folder. Pls check.",
+  "plugin.version": "0.1.13",
+  "plugin.lastUpdateInfo": "This plugin is for testing dependencies. The two plugins it depends on (dwertheimer.hiddenTest1, dwertheimer.hiddenTest2) should be in your plugins folder after this dialog.",
   "plugin.description": "My Plugin for NotePlan",
   "plugin.author": "dwertheimer",
   "plugin.hidden": true,
@@ -75,6 +75,12 @@
       "name": "TEST onUpdateOrInstall command",
       "jsFunction": "testOnUpdateOrInstall",
       "description": "Use xcallback to hit it"
+    },
+    {
+      "NOTE": "DO NOT EDIT THIS COMMAND/TRIGGER",
+      "name": "Dependency Tester: Version",
+      "description": "Update + Check Version",
+      "jsFunction": "versionCheck"
     }
   ],
   "plugin.settings": [
