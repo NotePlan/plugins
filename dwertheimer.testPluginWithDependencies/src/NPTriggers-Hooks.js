@@ -3,7 +3,7 @@
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
-import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
+import { updateSettingData, pluginUpdated, checkForDependenciesAndCommandMigrations } from '@helpers/NPConfiguration'
 import { showMessage } from '@helpers/userInput'
 const scriptStartTime = new Date()
 
@@ -75,13 +75,8 @@ export async function onEditorWillSave() {
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall running`)
-    const pluginExists = DataStore.loadJSON(`../../data/${pluginJson['plugin.id']}/settings.json`)
-    clo(pluginExists, `${pluginJson['plugin.id']} Plugin Exists=${typeof pluginExists}`)
     await updateSettingData(pluginJson) // update the settings for new settings or write it for the first time if install
-    if (!pluginExists) {
-      // this is the first install
-      await pluginUpdated(pluginJson, { code: 2, message: `onUpdateOrInstall: Plugin Installed` })
-    }
+    await checkForDependenciesAndCommandMigrations(pluginJson)
   } catch (error) {
     logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
   }
@@ -98,7 +93,6 @@ export function init(): void {
     logDebug(pluginJson, `init ${pluginJson['plugin.id']} about to call installOrUpdatePluginsByID`)
     DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) => {
       clo(r, `${pluginJson['plugin.id']} Inside installOrUpdatePluginsByID... result=`)
-      CommandBar.hide()
       pluginUpdated(pluginJson, r)
     })
   } catch (error) {
