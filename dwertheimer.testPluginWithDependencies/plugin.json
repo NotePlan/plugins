@@ -4,11 +4,11 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "dwertheimer.testPluginWithDependencies",
   "plugin.name": "zzz_TestPluginWithDependencies",
-  "plugin.version": "0.1.13",
+  "plugin.version": "0.1.15",
   "plugin.lastUpdateInfo": "This plugin is for testing dependencies. The two plugins it depends on (dwertheimer.hiddenTest1, dwertheimer.hiddenTest2) should be in your plugins folder after this dialog.",
   "plugin.description": "My Plugin for NotePlan",
   "plugin.author": "dwertheimer",
-  "plugin.hidden": true,
+  "plugin.hidden": false,
   "plugin.requiredFiles-EDIT_ME": [
     "html-plugin-comms.js"
   ],
