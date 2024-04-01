@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 5.9.2023 by @jgclark
+// Last updated 1.4.2024 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -63,7 +63,7 @@ const fixedMetaTags = `
 export function getCallbackCodeString(jsFunctionName: string, commandName: string = '%%commandName%%', pluginID: string = '%%pluginID%%', returnPathFuncName: string = ''): string {
   const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
   // logDebug(`getCallbackCodeString: In HTML Code, use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
-  //TODO: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
+  // Note: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
   // "${returnPathFuncName}" was the onHandle, but since that function doesn't really do anything, I'm not sending it
   return `
     // This is a callback bridge from HTML to the plugin
@@ -956,23 +956,23 @@ export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = 
     }
     if (htmlIn[index] === '<' && htmlIn.slice(index).includes('>')) {
       // if we've started an HTML tag stop counting
-      logDebug('truncateHTML', `started HTML tag at ${String(index)}`)
+      // logDebug('truncateHTML', `started HTML tag at ${String(index)}`)
       inHTMLTag = true
     }
     if (htmlIn[index] === '[' && htmlIn.slice(index).match(/\]\(.*\)/)) {
       // if we've started a MD link tag stop counting
-      logDebug('truncateHTML', `started MD link at ${String(index)}`)
+      // logDebug('truncateHTML', `started MD link at ${String(index)}`)
       inMDLink = true
     }
     if (!inHTMLTag && !inMDLink) {
       lengthLeft--
     }
     if (htmlIn[index] === '>' && inHTMLTag) {
-      logDebug('truncateHTML', `stopped HTML tag at ${String(index)}`)
+      // logDebug('truncateHTML', `stopped HTML tag at ${String(index)}`)
       inHTMLTag = false
     }
     if (htmlIn[index] === ')' && inMDLink) {
-      logDebug('truncateHTML', `stopped MD link at ${String(index)}`)
+      // logDebug('truncateHTML', `stopped MD link at ${String(index)}`)
       inMDLink = false
     }
     truncatedHTML += htmlIn[index]
@@ -982,4 +982,21 @@ export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = 
   }
   logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
   return truncatedHTML
+}
+
+/**
+ * Make HTML for a real button that is used to call a plugin's command, by sending params for a invokePluginCommandByName() call
+ * Note: follows earlier makeRealCallbackButton()
+ * @param {string} buttonText to display on button
+ * @param {string} pluginName of command to call
+ * @param {string} commandName to call when button is 'clicked'
+ * @param {string} commandArgs (may be empty)
+ * @param {string?} tooltipText to hover display next to button
+ * @returns {string}
+ */
+export function makePluginCommandButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
+  const output = (tooltipText)
+    ? `<button class="XCBButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}</button>`
+    : `<button class="XCBButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}" >${buttonText}</button>`
+  return output
 }
