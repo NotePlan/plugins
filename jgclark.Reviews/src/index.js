@@ -3,14 +3,17 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 17.3.2024 for v0.13.2, @jgclark
+// Last updated 30.3.2024 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 // import { generateCSSFromTheme } from '@helpers/HTMLView'
 import pluginJson from '../plugin.json'
-import { getReviewSettings } from './reviewHelpers'
-import { makeFullReviewList, renderProjectLists } from './reviews'
+import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
+import {
+  makeFullReviewList,
+  // renderProjectLists
+} from './reviews'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { editSettings } from '@helpers/NPSettings'
@@ -54,6 +57,7 @@ export {
   testCSSCircle,
   testRedToGreenInterpolation,
 } from './HTMLtests'
+export { onMessageFromHTMLView } from './pluginToHTMLBridge'
 
 const pluginID = 'jgclark.Reviews'
 
@@ -79,10 +83,10 @@ export async function testSettingsUpdated(): Promise<void> {
 export async function onSettingsUpdated(): Promise<void> {
   // Update the full - review - list in case there's a change in a relevant setting
   logInfo(pluginID, 'Have updated settings, so will recalc the review list and display...')
-  const config = await getReviewSettings()
+  const config: ReviewConfig = await getReviewSettings()
   await makeFullReviewList(config, true)
-  // TODO: this actually generates errors, as Editor and HTMLView disappear at this point!
-  await renderProjectLists(config)
+  // FIXME(Eduard): this actually generates errors, as Editor and HTMLView disappear at this point!
+  // await renderProjectLists(config)
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {

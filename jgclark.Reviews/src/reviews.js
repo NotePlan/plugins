@@ -1,3 +1,4 @@
+/* eslint-disable prefer-template */
 // @flow
 //-----------------------------------------------------------------------------
 // Commands for Reviewing project-style notes, GTD-style.
@@ -9,7 +10,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 17.3.2024 for v0.13.1+, @jgclark
+// Last updated 30.3.2024 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -19,7 +20,6 @@ import { checkForWantedResources, logAvailableSharedResources, logProvidedShared
 import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
-  // getOrMakeMetadataLine,
   getReviewSettings,
   makeFakeButton,
   Project,
@@ -30,11 +30,8 @@ import {
 } from './reviewHelpers'
 import { checkString } from '@helpers/checkType'
 import {
-  // calcOffsetDate,
   calcOffsetDateStr, getDateObjFromDateString,
-  // getJSDateStartOfToday,
   getTodaysDateHyphenated,
-  // hyphenatedDateString,
   RE_DATE, RE_DATE_INTERVAL, todaysDateISOString
 } from '@helpers/dateTime'
 import { nowLocaleShortDateTime } from '@helpers/NPdateTime'
@@ -42,22 +39,17 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEnc
 import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import {
-  // type HtmlWindowOptions, makeSVGPercentRing, redToGreenInterpolation, showHTML,
   showHTMLV2
 } from '@helpers/HTMLView'
 import { getOrMakeNote } from '@helpers/note'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { findNotesMatchingHashtag } from '@helpers/NPnote'
-// import { findStartOfActivePartOfNote } from '@helpers/paragraph'
 import {
-  // fieldSorter,
   sortListBy
 } from '@helpers/sorting'
 import { getInputTrimmed, showMessage, showMessageYesNo } from '@helpers/userInput'
 import {
-  // focusHTMLWindowIfAvailable,
   isHTMLWindowOpen, logWindowsList, noteOpenInEditor, setEditorWindowId,
-  // setHTMLWindowId
 } from '@helpers/NPWindows'
 
 //-----------------------------------------------------------------------------
@@ -75,6 +67,7 @@ const customMarkdownWinId = `markdown-review-list`
 const faLinksInHeader = `
 <!-- Load in Project List-specific CSS -->
 <link href="projectList.css" rel="stylesheet">
+<link href="projectListDialog.css" rel="stylesheet">
 
 <!-- Load in fontawesome assets (licensed for NotePlan) -->
 <link href="../np.Shared/fontawesome.css" rel="stylesheet">
@@ -187,6 +180,49 @@ function setRefreshButtonURL(h) {
 </script>
 `
 
+const commsBridgeScripts = `
+<!-- commsBridge scripts -->
+<script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
+<script>
+/* you must set this before you import the CommsBridge file */
+const receivingPluginID = "jgclark.Reviews"; // the plugin ID of the plugin which will receive the comms from HTML
+// That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
+// this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
+
+/* the onMessageFromPlugin function is called when data is received from your plugin and needs to be processed. this function
+   should not do the work itself, it should just send the data payload to a function for processing. The onMessageFromPlugin function
+   below and your processing functions can be in your html document or could be imported in an external file. The only
+   requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
+   be in your html document or could be imported in an external file */
+</script>
+<script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
+<script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
+`
+/**
+ * Script to add some keyboard shortcuts to control the dashboard. (Meta=Cmd here.)
+ */
+const shortcutsScript = `
+<!-- shortcuts script -->
+<script type="text/javascript" src="./shortcut.js"></script>
+<script>
+// send 'refresh' command
+shortcut.add("meta+r", function() {
+  console.log("Shortcut '⌘r' triggered: will call refresh");
+  sendMessageToPlugin('refresh', {});
+});
+// send 'toggleDisplayOnlyDue' command
+shortcut.add("meta+d", function() {
+  console.log("Shortcut '⌘d' triggered: will call toggleDisplayOnlyDue");
+  sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName:'toggleDisplayOnlyDue', commandArgs: []});
+});
+// send 'toggleDisplayFinished' command
+shortcut.add("meta+f", function() {
+  console.log("Shortcut '⌘f' triggered: will call toggleDisplayFinished");
+  sendMessageToPlugin('runPluginCommand', {pluginID: 'jgclark.Reviews', commandName: 'toggleDisplayFinished', commandArgs: []});
+});
+</script>
+`
+
 /**
  * TODO: this would need to go in commsSwitchboard.js. And contents uncommented out.
  * Event handler for the 'change' event on a checkbox
@@ -198,38 +234,6 @@ function setRefreshButtonURL(h) {
   // console.log(`onChangeCheckbox received: settingName: ${data.settingName}, state: ${String(data.state)}; sending 'onChangeCheckbox' to plugin`)
   // sendMessageToPlugin('onChangeCheckbox', data) // actionName, data
 // }
-
-// TODO: in time make a 'timeago' relative display, e.g. using MOMENT moment.duration(-1, "minutes").humanize(true); // a minute ago
-// or https://www.jqueryscript.net/time-clock/Relative-Timestamps-Update-Plugin-timeago.html
-// or https://theprogrammingexpert.com/javascript-count-up-timer/
-export const timeAgoClockJSFunc: string = `
-<script type="text/javascript">
-function showTimeAgo() {
-  let output = '';
-  const startTime = document.getElementsByName('startTime')[0].getAttribute('content'); // Get startTime from meta tag
-  const now = Date.now();
-	const diff = (Math.round(now - startTime)/1000.0/60.0);  // in Mins
-	if (diff <= 0.1) {
-		output = 'just now';
-	} else if (diff <= 1) {
-		output = '<1 min ago';
-	} else if (diff < 1.5) {
-		output = '1 min ago';
-	} else if (diff <= 90) {
-		output = String(Math.round(diff)) + ' mins ago';
-	} else if (diff <= 1440) {
-		output = String(Math.round(diff / 60.0)) + ' hours ago';
-	} else if (diff <= 43776) {
-		output = String(Math.round(diff / 60.0 / 24.0)) + ' days ago';
-	} else if (diff <= 525312) {
-		output = String(Math.round(diff / 60.0 / 24.0 / 30.4)) + ' mon ago';
-	} else {
-		output = String(Math.round(diff / 60.0 / 24.0 / 30.4 / 365.0)) + ' yrs ago';
-	}
-  document.getElementById('timer').innerHTML = output;
-  setTimeout(showTimeAgo, 30000); // call again in 30s
-}
-</script>`
 
 export const setPercentRingJSFunc: string = `
 <script>
@@ -516,10 +520,45 @@ export async function renderProjectListsHTML(
       logDebug('renderProjectListsHTML', `>> end of loop for ${thisTag}: ${timer(funcTimer)}`)
     }
     outputArray.push(`</div>`)
+
+    // Project control dialog
+    // Note: in the future the draft spec for CSS Anchor Positioning could be helpful for positioning this dialog relative to other things
+    const projectControlDialogHTML = `
+  <!----------- Dialog to show on Project items ----------->
+  <dialog id="projectControlDialog" class="projectControlDialog" aria-labelledby="Actions Dialog"
+    aria-describedby="Actions that can be taken on projects">
+    <div class="dialogTitle">For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b></div>
+    <div class="dialogBody">
+      <div class="buttonGrid" id="projectDialogButtons">
+        <div>Project Reviews</div>
+        <div id="projectControlDialogProjectControls">
+          <button data-control-str="finish"><i class="fa-regular fa-calendar-check"></i> Finish Review</button>
+          <button data-control-str="nr+1w"><i class="fa-solid fa-forward"></i> Skip 1w</button>
+          <button data-control-str="nr+2w"><i class="fa-solid fa-forward"></i> Skip 2w</button>
+          <button data-control-str="nr+1m"><i class="fa-solid fa-forward"></i> Skip 1m</button>
+          <button data-control-str="nr+1q"><i class="fa-solid fa-forward"></i> Skip 1q</button>
+        </div>
+        <div>Project Actions</div>
+        <div>
+          <button data-control-str="progress"><i class="fa-regular fa-message-pen"></i> Add Progress</button>
+          <button data-control-str="pause">Toggle <i class="fa-solid fa-play-pause"></i> Pause</button>
+          <button data-control-str="complete"><i class="fa-solid fa-check"></i> Complete</button>
+          <button data-control-str="cancel"><i class="fa-solid fa-xmark"></i> Cancel</button>
+        </div>
+        <div></div>
+        <div><form><button type="submit" class="mainButton">Close</button></form></div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+`
+    outputArray.push(projectControlDialogHTML)
+
     const body = outputArray.join('\n')
     logDebug('renderProjectListsHTML', `>> end of main loop: ${timer(funcTimer)}`)
 
-    const setScrollPosJS: string = `<script type="text/javascript">
+    const setScrollPosJS: string = `
+<script type="text/javascript">
   console.log('Attemping to set scroll pos to ${scrollPos}');
   setScrollPos(${scrollPos});
   console.log('Attemping to set scroll pos for refresh button to ${scrollPos}');
@@ -534,7 +573,10 @@ export async function renderProjectListsHTML(
       makeModal: false, // = not modal window
       bodyOptions: 'onload="showTimeAgo()"',
       preBodyScript: setPercentRingJSFunc + scrollPreLoadJSFuncs,
-      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
+      postBodyScript: checkboxHandlerJSFunc + setScrollPosJS + `<script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
+      <script type="text/javascript" src="./showTimeAgo.js" ></script>
+      <script type="text/javascript" src="./projectListEvents.js"></script>
+      ` + commsBridgeScripts + shortcutsScript, // resizeListenerScript + unloadListenerScript,
       savedFilename: filenameHTMLCopy,
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 800, // = default width of window (px)
@@ -698,22 +740,22 @@ export async function redisplayProjectListHTML(): Promise<void> {
     if (savedHTML !== '') {
       const winOptions = {
         windowTitle: windowTitle,
-        headerTags: `${faLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
-        generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
+        headerTags: '', // don't set as it is already in the saved file
+        generalCSSIn: '', // don't set as it is already in the saved file
         specificCSS: '', // now provided by separate projectList.css
         makeModal: false, // = not modal window
-        bodyOptions: 'onload="timeAgo()"', // TODO: find a different way to get this working  'onload="timeAgo()"',
-        preBodyScript: setPercentRingJSFunc,
-        postBodyScript: checkboxHandlerJSFunc + timeAgoClockJSFunc, // resizeListenerScript + unloadListenerScript,
-        savedFilename: savedHTML,
+        bodyOptions: '', // don't set as it is already in the saved file
+        preBodyScript: '', // don't set as it is already in the saved file
+        postBodyScript: '', // don't set as it is already in the saved file
+        savedFilename: '', // don't re-save it
         reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
         width: 800, // = default width of window (px)
         height: 1200, // = default height of window (px)
         customId: customRichWinId,
         shouldFocus: true, // shouuld focus
       }
-      const thisWindow = await showHTMLV2(savedHTML, winOptions)
-      clo(thisWindow, 'created window')
+      const _thisWindow = await showHTMLV2(savedHTML, winOptions)
+      // clo(thisWindow, 'created window')
       logDebug('redisplayProjectListHTML', `Displayed HTML from saved file ${filenameHTMLCopy}`)
       return
     } else {
@@ -927,7 +969,6 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
     logDebug(`makeFullReviewList`, `- written ${outputArray.length} lines to ${fullReviewListFilename}`)
 
     // Finally, refresh Dashboard. Note: Designed to fail silently if it isn't installed, or open.
-    // DataStore.invokePluginCommand('refreshDashboard', '')
     const refreshXCallbackURL = createRunPluginCallbackUrl('jgclark.Dashboard', 'refreshDashboard', '')
     logDebug('makeFullReviewList', `sent message to refresh Dashboard: ${refreshXCallbackURL}`)
     await NotePlan.openURL(refreshXCallbackURL)
@@ -1088,9 +1129,9 @@ export async function finishReview(): Promise<void> {
       // logDebug('finishReview', String(RE_REVIEWED_MENTION))
 
       // First update @review(date) on current open note
-      let ignoreResult: ?TNote = await updateMetadataInEditor([reviewedTodayString])
+      let _result: ?TNote = await updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      ignoreResult = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
+      _result = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
       // logDebug('finishReview', `- after metadata updates`)
 
       // Save Editor, so the latest changes can be picked up elsewhere
@@ -1243,7 +1284,7 @@ export async function skipReview(): Promise<void> {
     logDebug('skipReview', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
 
     // Update metadata in the current open note
-    const result = await updateMetadataInEditor([nextReviewMetadataStr])
+    const _result = await updateMetadataInEditor([nextReviewMetadataStr])
 
     // Save Editor, so the latest changes can be picked up elsewhere
     // Putting the Editor.save() here, rather than in the above functions, seems to work
@@ -1351,7 +1392,7 @@ export async function updateReviewListAfterChange(
     if (reviewedTitle === '') {
       throw new Error('Empty title passed')
     }
-    logInfo('updateReviewListAfterChange', `Updating full-review-list for '${reviewedTitle}' -> ${simplyDelete ? 'simplyDelete' : 'update'} with '${updatedMachineSummaryLine}'`)
+    logInfo('updateReviewListAfterChange', `----------------------- Updating full-review-list\nfor '${reviewedTitle}' -> ${simplyDelete ? 'simplyDelete' : 'update'} with '${updatedMachineSummaryLine}'`)
 
     // Get contents of full-review-list
     let reviewListContents = DataStore.loadData(fullReviewListFilename, true)
@@ -1554,10 +1595,13 @@ export function getNextNotesToReview(numToReturn: number): Array<TNote> {
 
 export async function toggleDisplayFinished(): Promise<void> {
   try {
-    logDebug('toggleDisplayFinished', `starting ...`)
+    logDebug('toggleDisplayFinished', `starting with pref='${DataStore.preference('Reviews-DisplayFinished') ?? '(not set))'}' ...`)
+    logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-DisplayFinished'))
     const savedValue = DataStore.preference('Reviews-DisplayFinished' ?? false)
     const newValue = !savedValue
     logDebug('toggleDisplayFinished', `displayFinished? toggled to ${String(newValue)}`)
+
+    // FIXME: Need to add a settings.json updater here
     DataStore.setPreference('Reviews-DisplayFinished', newValue)
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
@@ -1570,10 +1614,13 @@ export async function toggleDisplayFinished(): Promise<void> {
 
 export async function toggleDisplayOnlyDue(): Promise<void> {
   try {
-    logDebug('toggleDisplayOnlyDue', `starting ...`)
+    logDebug('toggleDisplayOnlyDue', `starting with pref='${DataStore.preference('Reviews-DisplayOnlyDue') ?? '(not set))'}' ...`)
+    logDebug('toggleDisplayFinished', typeof DataStore.preference('Reviews-DisplayOnlyDue'))
     const savedValue = DataStore.preference('Reviews-DisplayOnlyDue' ?? false)
     const newValue = !savedValue
     logDebug('toggleDisplayOnlyDue', `DisplayOnlyDue? toggled to ${String(newValue)}`)
+
+    // FIXME: Need to add a settings.json updater here
     DataStore.setPreference('Reviews-DisplayOnlyDue', newValue)
     const config: ?ReviewConfig = await getReviewSettings()
     if (!config) throw new Error('No config found. Stopping.')
