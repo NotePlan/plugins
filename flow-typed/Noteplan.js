@@ -177,7 +177,7 @@ declare interface TEditor extends CoreNoteFields {
    * @param {boolean} splitView - (optional) Open note in a new split view
    * @return {Promise<TNote>} - When the note has been opened, a promise will be returned
    */
-openNoteByDateString(dateString: string, newWindow ?: boolean, highlightStart ?: number, highlightEnd ?: number, splitView ?: boolean): Promise < TNote | void>;
+  openNoteByDateString(dateString: string, newWindow?: boolean, highlightStart?: number, highlightEnd?: number, splitView?: boolean): Promise<TNote | void>;
   /**
    * Opens a weekly calendar note by the given year and week number
    * Note: available from v3.6
@@ -669,8 +669,9 @@ declare class DataStore {
    * Note: Available from v3.5.2
    * @param {PluginObject}
    * @param {boolean}
+   * @return {Promise<PluginObject>} the pluginObject of the installed plugin
    */
-  static installPlugin(pluginObject: PluginObject, showLoading?: boolean): Promise<void>;
+  static installPlugin(pluginObject: PluginObject, showLoading?: boolean): Promise<PluginObject>;
   /**
    * Returns all installed plugins as PluginObject(s).
    * Note: Available from v3.5.2
