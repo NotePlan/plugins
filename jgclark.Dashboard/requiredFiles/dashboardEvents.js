@@ -28,8 +28,14 @@ function showItemControlDialog(dataObject) {
   }
 
   const closeDialog = () => {
+    console.log("Closing actions dialog via function")
+    // Enable keyboard shortcuts again
+    enableDashboardShortcuts()
     dialog.close()
   }
+
+  // Remove shortcuts that interfere with the dialog
+  disableDashboardShortcuts()
 
   const thisID = dataObject.itemID
   const thisNoteType = dataObject.noteType
@@ -62,24 +68,24 @@ function showItemControlDialog(dataObject) {
 
   const possibleControlTypes = [
     // date change controls
-    { displayString: 'today', controlStr: 't', sectionTypes: ['DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse }, // special controlStr to indicate change to '>today'
-    { displayString: '+1d', controlStr: '+1d', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+1b', controlStr: '+1b', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+2d', controlStr: '+2d', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: 'this week', controlStr: '+0w', sectionTypes: ['DT', 'DY', 'DO', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+1w', controlStr: '+1w', sectionTypes: ['DT', 'DY', 'DO', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+2w', controlStr: '+2w', sectionTypes: ['DT', 'DY', 'DO', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: 'this month', controlStr: '+0m', sectionTypes: ['DT', 'DY', 'DO', 'W', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: '+1m', controlStr: '+1m', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
-    { displayString: 'this quarter', controlStr: '+0q', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: 't', sectionTypes: ['DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse }, // special controlStr to indicate change to '>today'
+    { controlStr: '+1d', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+1b', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+2d', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+0w', sectionTypes: ['DT', 'DY', 'DO', 'M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+1w', sectionTypes: ['DT', 'DY', 'DO', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+2w', sectionTypes: ['DT', 'DY', 'DO', 'W', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+0m', sectionTypes: ['DT', 'DY', 'DO', 'W', 'Q', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+1m', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
+    { controlStr: '+0q', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     // other controls
-    { displayString: 'move to note', controlStr: 'movetonote', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: 'moveToNote' },
-    { displayString: 'unschedule', controlStr: 'unsched', sectionTypes: ['OVERDUE', 'TAG'], notNoteType: 'Calendar', handlingFunction: 'unscheduleItem' }, // NB: only valid for noteType 'Note'
-    { displayString: 'priority ↑', controlStr: 'priup', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateUp' },
-    { displayString: 'priority ↓', controlStr: 'pridown', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateDown' },
-    { displayString: 'change to X', controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'toggleType' },
-    { displayString: 'complete then', controlStr: 'ct', sectionTypes: ['OVERDUE', 'TAG'], handlingFunction: 'completeTaskThen' },
-    { displayString: 'Update', controlStr: 'update', sectionTypes: ['OVERDUE', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'updateItemContent' },
+    { controlStr: 'movetonote', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: 'moveToNote' },
+    { controlStr: 'priup', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateUp' },
+    { controlStr: 'pridown', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateDown' },
+    { controlStr: 'tog', sectionTypes: ['OVERDUE', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'toggleType' },
+    { controlStr: 'ct', sectionTypes: ['OVERDUE', 'TAG'], handlingFunction: 'completeTaskThen' },
+    { controlStr: 'unsched', sectionTypes: ['OVERDUE', 'TAG'], notNoteType: 'Calendar', handlingFunction: 'unscheduleItem' }, // NB: only valid for noteType 'Note'
+    { controlStr: 'update', sectionTypes: ['OVERDUE', 'DT', 'DY', 'DO', 'W', 'M', 'Q', 'TAG'], handlingFunction: 'updateItemContent' },
   ]
   const controlTypesForThisSection = possibleControlTypes.filter((t) => t.sectionTypes.includes(thisSectionType) && t.notNoteType !== thisNoteType)
   const controlStrsForThisSection = controlTypesForThisSection.map((t) => t.controlStr)
@@ -112,7 +118,7 @@ function showItemControlDialog(dataObject) {
 
     const thisControlStr = button.dataset.controlStr
     const functionToInvoke = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].handlingFunction ?? '?'
-    let buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
+    // let buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
     // console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
 
     // Extra processing for 'Change to X' type button: update the icon the button label shows
@@ -131,7 +137,7 @@ function showItemControlDialog(dataObject) {
         handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, thisItemType, event.metaKey)
       }, false)
       // Set button's text
-      button.innerHTML = buttonDisplayString
+      // button.innerHTML = buttonDisplayString
       // Set button visible
       button.style.display = "inline-block"
       added++
@@ -141,6 +147,21 @@ function showItemControlDialog(dataObject) {
     }
   }
   console.log(`- ${String(added)} button ELs added`)
+
+  // Trap for Escape key to get it to call the close function
+  // From https://stackoverflow.com/questions/27758991/css-html-modal-using-the-escape-key-click-outside-to-close
+  // Note: Seems the EL has to be on document element
+  // FIXME: this remove doesn't seem to work, so ELs build up
+  document.removeEventListener('keyup', handleEscape)
+  document.addEventListener('keyup', handleEscape)
+
+  // Trap Close button to call the close function
+  const closeButtonElem = document.querySelector('#closeButton')
+  closeButtonElem.addEventListener('click', function (event) {
+    console.log("Close button was pressed")
+    event.preventDefault() // we don't want to submit -> reload the page
+    closeDialog()
+  })
 
   // Hide or Show button row 1 depending whether it has any non-hidden buttons
   const itemControlDialogMoveControls = document.getElementById("itemControlDialogMoveControls")
@@ -181,6 +202,13 @@ function showItemControlDialog(dataObject) {
   dialog.showModal()
   // This then does work:
   // console.log(dialog.clientWidth, dialog.clientHeight)
+
+  function handleEscape(event) {
+    if (event.keyCode === 27) {
+      console.log("ESC key was pressed")
+      closeDialog()
+    }
+  }
 
   // For clicking on dialog buttons
   function handleButtonClick(id, type, controlStr, encodedFilename, encodedCurrentContent, itemType, metaModifier) {
@@ -251,11 +279,11 @@ function showProjectControlDialog(dataObject) {
   dialogItemNoteElem.innerHTML = thisNoteTitle // thisFilename
 
   const possibleControlTypes = [
-    { displayString: 'finish review <i class="fa-solid fa-flag-checkered"></i>', controlStr: 'reviewed', handlingFunction: 'reviewFinished' },
-    { displayString: 'skip +1w', controlStr: 'nr+1w', handlingFunction: 'setNextReviewDate' },
-    { displayString: 'skip +2w', controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate' },
-    { displayString: 'skip +1m', controlStr: 'nr+1m', handlingFunction: 'setNextReviewDate' },
-    { displayString: 'skip +1q', controlStr: 'nr+1q', handlingFunction: 'setNextReviewDate' },
+    { controlStr: 'finish', handlingFunction: 'reviewFinished' },
+    { controlStr: 'nr+1w', handlingFunction: 'setNextReviewDate' },
+    { controlStr: 'nr+2w', handlingFunction: 'setNextReviewDate' },
+    { controlStr: 'nr+1m', handlingFunction: 'setNextReviewDate' },
+    { controlStr: 'nr+1q', handlingFunction: 'setNextReviewDate' },
   ]
   const possibleCcontrolStrs = possibleControlTypes.map((t) => t.controlStr)
   console.log(String(possibleCcontrolStrs))
@@ -286,7 +314,7 @@ function showProjectControlDialog(dataObject) {
     }
     const thisControlStr = button.dataset.controlStr
     const functionToInvoke = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].handlingFunction ?? '?'
-    const buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
+    // const buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
     // console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
 
     // remove any previous event handlers
@@ -304,7 +332,7 @@ function showProjectControlDialog(dataObject) {
         handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, '', event.metaKey)
       }, false)
       // Set button's text
-      button.innerHTML = buttonDisplayString
+      // button.innerHTML = buttonDisplayString
       // Set button visible
       button.style.display = "inline-block"
       added++
@@ -348,36 +376,36 @@ function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, eve
   // Check if this is going to be outside available window width
   // Note: accessing dialog.clientWidth doesn't work, as dialog is not yet drawn
   // Note: not sure why window.clientWidth doesn't work either, so using inner... which then requires a fudge factor for scrollbars
-  // console.log(`Mouse at x${mousex}, y${mousey}`)
-  // console.log(`Window dimensions (approx): w${window.innerWidth}, h${window.innerHeight}`)
-  // console.log(`Dialog dimesnions: w${approxDialogWidth}, h${approxDialogHeight}`)
+  console.log(`Window dimensions (approx): w${window.innerWidth} x h${window.innerHeight}`)
+  console.log(`Mouse at x${mousex}, y${mousey}`)
+  console.log(`Dialog dimesnions: w${approxDialogWidth} x h${approxDialogHeight}`)
   let x = mousex - Math.round((approxDialogWidth + fudgeFactor) / 3)
   if (x < fudgeFactor) { x = fudgeFactor }
   if ((x + (approxDialogWidth + fudgeFactor)) > window.innerWidth) {
     x = window.innerWidth - (approxDialogWidth + fudgeFactor)
-    // console.log(`Too wide: now ${String(x)}`)
+    console.log(`Move left: now x${String(x)}`)
   }
   if (x < fudgeFactor) {
     x = fudgeFactor
-    dialog.style.width = `${String(window.innerWidth)}px`
-    // console.log(`Off left: now x=0; width=w${dialog.style.width}`)
+    dialog.style.width = `${String(window.innerWidth - fudgeFactor)}px`
+    console.log(`Off left: now x=0; width=${dialog.style.width}`)
   }
 
   let y = mousey - Math.round((approxDialogHeight + fudgeFactor) / 2)
   if (y < fudgeFactor) { y = fudgeFactor }
   if ((y + (approxDialogHeight + fudgeFactor)) > window.innerHeight) {
     y = window.innerHeight - (approxDialogHeight + fudgeFactor)
-    // console.log(`Too tall: now ${String(y)}`)
+    console.log(`Move up: now y${String(y)}`)
   }
   if (y < fudgeFactor) {
     y = fudgeFactor
-    dialog.style.height = `${String(window.innerHeight)}px`
-    // console.log(`Off top: now y=0; height=w${dialog.style.height}`)
+    dialog.style.height = `${String(window.innerHeight - fudgeFactor)}px`
+    console.log(`Off top: now y=0; height=${dialog.style.height}`)
   }
 
   dialog.style.left = `${String(x)}px`
   dialog.style.top = `${String(y)}px`
-  console.log(`-> x${x}, y${y}`)
+  console.log(`-> x${x}, y${y} / w${dialog.style.width} x h${dialog.style.height}`)
 }
 
 //--------------------------------------------------------------------------------------

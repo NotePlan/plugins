@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 27.3.2024 for v1.0.2 by @jgclark
+// Last updated 1.4.2024 for v1.1.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -46,65 +46,20 @@ const windowCustomId = `${pluginJson['plugin.id']}.main`
 // Note: this "../np.Shared" path works to the flattened np.Shared structure, but it does *not* work when running the locally-written copy of the HTML output file.
 export const resourceLinksInHeader = `
 <!-- Load in Dashboard-specific CSS -->
-<link href="dashboard.css" rel="stylesheet">
-<link href="dashboardDialog.css" rel="stylesheet">
+<link href="./dashboard.css" rel="stylesheet">
+<link href="./dashboardDialog.css" rel="stylesheet">
 
 <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
 <link href="../np.Shared/fontawesome.css" rel="stylesheet">
 <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
 <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
 <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
-`
 
-/**
- * Script to add some keyboard shortcuts to control the dashboard. (Meta=Cmd here.)
- */
-const shortcutsScript = `
-<!-- shortcuts script -->
-<script type="text/javascript" src="./shortcut.js"></script>
-<script>
-<!-- send 'turnOnAllSections' command -->
-shortcut.add("a", function() {
-  console.log("Shortcut 'a' triggered: will call turnOnAllSections command");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'turnOnAllSections', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
+<!-- Load in other scripts from np.Shared -->
+<script type="text/javascript" src="../np.Shared/shortcut.js"></script>
 
-<!-- send 'toggleOverdueSection' command -->
-shortcut.add("o", function() {
-  console.log("Shortcut 'o' triggered: will call toggleOverdueSection command");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleOverdueSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
-
-<!-- send 'toggleMonthSection' command -->
-shortcut.add("m", function() {
-  console.log("Shortcut 'm' triggered: will call toggleMonthSection command");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleMonthSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
-
-<!-- for this need to simulate checkboxClick -->
-shortcut.add("p", function() {
-  console.log("Shortcut 'p' triggered: will call togglePriorityFilter");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'togglePriorityFilter', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
-
-<!-- send 'refresh' command -->
-shortcut.add("r", function() {
-  console.log("Shortcut 'r' triggered: will call refresh");
-  sendMessageToPlugin('refresh', {});
-});
-
-<!-- send 'toggleTomorrowSection' command -->
-shortcut.add("t", function() {
-  console.log("Shortcut 't' triggered: will call toggleTomorrowSection command");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleTomorrowSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
-
-<!-- send 'toggleWeekSection' command -->
-shortcut.add("w", function() {
-  console.log("Shortcut 'w' triggered: will call toggleWeekSection command");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleWeekSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
-</script>
+<!-- Load in other scripts from this plugin -->
+<script type="text/javascript" src="./dashboardShortcuts.js"></script>
 `
 
 const commsBridge = `
@@ -573,6 +528,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     // Note: in the future the draft spec for CSS Anchor Positioning could be helpful for positioning this dialog relative to other things
     const taskDialogHTML = `
   <!----------- Single dialog that can be shown for any task-based item ----------->
+  <!-- TEST: removal of this
   <script type="text/javascript">
     function updateContent() {
     console.log("Called updateContent")
@@ -581,6 +537,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     console.log("-> "+ updatedContent)
   }
   </script>
+  -->
 
   <dialog id="itemControlDialog" class="itemControlDialog" aria-labelledby="Actions Dialog"
     aria-describedby="Actions that can be taken on items">
@@ -610,14 +567,14 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
         <div>Other controls</div>
         <div id="itemControlDialogOtherControls">
           <button class="moveNoteButton" data-control-str="movetonote">Move to note</button>
-          <button class="priorityButton" data-control-str="priup">Increase Priority</button>
-          <button class="priorityButton" data-control-str="pridown">Decrease Priority</button>
+          <button class="priorityButton" data-control-str="priup">priority ↑</button>
+          <button class="priorityButton" data-control-str="pridown">priority ↓</button>
           <button class="toggleTypeButton" data-control-str="tog">Toggle Type</button>
           <button class="completeThenButton" data-control-str="ct">Complete Then</button>
           <button class="unscheduleButton" data-control-str="unsched">Unschedule</button>
         </div>
         <div></div>
-        <div><form><button type="submit" class="mainButton">Close</button></form></div>
+        <div><form><button id="closeButton" class="mainButton">Close</button></form></div>
       </div>
     </div>
   </dialog>
@@ -633,16 +590,16 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     <div class="dialogTitle">For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b></div>
     <div class="dialogBody">
       <div class="buttonGrid" id="projectDialogButtons">
-        <div>Project controls</div>
+        <div>Project Reviews</div>
         <div id="projectControlDialogProjectControls">
-          <button class="reviewFinishedButton" data-control-str="reviewed">Finish Review</button>
-          <button class="skipReviewButton" data-control-str="nr+1w">Skip 1w</button>
-          <button class="skipReviewButton" data-control-str="nr+2w">Skip 2w</button>
-          <button class="skipReviewButton" data-control-str="nr+1m">Skip 1m</button>
-          <button class="skipReviewButton" data-control-str="nr+1q">Skip 1q</button>
+          <button data-control-str="finish"><i class="fa-solid fa-calendar-check"></i> Finish Review</button>
+          <button data-control-str="nr+1w"><i class="fa-solid fa-forward"></i> Skip 1w</button>
+          <button data-control-str="nr+2w"><i class="fa-solid fa-forward"></i> Skip 2w</button>
+          <button data-control-str="nr+1m"><i class="fa-solid fa-forward"></i> Skip 1m</button>
+          <button data-control-str="nr+1q"><i class="fa-solid fa-forward"></i> Skip 1q</button>
         </div>
         <div></div>
-        <div><form><button type="submit" class="mainButton">Close</button></form></div>
+        <div><form><button id="closeButton" class="mainButton">Close</button></form></div>
         </div>
       </div>
     </div>
@@ -670,7 +627,8 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 ` +
         `<script type="text/javascript" src="./showTimeAgo.js"></script>` + 
         `<script type="text/javascript" src="./dashboardEvents.js"></script>
-      `}${commsBridge}${shortcutsScript}`,
+      `}${commsBridge}`,
+      // + shortcutsScript
       // + resizeListenerScript
       // + unloadListenerScript
       savedFilename: filenameHTMLCopy,

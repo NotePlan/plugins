@@ -3,7 +3,7 @@
   Last updated: 26.2.2024 for v0.9.0 by @jgclark
   */
 dialog:modal {
-  max-width: 80%;
+  max-width: 90%;
 }
 
 dialog {
@@ -68,29 +68,23 @@ dialog {
   padding-block-start: 5px;
 }
 
-@layer A {
-  .dialogBody button {
-    font-size: 0.85rem;
-    font-weight: 400;
-    border-radius: 4px;
-    background: var(--bg-alt-color);
-    border: 1px solid var(--tint-color);
-    box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.3); /*#888;*/
-    padding: 1px 4px 1px 4px;
-    margin: 3px 1px;
-  }
+/* for main UI buttons */
+.mainButton { /* main UI action buttons: a little more pronounced */
+	background-color: var(--bg-alt-color);
+	font-size: 0.9rem;
+	font-weight: 600;
+	border: 1px solid var(--tint-color);
+	box-shadow: 0 1px 1px 0px rgba(0,0,0,0.3); /*#888;*/
+	padding: 2px 5px 2px 5px;
+	margin: 2px 4px;
 }
 
-/* TODO: Currently unused */
-.submitButton {
-  /* submit buttons (or what appear to be ...) */
+.dialogBody button {
   font-size: 0.85rem;
-  font-weight: 500;
-  background: var(--bg-main-color);
-  border: 1px var(--fg-main-color);
-  box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.3); /*#888;*/
-  padding: 2px 5px 2px 5px;
-  margin: 2px 4px;
+  font-weight: 400;
+  border-radius: 4px;
+  padding: 1px 4px 1px 4px;
+  margin: 3px 1px;
 }
 
 .itemActionsDialog {
@@ -101,5 +95,11 @@ dialog {
 .fullTextInput {
   width: calc(100% - 4rem);
   font-size: 0.85rem;
+  padding: 1px 4px 1px 4px;
   border-radius: 4px;
+}
+
+/* set fa icon colour to tint color */
+i.fa-solid, i.fa-regular {
+  color: var(--tint-color);
 }

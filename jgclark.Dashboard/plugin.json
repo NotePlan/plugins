@@ -8,23 +8,25 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "1.1.0",
-  "plugin.lastUpdateInfo": "1.1.0: add new 'Tomorrow' section (off by default). Fix to Overdue missing Calendar notes, markdown links. Layout tweaks.\n1.0.1: fix refresion with checklist items\n1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
-  "plugin.depdencies": {
-    "id": "np.Shared",
-    "minVersion": "0.4.7"
-  },
-  "plugin.AnotherDepdency": {
-    "id": "jgclark.QuickCapture",
-    "minVersion": "0.13.0"
-  },
+  "plugin.version": "1.1.1",
+  "plugin.lastUpdateInfo": "1.1.1: polish and bug fixes.\n1.1.0: add new 'Tomorrow' section (off by default). Fix to Overdue missing Calendar notes, markdown links. Layout tweaks.\n1.0.1: fix refresion with checklist items\n1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
+  "plugin.dependsOn": [
+    {
+      "id": "np.Shared",
+      "minVersion": "0.4.8"
+    },
+    {
+      "id": "jgclark.QuickCapture",
+      "minVersion": "0.13.0"
+    }
+  ],
   "plugin.requiredFiles": [
     "dashboard.css",
     "dashboardDialog.css",
     "dashboardEvents.js",
     "debounce.js",
     "HTMLWinCommsSwitchboard.js",
-    "shortcut.js",
+    "dashboardShortcuts.js",
     "showTimeAgo.js"
   ],
   "plugin.requiredSharedFiles": [
@@ -36,7 +38,8 @@
     "fa-regular-400.woff2",
     "fa-solid-900.woff2",
     "pluginToHTMLCommsBridge.js",
-    "encodeDecode.js"
+    "encodeDecode.js",
+    "shortcut.js"
   ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",

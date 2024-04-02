@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 26.3.2024 for v1.0.0 by @jgclark
+// Last updated 1.4.2024 for v1.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -20,6 +20,7 @@ import {
   convertMentionsToHTML,
   convertPreformattedToHTML,
   convertStrikethroughToHTML,
+  convertTimeBlockToHTML,
   convertUnderlinedToHTML,
   convertHighlightsToHTML,
   convertNPBlockIDToHTML,
@@ -425,6 +426,9 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
     // Display pre-formatted with .code style
     output = convertPreformattedToHTML(output)
 
+    // Display time blocks with .timeBlock style
+    output = convertTimeBlockToHTML(output)
+
     // Display strikethrough with .strikethrough style
     output = convertStrikethroughToHTML(output)
 
@@ -656,6 +660,7 @@ export function extendParaToAddStartTime(paras: Array<TParagraph>): Array<any> {
 }
 
 /**
+ * WARNING: DEPRECATED in favour of newer makePluginCommandButton() in HTMLView.js
  * Make HTML for a 'fake' button that is used to call (via x-callback) one of this plugin's commands.
  * Note: this is not a real button, bcause at the time I started this real <button> wouldn't work in NP HTML views, and Eduard didn't know why.
  * @param {string} buttonText to display on button
@@ -674,6 +679,7 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
 }
 
 /**
+ * FIXME: Change to makePluginCommandButton(...) calls throughout, then delete
  * Make HTML for a real button that is used to call  one of this plugin's commands.
  * Note: this is not a real button, bcause at the time I started this real <button> wouldn't work in NP HTML views, and Eduard didn't know why.
  * V2: send params for an invokePluginCommandByName call

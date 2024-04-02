@@ -10,6 +10,7 @@ import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
+import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -886,6 +887,18 @@ export function convertHighlightsToHTML(input: string): string {
       const match = capture
       output = output.replace(match, `<span class="highlighted">${match.slice(2, -2)}</span>`)
     }
+  }
+  return output
+}
+
+// Display time blocks with .timeBlock style
+// Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+export function convertTimeBlockToHTML(input: string): string {
+  let output = input
+  if (isTimeBlockLine(input)) {
+    const timeBlockPart = getTimeBlockString(input)
+    logDebug(`found time block '${timeBlockPart}'`)
+    output = output.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
   }
   return output
 }

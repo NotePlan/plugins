@@ -3,24 +3,25 @@
 // Note-level Functions
 import moment from 'moment/min/moment-with-locales'
 import {
-  RE_PLUS_DATE_G,
   hyphenatedDate,
   hyphenatedDateString,
-  toLocaleDateString,
-  RE_DAILY_NOTE_FILENAME,
-  RE_WEEKLY_NOTE_FILENAME,
-  RE_MONTHLY_NOTE_FILENAME,
-  RE_QUARTERLY_NOTE_FILENAME,
-  RE_YEARLY_NOTE_FILENAME,
+  // toLocaleDateString,
   isDailyNote,
   isWeeklyNote,
   isMonthlyNote,
   isQuarterlyNote,
   isYearlyNote,
+  RE_DAILY_NOTE_FILENAME,
+  RE_PLUS_DATE_G,
+  RE_WEEKLY_NOTE_FILENAME,
+  RE_MONTHLY_NOTE_FILENAME,
+  RE_QUARTERLY_NOTE_FILENAME,
+  RE_YEARLY_NOTE_FILENAME,
 } from '@helpers/dateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
 import { displayTitle, type headingLevelType } from '@helpers/general'
+import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
 import { sortListBy } from '@helpers/sorting'
 import { isOpen } from '@helpers/utils'
@@ -50,7 +51,7 @@ export function getNoteContextAsSuffix(filename: string, dateStyle: string): str
         ` >${hyphenatedDate(note.date)} `
       : dateStyle === 'date'
       ? // $FlowIgnore(incompatible-call)
-        ` (${toLocaleDateString(note.date)})`
+          ` (${toNPLocaleDateString(note.date)})`
       : dateStyle === 'at'
       ? // $FlowIgnore(incompatible-call)
         ` @${hyphenatedDate(note.date)} `

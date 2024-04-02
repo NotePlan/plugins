@@ -1,5 +1,5 @@
 # 🎛 Dashboard plugin
-<img alt="Example of Dashboard window" src="Dashboard-1.0.0-medium@2x.png" />
+<img alt="Example of Dashboard window" src="Dashboard-1.0.0-medium@2x.png" width="700px"/>
 
 This plugin provides a **dashboard window** that in one place shows a compact list of:
 - open tasks and checklists from today's note
@@ -9,11 +9,15 @@ This plugin provides a **dashboard window** that in one place shows a compact li
 - all open tasks and checklists that contain a particular @tag or #mention of your choosing. This can gives "deferred date" functionality (see below).
 - next few notes to review (if you use the "Projects and Reviews" plugin)
 
+
+Here's a [great video from user George Crump](https://youtu.be/dMULdFtTh2k) that shows it in action:
+    [<img width="500px" alt="thumbnail" src="./georgec-Dashboard-walk-through-thumbnail.jpeg">](https://youtu.be/dMULdFtTh2k)
+
 To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It automatically picks up the Theme from NotePlan and mimics it as far as possible (you're welcome).
 
 There are many different [Settings](#settings) to tailor what is shown according to your preferences.
 
-[<img width="120px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
 ## Interacting with items in the Dashboard
 All tasks and checklists shown in the Dashboard view can be marked as **complete** by clicking in its usual open circle or square:
@@ -64,10 +68,12 @@ The 'action buttons' available in this section are:
 ### Keyboard control
 New in v1.0 is the ability to change what is shown by typing one of the following keys:
 - <kbd>r</kbd>: refresh display
+- <kbd>a</kbd>: turn on all available sections
+- <kbd>t</kbd>: toggle showing Tomorrow section
 - <kbd>w</kbd>: toggle showing Week section
 - <kbd>m</kbd>: toggle showing Month section
+- <kbd>q</kbd>: toggle showing Quarter section
 - <kbd>o</kbd>: toggle showing Overdue section
-- <kbd>a</kbd>: turn on all available sections
 
 Note: these only work when the Dashboard window has focus (you have clicked in it).
 
@@ -78,7 +84,9 @@ These shortcuts are also available as x-callback calls. To use these append the 
 | refresh | refresh |
 | toggle week | toggleWeekSection |
 | toggle month | toggleMonthSection |
+| toggle quarter | toggleQuarterSection |
 | toggle overdue | toggleOverdueSection |
+| toggle overdue | toggleTomorrowSection |
 | turn on all sections | turnOnAllSections |
 
 ### Updating the Dashboard automatically

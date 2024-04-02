@@ -80,7 +80,7 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     let tempSel = []
     const rootSel = [] // for special :root selector which sets variables picked up in several places below
     let styleObj: Object
-    const isLightTheme = themeJSON.style === 'Light'
+    // const isLightTheme = themeJSON.style === 'Light' // used to be used
 
     // Set 'html':
     // - main font size (as global variable) from:
@@ -169,40 +169,47 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     }
     // NP doesn't support H5 styling
 
-    // Set core table features from theme
+    // Set core colour features from theme
     const altColor = RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30'
     rootSel.push(`--bg-alt-color: ${altColor}`)
     const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
     rootSel.push(`--tint-color: ${tintColor}`)
 
+    // Set font for native controls (otherwise will go to Apple default)
+    output.push(makeCSSSelector('button, input', [
+      `font-family: "${bodyFont}"`,
+    ]))
+
     // Set a few styles here that require computed light and dark settings
-    if (isLightTheme) {
-      output.push(makeCSSSelector('button, input', [
-        'background-color: #FFFFFF',
-        `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
-      ]))
-      output.push(
-        makeCSSSelector('.fake-button a', [
-          'background-color: #FFFFFF',
-          'border-color: #DFE0E0',
-          'box-shadow: 0 1px 1px #CBCBCB',
-        ]),
-      )
-    } else {
-      // dark theme
-      output.push(makeCSSSelector('button, input', [
-        'background-color: #5E5E5E',
-        `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
-      ]))
-      output.push(
-        makeCSSSelector('.fake-button a', [
-          'color: var(--fg-main-color)',
-          'background-color: #5E5E5E',
-          'border-color: #5E5E5E',
-          'box-shadow: 0 -1px 1px #6F6F6F',
-        ]),
-      )
-    }
+    // Note: Now found a way to do this just in CSS so moved to plugins
+    // if (isLightTheme) {
+    //   output.push(makeCSSSelector('button, input', [
+    //     'color: var(--fg-main-color)',
+    //     'background-color: var(--bg-alt-color)',
+    //   ]))
+    //   output.push(
+    //     makeCSSSelector('.fake-button a', [
+    //       'color: var(--fg-main-color)',
+    //       'background-color: var(--bg-alt-color)',
+    //       'border-color: #DFE0E0',
+    //       'box-shadow: 0 1px 1px #CBCBCB',
+    //     ]),
+    //   )
+    // } else {
+    //   // dark theme
+    //   output.push(makeCSSSelector('button, input', [
+    //     'color: var(--fg-main-color)',
+    //     'background-color: var(--bg-alt-color)',
+    //   ]))
+    //   output.push(
+    //     makeCSSSelector('.fake-button a', [
+    //       'color: var(--fg-main-color)',
+    //       'background-color: var(--bg-alt-color)',
+    //       'border-color: #5E5E5E',
+    //       'box-shadow: 0 -1px 1px #6F6F6F',
+    //     ]),
+    //   )
+    // }
 
     // Set italic text if present
     tempSel = []
@@ -377,10 +384,13 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       output.push(makeCSSSelector('.priority4', tempSel))
     }
 
-    // Set class for Time Blocks' if present
+    // Set class for Time Blocks if present
+    // Note: fudges size down in the samw way that NP seems to under the hood
     tempSel = []
     tempSel.push(`color: ${RGBColourConvert(themeJSON.editor.timeBlockColor) ?? 'inherit'}`)
     tempSel.push(`font-family: "Menlo-Regular"`)
+    const smallerFontSize = Math.round(baseFontSize * 0.84)
+    tempSel.push(`font-size: ${smallerFontSize}px;`)
     tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
     output.push(makeCSSSelector('.timeBlock', tempSel))
 

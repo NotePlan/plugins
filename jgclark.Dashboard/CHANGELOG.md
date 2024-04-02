@@ -1,8 +1,15 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-<!-- - added keyboard controls, which work when the window has focus: 
-   - <kbd>p</kbd>: toggle 'Priority' filter -->
+<!-- - Trying to get dependencies sorted more fully ??? -->
+## [1.1.1] - 2024-04-01
+### New
+- now shows time blocks as your theme does
+- callback to toggle showing Quarter section (for @George65)
+### Improved
+- theming improvements
+### Fixes
+- keyboard controls are now disabled when the control dialog is showing (thx @drb)
 
 ## [1.1.0] - 2024-03-28
 ### New
