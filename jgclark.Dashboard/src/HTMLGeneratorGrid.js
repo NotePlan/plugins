@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 1.4.2024 for v1.1.1 by @jgclark
+// Last updated 2.4.2024 for v1.1.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -15,10 +15,8 @@ import { getDemoDataForDashboard } from './demoDashboard'
 import {
   addNoteOpenLinkToString,
   getSettings,
-  // makeFakeCallbackButton,
   makeNoteTitleWithOpenActionFromFilename,
   makeParaContentToLookLikeNPDisplayInHTML,
-  makeRealCallbackButton,
   type Section,
   type SectionItem,
 } from './dashboardHelpers'
@@ -29,7 +27,10 @@ import {
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { showHTMLV2 } from '@helpers/HTMLView'
+import {
+  makePluginCommandButton,
+  showHTMLV2,
+} from '@helpers/HTMLView'
 import { addTrigger } from '@helpers/NPFrontMatter'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
@@ -270,19 +271,19 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           const durationName = (section.sectionType === 'DT') ? 'today'
             : (section.sectionType === 'W') ? 'this week'
               : (section.sectionType === 'M') ? 'this month' : '(error)'
-          const xcbButton1 = makeRealCallbackButton(
+          const PCButton1 = makePluginCommandButton(
             `<i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i>`,
             'jgclark.Dashboard',
             'addTask',
             section.filename,
             `Add a new task to ${durationName}'s note`)
-          const xcbButton2 = makeRealCallbackButton(
+          const PCButton2 = makePluginCommandButton(
             `<i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i>`,
             'jgclark.Dashboard',
             'addChecklist',
             section.filename,
             `Add a new checklist to ${durationName}'s note`)
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItems}', `${xcbButton1}&nbsp;${xcbButton2}`)
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItems}', `${PCButton1}&nbsp;${PCButton2}`)
         }
 
         if (section.description.includes('{addItemsNextPeriod}')) {
@@ -292,58 +293,58 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
           const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, durationType).toDate(), durationType)?.filename
           logDebug('showDashboard', nextPeriodFilename)
           if (nextPeriodFilename) {
-            const xcbButton1 = makeRealCallbackButton(
+            const PCButton1 = makePluginCommandButton(
               `<i class="fa-regular fa-circle-arrow-right ${section.sectionTitleClass}"></i>`,
               'jgclark.Dashboard',
               'addTask',
               nextPeriodFilename,
               `Add a new task to note for next ${durationType}`)
-            const xcbButton2 = makeRealCallbackButton(
+            const PCButton2 = makePluginCommandButton(
               `<i class="fa-regular fa-square-arrow-right ${section.sectionTitleClass}"></i>`,
               'jgclark.Dashboard',
               'addChecklist',
               nextPeriodFilename,
               `Add a new checklist to note for next ${durationType}`)
-            sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItemsNextPeriod}', `${xcbButton1}&nbsp;${xcbButton2}`)
+            sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItemsNextPeriod}', `${PCButton1}&nbsp;${PCButton2}`)
           }
         }
 
         if (section.description.includes('{scheduleAllYesterdayToday}')) {
-          const xcbButton = makeRealCallbackButton(
+          const PCButton = makePluginCommandButton(
             'All\u00A0<i class="fa-solid fa-right-long"></i>\u00A0Today',
             'jgclark.Dashboard',
             'schedule yesterday to today',
             'true', // = refresh afterwards
             'Move or schedule all open items from yesteday to today')
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllYesterdayToday}', xcbButton)
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllYesterdayToday}', PCButton)
         }
         if (section.description.includes('{scheduleAllOverdueToday}')) {
-          const xcbButton = makeRealCallbackButton(
+          const PCButton = makePluginCommandButton(
             'All\u00A0<i class="fa-solid fa-right-long"></i>\u00A0Today',
             'jgclark.Dashboard',
             'schedule overdue to today',
             'true', // = refresh afterwards
             'Move or schedule all overdue items to today')
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllOverdueToday}', xcbButton)
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllOverdueToday}', PCButton)
         }
         if (section.description.includes('{scheduleAllTodayTomorrow}')) {
-          const xcbButton = makeRealCallbackButton(
+          const PCButton = makePluginCommandButton(
             'All\u00A0Today\u00A0<i class="fa-solid fa-right-long"></i>\u00A0Tomorrow',
             'jgclark.Dashboard',
             'schedule today to tomorrow',
             'true', // = refresh afterwards
             'Move or schedule all remaining open items to tomorrow')
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllTodayTomorrow}', xcbButton)
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllTodayTomorrow}', PCButton)
         }
 
         if (section.description.includes('{startReviews}')) {
-          const xcbButton = makeRealCallbackButton(
+          const PCButton = makePluginCommandButton(
             '<i class="fa-regular fa-play"></i>\u00A0Start\u00A0Reviews',
             'jgclark.Reviews',
             'start reviews',
             '',
             'Start reviewing your project notes')
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{startReviews}', xcbButton)
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{startReviews}', PCButton)
         }
 
         outputArray.push(`        <div class="sectionDescription">${sectionDescriptionToUse}`)
@@ -508,7 +509,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     )}</span> items closed</div>`
 
     // Write time and refresh info
-    const refreshXCallbackButton = makeRealCallbackButton(
+    const refreshXCallbackButton = makePluginCommandButton(
       `<i class="fa-regular fa-arrow-rotate-right"></i> Refresh`,
       'jgclark.Dashboard',
       'show dashboard',
@@ -592,7 +593,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       <div class="buttonGrid" id="projectDialogButtons">
         <div>Project Reviews</div>
         <div id="projectControlDialogProjectControls">
-          <button data-control-str="finish"><i class="fa-solid fa-calendar-check"></i> Finish Review</button>
+          <button data-control-str="finish"><i class="fa-regular fa-calendar-check"></i> Finish Review</button>
           <button data-control-str="nr+1w"><i class="fa-solid fa-forward"></i> Skip 1w</button>
           <button data-control-str="nr+2w"><i class="fa-solid fa-forward"></i> Skip 2w</button>
           <button data-control-str="nr+1m"><i class="fa-solid fa-forward"></i> Skip 1m</button>

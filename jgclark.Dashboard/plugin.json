@@ -8,8 +8,8 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "1.1.1",
-  "plugin.lastUpdateInfo": "1.1.1: polish and bug fixes.\n1.1.0: add new 'Tomorrow' section (off by default). Fix to Overdue missing Calendar notes, markdown links. Layout tweaks.\n1.0.1: fix refresion with checklist items\n1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
+  "plugin.version": "1.1.2",
+  "plugin.lastUpdateInfo": "1.1.2: ???\n1.1.1: polish and bug fixes.\n1.1.0: add new 'Tomorrow' section (off by default). Fix to Overdue missing Calendar notes, markdown links. Layout tweaks.\n1.0.1: fix refresion with checklist items\n1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
@@ -129,9 +129,21 @@
       "hidden": true
     },
     {
+      "name": "toggleQuarterSection",
+      "description": "toggle whether Quarter section is shown",
+      "jsFunction": "toggleQuarterSection",
+      "hidden": true
+    },
+    {
       "name": "toggleTomorrowSection",
       "description": "toggle whether Tomorrow section is shown",
       "jsFunction": "toggleTomorrowSection",
+      "hidden": true
+    },
+    {
+      "name": "toggleWeekSection",
+      "description": "toggle whether Week section is shown",
+      "jsFunction": "toggleWeekSection",
       "hidden": true
     },
     {

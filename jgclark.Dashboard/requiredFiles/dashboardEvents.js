@@ -529,10 +529,10 @@ function addReviewProjectEventListeners() {
  * Add an event listener to all class="XCButton" items
  */
 function addCallbackButtonEventListeners() {
-  // Register click handlers for each 'XCBButton' on the window with URL to call
-  allXCBButtons = document.getElementsByClassName("XCBButton")
+  // Register click handlers for each 'PCButton' on the window with URL to call
+  allPCButtons = document.getElementsByClassName("PCButton")
   let added = 0
-  for (const button of allXCBButtons) {
+  for (const button of allPCButtons) {
     const thisURL = button.dataset.callbackUrl
     // add event handler and make visible
     console.log(`- displaying button for XCB ${thisURL}`)

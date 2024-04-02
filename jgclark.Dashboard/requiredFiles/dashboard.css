@@ -196,7 +196,7 @@ button, input {
 }
 
 /* For buttons that trigger callbacks */
-.XCBButton {
+.PCButton {
 	font-weight: 500;
 	border-style: none;
 	border-radius: 4px;
@@ -207,7 +207,7 @@ button, input {
 	font-size: 0.85rem;
 }
 /* Set link text to plain (again) TODO: if internal calls used this can be removed */
-.XCBButton a {
+.PCButton a {
 	font-size: 0.85rem;
 	text-decoration: none;
 	color: var(--fg-main-color);

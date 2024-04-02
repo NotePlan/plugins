@@ -298,6 +298,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
     // Note: This takes 100ms
+    // TODO: extend to deal with 12hr (AM/PM) time blocks
     if (config.separateSectionForReferencedNotes) {
       const sortedOpenParas = sortListBy(openParas, ['-priority', 'timeStr'])
       const sortedRefParas = sortListBy(refParas, ['-priority', 'timeStr'])
@@ -317,6 +318,28 @@ export function getOpenItemParasForCurrentTimePeriod(
     logError('getOpenItemParasForCurrentTimePeriod', err.message)
     return [[], []] // for completeness
   }
+}
+
+/**
+ * TODO: use me above?
+ * Parses and sorts dates from items based on the content field.
+ * @author @jgclark, @dwertheimer, ChatGPT
+ * @param {Array<TParagraph>} items - Array of Paragraphs with a content field.
+ * @returns {Array<TParagraph>} - Array of Paragraphs sorted by the computed start time represented in the text, ignoring ones that do not contain times.
+ */
+function parseAndSortDates(items: Array<TParagraph>): Array<ParsedTextDateRange> {
+  const withDates = items
+    .map(item => ({
+      item,
+      date: Calendar.parseDateText(item.content)[0]?.start ?? null
+    })) // Map each item to an object including both the item and the parsed start date.
+    .filter(({ date }) => date != null) // Filter out items without a valid start date.
+
+  // Sort the intermediate structure by the start date and map back to the original items.
+  const sortedItems = withDates.sort((a, b) => a.date - b.date)
+    .map(({ item }) => item)
+
+  return sortedItems
 }
 
 /**
@@ -620,6 +643,8 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
 }
 
 /**
+ * FIXME: write some tests
+ * FIXME: extend to allow AM/PM times as well
  * Extend the paragraph object with a .timeStr property which comes from the start time of a time block, or else 'none' (which will then sort after times)
  * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
@@ -679,8 +704,8 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
 }
 
 /**
- * FIXME: Change to makePluginCommandButton(...) calls throughout, then delete
- * Make HTML for a real button that is used to call  one of this plugin's commands.
+ * WARNING: DEPRECATED in favour of newer makePluginCommandButton() in HTMLView.js
+ * Make HTML for a real button that is used to call one of this plugin's commands.
  * Note: this is not a real button, bcause at the time I started this real <button> wouldn't work in NP HTML views, and Eduard didn't know why.
  * V2: send params for an invokePluginCommandByName call
  * V1: send URL for x-callback
@@ -692,13 +717,9 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
  * @returns {string}
  */
 export function makeRealCallbackButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
-  // const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
-  // let output = (tooltipText)
-  // ? `<button class="XCBButton tooltip"><a href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></button>`
-  // : `<button class="XCBButton"><a href="${xcallbackURL}">${buttonText}</a></button>`
+  const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
   const output = (tooltipText)
-    // ? `<button class="XCBButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}<span class="tooltiptext">${tooltipText}</span></button>`
-    ? `<button class="XCBButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}</button>`
-    : `<button class="XCBButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}" >${buttonText}</button>`
+    ? `<button class="XCBButton tooltip"><a href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></button>`
+    : `<button class="XCBButton"><a href="${xcallbackURL}">${buttonText}</a></button>`
   return output
 }

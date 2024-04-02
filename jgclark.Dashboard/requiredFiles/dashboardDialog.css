@@ -14,7 +14,7 @@ dialog {
   padding: 0rem;
   border: solid 1px var(--tint-color);
   border-radius: 0.5em;
-  box-shadow: 0px 0px 10px 2px rgba(0,0,0,0.3); /*#888;*/
+  box-shadow: 0px 0px 10px 2px rgba(0,0,0,0.4);
 }
 
 .dialogTitle {
@@ -44,7 +44,6 @@ dialog {
 
 .buttonGrid {
   display: grid;
-  /* grid-template-columns: max-content minmax(15rem, 28rem); */
   grid-template-columns: max-content minmax(15rem, auto);
   column-gap: 0.3rem;
   row-gap: 0.3rem;
@@ -53,8 +52,7 @@ dialog {
 }
 
 .buttonGrid div:nth-child(odd) {
-  align-self: center; /*start;*/
-  /* padding-block-start: 5px; */
+  align-self: center;
   justify-self: end;
 }
 
@@ -68,13 +66,12 @@ dialog {
   padding-block-start: 5px;
 }
 
-/* for main UI buttons */
-.mainButton { /* main UI action buttons: a little more pronounced */
+/* for Dialog main buttons: a little more pronounced */
+.mainButton {
 	background-color: var(--bg-alt-color);
 	font-size: 0.9rem;
 	font-weight: 600;
 	border: 1px solid var(--tint-color);
-	box-shadow: 0 1px 1px 0px rgba(0,0,0,0.3); /*#888;*/
 	padding: 2px 5px 2px 5px;
 	margin: 2px 4px;
 }
@@ -89,7 +86,6 @@ dialog {
 
 .itemActionsDialog {
   max-width: 32rem;
-  /* max-height: 25rem; */
 }
 
 .fullTextInput {
