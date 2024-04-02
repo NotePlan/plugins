@@ -2,6 +2,10 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.4.8] - 2024-04-01 @jgclark
+
+- add 'shortcut.js' script
+
 ## [0.4.7] - 2023-10-16 @dwertheimer
 
 - minor updates to Root's WebView debug wrapper
