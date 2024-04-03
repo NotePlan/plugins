@@ -89,10 +89,11 @@ dialog {
 }
 
 .fullTextInput {
-  width: calc(100% - 4rem);
+  width: calc(100% - 5rem);
   font-size: 0.85rem;
-  padding: 1px 4px 1px 4px;
+  padding: 3px 4px 3px 4px;
   border-radius: 4px;
+  background-color: var(--bg-alt-color);
 }
 
 /* set fa icon colour to tint color */

@@ -194,7 +194,7 @@ function showItemControlDialog(dataObject) {
   itemControlDialogOtherControls.previousElementSibling.style.display = (numICDOCBShown === 0) ? "none" : "block"
 
   // Set place on the screen for dialog to appear
-  const approxDialogWidth = 490 // TODO: can we do better than this?
+  const approxDialogWidth = 500 // TODO: can we do better than this?
   const approxDialogHeight = 210
   setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event)
 
