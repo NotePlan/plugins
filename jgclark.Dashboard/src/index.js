@@ -51,7 +51,10 @@ const thisPluginID = 'jgclark.Dashboard'
 export async function init(): Promise<void> {
   try {
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
-    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
+    const res = await DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
+    if (res.code > 0) {
+      logWarn(pluginJson, `init::installOrUpdatePlugins check -> code ${String(res.code)} message ${res.message}`)
+    }
   } catch (error) {
     logError(`${thisPluginID}/init`, JSP(error))
   }

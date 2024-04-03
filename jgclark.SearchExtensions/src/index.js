@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // More advanced searching
 // Jonathan Clark
-// Last updated 7.12.2023 for v1.3.0
+// Last updated 3.4.2024 for v1.0.0+
 //-----------------------------------------------------------------------------
 
 export {
@@ -10,6 +10,7 @@ export {
   saveSearch,
   searchOverAll,
   searchOpenTasks,
+  searchOpenChecklists,
   searchOverNotes,
   searchOverCalendar
 } from './saveSearch'
@@ -27,16 +28,17 @@ const pluginID = "jgclark.SearchExtensions"
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
+import { JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 
-export function init(): void {
+export async function init(): Promise<void> {
   try {
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
-    DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
-      pluginUpdated(pluginJson, r),
-    )
+    const res = await DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
+    if (res.code > 0) {
+      logWarn(pluginJson, `init::installOrUpdatePlugins check -> code ${String(res.code)} message ${res.message}`)
+    }
   } catch (error) {
     logError(pluginID, error.message)
     logError(pluginID, JSP(error))
@@ -50,7 +52,7 @@ export function onSettingsUpdated(): void {
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logInfo(pluginID, `onUpdateOrInstall ...`)
-    let updateSettingsResult = updateSettingData(pluginJson)
+    const updateSettingsResult = updateSettingData(pluginJson)
     logInfo(pluginID, `- updateSettingData code: ${updateSettingsResult}`)
 
     // Tell user the plugin has been updated
