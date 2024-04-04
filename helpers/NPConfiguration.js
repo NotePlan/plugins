@@ -56,7 +56,7 @@ export async function initConfiguration(pluginJsonData: any): Promise<any> {
  * update setting data in the event plugin.settings object has been updated
  * @author @codedungeon
  * @param {any} pluginJsonData - plugin.json data for which plugin is being migrated
- * @return {number} update result (1 settings update, 0 no update necessary, -1 update failed)
+ * @return {number} update result (1 settings updated, 0 no update necessary, -1 update failed)
  */
 export function updateSettingData(pluginJsonData: any): number {
   let updateResult = 0
@@ -80,12 +80,12 @@ export function updateSettingData(pluginJsonData: any): number {
   // dbw did the following logging to try to track it down but it looks like, JS thinks that DataStore is not an object at times
   // and yet, somehow the migration actually does work and migrates new settings. So, I'm not sure what's going on here.
   // we are going to leave this alone for the time being, but if you see this error again, please uncomment the following to keep hunting
-  // logDebug(
-  //   'NPConfiguration/updateSettingData',
-  //   `typeof DataStore: ${typeof DataStore} isArray:${String(
-  //     Array.isArray(DataStore),
-  //   )} typeof DataStore.settings: ${typeof DataStore?.settings} typeof newSettings: ${typeof newSettings}`,
-  // )
+  logDebug(
+    'NPConfiguration/updateSettingData',
+    `typeof DataStore: ${typeof DataStore} isArray:${String(
+      Array.isArray(DataStore),
+    )} typeof DataStore.settings: ${typeof DataStore?.settings} typeof newSettings: ${typeof newSettings}`,
+  )
   // logDebug(`NPConfiguration/updateSettingData: Object.keys(DataStore): ${Object.keys(DataStore).join(',')}`)
   // logDebug('currentSettingData:', JSP(currentSettingData, 2))
   // logDebug('newSettings:', JSP(newSettings, 2))
@@ -411,6 +411,7 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
   const start = new Date()
   const pluginsToMigrate = Array.isArray(pluginJson['offerToDownloadPlugin']) ? pluginJson['offerToDownloadPlugin'] : [pluginJson['offerToDownloadPlugin']]
   if (pluginsToMigrate.length) {
+    logInfo(pluginJson, `migrateCommandsIfNecessary: found ${pluginsToMigrate.length} plugins to check to migrate [${JSON.stringify(pluginsToMigrate)}] ...`)
     await installPlugins(pluginsToMigrate, pluginJson)
   }
   logDebug(pluginJson, `migrateCommandsIfNecessary() took ${timer(start)}`)
@@ -423,9 +424,10 @@ export async function migrateCommandsIfNecessary(pluginJson: any): Promise<void>
 export async function installDependencies(pluginJson: any): Promise<void> {
   if (!pluginJson['plugin.dependsOn']) return
   const start = new Date()
-  const pluginsToMigrate = Array.isArray(pluginJson['plugin.dependsOn']) ? pluginJson['plugin.dependsOn'] : [pluginJson['plugin.dependsOn']]
-  if (pluginsToMigrate.length) {
-    await installPlugins(pluginsToMigrate, pluginJson)
+  const pluginDependencies = Array.isArray(pluginJson['plugin.dependsOn']) ? pluginJson['plugin.dependsOn'] : [pluginJson['plugin.dependsOn']]
+  if (pluginDependencies.length) {
+    logInfo(pluginJson, `installDependencies: found ${pluginDependencies.length} plugins to check are installed [${JSON.stringify(pluginDependencies)}] ...`)
+    await installPlugins(pluginDependencies, pluginJson)
   }
   logDebug(pluginJson, `installDependencies() took ${timer(start)}`)
 }
@@ -504,5 +506,26 @@ export async function getPluginList(showInstalledOnly: boolean = false, installe
   } catch (error) {
     logError(`getPluginList: caught error: ${JSP(error)}`)
     return []
+  }
+}
+
+/**
+ * Get a setting value from another plugin, or use a default
+ * @author @jgclark
+ * @param {string} pluginID 
+ * @param {string} settingName 
+ * @param {any} defaultValue 
+ * @returns {any}
+ */
+// eslint-disable-next-line no-unused-vars
+export async function getSettingFromAnotherPlugin(pluginID: string, settingName: string, defaultValue: any): Promise<any> {
+  try {
+    const otherConfig: any = await DataStore.loadJSON(`../${pluginID}/settings.json`)
+    const thisSetting = (otherConfig?.settingName)
+      ? otherConfig.settingName : defaultValue
+    logDebug('getSettingFromAnotherPlugin', `-> ${typeof thisSetting}: ${thisSetting}`)
+    return thisSetting
+  } catch (error) {
+    logError('getSettingFromAnotherPlugin', `getSettingFromAnotherPlugin: caught error: ${JSP(error)}`)
   }
 }

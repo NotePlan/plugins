@@ -13,7 +13,7 @@ addContentEventListeners()
 
 addReviewProjectEventListeners()
 
-addCallbackButtonEventListeners()
+addCommandButtonEventListeners()
 
 //--------------------------------------------------------------------------------------
 // Show Modal Dialogs
@@ -526,29 +526,25 @@ function addReviewProjectEventListeners() {
 }
 
 /**
- * Add an event listener to all class="XCButton" items
+ * Add an event listener to all class="PCButton" items
  */
-function addCallbackButtonEventListeners() {
+function addCommandButtonEventListeners() {
   // Register click handlers for each 'PCButton' on the window with URL to call
   allPCButtons = document.getElementsByClassName("PCButton")
   let added = 0
   for (const button of allPCButtons) {
-    const thisURL = button.dataset.callbackUrl
+    // const thisURL = button.dataset.callbackUrl
     // add event handler and make visible
-    console.log(`- displaying button for XCB ${thisURL}`)
+    console.log(`- displaying button for PCB function ${button.dataset.command}`)
     button.addEventListener('click', function (event) {
       event.preventDefault()
-      // console.log(`Attempting to call URL ${thisURL} ...`)
-      // const myRequest = new Request(thisURL) // normally has await ...
-      console.log(`Attempting to send message to plugin ${thisURL} ...`)
-      // onClickDashboardItem({ itemID: id, type: type, controlStr: controlStr, encodedFilename: encodedFilename, encodedContent: encodedCurrentContent })
+      console.log(`Attempting to send plugin command ${button.dataset.command} ...`)
       const theseCommandArgs = (button.dataset.commandArgs).split(',')
       sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
     }, false)
     added++
   }
-  console.log(`- ${String(added)} button ELs added`)
-
+  console.log(`- ${String(added)} PCButton ELs added`)
 }
 
 //--------------------------------------------------------------------------------------

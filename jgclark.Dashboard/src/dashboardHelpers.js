@@ -1,18 +1,22 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 1.4.2024 for v1.0.0 by @jgclark
+// Last updated 4.4.2024 for v1.1.2 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 // import { showDashboard } from './HTMLGeneratorGrid'
+import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
   getAPIDateStrFromDisplayDateStr,
   includesScheduledFutureDate,
 } from '@helpers/dateTime'
-import { createRunPluginCallbackUrl, displayTitle } from "@helpers/general"
+import {
+  createRunPluginCallbackUrl,
+  displayTitle,
+} from "@helpers/general"
 import {
   simplifyNPEventLinksForHTML,
   simplifyInlineImagesForHTML,
@@ -30,9 +34,14 @@ import {
 import { filterOutParasInExcludeFolders } from '@helpers/note'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
+  findEndOfActivePartOfNote,
+  findHeadingStartsWith,
+  findStartOfActivePartOfNote,
   getTaskPriority,
   removeTaskPriorityIndicators,
+  smartPrependPara,
 } from '@helpers/paragraph'
+import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import {
   RE_ARROW_DATES_G,
   RE_SCHEDULED_DATES_G,
@@ -51,7 +60,10 @@ import {
   stripTodaysDateRefsFromString
 } from '@helpers/stringTransforms'
 import { getTimeBlockString, isTimeBlockPara } from '@helpers/timeblocks'
-import { showMessage } from '@helpers/userInput'
+import {
+  displayTitleWithRelDate,
+  showMessage
+} from '@helpers/userInput'
 import {
   isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled,
   removeDuplicates
@@ -105,6 +117,7 @@ export type dashboardConfigType = {
   includeFolderName: boolean,
   includeTaskContext: boolean,
   newTaskSectionHeading: string,
+  headingLevel: number,
   rescheduleNotMove: boolean,
   autoAddTrigger: boolean,
   excludeChecklistsWithTimeblocks: boolean,
@@ -153,6 +166,7 @@ export async function getSettings(): Promise<any> {
       DataStore.setPreference('Dashboard-filterPriorityItems', false)
     }
     // logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
+
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -722,4 +736,86 @@ export function makeRealCallbackButton(buttonText: string, pluginName: string, c
     ? `<button class="XCBButton tooltip"><a href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></button>`
     : `<button class="XCBButton"><a href="${xcallbackURL}">${buttonText}</a></button>`
   return output
+}
+
+/**
+ * Move a task or checklist from one calendar note to another.
+ * It's designed to be used when the para itself is not available; the para will try to be identified from its filename and content, and it will throw an error if it fails.
+ * If 'headingToPlaceUnder' is provided, para is added after it (with heading being created at effective top of note if necessary).
+ * If 'headingToPlaceUnder' the para will be *prepended* to the effective top of the destination note.
+ * @author @jgclark
+ * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
+ * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
+ * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
+ * @param {string} paraContent content of the para to move.
+ * @param {string?} headingToPlaceUnder which will be created if necessary
+ * @returns {boolean} success?
+ */
+export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): Promise<boolean> {
+  logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr} under heading '${headingToPlaceUnder}'`)
+  try {
+    // Get calendar note to use
+    const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
+    const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))
+    // Don't proceed unless we have valid from/to notes
+    if (!fromNote || !toNote) {
+      logError('moveItemBetweenCalendarNotes', `- Can't get calendar note for ${NPFromDateStr} and/or ${NPToDateStr}`)
+      return false
+    }
+
+    // find para in the fromNote
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, paraContent)
+    if (typeof possiblePara === 'boolean') {
+      throw new Error('moveItemBetweenCalendarNotes: no para found')
+    }
+    const itemType = possiblePara?.type
+
+    // add to toNote
+    if (headingToPlaceUnder === '') {
+      logDebug('moveItemBetweenCalendarNotes', `- Prepending type ${itemType} '${paraContent}' to '${displayTitle(toNote)}'`)
+      smartPrependPara(toNote, paraContent, itemType)
+    } else {
+      logDebug('moveItemBetweenCalendarNotes', `- Adding under heading '${headingToPlaceUnder}' in '${displayTitle(toNote)}'`)
+      // Note: this doesn't allow setting heading level ...
+      // toNote.addParagraphBelowHeadingTitle(paraContent, itemType, headingToPlaceUnder, false, true)
+      // so replace with one half of /qath:
+      const shouldAppend = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'shouldAppend', false)
+      const matchedHeading = findHeadingStartsWith(toNote, headingToPlaceUnder)
+      logDebug('addTextToNoteHeading', `Adding line '${paraContent}' to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`)
+      if (matchedHeading !== '') {
+        // Heading does exist in note already
+        toNote.addParagraphBelowHeadingTitle(
+          paraContent,
+          itemType,
+          (matchedHeading !== '') ? matchedHeading : headingToPlaceUnder,
+          shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
+          true, // create heading if needed (possible if supplied via headingArg)
+        )
+      } else {
+        const headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
+        const headingMarkers = '#'.repeat(headingLevel)
+        const headingToUse = `${headingMarkers} ${headingToPlaceUnder}`
+        const insertionIndex = shouldAppend
+          ? findEndOfActivePartOfNote(toNote) + 1
+          : findStartOfActivePartOfNote(toNote)
+        logDebug('moveItemBetweenCalendarNotes', `- adding new heading '${headingToUse}' at line index ${insertionIndex} ${shouldAppend ? 'at end' : 'at start'}`)
+        toNote.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
+        logDebug('moveItemBetweenCalendarNotes', `- then adding text '${paraContent}' after `)
+        toNote.insertParagraph(paraContent, insertionIndex + 1, itemType)
+      }
+    }
+
+    // Assuming that's not thrown an error, now remove from fromNote
+    logDebug('moveItemBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
+    fromNote.removeParagraph(possiblePara)
+
+    // Ask for cache refresh for these notes
+    DataStore.updateCache(fromNote, false)
+    DataStore.updateCache(toNote, false)
+
+    return true
+  } catch (err) {
+    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraContent}} from ${NPFromDateStr} to ${NPToDateStr}`)
+    return false
+  }
 }

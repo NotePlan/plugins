@@ -1,8 +1,11 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-## [1.1.2] - 2024-04-???
-<!-- - Trying to get dependencies sorted more fully ??? -->
+## [1.1.3] - 2024-04-04
+- Now offers to download 'Shared Resources' plugin (which it relies upon) if it isn't already
+- When needing to create a new Heading for a moved task, now correctly uses 'headingLevel' from QuickCapture settings (if installed) (thanks @Stacey)
+
+## [1.1.2] - 2024-04-02
 - callback to toggle showing Quarter section (for @George65)
 
 ## [1.1.1] - 2024-04-02
