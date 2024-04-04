@@ -240,7 +240,7 @@ export function semverVersionToNumber(version: string): number {
  * @author @dwertheimer
  * @param {{ code: number, message: string }} result
  */
-export async function pluginUpdated(pluginJson: any, result: { code: number, message: string }): Promise<void> {
+export async function pluginUpdated(pluginJson: any, result: { code: number, message: string }, installSilently: boolean = false): Promise<void> {
   // result.codes = 0=no update, 1=updated, 2=installed, -1=error
   if (result.code >= 1) {
     const wasUpdated = result.code === 1
@@ -249,20 +249,22 @@ export async function pluginUpdated(pluginJson: any, result: { code: number, mes
     logDebug(pluginJson, `pluginUpdated: newPluginJson:  ${newPluginJson['plugin.id']} ${newPluginJson['plugin.version']}`)
     // CommandBar.hide() // hide any open CommandBar before we open another prompt
     if (newPluginJson) {
-      const hasChangelog = newPluginJson['plugin.changelog']
-      const hasUpdateMessage = newPluginJson['plugin.lastUpdateInfo']
-      const updateMessage = hasUpdateMessage ? `Latest changes include:\n"${hasUpdateMessage}"\n\n` : ''
-      const version = newPluginJson['plugin.version']
-      const dialogMsg = `The '${newPluginJson['plugin.name']}' plugin ${
-        wasUpdated ? 'was automatically updated to' : 'was installed.' // Plugin was installed
-      } v${version}. ${updateMessage}Would you like to open the Plugin's ${wasUpdated && hasChangelog ? 'Change Log' : 'Documentation'} to see more details?`
-      const openReadme = await showMessageYesNo(dialogMsg, ['Yes', 'No'], `Plugin ${wasUpdated ? 'Updated' : 'Installed'}`)
-      if (openReadme === 'Yes') {
-        const url = wasUpdated ? (hasChangelog ? newPluginJson['plugin.changelog'] : newPluginJson['plugin.url'] || '') : newPluginJson['plugin.url']
-        NotePlan.openURL(url)
+      if (!installSilently) {
+        const hasChangelog = newPluginJson['plugin.changelog']
+        const hasUpdateMessage = newPluginJson['plugin.lastUpdateInfo']
+        const updateMessage = hasUpdateMessage ? `Latest changes include:\n"${hasUpdateMessage}"\n\n` : ''
+        const version = newPluginJson['plugin.version']
+        const dialogMsg = `The '${newPluginJson['plugin.name']}' plugin ${
+          wasUpdated ? 'was automatically updated to' : 'was installed.' // Plugin was installed
+        } v${version}. ${updateMessage}Would you like to open the Plugin's ${wasUpdated && hasChangelog ? 'Change Log' : 'Documentation'} to see more details?`
+        const openReadme = await showMessageYesNo(dialogMsg, ['Yes', 'No'], `Plugin ${wasUpdated ? 'Updated' : 'Installed'}`)
+        if (openReadme === 'Yes') {
+          const url = wasUpdated ? (hasChangelog ? newPluginJson['plugin.changelog'] : newPluginJson['plugin.url'] || '') : newPluginJson['plugin.url']
+          NotePlan.openURL(url)
+        }
+        logDebug(pluginJson, `${dialogMsg.replace('\n', '')}: ${openReadme}; ${result.message || ''}`)
       }
       await checkForDependenciesAndCommandMigrations(newPluginJson)
-      logDebug(pluginJson, `${dialogMsg.replace('\n', '')}: ${openReadme}; ${result.message || ''}`)
     } else {
       logInfo(
         pluginJson,
