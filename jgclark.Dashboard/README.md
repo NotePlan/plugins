@@ -35,6 +35,7 @@ You can make many more changes by clicking on the **pencil** icon after each tas
 - `+1b` moves to the next business day's note (which ignores weekends)
 - `+1w` moves to next week's note etc.
 - `this week` moves to this week's note etc.
+- `cancel` cancels the task/checklist
 - `move to note` opens the command bar asking which note + heading you want to move this item to
 - `priority ↑` increases the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
 - `priority ↓` decreasas the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
@@ -49,7 +50,6 @@ You also have the ability to update the text of the item itself.
 Other notes:
 - _This requires the separate 'Shared Resources' plugin to be installed_.
 - The Dashboard doesn't use NotePlan's normal editor, but a more flexible HTML-based display. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
-- The plugin cannot work effectively on an **iPhone**-sized device, so it is disabled there.  On an **iPad** windows can't float in the same way as they can on macOS, so it's less useful, but it still works.
 - The display is responsive: switching from narrow to normal to multi-column layout depending how wide you set it.
 - The items are shown sorted first by greatest priority, and then by increasing time (where there is a time block).
 - It de-dupes items that would appear twice in a list where the lines are sync'd together.
@@ -130,7 +130,7 @@ These settings change some of how it displays:
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise an ['Issue' of a Bug or Feature Request](https://github.com/NotePlan/plugins/issues).
 
-I'm not part of the NotePlan team, but I've spent at least 4 working weeks on this particular plugin so far. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:
+I'm not part of the NotePlan team, but I've spent at least 4.5 working weeks on this particular plugin so far. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 

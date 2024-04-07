@@ -2,11 +2,11 @@
 // @flow
 
 import pluginJson from '../plugin.json' // gives you access to the contents of plugin.json
-import { addChecklistToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
+import { showDashboard } from './HTMLGeneratorGrid'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { updateSettingData, pluginUpdated } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
-// import { isHTMLWindowOpen } from '@helpers/NPWindows'
+import { isHTMLWindowOpen } from '@helpers/NPWindows'
 import { showMessage } from '@helpers/userInput'
 
 /*
@@ -39,11 +39,9 @@ export async function updateSettings() {
 export async function onUpdateOrInstall(): Promise<void> {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onUpdateOrInstall started`)
-    // Tell user the plugin has been updated (if not on iPhone (as it doesn't run there))
-    if (NotePlan.environment.platform !== 'iOS') {
+    // Tell user the plugin has been updated
       await updateSettingData(pluginJson)
-      await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` })
-    }
+    await pluginUpdated(pluginJson, { code: 2, message: `Plugin Installed.` })
   } catch (error) {
     logError(pluginJson, `onUpdateOrInstall: ${JSP(error)}`)
   }
@@ -69,10 +67,13 @@ export function init(): void {
 export async function onSettingsUpdated(): Promise<void> {
   try {
     logDebug(pluginJson, `${pluginJson['plugin.id']} :: onSettingsUpdated started`)
-    // FIXME(Eduard): this fails because the Editor is out of scope when the settings screen is shown
-    // if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
-    //   await showDashboard('refresh', false) // probably don't need await
-    // }
+    // If v3.11+, can now refresh Dashboard
+    if (NotePlan.environment.buildVersion >= 1181) {
+      if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
+        logDebug(pluginJson, `will refresh Dashboard as it is open`)
+        await showDashboard('refresh', false) // probably don't need await
+      }
+    }
   } catch (error) {
     logError(pluginJson, `onSettingsUpdated: ${JSP(error)}`)
   }

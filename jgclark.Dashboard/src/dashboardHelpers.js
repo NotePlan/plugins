@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 4.4.2024 for v1.1.2 by @jgclark
+// Last updated 6.4.2024 for v1.1.4 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -76,7 +76,7 @@ import {
 export type Section = {
   ID: number,
   name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
-  sectionType: 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG' | 'PROJ', // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
+  sectionType: 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG' | 'PROJ' | 'COUNT', // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,
