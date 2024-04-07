@@ -629,7 +629,7 @@ export function filterOutParasInExcludeFolders(paras: Array<TParagraph>, exclude
         const thisNoteFilename = p.note?.filename ?? 'error'
         const thisNoteFolder = getFolderFromFilename(thisNoteFilename)
         const isInWantedFolder = (includeCalendar && p.noteType === 'Calendar') || wantedFolders.includes(thisNoteFolder)
-        console.log(`${thisNoteFilename} isInWantedFolder = ${String(isInWantedFolder)}`)
+        // console.log(`${thisNoteFilename} isInWantedFolder = ${String(isInWantedFolder)}`)
         return isInWantedFolder
       })
       return parasFiltered
