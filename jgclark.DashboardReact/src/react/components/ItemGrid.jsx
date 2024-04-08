@@ -1,20 +1,27 @@
 // @flow
 import React from 'react'
+import type { SectionItem } from '../../types.js'
 import ItemRow from './ItemRow.jsx'
 import { useAppContext } from './AppContext.jsx'
-import type { ItemRowType } from './flow-types.js'
 
 type Props = {
-  items: Array<ItemRowType>,
+  items: Array<SectionItem>,
 }
 
 /**
  * A grid layout for items within a section.
  */
-const ItemGrid = ({ items }: Props): React$Node => {
+function ItemGrid({ items }: Props): React$Node {
   const { reactSettings } = useAppContext()
-  const visibleItems = items.map((item, index) => (!reactSettings.filterPriorityItems || item.priority || 0 > 0 ? <ItemRow key={index} {...item} /> : null))
-  return <div className="sectionItemsGrid">{visibleItems}</div>
+
+  const visibleItems = items?.map((item, index) => (
+    !reactSettings.filterPriorityItems || item.priority || 0 > 0
+      ? <ItemRow key={index} {...item} />
+      : null)) ?? []
+
+  return (
+    <div className="sectionItemsGrid">{visibleItems}</div>
+  )
 }
 
 export default ItemGrid

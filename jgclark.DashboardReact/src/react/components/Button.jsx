@@ -1,7 +1,7 @@
 // @flow
 import React from 'react'
 
-type Props = {
+type ButtonProps = {
   text: string,
   className?: string,
   clickHandler: () => void,
@@ -10,10 +10,13 @@ type Props = {
 /**
  * A reusable button component.
  */
-const Button = ({ text, clickHandler, className }: Props): React$Node => (
-  <button onClick={clickHandler} className={className}>
-    {text}
-  </button>
-)
+function Button(props: ButtonProps): React$Node {
+  const { text, clickHandler, className } = props
+  return (
+    <button onClick={clickHandler} className={className}>
+      {text}
+    </button>
+  )
+}
 
 export default Button

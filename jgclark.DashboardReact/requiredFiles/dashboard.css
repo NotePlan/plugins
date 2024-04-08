@@ -44,21 +44,19 @@ body {
   }
 }
 
-/* Large rows on page; don't want these in a grid as we want height to vary */
+/* Large rows on page */
 .sections {
 	display: block;
-	/* dark blue text */
-	/* color: rgba(20, 80, 160, 0.95) */
 }
 
 .section {
 	display: grid;
-  grid-template-columns: [info] minmax(6rem,10rem) [items] auto;
+  grid-template-columns: [info] minmax(6rem,11rem) [items] auto;
   grid-template-rows: min-content;
 	/* grid-auto-flow: column; */
   
 	/* a little extra gap between first 2 cols */
-	grid-column-gap: 6px;
+	grid-column-gap: 4px;
 	column-rule: 1px dotted var(--tint-color);
 
 	/* a little spacing at top and bottom of section */
@@ -67,26 +65,10 @@ body {
 	border-bottom: solid 1px var(--tint-color);
 }
 
-/* New for a2: [items] slides under [info] if too narrow */
-/* @media screen and (width <= var(--minBreakPoint)) { */
-@media screen and (width <= 600px) {
-  .section {
-    grid-template-columns: 1fr;
-  }
-	.sectionInfo {
-		border-bottom: solid 0.5px var(--tint-color);
-	}
-}
-
-/* turn on bottom border of last item (from theme CSS) */
-/* .section:last-child {
-	border-bottom: solid 1px var(--tint-color);
-} */
-
 .sectionInfo {
 	display: block;
-	padding-block-start: 8px;
-	padding-block-end: 6px;
+	padding-block-start: 0.3rem;
+	padding-block-end: 0.2rem;
 	padding-inline-start: 0.5rem;
 	padding-inline-end: 0.5rem;
 	background-color: var(--bg-alt-color);
@@ -96,19 +78,51 @@ body {
 	font-weight: 400;
 	text-align: center;
 	padding-right: 0.3rem;
-	padding-block-start: 1px;
+	padding-top: 1px;
 }
-.sectionName { /* column 1's title */
+.sectionName  {
 	font-size: 1.0rem;
-	font-weight: 700; /* make noteTitles bold */
+	/* make noteTitles bold */
+	font-weight: 700;
 	margin: unset;
-	padding-block-start: 0.1rem;
-	padding-block-end: 0.3rem;
+	padding-top: 0px;
+	padding-bottom: 0.2rem;
 }
-.sectionDescription { /* column 1's description */
-	font-size: 0.85rem; /* smaller */
+.sectionDescription {
+	/* a bit smaller */
+	font-size: 0.9rem;
 	margin: unset;
+	padding-top: 0px;
+	align-self: self-end;
 }
+
+/* If rather narrow, slide [items] slides under [info] */
+/* This needs to come after the earlier definitions to take priority */
+@media screen and (width <= 600px) {
+  .section {
+    grid-template-columns: 1fr;
+  }
+	.sectionInfo {
+		border-bottom: solid 0.5px var(--tint-color);
+		display: grid;
+		/* now make this area grid column-based not row-based */
+		grid-template-columns: max-content auto;
+		padding-top: 0.4rem;
+	}
+	.sectionName {
+		/* turn off padding under section name */
+		padding-top: 0.1rem;
+		padding-bottom: 0rem;
+		padding-left: 1px;
+		/* some padding to right */
+		padding-right: 0.5rem;
+	}
+}
+
+/* turn on bottom border of last item (from theme CSS) */
+/* .section:last-child {
+	border-bottom: solid 1px var(--tint-color);
+} */
 
 /* Inner grid for details of a section */
 .sectionItemsGrid {
@@ -117,7 +131,6 @@ body {
 	/* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
 	column-count: 3;
 	column-fill: balance;
-	/* or auto */
 	column-width: 25rem;
 	/* column-gap: 1rem; */
 	column-rule: 1px dotted var(--tint-color);
@@ -130,19 +143,19 @@ body {
 	/* The important trick to avoiding bad wrapping at end of columns */
 	break-inside: avoid;
 	display: grid;
-	grid-template-columns: [icon] 1rem [item-details] minmax(20rem, 30rem);
+	grid-template-columns: [icon] 1rem [item-details] auto; /* was: minmax(20rem, 30rem); */
 	padding: 3px 4px 0px 4px; /* no bottom padding */
 	border: 0px none;
 	column-gap: 6px;
-	align-self: start;
 	/* vertical in containing block */
-	justify-self: right;
+	align-self: start;
 	/* horizontal in containing block */
+	justify-self: right;
 	/* border-collapse: collapse; */
-	align-items: start;
 	/* vertical for all items this contains */
-	justify-items: start;
+	align-items: start;
 	/* horizontal for all items this contains */
+	justify-items: start;
 }
 /* General item icon details */
 .itemIcon {
@@ -171,45 +184,42 @@ body {
 	break-inside: avoid;
 	line-height: 1.2rem; /* get from a variable */
 }
-/* Show click pointer over buttons and equivalent */
-.fake-button, .clickTarget {
-	cursor: pointer;
-}
-
 /* ------------------------------------------------------------------ */
 
-/* for main UI buttons */
-.mainButton { /* main UI action buttons: a little more pronounced */
-	background-color: var(--bg-alt-color);
-	font-size: 0.9rem;
-	font-weight: 600;
-	border: 1px var(--tint-color);
-	box-shadow: 0 1px 1px 0px rgba(0,0,0,0.3); /*#888;*/
-	padding: 2px 5px 2px 5px;
-	margin: 2px 4px;
+@layer A { /* all buttons, but at lower priority */
+button, input {
+	background-color: var(--bg-main-color);
+	color: var(--fg-main-color);
+	border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
+	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
+}
 }
 
 /* For buttons that trigger callbacks */
-.XCBButton {
-	color: var(--fg-main-color);
-	background-color: var(--bg-main-color);
+.PCButton {
 	font-weight: 500;
-	/* border-color: #DFE0E0; */
 	border-style: none;
 	border-radius: 4px;
-	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
 	padding: 2px 3px 0px 3px;
-	margin: 0px 2px; /* a little L and R */
+	margin: 2px 2px; /* a little all round */
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 0.85rem;
 }
 /* Set link text to plain (again) TODO: if internal calls used this can be removed */
-.XCBButton a {
+.PCButton a {
 	font-size: 0.85rem;
 	text-decoration: none;
 	color: var(--fg-main-color);
 }
+
+/* Show click pointer over buttons and equivalent */
+button, .fake-button, .clickTarget {
+	cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ */
+
 /* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
 .tooltip {
 	position: relative;
@@ -263,7 +273,7 @@ body {
 	padding-left: 0.3rem;
 }
 .pad-right {	/* add space after icon */
-	padding-right: 0.3em;
+	padding-right: 0.1em;
 }
 .space-under {	/* add space under item */
 	padding-bottom: 0.3em;
@@ -298,7 +308,7 @@ body {
 	color: var(--tint-color) !important;
 }
 /* .multi-cols { /* allow multi-column flow: set max columns and min width, and some other bits and pieces. Reference: https://drafts.csswg.org/css-multicol/#the-multi-column-model */
-	column-count: 3;
+/*	column-count: 3;
 	column-fill: balance;
 	column-width: 25rem;
 	column-gap: 1rem;
@@ -313,11 +323,13 @@ body {
 	transition: visibility 0s 1.0s, opacity 1.0s linear;
 }
 /* Some headings specified from measuring the colour of NP sidebar elements */
-.sidebarDaily { font-size: 1.0rem; color: #d0703c;  }
+.sidebarDaily { font-size: 1.0rem; color: #d0703c; }
 .sidebarWeekly { font-size: 1.0rem; color: #be23b6; }
 .sidebarMonthly { font-size: 1.0rem; color: #f5528b; }
 .sidebarQuarterly { font-size: 1.0rem; color: #e08008; }
 .sidebarYearly { font-size: 1.0rem; color: #efba13; }
+.sidebarHashtag { font-size: 1.0rem; color: var(--hashtag-color); }
+.sidebarMention { font-size: 1.0rem; color: var(--attag-color); }
 
 #error {
 	background-color: red;

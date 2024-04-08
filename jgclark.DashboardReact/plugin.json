@@ -2,29 +2,56 @@
   "noteplan.minAppVersion": "3.7",
   "macOS.minVersion": "10.13.0",
   "plugin.id": "jgclark.DashboardReact",
-  "plugin.name": "Dashboard React Version",
-  "plugin.description": "Basic skeleton of a React app that can be used in a NotePlan plugin",
+  "plugin.name": "🎛 Dashboard (React)",
+  "plugin.description": "A Dashboard for NotePlan",
   "plugin.author": "@jgclark",
-  "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "1.0.0 Initial skeleton",
+  "plugin.version": "2.0.0-a1",
+  "plugin.lastUpdateInfo": "",
   "plugin.dependencies": [],
   "plugin.requiredFiles": [
-    "css.plugin.css",
     "dashboard.css",
     "dashboardDialog.css",
-    "dashboardHoverControls.css",
     "react.c.WebView.bundle.min.js",
-    "react.c.WebView.bundle.dev.js"
+    "react.c.WebView.bundle.dev.js",
+    "debounce.js",
+    "showTimeAgo.js"
+  ],
+  "plugin.requiredFiles_disabled": [
+    "HTMLWinCommsSwitchboard.js",
+    "dashboardEvents.js"
+  ],
+  "plugin.requiredSharedFiles": [
+    "fontawesome.css",
+    "light.min.flat4NP.css",
+    "regular.min.flat4NP.css",
+    "solid.min.flat4NP.css",
+    "fa-light-300.woff2",
+    "fa-regular-400.woff2",
+    "fa-solid-900.woff2",
+    "pluginToHTMLCommsBridge.js",
+    "encodeDecode.js",
+    "shortcut.js"
   ],
   "plugin.script": "script.js",
   "plugin.url": "https://github.com/NotePlan/plugins/blob/main/jgclark.DashboardReact/readme.md",
   "plugin.commands": [
     {
-      "name": "Test React Window",
+      "name": "Show Demo Dashboard (React)",
+      "description": "Show Demo Dashboard (React)",
+      "jsFunction": "showDemoDashboard",
+      "hidden": false,
+      "alias": [
+        "sdd"
+      ],
+      "arguments": []
+    },
+    {
+      "name": "Show React Dashboard",
       "description": "React Window",
       "jsFunction": "testReactWindow",
       "hidden": false,
       "alias": [
+        "srd"
       ],
       "arguments": []
     },

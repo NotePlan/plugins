@@ -33,7 +33,7 @@ const Header = ({ lastUpdated }: Props): React$Node => {
       <div className="lastUpdated">
         Last updated: <span id="timer">{calculateTimeSince()}</span>{' '}
       </div>
-      <Button className="XCBButton" clickHandler={handleRefreshClick} text={'Refresh'} />
+      <Button className="PCButton" clickHandler={handleRefreshClick} text={'Refresh'} />
       <div className="totalCounts">
         <span id="totalDoneCount">0</span> items closed
       </div>
