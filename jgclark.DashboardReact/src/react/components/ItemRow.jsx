@@ -54,7 +54,7 @@ function ItemRow(item: SectionItem): React$Node {
       <div className="sectionItemContent sectionItem">
         <a className="content">${paraContent}</a>
         <a className="dialogTrigger"
-          onClick={`showItemControlDialog(${dataObjectToPassToControlDialog}`}>
+          onClick="showItemControlDialog(${dataObjectToPassToControlDialog})">
           <i className="fa-light fa-edit pad-left"></i>
         </a>
       </div>

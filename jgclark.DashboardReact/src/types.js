@@ -30,7 +30,7 @@ export type SectionItem = {
   filename?: string,
   priority?: Number, /** assumes you send numeric priority with the content, use getNumericPriorityFromPara (from helpers/sorting.js) **/
   type: ParagraphType | string,
-  noteType: string /* Notes | Calendar */
+  noteType: string, /* Notes | Calendar */
 }
 
 // reduced paragraph definition
@@ -41,5 +41,5 @@ export type ReducedParagraph = {
   content: string,
   rawContent: string,
   type: ParagraphType,
-  priority: number
+  priority: number,
 }

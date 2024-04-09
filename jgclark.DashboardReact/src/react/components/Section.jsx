@@ -27,9 +27,10 @@ function Section(section: TSection): React$Node {
         </span>{' '}
         <span className="sectionDescription">
           <span id="section0Count">{description}</span>
+          {/* TODO: Change this to send buttons as properties? */}
           <span id="section0Buttons">
-            {['DT', 'W', 'M'].includes(sectionType) ? <ThisPeriodAddButtons sectionType={sectionType} filename={filename} /> : ''}
-            {['DT', 'W', 'M'].includes(sectionType) ? <NextPeriodAddButtons sectionType={sectionType} filename={filename} /> : ''}
+            {['DT', 'W', 'M'].includes(sectionType) ? <ThisPeriodAddButtons sectionType={sectionType} filename={filename} /> : null}
+            {['DT', 'W', 'M'].includes(sectionType) ? <NextPeriodAddButtons sectionType={sectionType} filename={filename} /> : null}
             {/* TODO: other button types */}
           </span>
         </span>

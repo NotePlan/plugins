@@ -6,7 +6,7 @@
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import type { ReducedParagraph, SectionItem } from './types'
+import { type SectionItem, type ReducedParagraph } from './types'
 // import { showDashboard } from './HTMLGeneratorGrid'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -72,7 +72,7 @@ import {
 
 //-----------------------------------------------------------------
 
-// Note: flow-types.js now contains the Type definitions
+// Note: types.js now contains the Type definitions
 
 //-----------------------------------------------------------------
 // Settings
