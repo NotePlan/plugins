@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 7.4.2024 for v0.12.0 by @jgclark
+// Last updated 9.4.2024 for v0.12.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -26,7 +26,10 @@ import {
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
-import { getProjectNotesInFolder } from '@helpers/note'
+import {
+  allNotesSortedByChanged,
+  getProjectNotesInFolder,
+} from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { contentRangeToString } from '@helpers/paragraph'
 import { showMessage } from "@helpers/userInput"
@@ -62,14 +65,16 @@ async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise
     logDebug(pluginJson, `getConflictedNotes() starting`)
 
     const outputArray: Array<conflictDetails> = []
-    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
-    logDebug('getConflictedNotes', `- Found ${relevantFolderList.length} folders to check`)
+    // let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
+    // logDebug('getConflictedNotes', `- Found ${relevantFolderList.length} folders to check`)
     // Get all notes to check
-    let notes: Array<TNote> = []
-    for (const thisFolder of relevantFolderList) {
-      const theseNotes = getProjectNotesInFolder(thisFolder)
-      notes = notes.concat(theseNotes)
-    }
+    // let notes: Array<TNote> = []
+    // for (const thisFolder of relevantFolderList) {
+    //   const theseNotes = getProjectNotesInFolder(thisFolder)
+    //   notes = notes.concat(theseNotes)
+    // }
+    let notes = allNotesSortedByChanged(foldersToExclude)
+    logDebug('getConflictedNotes', `- Will check all ${notes.length} notes`)
 
     // Get all conflicts
     const conflictedNotes = notes.filter(n => (n.conflictedVersion != null))

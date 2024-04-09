@@ -1,6 +1,9 @@
 # 🧹 Tidy Up Changelog
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/np.Tidy/README.md) for full details on the available commands and use from callbacks and templates.
 
+## [0.12.1] - 2024-04-09 @jgclark
+- **/List conflicted notes** now covers Calendar notes as well (thanks, @dwertheimer)
+
 ## [0.12.0] - 2024-04-06 @jgclark
 - **/List conflicted notes** can now write copy of the prior conflicted version of notes to special '@Conflicted Copies' folder, if new setting 'Save a copy of previous version as a separate note?' is turned on.
 
