@@ -67,7 +67,7 @@ export function WebView({ data, dispatch }: Props): Node {
   // destructure all the startup data we expect from the plugin
   const { pluginData, debug } = data
   if (!pluginData) throw new Error('WebView: pluginData must be called with an object')
-  logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData, null, 2)}`)
+  // logDebug(`Webview received pluginData:\n${JSON.stringify(pluginData, null, 2)}`)
 
   /****************************************************************************************************************************
    *                             HANDLERS
@@ -82,7 +82,8 @@ export function WebView({ data, dispatch }: Props): Node {
    * Fires after components draw
    */
   useEffect(() => {
-    logDebug(`Webview: useEffect: data changed. data: ${JSON.stringify(data)}`)
+    // logDebug(`Webview: useEffect: data changed. data: ${JSON.stringify(data)}`)
+    logDebug(`Webview: useEffect: data changed.`)
     if (data?.passThroughVars?.lastWindowScrollTop !== undefined && data.passThroughVars.lastWindowScrollTop !== window.scrollY) {
       debug && logDebug(`Webview: useEffect: data changed. Scrolling to ${String(data.lastWindowScrollTop)}`)
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
@@ -99,7 +100,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @returns {string} cleaned text without HTML entities
    */
   // eslint-disable-next-line no-unused-vars
-  function decodeHTMLEntities(text) {
+  function decodeHTMLEntities(text: string): string {
     const textArea = document.createElement('textarea')
     textArea.innerHTML = text
     const decoded = textArea.value

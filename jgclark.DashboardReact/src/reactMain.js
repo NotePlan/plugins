@@ -6,7 +6,7 @@ import {
   getSettings,
   type dashboardConfigType,
 } from './dashboardHelpers'
-import type { TSection, SectionItem } from './types'
+import type { TSection, SectionItem, TParagraphForDashboard } from './types'
 import {
   openTodayParas,
   refTodayParas,
@@ -19,7 +19,11 @@ import {
   tagParasFromNote,
   nextNotesToReview,
 } from './demoData'
-import { getTodaysDateUnhyphenated } from '@helpers/dateTime'
+import {
+  getNPMonthStr,
+  getNPWeekStr,
+  getTodaysDateUnhyphenated
+} from '@helpers/dateTime'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
@@ -27,7 +31,6 @@ import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
-const REACT_WINDOW_TITLE = 'Dashboard (XXX items)' // change this to what you want window title to display
 
 export type PassedData = {
   startTime?: Date /* used for timing/debugging */,
@@ -51,7 +54,7 @@ export function getInitialDataForReactWindowObjectForReactView(useDemoData: bool
   const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
   const dataToPass: PassedData = {
     pluginData,
-    title: REACT_WINDOW_TITLE,
+    title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
     debug: ENV_MODE === 'development' ? true : false,
     ENV_MODE,
     returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
@@ -68,9 +71,9 @@ export function getInitialDataForReactWindowObjectForReactView(useDemoData: bool
 
 function getTodaySectionData(useDemoData: boolean = false): any {
   const sectionNum = 0
+  const thisSectionType = 'DT'
   let itemCount = 0
   const items: Array<SectionItem> = []
-  const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
   const todayDateLocale = toNPLocaleDateString(new Date(), "short") // uses moment's locale info from NP
   const thisFilename = `${getTodaysDateUnhyphenated()}.md`
 
@@ -79,12 +82,12 @@ function getTodaySectionData(useDemoData: boolean = false): any {
     // write one combined section
     combinedSortedParas.map((p) => {
       const thisID = `${sectionNum}-${itemCount}`
-      items.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type, noteTitle: '', priority: 0 })
+      items.push({ ID: thisID, sectionType: thisSectionType, para: p })
       itemCount++
     })
-    const section: Section = { ID: sectionNum, name: 'Today', sectionType: 'DT', description: `{count} from ${todayDateLocale} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename, items: items }
+    const section: TSection = { ID: sectionNum, name: 'Today', sectionType: thisSectionType, description: `{count} from ${todayDateLocale} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename, sectionItems: items }
 
-    // return JSON.stringify(section)
+    logDebug('getTodaySectionData', JSON.stringify(section))
     return section
   }
 
@@ -110,6 +113,7 @@ function getTodaySectionData(useDemoData: boolean = false): any {
 }
 
 function getYesterdaySectionData(useDemoData: boolean = false) {
+  const thisSectionType = 'DY'
   const yesterday = new moment().subtract(1, 'days').toDate()
   const yesterdayDateLocale = toNPLocaleDateString(yesterday, "short") // uses moment's locale info from NP
   const thisFilename = `${moment(yesterday).format("YYYYMMDD")}.md`
@@ -122,12 +126,13 @@ function getYesterdaySectionData(useDemoData: boolean = false) {
     // write one combined section
     combinedYesterdaySortedParas.map((p) => {
       const thisID = `${sectionNum}-${itemCount}`
-      items.push({ ID: thisID, content: p.content, rawContent: p.rawContent, filename: p.filename ?? '', type: p.type, noteTitle: '', priority: 0 })
+      items.push({ ID: thisID, sectionType: thisSectionType, para: p })
       itemCount++
     })
-    const section: Section = { ID: sectionNum, name: 'Yesterday', sectionType: 'DY', description: `{count} from ${yesterdayDateLocale} {scheduleAllYesterdayToday}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename, items: items }
+    const section: TSection = { ID: sectionNum, name: 'Yesterday', sectionType: thisSectionType, description: `{count} from ${yesterdayDateLocale} {scheduleAllYesterdayToday}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename, sectionItems: items }
 
     // return JSON.stringify(section)
+    // logDebug('getYesterdaySectionData', JSON.stringify(section))
     return section
   }
 
@@ -142,6 +147,30 @@ function getYesterdaySectionData(useDemoData: boolean = false) {
         noteTitle: '',
       },
     ],
+  }
+}
+
+function getThisWeekSectionData(useDemoData: boolean = false) {
+  const thisSectionType = 'W'
+  const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
+  const dateStr = getNPWeekStr(today)
+  const thisFilename = `${dateStr}.md`
+  const sectionNum = 2
+  let itemCount = 0
+  const items: Array<SectionItem> = []
+
+  if (useDemoData) {
+    const combinedYesterdaySortedParas = openYesterdayParas.concat(refYesterdayParas)
+    // write one combined section
+    combinedYesterdaySortedParas.map((p) => {
+      const thisID = `${sectionNum}-${itemCount}`
+      items.push({ ID: thisID, sectionType: thisSectionType, para: p })
+      itemCount++
+    })
+    const section: TSection = { ID: sectionNum, name: 'This Week', sectionType: thisSectionType, description: `{count} from ${dateStr} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename, sectionItems: items }
+
+    // logDebug('getThisWeekSectionData', JSON.stringify(section))
+    return section
   }
 }
 
@@ -183,10 +212,13 @@ function getTaggedSectionData() {
 }
 
 function getAllSectionsData(demoMode: boolean = false) {
-  return [getTodaySectionData(demoMode),
-  getYesterdaySectionData(demoMode),
-  getProjectsSectionData(),
-  getTaggedSectionData()]
+  return [
+    getTodaySectionData(demoMode),
+    getYesterdaySectionData(demoMode),
+    getThisWeekSectionData(demoMode),
+    // getProjectsSectionData(),
+    //   getTaggedSectionData()
+  ]
 }
 
 /**
@@ -200,11 +232,10 @@ export function getInitialDataForReactWindow(demoMode: boolean = false): { [stri
   return {
     sections: getAllSectionsData(demoMode),
     lastUpdated: new Date().toLocaleString() /* placeholder */,
-    settings: DataStore.settings,
+    settings: getSettings(),
     totalItems: 999 /* placeholder */,
   }
-  // we return tableRows just as an example, but there's nothing magic about that property name
-  // you could pass any object with any number of fields you want
+  // you can pass any object with any number of fields you want
 }
 
 /**

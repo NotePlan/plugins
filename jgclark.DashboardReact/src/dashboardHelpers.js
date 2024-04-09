@@ -6,7 +6,7 @@
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
-import { type SectionItem, type ReducedParagraph } from './types'
+import type { SectionItem, TParagraphForDashboard } from './types'
 // import { showDashboard } from './HTMLGeneratorGrid'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -25,7 +25,7 @@ import {
   convertMentionsToHTML,
   convertPreformattedToHTML,
   convertStrikethroughToHTML,
-  convertTimeBlockToHTML,
+  // convertTimeBlockToHTML,
   convertUnderlinedToHTML,
   convertHighlightsToHTML,
   convertNPBlockIDToHTML,
@@ -39,6 +39,7 @@ import {
   findHeadingStartsWith,
   findStartOfActivePartOfNote,
   getTaskPriority,
+  isTermInURL,
   removeTaskPriorityIndicators,
   smartPrependPara,
 } from '@helpers/paragraph'
@@ -60,7 +61,12 @@ import {
   stripThisWeeksDateRefsFromString,
   stripTodaysDateRefsFromString
 } from '@helpers/stringTransforms'
-import { getTimeBlockString, isTimeBlockPara } from '@helpers/timeblocks'
+import {
+  getTimeBlockString,
+  isTypeThatCanHaveATimeBlock,
+  // isTimeBlockPara,
+  RE_TIMEBLOCK_APP,
+} from '@helpers/timeblocks'
 import {
   displayTitleWithRelDate,
   showMessage
@@ -93,6 +99,7 @@ export type dashboardConfigType = {
   autoAddTrigger: boolean,
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
+  timeblockMustContainString: string,
   showYesterdaySection: boolean,
   showTomorrowSection: boolean,
   showWeekSection: boolean,
@@ -138,6 +145,9 @@ export async function getSettings(): Promise<any> {
     }
     // logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
 
+    // Extend settings with value of NP setting about Timeblocks, as when we want to use this DataStore isn't available
+    config.timeblockMustContainString = DataStore.preference("timeblockTextMustContainString") ?? ''
+
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -149,22 +159,24 @@ export async function getSettings(): Promise<any> {
 //-----------------------------------------------------------------
 
 /**
- * Return a reduced set of fields for each paragraph (plus filename + computed priority)
+ * Return a reduced set of fields for each paragraph (plus filename + computed priority + title)
  * @param {Array<TParagraph>} origParas 
- * @returns {Array<ReducedParagraph>}
+ * @returns {Array<TParagraphForDashboard>} reducedParas
  */
-export function reduceParagraphs(origParas: Array<TParagraph>): Array<ReducedParagraph> {
+export function reduceParagraphs(origParas: Array<TParagraph>): Array<TParagraphForDashboard> {
   try {
-    const reducedParas: Array<ReducedParagraph> = origParas.map((p) => {
+    const reducedParas: Array<TParagraphForDashboard> = origParas.map((p) => {
       const note = p.note
       const fieldSet = {
         filename: note?.filename ?? '<error>',
-        changedDate: note?.changedDate,
+        type: p.type,
         title: displayTitle(note), // this isn't expensive
         content: p.content,
-        rawContent: p.rawContent,
-        type: p.type,
+        noteType: note?.type ?? 'Notes',
+        changedDate: note?.changedDate,
+        prefix: p.rawContent.replace(p.content, ''),
         priority: getNumericPriorityFromPara(p),
+        blockId: p.blockId ?? ''
       }
       return fieldSet
     })
@@ -239,8 +251,9 @@ export function getOpenItemParasForCurrentTimePeriod(
     // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Filter out tasks with timeblocks, if wanted
+    // FIXME: though I thought I had sorted this out with new function below
     if (config.excludeTasksWithTimeblocks) {
-      openParas = openParas.filter((p) => !(p.type === 'open' && isTimeBlockPara(p)))
+      openParas = openParas.filter((p) => !(p.type === 'open' && isTimeBlockPara(p, config.timeblockMustContainString)))
     }
     // logDebug('getOpenItemParasForCurrent...', `- after 'exclude task timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
@@ -303,6 +316,62 @@ export function getOpenItemParasForCurrentTimePeriod(
     logError('getOpenItemParasForCurrentTimePeriod', err.message)
     return [[], []] // for completeness
   }
+}
+
+/**
+ * Decide whether this line contains an active time block.
+ * Note: This is a local variant of what is in timeblocks.js, that works without referring to DataStore.
+ * @author @dwertheimer
+ * @param {string} contentString
+ * @returns {boolean}
+ */
+function isTimeBlockLine(contentString: string, mustContainString: string = ''): boolean {
+  try {
+    // Following works around a bug when the preference isn't being set at all at the start.
+    if (mustContainString !== '') {
+      const res1 = contentString.includes(mustContainString)
+      if (!res1) {
+        return false
+      }
+    }
+    const res2 = contentString.match(RE_TIMEBLOCK_APP) ?? []
+    return res2.length > 0
+  }
+  catch (err) {
+    console.log(err)
+    return false
+  }
+}
+
+/**
+ * Decide whether this paragraph contains an active time block.
+ * Also now defeats on timeblock in middle of a [...](filename) or URL
+ * Note: This is a local variant of what is in timeblocks.js, that works without referring to DataStore.
+ * @author @jgclark
+ * @param {TParagraph} para
+ * @param {string} mustContainParaArg (optional)
+ * @returns {boolean}
+ */
+function isTimeBlockPara(para: TParagraph, mustContainStringArg: string = ''): boolean {
+  if (!isTypeThatCanHaveATimeBlock(para) || !isTimeBlockLine(para.content, mustContainStringArg)) {
+    return false
+  }
+  const tbString = getTimeBlockString(para.content)
+  return (!isTermInURL(tbString, para.content))
+}
+
+
+// Display time blocks with .timeBlock style
+// Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+// Note: copy from HTMLView.js to avoid React problem
+function convertTimeBlockToHTML(input: string): string {
+  let output = input
+  if (isTimeBlockLine(input)) {
+    const timeBlockPart = getTimeBlockString(input)
+    logDebug(`found time block '${timeBlockPart}'`)
+    output = output.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+  }
+  return output
 }
 
 /**
@@ -393,13 +462,16 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
  */
 export function makeParaContentToLookLikeNPDisplayInHTML(
   thisItem: SectionItem,
-  noteTitle: string = "",
+  __noteTitle: string = "",
   noteLinkStyle: string = "all",
   truncateLength: number = 0): string {
   try {
-    // logDebug(`makeParaContent...`, `for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${thisItem.filename}'`)
+    const origContent = thisItem.para.content
+    const noteTitle = thisItem.para.title
+    const filename = thisItem.para.filename
+    logDebug(`makeParaContent...`, `for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${filename}' / {${origContent}}`)
     // Start with the content of the item
-    let output = thisItem.content
+    let output = origContent
 
     // See if there's a !, !!, !!! or >> in the line, and if so set taskPriority accordingly
     const taskPriority = getTaskPriority(output)
@@ -408,7 +480,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
     }
 
     if (noteTitle === '(error)') {
-      logError('makeParaContent...', `starting with noteTitle '(error)' for '${thisItem.content}'`)
+      logError('makeParaContent...', `starting with noteTitle '(error)' for '${thisItem.para.content}'`)
     }
 
     // Simplify NP event links of the form
@@ -503,7 +575,7 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
 
     // Truncate the HTML string if wanted (avoiding breaking in middle of HTML tags)
     // Note: Best done before the note link is added
-    if (truncateLength > 0 && thisItem.content.length > truncateLength) {
+    if (truncateLength > 0 && thisItem.para.content.length > truncateLength) {
       output = truncateHTML(output, truncateLength, true)
     }
 
@@ -550,7 +622,7 @@ export function addNoteOpenLinkToString(item: SectionItem, displayStr: string): 
     // TODO: is it right that this basically does nothing?
     // const filenameEncoded = encodeURIComponent(item.filename)
 
-    if (item.rawContent) {
+    if (item.para.content) {
       // call showLineinEditor... with the filename and rawConetnt
       // return `<a class="" onClick="onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
       // return `<a>${displayStr}</a>`
@@ -579,7 +651,7 @@ export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteT
   try {
     // logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
     // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.filename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.para.filename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   }
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)

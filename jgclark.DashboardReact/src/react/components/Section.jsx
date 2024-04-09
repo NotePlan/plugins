@@ -17,16 +17,19 @@ import NextPeriodAddButtons from './NextPeriodAddButtons.jsx'
  * Represents a section within the dashboard, like Today, Yesterday, Projects, etc.
  */
 function Section(section: TSection): React$Node {
-  const { name, sectionType, description, sectionItems, FAIconClass, filename } = section
+  const { ID, name, sectionType, description, sectionItems, FAIconClass, sectionTitleClass, filename } = section
+
+  console.log(`Section: ${ID} / ${sectionType} with ${sectionItems.length} items`)
+
   return (
     <div className="section">
       <div className="sectionInfo">
-        <span className="sidebarDaily sectionName">
+        <span className={`${sectionTitleClass} sectionName`}>
           <i className={`sectionIcon ${FAIconClass}`}></i>
           {name}
         </span>{' '}
         <span className="sectionDescription">
-          <span id="section0Count">{description}</span>
+          <span id={`section${ID}Count`}>{description}</span>
           {/* TODO: Change this to send buttons as properties? */}
           <span id="section0Buttons">
             {['DT', 'W', 'M'].includes(sectionType) ? <ThisPeriodAddButtons sectionType={sectionType} filename={filename} /> : null}
@@ -35,7 +38,7 @@ function Section(section: TSection): React$Node {
           </span>
         </span>
       </div>
-      <ItemGrid items={sectionItems} />
+      <ItemGrid thisSection={section} items={sectionItems} />
     </div>
   )
 }
