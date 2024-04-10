@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 9.4.2024 for v0.12.1 by @jgclark
+// Last updated 10.4.2024 for v0.12.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -27,7 +27,7 @@ import {
   getTagParamsFromString,
 } from '@helpers/general'
 import {
-  allNotesSortedByChanged,
+  allNotesSortedByTitle,
   getProjectNotesInFolder,
 } from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
@@ -38,10 +38,12 @@ const pluginID = 'np.Tidy'
 
 //----------------------------------------------------------------------------
 
-const enoughDifference = 0.02 // 2% difference
+const enoughDifference = 100 // 100 bytes
+const conflictedCopiesBaseFolder = '@Conflicted Copies' // folder to use
 
 type conflictDetails = {
   note: TNote,
+  type: NoteType,
   url: string, // = full mac/iOS filepath and filename
   filename: string, // = just filename
   content: string
@@ -73,7 +75,7 @@ async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise
     //   const theseNotes = getProjectNotesInFolder(thisFolder)
     //   notes = notes.concat(theseNotes)
     // }
-    let notes = allNotesSortedByChanged(foldersToExclude)
+    let notes = allNotesSortedByTitle(foldersToExclude)
     logDebug('getConflictedNotes', `- Will check all ${notes.length} notes`)
 
     // Get all conflicts
@@ -87,6 +89,7 @@ async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise
         // clo(cv, 'conflictedVersion = ')
         outputArray.push({
           note: cn,
+          type: cn.type,
           filename: cn.filename, // needs to be main note not .conflict version
           url: cn.conflictedVersion.url,
           content: cn.conflictedVersion.content
@@ -114,7 +117,6 @@ export async function listConflicts(params: string = ''): Promise<void> {
     logDebug(pluginJson, `listConflicts: Starting with params '${params}' on ${machineName}`)
     let config = await getSettings()
     const outputFilename = config.conflictNoteFilename ?? 'Conflicted Notes.md'
-    const conflictedCopiesBaseFolder = '@Conflicted Copies'
     let copiesMade = 0
 
     // Decide whether to run silently
@@ -132,7 +134,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
     if (conflictedNotes.length === 0) {
       logDebug('listConflicts', `No notes with conflicts found (in ${timer(startTime)}).`)
       if (!runSilently) {
-        await showMessage(`No notes with conflicts found! 🥳`)
+        await showMessage(`No notes with conflicts found! 🥳\nI will remove any previous Conflict List note.`)
       }
       // remove old conflicted note list (if it exists)
       const res = DataStore.moveNote(outputFilename, '@Trash')
@@ -148,7 +150,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
     const outputArray = []
 
     // Start with an x-callback link under the title to allow this to be refreshed easily
-    outputArray.push(`# Conflicted notes on ${machineName}`)
+    outputArray.push(`# ⚠️ Conflicted notes on ${machineName}`)
     const xCallbackRefreshButton = createPrettyRunPluginLink('🔄 Click to refresh', 'np.Tidy', 'List conflicted notes', [])
     const summaryLine = `Found ${conflictedNotes.length} conflicts on ${machineName} at ${nowLocaleShortDateTime()}. ${xCallbackRefreshButton}`
     outputArray.push(summaryLine)
@@ -162,7 +164,11 @@ export async function listConflicts(params: string = ''): Promise<void> {
 
       // Make some button links for main note
       const openMe = createOpenOrDeleteNoteCallbackUrl(cn.filename, 'filename', '', 'splitView', false)
-      outputArray.push(`${thisFolder}/**${titleToDisplay}**`)
+      if (cn.type === 'Calendar') {
+        outputArray.push(`**${titleToDisplay}**`)
+      } else {
+        outputArray.push(`${thisFolder}/**${titleToDisplay}**`)
+      }
       outputArray.push(`- Main note (${cn.filename}): ${String(cn.note.paragraphs?.length ?? 0)} lines, ${String(cn.content?.length ?? 0)} bytes (created ${relativeDateFromDate(cn.note.createdDate)}, updated ${relativeDateFromDate(cn.note.changedDate)}) [open note](${openMe})`)
 
       // Write out details for the conflicted version
@@ -190,11 +196,10 @@ export async function listConflicts(params: string = ''): Promise<void> {
       const resolveOtherButton = createPrettyRunPluginLink('Keep other note version', 'np.Tidy', 'resolveConflictWithOtherVersion', [cn.filename])
       outputArray.push(`- ${resolveCurrentButton} ${resolveOtherButton}`)
 
-      // If there is enough difference, then make a copy of the conflicted version in a special folder
+      // If there is enough difference in Project Notes, then make a copy of the conflicted version in a special folder
       // TODO: remove first check after TEST:
-      if ((totalDiffBytes / greaterSize) >= enoughDifference && config.savePreviousVersion) {
+      if (cn.type === 'Notes' && config.savePreviousVersion && (totalDiffBytes >= enoughDifference)) {
         // Copy conflicted version to '@Conflicted Copies' folder
-
         const conflictedCopiesFolderToUse = conflictedCopiesBaseFolder + '/' + getFolderFromFilename(cn.filename)
         const filenamePartWithoutExtension = getJustFilenameFromFullFilename(cn.filename, true)
         const copyFilename = `${filenamePartWithoutExtension}.conflict-from-${machineName}.${DataStore.defaultFileExtension}`
@@ -219,7 +224,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
 
     if (!runSilently) {
       if (copiesMade > 0) {
-        await showMessage(`List of ${String(conflictedNotes.length)} conflicted notes written to '${outputFilename}' and ${copiesMade} conflicted copies saved to '${conflictedCopiesBaseFolder}' folder`)
+        await showMessage(`List of ${String(conflictedNotes.length)} conflicted notes written to '${outputFilename}' and ${copiesMade} conflicted copies of Project notes saved to '${conflictedCopiesBaseFolder}' folder`)
       } else {
         await showMessage(`List of ${String(conflictedNotes.length)} conflicted notes written to '${outputFilename}'`)
       }

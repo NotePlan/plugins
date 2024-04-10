@@ -310,7 +310,7 @@ export function projectNotesFromFilteredFolders(foldersToExclude: Array<string>,
  * Return list of all notes, sorted by changed date (newest to oldest)
  * @author @jgclark
  * @param {Array<string>} foldersToExclude? (default: [])
- * @return {Array<TNote>} - list of notes
+ * @return {Array<TNote>} array of notes
  */
 export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Array<TNote> {
   const projectNotes = projectNotesFromFilteredFolders(foldersToIgnore, true)
@@ -322,9 +322,23 @@ export function allNotesSortedByChanged(foldersToIgnore: Array<string> = []): Ar
 }
 
 /**
+ * Return list of all notes, first Project notes (sorted by title) then Calendar notes (sorted by increasing date ~ title)
+ * @author @jgclark
+ * @param {Array<string>} foldersToExclude? (default: [])
+ * @param {boolean} excludeSpecialFolders? (optional: default = true)
+ * @return {Array<TNote>} array of notes
+ */
+export function allNotesSortedByTitle(foldersToIgnore: Array<string> = [], excludeSpecialFolders: boolean = true): Array<TNote> {
+  const projectNotes = projectNotesSortedByTitle(foldersToIgnore, excludeSpecialFolders)
+  const calendarNotes = calendarNotesSortedByDate()
+  const allNotes = projectNotes.concat(calendarNotes)
+  return allNotes
+}
+
+/**
  * Return list of calendar notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- * @return {Array<TNote>} - list of notes
+ * @return {Array<TNote>} array of notes
  */
 export function calendarNotesSortedByChanged(): Array<TNote> {
   // $FlowIgnore(unsafe-arithmetic)
@@ -332,10 +346,30 @@ export function calendarNotesSortedByChanged(): Array<TNote> {
 }
 
 /**
+ * Return list of calendar notes, sorted by their date (oldest to newest)
+ * @author @jgclark
+ * @return {Array<TNote>} array of notes
+ */
+export function calendarNotesSortedByDate(): Array<TNote> {
+
+  return DataStore.calendarNotes.slice().sort(function (first, second) {
+    const a = first.filename
+    const b = second.filename
+    if (a < b) {
+      return -1 //a comes first
+    }
+    if (a > b) {
+      return 1 // b comes first
+    }
+    return 0 // names must be equal
+  })
+}
+
+/**
  * Return list of past calendar notes, of any duration.
  * Note: the date that's checked is the *start* of the period. I.e. test on 30th June will match 2nd Quarter as being in the past.
  * @author @jgclark
- * @return {Array<TNote>} - list of notes
+ * @return {Array<TNote>} array of notes
  */
 export function pastCalendarNotes(): Array<TNote> {
   try {
@@ -352,7 +386,7 @@ export function pastCalendarNotes(): Array<TNote> {
 /**
  * Return list of weekly notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- * @return {Array<TNote>} - list of notes
+ * @return {Array<TNote>} array of notes
  */
 export function weeklyNotesSortedByChanged(): Array<TNote> {
   const weeklyNotes = DataStore.calendarNotes.slice().filter((f) => f.filename.match(RE_WEEKLY_NOTE_FILENAME))
@@ -363,7 +397,7 @@ export function weeklyNotesSortedByChanged(): Array<TNote> {
 /**
  * Return list of project notes, sorted by changed date (newest to oldest)
  * @author @jgclark
- * @return {Array<TNote>} - list of notes
+ * @return {Array<TNote>} array of notes
  */
 export function projectNotesSortedByChanged(): Array<TNote> {
   // $FlowIgnore(unsafe-arithmetic)
@@ -371,14 +405,15 @@ export function projectNotesSortedByChanged(): Array<TNote> {
 }
 
 /**
- * Return list of project notes, sorted by title (ascending)
+ * Return list of project notes, sorted by title (ascending), optionally first excluding specific folders.
  * @author @jgclark
- *
- * @return {Array<TNote>} - list of notes
+ * @param {Array<string>} foldersToExclude (optional)
+ * @param {boolean} excludeSpecialFolders? (optional: default = true)
+ * @return {Array<TNote>} array of notes
  */
-export function projectNotesSortedByTitle(): Array<TNote> {
+export function projectNotesSortedByTitle(foldersToExclude: Array<string> = [], excludeSpecialFolders: boolean = true): Array<TNote> {
   try {
-    const projectNotes = DataStore.projectNotes.slice()
+    const projectNotes = projectNotesFromFilteredFolders(foldersToExclude, excludeSpecialFolders)
     const notesSorted = projectNotes.sort(function (first, second) {
       const a = first.title?.toUpperCase() ?? '' // ignore upper and lowercase
       const b = second.title?.toUpperCase() ?? '' // ignore upper and lowercase
