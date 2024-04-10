@@ -27,7 +27,6 @@ import {
 import {
   caseInsensitiveMatch,
   caseInsensitiveStartsWith,
-  caseInsensitiveSubstringMatch,
   isHashtagWanted,
   isMentionWanted,
 } from '@helpers/search'
@@ -674,7 +673,8 @@ function gatherCompletedChecklistItems(calendarNotesInPeriod: Array<TNote>, from
   for (const para of referenceNote.paragraphs) {
     if (para.type === 'checklist') {
         logDebug('gatherCompletedChecklistItems', `Found checklist in reference note ${para.content}`)
-        const thisOcc = new TMOccurrences(para.rawContent, 'yesno', fromDateStr, toDateStr)
+        // pad the term with a space to fix emojis being clobered by sparklines
+        const thisOcc = new TMOccurrences(` ${para.content}`, 'yesno', fromDateStr, toDateStr)
         tmOccurrencesArr.push(thisOcc)
     }
   }
@@ -685,8 +685,9 @@ function gatherCompletedChecklistItems(calendarNotesInPeriod: Array<TNote>, from
     for (const para of currentNote.paragraphs) {
       if (completedTypes.includes(para.type)) {
         for (const checklistTMO of tmOccurrencesArr) {
-          if (checklistTMO.term === para.rawContent) {
-            logDebug('gatherCompletedChecklistItems', `Found matching occurrence ${para.content} on date ${currentNote.filename}`)
+          // pad the term with a space to fix emojis being clobered
+          if (checklistTMO.term === ` ${para.content}`) {
+            logDebug('gatherCompletedChecklistItems', `Found matching occurrence ${para.content} in note ${currentNote.filename}`)
             checklistTMO.addOccurrence(checklistTMO.term, thisDateStr)
           }
         }
