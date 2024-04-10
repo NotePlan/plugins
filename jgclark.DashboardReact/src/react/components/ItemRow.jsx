@@ -1,12 +1,7 @@
 // @flow
 import React from 'react'
-import {
-  // addNoteOpenLinkToString,
-  // getSettings,
-  // makeNoteTitleWithOpenActionFromFilename,
-  makeParaContentToLookLikeNPDisplayInHTML,
-} from '../../dashboardHelpers'
-import type { TSection, TSectionItem } from '../../types'
+import type { TSection, TSectionItem } from '../../types.js'
+import ItemContent from './ItemContent.jsx'
 
 type Props = {
   // key: number,
@@ -43,7 +38,6 @@ function ItemRow(inputObj: Props): React$Node {
         : (itemType === 'review')
           ? 'fa-regular fa-circle-play'
           : ''
-  const paraContent = makeParaContentToLookLikeNPDisplayInHTML(item, '', 'all', 140) // TODO: other cases for this
   const dataObjectToPassToControlDialog = {
     OS: 'macOS', // TODO: NotePlan.environment.platform,
     itemID: item.ID,
@@ -63,7 +57,7 @@ function ItemRow(inputObj: Props): React$Node {
       </div>
 
       <div className="sectionItemContent sectionItem">
-        <a className="content">${paraContent}</a>
+        <ItemContent item={item} />
         <a className="dialogTrigger"
           // eslint-disable-next-line no-undef
           onClick={() => showItemControlDialog(dataObjectToPassToControlDialog)}>

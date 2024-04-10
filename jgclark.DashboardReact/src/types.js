@@ -21,13 +21,14 @@ export type TSection = {
   FAIconClass: string,
   sectionTitleClass: string,
   filename: string,
+  actionButtons?: Array<ActionButton>,
   sectionItems: Array<TSectionItem>,
 }
 
 // an item within a section
 export type TSectionItem = {
   ID: string,
-  sectionType: string, // TODO: remove me later -- see https://discord.com/channels/@me/863719873175093259/1227356943266484234
+  // sectionType: string, // TODO: remove me later -- see https://discord.com/channels/@me/863719873175093259/1227356943266484234
   para: TParagraphForDashboard
 }
 
@@ -42,4 +43,11 @@ export type TParagraphForDashboard = {
   prefix?: string,
   priority?: number,
   blockId?: string,
+}
+
+export type ActionButton = {
+  actionFunctionName: string,
+  actionFuntionPluginID: string,
+  tooltip: string,
+  display: string,
 }

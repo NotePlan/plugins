@@ -6,14 +6,14 @@ import {
   getSettings,
   type dashboardConfigType,
 } from './dashboardHelpers'
-import type { TSection, SectionItem, TParagraphForDashboard } from './types'
+import type { TSection } from './types'
 import {
   openTodayParas,
   refTodayParas,
   openYesterdayParas,
   refYesterdayParas,
-  demoOpenWeekParas,
-  demoSortedWeekRefParas,
+  openWeekParas,
+  refWeekParas,
   openMonthParas,
   sortedMonthRefParas,
   tagParasFromNote,
@@ -160,9 +160,9 @@ function getThisWeekSectionData(useDemoData: boolean = false) {
   const items: Array<SectionItem> = []
 
   if (useDemoData) {
-    const combinedYesterdaySortedParas = openYesterdayParas.concat(refYesterdayParas)
+    const combinedWeekSortedParas = openWeekParas.concat(refWeekParas)
     // write one combined section
-    combinedYesterdaySortedParas.map((p) => {
+    combinedWeekSortedParas.map((p) => {
       const thisID = `${sectionNum}-${itemCount}`
       items.push({ ID: thisID, sectionType: thisSectionType, para: p })
       itemCount++

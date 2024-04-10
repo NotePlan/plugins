@@ -188,7 +188,7 @@ export const refYesterdayParas: Array<TParagraphForDashboard> = [
 // -------------------------------------------------------------------------
 const weekDateStr = getNPWeekStr(today)
 thisFilename = `${weekDateStr}.md`
-export const demoOpenWeekParas: Array<TParagraphForDashboard> = [
+export const openWeekParas: Array<TParagraphForDashboard> = [
   {
     "priority": 2,
     "type": "open",
@@ -259,7 +259,7 @@ export const demoOpenWeekParas: Array<TParagraphForDashboard> = [
     "title": weekDateStr
   },
 ]
-export const demoSortedWeekRefParas: Array<TParagraphForDashboard> = [
+export const refWeekParas: Array<TParagraphForDashboard> = [
   {
     "priority": -1,
     "type": "checklist",
