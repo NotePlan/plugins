@@ -120,7 +120,16 @@ async function getReadwiseDailyReview(): Promise<string> {
     const highlights = JSON.parse(response).highlights
 
     highlights.map((highlight) => {
-      const formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
+      let formattedHighlight = ''
+      if (DataStore.settings.showLinkToHighlight === true) {
+        if (highlight.highlight_url !== null) {
+         formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
+        } else {
+          formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}, ${highlight.author}]`
+        }
+      } else {
+        formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}, ${highlight.author}]`
+      }
       highlightString += `> ${formattedHighlight}\n`
     })
     if (highlightString.length > 1) {
