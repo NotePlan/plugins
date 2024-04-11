@@ -123,7 +123,7 @@ async function getReadwiseDailyReview(): Promise<string> {
       let formattedHighlight = ''
       if (DataStore.settings.showLinkToHighlight === true) {
         if (highlight.highlight_url !== null) {
-         formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
+          formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
         } else {
           formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}, ${highlight.author}]`
         }
@@ -132,7 +132,7 @@ async function getReadwiseDailyReview(): Promise<string> {
       }
       highlightString += `> ${formattedHighlight}\n`
     })
-    if (highlightString.length > 1) {
+    if (highlightString.length > 1) { // remove the last newline
       highlightString = highlightString.substring(0, highlightString.length - 1)
     }
     logDebug(pluginJson, `daily review highlights are \n\n ${highlightString}`)
