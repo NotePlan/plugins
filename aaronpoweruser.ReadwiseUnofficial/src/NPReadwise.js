@@ -25,6 +25,7 @@ export async function readwiseRebuild(): Promise<void> {
   await handleReadwiseSync(response)
 }
 
+// Exported daily review entry point
 export async function readwiseDailyReview(): Promise<string> {
   checkAccessToken()
   return await getReadwiseDailyReview()
@@ -99,7 +100,10 @@ async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downl
     logError(pluginJson, error)
   }
 }
-
+/*
+ * Gets the users Daily review from the readwise api
+  * @returns {string} - the daily review highlights
+  */
 async function getReadwiseDailyReview(): Promise<string> {
   const accessToken = DataStore.settings.accessToken ?? ''
   let highlightString = ''
