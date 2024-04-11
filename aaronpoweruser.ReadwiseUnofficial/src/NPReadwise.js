@@ -119,6 +119,9 @@ async function getReadwiseDailyReview(): Promise<string> {
       const formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
       highlightString += `> ${formattedHighlight}\n`
     })
+    if (highlightString.length > 1) {
+      highlightString = highlightString.substring(0, highlightString.length - 1)
+    }
     logDebug(pluginJson, `daily review highlights are \n\n ${highlightString}`)
     return highlightString
   } catch (error) {
