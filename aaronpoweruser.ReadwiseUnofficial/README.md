@@ -5,6 +5,7 @@
 A sync engine for readwise
 
 ### Features
+- Daily review's via templates
 - Full highlight download
 - Highlight updates
 - Tags
@@ -32,6 +33,17 @@ Downloads new highlights since last sync
 
 ** Only needs to be used if highlights are deleted) **
 Downloads all highlights (if they already exisit they will be duplicated)
+
+
+### //Readwise Daily review
+
+Downloads daily reviews (does not mark as read).
+Can be added to a note with templates using
+
+```
+<%- await DataStore.invokePluginCommandByName("Readwise Daily Review","aaronpoweruser.ReadwiseUnofficial")  %>
+```
+
 
 ## Settings
 

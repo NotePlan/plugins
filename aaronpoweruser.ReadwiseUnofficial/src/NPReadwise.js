@@ -25,6 +25,11 @@ export async function readwiseRebuild(): Promise<void> {
   await handleReadwiseSync(response)
 }
 
+export async function readwiseDailyReview(): Promise<string> {
+  checkAccessToken()
+  return await getReadwiseDailyReview()
+}
+
 async function handleReadwiseSync(response: any): Promise<void> {
   await response.map(parseBookAndWriteToNote)
   log(pluginJson, `Downloaded ${downloadHiglightCount} highlights from Readwise. Updated ${updatedSourceCount} notes.`)
@@ -90,6 +95,32 @@ async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downl
     }
     downloadHiglightCount = count
     return parsedJson.results.concat(data)
+  } catch (error) {
+    logError(pluginJson, error)
+  }
+}
+
+async function getReadwiseDailyReview(): Promise<string> {
+  const accessToken = DataStore.settings.accessToken ?? ''
+  let highlightString = ''
+  try {
+    const url = `https://readwise.io/api/v2/review/`
+
+    const options = {
+      method: 'GET',
+      headers: {
+        Authorization: `token ${accessToken}`,
+      },
+    }
+    const response = await fetch(url, options)
+    const highlights = JSON.parse(response).highlights
+
+    highlights.map((highlight) => {
+      const formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
+      highlightString += `> ${formattedHighlight}\n`
+    })
+    logDebug(pluginJson, `daily review highlights are \n\n ${highlightString}`)
+    return highlightString
   } catch (error) {
     logError(pluginJson, error)
   }
