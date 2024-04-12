@@ -1,6 +1,7 @@
 // @flow
 
 // import moment from 'moment/min/moment-with-locales'
+import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import {
   getSettings,
@@ -24,6 +25,7 @@ import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpe
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
+import { isDone, isOpen } from '@helpers/utils'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
@@ -140,15 +142,21 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
 export function getInitialDataForReactWindow(config: dashboardConfigType, demoMode: boolean = false): { [string]: mixed } {
+  // Get count of tasks/checklists done today
+  const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
+  const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
+  const doneCount = currentDailyNote.paragraphs.filter(isDone).length
+
   return {
     sections: getAllSectionsData(config, demoMode),
     lastUpdated: new Date().toLocaleString() /* placeholder */,
     settings: config,
-    totalItems: 999 /* TODO: placeholder */,
+    totalItems: doneCount,
   }
   // you can pass any object with any number of fields you want
 }
 
+// TODO: 
 function getAllSectionsData(config: dashboardConfigType, demoMode: boolean = false): Array<TSection> {
   return [
     getTodaySectionData(config, demoMode),

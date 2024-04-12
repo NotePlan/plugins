@@ -4,53 +4,50 @@ import type { TSection } from '../../types.js'
 import ItemGrid from './ItemGrid.jsx'
 import CommandButton from './CommandButton.jsx'
 
-// type Props = {
-//   name: string,
-//   FAIconClass: string,
-//   description: string,
-//   sectionType: string,
-//   items: Array<SectionItem>,
-// }
+type SectionProps = {
+  section: TSection
+}
 
 /**
  * Represents a section within the dashboard, like Today, Yesterday, Projects, etc.
  */
-function Section(section: TSection): React$Node {
-  const { ID, name, sectionType, description, sectionItems, FAIconClass, sectionTitleClass, filename, actionButtons } = section
+function Section(inputObj: SectionProps): React$Node {
+  const { section } = inputObj
 
-  if (!sectionItems) {
-    console.log(`❓Section: ${ID} / ${sectionType} doesn't have any sectionItems`)
+  if (!section.sectionItems) {
+    console.log(`❓Section: ${section.ID} / ${section.sectionType} doesn't have any sectionItems`)
     return
   } else {
-    console.log(`Section: ${ID} / ${sectionType} with ${sectionItems.length} items`)
+    console.log(`Section: ${section.ID} / ${section.sectionType} with ${section.sectionItems.length} items`)
   }
-  // console.log('- actionButtons: ')
-  // for (const ab of actionButtons) {
-  //   console.log(ab.display)
-  // } // ✅
 
   // Produce set of actionButtons, if present
-  const buttons = actionButtons?.map((item, index) => (
-    <CommandButton key={index} button={item} filename={filename} />
+  const buttons = section.actionButtons?.map((item, index) => (
+    <CommandButton key={index} button={item} />
   )) ?? []
+  // Insert items count
+  const countStr = (section.description.startsWith('{count}'))
+    ? String(section.sectionItems.length) + ' '
+    : ''
+  const descriptionToUse = (section.description.startsWith('{count}'))
+    ? section.description.replace('{count}', '')
+    : section.description
 
   return (
     <div className="section">
       <div className="sectionInfo">
-        <span className={`${sectionTitleClass} sectionName`}>
-          <i className={`sectionIcon ${FAIconClass}`}></i>
-          {name}
+        <span className={`${section.sectionTitleClass} sectionName`}>
+          <i className={`sectionIcon ${section.FAIconClass}`}></i>
+          {section.name}
         </span>{' '}
         <span className="sectionDescription">
-          <span id={`section${ID}Count`}>{description}</span>
-          {buttons}
+          <span id={`section${section.ID}Count`}>{countStr}</span>
+          {descriptionToUse} {buttons}
         </span>
       </div>
-      <ItemGrid thisSection={section} items={sectionItems} />
+      <ItemGrid thisSection={inputObj.section} items={section.sectionItems} />
     </div>
   )
 }
-
-// {(buttons.length > 0 ?? buttons)}
 
 export default Section

@@ -7,12 +7,12 @@ import { useAppContext } from './AppContext.jsx'
 
 type ButtonProps = {
   button: TActionButton,
-  filename: string,
+  // param: string,
 }
 
 function CommandButton(inputObj: ButtonProps): React$Node {
   const { sendActionToPlugin /*, sendToPlugin, dispatch, pluginData */ } = useAppContext()
-  const { button, filename } = inputObj
+  const { button } = inputObj
 
   console.log('CommandButton: ' + button.display)
 

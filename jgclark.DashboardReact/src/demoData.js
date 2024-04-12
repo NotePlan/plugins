@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Demo data for Dashboard plugin (for v2.0.0+)
-// Last updated 7.4.2024 for v2.0.0 by @jgclark
+// Last updated 12.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -21,74 +21,54 @@ const today = new moment().toDate() // use moment instead of  `new Date` to ensu
 
 let thisDateStr: string = getTodaysDateUnhyphenated()
 let thisFilename: string = `${thisDateStr}.md`
-export const openTodayParas: Array<TParagraphForDashboard> = [
+export const openTodayItems: Array<TSectionItem> = [
   {
-    "priority": 4,
-    "type": "open",
-    "content": ">> #editvideo from CFL visit",
-    // "rawContent": "* >> #editvideo from CFL visit",
-    "prefix": "* ",
-    // "lineIndex": 4,
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": thisFilename,
+    "itemFilename": thisFilename,
+    "itemNotetitle": thisDateStr,
     "noteType": "Calendar",
-    // "subItems": [],
-    "title": thisDateStr
+    "itemType": "open",
+    "para": {
+      "priority": 4,
+      "content": ">> #editvideo from CFL visit",
+      "prefix": "* ",
+    }
   },
   {
-    "priority": -1,
-    "type": "checklist",
-    "content": "check ==highlights==, `formatted` and ~~strike~~ text work OK",
-    // "rawContent": "+ check ==highlights==, `formatted` and ~~strike~~ text work OK",
-    "prefix": "+ ",
-    // "lineIndex": 5,
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": thisFilename,
+    "itemFilename": thisFilename,
+    "itemNotetitle": thisDateStr,
     "noteType": "Calendar",
-    // "subItems": [],
-    "title": thisDateStr
+    "itemType": "checklist",
+    "para": {
+      "priority": -1,
+      "content": "check ==highlights==, `formatted` and ~~strike~~ text work OK",
+      "prefix": "+ ",
+    }
   }
 ]
-export const refTodayParas: Array<TParagraphForDashboard> = [
+export const refTodayItems: Array<TSectionItem> = [
   {
-    "priority": 1,
-    "type": "open",
-    "content": "! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht",
-    "blockId": "^wazhht",
-    // "rawContent": "* ! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht",
-    "prefix": "* ",
-    // "lineIndex": 8,
-    // "heading": "Start-up Formalities",
-    // "headingLevel": 3,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": "Ministry Projects/Repair Cafe.md",
+    "itemFilename": "Ministry Projects/Repair Cafe.md",
+    "itemNoteTitle": "Repair Cafe",
     "noteType": "Notes",
-    // "subItems": [],
-    "title": "Repair Cafe"
+    "itemType": "open",
+    "para": {
+      "priority": 1,
+      "prefix": "* ",
+      "content": "! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht",
+      "blockId": "^wazhht",
+    }
   },
   {
-    "priority": -1,
-    "type": "open",
-    "content": "Edit video from CFL visit https://bcfd.org.uk",
-    "blockId": "^wazhht",
-    // "rawContent": "* Edit video from CFL visit https://bcfd.org.uk",
-    "prefix": "* ",
-    // "lineIndex": 5,
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": "CCC Areas/Mission Partners.md",
+    "itemFilename": "CCC Areas/Mission Partners.md",
+    "itemNoteTitle": "Mission Partners",
     "noteType": "Notes",
-    // "subItems": [],
-    "title": "Mission Partners"
+    "itemType": "open",
+    "para": {
+      "priority": -1,
+      "content": "Edit video from CFL visit https://bcfd.org.uk",
+      "blockId": "^wazhht",
+      "prefix": "* ",
+    }
   },
 ]
 
@@ -96,313 +76,240 @@ export const refTodayParas: Array<TParagraphForDashboard> = [
 const yesterday = new moment().subtract(1, 'days').toDate()
 thisDateStr = moment(yesterday).format("YYYYMMDD")
 thisFilename = `${thisDateStr}.md`
-export const openYesterdayParas: Array<TParagraphForDashboard> = [
+export const openYesterdayParas: Array<TSectionItem> = [
   {
-    "priority": 0,
-    "type": "open",
-    "content": "film video at CFL visit",
-    // "rawContent": "* film video at CFL visit",
-    "prefix": "* ",
-    // "lineIndex": 4,
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": thisFilename,
+    "itemNoteTitle": thisDateStr,
+    "itemType": "open",
+    "itemFilename": thisFilename,
     "noteType": "Calendar",
-    // "subItems": [],
-    "title": thisDateStr
+    "para": {
+      "priority": 0,
+      "content": "film video at CFL visit",
+      "prefix": "* ",
+    }
   },
   {
-    "priority": -1,
-    "type": "checklist",
-    "content": "update SW contract following review comments",
-    // "rawContent": "* update SW contract following review comments",
-    "prefix": "* ",
-    // "lineIndex": 5,
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": thisFilename,
+    "itemFilename": thisFilename,
+    "itemType": "checklist",
     "noteType": "Calendar",
-    // "subItems": [],
-    "title": thisDateStr
+    "itemNoteTitle": thisDateStr,
+    "para": {
+      "priority": -1,
+      "content": "update SW contract following review comments",
+      "prefix": "* ",
+    }
   }
 ]
-export const refYesterdayParas: Array<TParagraphForDashboard> = [
+export const refYesterdayParas: Array<TSectionItem> = [
   {
-    "priority": 1,
-    "type": "open",
-    "content": "write 5/3 sermon >2023-03-02",
-    // "rawContent": "* write 5/3 sermon >2023-03-02",
-    "prefix": "* ",
-    // "lineIndex": 87,
-    "changedDate": new Date("2023-03-02T00:00:00.000Z"),
-    // "heading": "5/3/2023 CCC service @2023-03-05",
-    // "headingLevel": 3,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": "CCC Areas/Services.md",
+    "itemType": "open",
     "noteType": "Notes",
-    // "subItems": [],
-    "title": "Services"
+    "itemNoteTitle": "Services",
+    "itemFilename": "CCC Areas/Services.md",
+    "para": {
+      "priority": 1,
+      "content": "write 5/3 sermon >2023-03-02",
+      "prefix": "* ",
+      "changedDate": new Date("2023-03-02T00:00:00.000Z"),
+    }
   },
   {
     "priority": 1,
-    "type": "open",
-    "content": "write service leader segments plan Something Different for 5/3 >2023-03-02",
-    // "rawContent": "* write service leader segments plan Something Different for 5/3 >2023-03-02",
-    "prefix": "* ",
-    // "lineIndex": 89,
-    "changedDate": new Date("2023-03-02T00:00:00.000Z"),
-    // "heading": "5/3/2023 CCC service @2023-03-05",
-    // "headingLevel": 3,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": "CCC Areas/Services.md",
+    "itemType": "open",
+    "itemFilename": "CCC Areas/Services.md",
+    "itemNoteTitle": "Services",
     "noteType": "Notes",
-    // "subItems": [],
-    "title": "Services"
+    "para": {
+      "content": "write service leader segments plan Something Different for 5/3 >2023-03-02",
+      "prefix": "* ",
+      "changedDate": new Date("2023-03-02T00:00:00.000Z"),
+    },
   },
   {
-    "priority": -1,
-    "type": "open",
-    "content": "Clear more of prayer room @staff >today ^q9jzj4",
-    "blockId": "^q9jzj4",
-    // "rawContent": "* Clear more of prayer room @staff >today ^q9jzj4",
-    "prefix": "* ",
-    // "lineIndex": 29,
-    "changedDate": new Date("2023-03-02T00:00:00.000Z"),
-    // "heading": "Staff Meeting",
-    // "headingLevel": 3,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": "20240213.md",
+    "itemType": "open",
+    "itemFilename": "20240213.md",
     "noteType": "Calendar",
-    // "subItems": [],
-    "title": "20240213"
+    "itemNoteTitle": "20240213",
+    "para": {
+      "content": "Clear more of prayer room @staff >today ^q9jzj4",
+      "prefix": "* ",
+      "priority": -1,
+      "blockId": "^q9jzj4",
+      "changedDate": new Date("2023-03-02T00:00:00.000Z"),
+    },
   },
 ]
 
 // -------------------------------------------------------------------------
 const weekDateStr = getNPWeekStr(today)
 thisFilename = `${weekDateStr}.md`
-export const openWeekParas: Array<TParagraphForDashboard> = [
+export const openWeekParas: Array<TSectionItem> = [
   {
-    "priority": 2,
-    "type": "open",
-    "content": "!! Arrange EV charger repair",
-    // "rawContent": "* !! Arrange EV charger repair",
-    "prefix": "+ ",
-    // "lineIndex": 2,
-    "changedDate": new Date("2023-02-27T00:00:00.000Z"),
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": thisFilename,
+    "itemType": "open",
+    "itemNoteTitle": weekDateStr,
+    "itemFilename": thisFilename,
     "noteType": "Calendar",
-    // "subItems": [],
-    "title": weekDateStr
+    "para": { 
+      "priority": 2,
+      "content": "!! Arrange EV charger repair",
+      "prefix": "+ ",
+      "changedDate": new Date("2023-02-27T00:00:00.000Z"),
+    },
   },
   {
-    "priority": -1,
-    "type": "open",
-    "content": " Get login for https://www.waverleyabbeyresources.org/resources-home/",
-    // "rawContent": "* Get login for https://www.waverleyabbeyresources.org/resources-home/",
-    "prefix": "* ",
-    // "lineIndex": 3,
-    "changedDate": new Date("2023-02-27T00:00:00.000Z"),
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": thisFilename,
+    "itemType": "open",
+    "itemFilename": thisFilename,
     "noteType": "Calendar",
-    // "subItems": [],
-    "title": weekDateStr
+    "itemNoteTitle": weekDateStr,
+    "para": { 
+      "priority": -1,
+      "content": " Get login for https://www.waverleyabbeyresources.org/resources-home/",
+      "prefix": "* ",
+      "changedDate": new Date("2023-02-27T00:00:00.000Z"),
+    },
   },
   {
-    "priority": -1,
-    "type": "checklist",
-    "content": "Contact @PeterS again",
-    // "rawContent": "+ Contact @PeterS again",
-    "prefix": "+ ",
-    // "lineIndex": 4,
-    "changedDate": new Date("2023-02-27T00:00:00.000Z"),
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": thisFilename,
+    "itemType": "checklist",
+    "itemFilename": thisFilename,
     "noteType": "Calendar",
-    // "subItems": [],
-    "title": weekDateStr
+    "itemNoteTitle": weekDateStr,
+    "para": { 
+      "priority": -1,
+      "content": "Contact @PeterS again",
+      "prefix": "+ ",
+      "changedDate": new Date("2023-02-27T00:00:00.000Z"),
+    },
   },
   {
-    "priority": -1,
-    "type": "open",
+    "itemType": "open",
+    "itemFilename": thisFilename,
+    "noteType": "Calendar",
+    "itemNoteTitle": weekDateStr,
+    "para": { 
     "content": "@church Get iPad working on ChurchOffice-staff for Drive, Printing @church ^bzlp1z",
-    "blockId": "^bzlp1z",
-    // "rawContent": "* @church Get iPad working on ChurchOffice-staff for Drive, Printing @church ^bzlp1z",
-    "prefix": "* ",
-    // "lineIndex": 5,
+      "blockId": "^bzlp1z",
+      "priority": -1,
+      "prefix": "* ",
     "changedDate": new Date("2023-02-27T00:00:00.000Z"),
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": thisFilename,
-    "noteType": "Calendar",
-    // "subItems": [],
-    "title": weekDateStr
+    },
   },
 ]
-export const refWeekParas: Array<TParagraphForDashboard> = [
+export const refWeekParas: Array<TSectionItem> = [
   {
-    "priority": -1,
-    "type": "checklist",
-    "content": "Send @Linda a link to welcome presentation >2023-W09",
-    // "rawContent": "+ Send @Linda a link to welcome presentation >2023-W09",
-    "prefix": "+ ",
-    // "lineIndex": 18,
-    "changedDate": new Date("2023-02-27T00:00:00.000Z"),
-    // "heading": "Pastoral Coordination #meeting (11:30) [Meeting Note](noteplan://x-callback-url/runPlugin?pluginID=np.MeetingNotes&command=newMeetingNoteFromEventID&arg0=14A3903A-9972-47F9-BBFC-1F93FC80DF21&arg1=)",
-    // "headingLevel": 3,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": "CCC Areas/Pastoral.md",
+    "itemType": "checklist",
+    "itemFilename": "CCC Areas/Pastoral.md",
     "noteType": "Notes",
-    // "subItems": [],
-    "title": "Pastoral"
+    "itemNoteTitle": "Pastoral",
+    "para": { 
+      "priority": -1,
+      "content": "Send @Linda a link to welcome presentation >2023-W09",
+      "prefix": "+ ",
+      "changedDate": new Date("2023-02-27T00:00:00.000Z"),
+    },
   },
   {
-    "priority": -1,
-    "type": "open",
-    "content": "Re-plant two shrubs in new blue pots >2023-W09",
-    // "rawContent": "* Re-plant two shrubs in new blue pots >2023-W09",
-    "prefix": "* ",
-    // "lineIndex": 10,
-    "changedDate": new Date("2023-02-27T00:00:00.000Z"),
-    // "heading": "To discuss with Andy",
-    // "headingLevel": 3,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": "Home 🏠 Areas/Garden.md",
+    "itemType": "open",
+    "itemFilename": "Home 🏠 Areas/Garden.md",
     "noteType": "Notes",
-    // "subItems": [],
-    "title": "Gardening"
+    "itemNoteTitle": "Gardening",
+    "para": { 
+      "priority": -1,
+      "content": "Re-plant two shrubs in new blue pots >2023-W09",
+      "prefix": "* ",
+      "changedDate": new Date("2023-02-27T00:00:00.000Z"),
+    },
   },
   {
-    "priority": -1,
-    "type": "checklist",
-    "content": "Backup Mac - with an arrow date >2023-W09< reference",
-    // "rawContent": "+ Backup Mac - with an arrow date >2023-W09< reference",
-    "prefix": "+ ",
-    // "lineIndex": 12,
-    "changedDate": new Date("2023-02-27T00:00:00.000Z"),
-    // "heading": "Backups",
-    // "headingLevel": 3,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": "Home 🏠 Areas/Macs.md",
+    "itemType": "checklist",
+    "itemFilename": "Home 🏠 Areas/Macs.md",
     "noteType": "Notes",
-    // "subItems": [],
-    "title": "Macs"
+    "itemNoteTitle": "Macs",
+    "para": { 
+      "priority": -1,
+      "content": "Backup Mac - with an arrow date >2023-W09< reference",
+      "prefix": "+ ",
+      "changedDate": new Date("2023-02-27T00:00:00.000Z"),
+    },
   },
 ]
 
 // -------------------------------------------------------------------------
 const monthDateStr = getNPMonthStr(today)
 thisFilename = `${monthDateStr}.md`
-export const openMonthParas: Array<TParagraphForDashboard> = [
+export const openMonthParas: Array<TSectionItem> = [
   {
     "priority": 0,
-    "type": "open",
-    "content": "Investigate alternative milkman",
-    // "rawContent": "* Investigate alternative milkman",
-    "prefix": "* ",
-    // "lineIndex": 0,
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": thisFilename,
+    "itemType": "open",
+    "itemNoteTitle": monthDateStr,
     "noteType": "Calendar",
-    // "subItems": [],
-    "title": monthDateStr
+    "para": {
+      "content": "Investigate alternative milkman",
+      "prefix": "* ",
+      "itemFilename": thisFilename,
+    },
   },
 ]
-export const sortedMonthRefParas: Array<TParagraphForDashboard> = [
+export const refMonthParas: Array<TSectionItem> = [
   {
-    "priority": 1,
-    "type": "open",
-    "content": "Pay tax bill",
-    // "rawContent": "* Pay tax bill",
-    "prefix": "* ",
-    // "lineIndex": 0,
-    // "heading": "",
-    // "headingLevel": -1,
-    // "isRecurring": false,
-    // "indents": 0,
-    "filename": "Home 🏠 Areas/Tax Returns.md",
+    "itemType": "open",
+    "itemNoteTitle": "Tax Returns",
+    "itemFilename": "Home 🏠 Areas/Tax Returns.md",
     "noteType": "Notes",
-    // "subItems": [],
-    "title": "Tax Returns"
+    "para": {
+      "priority": 1,
+      "content": "Pay tax bill",
+      "prefix": "* ",
+    },
   },
 ]
 
 //-----------------------------------------------------------
 // Demo data for TagToShow section
-export const tagParasFromNote = [
+export const tagParasFromNote: Array<TSection> = [
   {
-    "type": "checklist",
+    "itemType": "checklist",
+    "itemFilename": "TEST/DEMOs/Test Project A.md",
+    "itemNoteTitle": "Test Project A",
+    "para": {
     "content": "Open Deliveroo account #next",
-    // "rawContent": "+ Open Deliveroo account #next",
-    "title": "Test Project A",
-    "filename": "TEST/DEMOs/Test Project A.md",
+      "prefix": "* ",
+      "priority": 0,
+    }
   },
   {
-    "type": "open",
+    "itemType": "open",
+    "itemFilename": "CCC Areas/Finance.md",
+    "itemNoteTitle": "Finance",
+    "para": {
     "content": "Make expenses claim #next",
-    // "rawContent": "* Make expenses claim #next",
-    "title": "Finance",
-    "filename": "CCC Areas/Finance.md",
+      "prefix": "* ",
+      "priority": 0,
+    }
   }
 ]
 
 //-----------------------------------------------------------
 // Notes to review
-export const nextNotesToReview = [
+export const nextProjectNotesToReview: Array<TSection> = [
   {
-    "filename": "CCC Projects/Facilities/Hearing Support.md",
+    "itemType": "review",
+    "itemFilename": "CCC Projects/Facilities/Hearing Support.md",
     "type": "Notes",
-    "title": "Hearing Support at CCC",
+    "itemNoteTitle": "Hearing Support at CCC",
     "changedDate": "2023-02-28T13:11:30.000Z",
-    "createdDate": "2023-02-28T13:11:30.000Z",
-    "hashtags": [
-      "#project"
-    ],
   },
   {
-    "filename": "Home 🏠 Projects/Streamdeck setup.md",
+    "itemType": "review",
+    "itemFilename": "Home 🏠 Projects/Streamdeck setup.md",
     "type": "Notes",
-    "title": "Streaming Platform",
+    "itemNoteTitle": "Streaming Platform",
     "changedDate": "2023-02-27T10:56:35.000Z",
-    "createdDate": "2023-02-27T10:56:35.000Z",
-    "hashtags": [
-      "#project"
-    ],
   },
   {
-    "filename": "CCC Projects/Pastoral Cards.md",
+    "itemType": "review",
+    "itemFilename": "CCC Projects/Pastoral Cards.md",
     "type": "Notes",
-    "title": "Pastoral Cards",
+    "itemNoteTitle": "Pastoral Cards",
     "changedDate": "2022-09-05T11:13:21.963Z",
-    "createdDate": "2022-04-25T22:39:42.000Z",
-    "hashtags": [
-      "#project"
-    ],
   },
 ]

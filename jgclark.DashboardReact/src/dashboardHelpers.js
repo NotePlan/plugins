@@ -159,31 +159,30 @@ export async function getSettings(): Promise<any> {
 //-----------------------------------------------------------------
 
 /**
- * Return a reduced set of fields for each paragraph (plus filename + computed priority + title)
+ * Return an optimised set of fields based on each paragraph (plus filename + computed priority + title - many)
  * @param {Array<TParagraph>} origParas 
- * @returns {Array<TParagraphForDashboard>} reducedParas
+ * @returns {Array<TParagraphForDashboard>} dashboardParas
  */
-export function reduceParagraphs(origParas: Array<TParagraph>): Array<TParagraphForDashboard> {
+export function makeDashboardParas(origParas: Array<TParagraph>): Array<TParagraphForDashboard> {
   try {
-    const reducedParas: Array<TParagraphForDashboard> = origParas.map((p) => {
+    const dashboardParas: Array<TParagraphForDashboard> = origParas.map((p) => {
       const note = p.note
-      const fieldSet = {
+      return {
         filename: note?.filename ?? '<error>',
-        type: p.type,
         title: displayTitle(note), // this isn't expensive
-        content: p.content,
-        noteType: note?.type ?? 'Notes',
-        changedDate: note?.changedDate,
+        type: p.type,
+        // rawContent: p.rawContent,
         prefix: p.rawContent.replace(p.content, ''),
+        content: p.content,
         priority: getNumericPriorityFromPara(p),
-        blockId: p.blockId ?? ''
+        changedDate: note?.changedDate,
+        timeStr: getStartTimeFromPara(p),
       }
-      return fieldSet
     })
-    return reducedParas
+    return dashboardParas
   }
   catch (error) {
-    logError('reduceParagraphs', error.message)
+    logError('makeDashboardParas', error.message)
     return []
   }
 }
@@ -263,49 +262,49 @@ export function getOpenItemParasForCurrentTimePeriod(
     }
     // logDebug('getOpenItemParasForCurrent...', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
-    // Temporarily extend TParagraph with the task's priority + start time (if present)
-    openParas = reduceParagraphs(openParas)
-    openParas = extendParaToAddStartTime(openParas)
+    // Extend TParagraph with the task's priority + start time (if present)
+    const openDashboardParas = makeDashboardParas(openParas)
+    // openParas = extendParaToAddStartTime(openParas)
     logDebug('getOpenItemParasForCurrent...', `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName} (after ${timer(startTime)})`)
 
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
     // (This is 2-3x quicker than part above)
     // Note: the getReferencedParagraphs() operation take 70-140ms
-    let refParas: Array<TParagraph> = []
+    let refOpenParas: Array<TParagraph> = []
     if (timePeriodNote) {
       // Allow to ignore checklist items.
-      refParas = (config.ignoreChecklistItems)
+      refOpenParas = (config.ignoreChecklistItems)
         ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
         // try make this a single filter
         : getReferencedParagraphs(timePeriodNote, false).filter(isOpen)
     }
-    logDebug('getOpenItemParasForCurrent...', `- got ${refParas.length} open referenced after ${timer(startTime)}`)
+    logDebug('getOpenItemParasForCurrent...', `- got ${refOpenParas.length} open referenced after ${timer(startTime)}`)
 
     // Remove items referenced from items in 'ignoreFolders'
-    refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders, true)
-    // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${refParas.length} paras (after ${timer(startTime)})`)
+    refOpenParas = filterOutParasInExcludeFolders(refOpenParas, config.ignoreFolders, true)
+    // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
     // Remove possible dupes from sync'd lines
-    refParas = eliminateDuplicateSyncedParagraphs(refParas)
-    // logDebug('getOpenItemParasForCurrent...', `- after 'dedupe' filter: ${refParas.length} paras (after ${timer(startTime)})`)
-    // Temporarily extend TParagraph with the task's priority + start time (if present)
-    refParas = reduceParagraphs(refParas)
-    refParas = extendParaToAddStartTime(refParas)
-    logDebug('getOpenItemParasForCurrent...', `- found and extended ${String(refParas.length ?? 0)} referenced items for ${timePeriodName} (after ${timer(startTime)})`)
+    refOpenParas = eliminateDuplicateSyncedParagraphs(refOpenParas)
+    // logDebug('getOpenItemParasForCurrent...', `- after 'dedupe' filter: ${refOpenParas.length} paras (after ${timer(startTime)})`)
+    // Extend TParagraph with the task's priority + start time (if present)
+    const refOpenDashboardParas = makeDashboardParas(refOpenParas)
+    // refOpenParas = extendParaToAddStartTime(refOpenParas)
+    logDebug('getOpenItemParasForCurrent...', `- found and extended ${String(refOpenParas.length ?? 0)} referenced items for ${timePeriodName} (after ${timer(startTime)})`)
 
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
     // Note: This takes 100ms
     // TODO: extend to deal with 12hr (AM/PM) time blocks
     if (config.separateSectionForReferencedNotes) {
-      const sortedOpenParas = sortListBy(openParas, ['-priority', 'timeStr'])
-      const sortedRefParas = sortListBy(refParas, ['-priority', 'timeStr'])
+      const sortedOpenParas = sortListBy(openDashboardParas, ['-priority', 'timeStr'])
+      const sortedRefOpenParas = sortListBy(refOpenDashboardParas, ['-priority', 'timeStr'])
       // come back to main thread
       // await CommandBar.onMainThread()
       logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
-      return [sortedOpenParas, sortedRefParas]
+      return [sortedOpenParas, sortedRefOpenParas]
     } else {
-      const combinedParas = openParas.concat(refParas)
+      const combinedParas = openDashboardParas.concat(refOpenDashboardParas)
       const combinedSortedParas = sortListBy(combinedParas, ['-priority', 'timeStr'])
       logDebug('getOpenItemParasForCurrent...', `- sorted after ${timer(startTime)}`)
       // come back to main thread
@@ -533,13 +532,13 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
 /**
  * FIXME: write some tests
  * FIXME: extend to allow AM/PM times as well
- * Extend the paragraph object with a .timeStr property which comes from the start time of a time block, or else 'none' (which will then sort after times)
+ * Extend the paragraph objects with a .timeStr property which comes from the start time of a time block, or else 'none' (which will then sort after times)
  * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
  * @param {Array<TParagraph>} paras to extend
  * @returns {Array<TParagraph>} paras extended by .timeStr
  */
-export function extendParaToAddStartTime(paras: Array<TParagraph>): Array<any> {
+export function extendParasToAddStartTime(paras: Array<TParagraph>): Array<any> {
   try {
     // logDebug('extendParaToAddStartTime', `starting with ${String(paras.length)} paras`)
     const extendedParas = []
@@ -565,6 +564,39 @@ export function extendParaToAddStartTime(paras: Array<TParagraph>): Array<any> {
     }
 
     return extendedParas
+  }
+  catch (error) {
+    logError('dashboard / extendParaToAddTimeBlock', `${JSP(error)}`)
+    return []
+  }
+}
+
+/**
+ * FIXME: write some tests
+ * FIXME: extend to allow AM/PM times as well
+ * Return the start time in a given paragraph.
+ * This is from the start time of a time block, or else 'none' (which will then sort after times)
+ * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
+ * @tests in dashboardHelpers.test.js
+ * @param {TParagraph} para to process
+ * @returns {string} time string found
+ */
+export function getStartTimeFromPara(para: TParagraph): any {
+  try {
+    // logDebug('getStartTimeFromPara', `starting with ${String(paras.length)} paras`)
+    let startTimeStr = "none"
+    const thisTimeStr = getTimeBlockString(para.content)
+    if (thisTimeStr !== '') {
+      startTimeStr = thisTimeStr.split('-')[0]
+      if (startTimeStr[1] === ':') {
+        startTimeStr = `0${startTimeStr}`
+      }
+      if (startTimeStr.endsWith("PM")) {
+        startTimeStr = String(Number(startTimeStr.slice(0, 2)) + 12) + startTimeStr.slice(2, 5)
+      }
+      logDebug('extendParaToAddStartTime', `found timeStr: ${startTimeStr} from timeblock ${thisTimeStr}`)
+    }
+    return startTimeStr
   }
   catch (error) {
     logError('dashboard / extendParaToAddTimeBlock', `${JSP(error)}`)

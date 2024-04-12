@@ -26,7 +26,7 @@ function Dashboard({ pluginData }: Props): React$Node {
         <Header lastUpdated={lastUpdated} />
         {/* Assuming sections data is fetched or defined elsewhere and passed as props */}
         {sections.map((section, index) => (
-          <Section key={index} {...section} />
+          <Section key={index} section={section} />
         ))}
       </div>
 

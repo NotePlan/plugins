@@ -19,7 +19,7 @@ function ItemGrid(inputObj: Props): React$Node {
   console.log(`ItemGrid for section ${thisSection.sectionType}/${thisSection.ID}: ${items.length} items`)
 
   const visibleItems = items?.map((item, index) => (
-    !reactSettings.filterPriorityItems || item.para.priority || 0 > 0
+    !reactSettings.filterPriorityItems || item.para?.priority || 0 > 0
       ? <ItemRow key={index} item={item} thisSection={thisSection} />
       : null)) ?? []
 
