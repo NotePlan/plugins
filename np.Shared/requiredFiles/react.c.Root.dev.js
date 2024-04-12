@@ -219,14 +219,11 @@ var RootBundle = (function (exports, React$1) {
 	}
 
 	const ErrorFallback = ({
-	  error,
-	  resetErrorBoundary
+	  error
 	}) => {
 	  return /*#__PURE__*/React.createElement("div", {
 	    role: "alert"
-	  }, /*#__PURE__*/React.createElement("h1", null, "Something went wrong in React:"), /*#__PURE__*/React.createElement("pre", null, error.message), /*#__PURE__*/React.createElement("button", {
-	    onClick: resetErrorBoundary
-	  }, "Try again"));
+	  }, /*#__PURE__*/React.createElement("h1", null, "Something went wrong in React:"), /*#__PURE__*/React.createElement("pre", null, error.message), /*#__PURE__*/React.createElement("p", null), /*#__PURE__*/React.createElement("p", null, "More detail:"), /*#__PURE__*/React.createElement("pre", null, JSON.stringify(error, null, 2)));
 	};
 
 	/****************************************************************************************************************************
@@ -240,7 +237,7 @@ var RootBundle = (function (exports, React$1) {
 
 	// used by the ErrorBoundary component
 	const myErrorLogger = (error, info) => {
-	  console.log(`%cRoot: ErrorBoundary got error: error=\n${JSON.stringify(error)},\ninfo=${JSON.stringify(info)}`, 'background: #ff0000; color: #ffffff');
+	  console.log(`%cRoot: ErrorBoundary got error: error=\n${JSON.stringify(error, null, 2)},\ninfo=${JSON.stringify(info, null, 2)}`, 'background: #ff0000; color: #ffffff');
 	};
 
 	/****************************************************************************************************************************

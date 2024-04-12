@@ -37,7 +37,7 @@ const ROOT_DEBUG = false
 
 // used by the ErrorBoundary component
 const myErrorLogger = (error: Error, info: { componentStack: string }) => {
-  console.log(`%cRoot: ErrorBoundary got error: error=\n${JSON.stringify(error)},\ninfo=${JSON.stringify(info)}`, 'background: #ff0000; color: #ffffff')
+  console.log(`%cRoot: ErrorBoundary got error: error=\n${JSON.stringify(error, null, 2)},\ninfo=${JSON.stringify(info, null, 2)}`, 'background: #ff0000; color: #ffffff')
 }
 
 /****************************************************************************************************************************
