@@ -34,6 +34,9 @@ async function handleReadwiseSync(response: any): Promise<void> {
   await response.map(parseBookAndWriteToNote)
   log(pluginJson, `Downloaded ${downloadHiglightCount} highlights from Readwise. Updated ${updatedSourceCount} notes.`)
   await showMessage(`Downloaded ${downloadHiglightCount} highlights from Readwise. Updated ${updatedSourceCount} notes.`)
+  if (DataStore.settings.writeSyncLog === true) {
+    await writeReadwiseSyncLog()
+  }
 }
 
 /**
@@ -93,7 +96,6 @@ async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downl
     if (pageCursor !== null && pageCursor !== '') {
       data = await doReadWiseFetch(accessToken, lastFetchTime, count, pageCursor)
     }
-    downloadHiglightCount = count
     return parsedJson.results.concat(data)
   } catch (error) {
     logError(pluginJson, error)
@@ -115,7 +117,7 @@ async function getReadwiseDailyReview(): Promise<string> {
     const response = await fetch(url, options)
     const highlights = JSON.parse(response).highlights
 
-    highlights.map((highlight) => {
+    await highlights.map((highlight) => {
       const formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
       highlightString += `> ${formattedHighlight}\n`
     })
@@ -148,7 +150,8 @@ async function parseBookAndWriteToNote(source: any): Promise<void> {
         outputNote.insertHeading('Highlights', findEndOfActivePartOfNote(outputNote) + 1, 1)
       }
     }
-    source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
+    await writeReadwiseSyncLogLine(noteTtile, source.highlights.length)
+    await source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
     removeEmptyLines(outputNote)
   } catch (error) {
     logError(pluginJson, error)
@@ -224,7 +227,6 @@ async function getOrCreateReadwiseNote(title: string, category: string): Promise
   }
   try {
     outputNote = await getOrMakeNote(title, baseFolder, '')
-    updatedSourceCount++
   } catch (error) {
     logError(pluginJson, error)
   }
@@ -267,6 +269,22 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
     }
   }
   outputNote.appendParagraph(filteredContent + userNote + linkToHighlightOnWeb, 'quote')
+}
+
+async function writeReadwiseSyncLogLine(title: string, count: number): Promise<void> {
+  if (DataStore.settings.writeSyncLog === true) {
+    const outputNote = await getOrMakeNote('Readwise Syncs', DataStore.settings.baseFolder, '')
+    outputNote?.addParagraphBelowHeadingTitle(`${count} highlights from ${title}`, 'list', 'readWiseToken', true, true)
+  }
+  updatedSourceCount++
+  downloadHiglightCount += count
+}
+
+async function writeReadwiseSyncLog(): Promise<void> {
+  const outputNote = await getOrMakeNote('Readwise Syncs', DataStore.settings.baseFolder, '')
+  const dateString = `[[${new Date().toISOString().split('T')[0]}]] ${new Date().toLocaleTimeString([], {timeStyle: 'short'})} `
+    +`— synced ${downloadHiglightCount} highlights from ${updatedSourceCount} documents.`
+  outputNote.content = outputNote?.content?.replace('readWiseToken', dateString)
 }
 
 /**

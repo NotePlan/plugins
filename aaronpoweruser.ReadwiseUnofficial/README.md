@@ -75,6 +75,10 @@ Group all highlights in under the readwise folder or having them separated by co
 ** Ignored if group by type is disabled **
 Group all highlights together or keep supplemental (readwise generated) highlights seperate.
 
+### Sync log
+
+A note that has all highlights synced during a sync.
+
 ## Latest Updates
 
 See [CHANGELOG](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/CHANGELOG.md) for latest updates/changes to this plugin.

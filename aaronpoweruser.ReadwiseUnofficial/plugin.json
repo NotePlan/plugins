@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
-  "plugin.version": "1.0.2",
-  "plugin.lastUpdateInfo": "Add support for daily reviews via templates",
+  "plugin.version": "1.0.3",
+  "plugin.lastUpdateInfo": "Add a sync log note. \nAdd support for daily reviews via templates",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
   "plugin.dependencies": [],
@@ -106,6 +106,14 @@
       "key": "showLinkToHighlight",
       "type": "bool",
       "description": "Include a link to the source of the highlight in the note.",
+      "default": false,
+      "required": true
+    },
+    {
+      "title": "Create a sync log",
+      "key": "writeSyncLog",
+      "type": "bool",
+      "description": "Include a log of the synced highlights.",
       "default": false,
       "required": true
     },

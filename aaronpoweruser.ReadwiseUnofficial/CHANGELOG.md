@@ -4,6 +4,10 @@
 
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
+
+## [1.0.3] Readwise 2024-04-12 (aaronpoweruser)
+- Added a sync log.
+
 ## [1.0.2] Readwise 2024-04-11 (aaronpoweruser)
 - Add support for daily reviews via template.
 
