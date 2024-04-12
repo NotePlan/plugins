@@ -205,7 +205,7 @@ export function reduceParagraphs(origParas: Array<TParagraph>): Array<TParagraph
  */
 export function getOpenItemParasForCurrentTimePeriod(
   timePeriodName: string, timePeriodNote: TNote, config: dashboardConfigType
-): [Array<TParagraph>, Array<TParagraph>] {
+): [Array<TParagraphForDashboard>, Array<TParagraphForDashboard>] {
   try {
     let parasToUse: $ReadOnlyArray<TParagraph>
 
@@ -264,7 +264,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     // logDebug('getOpenItemParasForCurrent...', `- after 'exclude checklist timeblocks' filter: ${openParas.length} paras (after ${timer(startTime)})`)
 
     // Temporarily extend TParagraph with the task's priority + start time (if present)
-    openParas = addPriorityToParagraphs(openParas)
+    openParas = reduceParagraphs(openParas)
     openParas = extendParaToAddStartTime(openParas)
     logDebug('getOpenItemParasForCurrent...', `- found and extended ${String(openParas.length ?? 0)} cal items for ${timePeriodName} (after ${timer(startTime)})`)
 
@@ -289,7 +289,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     refParas = eliminateDuplicateSyncedParagraphs(refParas)
     // logDebug('getOpenItemParasForCurrent...', `- after 'dedupe' filter: ${refParas.length} paras (after ${timer(startTime)})`)
     // Temporarily extend TParagraph with the task's priority + start time (if present)
-    refParas = addPriorityToParagraphs(refParas)
+    refParas = reduceParagraphs(refParas)
     refParas = extendParaToAddStartTime(refParas)
     logDebug('getOpenItemParasForCurrent...', `- found and extended ${String(refParas.length ?? 0)} referenced items for ${timePeriodName} (after ${timer(startTime)})`)
 

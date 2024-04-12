@@ -48,7 +48,7 @@
     {
       "name": "Show React Dashboard",
       "description": "React Window",
-      "jsFunction": "testReactWindow",
+      "jsFunction": "showDashboardReact",
       "hidden": false,
       "alias": [
         "srd"

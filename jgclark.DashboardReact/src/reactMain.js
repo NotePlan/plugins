@@ -1,6 +1,6 @@
 // @flow
 
-import moment from 'moment/min/moment-with-locales'
+// import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 import {
   getSettings,
@@ -8,17 +8,12 @@ import {
 } from './dashboardHelpers'
 import type { TSection } from './types'
 import {
-  openTodayParas,
-  refTodayParas,
-  openYesterdayParas,
-  refYesterdayParas,
-  openWeekParas,
-  refWeekParas,
-  openMonthParas,
-  sortedMonthRefParas,
-  tagParasFromNote,
-  nextNotesToReview,
-} from './demoData'
+  getTodaySectionData,
+  getYesterdaySectionData,
+  getThisWeekSectionData,
+  getProjectSectionData,
+  getTaggedSectionData,
+} from './dataGeneration'
 import {
   getNPMonthStr,
   getNPWeekStr,
@@ -28,6 +23,7 @@ import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
 import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
+import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
@@ -44,181 +40,96 @@ export type PassedData = {
 }
 
 /**
+ * Plugin Entry Point for "Test React Window"
+ * @author @dwertheimer
+ */
+export async function showDemoDashboard(): Promise<void> {
+  await showDashboardReact('full', true)
+}
+
+/**
+ * Plugin Entry Point for "Test React Window"
+ * @author @dwertheimer
+ */
+export async function showDashboardReact(callMode: string = 'full', demoMode: boolean = false): Promise<void> {
+  try {
+    logDebug(pluginJson, `showDashboardReact starting up (mode '${callMode}')${demoMode ? ' in DEMO MODE' : ''}`)
+    // make sure we have the np.Shared plugin which has the core react code and some basic CSS
+    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
+    // logDebug(pluginJson, `showDashboardReact: installOrUpdatePluginsByID ['np.Shared'] completed`)
+
+    // get initial data to pass to the React Window
+    const data = await getInitialDataForReactWindowObjectForReactView(demoMode)
+
+    // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
+    // w3.css reference: https://www.w3schools.com/w3css/default.asp
+    // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
+    const resourceLinksInHeader = `
+      <link rel="stylesheet" href="../np.Shared/css.w3.css">
+      <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
+      <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css">
+		  <!-- <link rel="stylesheet" href="../jgclark.DashboardReact/css.plugin.css"> -->
+
+      <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
+      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
+      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
+      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
+    const config = await getSettings()
+    const windowOptions = {
+      windowTitle: data.title,
+      customId: WEBVIEW_WINDOW_ID,
+      headerTags: `${resourceLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
+      generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
+      specificCSS: '', // set in separate CSS file referenced in header
+      makeModal: false,
+      bodyOptions: 'onload="showTimeAgo()"',
+      preBodyScript: '', // no extra pre-JS
+      savedFilename: `../../${pluginJson['plugin.id']}/dashboard-react.html`, /* for saving a debug version of the html file */
+      shouldFocus: callMode !== 'refresh', /* focus window every time (unless this is a refresh) */
+      postBodyScript: `
+      <script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
+      <script type="text/javascript" src="./showTimeAgo.js"></script>
+      <script type="text/javascript" src="./dashboardEvents.js"></script>
+`
+    }
+    logDebug(`===== showDashboardReact Calling React after ${timer(data.startTime || new Date())} =====`)
+    // clo(data, `showDashboardReact data object passed`)
+    logDebug(pluginJson, `showDashboardReact invoking window. showDashboardReact stopping here. It's all React from this point forward...\n`)
+    // now ask np.Shared to open the React Window with the data we just gathered
+    await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
+  } catch (error) {
+    logError(pluginJson, JSP(error))
+  }
+}
+
+/**
  * Gathers key data for the React Window, including the callback function that is used for comms back to the plugin
  * @returns {PassedData} the React Data Window object
  */
-export function getInitialDataForReactWindowObjectForReactView(useDemoData: boolean = false): PassedData {
-  const startTime = new Date()
-  // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-  const pluginData = getInitialDataForReactWindow(useDemoData)
-  const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
-  const dataToPass: PassedData = {
-    pluginData,
-    title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
-    debug: ENV_MODE === 'development' ? true : false,
-    ENV_MODE,
-    returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
-    /* change the ID below to your plugin ID */
-    componentPath: `../jgclark.DashboardReact/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
-    startTime,
+export async function getInitialDataForReactWindowObjectForReactView(useDemoData: boolean = false): Promise<PassedData> {
+  try {
+    const startTime = new Date()
+    const config: dashboardConfigType = await getSettings()
+    // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
+    const pluginData = getInitialDataForReactWindow(config, useDemoData)
+    const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
+    const dataToPass: PassedData = {
+      pluginData,
+      title: useDemoData ? 'Dashboard (Demo Data)' : 'Dashboard',
+      debug: ENV_MODE === 'development' ? true : false,
+      ENV_MODE,
+      returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
+      /* change the ID below to your plugin ID */
+      componentPath: `../jgclark.DashboardReact/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
+      startTime,
+    }
+    return dataToPass
   }
-  return dataToPass
-}
-
-/*
- * REPLACE DUMMY DATA IN EACH OF THE FOLLOWING WITH FUNCTIONS TO COMPILE ACTUAL DATA
- */
-
-function getTodaySectionData(useDemoData: boolean = false): any {
-  const sectionNum = 0
-  const thisSectionType = 'DT'
-  let itemCount = 0
-  const items: Array<SectionItem> = []
-  const todayDateLocale = toNPLocaleDateString(new Date(), "short") // uses moment's locale info from NP
-  const thisFilename = `${getTodaysDateUnhyphenated()}.md`
-
-  if (useDemoData) {
-    const combinedSortedParas = openTodayParas.concat(refTodayParas)
-    // write one combined section
-    combinedSortedParas.map((p) => {
-      const thisID = `${sectionNum}-${itemCount}`
-      items.push({ ID: thisID, sectionType: thisSectionType, para: p })
-      itemCount++
-    })
-    const section: TSection = { ID: sectionNum, name: 'Today', sectionType: thisSectionType, description: `{count} from ${todayDateLocale} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename, sectionItems: items }
-
-    logDebug('getTodaySectionData', JSON.stringify(section))
-    return section
+  catch (error) {
+    logError(pluginJson, error.message)
+    return null
   }
-
-  return {
-    name: 'Today',
-    description: '14 items from daily note or scheduled to 3/23/2024',
-    FAIconClass: 'fa-calendar-star',
-    items: [
-      {
-        id: '0-0',
-        content: 'Lorem ipsum dolor sit amet, #VidAI',
-        noteTitle: '20240307',
-        priority: 0 /** assumes you send numeric priority with the content, use getNumericPriorityFromPara() (from helpers/sorting.js) **/,
-      },
-      {
-        id: '0-1',
-        content: 'Consectetur adipiscing elit, maybe buy a TrackRig',
-        noteTitle: '',
-        priority: 2,
-      },
-    ],
-  }
-}
-
-function getYesterdaySectionData(useDemoData: boolean = false) {
-  const thisSectionType = 'DY'
-  const yesterday = new moment().subtract(1, 'days').toDate()
-  const yesterdayDateLocale = toNPLocaleDateString(yesterday, "short") // uses moment's locale info from NP
-  const thisFilename = `${moment(yesterday).format("YYYYMMDD")}.md`
-  const sectionNum = 1
-  let itemCount = 0
-  const items: Array<SectionItem> = []
-
-  if (useDemoData) {
-    const combinedYesterdaySortedParas = openYesterdayParas.concat(refYesterdayParas)
-    // write one combined section
-    combinedYesterdaySortedParas.map((p) => {
-      const thisID = `${sectionNum}-${itemCount}`
-      items.push({ ID: thisID, sectionType: thisSectionType, para: p })
-      itemCount++
-    })
-    const section: TSection = { ID: sectionNum, name: 'Yesterday', sectionType: thisSectionType, description: `{count} from ${yesterdayDateLocale} {scheduleAllYesterdayToday}`, FAIconClass: "fa-light fa-calendar-star", sectionTitleClass: "sidebarDaily", filename: thisFilename, sectionItems: items }
-
-    // return JSON.stringify(section)
-    // logDebug('getYesterdaySectionData', JSON.stringify(section))
-    return section
-  }
-
-  return {
-    name: 'Yesterday',
-    description: '1 item from daily note or scheduled to 3/22/2024',
-    FAIconClass: 'fa-calendar-days',
-    items: [
-      {
-        id: '1-0',
-        content: 'Register poker event at lorem ipsum dolor sit',
-        noteTitle: '',
-      },
-    ],
-  }
-}
-
-function getThisWeekSectionData(useDemoData: boolean = false) {
-  const thisSectionType = 'W'
-  const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
-  const dateStr = getNPWeekStr(today)
-  const thisFilename = `${dateStr}.md`
-  const sectionNum = 2
-  let itemCount = 0
-  const items: Array<SectionItem> = []
-
-  if (useDemoData) {
-    const combinedWeekSortedParas = openWeekParas.concat(refWeekParas)
-    // write one combined section
-    combinedWeekSortedParas.map((p) => {
-      const thisID = `${sectionNum}-${itemCount}`
-      items.push({ ID: thisID, sectionType: thisSectionType, para: p })
-      itemCount++
-    })
-    const section: TSection = { ID: sectionNum, name: 'This Week', sectionType: thisSectionType, description: `{count} from ${dateStr} {addItems} {addItemsNextPeriod}`, FAIconClass: "fa-light fa-calendar-week", sectionTitleClass: "sidebarWeekly", filename: thisFilename, sectionItems: items }
-
-    // logDebug('getThisWeekSectionData', JSON.stringify(section))
-    return section
-  }
-}
-
-function getProjectsSectionData() {
-  return {
-    name: 'Projects',
-    description: '6 next projects to review',
-    FAIconClass: 'fa-calendar-check',
-    items: [
-      {
-        id: '5-0',
-        content: 'Plugin Tester - HTML List Project',
-        noteTitle: '',
-      },
-      {
-        id: '5-1',
-        content: 'Plugin Splitting into Smaller Plugins',
-        noteTitle: '',
-        priority: 1,
-      },
-      // Add more project items as needed
-    ],
-  }
-}
-
-function getTaggedSectionData() {
-  return {
-    name: '#home',
-    description: 'All items ordered by priority',
-    FAIconClass: 'fa-hashtag',
-    items: [
-      {
-        id: '4-0',
-        content: 'Test #home lorem ipsum',
-        noteTitle: '20240320',
-      },
-    ],
-  }
-}
-
-function getAllSectionsData(demoMode: boolean = false) {
-  return [
-    getTodaySectionData(demoMode),
-    getYesterdaySectionData(demoMode),
-    getThisWeekSectionData(demoMode),
-    // getProjectsSectionData(),
-    //   getTaggedSectionData()
-  ]
 }
 
 /**
@@ -228,14 +139,24 @@ function getAllSectionsData(demoMode: boolean = false) {
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export function getInitialDataForReactWindow(demoMode: boolean = false): { [string]: mixed } {
+export function getInitialDataForReactWindow(config: dashboardConfigType, demoMode: boolean = false): { [string]: mixed } {
   return {
-    sections: getAllSectionsData(demoMode),
+    sections: getAllSectionsData(config, demoMode),
     lastUpdated: new Date().toLocaleString() /* placeholder */,
-    settings: getSettings(),
-    totalItems: 999 /* placeholder */,
+    settings: config,
+    totalItems: 999 /* TODO: placeholder */,
   }
   // you can pass any object with any number of fields you want
+}
+
+function getAllSectionsData(config: dashboardConfigType, demoMode: boolean = false): Array<TSection> {
+  return [
+    getTodaySectionData(config, demoMode),
+    getYesterdaySectionData(config, demoMode),
+    getThisWeekSectionData(config, demoMode),
+    // getProjectsSectionData(),
+    //   getTaggedSectionData()
+  ]
 }
 
 /**
@@ -255,7 +176,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
       /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */
       /* you would probably call a different function for each actionType */
       case 'refresh':
-        testReactWindow('refresh')
+        await showDashboardReact('refresh')
         break
       case 'onSubmitClick':
         reactWindowData = await handleSubmitButtonClick(data, reactWindowData) //update the data to send it back to the React Window
@@ -299,55 +220,3 @@ async function handleSubmitButtonClick(data: any, reactWindowData: PassedData): 
   return reactWindowData //updated data to send back to React Window
 }
 
-/**
- * Plugin Entry Point for "Test React Window"
- * @author @dwertheimer
- */
-export async function showDemoDashboard(): Promise<void> {
-  await testReactWindow('full', true)
-}
-
-/**
- * Plugin Entry Point for "Test React Window"
- * @author @dwertheimer
- */
-export async function testReactWindow(callMode: string = 'full', demoMode: boolean = false): Promise<void> {
-  try {
-    logDebug(pluginJson, `testReactWindow starting up (mode '${callMode}')${demoMode ? ' in DEMO MODE' : ''}`)
-    // make sure we have the np.Shared plugin which has the core react code and some basic CSS
-    await DataStore.installOrUpdatePluginsByID(['np.Shared'], false, false, true) // you must have np.Shared code in order to open up a React Window
-    // logDebug(pluginJson, `testReactWindow: installOrUpdatePluginsByID ['np.Shared'] completed`)
-
-    // get initial data to pass to the React Window
-    const data = await getInitialDataForReactWindowObjectForReactView(demoMode)
-
-    // Note the first tag below uses the w3.css scaffolding for basic UI elements. You can delete that line if you don't want to use it
-    // w3.css reference: https://www.w3schools.com/w3css/default.asp
-    // The second line needs to be updated to your pluginID in order to load any specific CSS you want to include for the React Window (in requiredFiles)
-    const cssTagsString = `
-      <link rel="stylesheet" href="../np.Shared/css.w3.css">
-      <link rel="stylesheet" href="../jgclark.DashboardReact/dashboard.css">
-      <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardDialog.css">
-      <link rel="stylesheet" href="../jgclark.DashboardReact/dashboardHoverControls.css">
-		  <link rel="stylesheet" href="../jgclark.DashboardReact/css.plugin.css">
-      <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
-      <link href="../np.Shared/fontawesome.css" rel="stylesheet">
-      <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
-      <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">\n`
-    const windowOptions = {
-      savedFilename: `../../${pluginJson['plugin.id']}/dashboard-react.html`, /* for saving a debug version of the html file */
-      headerTags: cssTagsString,
-      windowTitle: data.title,
-      customId: WEBVIEW_WINDOW_ID,
-      shouldFocus: callMode !== 'refresh', /* focus window every time (unless this is a refresh) */
-    }
-    logDebug(`===== testReactWindow Calling React after ${timer(data.startTime || new Date())} =====`)
-    logDebug(pluginJson, `testReactWindow invoking window. testReactWindow stopping here. It's all React from this point forward`)
-    // clo(data, `testReactWindow data object passed`)
-    // now ask np.Shared to open the React Window with the data we just gathered
-    await DataStore.invokePluginCommandByName('openReactWindow', 'np.Shared', [data, windowOptions])
-  } catch (error) {
-    logError(pluginJson, JSP(error))
-  }
-}

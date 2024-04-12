@@ -2,8 +2,7 @@
 import React from 'react'
 import type { TSection } from '../../types.js'
 import ItemGrid from './ItemGrid.jsx'
-import ThisPeriodAddButtons from './ThisPeriodAddButtons.jsx'
-import NextPeriodAddButtons from './NextPeriodAddButtons.jsx'
+import CommandButton from './CommandButton.jsx'
 
 // type Props = {
 //   name: string,
@@ -17,9 +16,23 @@ import NextPeriodAddButtons from './NextPeriodAddButtons.jsx'
  * Represents a section within the dashboard, like Today, Yesterday, Projects, etc.
  */
 function Section(section: TSection): React$Node {
-  const { ID, name, sectionType, description, sectionItems, FAIconClass, sectionTitleClass, filename } = section
+  const { ID, name, sectionType, description, sectionItems, FAIconClass, sectionTitleClass, filename, actionButtons } = section
 
-  console.log(`Section: ${ID} / ${sectionType} with ${sectionItems.length} items`)
+  if (!sectionItems) {
+    console.log(`❓Section: ${ID} / ${sectionType} doesn't have any sectionItems`)
+    return
+  } else {
+    console.log(`Section: ${ID} / ${sectionType} with ${sectionItems.length} items`)
+  }
+  // console.log('- actionButtons: ')
+  // for (const ab of actionButtons) {
+  //   console.log(ab.display)
+  // } // ✅
+
+  // Produce set of actionButtons, if present
+  const buttons = actionButtons?.map((item, index) => (
+    <CommandButton key={index} button={item} filename={filename} />
+  )) ?? []
 
   return (
     <div className="section">
@@ -30,17 +43,14 @@ function Section(section: TSection): React$Node {
         </span>{' '}
         <span className="sectionDescription">
           <span id={`section${ID}Count`}>{description}</span>
-          {/* TODO: Change this to send buttons as properties? */}
-          <span id="section0Buttons">
-            {['DT', 'W', 'M'].includes(sectionType) ? <ThisPeriodAddButtons sectionType={sectionType} filename={filename} /> : null}
-            {['DT', 'W', 'M'].includes(sectionType) ? <NextPeriodAddButtons sectionType={sectionType} filename={filename} /> : null}
-            {/* TODO: other button types */}
-          </span>
+          {buttons}
         </span>
       </div>
       <ItemGrid thisSection={section} items={sectionItems} />
     </div>
   )
 }
+
+// {(buttons.length > 0 ?? buttons)}
 
 export default Section
