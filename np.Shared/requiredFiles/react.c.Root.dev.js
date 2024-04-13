@@ -130,12 +130,245 @@ var RootBundle = (function (exports, React$1) {
     }, "X"), /*#__PURE__*/React.createElement("p", null, props.msg));
   }
 
-  const ErrorFallback = ({
-    error
-  }) => {
+  // Development-related helper functions
+  /**
+   * NotePlan API properties which should not be traversed when stringifying an object
+   */
+  const PARAM_BLACKLIST = ['note', 'referencedBlocks', 'availableThemes', 'currentTheme', 'linkedNoteTitles', 'linkedItems']; // fields not to be traversed (e.g. circular references)
+
+  const dt = () => {
+    const d = new Date();
+    const pad = value => {
+      return value < 10 ? `0${value}` : value.toString();
+    };
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${d.toLocaleTimeString('en-GB')}`;
+  };
+
+  /**
+   * JSON.stringify() with support for Prototype properties
+   * @author @dwertheimer
+   *
+   * @param {object} obj
+   * @param {string | number} space - A String or Number of spaces that's used to insert white space (including indentation, line break characters, etc.) into the output JSON string for readability purposes.
+   * @returns {string} stringified object
+   * @example console.log(JSP(obj, '\t')) // prints the full object with newlines and tabs for indentation
+   */
+  function JSP(obj, space = 2) {
+    if (typeof obj !== 'object' || obj instanceof Date) {
+      return String(obj);
+    } else {
+      if (Array.isArray(obj)) {
+        const arrInfo = [];
+        let isValues = false;
+        obj.forEach((item, i) => {
+          if (typeof item === 'object') {
+            arrInfo.push(`[${i}] = ${JSP(item, space)}`);
+          } else {
+            isValues = true;
+            arrInfo.push(`${item}`);
+          }
+        });
+        return `${isValues ? '[' : ''}${arrInfo.join(isValues ? ', ' : ',\n')}${isValues ? ']' : ''}`;
+      }
+      const propNames = getFilteredProps(obj);
+      const fullObj = propNames.reduce((acc, propName) => {
+        if (!/^__/.test(propName)) {
+          if (Array.isArray(obj[propName])) {
+            try {
+              if (PARAM_BLACKLIST.indexOf(propName) === -1) {
+                acc[propName] = obj[propName].map(x => {
+                  if (typeof x === 'object' && !(x instanceof Date)) {
+                    return JSP(x, '');
+                  } else {
+                    return x;
+                  }
+                });
+              } else {
+                acc[propName] = obj[propName]; //do not traverse any further
+              }
+            } catch (error) {
+              logDebug$1('helpers/dev', `Caught error in JSP for propname=${propName} : ${error} typeof obj[propName]=${typeof obj[propName]} isArray=${String(Array.isArray(obj[propName]))} len=${obj[propName]?.length} \n VALUE: ${JSON.stringify(obj[propName])}`);
+            }
+          } else {
+            acc[propName] = obj[propName];
+          }
+        }
+        return acc;
+      }, {});
+      // return cleanStringifiedResults(JSON.stringify(fullObj, null, space ?? null))
+      return typeof fullObj === 'object' && !(fullObj instanceof Date) ? JSON.stringify(fullObj, null, space ?? null) : 'date';
+    }
+  }
+
+  /**
+   * Console.logs all property names/values of an object to console with text preamble
+   * @author @dwertheimer
+   *
+   * @param {object} obj - array or object
+   * @param {string} preamble - (optional) text to prepend to the output
+   * @param {string | number} space - A String or Number of spaces that's used to insert white space (including indentation, line break characters, etc.) into the output JSON string for readability purposes.
+   * @example clo(obj, 'myObj:')
+   */
+  function clo(obj, preamble = '', space = 2) {
+    if (!obj) {
+      logDebug$1(preamble, `null`);
+      return;
+    }
+    if (typeof obj !== 'object') {
+      logDebug$1(preamble, `${obj}`);
+    } else {
+      logDebug$1(preamble, JSP(obj, space));
+    }
+  }
+
+  /**
+   * Create a list of the properties of an object, including inherited properties (which are not typically visible in JSON.stringify)
+   * Often includes a bunch of properties that are not useful for the user, e.g. constructor, __proto__
+   * See getFilteredProps for a cleaner version
+   * @author @dwertheimer (via StackOverflow)
+   *
+   * @param {object} inObj
+   * @returns {Array<string>}
+   * @reference https://stackoverflow.com/questions/59228638/console-log-an-object-does-not-log-the-method-added-via-prototype-in-node-js-c
+   */
+  function getAllPropertyNames(inObj) {
+    let obj = inObj;
+    const props = [];
+    do {
+      Object.getOwnPropertyNames(obj).forEach(function (prop) {
+        if (props.indexOf(prop) === -1) {
+          props.push(prop);
+        }
+      });
+    } while (obj = Object.getPrototypeOf(obj));
+    return props;
+  }
+
+  /**
+   * Get the properties of interest (i.e. excluding all the ones added automatically)
+   * @author @dwertheimer
+   * @param {object} object
+   * @returns {Array<string>} - an array of the interesting properties of the object
+   */
+  const getFilteredProps = object => {
+    const ignore = ['toString', 'toLocaleString', 'valueOf', 'hasOwnProperty', 'propertyIsEnumerable', 'isPrototypeOf'];
+    if (typeof object !== 'object' || Array.isArray(object)) {
+      // console.log(`getFilteredProps improper type: ${typeof object}`)
+      return [];
+    }
+    return getAllPropertyNames(object).filter(prop => !/(^__)|(constructor)/.test(prop) && !ignore.includes(prop));
+  };
+
+  /**
+   * Converts any to message string
+   * @author @codedungeon
+   * @param {any} message
+   * @returns {string}
+   */
+  const _message = message => {
+    let logMessage = '';
+    switch (typeof message) {
+      case 'string':
+        logMessage = message;
+        break;
+      case 'object':
+        if (Array.isArray(message)) {
+          logMessage = message.toString();
+        } else {
+          logMessage = message instanceof Date ? message.toString() : JSON.stringify(message);
+        }
+        break;
+      default:
+        logMessage = message.toString();
+        break;
+    }
+    return logMessage;
+  };
+  const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'none'];
+  const LOG_LEVEL_STRINGS = ['| DEBUG |', '| INFO  |', '🥺 WARN🥺', '❗️ERROR❗️', 'none'];
+
+  /**
+   * Formats log output to include timestamp pluginId, pluginVersion
+   * @author @codedungeon
+   * @param {any} pluginInfo
+   * @param {any} message
+   * @param {string} type
+   * @returns {string}
+   */
+  function log(pluginInfo, message = '', type = 'INFO') {
+    const thisMessageLevel = LOG_LEVELS.indexOf(type);
+    const thisIndicator = LOG_LEVEL_STRINGS[thisMessageLevel];
+    let msg = '';
+    let pluginId = '';
+    let pluginVersion = '';
+    // let msgType = ''
+    const isPluginJson = typeof pluginInfo === 'object' && pluginInfo.hasOwnProperty('plugin.id');
+    if (isPluginJson) {
+      pluginId = pluginInfo.hasOwnProperty('plugin.id') ? pluginInfo['plugin.id'] : 'INVALID_PLUGIN_ID';
+      pluginVersion = pluginInfo.hasOwnProperty('plugin.version') ? pluginInfo['plugin.version'] : 'INVALID_PLUGIN_VERSION';
+      msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginId} v${pluginVersion} :: ${_message(message)}`;
+    } else {
+      if (message.length > 0) {
+        // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${pluginInfo} :: ${_message(message)}`
+        msg = `${dt().padEnd(19)} ${thisIndicator} ${pluginInfo} :: ${_message(message)}`;
+      } else {
+        // msg = `${dt().padEnd(19)} | ${thisIndicator.padEnd(7)} | ${_message(pluginInfo)}`
+        msg = `${dt().padEnd(19)} ${thisIndicator} ${_message(pluginInfo)}`;
+      }
+    }
+    let userLogLevel = 1;
+    const pluginSettings = typeof DataStore !== 'undefined' ? DataStore.settings : null;
+    // this was the main offender.  Perform a null change against a value that is `undefined` will be true
+    // sure wish NotePlan would not return `undefined` but instead null, then the previous implementataion would not have failed
+    if (pluginSettings && pluginSettings.hasOwnProperty('_logLevel')) {
+      // eslint-disable-next-line
+      userLogLevel = pluginSettings['_logLevel'];
+    }
+    const userLogLevelIndex = LOG_LEVELS.indexOf(userLogLevel);
+    if (thisMessageLevel >= userLogLevelIndex) {
+      console.log(msg);
+    }
+    return msg;
+  }
+
+  /**
+   * Formats log output as WARN to include timestamp pluginId, pluginVersion
+   * @author @dwertheimer
+   * @param {any} pluginInfo
+   * @param {any} message
+   * @returns {void}
+   */
+  function logDebug$1(pluginInfo, message = '') {
+    return log(pluginInfo, message, 'DEBUG');
+  }
+
+  /**
+   * Error objects in React are not JSON stringifiable. This function makes them JSON stringifiable.
+   * It also removes the redundant file path from the stack trace.
+   * @param {Error} error
+   * @param {string} cs - (optional) component stack
+   * @returns {any} - a simple JS Object with the errror details: name, message, inComponent, line, column, componentStack
+   */
+  const formatReactError = (error, cs = '') => {
+    return {
+      name: error.name,
+      message: error.message,
+      inComponent: cs.split('@file', 1)[0]?.replace('\n', ''),
+      line: error.line || '',
+      column: error.column,
+      componentStack: cs.split('\n').map(s => s.replace(/\@file.*$/, '')).filter(s => s.trim() !== 'div' && s.trim() !== '' && s.trim() !== 'Root' && s.trim() !== 'ErrorBoundary').join(' < ')
+    };
+  };
+
+  const ErrorFallback = props => {
+    clo(props);
+    const {
+      error
+    } = props;
+    const formatted = formatReactError(error);
     return /*#__PURE__*/React.createElement("div", {
       role: "alert"
-    }, /*#__PURE__*/React.createElement("h1", null, "Something went wrong in React:"), /*#__PURE__*/React.createElement("pre", null, error.message), /*#__PURE__*/React.createElement("p", null), /*#__PURE__*/React.createElement("p", null, "More detail:"), /*#__PURE__*/React.createElement("pre", null, JSON.stringify(error, null, 2)));
+    }, /*#__PURE__*/React.createElement("h1", null, "Something went wrong in React:"), /*#__PURE__*/React.createElement("pre", null, formatted.name, ": ", formatted.message), /*#__PURE__*/React.createElement("p", null), /*#__PURE__*/React.createElement("p", null, "See more detail in the console"));
   };
 
   /****************************************************************************************************************************
@@ -147,9 +380,10 @@ var RootBundle = (function (exports, React$1) {
   const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args);
   const logSubtle = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args);
 
-  // used by the ErrorBoundary component
-  const myErrorLogger = (error, info) => {
-    console.log(`${window.webkit ? '' : '%c'}React error trapped by Root::ErrorBoundary; error=${JSON.stringify(error, null, 2)},\ninfo=${JSON.stringify(info, null, 2)}`, 'background: #ff0000; color: #ffffff');
+  // used by the ErrorBoundary component to write out the error to the log
+  const myErrorLogger = (e, i) => {
+    const error = formatReactError(e, i.componentStack);
+    console.log(`${window.webkit ? '' : '%c'}React error trapped by Root::ErrorBoundary; error=${JSP(error, 2)}`, 'background: #ff0000; color: #ffffff');
   };
 
   /****************************************************************************************************************************
