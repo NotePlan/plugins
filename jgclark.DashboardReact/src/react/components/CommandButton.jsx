@@ -14,7 +14,7 @@ function CommandButton(inputObj: ButtonProps): React$Node {
   const { sendActionToPlugin /*, sendToPlugin, dispatch, pluginData */ } = useAppContext()
   const { button } = inputObj
 
-  console.log('CommandButton: ' + button.display)
+  // console.log('CommandButton: ' + button.display)
 
   // Tried this approach but decided it's not flexible enough
   // const possIconBefore = (button.iconBefore !== '') ? <i className={`${button.iconBefore} padRight`}></i> : ''

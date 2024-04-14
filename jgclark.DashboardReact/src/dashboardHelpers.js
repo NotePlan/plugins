@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 8.4.2024 for v2.0.0 by @jgclark
+// Last updated 14.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -18,20 +18,6 @@ import {
   createRunPluginCallbackUrl,
   displayTitle,
 } from "@helpers/general"
-import {
-  simplifyNPEventLinksForHTML,
-  simplifyInlineImagesForHTML,
-  convertHashtagsToHTML,
-  convertMentionsToHTML,
-  convertPreformattedToHTML,
-  convertStrikethroughToHTML,
-  // convertTimeBlockToHTML,
-  convertUnderlinedToHTML,
-  convertHighlightsToHTML,
-  convertNPBlockIDToHTML,
-  convertBoldAndItalicToHTML,
-  truncateHTML
-} from '@helpers/HTMLView'
 import { filterOutParasInExcludeFolders } from '@helpers/note'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
@@ -55,13 +41,6 @@ import {
 } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
 import {
-  changeBareLinksToHTMLLink,
-  changeMarkdownLinksToHTMLLink,
-  stripBackwardsDateRefsFromString,
-  stripThisWeeksDateRefsFromString,
-  stripTodaysDateRefsFromString
-} from '@helpers/stringTransforms'
-import {
   getTimeBlockString,
   isTypeThatCanHaveATimeBlock,
   // isTimeBlockPara,
@@ -83,7 +62,7 @@ import {
 //-----------------------------------------------------------------
 // Settings
 
-const pluginID = 'jgclark.Dashboard'
+const pluginID = 'jgclark.DashboardReact'
 
 export type dashboardConfigType = {
   dashboardTheme: string,

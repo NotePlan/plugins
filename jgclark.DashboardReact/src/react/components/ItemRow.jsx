@@ -1,7 +1,15 @@
+/* eslint-disable no-undef */
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to main item content row
+// Last updated 13.4.2024 for v2.0.0 by @jgclark
+//--------------------------------------------------------------------------
 import React from 'react'
-import type { TSection, TSectionItem } from '../../types.js'
+import type { TSection, TSectionItem, TParagraphForDashboard } from '../../types.js'
+import { useAppContext } from './AppContext.jsx'
 import ItemContent from './ItemContent.jsx'
+import ItemNoteLink from './ItemNoteLink.jsx'
+import { getFolderFromFilename } from '@helpers/folders'
 
 type Props = {
   // key: number,
@@ -13,59 +21,153 @@ type Props = {
  * Represents a single item within a section, displaying its status, content, and actions.
  */
 function ItemRow(inputObj: Props): React$Node {
-  const { item, thisSection } = inputObj
-  const para = item.para
-  const itemType = para.type
+  try {
+    const { pluginData } = useAppContext()
+    const config = pluginData.settings // FIXME: 
+    console.log(String(config))
 
-  console.log(`ItemRow for section ${thisSection.sectionType}/${thisSection.ID}:  '${para.content}'`)
+    const { item, thisSection } = inputObj
+    const itemType = item.itemType
+    const sectionType = thisSection.sectionType
 
-  // compute the things we need later
-  const divClassName = (itemType === 'open')
-    ? 'sectionItemTodo todo'
-    : (itemType === 'checklist')
-      ? 'sectionItemChecklist todo'
-      : (itemType === 'congrats')
-        ? 'checked'
-        : (itemType === 'review')
-          ? 'reviewProject todo'
-          : ''
-  const iconClassName = (itemType === 'open')
-    ? 'todo fa-regular fa-circle'
-    : (itemType === 'checklist')
-      ? 'todo fa-regular fa-square'
-      : (itemType === 'congrats')
-        ? 'fa-regular fa-circle-check'
-        : (itemType === 'review')
-          ? 'fa-regular fa-circle-play'
-          : ''
-  const dataObjectToPassToControlDialog = {
-    OS: 'macOS', // TODO: NotePlan.environment.platform,
-    itemID: item.ID,
-    sectionType: thisSection.sectionType,
-    reschedOrMove: 'move', // TODO: reschedOrMove,
-    itemType: 'task',
-    noteType: para.noteType,
+    console.log(`ItemRow for section ${sectionType}#${thisSection.ID}:${itemType}`)
+
+    if (itemType === 'review') {
+      const itemFilename = item.itemFilename
+      console.log(`- 'review': ${itemFilename}`)
+      // Display a Project item
+      const folderNamePart = config.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
+      console.log(`- folderNamePart = ${folderNamePart}`)
+
+      const thisTitle = item.itemNoteTitle ?? '<no title>'
+      const projectContent = `${folderNamePart}${makeNoteTitleWithOpenActionFromFilename(item, thisTitle)}`
+      console.log(`- projectContent = ${projectContent}`)
+
+      const dataObjectToPassToControlDialog = {
+        OS: 'macOS', // TODO: NotePlan.environment.platform,
+        itemID: item.ID,
+        // $FlowIgnore(cannot-resolve-name)
+        encodedTitle: encodeRFC3986URIComponent(projectContent),
+      }
+
+      return (
+        <div className="sectionItemRow"
+          id={item.ID}
+          data-section-type={sectionType}
+          // $FlowIgnore(cannot-resolve-name)
+          data-encoded-filename={encodeRFC3986URIComponent(itemFilename)}
+          // $FlowIgnore(cannot-resolve-name)
+          data-encoded-content={encodeRFC3986URIComponent(projectContent)}
+        >
+          <div className="reviewProject todo itemIcon"><i id={`${item.ID}I`} className="fa-regular fa-circle-play"></i>
+          </div>
+
+          <div className="sectionItemContent sectionItem">
+            <a className="content" dangerouslySetInnerHTML={{ __html: projectContent }}></a>
+            <a className="dialogTrigger"
+              // $FlowIgnore(cannot-resolve-name)
+              onClick={() => showProjectControlDialog(dataObjectToPassToControlDialog)}>
+              <i className="fa-light fa-edit pad-left"></i>
+            </a>
+          </div>
+        </div>
+      )
+    }
+    else if (itemType === 'congrats') {
+      // Display congratulatory message
+      return (
+        <div className="sectionItemRow"
+          id={item.ID}
+          data-section-type={sectionType}
+          data-encoded-filename=''
+          data-encoded-content=''
+        >
+          <div className="itemIcon checked">
+            <i id={item.ID}
+              className="fa-regular fa-circle-check"></i>
+          </div>
+          <div className="sectionItemContent sectionItem">
+            <a className="content"><i>Nothing to do: take a break <i className="fa-regular fa-mug"></i></i></a>
+          </div>
+        </div>
+      )
+    }
+    else {
+      // Display every other type of item
+      if (!item.para) {
+        console.log(`Info: No para passed with item ${thisSection.sectionType}/${thisSection.ID}`)
+      }
+      // compute the things we need later
+      // const para: TParagraphForDashboard = item.para
+      const divClassName = (itemType === 'open')
+        ? 'sectionItemTodo todo'
+        : (itemType === 'checklist')
+          ? 'sectionItemChecklist todo'
+          : (itemType === 'congrats')
+            ? 'checked'
+            : ''
+      const iconClassName = (itemType === 'open')
+        ? 'todo fa-regular fa-circle'
+        : (itemType === 'checklist')
+          ? 'todo fa-regular fa-square'
+          : (itemType === 'congrats')
+            ? 'fa-regular fa-circle-check'
+            : ''
+      const dataObjectToPassToControlDialog = {
+        OS: 'macOS', // TODO: NotePlan.environment.platform,
+        itemID: item.ID,
+        sectionType: thisSection.sectionType,
+        reschedOrMove: 'move', // TODO: reschedOrMove,
+        itemType: 'task',
+        noteType: item.noteType,
+      }
+
+      return (
+        <div className="sectionItemRow"
+          id={item.ID}
+          data-section-type={sectionType}
+          // $FlowIgnore(cannot-resolve-name)
+          data-encoded-filename={encodeRFC3986URIComponent(item.para?.filename)}
+          // $FlowIgnore(cannot-resolve-name)
+          data-encoded-content={encodeRFC3986URIComponent(item.para?.content)}
+        >
+          <div className={`${divClassName} itemIcon`}><i id={`${item.ID}I`} className={`${iconClassName}`}></i>
+          </div>
+
+          <div className="sectionItemContent sectionItem">
+            <ItemContent item={item} />
+            {(config.includeTaskContext) ? <ItemNoteLink item={item} thisSection={thisSection} /> : null}
+            <a className="dialogTrigger"
+              // $FlowIgnore(cannot-resolve-name)
+              onClick={() => showItemControlDialog(dataObjectToPassToControlDialog)}>
+              <i className="fa-light fa-edit pad-left"></i>
+            </a>
+          </div>
+        </div>
+      )
+    }
+  } catch (error) {
+    console.log(`❗️ERROR❗️ ${error.message}`)
   }
-  return (
-    <div className="sectionItemRow"
-      id={item.ID}
-      data-section-type={thisSection.sectionType}
-      data-filename={para.filename}
-      data-content={para.content}
-    >
-      <div className={`${divClassName} itemIcon`}><i id={`${item.ID}I`} className={`${iconClassName}`}></i>
-      </div>
+}
 
-      <div className="sectionItemContent sectionItem">
-        <ItemContent item={item} />
-        <a className="dialogTrigger"
-          // eslint-disable-next-line no-undef
-          onClick={() => showItemControlDialog(dataObjectToPassToControlDialog)}>
-          <i className="fa-light fa-edit pad-left"></i>
-        </a>
-      </div>
-    </div>
-  )
+/**
+ * Wrap string with href onClick event to show note in editor,
+ * using item.filename param.
+ * @param {SectionItem} item's details
+ * @param {string} noteTitle
+ * @returns {string} output
+ */
+function makeNoteTitleWithOpenActionFromFilename(item: TSectionItem, noteTitle: string): string {
+  try {
+    // console.log(`makeNoteTitleWithOpenActionFromFilename: - making notelink with ${item.filename}, ${noteTitle}`)
+    // Pass request back to plugin, as a single object
+    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.itemFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+  }
+  catch (error) {
+    console.log(`makeNoteTitleWithOpenActionFromFilename: ERROR ${error.message} for input '${noteTitle}'`)
+    return '(error)'
+  }
 }
 
 export default ItemRow

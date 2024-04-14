@@ -5,7 +5,7 @@
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
-import type { TParagraphForDashboard } from './types'
+import type { TSection, TSectionItem } from './types'
 import {
   getNPMonthStr,
   getNPWeekStr,
@@ -22,23 +22,29 @@ const today = new moment().toDate() // use moment instead of  `new Date` to ensu
 let thisDateStr: string = getTodaysDateUnhyphenated()
 let thisFilename: string = `${thisDateStr}.md`
 export const openTodayItems: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemFilename": thisFilename,
-    "itemNotetitle": thisDateStr,
+    "itemNoteTitle": thisDateStr,
     "noteType": "Calendar",
     "itemType": "open",
     "para": {
+      "type": "checklist",
+      "filename": thisFilename,
       "priority": 4,
       "content": ">> #editvideo from CFL visit",
       "prefix": "* ",
     }
   },
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemFilename": thisFilename,
-    "itemNotetitle": thisDateStr,
+    "itemNoteTitle": thisDateStr,
     "noteType": "Calendar",
     "itemType": "checklist",
     "para": {
+      "type": "checklist",
+      "filename": thisFilename,
       "priority": -1,
       "content": "check ==highlights==, `formatted` and ~~strike~~ text work OK",
       "prefix": "+ ",
@@ -46,24 +52,30 @@ export const openTodayItems: Array<TSectionItem> = [
   }
 ]
 export const refTodayItems: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemFilename": "Ministry Projects/Repair Cafe.md",
     "itemNoteTitle": "Repair Cafe",
     "noteType": "Notes",
     "itemType": "open",
     "para": {
+      "filename": "Ministry Projects/Repair Cafe.md",
+      "type": "open",
       "priority": 1,
       "prefix": "* ",
       "content": "! Respond on Repair Cafe things from last 2 meetings >today #win ^wazhht",
       "blockId": "^wazhht",
     }
   },
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemFilename": "CCC Areas/Mission Partners.md",
     "itemNoteTitle": "Mission Partners",
     "noteType": "Notes",
     "itemType": "open",
     "para": {
+      "type": "open",
+      "filename": "CCC Areas/Mission Partners.md",
       "priority": -1,
       "content": "Edit video from CFL visit https://bcfd.org.uk",
       "blockId": "^wazhht",
@@ -77,23 +89,29 @@ const yesterday = new moment().subtract(1, 'days').toDate()
 thisDateStr = moment(yesterday).format("YYYYMMDD")
 thisFilename = `${thisDateStr}.md`
 export const openYesterdayParas: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemNoteTitle": thisDateStr,
     "itemType": "open",
     "itemFilename": thisFilename,
     "noteType": "Calendar",
     "para": {
+      "type": "open",
+      "filename": thisFilename,
       "priority": 0,
       "content": "film video at CFL visit",
       "prefix": "* ",
     }
   },
+  // $FlowIgnore[prop-missing] ID gets added later
   {
+    "itemNoteTitle": thisDateStr,
     "itemFilename": thisFilename,
     "itemType": "checklist",
     "noteType": "Calendar",
-    "itemNoteTitle": thisDateStr,
     "para": {
+      "filename": thisFilename,
+      "type": "checklist",
       "priority": -1,
       "content": "update SW contract following review comments",
       "prefix": "* ",
@@ -101,36 +119,52 @@ export const openYesterdayParas: Array<TSectionItem> = [
   }
 ]
 export const refYesterdayParas: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
   {
-    "itemType": "open",
     "noteType": "Notes",
+    "itemType": "open",
     "itemNoteTitle": "Services",
     "itemFilename": "CCC Areas/Services.md",
     "para": {
+      "type": "open",
+      "filename": "CCC Areas/Services.md",
       "priority": 1,
       "content": "write 5/3 sermon >2023-03-02",
       "prefix": "* ",
       "changedDate": new Date("2023-03-02T00:00:00.000Z"),
     }
   },
+  // $FlowIgnore[prop-missing] ID gets added later
   {
-    "priority": 1,
     "itemType": "open",
     "itemFilename": "CCC Areas/Services.md",
     "itemNoteTitle": "Services",
     "noteType": "Notes",
     "para": {
+      "type": "open",
+      "filename": "CCC Areas/Services.md",
       "content": "write service leader segments plan Something Different for 5/3 >2023-03-02",
       "prefix": "* ",
       "changedDate": new Date("2023-03-02T00:00:00.000Z"),
+      "priority": 1,
     },
   },
+]
+
+// -------------------------------------------------------------------------
+const tomorrow = new moment().add(1, 'days').toDate()
+thisDateStr = moment(tomorrow).format("YYYYMMDD")
+thisFilename = `${thisDateStr}.md`
+export const openTomorrowParas: Array<TSectionItem> = [
+// $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "open",
-    "itemFilename": "20240213.md",
+    "itemFilename": thisFilename,
     "noteType": "Calendar",
-    "itemNoteTitle": "20240213",
+    "itemNoteTitle": thisDateStr,
     "para": {
+      "type": "open",
+      "filename": thisFilename,
       "content": "Clear more of prayer room @staff >today ^q9jzj4",
       "prefix": "* ",
       "priority": -1,
@@ -139,54 +173,67 @@ export const refYesterdayParas: Array<TSectionItem> = [
     },
   },
 ]
+export const refTomorrowParas: Array<TSectionItem> = []
 
 // -------------------------------------------------------------------------
 const weekDateStr = getNPWeekStr(today)
 thisFilename = `${weekDateStr}.md`
 export const openWeekParas: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "open",
-    "itemNoteTitle": weekDateStr,
     "itemFilename": thisFilename,
+    "itemNoteTitle": weekDateStr,
     "noteType": "Calendar",
-    "para": { 
+    "para": {
+      "type": "open",
+      "filename": thisFilename,
       "priority": 2,
       "content": "!! Arrange EV charger repair",
       "prefix": "+ ",
       "changedDate": new Date("2023-02-27T00:00:00.000Z"),
     },
   },
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "open",
     "itemFilename": thisFilename,
     "noteType": "Calendar",
     "itemNoteTitle": weekDateStr,
-    "para": { 
+    "para": {
+      "type": "open",
+      "filename": thisFilename,
       "priority": -1,
       "content": " Get login for https://www.waverleyabbeyresources.org/resources-home/",
       "prefix": "* ",
       "changedDate": new Date("2023-02-27T00:00:00.000Z"),
     },
   },
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "checklist",
     "itemFilename": thisFilename,
     "noteType": "Calendar",
     "itemNoteTitle": weekDateStr,
-    "para": { 
+    "para": {
+      "type": "checklist",
+      "filename": thisFilename,
       "priority": -1,
       "content": "Contact @PeterS again",
       "prefix": "+ ",
       "changedDate": new Date("2023-02-27T00:00:00.000Z"),
     },
   },
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "open",
     "itemFilename": thisFilename,
     "noteType": "Calendar",
     "itemNoteTitle": weekDateStr,
-    "para": { 
-    "content": "@church Get iPad working on ChurchOffice-staff for Drive, Printing @church ^bzlp1z",
+    "para": {
+      "type": "open",
+      "filename": thisFilename,
+      "content": "@church Get iPad working on ChurchOffice-staff for Drive, Printing @church ^bzlp1z",
       "blockId": "^bzlp1z",
       "priority": -1,
       "prefix": "* ",
@@ -195,36 +242,45 @@ export const openWeekParas: Array<TSectionItem> = [
   },
 ]
 export const refWeekParas: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "checklist",
     "itemFilename": "CCC Areas/Pastoral.md",
     "noteType": "Notes",
     "itemNoteTitle": "Pastoral",
-    "para": { 
+    "para": {
+      "type": "checklist",
+      "filename": "CCC Areas/Pastoral.md",
       "priority": -1,
       "content": "Send @Linda a link to welcome presentation >2023-W09",
       "prefix": "+ ",
       "changedDate": new Date("2023-02-27T00:00:00.000Z"),
     },
   },
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "open",
     "itemFilename": "Home 🏠 Areas/Garden.md",
     "noteType": "Notes",
     "itemNoteTitle": "Gardening",
-    "para": { 
+    "para": {
+      "type": "open",
+      "filename": "Home 🏠 Areas/Garden.md",
       "priority": -1,
       "content": "Re-plant two shrubs in new blue pots >2023-W09",
       "prefix": "* ",
       "changedDate": new Date("2023-02-27T00:00:00.000Z"),
     },
   },
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "checklist",
     "itemFilename": "Home 🏠 Areas/Macs.md",
     "noteType": "Notes",
     "itemNoteTitle": "Macs",
-    "para": { 
+    "para": {
+      "type": "checklist",
+      "filename": "Home 🏠 Areas/Macs.md",
       "priority": -1,
       "content": "Backup Mac - with an arrow date >2023-W09< reference",
       "prefix": "+ ",
@@ -237,25 +293,31 @@ export const refWeekParas: Array<TSectionItem> = [
 const monthDateStr = getNPMonthStr(today)
 thisFilename = `${monthDateStr}.md`
 export const openMonthParas: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
   {
-    "priority": 0,
     "itemType": "open",
+    "itemFilename": thisFilename,
     "itemNoteTitle": monthDateStr,
     "noteType": "Calendar",
     "para": {
+      "type": "open",
+      "filename": thisFilename,
+      "priority": 0,
       "content": "Investigate alternative milkman",
       "prefix": "* ",
-      "itemFilename": thisFilename,
     },
   },
 ]
 export const refMonthParas: Array<TSectionItem> = [
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "open",
-    "itemNoteTitle": "Tax Returns",
     "itemFilename": "Home 🏠 Areas/Tax Returns.md",
+    "itemNoteTitle": "Tax Returns",
     "noteType": "Notes",
     "para": {
+      "type": "open",
+      "filename": "Home 🏠 Areas/Tax Returns.md",
       "priority": 1,
       "content": "Pay tax bill",
       "prefix": "* ",
@@ -265,51 +327,60 @@ export const refMonthParas: Array<TSectionItem> = [
 
 //-----------------------------------------------------------
 // Demo data for TagToShow section
-export const tagParasFromNote: Array<TSection> = [
+
+export const tagParasFromNote: Array<TSectionItem> = [
+// $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "checklist",
     "itemFilename": "TEST/DEMOs/Test Project A.md",
     "itemNoteTitle": "Test Project A",
+    "noteType": "Notes",
     "para": {
-    "content": "Open Deliveroo account #next",
+      "type": "checklist",
+      "filename": "TEST/DEMOs/Test Project A.md",
+      "content": "Open Deliveroo account #next",
       "prefix": "* ",
       "priority": 0,
     }
   },
+  // $FlowIgnore[prop-missing] ID gets added later
   {
     "itemType": "open",
     "itemFilename": "CCC Areas/Finance.md",
     "itemNoteTitle": "Finance",
+    "noteType": "Notes",
     "para": {
-    "content": "Make expenses claim #next",
+      "type": "open",
+      "filename": "CCC Areas/Finance.md",
+      "content": "Make expenses claim #next",
       "prefix": "* ",
       "priority": 0,
     }
-  }
+  },
 ]
 
 //-----------------------------------------------------------
 // Notes to review
-export const nextProjectNotesToReview: Array<TSection> = [
+export const nextProjectNoteItems: Array<TNote> = [
+  // $FlowIgnore[prop-missing]
   {
-    "itemType": "review",
-    "itemFilename": "CCC Projects/Facilities/Hearing Support.md",
+    "filename": "CCC Projects/Facilities/Hearing Support.md",
+    "title": "Hearing Support at CCC",
     "type": "Notes",
-    "itemNoteTitle": "Hearing Support at CCC",
-    "changedDate": "2023-02-28T13:11:30.000Z",
+    // "changedDate": new Date("2023-02-28T13:11:30.000Z"),
   },
+  // $FlowIgnore[prop-missing]
   {
-    "itemType": "review",
-    "itemFilename": "Home 🏠 Projects/Streamdeck setup.md",
+    "filename": "Home 🏠 Projects/Streamdeck setup.md",
+    "title": "Streaming Platform",
     "type": "Notes",
-    "itemNoteTitle": "Streaming Platform",
-    "changedDate": "2023-02-27T10:56:35.000Z",
+    // "changedDate": new Date("2023-02-27T10:56:35.000Z"),
   },
+  // $FlowIgnore[prop-missing]
   {
-    "itemType": "review",
-    "itemFilename": "CCC Projects/Pastoral Cards.md",
+    "filename": "CCC Projects/Pastoral Cards.md",
+    "title": "Pastoral Cards",
     "type": "Notes",
-    "itemNoteTitle": "Pastoral Cards",
-    "changedDate": "2022-09-05T11:13:21.963Z",
+    // "changedDate": new Date("2022-09-05T11:13:21.963Z"),
   },
 ]

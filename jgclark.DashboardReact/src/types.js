@@ -18,11 +18,12 @@ export type TSection = {
   name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
   sectionType: SectionCode,
   description: string,
-  FAIconClass: string,
-  sectionTitleClass: string,
-  sectionFilename?: string,
-  actionButtons?: Array<TActionButton>,
   sectionItems: Array<TSectionItem>,
+  FAIconClass: string, // CSS class to show FA Icons
+  sectionTitleClass: string, // CSS class
+  sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section)
+  actionButtons?: Array<TActionButton>,
+  generated?: Date,
 }
 
 // an item within a section, with optional TParagraphForDashboard
@@ -40,7 +41,7 @@ export type TSectionItem = {
 export type TParagraphForDashboard = {
   filename: string,
   title?: string, // not present for Calendar notes
-  type: ParagraphType,
+  type: ParagraphType, // paragraph type
   prefix?: string,
   content: string,
   priority?: number,

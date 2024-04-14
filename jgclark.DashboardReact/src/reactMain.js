@@ -1,4 +1,8 @@
 // @flow
+//-----------------------------------------------------------------------------
+// Dashboard plugin main file (for React v2.0.0+)
+// Last updated 14.4.2024 for v2.0.0 by @jgclark
+//-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import moment from 'moment/min/moment-with-locales'
@@ -11,21 +15,20 @@ import type { TSection } from './types'
 import {
   getTodaySectionData,
   getYesterdaySectionData,
+  getTomorrowSectionData,
   getThisWeekSectionData,
+  getThisMonthSectionData,
+  getThisQuarterSectionData,
   getProjectSectionData,
+  getOverdueSectionData,
   getTaggedSectionData,
 } from './dataGeneration'
-import {
-  getNPMonthStr,
-  getNPWeekStr,
-  getTodaysDateUnhyphenated
-} from '@helpers/dateTime'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpers/HTMLView'
-import { toNPLocaleDateString } from '@helpers/NPdateTime'
+// import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
-import { isDone, isOpen } from '@helpers/utils'
+import { isDone } from '@helpers/utils'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
@@ -40,6 +43,27 @@ export type PassedData = {
   componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
   passThroughVars?: any /* any data you want to pass through to the React Window */,
 }
+
+const commsBridge = `
+<!-- commsBridge scripts -->
+<script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
+<script>
+/* you must set this before you import the CommsBridge file */
+const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin which will receive the comms from HTML
+// That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
+// this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
+
+/* the onMessageFromPlugin function is called when data is received from your plugin and needs to be processed. this function
+   should not do the work itself, it should just send the data payload to a function for processing. The onMessageFromPlugin function
+   below and your processing functions can be in your html document or could be imported in an external file. The only
+   requirement is that onMessageFromPlugin (and receivingPluginID) must be defined or imported before the pluginToHTMLCommsBridge
+   be in your html document or could be imported in an external file */
+</script>
+<script type="text/javascript" src="./HTMLWinCommsSwitchboard.js"></script>
+<script type="text/javascript" src="../np.Shared/pluginToHTMLCommsBridge.js"></script>
+`
+
+// ------------------------------------------------------------
 
 /**
  * Plugin Entry Point for "Test React Window"
@@ -89,9 +113,12 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
       preBodyScript: '', // no extra pre-JS
       savedFilename: `../../${pluginJson['plugin.id']}/dashboard-react.html`, /* for saving a debug version of the html file */
       shouldFocus: callMode !== 'refresh', /* focus window every time (unless this is a refresh) */
+      // postBodyScript: `${commsBridge}
       postBodyScript: `
       <script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
+      <script type="text/javascript" src="../np.Shared/shortcut.js"></script>
       <script type="text/javascript" src="./showTimeAgo.js"></script>
+      <script type="text/javascript" src="./dashboardShortcuts.js"></script>
       <script type="text/javascript" src="./dashboardEvents.js"></script>
 `
     }
@@ -114,7 +141,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
     const startTime = new Date()
     const config: dashboardConfigType = await getSettings()
     // get whatever pluginData you want the React window to start with and include it in the object below. This all gets passed to the React window
-    const pluginData = getInitialDataForReactWindow(config, useDemoData)
+    const pluginData = await getInitialDataForReactWindow(config, useDemoData)
     const ENV_MODE = 'development' /* helps during development. set to 'production' when ready to release */
     const dataToPass: PassedData = {
       pluginData,
@@ -122,7 +149,6 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
       debug: ENV_MODE === 'development' ? true : false,
       ENV_MODE,
       returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
-      /* change the ID below to your plugin ID */
       componentPath: `../jgclark.DashboardReact/react.c.WebView.bundle.${ENV_MODE === 'development' ? 'dev' : 'min'}.js`,
       startTime,
     }
@@ -130,7 +156,7 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
   }
   catch (error) {
     logError(pluginJson, error.message)
-    return null
+    return
   }
 }
 
@@ -141,14 +167,14 @@ export async function getInitialDataForReactWindowObjectForReactView(useDemoData
  * properties: pluginData, title, debug, ENV_MODE, returnPluginCommand, componentPath, passThroughVars, startTime
  * @returns {[string]: mixed} - the data that your React Window will start with
  */
-export function getInitialDataForReactWindow(config: dashboardConfigType, demoMode: boolean = false): { [string]: mixed } {
+export async function getInitialDataForReactWindow(config: dashboardConfigType, demoMode: boolean = false): Promise<{ [string]: mixed }> {
   // Get count of tasks/checklists done today
   const filenameDateStr = moment().format('YYYYMMDD') // use Moment so we can work on local time and ignore TZs
   const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
-  const doneCount = currentDailyNote.paragraphs.filter(isDone).length
+  const doneCount = currentDailyNote?.paragraphs.filter(isDone).length ?? 0
 
   return {
-    sections: getAllSectionsData(config, demoMode),
+    sections: await getAllSectionsData(config, demoMode),
     lastUpdated: new Date().toLocaleString() /* placeholder */,
     settings: config,
     totalItems: doneCount,
@@ -156,15 +182,33 @@ export function getInitialDataForReactWindow(config: dashboardConfigType, demoMo
   // you can pass any object with any number of fields you want
 }
 
-// TODO: 
-function getAllSectionsData(config: dashboardConfigType, demoMode: boolean = false): Array<TSection> {
-  return [
-    getTodaySectionData(config, demoMode),
-    getYesterdaySectionData(config, demoMode),
-    getThisWeekSectionData(config, demoMode),
-    // getProjectsSectionData(),
-    //   getTaggedSectionData()
-  ]
+/** 
+ * Get all the sections' data (that the user wants) 
+*/
+async function getAllSectionsData(config: dashboardConfigType, demoMode: boolean = false): Promise<Array<TSection>> {
+  const data: Array<TSection> = []
+  data.push(getTodaySectionData(config, demoMode))
+  if (config.showYesterdaySection) data.push(getYesterdaySectionData(config, demoMode))
+  if (config.showWeekSection) data.push(getTomorrowSectionData(config, demoMode))
+  if (config.showWeekSection) data.push(getThisWeekSectionData(config, demoMode))
+  if (config.showMonthSection) data.push(getThisMonthSectionData(config, demoMode))
+  if (config.showQuarterSection) data.push(getThisQuarterSectionData(config, demoMode))
+  if (config.tagToShow !== '') data.push(getTaggedSectionData(config, demoMode))
+  if (config.showOverdueTaskSection) data.push(await getOverdueSectionData(config, demoMode))
+  data.push(await getProjectSectionData(config, demoMode))
+
+  // // Send doneCount through as a special type item:
+  // data.push({
+  //   ID: doneCount,
+  //   name: 'Done',
+  //   sectionType: 'COUNT',
+  //   description: ``,
+  //   FAIconClass: '',
+  //   sectionTitleClass: '',
+  //   sectionFilename: ''
+  // })
+
+  return data
 }
 
 /**
