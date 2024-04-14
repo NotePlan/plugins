@@ -2,12 +2,13 @@
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
 import { setFrontMatterVars } from '../../helpers/NPFrontMatter'
-import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
+import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '../../helpers/paragraph'
 import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
 
 const READWISE_API_KEY_LENGTH = 50
 const LAST_SYNÇ_TIME = 'last_sync_time'
+const SYNC_LOG_TOKEN = 'readWiseToken'
 let downloadHiglightCount: number = 0
 let updatedSourceCount: number = 0
 
@@ -70,7 +71,7 @@ async function getReadwise(force: boolean): Promise<any> {
   log(pluginJson, `last fetch time is : ${lastFetchTime}`)
   logDebug(pluginJson, `base folder is : ${DataStore.settings.baseFolder}`)
 
-  return doReadWiseFetch(accessToken, lastFetchTime, 0, '')
+  return await doReadWiseFetch(accessToken, lastFetchTime, 0, '')
 }
 
 async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downloadCount: int, nextPageCursor: string): Promise<any> {
@@ -274,7 +275,8 @@ function appendHighlightToNote(outputNote: TNote, highlight: any, category: stri
 async function writeReadwiseSyncLogLine(title: string, count: number): Promise<void> {
   if (DataStore.settings.writeSyncLog === true) {
     const outputNote = await getOrMakeNote('Readwise Syncs', DataStore.settings.baseFolder, '')
-    outputNote?.addParagraphBelowHeadingTitle(`${count} highlights from ${title}`, 'list', 'readWiseToken', true, true)
+    outputNote?.insertHeading(SYNC_LOG_TOKEN, findStartOfActivePartOfNote(outputNote), 2)
+    outputNote?.addParagraphBelowHeadingTitle(`${count} highlights from ${title}`, 'list', SYNC_LOG_TOKEN, true, true)
   }
   updatedSourceCount++
   downloadHiglightCount += count
@@ -284,7 +286,7 @@ async function writeReadwiseSyncLog(): Promise<void> {
   const outputNote = await getOrMakeNote('Readwise Syncs', DataStore.settings.baseFolder, '')
   const dateString = `[[${new Date().toISOString().split('T')[0]}]] ${new Date().toLocaleTimeString([], {timeStyle: 'short'})} `
     +`— synced ${downloadHiglightCount} highlights from ${updatedSourceCount} documents.`
-  outputNote.content = outputNote?.content?.replace('readWiseToken', dateString)
+  outputNote.content = outputNote?.content?.replace(SYNC_LOG_TOKEN, dateString)
 }
 
 /**
