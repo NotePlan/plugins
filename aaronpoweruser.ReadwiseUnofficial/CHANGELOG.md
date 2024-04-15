@@ -7,6 +7,8 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser
 
 ## [1.0.3] Readwise 2024-04-12 (aaronpoweruser)
 - Added a sync log.
+- Refactor
+- Fixed alert dialog count being wrong
 
 ## [1.0.2] Readwise 2024-04-11 (aaronpoweruser)
 - Add support for daily reviews via template.

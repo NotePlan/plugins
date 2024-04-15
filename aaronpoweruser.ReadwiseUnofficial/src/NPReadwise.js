@@ -1,59 +1,51 @@
 // @flow
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
-import { setFrontMatterVars } from '../../helpers/NPFrontMatter'
-import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '../../helpers/paragraph'
-import { log, logDebug, logError, logWarn, clo, JSP } from '@helpers/dev'
-import { getOrMakeNote } from '@helpers/note'
+import { checkAccessToken } from './NPReadwiseHelpers'
+import { parseHighlightsAndWriteToNote } from './NPReadwiseNotes'
+import { startReadwiseSyncLog, finishReadwiseSyncLog } from './NPReadwisesync'
+import { log, logDebug, logError } from '@helpers/dev'
 
-const READWISE_API_KEY_LENGTH = 50
 const LAST_SYNÇ_TIME = 'last_sync_time'
-const SYNC_LOG_TOKEN = 'readWiseToken'
-let downloadHiglightCount: number = 0
-let updatedSourceCount: number = 0
 
-// This is the main function that will be called by NotePlan
+/**
+ * Syncs new readwise highlights
+ */
 export async function readwiseSync(): Promise<void> {
   checkAccessToken()
   const response = await getReadwise(false)
   await handleReadwiseSync(response)
 }
 
-// This is the main function that will be called by NotePlan
+/**
+ * Rebuilds all readwise highlights
+ */
 export async function readwiseRebuild(): Promise<void> {
   checkAccessToken()
   const response = await getReadwise(true)
   await handleReadwiseSync(response)
 }
 
+/**
+ * Gets the daily review highlights from Readwise
+ * @returns {string} - the highlights as a string
+ */
 export async function readwiseDailyReview(): Promise<string> {
   checkAccessToken()
   return await getReadwiseDailyReview()
 }
 
 async function handleReadwiseSync(response: any): Promise<void> {
-  await response.map(parseBookAndWriteToNote)
+  let downloadHiglightCount = 0, updatedSourceCount = 0
+  await startReadwiseSyncLog()
+  response.forEach((highightSource) => {
+    updatedSourceCount++
+    downloadHiglightCount += highightSource.highlights.length
+    parseHighlightsAndWriteToNote(highightSource)
+  })
   log(pluginJson, `Downloaded ${downloadHiglightCount} highlights from Readwise. Updated ${updatedSourceCount} notes.`)
   await showMessage(`Downloaded ${downloadHiglightCount} highlights from Readwise. Updated ${updatedSourceCount} notes.`)
-  if (DataStore.settings.writeSyncLog === true) {
-    await writeReadwiseSyncLog()
-  }
-}
-
-/**
- * Checks if the readwise access token is valid
- */
-function checkAccessToken(): void {
-  const accessToken = DataStore.settings.accessToken ?? ''
-  logDebug(pluginJson, `access token is : ${accessToken}`)
-
-  if (accessToken === '') {
-    showMessage('No access token found. Please add your Readwise access token in the plugin settings.')
-    return
-  } else if (accessToken.length !== READWISE_API_KEY_LENGTH) {
-    showMessage('Invalid access token. Please check your Readwise access token in the plugin settings.')
-    return
-  }
+  await finishReadwiseSyncLog(downloadHiglightCount, updatedSourceCount)
 }
 
 /**
@@ -74,6 +66,15 @@ async function getReadwise(force: boolean): Promise<any> {
   return await doReadWiseFetch(accessToken, lastFetchTime, 0, '')
 }
 
+/*
+ * Recursively fetches readwise data
+ * @param {string} accessToken - the readwise access token
+ * @param {string} lastFetchTime - the last time the data was fetched
+ * @param {int} downloadCount - the number of highlights downloaded
+ * @param {string} nextPageCursor - the cursor for the next page of data
+ * @returns {*} - the readwise data as a JSON object
+ * @see https://readwise.io/api_deets
+ */
 async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downloadCount: int, nextPageCursor: string): Promise<any> {
   try {
     const url = `https://readwise.io/api/v2/export/?updatedAfter=${lastFetchTime}&pageCursor=${nextPageCursor}`
@@ -103,6 +104,10 @@ async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downl
   }
 }
 
+/**
+ * Gets the daily review highlights from Readwise
+ * @returns {string} - the highlights as a string
+ */
 async function getReadwiseDailyReview(): Promise<string> {
   const accessToken = DataStore.settings.accessToken ?? ''
   let highlightString = ''
@@ -127,183 +132,4 @@ async function getReadwiseDailyReview(): Promise<string> {
   } catch (error) {
     logError(pluginJson, error)
   }
-}
-
-/**
- * Parses the readwise data and writes it to a note
- * @param {*} source - the readwise data as a JSON object
- */
-async function parseBookAndWriteToNote(source: any): Promise<void> {
-  try {
-    const noteTtile: string = buildReadwiseNoteTitle(source)
-    const outputNote: ?TNote = await getOrCreateReadwiseNote(noteTtile, source.category)
-    const useFrontMatter = DataStore.settings.useFrontMatter === 'FrontMatter'
-    if (outputNote) {
-      if (!useFrontMatter) {
-        //TODO: Support updating metadata (tags)
-        if (!outputNote?.content?.includes('## Metadata')) {
-          outputNote?.addParagraphBelowHeadingTitle(buildReadwiseMetadataHeading(source), 'text', 'Metadata', true, true)
-        }
-      } else {
-        setFrontMatterVars(outputNote, buildReadwiseFrontMatter(source))
-      }
-      if (!outputNote?.content?.includes('# Highlights')) {
-        outputNote.insertHeading('Highlights', findEndOfActivePartOfNote(outputNote) + 1, 1)
-      }
-    }
-    await writeReadwiseSyncLogLine(noteTtile, source.highlights.length)
-    await source.highlights.map((highlight) => appendHighlightToNote(outputNote, highlight, source.source, source.asin))
-    removeEmptyLines(outputNote)
-  } catch (error) {
-    logError(pluginJson, error)
-  }
-}
-
-function buildReadwiseNoteTitle(source: any): string {
-  if (source.readable_title !== '') {
-    return source.readable_title
-  } else if (source.title !== '') {
-    return source.title
-  } else {
-    return source.author
-  }
-}
-
-/**
- * Parse readwise data and generate front matter
- * @param {*} source - the readwise data as a JSON object
- * @returns
- */
-function buildReadwiseFrontMatter(source: any): any {
-  const frontMatter = {}
-  frontMatter.author = `[[${source.author}]]`
-  if (source.readable_title.toLowerCase().trim() !== source.title.toLowerCase().trim()) {
-    frontMatter.long_title = source.title
-  }
-  if (source.book_tags !== null && source.book_tags.length > 0) {
-    frontMatter.tags = source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')
-  }
-  if (source.unique_url !== null) {
-    frontMatter.url = source.unique_url
-  }
-  return frontMatter
-}
-
-/**
- * Creates the metadata heading for the note
- * @param {*} source - the readwise data as a JSON object
- * @returns {string} - the formatted heading
- */
-function buildReadwiseMetadataHeading(source: any): string {
-  let metadata = `author: [[${source.author}]]` + '\n'
-  if (source.book_tags !== null && source.book_tags.length > 0) {
-    metadata += `tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
-  }
-  if (source.unique_url !== null) {
-    metadata += `url: ${source.unique_url}`
-  }
-  if (source.readable_title.toLowerCase().trim() !== source.title.toLowerCase().trim()) {
-    metadata += `long_title: ${source.title}`
-  }
-  return metadata
-}
-
-/**
- * Gets or creates the note for the readwise data
- * @param {string} title - the title of the note
- * @param {string} category - the category of the note
- * @returns {TNote} - the note
- */
-async function getOrCreateReadwiseNote(title: string, category: string): Promise<?TNote> {
-  const rootFolder = DataStore.settings.baseFolder ?? 'Readwise'
-  let baseFolder = rootFolder
-  let outputNote: ?TNote
-  if (DataStore.settings.groupByType === true) {
-    // Note: supplmentals are not guaranteed to have user generated highlights
-    if (DataStore.settings.ignoreSupplementals === true && category === 'supplementals') {
-      baseFolder = `${rootFolder}/books`
-    } else {
-      baseFolder = `${rootFolder}/${category}`
-    }
-  }
-  try {
-    outputNote = await getOrMakeNote(title, baseFolder, '')
-  } catch (error) {
-    logError(pluginJson, error)
-  }
-  return outputNote
-}
-
-/**
- * Appends the highlight with a link to the note
- * @param {TNote} outputNote - the note to append to
- * @param {*} highlight - the readwise highlight as a JSON object
- * @param {string} category - the source of the highlight
- * @param {string} asin - the asin of the book
- */
-function appendHighlightToNote(outputNote: TNote, highlight: any, category: string, asin: string): void {
-  const filteredContent = highlight.text.replace(/\n/g, ' ')
-  let linkToHighlightOnWeb = ''
-  let userNote = ''
-
-  if (highlight.tags !== null && highlight.tags !== '') {
-    for (const tag of highlight.tags) {
-      if (tag.name !== null && tag.name !== '' && tag.name.startsWith('h') && tag.name.length === 2) {
-        const headingLevel = parseInt(tag.name.substring(1)) + 1
-        outputNote.insertHeading(highlight.text, findEndOfActivePartOfNote(outputNote) + 1, headingLevel)
-        return
-      }
-    }
-  }
-
-  if (highlight.note !== null && highlight.note !== '') {
-    userNote = `(${highlight.note})`
-  }
-
-  if (DataStore.settings.showLinkToHighlight === true) {
-    if (category === 'supplemental') {
-      linkToHighlightOnWeb = ` [View highlight](${highlight.readwise_url})`
-    } else if (asin !== null && highlight.location !== null) {
-      linkToHighlightOnWeb = ` [Location ${highlight.location}](https://readwise.io/to_kindle?action=open&asin=${asin}&location=${highlight.location})`
-    } else if (highlight.url !== null) {
-      linkToHighlightOnWeb = ` [View highlight](${highlight.url})`
-    }
-  }
-  outputNote.appendParagraph(filteredContent + userNote + linkToHighlightOnWeb, 'quote')
-}
-
-async function writeReadwiseSyncLogLine(title: string, count: number): Promise<void> {
-  if (DataStore.settings.writeSyncLog === true) {
-    const outputNote = await getOrMakeNote('Readwise Syncs', DataStore.settings.baseFolder, '')
-    outputNote?.insertHeading(SYNC_LOG_TOKEN, findStartOfActivePartOfNote(outputNote), 2)
-    outputNote?.addParagraphBelowHeadingTitle(`${count} highlights from ${title}`, 'list', SYNC_LOG_TOKEN, true, true)
-  }
-  updatedSourceCount++
-  downloadHiglightCount += count
-}
-
-async function writeReadwiseSyncLog(): Promise<void> {
-  const outputNote = await getOrMakeNote('Readwise Syncs', DataStore.settings.baseFolder, '')
-  const dateString = `[[${new Date().toISOString().split('T')[0]}]] ${new Date().toLocaleTimeString([], {timeStyle: 'short'})} `
-    +`— synced ${downloadHiglightCount} highlights from ${updatedSourceCount} documents.`
-  outputNote.content = outputNote?.content?.replace(SYNC_LOG_TOKEN, dateString)
-}
-
-/**
- * Formats the note tag using the prefix from plugin settings
- * @param {string} tag - the tag to format
- * @returns {string} - the formatted tag
- */
-function formatTag(tag: string): string {
-  const prefix = DataStore.settings.tagPrefix ?? ''
-  if (prefix === '') {
-    return `#${tag}`
-  } else {
-    return `#${prefix}/${tag}`
-  }
-}
-
-// removes all empty lines in a note
-function removeEmptyLines(note: ?Tnote): void {
-  note.content = note?.content?.replace(/^\s*\n/gm, '')
 }

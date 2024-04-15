@@ -16,7 +16,6 @@ A sync engine for readwise
 ### Todo
 * Index note
 * Image support (needs Noteplan API update)
-* Ability to get random note via templates
 
 ### Known issues:
 - Using heading as metadata does not support tag updates
