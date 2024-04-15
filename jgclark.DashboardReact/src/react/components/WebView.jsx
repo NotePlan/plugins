@@ -38,9 +38,9 @@ import { AppProvider } from './AppContext.jsx'
  ****************************************************************************************************************************/
 // color this component's output differently in the console
 const consoleStyle = 'background: #222; color: #bada55' //lime green
-const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
-const logSubtle = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
-const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
+const logDebug = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
+const logSubtle = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
+const logTemp = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
 
 /**
  * Root element for the Plugin's React Tree
@@ -91,11 +91,10 @@ export function WebView({ data, dispatch }: Props): Node {
   }, [data])
 
   /****************************************************************************************************************************
-   *                             FUNCTIONS
+   *                        HELPER FUNCTIONS
    ****************************************************************************************************************************/
   /**
-   * Helper function to remove HTML entities from a string. Not used in this example but leaving here because it's useful
-   * if you want to allow people to enter text in an HTML field
+   * Remove HTML entities from a string. Useful if you want to allow people to enter text in an HTML field.
    * @param {string} text
    * @returns {string} cleaned text without HTML entities
    */
@@ -155,7 +154,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * @throws {Error} Throws an error if newData is not provided or if it does not have more keys than the current pluginData.
    * @return {void}
    */
-  const updatePluginData = (newData, messageForLog?: string) => {
+  const updatePluginData = (newData: any, messageForLog?: string) => {
     if (!newData) throw new Error('updatePluginData: newData must be called with an object')
     if (Object.keys(newData).length < Object.keys(pluginData).length) {
       throw new Error('updatePluginData: newData must be called with an object that has more keys than the current pluginData. You must send a full pluginData object')

@@ -17,25 +17,30 @@ function ItemGrid(inputObj: Props): React$Node {
   const { reactSettings } = useAppContext()
 
   console.log(`ItemGrid for section ${thisSection.sectionType}/${thisSection.ID}: ${items.length} items`)
+  // FIXME:
+  console.log('- reactSettings.filterPriorityItems = ' + String(reactSettings.filterPriorityItems))
 
   const visibleItems = items?.map((item, index) => (
-    !reactSettings.filterPriorityItems || item.para.priority || 0 > 0
+    !reactSettings.filterPriorityItems || item.para?.priority || 0 > 0
       ? <ItemRow key={index} item={item} thisSection={thisSection} />
       : null)) ?? []
-
-  console.log(`selected ${visibleItems.length} visible items`)
+  const filteredOut = items.length - visibleItems.length
+  console.log(`- selected ${visibleItems.length} visible items, with ${String(filteredOut)} filtered out`)
 
   // TODO: equivalent of:
-  // if (filteredOut > 0) {
-  //   items = filteredItems
-  //   items.push({
-  //     ID: `${section.ID}-Filter`,
-  //     content: `There are also ${filteredOut} lower-priority items currently hidden`,
-  //     rawContent: 'Filtered out',
-  //     filename: '',
-  //     type: 'filterIndicator',
-  //   })
-  // }
+  if (filteredOut > 0) {
+    items.push({
+      ID: `${thisSection.ID}-Filter`,
+      itemType: 'filterIndicator', // TEST:
+      itemFilename: '',
+      noteType: 'Notes', // TEST:
+      para: {
+        content: `There are also ${filteredOut} lower-priority items currently hidden`,
+        filename: '',
+        type: '' // FIXME:
+      }
+    })
+  }
 
   return (
     // FIXME: find a way to include this <!--- Section ${String(sectionNumber)}: ${section.name} Items Grid --->`

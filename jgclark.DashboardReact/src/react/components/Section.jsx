@@ -1,46 +1,61 @@
 // @flow
+//--------------------------------------------------------------------------
+// Dashboard React component to show a whole Dashboard Section
+// Last updated 13.4.2024 for v2.0.0 by @jgclark
+//--------------------------------------------------------------------------
 import React from 'react'
 import type { TSection } from '../../types.js'
 import ItemGrid from './ItemGrid.jsx'
-import ThisPeriodAddButtons from './ThisPeriodAddButtons.jsx'
-import NextPeriodAddButtons from './NextPeriodAddButtons.jsx'
+import CommandButton from './CommandButton.jsx'
 
-// type Props = {
-//   name: string,
-//   FAIconClass: string,
-//   description: string,
-//   sectionType: string,
-//   items: Array<SectionItem>,
-// }
+type SectionProps = {
+  section: TSection
+}
 
 /**
  * Represents a section within the dashboard, like Today, Yesterday, Projects, etc.
  */
-function Section(section: TSection): React$Node {
-  const { ID, name, sectionType, description, sectionItems, FAIconClass, sectionTitleClass, filename } = section
+function Section(inputObj: SectionProps): React$Node {
+  const { section } = inputObj
+  try {
+    if (!section || !section.ID) {
+      throw new Error(`❓Section doesn't exist.`)
+    } else if ((!section.sectionItems || section.sectionItems.length === 0) && section.ID !== 0) {
+      console.log(`Section: ${section.ID} / ${section.sectionType} doesn't have any sectionItems, so not displaying.`)
+      return
+    } else {
+      console.log(`Section: ${section.ID} / ${section.sectionType} with ${section.sectionItems.length} items`)
+    }
 
-  console.log(`Section: ${ID} / ${sectionType} with ${sectionItems.length} items`)
+    // Produce set of actionButtons, if present
+    const buttons = section.actionButtons?.map((item, index) => (
+      <CommandButton key={index} button={item} />
+    )) ?? []
+    // Insert items count
+    const countStr = (section.description.startsWith('{count}'))
+      ? String(section.sectionItems.length) + ' '
+      : ''
+    const descriptionToUse = (section.description.startsWith('{count}'))
+      ? section.description.replace('{count}', '')
+      : section.description
 
-  return (
-    <div className="section">
-      <div className="sectionInfo">
-        <span className={`${sectionTitleClass} sectionName`}>
-          <i className={`sectionIcon ${FAIconClass}`}></i>
-          {name}
-        </span>{' '}
-        <span className="sectionDescription">
-          <span id={`section${ID}Count`}>{description}</span>
-          {/* TODO: Change this to send buttons as properties? */}
-          <span id="section0Buttons">
-            {['DT', 'W', 'M'].includes(sectionType) ? <ThisPeriodAddButtons sectionType={sectionType} filename={filename} /> : null}
-            {['DT', 'W', 'M'].includes(sectionType) ? <NextPeriodAddButtons sectionType={sectionType} filename={filename} /> : null}
-            {/* TODO: other button types */}
+    return (
+      <div className="section">
+        <div className="sectionInfo">
+          <span className={`${section.sectionTitleClass} sectionName`}>
+            <i className={`sectionIcon ${section.FAIconClass}`}></i>
+            {section.name}
+          </span>{' '}
+          <span className="sectionDescription">
+            <span id={`section${section.ID}Count`}>{countStr}</span>
+            {descriptionToUse} {buttons}
           </span>
-        </span>
+        </div>
+        <ItemGrid thisSection={inputObj.section} items={section.sectionItems} />
       </div>
-      <ItemGrid thisSection={section} items={sectionItems} />
-    </div>
-  )
+    )
+  } catch (error) {
+    console.log(`❗️ERROR❗️: ${error.message}`)
+  }
 }
-
 export default Section

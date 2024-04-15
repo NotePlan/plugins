@@ -31,9 +31,13 @@ const Header = ({ lastUpdated }: Props): React$Node => {
   return (
     <div className="header">
       <div className="lastUpdated">
-        Last updated: <span id="timer">{calculateTimeSince()}</span>{' '}
+        Last updated: <span id="timer"></span>
+        {' '}
       </div>
-      <Button className="PCButton" clickHandler={handleRefreshClick} text={'Refresh'} />
+      <Button
+        text={'Refresh'}
+        clickHandler={handleRefreshClick}
+        className="PCButton" />
       <div className="totalCounts">
         <span id="totalDoneCount">0</span> items closed
       </div>

@@ -48,22 +48,21 @@ function ItemContent(inputObj: Props): React$Node {
   const para = item.para
   // const itemType = para.type
 
-  console.log(`ItemContent for '${para.content}'`)
+  console.log(`ItemContent for '${para?.content ?? '<error>'}'`)
 
   // compute the things we need later
   const mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140) // TODO: other cases for this
-  const noteLinkToAppend = makeNoteLinkToAppend(item, 'all')
 
-  console.log(`makeParaContet...\n-> ${mainContent}`)
+  // console.log(`-> ${mainContent}`)
 
   // TODO(later): try not to live dangerously!
   return (
-    <a className="content" dangerouslySetInnerHTML={{ __html: mainContent + noteLinkToAppend }}></a>
+    <a className="content" dangerouslySetInnerHTML={{ __html: mainContent }}></a>
   )
 }
 
 /**
- * Alter the provided paragraph's content to display suitably in HTML to mimic NP native display of markdown (as best we can). Currently this:
+ * Produce an HTML version of the provided paragraph's content to mimic NP's native display of markdown (as best we can). Currently this:
  * - simplifies NP event links, and tries to colour them
  * - turns MD links -> HTML links
  * - truncates the display of raw URLs if necessary
@@ -77,19 +76,21 @@ function ItemContent(inputObj: Props): React$Node {
  * - if noteTitle is supplied, then either 'append' it as a active NP note title, or make it the active NP note link for 'all' the string.
  * @author @jgclark
  * @param {SectionItem} thisItem
- * @param {string?} noteLinkStyle: "append" or "all"
  * @param {string?} truncateLength (optional) length of string after which to truncate. Will not truncate if set to 0.
- * @returns {string} altered string
+ * @returns {string} HTML string
  */
 function makeParaContentToLookLikeNPDisplayInReact(
   thisItem: TSectionItem,
-  // noteLinkStyle: string = "all",
+  // noteLinkStyle: string = "all", // or "append"
   truncateLength: number = 0): string {
   try {
     const { para } = thisItem
-    const origContent = para.content
-    const noteTitle = para.title
-    const filename = para.filename
+    if (!para || !para.content) {
+      throw new Error(`No para/content in item ${thisItem.ID}`)
+    }
+    const filename = para.filename ?? '<error>'
+    const origContent = para.content ?? '<error>'
+    const noteTitle = para.title ?? ''
     console.log(`makeParaContent...: for '${thisItem.ID}' / noteTitle '${noteTitle}' / filename '${filename}' / {${origContent}}`)
     // Start with the content of the item
     let output = origContent
@@ -202,23 +203,6 @@ function makeParaContentToLookLikeNPDisplayInReact(
       output = truncateHTML(output, truncateLength, true)
     }
 
-    // Now include an active link to the note, if 'noteTitle' is given
-    // TODO(later): remove once checked that it works in separate function
-    // if (noteTitle) {
-    //   // console.log(`makeParaContet...: - before '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
-    //   switch (noteLinkStyle) {
-    //     case 'append': {
-    //       output = `${addNoteOpenLinkToString(thisItem, output)} ${makeNoteTitleWithOpenActionFromFilename(thisItem, noteTitle)}`
-    //       break
-    //     }
-    //     case 'all': {
-    //       output = addNoteOpenLinkToString(thisItem, output)
-    //       break
-    //     }
-    //   }
-    //   // console.log(`makeParaContet...: - after: '${noteLinkStyle}' for ${noteTitle} / {${output}}`)
-    // }
-
     // If we already know (from above) there's a !, !!, !!! or >> in the line add priorityN styling around the whole string. Where it is "working-on", it uses priority5.
     // Note: this wrapping needs to go last.
     if (taskPriority > 0) {
@@ -286,25 +270,6 @@ export function addNoteOpenLinkToString(item: TSectionItem, displayStr: string):
   }
   catch (error) {
     console.log(`addNoteOpenLinkToString: ERROR ${error.message} for input '${displayStr}'`)
-    return '(error)'
-  }
-}
-
-/**
- * Wrap string with href onClick event to show note in editor,
- * using item.filename param.
- * @param {SectionItem} item's details
- * @param {string} noteTitle
- * @returns {string} output
- */
-export function makeNoteTitleWithOpenActionFromFilename(item: TSectionItem, noteTitle: string): string {
-  try {
-    // console.log(`makeNoteTitleWithOpenActionFromFilename: - making notelink with ${item.filename}, ${noteTitle}`)
-    // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.para.filename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-  }
-  catch (error) {
-    console.log(`makeNoteTitleWithOpenActionFromFilename: ERROR ${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
 }

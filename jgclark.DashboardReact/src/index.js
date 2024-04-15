@@ -5,7 +5,7 @@
 // ----------------------------------------------------------------------------
 // Dashboard plugin for NotePlan
 // Jonathan Clark
-// last updated 22.3.2024 for v1.0.0, @jgclark
+// last updated 11.4.2024 for v1.0.0, @jgclark
 // ----------------------------------------------------------------------------
 
 /**
@@ -36,7 +36,7 @@ export { editSettings } from '@helpers/NPSettings'
 // } from './demoDashboard'
 
 export {
-  testReactWindow,
+  showDashboardReact,
   onMessageFromHTMLView,
   showDemoDashboard,
 } from './reactMain.js'
