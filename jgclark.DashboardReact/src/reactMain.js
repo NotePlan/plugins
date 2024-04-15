@@ -193,7 +193,7 @@ async function getAllSectionsData(config: dashboardConfigType, demoMode: boolean
   if (config.showWeekSection) data.push(getThisWeekSectionData(config, demoMode))
   if (config.showMonthSection) data.push(getThisMonthSectionData(config, demoMode))
   if (config.showQuarterSection) data.push(getThisQuarterSectionData(config, demoMode))
-  if (config.tagToShow !== '') data.push(getTaggedSectionData(config, demoMode))
+  if (config.tagToShow) data.push(getTaggedSectionData(config, demoMode))
   if (config.showOverdueTaskSection) data.push(await getOverdueSectionData(config, demoMode))
   data.push(await getProjectSectionData(config, demoMode))
 
@@ -212,6 +212,24 @@ async function getAllSectionsData(config: dashboardConfigType, demoMode: boolean
 }
 
 /**
+ * Update the data in the React Window (and cause it to re-draw as necessary with the new data)
+ * This is likely most relevant when a trigger has been sent from a NotePlan window, but could be used anytime a plugin wants to update the data in the React Window
+ * This is exactly the same as onMessageFromHTMLView, but named updateReactWindowData to clarify that the plugin is updating the data in the React Window
+ * rather than a user interaction having triggered it (the result is the same)
+ * See discussion at https://discord.com/channels/@me/863719873175093259/1229524619615010856
+ * @param {string} actionType - the reducer-type action to be dispatched -- see onMessageFromHTMLView above
+ * @param {any} data - any data that the router (specified in onMessageFromHTMLView) needs -- may be nothing
+ * @returns {Promise<any>} - does not return anything important
+ */
+export async function updateReactWindowData(actionType: string, data: any = null): Promise<any> {
+  if (!getWindowFromId(WEBVIEW_WINDOW_ID)) {
+    logError(pluginJson, `updateReactWindowData('${actionType}'): Window with ID ${WEBVIEW_WINDOW_ID} not found. Could not update data.`)
+    return
+  }
+  await onMessageFromHTMLView(actionType, data)
+}
+
+/**
  * Router function that receives requests from the React Window and routes them to the appropriate function
  * (e.g. handleSubmitButtonClick example below)
  * Here's where you will process any other commands+data that comes back from the React Window
@@ -226,7 +244,6 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     switch (actionType) {
       /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */
-      /* you would probably call a different function for each actionType */
       case 'refresh':
         await showDashboardReact('refresh')
         break

@@ -103,7 +103,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
     const taskPriority = para.priority ?? 0
 
     if (noteTitle === '(error)') {
-      console.log(`makeParaContent...: ERROR starting with noteTitle '(error)' for '${origContent}'`)
+      console.error(`makeParaContent...: ERROR starting with noteTitle '(error)' for '${origContent}'`)
     }
 
     // Simplify NP event links of the form
@@ -213,7 +213,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
     return output
   }
   catch (error) {
-    console.log('makeParaContentToLookLikeNPDisplayInReact' + error.message)
+    console.error(`ItemContent::makeParaContentToLookLikeNPDisplayInReact ❗️ERROR❗️  ${error.message}`)
     return ''
   }
 }
@@ -258,12 +258,12 @@ export function addNoteOpenLinkToString(item: TSectionItem, displayStr: string):
 
     if (item.para.content) {
       // call showLineinEditor... with the filename and rawConetnt
-      // return `<a class="" onClick="onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
+      // return `<a class="" {()=>onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')}${displayStr}</a>`
       // return `<a>${displayStr}</a>`
       return `${displayStr}`
     } else {
       // call showNoteinEditor... with the filename
-      // return `<a class="" onClick="onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')">${displayStr}</a>`
+      // return `<a class="" {()=>onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}',''}>${displayStr}</a>`
       // return `<a>${displayStr}</a>`
       return `${displayStr}`
     }
@@ -286,7 +286,7 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     // console.log(`makeNoteTitleWithOpenActionFromTitle: - making notelink from ${noteTitle}`)
     // Pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   }
   catch (error) {
     console.log(`makeNoteTitleWithOpenActionFromTitle: ERROR ${error.message} for input '${noteTitle}'`)
@@ -306,7 +306,7 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
     const dateFilename = `${getAPIDateStrFromDisplayDateStr(NPDateStr)}.${DataStore.defaultFileExtension}`
     // console.log(`makeNoteTitleWithOpenActionFromNPDateStr: - making notelink with ${NPDateStr} / ${dateFilename}`)
     // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
+    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''}}><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
   }
   catch (error) {
     console.log(`makeNoteTitleWithOpenActionFromNPDateStr: ERROR ${error.message} for input '${NPDateStr}'`)

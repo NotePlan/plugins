@@ -23,8 +23,8 @@ type Props = {
 function ItemRow(inputObj: Props): React$Node {
   try {
     const { pluginData } = useAppContext()
-    const config = pluginData.settings // FIXME: 
-    console.log(String(config))
+    const config = pluginData.settings
+    // console.log(JSON.stringify(config))
 
     const { item, thisSection } = inputObj
     const itemType = item.itemType
@@ -32,16 +32,19 @@ function ItemRow(inputObj: Props): React$Node {
 
     console.log(`ItemRow for section ${sectionType}#${thisSection.ID}:${itemType}`)
 
+    // -------------------------------------------------------
     if (itemType === 'review') {
-      const itemFilename = item.itemFilename
-      console.log(`- 'review': ${itemFilename}`)
       // Display a Project item
+      const itemFilename = item.itemFilename
+      const encodedItemFilename = encodeRFC3986URIComponent(itemFilename)
+      // console.log(`- 'review': ${itemFilename}`)
+      const noteTitle = item.itemNoteTitle ?? '<no title>'
+      // console.log(`- making notelink with ${itemFilename}, ${noteTitle}`)
       const folderNamePart = config.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
-      console.log(`- folderNamePart = ${folderNamePart}`)
+      // console.log(`- folderNamePart = ${folderNamePart}`)
 
-      const thisTitle = item.itemNoteTitle ?? '<no title>'
-      const projectContent = `${folderNamePart}${makeNoteTitleWithOpenActionFromFilename(item, thisTitle)}`
-      console.log(`- projectContent = ${projectContent}`)
+      const projectContent = `${folderNamePart}${makeNoteTitleWithOpenActionFromFilename(item, noteTitle)}`
+      // console.log(`- projectContent = ${projectContent}`)
 
       const dataObjectToPassToControlDialog = {
         OS: 'macOS', // TODO: NotePlan.environment.platform,
@@ -49,6 +52,9 @@ function ItemRow(inputObj: Props): React$Node {
         // $FlowIgnore(cannot-resolve-name)
         encodedTitle: encodeRFC3986URIComponent(projectContent),
       }
+
+      // Pass request back to plugin, as a single object
+      const dataObjToPassToOnClick = { itemID: item.ID, type: 'showNoteInEditorFromFilename', encodedFilename: encodedItemFilename, encodedContent: '' }
 
       return (
         <div className="sectionItemRow"
@@ -63,7 +69,15 @@ function ItemRow(inputObj: Props): React$Node {
           </div>
 
           <div className="sectionItemContent sectionItem">
-            <a className="content" dangerouslySetInnerHTML={{ __html: projectContent }}></a>
+            {/* <a className="content" dangerouslySetInnerHTML={{ __html: projectContent }}></a> */}
+            {folderNamePart}
+            <a className="noteTitle sectionItem"
+              onClick={() => onClickDashboardItem(dataObjToPassToOnClick)
+              } >
+              <i className="fa-regular fa-file-lines pad-right"></i>
+              {noteTitle}
+            </a >
+
             <a className="dialogTrigger"
               // $FlowIgnore(cannot-resolve-name)
               onClick={() => showProjectControlDialog(dataObjectToPassToControlDialog)}>
@@ -73,6 +87,7 @@ function ItemRow(inputObj: Props): React$Node {
         </div>
       )
     }
+      // -------------------------------------------------------
     else if (itemType === 'congrats') {
       // Display congratulatory message
       return (
@@ -92,6 +107,7 @@ function ItemRow(inputObj: Props): React$Node {
         </div>
       )
     }
+      // -------------------------------------------------------
     else {
       // Display every other type of item
       if (!item.para) {
@@ -147,7 +163,7 @@ function ItemRow(inputObj: Props): React$Node {
       )
     }
   } catch (error) {
-    console.log(`❗️ERROR❗️ ${error.message}`)
+    console.error(`ItemRow ❗️ERROR❗️ ${error.message}`)
   }
 }
 
@@ -163,9 +179,8 @@ function makeNoteTitleWithOpenActionFromFilename(item: TSectionItem, noteTitle: 
     // console.log(`makeNoteTitleWithOpenActionFromFilename: - making notelink with ${item.filename}, ${noteTitle}`)
     // Pass request back to plugin, as a single object
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.itemFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
-  }
-  catch (error) {
-    console.log(`makeNoteTitleWithOpenActionFromFilename: ERROR ${error.message} for input '${noteTitle}'`)
+  } catch (error) {
+    console.error(`ItemRow::makeNoteTitleWithOpenActionFromFilename: ❗️ERROR❗️  ${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
 }

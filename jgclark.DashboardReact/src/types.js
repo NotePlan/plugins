@@ -34,7 +34,6 @@ export type TSectionItem = {
   itemNoteTitle?: string, /* ditto */
   noteType: NoteType, /* Notes | Calendar */
   para?: TParagraphForDashboard /* where it is a paragraph-type item (not 'review') */
-  // sectionType: string, // TEST: removal -- see https://discord.com/channels/@me/863719873175093259/1227356943266484234
 }
 
 // reduced paragraph definition
