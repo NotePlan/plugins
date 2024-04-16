@@ -8,12 +8,16 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "1.2.0",
-  "plugin.lastUpdateInfo": "1.2.0: add support for use on iPhones. Updating settings will refresh Dashboard.\n1.1.3: small fixes\n1.1.2: small fix.\n1.1.1: polish and bug fixes.\n1.1.0: add new 'Tomorrow' section (off by default). Fix to Overdue missing Calendar notes, markdown links. Layout tweaks.\n1.0.1: fix refresion with checklist items\n1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
+  "plugin.version": "1.1.2",
+  "plugin.lastUpdateInfo": "1.1.2: ???\n1.1.1: polish and bug fixes.\n1.1.0: add new 'Tomorrow' section (off by default). Fix to Overdue missing Calendar notes, markdown links. Layout tweaks.\n1.0.1: fix refresion with checklist items\n1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
   "plugin.dependsOn": [
     {
       "id": "np.Shared",
       "minVersion": "0.4.8"
+    },
+    {
+      "id": "jgclark.QuickCapture",
+      "minVersion": "0.13.0"
     }
   ],
   "plugin.requiredFiles": [
@@ -152,18 +156,6 @@
       "name": "turnOnAllSections",
       "description": "turn on all sections",
       "jsFunction": "turnOnAllSections",
-      "hidden": true
-    },
-    {
-      "name": "versionCheck",
-      "description": "test: version check",
-      "jsFunction": "versionCheck",
-      "hidden": true
-    },
-    {
-      "name": "onUpdateOrInstall",
-      "description": "test: onUpdateOrInstall",
-      "jsFunction": "onUpdateOrInstall",
       "hidden": true
     },
     {

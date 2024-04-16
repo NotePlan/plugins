@@ -3,10 +3,8 @@
 This plugin provides commands to help tidy up your notes:
 
 - **/File root-level notes** (alias "frnl"): For each root-level note, asks which folder you'd like it moved to. (There's a setting for ones to permanently ignore.)
-- **/List conflicted notes** (alias "conflicts"): creates/updates a note that lists all your notes on your current device with file-level conflicts, along with summary details about them. It gives options to delete one or other of the conflicted versions. 
+- **/List conflicted notes** (alias "conflicts"): creates/updates a note that lists all your notes on your current device with file-level conflicts, along with summary details about them. It gives options to delete one or other of the conflicted versions. Note: _conflicted notes can appear on each device you run NotePlan on, and the conflicted copies do not sync. Therefore you should consider running this on each of your devices._
     ![](conflicted-notes@2x.png)
-  - Note: _conflicted notes can appear on each device you run NotePlan on, and the conflicted copies do not sync. Therefore you should consider running this on each of your devices._
-  - Note: if setting 'Save a copy of previous version as a separate note?' is turned on, it will now write copy of the prior conflicted version of notes to the special '@Conflicted Copies' folder. _This enables you to use an external editor to perform more detailed comparisons and merges that possible in NotePlan, particularly on iOS devices. You will need to clear up after yourself, though._
 - **/List duplicate notes** (alias "dupes"): creates/updates a note that lists all your notes with identical titles, along with summary details about those potential duplicates. It gives options to delete one or other of the conflicted versions:
     ![](duplicate-note-display@2x.png)
 - **/List doubled notes**:  creates/updates a note that lists calendar notes that potentially have doubled content (i.e. internal duplication). Note: this is unlikely to happen, but it happened to me a lot for reasons I don't understand. This command helped me go through the notes and manually delete the duplicated content.

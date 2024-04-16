@@ -5,13 +5,14 @@
  *     node '/Users/dwertheimer/Developer/Noteplan/np-plugins-freshstart-2022-08-21/dwertheimer.TaskAutomations/src/react/support/performRollup.node.js'
  *
  */
-const path = require('path')
 const notifier = require('node-notifier') // https://www.npmjs.com/package/node-notifier
 const colors = require('chalk') // https://www.npmjs.com/package/chalk console.log(chalk.green('Hello %s'), name);
 const messenger = require('@codedungeon/messenger')
 const replace = require('rollup-plugin-replace')
 const visualizer = require('rollup-plugin-visualizer').visualizer
-// const fg = require('fast-glob') //dbw adding for requiredFiles glob wildcard watch (**/)
+const { existsSync } = require('fs')
+const path = require('path')
+const fg = require('fast-glob') //dbw adding for requiredFiles glob wildcard watch (**/)
 const { babel } = require('@rollup/plugin-babel')
 const commonjs = require('@rollup/plugin-commonjs')
 const { terser } = require('rollup-plugin-terser')
@@ -19,7 +20,6 @@ const { nodeResolve } = require('@rollup/plugin-node-resolve')
 const json = require('@rollup/plugin-json')
 const rollup = require('rollup')
 const { program } = require('commander')
-const alias = require('@rollup/plugin-alias')
 
 const NOTIFY = true
 
@@ -89,6 +89,7 @@ async function rollupReactFiles(config, createWatcher = false, buildMode = '') {
 
       if (createWatcher) {
         watch(config, buildMode)
+      } else {
       }
 
       await bundle.close()
@@ -147,6 +148,8 @@ function watch(watchOptions, buildMode = '') {
       }
       // messenger: success, warn, critical, note, log
       message('success', msg, 'SUCCESS', true)
+    } else if (event.code === 'BUNDLE_END') {
+      console.log('no copyTargetPath', copyTargetPath)
     } else if (event.code === 'ERROR') {
       message('critical', `!!!!!!!!!!!!!!!\nRollup ${event.error}\n!!!!!!!!!!!!!!!\n`, 'ERROR', true)
       if (NOTIFY) {
@@ -167,7 +170,7 @@ function watch(watchOptions, buildMode = '') {
 
   // Additionally, you can hook into the following. Again, return a Promise to
   // make Rollup wait at that stage:
-  watcher.on('change', (id /* , { event } */) => {
+  watcher.on('change', (id, { event }) => {
     const filename = path.basename(id)
     message('info', `${dt()} Rollup: file: "${filename}" changed`, 'CHANGE', true)
     /* a file was modified */
@@ -210,9 +213,10 @@ function getRollupConfig(options) {
 
   if (!opts.entryPointPath?.length || !opts.outputFilePath?.length) {
     throw 'rollupReactFiles: entryPointPath and outputFilePath must be specified'
+    return false
   }
   const entryPointPath = path.join(rootFolderPath, opts.entryPointPath)
-  const outputFilePath = path.join(rootFolderPath, opts.outputFilePath.replace('REPLACEME', buildMode === 'production' ? 'min' : 'dev'))
+  let outputFilePath = path.join(rootFolderPath, opts.outputFilePath.replace('REPLACEME', buildMode === 'production' ? 'min' : 'dev'))
 
   // const exportedFileVarName = `reactBundle${Math.floor(new Date().getTime() / 1000)}` // needs to be unique for each bundle (but is never used externally)
   const exportedFileVarName = options.bundleName || 'reactBundle'
@@ -220,11 +224,8 @@ function getRollupConfig(options) {
   // $FlowIgnore
   const externalGlobals = (externalModules || []).reduce((acc, cur) => ({ ...acc, [cur]: cur }), {})
 
-  const outputPlugins = []
+  let outputPlugins = []
   const plugins = [
-    alias({
-      entries: [{ find: '@helpers', replacement: path.resolve(__dirname, '..', 'helpers') }],
-    }),
     replace({
       /* tell React to build in prod or development mode. https://reactjs.org/docs/optimizing-performance.html#use-the-production-build */
       'process.env.NODE_ENV': JSON.stringify(buildMode),
@@ -232,12 +233,12 @@ function getRollupConfig(options) {
     nodeResolve({ browser: true, jsnext: true }),
     commonjs({ include: /node_modules/ }),
     babel({
-      presets: ['@babel/preset-flow', '@babel/preset-react'],
+      presets: ['@babel/flow', '@babel/preset-react'],
       babelHelpers: 'bundled',
       babelrc: false,
       exclude: ['node_modules/**', '*.json'],
       compact: false,
-      extensions: ['.jsx', '.js'],
+      extensions: ['.jsx'],
     }),
     json(),
   ]
@@ -307,7 +308,12 @@ function getCommandLineOptions() {
     */
     .parse(process.argv)
 
-  // const options = program.opts()
+  const options = program.opts()
+  const DEBUGGING = options.debug || false
+  const MINIFY = options.minify || false
+  const COMPACT = options.compact || false
+  const BUILD = options.build || false
+  const NOTIFY = options.notify || false
 
   // for now, let's do things the old school way
   return {

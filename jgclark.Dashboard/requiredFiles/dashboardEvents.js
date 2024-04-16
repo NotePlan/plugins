@@ -13,7 +13,7 @@ addContentEventListeners()
 
 addReviewProjectEventListeners()
 
-addCommandButtonEventListeners()
+addCallbackButtonEventListeners()
 
 //--------------------------------------------------------------------------------------
 // Show Modal Dialogs
@@ -37,7 +37,6 @@ function showItemControlDialog(dataObject) {
   // Remove shortcuts that interfere with the dialog
   disableDashboardShortcuts()
 
-  const thisOS = dataObject.OS
   const thisID = dataObject.itemID
   const thisNoteType = dataObject.noteType
   const thisSectionType = dataObject.sectionType
@@ -80,7 +79,6 @@ function showItemControlDialog(dataObject) {
     { controlStr: '+1m', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     { controlStr: '+0q', sectionTypes: ['M', 'OVERDUE', 'TAG'], handlingFunction: dateChangeFunctionToUse },
     // other controls
-    { controlStr: 'cancel', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cancel' },
     { controlStr: 'movetonote', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE'], handlingFunction: 'moveToNote' },
     { controlStr: 'priup', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateUp' },
     { controlStr: 'pridown', sectionTypes: ['DT', 'DY', 'DO', 'W', 'M', 'Q', 'OVERDUE', 'TAG'], handlingFunction: 'cyclePriorityStateDown' },
@@ -119,21 +117,15 @@ function showItemControlDialog(dataObject) {
     }
 
     const thisControlStr = button.dataset.controlStr
-    let functionToInvoke = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].handlingFunction ?? '?'
+    const functionToInvoke = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].handlingFunction ?? '?'
     // let buttonDisplayString = possibleControlTypes.filter((p) => p.controlStr === thisControlStr)[0].displayString ?? '?'
     // console.log(`- adding button for ${thisControlStr} / ${thisFilename} / ${functionToInvoke}`)
 
-    // Extra processing for certain buttons
-    let buttonDisplayString = ''
+    // Extra processing for 'Change to X' type button: update the icon the button label shows
     if (thisControlStr === 'tog') {
-      // Change to X' button: update the icon the button label shows
-      buttonDisplayString = `Change to ${(thisItemType === 'checklist') ? '<i class="fa-regular fa-circle"></i>' : '<i class="fa-regular fa-square"></i>'}`
+      // buttonDisplayString = buttonDisplayString.replace('X', (thisItemType === 'checklist') ? 'O' : '⃞')
+      buttonDisplayString = `change to ${(thisItemType === 'checklist') ? '<i class="fa-regular fa-circle"></i>' : '<i class="fa-regular fa-square"></i>'}`
       // console.log(buttonDisplayString)
-    } else if (thisControlStr === 'cancel') {
-      // Extra processing for 'Cancel' button: update the icon the button label shows
-      buttonDisplayString = `${(thisItemType === 'checklist') ? '<i class="fa-regular fa-square-xmark"></i> Cancel' : '<i class="fa-regular fa-circle-xmark"></i> Cancel'}`
-      // console.log(buttonDisplayString)
-      functionToInvoke = (thisItemType === 'checklist') ? 'cancelChecklist' : 'cancelTask'
     }
 
     // add event handler and make visible
@@ -145,7 +137,7 @@ function showItemControlDialog(dataObject) {
         handleButtonClick(thisID, functionToInvoke, thisControlStr, thisEncodedFilename, thisEncodedContent, thisItemType, event.metaKey)
       }, false)
       // Set button's text
-      if (buttonDisplayString !== '') { button.innerHTML = buttonDisplayString }
+      // button.innerHTML = buttonDisplayString
       // Set button visible
       button.style.display = "inline-block"
       added++
@@ -202,13 +194,13 @@ function showItemControlDialog(dataObject) {
   itemControlDialogOtherControls.previousElementSibling.style.display = (numICDOCBShown === 0) ? "none" : "block"
 
   // Set place on the screen for dialog to appear
-  const approxDialogWidth = (['TAG', 'OVERDUE'].includes(thisSectionType)) ? 520 : 450
-  const approxDialogHeight = 180
-  setPositionForDialog(thisOS, approxDialogWidth, approxDialogHeight, dialog, event)
+  const approxDialogWidth = 500 // TODO: can we do better than this?
+  const approxDialogHeight = 210
+  setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event)
 
   // Actually show the dialog
   dialog.showModal()
-  // Note: only at this point does this work:
+  // This then does work:
   // console.log(dialog.clientWidth, dialog.clientHeight)
 
   function handleEscape(event) {
@@ -244,6 +236,7 @@ function showItemControlDialog(dataObject) {
     } else {
       console.log(`Option key pressed. But closing dialog anyway.`)
       // Note: this is where we would want to update and re-gather the data-encoded-content, as it might well have changed.
+      // But id might have changed, so so for now this is just as a future idea.
       closeDialog()
     }
   }
@@ -264,6 +257,8 @@ function showProjectControlDialog(dataObject) {
     dialog.close()
   }
 
+  const mousex = event.clientX  // Horizontal
+  const mousey = event.clientY  // Vertical
   const thisID = dataObject.itemID
   const thisNoteTitle = decodeRFC3986URIComponent(dataObject.encodedTitle)
   const thisSectionType = 'PROJ'
@@ -354,7 +349,7 @@ function showProjectControlDialog(dataObject) {
   // Set place on the screen for dialog to appear
   const approxDialogWidth = 480 // TODO: can we do better than this?
   const approxDialogHeight = 110
-  setPositionForDialog(thisOS, approxDialogWidth, approxDialogHeight, dialog, event)
+  setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event)
 
   // For clicking on dialog buttons
   function handleButtonClick(id, type, controlStr, encodedFilename, encodedCurrentContent, metaModifier) {
@@ -370,85 +365,47 @@ function showProjectControlDialog(dataObject) {
 
 //--------------------------------------------------------------------------------------
 // Set place in the HTML window for dialog to appear
-// Note: JGC's iPhone reports 375x812, but screen shots are 3x (1124x2436)
-function setPositionForDialog(thisOS, approxDialogWidth, approxDialogHeight, dialog, event) {
-  const fudgeFactor = 8 // small border (in pixels) to take account of scrollbars etc.
+function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event) {
+  const fudgeFactor = 20 // pixels to take account of scrollbars etc.
   const mousex = event.clientX  // Horizontal
   const mousey = event.clientY  // Vertical
-  let x = 0
-  let y = 0
 
-  // Safari naturally leaves quite a clear area around edge of window where it will not put the dialog.
+  // Harder than it looks in Safari, as left/top seem to be relative to middle of window, not top-left.
+  // And, in Safari, it leaves quite a clear area around edge of window where it will not put the dialog.
   // Note: in the future the draft spec for CSS Anchor Positioning could be helpful for positioning this dialog relative to other things
+  // Check if this is going to be outside available window width
   // Note: accessing dialog.clientWidth doesn't work, as dialog is not yet drawn
-  // const winHeight = window.innerHeight - fudgeFactor
-  const winHeight = window.visualViewport.height
-  // const winWidth = window.innerWidth - fudgeFactor
-  const winWidth = window.visualViewport.width
-  console.log(`Window dimensions (approx): w${winWidth} x h${winHeight}`)
-  // TODO: remove after testing
+  // Note: not sure why window.clientWidth doesn't work either, so using inner... which then requires a fudge factor for scrollbars
+  console.log(`Window dimensions (approx): w${window.innerWidth} x h${window.innerHeight}`)
   console.log(`Mouse at x${mousex}, y${mousey}`)
-  console.log(`Dialog ~ w${approxDialogWidth} x h${approxDialogHeight}`)
-
-  // WIDTH + X position
-  // First deal with windows narrower than the dialog
-  if (winWidth < approxDialogWidth) {
-    // dialog.style.width = `${String(winWidth)}px`
-    dialog.style.left = `2%`
-    dialog.style.width = `96%`
-    console.log(`Forcing narrower dialog to fit inside window: now centred with width 96%`)
+  console.log(`Dialog dimesnions: w${approxDialogWidth} x h${approxDialogHeight}`)
+  let x = mousex - Math.round((approxDialogWidth + fudgeFactor) / 3)
+  if (x < fudgeFactor) { x = fudgeFactor }
+  if ((x + (approxDialogWidth + fudgeFactor)) > window.innerWidth) {
+    x = window.innerWidth - (approxDialogWidth + fudgeFactor)
+    console.log(`Move left: now x${String(x)}`)
   }
-  // then deal with narrow windows
-  else if ((winWidth - approxDialogWidth) < 100) {
-    x = Math.round((winWidth - approxDialogWidth) / 2)
-    dialog.style.left = `${String(x)}px`
-    console.log(`Forcing narrower dialog to be centred horizontally inside window: now x${String(x)}`)
-  }
-  // otherwise place dialog near mouse x position, but keep within screen
-  else {
-    x = mousex - Math.round((approxDialogWidth) / 3)
-    if ((x + (approxDialogWidth)) > winWidth) {
-      x = winWidth - fudgeFactor - approxDialogWidth
-      console.log(`Move left: now x${String(x)}`)
-    }
-    if (x < fudgeFactor) {
-      x = fudgeFactor
-      console.log(`Off left: now x=${fudgeFactor}; width=${dialog.style.width}`)
-    }
-    dialog.style.left = `${String(x)}px`
+  if (x < fudgeFactor) {
+    x = fudgeFactor
+    dialog.style.width = `${String(window.innerWidth - fudgeFactor)}px`
+    console.log(`Off left: now x=0; width=${dialog.style.width}`)
   }
 
-  // HEIGHT + Y position
-  // First deal with viewport shorter than the dialog
-  if (winHeight < approxDialogHeight) {
-    // dialog.style.Height = `${String(winHeight)}px`
-    dialog.style.top = `0`
-    console.log(`Forcing shorter dialog to start inside window: now fixed to top`)
+  let y = mousey - Math.round((approxDialogHeight + fudgeFactor) / 2)
+  if (y < fudgeFactor) { y = fudgeFactor }
+  if ((y + (approxDialogHeight + fudgeFactor)) > window.innerHeight) {
+    y = window.innerHeight - (approxDialogHeight + fudgeFactor)
+    console.log(`Move up: now y${String(y)}`)
   }
-  // then deal with quite short viewport
-  else if ((winHeight - approxDialogHeight) < 100) {
-    y = Math.round((winHeight - approxDialogHeight) / 2)
-    dialog.style.top = `${String(y)}px`
-    console.log(`Forcing shorter dialog to be centred vertically inside viewport: now y${String(y)}`)
-  }
-  // otherwise place dialog near mouse y position, but keep within screen
-  else {
-    y = mousey - Math.round(approxDialogHeight / 2)
-    if ((y + approxDialogHeight) > winHeight) {
-      y = winHeight - fudgeFactor - approxDialogHeight
-      console.log(`Move up: now y${String(y)}`)
-    }
-    if (y < fudgeFactor) {
-      y = fudgeFactor
-      // dialog.style.height = `${String(winHeight - fudgeFactor)}px`
-      console.log(`Off top: now y=${fudgeFactor}; height=${dialog.style.height}`)
-    }
-    dialog.style.top = `${String(y)}px`
+  if (y < fudgeFactor) {
+    y = fudgeFactor
+    dialog.style.height = `${String(window.innerHeight - fudgeFactor)}px`
+    console.log(`Off top: now y=0; height=${dialog.style.height}`)
   }
 
+  dialog.style.left = `${String(x)}px`
+  dialog.style.top = `${String(y)}px`
   console.log(`-> x${x}, y${y} / w${dialog.style.width} x h${dialog.style.height}`)
-  // const winDetailsSpan = document.getElementById('winDebugDetails')
-  // winDetailsSpan.innerHTML = `f${fudgeFactor} / vw${winWidth} x vh${winHeight} / x${dialog.style.left} y${dialog.style.top} w${dialog.style.width} x h${dialog.style.height}`
 }
 
 //--------------------------------------------------------------------------------------
@@ -569,25 +526,29 @@ function addReviewProjectEventListeners() {
 }
 
 /**
- * Add an event listener to all class="PCButton" items
+ * Add an event listener to all class="XCButton" items
  */
-function addCommandButtonEventListeners() {
+function addCallbackButtonEventListeners() {
   // Register click handlers for each 'PCButton' on the window with URL to call
   allPCButtons = document.getElementsByClassName("PCButton")
   let added = 0
   for (const button of allPCButtons) {
-    // const thisURL = button.dataset.callbackUrl
+    const thisURL = button.dataset.callbackUrl
     // add event handler and make visible
-    console.log(`- displaying button for PCB function ${button.dataset.command}`)
+    console.log(`- displaying button for XCB ${thisURL}`)
     button.addEventListener('click', function (event) {
       event.preventDefault()
-      console.log(`Attempting to send plugin command ${button.dataset.command} ...`)
+      // console.log(`Attempting to call URL ${thisURL} ...`)
+      // const myRequest = new Request(thisURL) // normally has await ...
+      console.log(`Attempting to send message to plugin ${thisURL} ...`)
+      // onClickDashboardItem({ itemID: id, type: type, controlStr: controlStr, encodedFilename: encodedFilename, encodedContent: encodedCurrentContent })
       const theseCommandArgs = (button.dataset.commandArgs).split(',')
       sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
     }, false)
     added++
   }
-  console.log(`- ${String(added)} PCButton ELs added`)
+  console.log(`- ${String(added)} button ELs added`)
+
 }
 
 //--------------------------------------------------------------------------------------

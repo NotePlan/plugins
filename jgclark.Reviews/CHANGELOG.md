@@ -7,8 +7,6 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 ### Added
 - edit icon after each Project in the 'rich' style of Project List, that allows all the commands to be run without using the control bar at the top of the window
 - trying to sort depdency management ???
-- after you change settings for this plugin, it will automatically refresh the rich Project List view if its open (requires NP 3.11beta or later)
-
 ### Improved
 - sizes of headings and text in the 'rich' style of Project List should better match those of text in the NP editor windows for your chosen theme
 

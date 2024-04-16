@@ -283,8 +283,6 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.hashtag', tempSel))
-      // Also save just the foreground colour to root
-      rootSel.push(`--hashtag-color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
     }
 
     // Set class for mentions ('attag') if present
@@ -297,8 +295,6 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.attag', tempSel))
-      // Also save just the foreground colour to root
-      rootSel.push(`--attag-color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
     }
 
     // Set class for `pre-formatted text` ('code') if present

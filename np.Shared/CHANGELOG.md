@@ -2,7 +2,7 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
-## [0.5.1] - 2024-04-12 @dwertheimer
+## [0.5.2] - 2024-04-12 @dwertheimer
 
 - Improve error logging in React root component
 

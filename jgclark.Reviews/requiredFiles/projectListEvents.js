@@ -3,7 +3,7 @@
 // TODO: Add flow in here
 //--------------------------------------------------------------------------------------
 // Scripts for setting up and handling all of the HTML events in Project Lists
-// Last updated: 4.4.2024 for v0.14.0 by @jgclark
+// Last updated: 30.3.2024 for v0.14.0 by @jgclark
 
 //--------------------------------------------------------------------------------------
 // Add event handlers
@@ -13,7 +13,7 @@
 // addContentEventListeners()
 // addReviewProjectEventListeners()
 
-addCommandButtonEventListeners()
+addPluginCommandButtonEventListeners()
 
 //--------------------------------------------------------------------------------------
 // Show Modal Dialog
@@ -105,8 +105,8 @@ function showProjectControlDialog(dataObject) {
   dialog.showModal()
 
   // Set place on the screen for dialog to appear
-  const approxDialogWidth = 490 // TODO: can we do better than this?
-  const approxDialogHeight = 140
+  const approxDialogWidth = 480 // TODO: can we do better than this?
+  const approxDialogHeight = 110
   setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, event)
 
   // For clicking on dialog buttons
@@ -133,36 +133,36 @@ function setPositionForDialog(approxDialogWidth, approxDialogHeight, dialog, eve
   // Check if this is going to be outside available window width
   // Note: accessing dialog.clientWidth doesn't work, as dialog is not yet drawn
   // Note: not sure why window.clientWidth doesn't work either, so using inner... which then requires a fudge factor for scrollbars
-  console.log(`Window dimensions (approx): w${window.innerWidth} x h${window.innerHeight}`)
-  console.log(`Mouse at x${mousex}, y${mousey}`)
-  console.log(`Dialog dimesnions: w${approxDialogWidth} x h${approxDialogHeight} / fudgeFactor ${String(fudgeFactor)}`)
+  // console.log(`Mouse at x${mousex}, y${mousey}`)
+  // console.log(`Window dimensions (approx): w${window.innerWidth}, h${window.innerHeight}`)
+  // console.log(`Dialog dimesnions: w${approxDialogWidth}, h${approxDialogHeight}`)
   let x = mousex - Math.round((approxDialogWidth + fudgeFactor) / 3)
   if (x < fudgeFactor) { x = fudgeFactor }
   if ((x + (approxDialogWidth + fudgeFactor)) > window.innerWidth) {
     x = window.innerWidth - (approxDialogWidth + fudgeFactor)
-    console.log(`Move left: now x${String(x)}`)
+    // console.log(`Too wide: now ${String(x)}`)
   }
   if (x < fudgeFactor) {
     x = fudgeFactor
-    dialog.style.width = `${String(window.innerWidth - fudgeFactor)}px`
-    console.log(`Off left: now x=0; width=${dialog.style.width}`)
+    dialog.style.width = `${String(window.innerWidth)}px`
+    // console.log(`Off left: now x=0; width=w${dialog.style.width}`)
   }
 
   let y = mousey - Math.round((approxDialogHeight + fudgeFactor) / 2)
   if (y < fudgeFactor) { y = fudgeFactor }
   if ((y + (approxDialogHeight + fudgeFactor)) > window.innerHeight) {
     y = window.innerHeight - (approxDialogHeight + fudgeFactor)
-    console.log(`Move up: now y${String(y)}`)
+    // console.log(`Too tall: now ${String(y)}`)
   }
   if (y < fudgeFactor) {
     y = fudgeFactor
-    dialog.style.height = `${String(window.innerHeight - fudgeFactor)}px`
-    console.log(`Off top: now y=0; height=${dialog.style.height}`)
+    dialog.style.height = `${String(window.innerHeight)}px`
+    // console.log(`Off top: now y=0; height=w${dialog.style.height}`)
   }
 
   dialog.style.left = `${String(x)}px`
   dialog.style.top = `${String(y)}px`
-  console.log(`-> x${x}, y${y} / w${dialog.style.width} x h${dialog.style.height}`)
+  console.log(`-> x${x}, y${y}`)
 }
 
 //--------------------------------------------------------------------------------------
@@ -283,52 +283,31 @@ function addReviewProjectEventListeners() {
 }
 
 /**
- * Add an event listener to all class="PCButton" items
+ * Add an event listener to all class="Commandutton" items
  */
-function addCommandButtonEventListeners() {
-  // Register click handlers for each 'PCButton' on the window with URL to call
-  allPCButtons = document.getElementsByClassName("PCButton")
+function addPluginCommandButtonEventListeners() {
+  // Register click handlers for each 'CommandButton' on the window with URL to call
+  allCommandButtons = document.getElementsByClassName("CommandButton")
   let added = 0
-  for (const button of allPCButtons) {
-  // const thisURL = button.dataset.callbackUrl
+  for (const button of allCommandButtons) {
+    // const thisURL = button.dataset.PluginCommandUrl
     // add event handler and make visible
-    console.log(`- displaying button for PCB function ${button.dataset.command}`)
+    console.log(`- displaying button for Command ${thisURL}`)
     button.addEventListener('click', function (event) {
       event.preventDefault()
-      console.log(`Attempting to send plugin command ${button.dataset.command} ...`)
+      // console.log(`Attempting to call URL ${thisURL} ...`)
+      // const myRequest = new Request(thisURL) // normally has await ...
+      // console.log(`Attempting to send message to plugin ${thisURL} ...`)
+      // onClickDashboardItem({ itemID: id, type: type, controlStr: controlStr, encodedFilename: encodedFilename, encodedContent: encodedCurrentContent })
+      console.log(`Attempting to send command '${button.dataset.command}' to plugin ${button.dataset.pluginId} ...`)
       const theseCommandArgs = (button.dataset.commandArgs).split(',')
       sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
     }, false)
     added++
   }
-  console.log(`- ${String(added)} PCButton ELs added`)
-}
+  console.log(`- ${String(added)} button ELs added`)
 
-// /**
-//  * Add an event listener to all class="Commandutton" items
-//  */
-// function addPluginCommandButtonEventListeners() {
-//   // Register click handlers for each 'CommandButton' on the window with URL to call
-//   allCommandButtons = document.getElementsByClassName("CommandButton")
-//   let added = 0
-//   for (const button of allCommandButtons) {
-//     // const thisURL = button.dataset.PluginCommandUrl
-//     // add event handler and make visible
-//     console.log(`- displaying button for Command ${thisURL}`)
-//     button.addEventListener('click', function (event) {
-//       event.preventDefault()
-//       // console.log(`Attempting to call URL ${thisURL} ...`)
-//       // const myRequest = new Request(thisURL) // normally has await ...
-//       // console.log(`Attempting to send message to plugin ${thisURL} ...`)
-//       // onClickDashboardItem({ itemID: id, type: type, controlStr: controlStr, encodedFilename: encodedFilename, encodedContent: encodedCurrentContent })
-//       console.log(`Attempting to send command '${button.dataset.command}' to plugin ${button.dataset.pluginId} ...`)
-//       const theseCommandArgs = (button.dataset.commandArgs).split(',')
-//       sendMessageToPlugin('runPluginCommand', { pluginID: button.dataset.pluginId, commandName: button.dataset.command, commandArgs: theseCommandArgs })
-//     }, false)
-//     added++
-//   }
-//   console.log(`- ${String(added)} button ELs added`)
-// }
+}
 
 //--------------------------------------------------------------------------------------
 // Handle various clicks

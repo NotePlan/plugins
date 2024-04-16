@@ -3,15 +3,8 @@
   Last updated: 26.2.2024 for v0.9.0 by @jgclark
   */
 dialog:modal {
-  max-width: 92%;
+  max-width: 90%;
 }
-
-/* @media screen and (width <= 420px) {
-  dialog:modal {
-    max-width: 90%;
-    left: 5%;
-  }
-} */
 
 dialog {
   /* Unset the margin around it, to allow absolute positioning by left/top */
@@ -27,8 +20,8 @@ dialog {
 .dialogTitle {
   background: var(--bg-alt-color);
   padding-block-start: 0.6rem;
-  padding-inline-start: 0.5rem;
-  padding-inline-end: 0.5rem;
+  padding-inline-start: 1rem;
+  padding-inline-end: 1rem;
   padding-block-end: 0.2rem;
   border-block-end: 1px solid gray;
   /* margin-block-end: 4px; */
@@ -40,8 +33,8 @@ dialog {
 
 .dialogBody {
   padding-block-start: 0.3rem;
-  padding-inline-start: 0.5rem;
-  padding-inline-end: 0.5rem;
+  padding-inline-start: 1rem;
+  padding-inline-end: 1rem;
   padding-block-end: 0.6rem;
 }
 
@@ -51,16 +44,15 @@ dialog {
 
 .buttonGrid {
   display: grid;
-  grid-template-columns: auto minmax(15rem, auto);
+  grid-template-columns: max-content minmax(15rem, auto);
   column-gap: 0.3rem;
-  row-gap: 0.2rem;
+  row-gap: 0.3rem;
   /* vertically align content items in center */
   align-items: center; 
 }
 
 .buttonGrid div:nth-child(odd) {
-  align-self: self-start;
-  padding-block-start: 5px;
+  align-self: center;
   justify-self: end;
 }
 
@@ -71,7 +63,7 @@ dialog {
 
 .buttonGrid div:nth-child(1) {
   /* Put very first div down a bit to try to align with input field */
-  padding-block-start: 10px;
+  padding-block-start: 5px;
 }
 
 /* for Dialog main buttons: a little more pronounced */
@@ -87,8 +79,6 @@ dialog {
 .dialogBody button {
   font-size: 0.85rem;
   font-weight: 400;
-  /* add a clearer border to buttons */
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
   border-radius: 4px;
   padding: 1px 4px 1px 4px;
   margin: 3px 1px;
@@ -99,19 +89,11 @@ dialog {
 }
 
 .fullTextInput {
-  width: calc(100% - 4rem);
+  width: calc(100% - 5rem);
   font-size: 0.85rem;
-  padding: 1px 4px 1px 4px;
+  padding: 3px 4px 3px 4px;
   border-radius: 4px;
-}
-/* iOS devices require an override for font size, otherwise it does a nasty zoom in effect 
- * discovered via https://stackoverflow.com/questions/68973232/how-to-handle-safari-ios-zoom-on-input-fields/69125139#69125139
- * PS Apple says user-scalable, min-scale and max-scale settings are ignored: https://webkit.org/blog/7367/new-interaction-behaviors-in-ios-10/ 
-*/ 
-@media screen and (width <= 420px) {
-  .fullTextInput {
-    font-size: 16pt;
-  }
+  background-color: var(--bg-alt-color);
 }
 
 /* set fa icon colour to tint color */

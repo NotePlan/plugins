@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 // QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 4.4.2024 for v0.16.0+ by @jgclark
+// last update 9.2.2024 for v0.16.0 by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,13 +11,16 @@ import {
   getQuickCaptureSettings,
   type QCConfigType,
 } from './quickCaptureHelpers'
+import moment from 'moment'
 import {
   getDateStringFromCalendarFilename,
   getDisplayDateStrFromFilenameDateStr,
   getTodaysDateUnhyphenated,
   RE_ISO_DATE,
+  RE_YYYYMMDD_DATE,
   unhyphenateString,
 } from '@helpers/dateTime'
+import { getNPWeekData, getRelativeDates, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import { clo, logInfo, logDebug, logError, logWarn } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
 import { allNotesSortedByChanged, calendarNotesSortedByChanged, projectNotesSortedByChanged, weeklyNotesSortedByChanged } from '@helpers/note'
@@ -29,7 +32,7 @@ import {
   smartPrependPara
 } from '@helpers/paragraph'
 import {
-  chooseHeading,
+  chooseFolder, chooseHeading,
   displayTitleWithRelDate,
   showMessage,
 } from '@helpers/userInput'
@@ -143,7 +146,7 @@ export async function addChecklistToNoteHeading(
   noteTitleArg?: string = '',
   headingArg?: string = '',
   textArg?: string = '',
-  headingLevelArg?: string | number
+  headingLevelArg?: string
 ): Promise<void> {
   try {
     logDebug(pluginJson, `starting /qach with arg0 '${noteTitleArg}' arg1 '${headingArg}' arg2 ${textArg != null ? '<text defined>' : '<text undefined>'}`)
@@ -158,19 +161,19 @@ export async function addChecklistToNoteHeading(
     const checklistText = (textArg != null && textArg !== '')
       ? textArg
       : await CommandBar.showInput(`Type the checklist`, `Add checklist '%@' ${config.textToAppendToTasks}`)
-    // const text = `${checklistText} ${config.textToAppendToTasks}`.trimEnd()
+    const text = `${checklistText} ${config.textToAppendToTasks}`.trimEnd()
 
-    // Get heading level details from arg3 (or default to the config setting)
-    const headingLevel = (headingLevelArg != null && headingLevelArg !== '' && !isNaN(headingLevelArg))
+    // Get heading level details from arg3
+    const headingLevel = (headingLevelArg != null && headingLevelArg !== '')
       ? Number(headingLevelArg)
       : config.headingLevel
     logDebug('addChecklistToNoteHeading(qach)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
-    const allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
-    const note = await getNoteFromParamOrUser('checklist', noteTitleArg, false, allNotes)
+    let allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
+    let note = await getNoteFromParamOrUser('checklist', noteTitleArg, false, allNotes)
     if (note == null) {
-      throw new Error(`Couldn't get a valid note, Stopping.`)
+      return // stop if can't get note
     }
 
     // Get heading details from arg1 or user
@@ -250,19 +253,19 @@ export async function addTaskToNoteHeading(
     const taskText = (textArg != null && textArg !== '')
       ? textArg
       : await CommandBar.showInput(`Type the task`, `Add task '%@' ${config.textToAppendToTasks}`)
-    // const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
+    const text = `${taskText} ${config.textToAppendToTasks}`.trimEnd()
 
-    // Get heading level details from arg3 (or default to the config setting)
-    const headingLevel = (headingLevelArg != null && headingLevelArg !== '' && !isNaN(headingLevelArg))
+    // Get heading level details from arg3
+    const headingLevel = (headingLevelArg != null && headingLevelArg !== '')
       ? Number(headingLevelArg)
       : config.headingLevel
     logDebug('addTextToNoteHeading(qath)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
-    const allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
-    const note = await getNoteFromParamOrUser('task', noteTitleArg, false, allNotes)
+    let allNotes = await allCalNotesProm // here's where we resolve the promise and have the sorted list
+    let note = await getNoteFromParamOrUser('task', noteTitleArg, false, allNotes)
     if (note == null) {
-      throw new Error(`Couldn't get a valid note, Stopping.`)
+      return // stop if can't get note
     }
 
     // Get heading details from arg1 or user
@@ -355,9 +358,9 @@ export async function addTextToNoteHeading(
     logDebug('addTextToNoteHeading(qalh)', `headingLevel: ${String(headingLevel)}`)
 
     // Get note details from arg0 or user
-    const allNotes = await allNotesProm // here's where we resolve the promise and have the sorted list
+    let allNotes = await allNotesProm // here's where we resolve the promise and have the sorted list
     logDebug('addTextToNoteHeading(qalh)', `Starting with noteTitleArg '${noteTitleArg}'`)
-    const note = await getNoteFromParamOrUser('Select note to add to', noteTitleArg, false, allNotes)
+    let note = await getNoteFromParamOrUser('Select note to add to', noteTitleArg, false, allNotes)
     if (note == null) {
       return // stop if can't get note
     }

@@ -3,7 +3,7 @@
   Last updated: 30.3.2024 for v0.14.0 by @jgclark
   */
 dialog:modal {
-  max-width: 90%;
+  max-width: 80%;
 }
 
 dialog {
@@ -14,14 +14,14 @@ dialog {
   padding: 0rem;
   border: solid 1px var(--tint-color);
   border-radius: 0.5em;
-  box-shadow: 0px 0px 10px 2px rgba(0,0,0,0.4);
+  box-shadow: 0px 0px 10px 2px rgba(0,0,0,0.3); /*#888;*/
 }
 
 .dialogTitle {
   background: var(--bg-alt-color);
   padding-block-start: 0.6rem;
-  padding-inline-start: 0.5rem;
-  padding-inline-end: 0.5rem;
+  padding-inline-start: 1rem;
+  padding-inline-end: 1rem;
   padding-block-end: 0.2rem;
   border-block-end: 1px solid gray;
   /* margin-block-end: 4px; */
@@ -33,8 +33,8 @@ dialog {
 
 .dialogBody {
   padding-block-start: 0.3rem;
-  padding-inline-start: 0.5rem;
-  padding-inline-end: 0.5rem;
+  padding-inline-start: 1rem;
+  padding-inline-end: 1rem;
   padding-block-end: 0.6rem;
 }
 
@@ -45,16 +45,16 @@ dialog {
 .buttonGrid {
   display: grid;
   /* grid-template-columns: max-content minmax(15rem, 28rem); */
-  grid-template-columns: minmax(4rem, 6rem) minmax(15rem, auto);
+  grid-template-columns: max-content minmax(15rem, auto);
   column-gap: 0.3rem;
-  row-gap: 0.2rem;
+  row-gap: 0.1rem;
   /* vertically align content items in center */
   align-items: center; 
 }
 
 .buttonGrid div:nth-child(odd) {
-  align-self: self-start;
-  padding-block-start: 5px;
+  align-self: center; /*start;*/
+  /* padding-block-start: 5px; */
   justify-self: end;
 }
 
@@ -65,30 +65,33 @@ dialog {
 
 .buttonGrid div:nth-child(1) {
   /* Put very first div down a bit to try to align with input field */
-  padding-block-start: 10px;
-  /* align-self: self-start; */
+  padding-block-start: 5px;
+  align-self: self-start;
 }
 
-/* for Dialog main buttons: a little more pronounced */
-.mainButton {
-	background-color: var(--bg-alt-color);
-	font-size: 0.9rem;
-	font-weight: 600;
-	border: 1px solid var(--tint-color);
-	/* box-shadow: 0 1px 1px 0px rgba(0,0,0,0.3); */
-	padding: 2px 5px 2px 5px;
-	margin: 2px 4px;
+@layer A {
+  .dialogBody button {
+    font-size: 0.85rem;
+    font-weight: 400;
+    border-radius: 4px;
+    background: var(--bg-alt-color);
+    border: 1px solid var(--tint-color);
+    box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.3); /*#888;*/
+    padding: 1px 4px 1px 4px;
+    margin: 3px 1px;
+  }
 }
 
-.dialogBody button {
+/* Note: Currently unused */
+.submitButton {
+  /* submit buttons (or what appear to be ...) */
   font-size: 0.85rem;
-  font-weight: 400;
-  border-radius: 4px;
-  padding: 1px 4px 1px 4px;
-  margin: 3px 1px;
-  /* background: var(--bg-alt-color);
-  border: 1px solid var(--tint-color);
-  box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.3);*/
+  font-weight: 500;
+  background: var(--bg-main-color);
+  border: 1px var(--fg-main-color);
+  box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.3); /*#888;*/
+  padding: 2px 5px 2px 5px;
+  margin: 2px 4px;
 }
 
 .itemActionsDialog {

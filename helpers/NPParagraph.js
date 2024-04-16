@@ -4,6 +4,7 @@ import moment from 'moment/min/moment-with-locales'
 import { TASK_TYPES } from './sorting'
 import { trimString } from '@helpers/dataManipulation'
 import {
+  getAPIDateStrFromDisplayDateStr,
   getNPWeekStr,
   getTodaysDateHyphenated,
   getTodaysDateUnhyphenated,
@@ -1550,6 +1551,62 @@ export async function prependTodoToCalendarNote(todoTypeName: 'task' | 'checklis
   } catch (err) {
     logError('NPP/prependTodoToCalendarNote', `${err.name}: ${err.message}`)
     await showMessage(err.message)
+  }
+}
+
+/**
+ * Move a task or checklist from one calendar note to another.
+ * It's designed to be used when the para itself is not available; the para will try to be identified from its filename and content, and it will throw an error if it fails.
+ * If 'headingToPlaceUnder' is provided, para is added after it (with heading being created at effective top of note if necessary).
+ * If 'headingToPlaceUnder' the para will be *prepended* to the effective top of the destination note.
+ * @author @jgclark
+ * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
+ * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
+ * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
+ * @param {string} paraContent content of the para to move.
+ * @param {string?} headingToPlaceUnder which will be created if necessary
+ * @returns {boolean} success?
+ */
+export function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): boolean {
+  logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr}`)
+  try {
+    // Get calendar note to use
+    const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
+    const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))
+    // Don't proceed unless we have valid from/to notes
+    if (!fromNote || !toNote) {
+      logError('moveItemBetweenCalendarNotes', `- Can't get calendar note for ${NPFromDateStr} and/or ${NPToDateStr}`)
+      return false
+    }
+
+    // find para in the fromNote
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, paraContent)
+    if (typeof possiblePara === 'boolean') {
+      throw new Error('moveItemBetweenCalendarNotes: no para found')
+    }
+    const itemType = possiblePara?.type
+
+    // add to toNote
+    if (headingToPlaceUnder === '') {
+      logDebug('moveItemBetweenCalendarNotes', `- Prepending type ${itemType} '${paraContent}' to '${displayTitle(toNote)}'`)
+      smartPrependPara(toNote, paraContent, itemType)
+    } else {
+      logDebug('moveItemBetweenCalendarNotes', `- Adding under heading '${headingToPlaceUnder}' in '${displayTitle(toNote)}'`)
+      toNote.addParagraphBelowHeadingTitle(paraContent, itemType, headingToPlaceUnder, false, true)
+    }
+
+    // Assuming that's not thrown an error, now remove from fromNote
+    logDebug('moveItemBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
+    fromNote.removeParagraph(possiblePara)
+
+    // Ask for cache refresh for these notes
+    DataStore.updateCache(fromNote, false)
+    DataStore.updateCache(toNote, false)
+
+    return true
+  } catch (err) {
+    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraContent}} from ${NPFromDateStr} to ${NPToDateStr}`)
+    return false
   }
 }
 

@@ -43,8 +43,8 @@ export type HtmlWindowOptions = {
 // Meta tags to always apply:
 // - to make windows always responsive
 const fixedMetaTags = `
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 `
 
 // ---------------------------------------------------------

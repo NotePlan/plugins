@@ -22,7 +22,7 @@ beforeAll(() => {
 // run '/test:generateCSSFromTheme' command
 // TODO: write test for a standard one using generateCSSFromTheme()
 
-const FILE = `${colors.yellow('helpers/NPThemeToCSS')}`
+const FILE = `${colors.yellow('helpers/NPSyncedCopies')}`
 
 describe(`${FILE}`, () => {
   describe('textDecorationFromNP()', () => {
@@ -69,31 +69,31 @@ describe(`${FILE}`, () => {
     })
     test('should return defaults from random font name', () => {
       const res = t.fontPropertiesFromNP('Zebra')
-      expect(res).toEqual(['font-family: "Zebra"', 'font-weight: 400', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Zebra"', 'font-weight: "400"', 'font-style: "normal"'])
     })
     test("input 'AvenirNext'", () => {
       const res = t.fontPropertiesFromNP('AvenirNext')
-      expect(res).toEqual(['font-family: "Avenir Next"', 'font-weight: 400', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Avenir Next"', 'font-weight: "400"', 'font-style: "normal"'])
     })
     test("input 'AvenirNext-Italic'", () => {
       const res = t.fontPropertiesFromNP('AvenirNext-Italic')
-      expect(res).toEqual(['font-family: "Avenir Next"', 'font-weight: 400', 'font-style: "italic"'])
+      expect(res).toEqual(['font-family: "Avenir Next"', 'font-weight: "400"', 'font-style: "italic"'])
     })
     test("input 'HelveticaNeue'", () => {
       const res = t.fontPropertiesFromNP('HelveticaNeue')
-      expect(res).toEqual(['font-family: "Helvetica Neue"', 'font-weight: 400', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Helvetica Neue"', 'font-weight: "400"', 'font-style: "normal"'])
     })
     test("input 'HelveticaNeue-Bold'", () => {
       const res = t.fontPropertiesFromNP('HelveticaNeue-Bold')
-      expect(res).toEqual(['font-family: "Helvetica Neue"', 'font-weight: 700', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Helvetica Neue"', 'font-weight: "700"', 'font-style: "normal"'])
     })
     test("input 'Candara'", () => {
       const res = t.fontPropertiesFromNP('Candara')
-      expect(res).toEqual(['font-family: "Candara"', 'font-weight: 400', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Candara"', 'font-weight: "400"', 'font-style: "normal"'])
     })
     test("input 'Charter-Book'", () => {
       const res = t.fontPropertiesFromNP('Charter-Book')
-      expect(res).toEqual(['font-family: "Charter"', 'font-weight: 500', 'font-style: "normal"'])
+      expect(res).toEqual(['font-family: "Charter"', 'font-weight: "500"', 'font-style: "normal"'])
     })
   })
 })

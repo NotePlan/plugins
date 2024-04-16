@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 4.4.2024 for v1.1.2 by @jgclark
+// Last updated 28.3.2024 for v1.1.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -9,7 +9,6 @@ import {
   getOpenItemParasForCurrentTimePeriod,
   getRelevantOverdueTasks,
   getSettings,
-  moveItemBetweenCalendarNotes,
 } from './dashboardHelpers'
 import { showDashboard } from './HTMLGeneratorGrid'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
@@ -18,6 +17,8 @@ import {
   getTodaysDateHyphenated,
   removeDateTagsAndToday,
 } from '@helpers/dateTime'
+// import { getNoteByFilename } from '@helpers/note'
+import { moveItemBetweenCalendarNotes } from '@helpers/NPParagraph'
 import { showMessageYesNo } from '@helpers/userInput'
 
 //-----------------------------------------------------------------
@@ -84,7 +85,7 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
           logDebug('scheduleAllYesterdayOpenToToday', `- moving {${para.content}} to today`)
           c++
           CommandBar.showLoading(true, `Moving item ${c} to today`, c / totalToMove)
-          const res = await moveItemBetweenCalendarNotes(yesterdayDateStr, todayDateStr, para.content, config.newTaskSectionHeading ?? '')
+          const res = moveItemBetweenCalendarNotes(yesterdayDateStr, todayDateStr, para.content, config.newTaskSectionHeading ?? '')
           if (res) {
             // logDebug('scheduleAllYesterdayOpenToToday', `-> appeared to move item succesfully`)
             numberScheduled++
@@ -194,7 +195,7 @@ export async function scheduleAllTodayTomorrow(refreshDashboard: boolean = true)
           logDebug('scheduleAllTodayTomorrow', `- moving {${para.content}} to tomorrow`)
           c++
           CommandBar.showLoading(true, `Moving item ${c} to tomorrow`, c / totalToMove)
-          const res = await moveItemBetweenCalendarNotes(todayDateStr, tomorrowDateStr, para.content, config.newTaskSectionHeading ?? '')
+          const res = moveItemBetweenCalendarNotes(todayDateStr, tomorrowDateStr, para.content, config.newTaskSectionHeading ?? '')
           if (res) {
             // logDebug('scheduleAllTodayTomorrow', `-> appeared to move item succesfully`)
             numberScheduled++
@@ -326,7 +327,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
         const thisNoteType = para.noteType
         if (thisNote && thisNoteType === 'Calendar') {
           const thisNoteDateStr = getDateStringFromCalendarFilename(thisNote.filename, true)
-          const res = await moveItemBetweenCalendarNotes(thisNoteDateStr, todayDateStr, para.content, config.newTaskSectionHeading ?? '')
+          const res = moveItemBetweenCalendarNotes(thisNoteDateStr, todayDateStr, para.content, config.newTaskSectionHeading ?? '')
           if (res) {
             logDebug('scheduleAllOverdueOpenToToday', `-> appeared to move item succesfully`)
             numberChanged++

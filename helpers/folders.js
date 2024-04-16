@@ -169,23 +169,15 @@ export function getFolderFromFilename(fullFilename: string): string {
 }
 
 /**
- * Get the folder name from the full NP (project) note filename, without leading or trailing slash. 
- * Optionally remove file extension
+ * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
  * @author @jgclark
  * @param {string} fullFilename - full filename to get folder name part from
- * @param {boolean} removeExtension?
  * @returns {string} folder/subfolder name
  */
-export function getJustFilenameFromFullFilename(fullFilename: string, removeExtension: boolean = false): string {
+export function getJustFilenameFromFullFilename(fullFilename: string): string {
   try {
-    const filepathParts = fullFilename.split('/')
-    const filenamePart = filepathParts.slice(-1, filepathParts.length).join('')
-    if (removeExtension) {
-      const fileNameWithoutExtension = filenamePart.replace(/\.[^/.]+$/, '')
-      return fileNameWithoutExtension
-    } else {
-      return filenamePart
-    }
+    const filenameParts = fullFilename.split('/')
+    return filenameParts.slice(-1, filenameParts.length).join('')
   } catch (error) {
     logError('folders/getFolderFromFilename', `Error getting folder from filename '${fullFilename}: ${error.message}`)
     return '(error)'

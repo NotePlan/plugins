@@ -1,7 +1,8 @@
 /* global jest, describe, test, expect, beforeAll, afterAll, beforeEach, afterEach */
 import { CustomConsole, LogType, LogMessage } from '@jest/console' // see note below
-import { getRollupConfig, rollupReactFiles } from '../rollup.generic'
 import { Calendar, Clipboard, CommandBar, DataStore, Editor, NotePlan, simpleFormatter /* Note, mockWasCalledWithString, Paragraph */ } from '@mocks/index'
+
+import { getRollupConfig, rollupReactFiles } from '../rollup.generic'
 
 const PLUGIN_NAME = `scripts`
 const FILENAME = `rollup.generic.test`
@@ -63,12 +64,12 @@ describe(`${PLUGIN_NAME}`, () => {
       test('should create 5 plugins for default (development) version', () => {
         const input = { entryPointPath: 'foo', outputFilePath: 'bar' }
         const result = getRollupConfig(input)
-        expect(result.plugins.length).toEqual(6)
+        expect(result.plugins.length).toEqual(5)
       })
       test('should create 6 plugins for version with bundlegraph', () => {
         const input = { entryPointPath: 'foo', outputFilePath: 'bar', createBundleGraph: true }
         const result = getRollupConfig(input)
-        expect(result.plugins.length).toEqual(7)
+        expect(result.plugins.length).toEqual(6)
       })
       test('should create 1 output plugin (terser) for default (production) version', () => {
         const input = { entryPointPath: 'foo', outputFilePath: 'bar', buildMode: 'production' }

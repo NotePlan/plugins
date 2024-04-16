@@ -489,9 +489,9 @@ export function findNotesMatchingHashtag(
   if (alsoSearchCalendarNotes) {
     notesToSearch = notesToSearch.concat(DataStore.calendarNotes)
   }
-  // logDebug('NPnote/findNotesMatchingHashtag', `starting with ${notesToSearch.length} notes (${notesToSearchIn ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
+  logDebug('NPnote/findNotesMatchingHashtag', `starting with ${notesToSearch.length} notes (${notesToSearchIn ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
 
-  // const startTime = new Date()
+  const startTime = new Date()
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder && folder !== '') {
@@ -507,7 +507,7 @@ export function findNotesMatchingHashtag(
     projectNotesInFolder = notesToSearch.slice()
   }
   // logDebug(`NPnote/findNotesMatchingHashtag`,`tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
-  // logDebug('NPnote/findNotesMatchingHashtag', `>> projectNotes filtering took ${timer(startTime)}`)
+  logDebug('NPnote/findNotesMatchingHashtag', `>> projectNotes filtering took ${timer(startTime)}`)
 
   // Filter by tag (and now mentions as well, if requested)
   let projectNotesWithTag: Array<TNote>

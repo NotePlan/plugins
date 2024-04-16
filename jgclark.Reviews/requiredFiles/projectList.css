@@ -76,89 +76,25 @@ table tr td:last-child, table tr th:last-child {
 }
 
 /* -------------------------------------------------------- */
-@layer A { /* all buttons, but at lower priority */
-	button, input {
-		background-color: var(--bg-main-color);
-		color: var(--fg-main-color);
-		border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
-		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
-    border-radius: 4px;
-    font-weight: 500;
-	}
-}
 
-/* Show click pointer over buttons and equivalent */
-button, .fake-button, .clickTarget {
-	cursor: pointer;
-}
-
-/* For buttons that trigger callbacks */
-.PCButton {
-	color: var(--fg-main-color);
-	background-color: var(--bg-main-color);
-  /* add a clearer border to all buttons (compared to Dashboard main window) */
-  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
-	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
-	padding: 2px 3px 0px 3px;
-	margin: 0px 2px; /* a little L and R */
-	white-space: nowrap;
-	cursor: pointer;
-	font-size: 0.85rem;
-}
-
-/* .fake-button a {
+button, input {
   color: var(--fg-main-color);
-  background-color: #FFFFFF; 
+  font-weight: 500;
+  border-radius: 4px;
+}
+.fake-button a {
+  color: var(--fg-main-color);
+  background-color: #FFFFFF; /* or dark #5E5E5E */
   font-weight: 500;
   text-decoration: none;
   border-color: #DFE0E0;
   border-radius: 4px;
   margin: 2px 1px;
   padding: 1px 4px;
-  box-shadow: 0 1px 1px #CBCBCB;
+  box-shadow: 0 1px 1px #CBCBCB; /* or dark #6F6F6F */
+  /* no wrapping (i.e. line break) within the button display */
   white-space: nowrap;
-} */
-/* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
-.tooltip {
-	position: relative;
-	/* cursor: help; */
 }
-.tooltip::before, .tooltip::after {
-	position: absolute;
-	left: 50%;
-	/* opacity:0;  -- problem is that this interferes with cursor selection because it still grabs cursor -- so switching to display: instead */
-	display: none;
-	transition: all ease 0.3s;
-	transition-delay: 0.8;
-}
-/* Set tooltip little bit*/
-.tooltip::before {
-	content: "";
-	border-width: 10px 8px 0 8px;
-	border-style: solid;
-	border-color: var(--bg-main-color) transparent transparent transparent;
-	margin-left: -8px;
-	top: -12px;
-}
-.tooltip::after {
-	content: attr(data-tooltip);
-	margin-left: -10px;
-	padding: 0.3rem;
-	top: -12px;
-	font-size: 0.85rem;
-	color: var(--fg-main-color);
-	background: var(--bg-main-color);
-	border: 1px solid var(--tint-color);
-	border-radius: 6px;
-	transform: translateY(-100%);
-}
-
-.tooltip:hover::before, .tooltip:hover::after {
-	/* opacity: 1; */
-	display: block;
-}
-
-/* -------------------------------------------------------- */
 /* make noteTitles bold and coloured */
 .noteTitle {
   color: var(--tint-color);

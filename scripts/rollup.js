@@ -1,12 +1,11 @@
+// @flow
 /* eslint-disable */
-// eslint is disabled because it keeps trying to change the iife to something that doesn't compile.
-
 'use strict'
 
 const { promises: fs } = require('fs')
+const fg = require('fast-glob') //dbw adding for requiredFiles glob wildcard watch (**/)
 const { existsSync } = require('fs')
 const path = require('path')
-const fg = require('fast-glob') //dbw adding for requiredFiles glob wildcard watch (**/)
 const notifier = require('node-notifier')
 const alias = require('@rollup/plugin-alias')
 
@@ -29,11 +28,11 @@ const pkgInfo = require('../package.json')
 const pluginConfig = require('../plugins.config')
 
 let progress
-// const requiredFilesWatchMsg = ''
+let requiredFilesWatchMsg = ''
 
 let watcher
 
-const { getFolderFromCommandLine, writeMinifiedPluginFileContents, getCopyTargetPath, getPluginConfig } = require('./shared')
+const { getFolderFromCommandLine, getPluginFileContents, writeMinifiedPluginFileContents, getCopyTargetPath, getPluginConfig } = require('./shared')
 
 // Command line options
 program
@@ -61,7 +60,7 @@ const REPORT_MEMORY_USAGE = options.pressure || false
 const defaultPlugins = DEBUGGING
   ? [
       alias({
-        entries: [...pluginConfig.aliasEntries, { find: '@helpers', replacement: path.resolve(__dirname, '..', 'helpers') }],
+        entries: pluginConfig.aliasEntries,
       }),
       babel({
         presets: ['@babel/flow'],
@@ -192,9 +191,8 @@ const reportMemoryUsage = (msg = '') => {
 
       let msg = COMPACT
         ? `${dateTime} - ${pluginFolder} (v${pluginJsonData['plugin.version']})`
-        : `${colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`)}\n   Built ${
-            dependenciesCopied > 0 ? `script.js & copied plugin.json + ${dependenciesCopied} requiredFiles` : `and`
-          } copied to the "Plugins" folder.`
+        : colors.cyan(`${dateTime} -- ${pluginFolder} (v${pluginJsonData['plugin.version']})`) +
+          `\n   Built ${dependenciesCopied > 0 ? `script.js & copied plugin.json + ${dependenciesCopied} requiredFiles` : `and`} copied to the "Plugins" folder.`
 
       if (DEBUGGING) {
         msg += colors.yellow(`\n   Built in DEBUG mode. Not ready to deploy.\n`)
@@ -238,40 +236,40 @@ const reportMemoryUsage = (msg = '') => {
     console.log(colors.cyan.bold(`==> Rollup autowatch running. Will use minified output\n`))
   }
 
-  // /**
-  //  * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
-  //  * @param {string} pluginPath
-  //  * @private
-  //  */
-  // async function checkPluginList(pluginPaths) {
-  //   const pluginCommands = {}
-  //   for (const pluginPath of pluginPaths) {
-  //     // console.log(`About to read ${pluginPath}`)
-  //     const pluginFile = await getPluginFileContents(path.join(pluginPath, 'plugin.json')) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
+  /**
+   * @description Rebuild the plugin commands list, checking for collisions. Runs every time a plugin is updated
+   * @param {string} pluginPath
+   * @private
+   */
+  async function checkPluginList(pluginPaths) {
+    const pluginCommands = {}
+    for (const pluginPath of pluginPaths) {
+      // console.log(`About to read ${pluginPath}`)
+      const pluginFile = await getPluginFileContents(path.join(pluginPath, 'plugin.json')) // console.log(`*** * READ\n${JSON.stringify(pluginFile)}`)
 
-  //     if (pluginFile && pluginFile['plugin.commands']) {
-  //       pluginFile['plugin.commands'].forEach((command) => {
-  //         if (pluginCommands[command.name]) {
-  //           console.log(colors.red.bold(`\n!!!!\nCommand collision: "${command.name}" exists already!`))
-  //           console.log(`\tTrying to add: "${command.name}" from ${path.basename(pluginPath)}`)
-  //           console.log(
-  //             colors.yellow(
-  //               `\tConflicts with "${pluginCommands[command.name].name}" in ${
-  //                 pluginCommands[command.name].folder
-  //               }\nCommand will be added & will work but should should be changed to be unique!!!\n`,
-  //             ),
-  //           )
-  //         } else {
-  //           pluginCommands[command.name] = command
-  //           pluginCommands[command.name].folder = path.basename(pluginPath)
-  //           pluginCommands[command.name].pluginName = pluginFile['plugin.name']
-  //         }
-  //       })
-  //     } else {
-  //       console.log(colors.red(`^^^ checkPluginList: For some reason could not parse file at: ${pluginPath}`))
-  //     }
-  //   }
-  // }
+      if (pluginFile && pluginFile['plugin.commands']) {
+        pluginFile['plugin.commands'].forEach((command) => {
+          if (pluginCommands[command.name]) {
+            console.log(colors.red.bold(`\n!!!!\nCommand collision: "${command.name}" exists already!`))
+            console.log(`\tTrying to add: "${command.name}" from ${path.basename(pluginPath)}`)
+            console.log(
+              colors.yellow(
+                `\tConflicts with "${pluginCommands[command.name].name}" in ${
+                  pluginCommands[command.name].folder
+                }\nCommand will be added & will work but should should be changed to be unique!!!\n`,
+              ),
+            )
+          } else {
+            pluginCommands[command.name] = command
+            pluginCommands[command.name].folder = path.basename(pluginPath)
+            pluginCommands[command.name].pluginName = pluginFile['plugin.name']
+          }
+        })
+      } else {
+        console.log(colors.red(`^^^ checkPluginList: For some reason could not parse file at: ${pluginPath}`))
+      }
+    }
+  }
 
   /**
    * Rollup with watch
@@ -416,6 +414,7 @@ const reportMemoryUsage = (msg = '') => {
         )
       }
 
+      let processed = 0
       let cachedBundle = null
       for (const plugin of bundledPlugins) {
         const pluginJsonFilename = path.join(plugin, 'plugin.json')
@@ -444,10 +443,10 @@ const reportMemoryUsage = (msg = '') => {
 
         // create a bundle
         try {
-          const bundle = await rollup.rollup(inputOptions)
+          let bundle = await rollup.rollup(inputOptions)
           if (!CI) {
             await bundle.write(outputOptions)
-            await copyBuild(path.join(plugin, 'script.js'), true)
+            const result = await copyBuild(path.join(plugin, 'script.js'), true)
             cachedBundle = bundle
           }
           await bundle.close()
@@ -458,9 +457,9 @@ const reportMemoryUsage = (msg = '') => {
         // const { output } = await bundle.generate(outputOptions)
         // const bundle = await bundle.generate(outputOptions)
 
-        // if (bundledPlugins.length > 1) {
-        //   processed++
-        // }
+        if (bundledPlugins.length > 1) {
+          processed++
+        }
       }
 
       console.log('')
@@ -493,7 +492,7 @@ const reportMemoryUsage = (msg = '') => {
         name: 'watch-external-files',
         async buildStart() {
           const files = await fg(path.join(requiredFilesInDevFolder, '**/*'))
-          for (const file of files) {
+          for (let file of files) {
             // console.log(`Watching ${file}`)
             // $FlowFixMe - this works but Flow doesn't like "this" inside a function
             this.addWatchFile(file)
@@ -533,9 +532,9 @@ const reportMemoryUsage = (msg = '') => {
   }
 
   if (BUILD) {
-    await build()
+    build()
   } else {
-    await watch()
+    watch()
   }
   reportMemoryUsage('end of script')
 })()

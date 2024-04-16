@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 6.4.2024 for v1.1.4 by @jgclark
+// Last updated 2.4.2024 for v1.1.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -46,10 +46,6 @@ const windowCustomId = `${pluginJson['plugin.id']}.main`
 
 // Note: this "../np.Shared" path works to the flattened np.Shared structure, but it does *not* work when running the locally-written copy of the HTML output file.
 export const resourceLinksInHeader = `
-<!-- Tell the browser to render the page at 1x to make it work on iOS -->
-<!-- And give minimum 'width=450,' to help with dialog -->
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-
 <!-- Load in Dashboard-specific CSS -->
 <link href="./dashboard.css" rel="stylesheet">
 <link href="./dashboardDialog.css" rel="stylesheet">
@@ -126,11 +122,11 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
  */
 export async function showDemoDashboard(): Promise<void> {
   // Check to stop it running on iOS
-  // if (NotePlan.environment.platform === 'iOS') {
-  //   logWarn(pluginJson, `Sorry: Dashboard won't run on the small screen of iPhones.`)
-  //   await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
-  //   return
-  // }
+  if (NotePlan.environment.platform === 'iOS') {
+    logWarn(pluginJson, `Sorry: Dashboard won't run on the small screen of iPhones.`)
+    await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
+    return
+  }
 
   await showDashboard('manual', true)
 }
@@ -166,12 +162,12 @@ export async function refreshDashboard(): Promise<void> {
  */
 export async function showDashboard(callType: string = 'manual', demoMode: boolean = false): Promise<void> {
   try {
-    // // Check to stop it running on iOS
-    // if (NotePlan.environment.platform === 'iOS') {
-    //   logWarn(pluginJson, `Sorry: Dashboard won't run on the small screen of iPhones.`)
-    //   await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
-    //   return
-    // }
+    // Check to stop it running on iOS
+    if (NotePlan.environment.platform === 'iOS') {
+      logWarn(pluginJson, `Sorry: Dashboard won't run on the small screen of iPhones.`)
+      await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
+      return
+    }
 
     logDebug(pluginJson, `showDashboard() started ${demoMode ? '*and will use demo data*' : ''}`)
 
@@ -430,7 +426,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
             }
             let itemDetails = `        <div class="sectionItemContent sectionItem">\n`
             itemDetails += `          <a class="content">${paraContent}</a>\n`
-            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({OS: '${NotePlan.environment.platform}', itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'task', noteType:'${thisNoteType}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'task', noteType:'${thisNoteType}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
             itemDetails += `        </div>\n      </div>\n`
             outputArray.push(itemDetails)
             totalOpenItems++
@@ -453,7 +449,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
             let itemDetails = `        <div class="sectionItemContent sectionItem">\n`
             itemDetails += `          <a class="content">${paraContent}</a>`
-            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({OS: '${NotePlan.environment.platform}', itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'checklist', noteType:'${thisNoteType}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'checklist', noteType:'${thisNoteType}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
             itemDetails += `        </div>\n      </div>`
             outputArray.push(itemDetails)
             totalOpenItems++
@@ -481,7 +477,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
               let itemDetails = `        <div class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}">\n`
               itemDetails += `          <a class="content">${paraContent}</a>`
-              itemDetails += `          <a class="dialogTrigger" onclick="showProjectControlDialog({OS: '${NotePlan.environment.platform}', itemID:'${item.ID}', encodedTitle:'${encodeRFC3986URIComponent(itemNoteTitle)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+              itemDetails += `          <a class="dialogTrigger" onclick="showProjectControlDialog({itemID:'${item.ID}', encodedTitle:'${encodeRFC3986URIComponent(itemNoteTitle)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
               itemDetails += `        </div>\n      </div>`
               outputArray.push(itemDetails)
               totalOpenItems++
@@ -551,35 +547,33 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       <div class="buttonGrid" id="itemDialogButtons">
         <div>For</div>
         <div class="dialogDescription">
-          <input type="text" id="dialogItemContent" class="fullTextInput" />
-          <button class="updateItemContentButton" data-control-str="update">Update</button>
-        </div>
+          <!--<form name="updateContent" action="javascript:updateItemContent()">-->
+            <!--<label for="dialogItemContent">For</label>-->
+            <input type="text" id="dialogItemContent" class="fullTextInput" />
+            <!--<input type="submit" value="Update" class="submitButton" />-->
+            <button class="updateItemContentButton" data-control-str="update">Update</button>
+          <!--</form>--></div>
         <div>Move to</div>
         <div id="itemControlDialogMoveControls">
-          <button class="PCButton" data-control-str="t">today</button>
-          <button class="PCButton" data-control-str="+1d">+1d</button>
-          <button class="PCButton" data-control-str="+1b">+1b</button>
-          <button class="PCButton" data-control-str="+2d">+2d</button>
-          <button class="PCButton" data-control-str="+0w">this week</button>
-          <button class="PCButton" data-control-str="+1w">+1w</button>
-          <button class="PCButton" data-control-str="+2w">+2w</button>
-          <button class="PCButton" data-control-str="+0m">this month</button>
-          <button class="PCButton" data-control-str="+0q">this quarter</button>
+          <button class="changeDateButton" data-control-str="t">today</button>
+          <button class="changeDateButton" data-control-str="+1d">+1d</button>
+          <button class="changeDateButton" data-control-str="+1b">+1b</button>
+          <button class="changeDateButton" data-control-str="+2d">+2d</button>
+          <button class="changeDateButton" data-control-str="+0w">this week</button>
+          <button class="changeDateButton" data-control-str="+1w">+1w</button>
+          <button class="changeDateButton" data-control-str="+2w">+2w</button>
+          <button class="changeDateButton" data-control-str="+0m">this month</button>
+          <button class="changeDateButton" data-control-str="+0q">this quarter</button>
         </div>
         <div>Other controls</div>
         <div id="itemControlDialogOtherControls">
-          <button class="PCButton" data-control-str="cancel">Cancel</button><!-- mainly for iOS -->
-          <button class="PCButton" data-control-str="movetonote">Move to <i class="fa-regular fa-file-lines"></i></button>
-          <button class="PCButton" data-control-str="priup"><i class="fa-regular fa-arrow-up"></i> Priority</button>
-          <button class="PCButton" data-control-str="pridown"><i class="fa-regular fa-arrow-down"></i> Priority</button>
-          <button class="PCButton" data-control-str="tog">Toggle Type</button>
-          <button class="PCButton" data-control-str="ct">Complete Then</button>
-          <button class="PCButton" data-control-str="unsched">Unschedule</button>
+          <button class="moveNoteButton" data-control-str="movetonote">Move to note</button>
+          <button class="priorityButton" data-control-str="priup">priority ↑</button>
+          <button class="priorityButton" data-control-str="pridown">priority ↓</button>
+          <button class="toggleTypeButton" data-control-str="tog">Toggle Type</button>
+          <button class="completeThenButton" data-control-str="ct">Complete Then</button>
+          <button class="unscheduleButton" data-control-str="unsched">Unschedule</button>
         </div>
-<!--
-        <div>Dialog</div>
-        <div><span id="winDebugDetails"></span></div>
--->
         <div></div>
         <div><form><button id="closeButton" class="mainButton">Close</button></form></div>
       </div>
