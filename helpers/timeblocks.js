@@ -150,10 +150,11 @@ export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_
  * @param {string} contentString
  * @returns {boolean}
  */
-export function isTimeBlockLine(contentString: string): boolean {
+export function isTimeBlockLine(contentString: string, mustContainStringArg: string = ''): boolean {
   try {
+    // Get the setting from arg or from NP setting
+    const mustContainString = (mustContainStringArg && typeof mustContainStringArg === "string") ? mustContainStringArg : DataStore.preference("timeblockTextMustContainString")
     // Following works around a bug when the preference isn't being set at all at the start.
-    const mustContainString = DataStore.preference("timeblockTextMustContainString")
     if (typeof mustContainString === "string" && mustContainString !== '') {
       const res1 = contentString.includes(mustContainString)
       if (!res1) {

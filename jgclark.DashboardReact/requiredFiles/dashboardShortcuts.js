@@ -50,9 +50,9 @@ function enableDashboardShortcuts() {
 
   for (const key of shortcutKeys) {
     shortcut.add(key.key, function () {
-      sendMessageToPlugin('runPluginCommand', { commandName: key.commandName, pluginID: 'jgclark.Dashboard', commandArgs: [] })
+      sendMessageToPlugin('runPluginCommand', { commandName: key.commandName, pluginID: 'jgclark.DashboardReact', commandArgs: [] })
     })
-    console.log("Added Shortcut key '" + key.key + "' to call '" + key.commandName + "' command")
+    // console.log("Added Shortcut key '" + key.key + "' to call '" + key.commandName + "' command")
   }
 }
 
