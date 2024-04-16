@@ -45,7 +45,7 @@ export const openTodayItems: Array<TSectionItem> = [
     "para": {
       "type": "checklist",
       "filename": thisFilename,
-      "priority": -1,
+      "priority": 0,
       "content": "check ==highlights==, `formatted` and ~~strike~~ text work OK",
       "prefix": "+ ",
     }
@@ -76,7 +76,7 @@ export const refTodayItems: Array<TSectionItem> = [
     "para": {
       "type": "open",
       "filename": "CCC Areas/Mission Partners.md",
-      "priority": -1,
+      "priority": 0,
       "content": "Edit video from CFL visit https://bcfd.org.uk",
       "blockId": "^wazhht",
       "prefix": "* ",
@@ -112,7 +112,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
     "para": {
       "filename": thisFilename,
       "type": "checklist",
-      "priority": -1,
+      "priority": 0,
       "content": "update SW contract following review comments",
       "prefix": "* ",
     }
@@ -167,7 +167,7 @@ export const openTomorrowParas: Array<TSectionItem> = [
       "filename": thisFilename,
       "content": "Clear more of prayer room @staff >today ^q9jzj4",
       "prefix": "* ",
-      "priority": -1,
+      "priority": 0,
       "blockId": "^q9jzj4",
       "changedDate": new Date("2023-03-02T00:00:00.000Z"),
     },
@@ -203,7 +203,7 @@ export const openWeekParas: Array<TSectionItem> = [
     "para": {
       "type": "open",
       "filename": thisFilename,
-      "priority": -1,
+      "priority": 0,
       "content": " Get login for https://www.waverleyabbeyresources.org/resources-home/",
       "prefix": "* ",
       "changedDate": new Date("2023-02-27T00:00:00.000Z"),
@@ -218,7 +218,7 @@ export const openWeekParas: Array<TSectionItem> = [
     "para": {
       "type": "checklist",
       "filename": thisFilename,
-      "priority": -1,
+      "priority": 0,
       "content": "Contact @PeterS again",
       "prefix": "+ ",
       "changedDate": new Date("2023-02-27T00:00:00.000Z"),
@@ -235,7 +235,7 @@ export const openWeekParas: Array<TSectionItem> = [
       "filename": thisFilename,
       "content": "@church Get iPad working on ChurchOffice-staff for Drive, Printing @church ^bzlp1z",
       "blockId": "^bzlp1z",
-      "priority": -1,
+      "priority": 0,
       "prefix": "* ",
     "changedDate": new Date("2023-02-27T00:00:00.000Z"),
     },
@@ -251,7 +251,7 @@ export const refWeekParas: Array<TSectionItem> = [
     "para": {
       "type": "checklist",
       "filename": "CCC Areas/Pastoral.md",
-      "priority": -1,
+      "priority": 0,
       "content": "Send @Linda a link to welcome presentation >2023-W09",
       "prefix": "+ ",
       "changedDate": new Date("2023-02-27T00:00:00.000Z"),
@@ -266,7 +266,7 @@ export const refWeekParas: Array<TSectionItem> = [
     "para": {
       "type": "open",
       "filename": "Home 🏠 Areas/Garden.md",
-      "priority": -1,
+      "priority": 0,
       "content": "Re-plant two shrubs in new blue pots >2023-W09",
       "prefix": "* ",
       "changedDate": new Date("2023-02-27T00:00:00.000Z"),
@@ -281,7 +281,7 @@ export const refWeekParas: Array<TSectionItem> = [
     "para": {
       "type": "checklist",
       "filename": "Home 🏠 Areas/Macs.md",
-      "priority": -1,
+      "priority": 0,
       "content": "Backup Mac - with an arrow date >2023-W09< reference",
       "prefix": "+ ",
       "changedDate": new Date("2023-02-27T00:00:00.000Z"),

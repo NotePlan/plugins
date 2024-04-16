@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 14.4.2024 for v2.0.0 by @jgclark
+// Last updated 16.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -173,13 +173,13 @@ export async function getInitialDataForReactWindow(config: dashboardConfigType, 
   const currentDailyNote = DataStore.calendarNoteByDateString(filenameDateStr)
   const doneCount = currentDailyNote?.paragraphs.filter(isDone).length ?? 0
 
+  // you can pass any object with any number of fields you want
   return {
     sections: await getAllSectionsData(config, demoMode),
     lastUpdated: new Date().toLocaleString() /* placeholder */,
     settings: config,
-    totalItems: doneCount,
+    doneCount: doneCount, // TODO: Is this worth having?
   }
-  // you can pass any object with any number of fields you want
 }
 
 /** 
@@ -210,6 +210,10 @@ async function getAllSectionsData(config: dashboardConfigType, demoMode: boolean
 
   return data
 }
+
+/**
+ * TODO: think about doing a function to remove all duplicates from sections *on completoin* not on display
+ */
 
 /**
  * Update the data in the React Window (and cause it to re-draw as necessary with the new data)

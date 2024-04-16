@@ -24,6 +24,7 @@ export type TSection = {
   sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section)
   actionButtons?: Array<TActionButton>,
   generated?: Date,
+  totalCount?: number, // for when not all possible items are passed in pluginData
 }
 
 // an item within a section, with optional TParagraphForDashboard

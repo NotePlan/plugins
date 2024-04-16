@@ -99,7 +99,6 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
       const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config)
 
       // write one combined section
-      let itemCount = 0
       combinedSortedParas.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
         items.push({ ID: thisID, itemType: p.type, itemFilename: thisFilename, noteType: currentDailyNote.type, para: p })
@@ -128,7 +127,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     ]
   }
 
-  logDebug('getTodaySectionData', JSON.stringify(section))
+  // logDebug('getTodaySectionData', JSON.stringify(section))
   return section
 }
 
@@ -571,7 +570,6 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
 
     logInfo('getDataForDashboard', `------- Gathering Overdue Tasks for section #${String(sectionNum)} -------`)
     if (useDemoData) {
-      // TODO: generate some items
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
       for (let c = 0; c < 60; c++) {
         // const thisID = `${sectionNum}-${String(c)}`
@@ -580,7 +578,6 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
           : (c % 10 === 0) ? '!! '
             : (c % 5 === 0) ? '! '
               : ''
-        // TODO:
         const fakeDateMom = new moment("2023-10-01").add(c, 'days')
         const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
         const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
@@ -637,6 +634,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
           : ['-changedDate', 'priority'] // 'most recent'
       const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
       logInfo('getDataForDashboard', `- Sorted  ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
+
       // Apply limit to set of ordered results
       // Note: now apply 2x limit, because we also do filtering in the Section component
       const overdueTaskParasLimited = (totalOverdue > (maxInSection * 2)) ? sortedOverdueTaskParas.slice(0, maxInSection * 2) : sortedOverdueTaskParas
@@ -651,7 +649,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
     logInfo('getDataForDashboard', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
     let overdueSectionDescription = (totalOverdue > itemCount)
-      ? `first {count} of {totalCount:${String(totalOverdue)}} tasks ordered by ${config.overdueSortOrder}`
+      ? `first {count} of {totalCount} tasks ordered by ${config.overdueSortOrder}`
       : `all {count} tasks ordered by ${config.overdueSortOrder}`
     overdueSectionDescription += ` {scheduleAllOverdueToday}`
 
@@ -659,7 +657,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       ID: sectionNum, name: 'Overdue Tasks', sectionType: thisSectionType,
       description: overdueSectionDescription, FAIconClass: "fa-regular fa-alarm-exclamation", sectionTitleClass: "overdue", sectionFilename: '',
       sectionItems: items, generated: new Date(),
-      actionButtons: []
+      totalCount: totalOverdue, actionButtons: []
     }
     console.log(JSON.stringify(section))
     return section
@@ -714,7 +712,7 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
       })
       itemCount++
     })
-    clo(nextNotesToReview, "nextNotesToReview")
+    // clo(nextNotesToReview, "nextNotesToReview")
     const section = {
       name: 'Projects',
       ID: sectionNum,

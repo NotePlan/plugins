@@ -10,6 +10,7 @@ import { useAppContext } from './AppContext.jsx'
 import ItemContent from './ItemContent.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
 import { getFolderFromFilename } from '@helpers/folders'
+import { clo } from '@helpers/dev'
 
 type Props = {
   // key: number,
@@ -24,7 +25,7 @@ function ItemRow(inputObj: Props): React$Node {
   try {
     const { pluginData } = useAppContext()
     const config = pluginData.settings
-    // console.log(JSON.stringify(config))
+    // clo(config)
 
     const { item, thisSection } = inputObj
     const itemType = item.itemType
@@ -103,6 +104,26 @@ function ItemRow(inputObj: Props): React$Node {
           </div>
           <div className="sectionItemContent sectionItem">
             <a className="content"><i>Nothing to do: take a break <i className="fa-regular fa-mug"></i></i></a>
+          </div>
+        </div>
+      )
+    }
+      // -------------------------------------------------------
+    else if (itemType === 'filterIndicator') {
+      // Display filter indicator
+      return (
+        <div className="sectionItemRow"
+          id={item.ID}
+          data-section-type={sectionType}
+          data-encoded-filename=''
+          data-encoded-content=''
+        >
+          <div className="itemIcon checked">
+            <i id={item.ID}
+              className="fa-light fa-plus"></i>
+          </div>
+          <div className="sectionItemContent sectionItem">
+            <a className="content"><i>{item.para.content}</i></a>
           </div>
         </div>
       )

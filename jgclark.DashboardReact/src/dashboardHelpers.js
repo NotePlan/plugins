@@ -98,6 +98,7 @@ export type dashboardConfigType = {
 
 /**
  * Get config settings
+ * TODO: Decide whether to make these DashboardReact instead ...
  * @author @jgclark
  */
 export async function getSettings(): Promise<any> {
@@ -118,14 +119,15 @@ export async function getSettings(): Promise<any> {
     // Set local pref Dashboard-filterPriorityItems to default false
     // if it doesn't exist already
     const savedValue = DataStore.preference('Dashboard-filterPriorityItems')
-    // logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
+    logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
     if (!savedValue) {
       DataStore.setPreference('Dashboard-filterPriorityItems', false)
     }
-    // logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
+    logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
 
-    // Extend settings with value of NP setting about Timeblocks, as when we want to use this DataStore isn't available
+    // Extend settings with a couple of values, as when we want to use this DataStore isn't available etc.
     config.timeblockMustContainString = DataStore.preference("timeblockTextMustContainString") ?? ''
+    config.filterPriorityItems = DataStore.preference('Dashboard-filterPriorityItems')
 
     return config
   } catch (err) {
