@@ -9,6 +9,7 @@ See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser
 - Added a sync log.
 - Refactor
 - Fixed alert dialog count being wrong
+- Fixed illgal characters in titles.
 
 ## [1.0.2] Readwise 2024-04-11 (aaronpoweruser)
 - Add support for daily reviews via template.

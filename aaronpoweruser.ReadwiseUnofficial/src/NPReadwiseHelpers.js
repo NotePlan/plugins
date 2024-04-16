@@ -25,11 +25,11 @@ export async function checkAccessToken(): void {
  */
 export function buildReadwiseNoteTitle(source: any): string {
   if (source.readable_title !== '') {
-    return source.readable_title
+    return source.readable_title.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1')
   } else if (source.title !== '') {
-    return source.title
+    return source.title.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1')
   } else {
-    return source.author
+    return source.author.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1')
   }
 }
 
