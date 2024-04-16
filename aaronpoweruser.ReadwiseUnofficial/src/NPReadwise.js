@@ -125,7 +125,7 @@ async function getReadwiseDailyReview(): Promise<string> {
     const highlights = JSON.parse(response).highlights
 
     await highlights.map((highlight) => {
-      const formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${escapeTwitterHandle(highlight.author)}`
+      const formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [ [[${highlight.title}]], [[${escapeTwitterHandle(highlight.author)}]] ]`
       highlightString += `> ${formattedHighlight}\n`
     })
     logDebug(pluginJson, `daily review highlights are \n\n ${highlightString}`)
