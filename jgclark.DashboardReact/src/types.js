@@ -24,6 +24,7 @@ export type TSection = {
   sectionFilename?: string, // filename for relevant calendar (or not given if a non-calendar section)
   actionButtons?: Array<TActionButton>,
   generated?: Date,
+  totalCount?: number, // for when not all possible items are passed in pluginData
 }
 
 // an item within a section, with optional TParagraphForDashboard
@@ -34,7 +35,6 @@ export type TSectionItem = {
   itemNoteTitle?: string, /* ditto */
   noteType: NoteType, /* Notes | Calendar */
   para?: TParagraphForDashboard /* where it is a paragraph-type item (not 'review') */
-  // sectionType: string, // TEST: removal -- see https://discord.com/channels/@me/863719873175093259/1227356943266484234
 }
 
 // reduced paragraph definition

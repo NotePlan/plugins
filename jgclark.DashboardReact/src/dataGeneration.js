@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main function to generate data
-// Last updated 14.4.2024 for v2.0.0 by @jgclark
+// Last updated 15.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -55,7 +55,7 @@ import {
 } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
-import { isDone, isOpen } from '@helpers/utils'
+import { isOpen } from '@helpers/utils'
 
 //-----------------------------------------------------------------
 // Constants
@@ -99,7 +99,6 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
       const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("day", currentDailyNote, config)
 
       // write one combined section
-      let itemCount = 0
       combinedSortedParas.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
         items.push({ ID: thisID, itemType: p.type, itemFilename: thisFilename, noteType: currentDailyNote.type, para: p })
@@ -112,13 +111,13 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     }
   }
 
-  const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')?.filename
+  const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'day').toDate(), 'day')?.filename ?? '(error)'
   const section: TSection = {
     ID: sectionNum, name: 'Today', sectionType: thisSectionType,
     description: `{count} from ${todayDateLocale}`,
     FAIconClass: "fa-light fa-calendar-star",
     sectionTitleClass: "sidebarDaily", sectionFilename: thisFilename,
-    sectionItems: items, generated: new Date(), generated: new Date(),
+    sectionItems: items, generated: new Date(),
     actionButtons: [
       { actionFunctionName: "addTask", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to today's note", display: '<i class="fa-regular fa-circle-plus sidebarDaily"></i>', actionFunctionParam: thisFilename },
       { actionFunctionName: "addChecklist", actionPluginID: "jgclark.Dashboard", tooltip: "Add a new task to today's note", display: '<i class="fa-regular fa-square-plus sidebarDaily"></i>', actionFunctionParam: thisFilename },
@@ -128,7 +127,7 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     ]
   }
 
-  logDebug('getTodaySectionData', JSON.stringify(section))
+  // logDebug('getTodaySectionData', JSON.stringify(section))
   return section
 }
 
@@ -256,11 +255,11 @@ export function getTomorrowSectionData(config: dashboardConfigType, useDemoData:
     return section
   } catch (error) {
     console.error(`ERROR: ${error.message}`)
-    return null
+    return
   }
 }
 
-export function getThisWeekSectionData(config: dashboardConfigType, useDemoData: boolean = false) {
+export function getThisWeekSectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
   const sectionNum = 3
   const thisSectionType = 'W'
   const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
@@ -290,12 +289,12 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("week", currentWeeklyNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("week", currentWeeklyNote, config)
 
       // write one combined section
       combinedSortedParas.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
-        items.push({ ID: thisID, itemType: p.type, itemFilename: thisFilename, noteType: currentDailyNote.type, para: p })
+        items.push({ ID: thisID, itemType: p.type, itemFilename: thisFilename, noteType: currentWeeklyNote.type, para: p })
         itemCount++
       })
 
@@ -304,7 +303,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
       logDebug('getDataForDashboard', `No weekly note found for filename '${thisFilename}'`)
     }
   }
-  const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')?.filename
+  const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'week').toDate(), 'week')?.filename ?? '(error)'
   const section: TSection = {
     ID: sectionNum, name: 'This Week', sectionType: thisSectionType, description: `{count} from ${dateStr}`,
     FAIconClass: "fa-light fa-calendar-week",
@@ -321,7 +320,7 @@ export function getThisWeekSectionData(config: dashboardConfigType, useDemoData:
   return section
 }
 
-export function getThisMonthSectionData(config: dashboardConfigType, useDemoData: boolean = false) {
+export function getThisMonthSectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
   const sectionNum = 4
   const thisSectionType = 'M'
   const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
@@ -329,7 +328,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
   const thisFilename = `${dateStr}.md`
   let itemCount = 0
   const items: Array<TSectionItem> = []
-  logInfo('getDataForDashboard', `------- Gathering Month items for section #${String(sectionNum)} ------------`)
+  logDebug('getDataForDashboard', `------- Gathering Month items for section #${String(sectionNum)} from ${dateStr} ------------`)
 
   if (useDemoData) {
     const combinedMonthSortedParas = openMonthParas.concat(refMonthParas)
@@ -345,18 +344,17 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       const startTime = new Date() // for timing only
       const thisFilename = currentMonthlyNote?.filename ?? '(error)'
       const dateStr = getDateStringFromCalendarFilename(thisFilename)
-      logDebug('getDataForDashboard', `---------------------------- Gathering Monthly items for section #${String(sectionNum)} from ${dateStr}`)
       if (!thisFilename.includes(dateStr)) {
         logError('Please', `- filename '${thisFilename}' but '${dateStr}' ??`)
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("month", currentMonthlyNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("month", currentMonthlyNote, config)
 
       // write one combined section
       combinedSortedParas.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
-        items.push({ ID: thisID, para: p })
+        items.push({ ID: thisID, itemType: p.type, itemFilename: thisFilename, noteType: currentMonthlyNote.type, para: p })
         itemCount++
       })
 
@@ -365,7 +363,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
       logDebug('getDataForDashboard', `No monthly note found for filename '${thisFilename}'`)
     }
   }
-  const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')?.filename
+  const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, 'month').toDate(), 'month')?.filename ?? '(error)'
   const section: TSection = {
     ID: sectionNum, name: 'This Month', sectionType: thisSectionType, description: `{count} from ${dateStr}`, FAIconClass: "fa-light fa-calendar-range", sectionTitleClass: "sidebarMonthly", sectionFilename: thisFilename,
     sectionItems: items, generated: new Date(),
@@ -380,7 +378,7 @@ export function getThisMonthSectionData(config: dashboardConfigType, useDemoData
   return section
 }
 
-export function getThisQuarterSectionData(config: dashboardConfigType, useDemoData: boolean = false) {
+export function getThisQuarterSectionData(config: dashboardConfigType, useDemoData: boolean = false): TSection {
   const sectionNum = 5
   const thisSectionType = 'M'
   const today = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
@@ -392,7 +390,7 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
   if (useDemoData) {
     // Test for NO ITEMS
   } else {
-    const currentQuarterlyNote = DataStore.calendarNoteByDate(today, 'Quarter')
+    const currentQuarterlyNote = DataStore.calendarNoteByDate(today, 'quarter')
     if (currentQuarterlyNote) {
       const startTime = new Date() // for timing only
       const thisFilename = currentQuarterlyNote?.filename ?? '(error)'
@@ -403,12 +401,12 @@ export function getThisQuarterSectionData(config: dashboardConfigType, useDemoDa
       }
 
       // Get list of open tasks/checklists from this calendar note
-      const [combinedSortedParas, sortedRefParas] = getOpenItemParasForCurrentTimePeriod("Quarter", currentQuarterlyNote, config)
+      const [combinedSortedParas, _sortedRefParas] = getOpenItemParasForCurrentTimePeriod("quarter", currentQuarterlyNote, config)
 
       // write one combined section
       combinedSortedParas.map((p) => {
         const thisID = `${sectionNum}-${itemCount}`
-        items.push({ ID: thisID, para: p })
+        items.push({ ID: thisID, itemType: p.type, itemFilename: thisFilename, noteType: currentQuarterlyNote.type, para: p })
         itemCount++
       })
 
@@ -447,7 +445,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
   const sectionNum = 7
   const thisSectionType = 'TAG'
   const maxInSection = config.maxTasksToShowInSection ?? 30
-  logInfo('getDataForDashboard', `------- Gathering Tag items for section #${String(sectionNum)} ------------`)
+  logInfo('getDataForDashboard', `------- Gathering Tag items for section #${String(sectionNum)} --------`)
   let itemCount = 0
   let totalCount = 0
   const items: Array<TSectionItem> = []
@@ -559,7 +557,7 @@ export function getTaggedSectionData(config: dashboardConfigType, useDemoData: b
 
 // ----------------------------------------------------------
 // Add a section for Overdue tasks, if wanted, and if not running because triggered by a change in the daily note.
-export async function getOverdueSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection | null> {
+export async function getOverdueSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
   try {
     const sectionNum = 8
     const thisSectionType = 'OVERDUE'
@@ -570,18 +568,16 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
     const maxInSection = config.maxTasksToShowInSection
     const thisStartTime = new Date()
 
-    logInfo('getDataForDashboard', `------- Gathering Overdue Tasks for section #${String(sectionNum)} ------------`)
+    logInfo('getDataForDashboard', `------- Gathering Overdue Tasks for section #${String(sectionNum)} -------`)
     if (useDemoData) {
-      // TODO: generate some items
       // Note: to make the same processing as the real data (later), this is done only in terms of extended paras
-      for (const c = 0; c < 60; c++) {
+      for (let c = 0; c < 60; c++) {
         // const thisID = `${sectionNum}-${String(c)}`
         const thisType = (c % 3 === 0) ? 'checklist' : 'open'
         const priorityPrefix = (c % 20 === 0) ? '!!! '
           : (c % 10 === 0) ? '!! '
             : (c % 5 === 0) ? '! '
               : ''
-        // TODO:
         const fakeDateMom = new moment("2023-10-01").add(c, 'days')
         const fakeIsoDateStr = fakeDateMom.format('YYYY-MM-DD')
         const fakeFilenameDateStr = fakeDateMom.format('YYYYMMDD')
@@ -638,6 +634,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
           : ['-changedDate', 'priority'] // 'most recent'
       const sortedOverdueTaskParas = sortListBy(dashboardParas, sortOrder)
       logInfo('getDataForDashboard', `- Sorted  ${sortedOverdueTaskParas.length} items by ${String(sortOrder)} after ${timer(thisStartTime)}`)
+
       // Apply limit to set of ordered results
       // Note: now apply 2x limit, because we also do filtering in the Section component
       const overdueTaskParasLimited = (totalOverdue > (maxInSection * 2)) ? sortedOverdueTaskParas.slice(0, maxInSection * 2) : sortedOverdueTaskParas
@@ -652,7 +649,7 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
     logInfo('getDataForDashboard', `- finished finding overdue items after ${timer(thisStartTime)}`)
 
     let overdueSectionDescription = (totalOverdue > itemCount)
-      ? `first {count} of {totalCount:${String(totalOverdue)}} tasks ordered by ${config.overdueSortOrder}`
+      ? `first {count} of {totalCount} tasks ordered by ${config.overdueSortOrder}`
       : `all {count} tasks ordered by ${config.overdueSortOrder}`
     overdueSectionDescription += ` {scheduleAllOverdueToday}`
 
@@ -660,35 +657,26 @@ export async function getOverdueSectionData(config: dashboardConfigType, useDemo
       ID: sectionNum, name: 'Overdue Tasks', sectionType: thisSectionType,
       description: overdueSectionDescription, FAIconClass: "fa-regular fa-alarm-exclamation", sectionTitleClass: "overdue", sectionFilename: '',
       sectionItems: items, generated: new Date(),
-      actionButtons: []
+      totalCount: totalOverdue, actionButtons: []
     }
     console.log(JSON.stringify(section))
     return section
   } catch (error) {
     logError(pluginJson, JSP(error))
-    return null
+    return
   }
 }
 
-export async function getProjectSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection | null> {
+export async function getProjectSectionData(config: dashboardConfigType, useDemoData: boolean = false): Promise<TSection> {
   const sectionNum = 9
   const thisSectionType = 'PROJ'
   let itemCount = 0
   const maxProjectsToShow = 6
   let nextNotesToReview: Array<TNote> = []
   const items: Array<TSectionItem> = []
-  logInfo('getDataForDashboard', `------- Gathering Project items for section #${String(sectionNum)} ------------`)
+  logInfo('getDataForDashboard', `------- Gathering Project items for section #${String(sectionNum)} --------`)
 
   if (useDemoData) {
-    // nextProjectNoteItems.map((n) => {
-    //   const thisID = `${sectionNum}-${itemCount}`
-    //   const thisFilename = n.filename ?? '<filename not found>'
-    //   // TEST: filename?
-    //   // FIXME: no 'p'
-    //   items.push({ ID: thisID, para: p, sectionFilename: thisFilename })
-    //   itemCount++
-    // })
-    // FlowIgnore
     nextNotesToReview = nextProjectNoteItems
   } else {
 
@@ -724,7 +712,7 @@ export async function getProjectSectionData(config: dashboardConfigType, useDemo
       })
       itemCount++
     })
-    clo(nextNotesToReview, "nextNotesToReview")
+    // clo(nextNotesToReview, "nextNotesToReview")
     const section = {
       name: 'Projects',
       ID: sectionNum,

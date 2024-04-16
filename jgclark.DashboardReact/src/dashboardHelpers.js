@@ -98,6 +98,7 @@ export type dashboardConfigType = {
 
 /**
  * Get config settings
+ * TODO: Decide whether to make these DashboardReact instead ...
  * @author @jgclark
  */
 export async function getSettings(): Promise<any> {
@@ -118,14 +119,15 @@ export async function getSettings(): Promise<any> {
     // Set local pref Dashboard-filterPriorityItems to default false
     // if it doesn't exist already
     const savedValue = DataStore.preference('Dashboard-filterPriorityItems')
-    // logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
+    logDebug(pluginJson, `filter? savedValue: ${String(savedValue)}`)
     if (!savedValue) {
       DataStore.setPreference('Dashboard-filterPriorityItems', false)
     }
-    // logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
+    logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
 
-    // Extend settings with value of NP setting about Timeblocks, as when we want to use this DataStore isn't available
+    // Extend settings with a couple of values, as when we want to use this DataStore isn't available etc.
     config.timeblockMustContainString = DataStore.preference("timeblockTextMustContainString") ?? ''
+    config.filterPriorityItems = DataStore.preference('Dashboard-filterPriorityItems')
 
     return config
   } catch (err) {
@@ -433,12 +435,12 @@ export function addNoteOpenLinkToString(item: SectionItem, displayStr: string): 
 
     if (item.para.content) {
       // call showLineinEditor... with the filename and rawConetnt
-      // return `<a class="" onClick="onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')">${displayStr}</a>`
+      // return `<a class="" {()=>onClickDashboardItem('fake','showLineInEditorFromFilename','${filenameEncoded}','${encodeRFC3986URIComponent(item.rawContent)}')}${displayStr}</a>`
       // return `<a>${displayStr}</a>`
       return `${displayStr}`
     } else {
       // call showNoteinEditor... with the filename
-      // return `<a class="" onClick="onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')">${displayStr}</a>`
+      // return `<a class="" {()=>onClickDashboardItem('fake','showNoteInEditorFromFilename','${filenameEncoded}','')}${displayStr}</a>`
       // return `<a>${displayStr}</a>`
       return `${displayStr}`
     }
@@ -460,7 +462,7 @@ export function makeNoteTitleWithOpenActionFromFilename(item: SectionItem, noteT
   try {
     // logDebug('makeNoteTitleWithOpenActionFromFilename', `- making notelink with ${item.filename}, ${noteTitle}`)
     // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.para.filename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.para.filename)}', encodedContent: ''})}<i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   }
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromFilename', `${error.message} for input '${noteTitle}'`)
@@ -480,7 +482,7 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     // logDebug('makeNoteTitleWithOpenActionFromTitle', `- making notelink from ${noteTitle}`)
     // Pass request back to plugin
     // Note: not passing rawContent (param 4) as its not needed
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
+    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''}}><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   }
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromTitle', `${error.message} for input '${noteTitle}'`)
@@ -500,7 +502,7 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
     const dateFilename = `${getAPIDateStrFromDisplayDateStr(NPDateStr)}.${DataStore.defaultFileExtension}`
     // logDebug('makeNoteTitleWithOpenActionFromNPDateStr', `- making notelink with ${NPDateStr} / ${dateFilename}`)
     // Pass request back to plugin, as a single object
-    return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
+    return `<a class="noteTitle sectionItem" {()=>onClickDashboardItem({itemID: '${itemID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(dateFilename)}', encodedContent: ''}}><i class="fa-regular fa-file-lines pad-right"></i> ${NPDateStr}</a>`
   }
   catch (error) {
     logError('makeNoteTitleWithOpenActionFromNPDateStr', `${error.message} for input '${NPDateStr}'`)
