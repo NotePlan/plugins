@@ -1,7 +1,7 @@
 // @flow
 import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
-import { checkAccessToken } from './NPReadwiseHelpers'
+import { checkAccessToken, escapeTwitterHandle } from './NPReadwiseHelpers'
 import { parseHighlightsAndWriteToNote } from './NPReadwiseNotes'
 import { startReadwiseSyncLog, finishReadwiseSyncLog } from './NPReadwisesync'
 import { log, logDebug, logError } from '@helpers/dev'
@@ -36,7 +36,8 @@ export async function readwiseDailyReview(): Promise<string> {
 }
 
 async function handleReadwiseSync(response: any): Promise<void> {
-  let downloadHiglightCount = 0, updatedSourceCount = 0
+  let downloadHiglightCount = 0,
+    updatedSourceCount = 0
   await startReadwiseSyncLog()
   response.forEach((highightSource) => {
     updatedSourceCount++
@@ -124,7 +125,7 @@ async function getReadwiseDailyReview(): Promise<string> {
     const highlights = JSON.parse(response).highlights
 
     await highlights.map((highlight) => {
-      const formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
+      const formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${escapeTwitterHandle(highlight.author)}`
       highlightString += `> ${formattedHighlight}\n`
     })
     logDebug(pluginJson, `daily review highlights are \n\n ${highlightString}`)
