@@ -555,6 +555,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'updateTaskDate': {
         // Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)
         const dateInterval = data.controlStr
+        const config = await getSettings()
         // const startDateStr = ''
         let newDateStr = ''
         if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
@@ -563,7 +564,11 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         }
         if (dateInterval === 't') {
           // Special case to change to '>today'
-          newDateStr = 'today'
+          if (config.useTodayDate) {
+            newDateStr = 'today'
+          } else {
+            newDateStr = getTodaysDateHyphenated()
+          }
           logDebug('bridgeClickDashboardItem', `move task in ${filename} -> 'today'`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character

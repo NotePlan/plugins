@@ -123,6 +123,7 @@ export type dashboardConfigType = {
   updateTagMentionsOnTrigger: boolean,
   _logLevel: string,
   triggerLogging: boolean,
+  useTodayDate: boolean,
   // filterPriorityItems: boolean, // now kept in a DataStore.preference key
 }
 
