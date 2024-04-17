@@ -15,6 +15,7 @@ dist/
 lcov*
 coverage/
 .history/**/*
+**/.history/**/*
 .hyperlayout
 .eslintignore
 docs/assets/

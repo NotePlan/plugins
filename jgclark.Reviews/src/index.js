@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // Index for Reviews plugin
 // Jonathan Clark
-// Last updated 30.3.2024 for v0.14.0, @jgclark
+// Last updated 6.4.2024 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
@@ -12,11 +12,12 @@ import pluginJson from '../plugin.json'
 import { getReviewSettings, type ReviewConfig } from './reviewHelpers'
 import {
   makeFullReviewList,
-  // renderProjectLists
+  renderProjectLists
 } from './reviews'
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { JSP, logDebug, logError, logInfo } from '@helpers/dev'
 import { editSettings } from '@helpers/NPSettings'
+import { isHTMLWindowOpen } from '@helpers/NPWindows'
 
 export {
   logFullReviewList,
@@ -82,11 +83,16 @@ export async function testSettingsUpdated(): Promise<void> {
 
 export async function onSettingsUpdated(): Promise<void> {
   // Update the full - review - list in case there's a change in a relevant setting
-  logInfo(pluginID, 'Have updated settings, so will recalc the review list and display...')
+  logDebug(pluginID, 'Have updated settings, so will recalc the review list and display...')
   const config: ReviewConfig = await getReviewSettings()
   await makeFullReviewList(config, true)
-  // FIXME(Eduard): this actually generates errors, as Editor and HTMLView disappear at this point!
-  // await renderProjectLists(config)
+  // If v3.11+, can now refresh Dashboard
+  if (NotePlan.environment.buildVersion >= 1181) {
+    if (isHTMLWindowOpen(pluginJson['plugin.id'])) {
+      logDebug(pluginJson, `will refresh Project List as it is open`)
+      await renderProjectLists(config)
+    }
+  }
 }
 
 export async function onUpdateOrInstall(forceUpdated: boolean = false): Promise<void> {

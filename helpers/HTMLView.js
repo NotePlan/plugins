@@ -10,7 +10,10 @@ import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
-import { getTimeBlockString, isTimeBlockLine } from '@helpers/timeblocks'
+import {
+  getTimeBlockString,
+  isTimeBlockLine
+} from '@helpers/timeblocks'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -40,8 +43,8 @@ export type HtmlWindowOptions = {
 // Meta tags to always apply:
 // - to make windows always responsive
 const fixedMetaTags = `
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 `
 
 // ---------------------------------------------------------
@@ -893,6 +896,7 @@ export function convertHighlightsToHTML(input: string): string {
 
 // Display time blocks with .timeBlock style
 // Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+// WARNING: can't be used from React, as this calls a DataStore function
 export function convertTimeBlockToHTML(input: string): string {
   let output = input
   if (isTimeBlockLine(input)) {
