@@ -11,7 +11,7 @@ This Plugin lets you do the following sorts of things:
 - count the times you've met with staff member `@alice` this year so far
 - sum the length of your `@run`s in the last quarter
 - get a breakdown of how you're spending your week by tracking minutes across various areas (e.g. in a daily note - `@email(30)`; `@email(10)`; `@coding(45)`; `@writing(30)` or `#words/90`)
-- track completetion of a reference checklist template
+- track completion of a reference checklist template
 - show a heatmap chart of your `@sleep` stats
 
   ![Heatmap example](heatmap-work-0164.png)
@@ -59,17 +59,16 @@ Note: **Why use `@run(...)` (mentions) rather than `#run(...)` (hashtags)**? Wel
 
 ## Tracking checklist completetion
 
-To track checklist completion a you must create a referance checklist in the template folder.
+To track checklist completion you must create a referance checklist in the template folder:
 
 ![alt text](checklist-1.png)
 
-Add the title of this template to settings. 
+Add the title of this template to settings:
 
 ![alt text](checklist.png)
 
-if you want to use this template in another note it can be imported using.
-> <%- import("Daily tasks”) -%>
-
+If you want to use this template in another note it can be imported using
+`<%- import("Daily tasks”) -%>`
 
 Completion is tracked using the 'appendProgressUpdate' command
 
