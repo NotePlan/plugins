@@ -4,8 +4,8 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
-  "plugin.version": "1.0.1",
-  "plugin.lastUpdateInfo": "Fix not downloading all highlights for large libraries",
+  "plugin.version": "1.0.3",
+  "plugin.lastUpdateInfo": "Add a sync log note. \nAdd support for daily reviews via templates",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
   "plugin.dependencies": [],
@@ -17,6 +17,11 @@
       "name": "Readwise sync",
       "description": "Sync Readwise highlights",
       "jsFunction": "readwiseSync"
+    },
+    {
+      "name": "Readwise Daily Review",
+      "description": "Sync Readwise highlights",
+      "jsFunction": "readwiseDailyReview"
     },
     {
       "name": "Readwise rebuild",
@@ -105,7 +110,15 @@
       "required": true
     },
     {
-      "COMMENT": "Enable to force resynching of all highlights",
+      "title": "Create a sync log",
+      "key": "writeSyncLog",
+      "type": "bool",
+      "description": "Include a log of the synced highlights.",
+      "default": false,
+      "required": true
+    },
+    {
+      "COMMENT": "Enable to force resyncing of all highlights",
       "title": "Force sync all highlights",
       "key": "forceSync",
       "type": "hidden",
