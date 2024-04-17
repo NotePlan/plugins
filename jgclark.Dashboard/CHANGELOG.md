@@ -2,7 +2,7 @@
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
 <!-- - Trying to get dependencies sorted more fully ??? -->
-## [1.1.3] - 2024-04-16
+## [1.2.1] - 2024-04-18 by @SirTristam
 - Add option to use the current date instead of '>today' to schedule tasks for today
 
 ## [1.1.2] - 2024-04-03
