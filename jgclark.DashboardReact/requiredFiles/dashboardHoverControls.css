@@ -1,0 +1,61 @@
+/* CSS for Dashboard's tooltip for hover controls */
+/* Last updated ~v0.7.x */
+
+.mainButton:hover {
+	background-color: #EEE;
+	transition: 0.2s;
+}
+
+.hoverControlButton {
+	font-size: 0.76rem;
+	font-weight: 400;
+	border-radius: 4px;
+	border: 1px solid var(--tint-color);
+	box-shadow: 0px 0px 1px 0px #CBCBCB;
+	padding: 0px 3px 0px 3px;
+	margin: 1px 1px;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+.tooltip .hoverExtraControls {
+  visibility: hidden;
+  position: absolute; /* relative disrupts flow in different ways */
+  z-index: 1;
+	display: flex;
+  opacity: 0;
+	left: 2rem; /* how far to the right of the start of the TD to start the tooltip */
+  /* width: 9rem; */ /* browser calculates better than I can */
+  /* height: 1.2rem; */ /* browser calculates better than I can */
+  line-height: 1.2rem;
+  padding: 2px;
+  /* font-size: 14px; */
+  text-align: left;
+  /* color: rgb(113, 157, 171); */
+  background: #88888820; /* hopefully OK for light and dark */
+  border: 2px solid #88888820;
+  border-radius: 6px;
+  /* text-shadow: rgba(0, 0, 0, 0.1) 1px 1px 1px; */
+  /* box-shadow: rgba(0, 0, 0, 0.1) 1px 1px 2px 0px; */
+  transition: opacity 200ms 750ms; /* after 0.75s fade in quite quickly */
+}
+
+.tooltip .hoverExtraControls::after {
+  content: "";
+  position: absolute;
+  /* width: 0;
+  height: 0; */
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  /* border-color: #88888820 transparent transparent transparent; /* downwards arrow */
+  border-color: transparent transparent #88888820 transparent; /* upwards arrow */
+  top: -50%;
+  left: 20%;
+}
+.tooltip:hover .hoverExtraControls {
+  visibility: visible;
+  opacity: 1;
+}

@@ -169,11 +169,11 @@ export function removeFrontMatterField(note: CoreNoteFields, fieldToRemove: stri
 
 /**
  * Recursive helper function used to write multi-line-indented frontmatter keys/values
- * @param {*} obj
- * @param {*} indent - level for recursive indent
+ * @param {any} obj
+ * @param {string} indent - level for recursive indent
  * @returns
  */
-function _objectToYaml(obj, indent = ' ') {
+function _objectToYaml(obj: any, indent: string = ' ') {
   let output = ''
   for (const prop in obj) {
     output += `\n${indent}${prop}:`
@@ -225,6 +225,7 @@ export function writeFrontMatter(note: CoreNoteFields, attributes: { [string]: s
       }
     })
     const output = outputArr.join('\n')
+    logDebug(pluginJson, `writeFrontMatter: writing frontmatter to note '${displayTitle(note)}':\n"${output}"`)
     note.insertParagraph(output, 1, 'text')
     return true
   } else {
@@ -349,10 +350,10 @@ export function ensureFrontmatter(note: CoreNoteFields, alsoEnsureTitle: boolean
         }
 
         if (titleFromFirstLine) note.removeParagraph(note.paragraphs[0]) // remove the heading line now that we set it to fm title
-        front = `---\ntitle: ${quoteText(newTitle)}\n---\n`
+        front = `---\ntitle: ${quoteText(newTitle)}\n---`
       } else {
         logDebug('ensureFrontmatter', `- just adding empty frontmatter to this calendar note`)
-        front = `---\n---\n`
+        front = `---\n---`
       }
       // const newContent = `${front}${note?.content || ''}`
       // logDebug('ensureFrontmatter', `newContent = ${newContent}`)

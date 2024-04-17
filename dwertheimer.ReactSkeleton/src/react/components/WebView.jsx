@@ -157,10 +157,10 @@ export function WebView({ data, dispatch }: Props): Node {
    * @param {string} command
    * @param {any} dataToSend
    */
-  const sendActionToPlugin = (command: string, dataToSend: any) => {
+  const sendActionToPlugin = (command: string, dataToSend: any, additionalDetails: string = '') => {
     const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
     dispatch('UPDATE_DATA', newData) // save the data at the Root React Component level, which will give the plugin access to this data also
-    sendToPlugin([command, dataToSend]) // send action to plugin
+    sendToPlugin([command, dataToSend, additionalDetails]) // send action to plugin
   }
 
   /**
@@ -169,7 +169,7 @@ export function WebView({ data, dispatch }: Props): Node {
    * In that case, don't call this directly, use sendActionToPlugin() instead
    * @param {[command:string,data:any,additionalDetails:string]} param0
    */
-  const sendToPlugin = ([command, data, additionalDetails = '']) => {
+  const sendToPlugin = ([command: string, data: any, additionalDetails: string = '']) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
