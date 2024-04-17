@@ -103,11 +103,10 @@ async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downl
     logError(pluginJson, error)
   }
 }
-
-/**
- * Gets the daily review highlights from Readwise
- * @returns {string} - the highlights as a string
- */
+/*
+ * Gets the users Daily review from the readwise api
+  * @returns {string} - the daily review highlights
+  */
 async function getReadwiseDailyReview(): Promise<string> {
   const accessToken = DataStore.settings.accessToken ?? ''
   let highlightString = ''
@@ -123,10 +122,22 @@ async function getReadwiseDailyReview(): Promise<string> {
     const response = await fetch(url, options)
     const highlights = JSON.parse(response).highlights
 
-    await highlights.map((highlight) => {
-      const formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
+    highlights.map((highlight) => {
+      let formattedHighlight = ''
+      if (DataStore.settings.showLinkToHighlight === true) {
+        if (highlight.highlight_url !== null) {
+          formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
+        } else {
+          formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}, ${highlight.author}]`
+        }
+      } else {
+        formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}, ${highlight.author}]`
+      }
       highlightString += `> ${formattedHighlight}\n`
     })
+    if (highlightString.length > 1) { // remove the last newline
+      highlightString = highlightString.substring(0, highlightString.length - 1)
+    }
     logDebug(pluginJson, `daily review highlights are \n\n ${highlightString}`)
     return highlightString
   } catch (error) {
