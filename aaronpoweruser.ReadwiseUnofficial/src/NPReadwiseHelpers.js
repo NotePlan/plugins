@@ -40,7 +40,7 @@ export function buildReadwiseNoteTitle(source: any): string {
  */
 export function buildReadwiseFrontMatter(source: any): any {
   const frontMatter = {}
-  frontMatter.author = `[[${source.author}]]`
+  frontMatter.author = `[[${escapeTwitterHandle(source.author)}]]`
   if (source.readable_title.toLowerCase().trim() !== source.title.toLowerCase().trim()) {
     frontMatter.long_title = source.title
   }
@@ -59,7 +59,7 @@ export function buildReadwiseFrontMatter(source: any): any {
  * @returns {string} - the formatted heading
  */
 export function buildReadwiseMetadataHeading(source: any): string {
-  let metadata = `author: [[${source.author}]]` + '\n'
+  let metadata = `author: [[${escapeTwitterHandle(source.author)}]]` + '\n'
   if (source.book_tags !== null && source.book_tags.length > 0) {
     metadata += `tags: ${source.book_tags.map((tag) => `${formatTag(tag.name)}`).join(', ')}\n`
   }
@@ -92,4 +92,18 @@ function formatTag(tag: string): string {
  */
 export function removeEmptyLines(note: ?Tnote): void {
   note.content = note?.content?.replace(/^\s*\n/gm, '')
+}
+
+/**
+ * Escapes Twitter handles by adding 'Twitter/' before the '@' symbol
+ * to avoid creating a mention in Noteplan
+ * and removing 'on Twitter' from the handle
+ * @param {string} handle - the Twitter handle to escape
+ * @returns {string} - the escaped Twitter handle
+ */
+export function escapeTwitterHandle(handle: string): string {
+  if (handle.includes(' on Twitter')) {
+    return handle.replace('@', 'Twitter/@').replace(' on Twitter', '')
+  }
+  return handle
 }
