@@ -90,7 +90,7 @@ body {
 }
 .sectionDescription {
 	/* a bit smaller */
-	font-size: 0.85rem;
+	font-size: 0.9rem;
 	margin: unset;
 	padding-top: 0px;
 	align-self: self-end;
@@ -323,11 +323,13 @@ button, .fake-button, .clickTarget {
 	transition: visibility 0s 1.0s, opacity 1.0s linear;
 }
 /* Some headings specified from measuring the colour of NP sidebar elements */
-.sidebarDaily { font-size: 1.0rem; color: #d0703c;  }
+.sidebarDaily { font-size: 1.0rem; color: #d0703c; }
 .sidebarWeekly { font-size: 1.0rem; color: #be23b6; }
 .sidebarMonthly { font-size: 1.0rem; color: #f5528b; }
 .sidebarQuarterly { font-size: 1.0rem; color: #e08008; }
 .sidebarYearly { font-size: 1.0rem; color: #efba13; }
+.sidebarHashtag { font-size: 1.0rem; color: var(--hashtag-color); }
+.sidebarMention { font-size: 1.0rem; color: var(--attag-color); }
 
 #error {
 	background-color: red;

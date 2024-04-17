@@ -75,7 +75,7 @@ export function setMomentLocaleFromEnvironment(): void {
 
 export function nowLocaleShortDateTime(): string {
   setMomentLocaleFromEnvironment()
-  return moment().format('l lt') // format('L LT')
+  return moment().format('l LT') // format('L LT')
 }
 export function nowLocaleDate(): string {
   setMomentLocaleFromEnvironment()
@@ -83,7 +83,7 @@ export function nowLocaleDate(): string {
 }
 export function nowLocaleShortTime(): string {
   setMomentLocaleFromEnvironment()
-  return moment().format('lt') // format('LT')
+  return moment().format('LT')
 }
 
 // TODO: Finish moving references to this file from dateTime.js

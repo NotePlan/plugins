@@ -3,12 +3,12 @@
 //-----------------------------------------------------------------------------
 // Quick Capture plugin for NotePlan
 // Jonathan Clark
-// Last updated 3.4.2024 for v0.16.0+, @jgclark
+// Last updated 10.2.24 for v0.16.0, @jgclark
 //-----------------------------------------------------------------------------
 
 // allow changes in plugin.json to trigger recompilation
 import pluginJson from '../plugin.json'
-import { JSP, logDebug, logInfo, logError, logWarn } from "@helpers/dev"
+import { JSP, logDebug, logInfo, logError } from "@helpers/dev"
 import { pluginUpdated, updateSettingData } from '@helpers/NPConfiguration'
 import { editSettings } from '@helpers/NPSettings'
 import { showMessage } from '@helpers/userInput'
@@ -28,19 +28,18 @@ export {
   appendTaskToNote,
   prependTaskToNote
 } from './quickCapture'
-
 const pluginID = 'jgclark.QuickCapture'
 
 /**
  * Runs every time the plugin starts up (any command in this plugin is run)
  */
-export async function init(): Promise<void> {
+export function init(): void {
   try {
     // Check for the latest version of the plugin, and if a minor update is available, install it and show a message
-    const res = await DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false)
-    if (res.code > 0) {
-      logWarn(pluginJson, `init::installOrUpdatePlugins check -> code ${String(res.code)} message ${res.message}`)
-    }
+    // Note: turned off, as it was causing too much noise in logs
+    // DataStore.installOrUpdatePluginsByID([pluginJson['plugin.id']], false, false, false).then((r) =>
+    //   pluginUpdated(pluginJson, r),
+    // )
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -79,7 +78,6 @@ export async function updateSettings() {
   note.addParagraphBelowHeadingTitle(
  * To test bug with .() API call reported in https://github.com/NotePlan/plugins/issues/429
  * Assumes a note titled 'Quick Capture qalh TEST'
- * TODO(later): remove after bug fixed
  */
 export function tempAddParaTest(): void {
   // $FlowIgnore[incompatible-use]

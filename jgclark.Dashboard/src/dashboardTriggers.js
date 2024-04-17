@@ -1,3 +1,4 @@
+/* eslint-disable require-await */
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard triggering
@@ -5,12 +6,15 @@
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import { showDashboard } from './HTMLGeneratorGrid' // './HTMLGenerator'
-import { clo, JSP, /*logDebug,*/ logError, logInfo, logWarn } from '@helpers/dev'
-import { rangeToString } from '@helpers/general'
-import { makeBasicParasFromContent, selectedLinesIndex } from '@helpers/NPparagraph'
+import { showDashboard } from './HTMLGeneratorGrid' // was './HTMLGenerator'
+import { clo, JSP, /*logDebug,*/ logError, logInfo, logWarn, timer } from '@helpers/dev'
+// import { rangeToString } from '@helpers/general'
+import {
+  makeBasicParasFromContent,
+  // selectedLinesIndex
+} from '@helpers/NPParagraph'
 import { isHTMLWindowOpen } from '@helpers/NPWindows'
-import { formRegExForUsersOpenTasks } from '@helpers/regex'
+// import { formRegExForUsersOpenTasks } from '@helpers/regex'
 import { isOpen } from '@helpers/utils'
 
 /**
@@ -33,12 +37,12 @@ function logDebug(pluginJson: any, message: string): void {
  * @param {string} currentContent
  * @returns {boolean} changed?
  */
-function changeToNumberOfOpenItems(previousContent: string, currentContent: string): boolean {
-  const prevOpenNum = numberOfOpenItems(previousContent)
-  const currentOpenNum = numberOfOpenItems(currentContent)
-  logDebug(pluginJson, `prevOpenNum: ${prevOpenNum} / currentOpenNum: ${currentOpenNum} ->  ${String(prevOpenNum - currentOpenNum)}`)
-  return prevOpenNum != currentOpenNum
-}
+// function changeToNumberOfOpenItems(previousContent: string, currentContent: string): boolean {
+//   const prevOpenNum = numberOfOpenItems(previousContent)
+//   const currentOpenNum = numberOfOpenItems(currentContent)
+//   logDebug(pluginJson, `prevOpenNum: ${prevOpenNum} / currentOpenNum: ${currentOpenNum} ->  ${String(prevOpenNum - currentOpenNum)}`)
+//   return prevOpenNum != currentOpenNum
+// }
 
 /**
  * Have the number of open items changed?
@@ -62,21 +66,23 @@ function haveOpenItemsChanged(note: TNote): boolean {
 }
 
 /**
- * Return number of open items in a multi-line string
+ * Return number of open items in a multi-line string.
+ * Note: now not used
  * @param {number} content
  * @returns {number}
  */
-function numberOfOpenItems(content: string): number {
-  const RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE = formRegExForUsersOpenTasks(true)
-  // logDebug(pluginJson, String(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
-  const res = Array.from(content.matchAll(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
-  return res ? res.length : 0
-}
+// function numberOfOpenItems(content: string): number {
+//   const RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE = formRegExForUsersOpenTasks(true)
+//   // logDebug(pluginJson, String(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
+//   const res = Array.from(content.matchAll(RE_USER_OPEN_TASK_OR_CHECKLIST_MARKER_MULTI_LINE))
+//   return res ? res.length : 0
+// }
 
 /**
  * Decide whether to update Dashboard, to be called by an onSave or onChange trigger.
  * Decides whether the number of open items has changed, or if open item contents have changed.
  * But ignore if open items have just moved around.
+ * Note: ideally should have left this named 'onEditorWillSave'
  * @returns {boolean}
  */
 export async function decideWhetherToUpdateDashboard(): Promise<void> {
@@ -94,16 +100,16 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
     }
 
     // Only proceed if the dashboard window is open
-    if (!isHTMLWindowOpen(pluginJson['plugin.id'] + '.main')) {
+    if (!isHTMLWindowOpen(`${pluginJson['plugin.id']}.main`)) {
       logDebug('decideWhetherToUpdateDashboard', `Dashboard window not open, so stopping.`)
       return
     }
 
     // Get the details of what's been changed
     if (Editor.content && Editor.note) {
-      const latestContent = Editor.content ?? ''
+      // const latestContent = Editor.content ?? ''
       const noteReadOnly: CoreNoteFields = Editor.note
-      const previousContent = noteReadOnly.versions[0].content
+      // const previousContent = noteReadOnly.versions[0].content
       const timeSinceLastEdit: number = Date.now() - noteReadOnly.versions[0].date
       logDebug(
         'decideWhetherToUpdateDashboard',
@@ -116,29 +122,8 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
         return
       }
 
-      // Decide if this is a relevant change, now looking for edits in open items as well.
-      // V4: Get all open items from before and after, but sort so we ignore lines being moved around
-      // const beforeContent = noteReadOnly.versions[0].content
-      // const beforeOpenParas = makeBasicParasFromContent(beforeContent).filter((p) => isOpen(p))
-      // const beforeOpenLines = beforeOpenParas.map((p) => p.rawContent)
-      // const afterOpenParas = Editor.paragraphs.filter((p) => isOpen(p))
-      // const afterOpenLines = afterOpenParas.map((p) => p.rawContent)
-
-      // // Sort them
-      // const beforeOpenSorted = beforeOpenLines.sort()
-      // const afterOpenSorted = afterOpenLines.sort()
-
-      // // Compare them
-      // const openItemsHaveChanged = beforeOpenSorted.toString() !== afterOpenSorted.toString()
+      // Decide if there are more or fewer open items than before, or they have changed content
       const openItemsHaveChanged = haveOpenItemsChanged(noteReadOnly)
-
-      // // Decide if there are more or fewer open items than before
-      // // v3: Doesn't use ranges. This compares the whole of the current and previous content, asking are there a different number of open items?
-      // // (This avoids firing when simply moving task/checklist items around, or updating the text.)
-      // const hasNumberOfOpenItemsChanged = changeToNumberOfOpenItems(previousContent, latestContent)
-      // let hasNumberOfOpenItemsChanged = false // TODO: remove workaround
-
-      // if (hasNumberOfOpenItemsChanged || openItemsHaveChanged) {
       if (openItemsHaveChanged) {
         // Note: had wanted to try using Editor.save() here, but seems to trigger an infinite loop
         // Note: DataStore.updateCache(Editor.note) doesn't work either.
@@ -155,5 +140,32 @@ export async function decideWhetherToUpdateDashboard(): Promise<void> {
     }
   } catch (error) {
     logError(pluginJson, `decideWhetherToUpdateDashboard: ${error.name}: ${error.message}`)
+  }
+}
+
+/**
+ * onOpen -- called when a note is opened and that note has an 'onOpen' trigger in its frontmatter
+ * Note: doesn't currently do anything -- here for completeness
+ * @param {TNote} note - current note in Editor
+ */
+export async function onOpen(note: TNote): Promise<void> {
+  try {
+    logDebug(pluginJson, `${pluginJson['plugin.id']} :: onOpen running for note:"${String(note.filename)}"`)
+    // Try to guard against infinite loops of opens/refreshing
+    // You can delete this code if you are sure that your onOpen trigger will not cause an infinite loop
+    // But the safest thing to do is put your code inside the if loop below to ensure it runs no more than once every 15s
+    const now = new Date()
+    if (Editor?.note?.changedDate) {
+      const lastEdit = new Date(Editor?.note?.changedDate)
+      if (now - lastEdit > 15000) {
+        logDebug(pluginJson, `onOpen ${timer(lastEdit)} since last edit`)
+        // Put your code here or call a function that does the work
+        // Note: doesn't currently do anything -- here for completeness
+      } else {
+        logDebug(pluginJson, `onOpen: Only ${timer(lastEdit)} since last edit (hasn't been 15s)`)
+      }
+    }
+  } catch (error) {
+    logError(pluginJson, `onOpen: ${JSP(error)}`)
   }
 }
