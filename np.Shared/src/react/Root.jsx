@@ -23,11 +23,9 @@ type Props = {}
 
 import React, { useEffect, Profiler, type Node } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
-
 // import { WebView } from './_Cmp-WebView.jsx' // we are gonna have to hope it's loaded by HTML
 import { MessageBanner } from './MessageBanner.jsx'
 import { ErrorFallback } from './ErrorFallback.jsx'
-import { JSP, formatReactError } from '@helpers/dev'
 
 // color this component's output differently in the console
 const consoleStyle = 'background: #222; color: #62AFEC'
@@ -37,10 +35,12 @@ const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg
 
 const ROOT_DEBUG = false
 
-// used by the ErrorBoundary component to write out the error to the log
-const myErrorLogger = (e: Error, i: { componentStack: string }) => {
-  const error = formatReactError(e, i.componentStack)
-  console.log(`${window.webkit ? '' : '%c'}React error trapped by Root::ErrorBoundary; error=${JSP(error, 2)}`, 'background: #ff0000; color: #ffffff')
+// used by the ErrorBoundary component
+const myErrorLogger = (error: Error, info: { componentStack: string }) => {
+  console.log(
+    `${window.webkit ? '' : '%c'}React error trapped by Root::ErrorBoundary; error=${JSON.stringify(error, null, 2)},\ninfo=${JSON.stringify(info, null, 2)}`,
+    'background: #ff0000; color: #ffffff',
+  )
 }
 
 /****************************************************************************************************************************

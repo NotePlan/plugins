@@ -81,8 +81,8 @@ export function JSP(obj: any, space: string | number = 2): string {
 /**
  * Returns whether an object is empty
  * From https://stackoverflow.com/a/679937/3238281
- * @param {Object} obj
- * @returns
+ * @param {Object} obj 
+ * @returns 
  */
 export function isObjectEmpty(obj: Object): boolean {
   return Object.keys(obj).length === 0
@@ -536,27 +536,5 @@ export function overrideSettingsWithEncodedTypedArgs(config: any, argsAsEncodedJ
     return overrideSettingsWithTypedArgs(config, decodeURIComponent(argsAsEncodedJSON))
   } catch (error) {
     logError('overrideSettingsWithEncodedTypedArgs', JSP(error))
-  }
-}
-
-/**
- * Error objects in React are not JSON stringifiable. This function makes them JSON stringifiable.
- * It also removes the redundant file path from the stack trace.
- * @param {Error} error
- * @param {string} cs - (optional) component stack
- * @returns {any} - a simple JS Object with the errror details: name, message, inComponent, line, column, componentStack
- */
-export const formatReactError = (error: Error, cs: string = '') => {
-  return {
-    name: error.name,
-    message: error.message,
-    inComponent: cs.split('@file', 1)[0]?.replace('\n', ''),
-    line: error.line || '',
-    column: error.column,
-    componentStack: cs
-      .split('\n')
-      .map((s) => s.replace(/\@file.*$/, ''))
-      .filter((s) => s.trim() !== 'div' && s.trim() !== '' && s.trim() !== 'Root' && s.trim() !== 'ErrorBoundary')
-      .join(' < '),
   }
 }

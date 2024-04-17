@@ -1,17 +1,11 @@
-import { JSP, formatReactError, clo } from '@helpers/dev'
-
-export const ErrorFallback = (props) => {
-  clo(props)
-  const { error } = props
-  const formatted = formatReactError(error)
+export const ErrorFallback = ({ error }) => {
   return (
     <div role="alert">
       <h1>Something went wrong in React:</h1>
-      <pre>
-        {formatted.name}: {formatted.message}
-      </pre>
+      <pre>{error.message}</pre>
       <p></p>
-      <p>See more detail in the console</p>
+      <p>More detail:</p>
+      <pre>{JSON.stringify(error, null, 2)}</pre>
     </div>
   )
 }
