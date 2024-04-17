@@ -478,6 +478,7 @@ export class Project {
       }
 
       // count tasks (includes both tasks and checklists)
+      // Note: excludes future tasks -- perhaps this wasnts to be an optional decision?
       this.openTasks = paras.filter(isOpen).length
       this.completedTasks = paras.filter(isDone).length
       this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length

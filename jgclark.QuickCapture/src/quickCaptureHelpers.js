@@ -2,16 +2,13 @@
 // ----------------------------------------------------------------------------
 // Helpers for QuickCapture plugin for NotePlan
 // by Jonathan Clark
-// last update 10.2.2024 for v0.16tt.0 by @jgclark
+// last update 4.4.2024 for v0.16.0+ by @jgclark
 // ----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
-import {
-  RE_ISO_DATE,
-  unhyphenateString,
-} from '@helpers/dateTime'
+// import { RE_ISO_DATE, unhyphenateString } from '@helpers/dateTime'
 import { getRelativeDates } from '@helpers/NPdateTime'
-import { displayTitle } from '@helpers/general'
+// import { displayTitle } from '@helpers/general'
 import { clo, logInfo, logDebug, logError, logWarn, timer } from '@helpers/dev'
 import { allNotesSortedByChanged, calendarNotesSortedByChanged } from '@helpers/note'
 import {
@@ -77,39 +74,42 @@ export async function getNoteFromParamOrUser(
   allNotesIn?: Array<TNote>
 ): Promise<TNote | null> {
   try {
-    let startTime = new Date()
+    const startTime = new Date()
     let note: TNote | null
 
-    // Preferably use 4th parameter, but if not calculate the list [This is the lengthy bit: ~1020ms for me]
-    let allNotes: Array<TNote> = []
-    if (allNotesIn) {
-      allNotes = allNotesIn
-      logDebug('getNoteFromParamOrUser', `- Used arg3 which has ${allNotesIn.length} entries`)
-    }
-    else {
-      allNotes = allNotesSortedByChanged()
-      logDebug('getNoteFromParamOrUser', `- Got large note array`)
-    }
-    logDebug('getNoteFromParamOrUser', `allNotes has ${allNotes.length ?? '?'} entries (taken ${timer(startTime)} so far)`)
-
-    // First get note from arg or User
+    // First try getting note from arg
     if (noteTitleArg != null && noteTitleArg !== '') {
       // Is this a note title from arg?
       // First check if its a special 'relative date'
-      // TODO: If this was moved to top would this be quicker?
       for (const rd of relativeDates) {
         if (noteTitleArg === rd.relName) {
           note = rd.note
           logDebug('getNoteFromParamOrUser', `Found match with relative date '${rd.relName}' = filename ${note.filename}`)
         }
       }
+    }
 
-      if (!note && allNotes) {
+    // If not, form list of notes to check against / offer
+    if (!note) {
+      let allNotesToUse: Array<TNote> = []
+      if (allNotesIn) {
+        allNotesToUse
+        allNotesToUse = allNotesIn
+        logDebug('getNoteFromParamOrUser', `- Used arg3 which has ${allNotesIn.length} entries`)
+      }
+      else {
+        allNotesToUse = justCalendarNotes ? calendarNotesSortedByChanged() : allNotesSortedByChanged()
+        logDebug('getNoteFromParamOrUser', `- Got large note array of all ${justCalendarNotes ? 'calendar' : ''} notes`)
+      }
+      logDebug('getNoteFromParamOrUser', `allNotesToUse has ${allNotesToUse.length ?? '?'} entries (taken ${timer(startTime)} so far)`)
+
+      // Preferably use 4th parameter, but if not calculate the list
+      if (!note && allNotesToUse) {
         // Note: Because of NP architecture, it's possible to have several notes with the same title; the first match is used.
         const noteTitleToMatch = noteTitleArg
         logDebug('getNoteFromParamOrUser', `- noteTitleToMatch = ${noteTitleToMatch}`)
         // Change YYYY-MM-DD to YYYYMMDD format if needed.
-        const wantedNotes = allNotes.filter((n) => displayTitleWithRelDate(n, false) === noteTitleToMatch)
+        const wantedNotes = allNotesToUse.filter((n) => displayTitleWithRelDate(n, false) === noteTitleToMatch)
         // logDebug('getNoteFromParamOrUser', `- matchingNotes: ${String(wantedNotes.map((n) => displayTitleWithRelDate(n)))}`)
         note = wantedNotes != null ? wantedNotes[0] : null
         if (note != null) {
@@ -120,30 +120,24 @@ export async function getNoteFromParamOrUser(
           }
         }
       }
-    }
-    logDebug('getNoteFromParamOrUser', `- taken ${timer(startTime)} so far`)
 
-    // We don't have a note by now, so ask user to select one
-    if (!note && allNotes) {
-      logDebug('getNoteFromParamOrUser', 'No note found. Prompting user to select one.')
-      const calendarNotes: Array<TNote> = allNotes.filter((n) => n.type === "Calendar")
+      logDebug('getNoteFromParamOrUser', `- taken ${timer(startTime)} so far`)
 
-      let notesList = (justCalendarNotes)
-        ? calendarNotes.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
-        : allNotes.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
-      // notesList.unshift('➡️ relative dates (will open new list)')
-      const res1 = await CommandBar.showOptions(notesList, 'Select note for new ' + purpose)
-      if (typeof res1 !== 'boolean') {
-        note = (justCalendarNotes)
-          ? calendarNotes[res1.index]
-          : allNotes[res1.index]
+      // If we don't have a note by now, ask user to select one
+      if (!note && allNotesToUse) {
+        logDebug('getNoteFromParamOrUser', 'No note found. Prompting user to select one.')
+        const notesList = allNotesToUse.map((n) => displayTitleWithRelDate(n)).filter(Boolean)
+        const result = await CommandBar.showOptions(notesList, `Select note for new ${purpose}`)
+        if (typeof res1 !== 'boolean') {
+          note = allNotesToUse[result.index]
+        }
       }
     }
     // Double-check this is a valid note
     if (note == null) {
-      throw new Error("Couldn't get note")
+      throw new Error("Couldn't get note for some reason")
     } else {
-      logDebug('getNoteFromParamOrUser', `-> note '${displayTitleWithRelDate(note)}'`)
+      logDebug('getNoteFromParamOrUser', `-> note '${displayTitleWithRelDate(note)}' (after ${timer(startTime)})`)
     }
     return note
   } catch (error) {
