@@ -569,11 +569,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         }
         if (dateInterval === 't') {
           // Special case to change to '>today'
-          if (config.useTodayDate) {
-            newDateStr = 'today'
-          } else {
-            newDateStr = getTodaysDateHyphenated()
-          }
+          newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
           logDebug('bridgeClickDashboardItem', `move task in ${filename} -> 'today'`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
