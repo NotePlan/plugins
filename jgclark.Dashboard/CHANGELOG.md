@@ -1,6 +1,9 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [1.2.1] - 2024-04-18 by @SirTristam
+- Add option to use the current date instead of '>today' to schedule tasks for today
+
 ## [1.2.0] - 2024-04-07
 - updates to allow Dashboard to run on iOS devices (now that the control dialog has replaced the hover mechanism)
 - added 'Cancel' button to control dialog (as an alternative to the ⌘-click facility which is missing on iOS devices)
