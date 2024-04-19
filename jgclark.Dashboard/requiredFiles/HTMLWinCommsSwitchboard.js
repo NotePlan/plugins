@@ -122,8 +122,6 @@ async function completeTaskInDisplay(data) {
 
     // See if the only remaining item is the '> There are also ... items' line
     const numItemsRemaining = getNumItemsInSectionByClass(`${sectionID}-Section`, 'sectionItemRow')
-    console.log(`- ${numItemsRemaining}`)
-    console.log(`- ${String(doesIDExist(`${sectionID}-Filter`))}`)
     if (numItemsRemaining === 1 && doesIDExist(`${sectionID}-Filter`)) {
     // We need to un-hide the lower-priority items: do full refresh
       console.log(`We need to un-hide the lower-priority items: doing full refresh`)

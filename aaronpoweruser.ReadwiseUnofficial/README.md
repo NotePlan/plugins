@@ -5,6 +5,7 @@
 A sync engine for readwise
 
 ### Features
+- Daily review's via templates
 - Full highlight download
 - Highlight updates
 - Tags
@@ -15,7 +16,6 @@ A sync engine for readwise
 ### Todo
 * Index note
 * Image support (needs Noteplan API update)
-* Ability to get random note via templates
 
 ### Known issues:
 - Using heading as metadata does not support tag updates
@@ -32,6 +32,17 @@ Downloads new highlights since last sync
 
 ** Only needs to be used if highlights are deleted) **
 Downloads all highlights (if they already exisit they will be duplicated)
+
+
+### //Readwise Daily review
+
+Downloads daily reviews (does not mark as read).
+Can be added to a note with templates using
+
+```
+<%- await DataStore.invokePluginCommandByName("Readwise Daily Review","aaronpoweruser.ReadwiseUnofficial")  %>
+```
+
 
 ## Settings
 
@@ -62,6 +73,10 @@ Group all highlights in under the readwise folder or having them separated by co
 
 ** Ignored if group by type is disabled **
 Group all highlights together or keep supplemental (readwise generated) highlights seperate.
+
+### Sync log
+
+A note that has all highlights synced during a sync.
 
 ## Latest Updates
 

@@ -10,7 +10,7 @@
 // It draws its data from an intermediate 'full review list' CSV file, which is (re)computed as necessary.
 //
 // by @jgclark
-// Last updated 30.3.2024 for v0.14.0, @jgclark
+// Last updated 3.4.2024 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -21,7 +21,7 @@ import {
   deleteMetadataMentionInEditor,
   deleteMetadataMentionInNote,
   getReviewSettings,
-  makeFakeButton,
+  // makeFakeButton,
   Project,
   type ReviewConfig,
   saveEditorToCache,
@@ -39,6 +39,7 @@ import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEnc
 import { getFoldersMatching, getFolderListMinusExclusions } from '@helpers/folders'
 import { createRunPluginCallbackUrl, displayTitle } from '@helpers/general'
 import {
+  makePluginCommandButton,
   showHTMLV2
 } from '@helpers/HTMLView'
 import { getOrMakeNote } from '@helpers/note'
@@ -381,63 +382,73 @@ export async function renderProjectListsHTML(
     // https://fontawesome.com/icons/check
     // https://fontawesome.com/icons/xmark
     // https://fontawesome.com/icons/forward
-    const refreshXCallbackButton = makeFakeButton(
+    const refreshPCButton = makePluginCommandButton(
       `<i class="fa-solid fa-arrow-rotate-right"></i>\u00A0Refresh`,
+      'jgclark.Reviews',
       'project lists',
       '',
       'Recalculate project lists and update this window',
     )
-    const startReviewButton = makeFakeButton(
-      `<i class="fa-solid fa-play"></i>\u00A0Start\u00A0Reviews`,
+    const startReviewPCButton = makePluginCommandButton(
+      `<i class="fa-solid fa-play"></i>\u00A0Start`,
+      'jgclark.Reviews',
       'start reviews',
       '',
       'Opens the next project to review in the NP editor',
     )
-    const reviewedXCallbackButton = makeFakeButton(
-      `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish\u00A0Review`,
+    const reviewedPCButton = makePluginCommandButton(
+      `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish`,
+      'jgclark.Reviews',
       'finish project review',
       '',
       `Update the ${checkString(DataStore.preference('reviewedMentionStr'))}() date for the Project you're currently editing`,
     )
-    const nextReviewXCallbackButton = makeFakeButton(
-      `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review`,
+    const nextReviewPCButton = makePluginCommandButton(
+      `<i class="fa-regular fa-calendar-check"></i>\u00A0Finish\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
+      'jgclark.Reviews',
       'next project review',
       '',
       `Finish review of currently open Project and start the next review`,
     )
-    const updateProgressXCallbackButton = makeFakeButton(
+    const skipReviewPCButton = makePluginCommandButton(`<i class="fa-solid fa-forward"></i>\u00A0Skip\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next`,
+      'jgclark.Reviews',
+      'skip project review',
+      '',
+      'Skip this Project review and select new date')
+    const updateProgressPCButton = makePluginCommandButton(
       `\u00A0<i class="fa-regular fa-message-pen"></i>\u00A0Add Progress`,
+      'jgclark.Reviews',
       'add progress update',
       '',
       'Add a progress line to the currently open Project note',
     )
-    const pauseXCallbackButton = makeFakeButton(
+    const pausePCButton = makePluginCommandButton(
       `Toggle\u00A0<i class="fa-solid fa-play-pause"></i>\u00A0Pause`,
+      'jgclark.Reviews',
       'pause project toggle',
       '',
       'Pause the currently open Project note',
     )
-    const completeXCallbackButton = makeFakeButton(
+    const completePCButton = makePluginCommandButton(
       `<i class="fa-solid fa-check"></i>\u00A0Complete`,
+      'jgclark.Reviews',
       'complete project',
       '',
       'Complete the currently open Project note',
     )
-    const cancelXCallbackButton = makeFakeButton(
+    const cancelPCButton = makePluginCommandButton(
       `<i class="fa-solid fa-xmark"></i>\u00A0Cancel`,
+      'jgclark.Reviews',
       'cancel project',
       '',
       'Cancel the currently open Project note'
     )
-    const skipReviewXCallbackButton = makeFakeButton(`<i class="fa-solid fa-forward"></i>\u00A0Skip\u00A0+\u00A0<i class="fa-solid fa-calendar-arrow-down"></i>\u00A0Next\u00A0Review`,
-      'skip project review',
-      '',
-      'Skip this Project review and select new date')
 
     // write lines before first table
-    outputArray.push(`<h1>${windowTitle}</h1>`)
+    // outputArray.push(`<h1>${windowTitle}</h1>`)
+
     // Add a sticky area for buttons
-    const controlButtons = `<b>Reviews</b>: ${startReviewButton} \n${reviewedXCallbackButton} \n${nextReviewXCallbackButton}\n${skipReviewXCallbackButton}\n<br /><b>List</b>: \n${refreshXCallbackButton} \n<b>Project</b>: ${updateProgressXCallbackButton} ${pauseXCallbackButton} \n${completeXCallbackButton} \n${cancelXCallbackButton}`
+    const controlButtons = `<b>Reviews</b>: ${startReviewPCButton} \n${reviewedPCButton} \n${nextReviewPCButton}\n${skipReviewPCButton}\n<br /><b>List</b>: \n${refreshPCButton} \n<b>Project</b>: ${updateProgressPCButton} ${pausePCButton} \n${completePCButton} \n${cancelPCButton}`
     // TODO: remove test lines to see scroll position:
     // controlButtons += ` <input id="id" type="button" value="Update Scroll Pos" onclick="getCurrentScrollHeight();"/>`
     // controlButtons += ` <span id="scrollDisplay" class="fix-top-right">?</span>`
@@ -546,7 +557,7 @@ export async function renderProjectListsHTML(
           <button data-control-str="cancel"><i class="fa-solid fa-xmark"></i> Cancel</button>
         </div>
         <div></div>
-        <div><form><button type="submit" class="mainButton">Close</button></form></div>
+        <div><form><button id="closeButton" class="mainButton">Close</button></form></div>
         </div>
       </div>
     </div>
@@ -567,6 +578,7 @@ export async function renderProjectListsHTML(
 
     const winOptions = {
       windowTitle: windowTitle,
+      customId: customRichWinId,
       headerTags: `${faLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.reviewsTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // now in requiredFiles/reviewListCSS instead
@@ -581,7 +593,6 @@ export async function renderProjectListsHTML(
       reuseUsersWindowRect: true, // do try to use user's position for this window, otherwise use following defaults ...
       width: 800, // = default width of window (px)
       height: 1200, // = default height of window (px)
-      customId: customRichWinId,
       shouldFocus: false, // shouuld not focus, if Window already exists
     }
     const thisWindow = await showHTMLV2(body, winOptions)
@@ -755,7 +766,7 @@ export async function redisplayProjectListHTML(): Promise<void> {
         shouldFocus: true, // shouuld focus
       }
       const _thisWindow = await showHTMLV2(savedHTML, winOptions)
-      // clo(thisWindow, 'created window')
+      // clo(_thisWindow, 'created window')
       logDebug('redisplayProjectListHTML', `Displayed HTML from saved file ${filenameHTMLCopy}`)
       return
     } else {
@@ -934,7 +945,7 @@ export async function makeFullReviewList(configIn: any, runInForeground: boolean
       for (const tag of tags) {
         const funcTimer = new moment().toDate() // use moment instead of  `new Date` to ensure we get a date in the local timezone
         const projectNotesArr = findNotesMatchingHashtag(tag, folder, false, [], true, filteredDataStore, false)
-        logDebug('makeFullReviewList', `>> findNotesMatchingHashtag(${tag}, ${folder}): ${timer(funcTimer)}`)
+        logDebug('makeFullReviewList', `called findNotesMatchingHashtag() for tag '${tag}', folder '${folder}' in ${timer(funcTimer)}`)
         if (projectNotesArr.length > 0) {
           // Get Project class representation of each note.
           // Save those which are ready for review in projectsReadyToReview array
@@ -1129,9 +1140,9 @@ export async function finishReview(): Promise<void> {
       // logDebug('finishReview', String(RE_REVIEWED_MENTION))
 
       // First update @review(date) on current open note
-      let _result: ?TNote = await updateMetadataInEditor([reviewedTodayString])
+      let res: ?TNote = await updateMetadataInEditor([reviewedTodayString])
       // Remove a @nextReview(date) if there is one, as that is used to skip a review, which is now done.
-      _result = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
+      res = await deleteMetadataMentionInEditor([config.nextReviewMentionStr])
       // logDebug('finishReview', `- after metadata updates`)
 
       // Save Editor, so the latest changes can be picked up elsewhere
@@ -1284,7 +1295,7 @@ export async function skipReview(): Promise<void> {
     logDebug('skipReview', `- nextReviewDate: ${String(nextReviewDate)} / nextReviewMetadataStr: ${nextReviewMetadataStr}`)
 
     // Update metadata in the current open note
-    const _result = await updateMetadataInEditor([nextReviewMetadataStr])
+    const res = await updateMetadataInEditor([nextReviewMetadataStr])
 
     // Save Editor, so the latest changes can be picked up elsewhere
     // Putting the Editor.save() here, rather than in the above functions, seems to work

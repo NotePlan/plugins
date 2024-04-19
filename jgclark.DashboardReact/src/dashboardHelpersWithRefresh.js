@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions that need to refresh Dashboard
-// Last updated 4.4.2024 for v1.1.2 by @jgclark
+// Last updated 18.4.2024 for v1.2.1 by @SirTristam
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -11,7 +11,7 @@ import {
   getSettings,
   moveItemBetweenCalendarNotes,
 } from './dashboardHelpers'
-import { showDashboard } from './HTMLGeneratorGrid'
+import { showDashboardReact } from './reactMain'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
   getDateStringFromCalendarFilename,
@@ -68,12 +68,15 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
     if (combinedSortedParas.length > 0) {
       await CommandBar.onAsyncThread() // Note: this is needed for showLoading to work, though I don't know why
       if (config.rescheduleNotMove) {
+        // Determine if we need to use 'today' or schedule to the specific date.
+        logDebug('scheduleAllYesterdayOpenToToday', `useTodayDate setting is ${config.useTodayDate}`)
+        const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
         // For each para append ' >today'
         for (const para of combinedSortedParas) {
           c++
-          CommandBar.showLoading(true, `Scheduling item ${c} to today`, c / totalToMove)
-          para.content = `${para.content} >today`
-          logDebug('scheduleAllYesterdayOpenToToday', `- scheduling {${para.content}} to today`)
+          CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalToMove)
+          para.content = `${para.content} >${newDateStr}`
+          logDebug('scheduleAllYesterdayOpenToToday', `- scheduling {${para.content}} to ${newDateStr}`)
           numberScheduled++
         }
         yesterdaysNote.updateParagraphs(combinedSortedParas)
@@ -100,15 +103,18 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
 
     // Now do the same for items scheduled to yesterday from other notes
     if (sortedRefParas.length > 0) {
-      // For each para append ' >today'
+      // Determine if we need to use 'today' or schedule to the specific date.
+      logDebug('scheduleAllYesterdayOpenToToday', `useTodayDate setting is ${config.useTodayDate}`)
+      const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
+      // For each para append the date to move to.
       for (const para of sortedRefParas) {
         c++
-        CommandBar.showLoading(true, `Scheduling item ${c} to today`, c / totalToMove)
+        CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalToMove)
         const thisNote = para.note
         if (!thisNote) {
           logWarn('scheduleAllYesterdayOpenToToday', `Oddly I can't find the note for {${para.content}}, so can't process this item`)
         } else {
-          para.content = `${removeDateTagsAndToday(para.content)} >today`
+          para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
           logDebug('scheduleAllYesterdayOpenToToday', `- scheduling referenced para from note ${thisNote.filename} with new content {${para.content}} `)
           // FIXME: This fails, and I can't see why
           thisNote.updateParagraph(para)
@@ -125,7 +131,7 @@ export async function scheduleAllYesterdayOpenToToday(refreshDashboard: boolean 
     if (refreshDashboard && numberScheduled > 0) {
       logInfo('scheduleAllYesterdayOpenToToday', `moved/scheduled ${String(numberScheduled)} open items from yesterday to today`)
       logDebug('scheduleAllYesterdayOpenToToday', `-------- Refresh -------------------`)
-      await showDashboard('refresh')
+      await showDashboardReact('refresh')
     }
     return numberScheduled
   }
@@ -233,7 +239,7 @@ export async function scheduleAllTodayTomorrow(refreshDashboard: boolean = true)
     if (refreshDashboard && numberScheduled > 0) {
       logInfo('scheduleAllTodayTomorrow', `moved/scheduled ${String(numberScheduled)} open items from today to tomorrow`)
       logDebug('scheduleAllTodayTomorrow', `-------- Refresh -------------------`)
-      await showDashboard('refresh')
+      await showDashboardReact('refresh')
     }
     return numberScheduled
   }
@@ -294,6 +300,9 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
     let c = 0
     await CommandBar.onAsyncThread() // Note: this seems to be needed for showLoading to work, though I don't know why
     if (config.rescheduleNotMove) {
+      // Determine if we need to use 'today' or schedule to the specific date.
+      logDebug('scheduleAllOverdueOpenToToday', `useTodayDate setting is ${config.useTodayDate}`)
+      const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
       // For each para append ' >today'
       for (const para of overdueParas) {
         c++
@@ -302,8 +311,8 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
           logWarn('scheduleAllOverdueOpenToToday', `-> can't find note for overdue para {${para.content}}`)
           continue
         }
-        CommandBar.showLoading(true, `Scheduling item ${c} to today`, c / totalOverdue)
-        para.content = `${removeDateTagsAndToday(para.content)} >today`
+        CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
+        para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
         logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.filename ?? '?'}`)
         numberChanged++
         thisNote.updateParagraph(para)
@@ -313,11 +322,14 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
       logDebug('scheduleAllOverdueOpenToToday', `scheduled ${String(numberChanged)} overdue items to today's note (after ${timer(thisStartTime)})`)
 
     } else {
+      // Determine if we need to use 'today' or schedule to the specific date.
+      logDebug('scheduleAllOverdueOpenToToday', `useTodayDate setting is ${config.useTodayDate}`)
+      const newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
       // For each para move to today's note
       for (const para of overdueParas) {
-        logDebug('scheduleAllOverdueOpenToToday', `- moving {${para.content}} to today`)
+        logDebug('scheduleAllOverdueOpenToToday', `- moving {${para.content}} to ${newDateStr}`)
         c++
-        CommandBar.showLoading(true, `Moving item ${c} to today`, c / totalOverdue)
+        CommandBar.showLoading(true, `Moving item ${c} to ${newDateStr}`, c / totalOverdue)
         const thisNote = para.note
         if (!thisNote) {
           logWarn('scheduleAllOverdueOpenToToday', `-> can't find note for overdue para {${para.content}}`)
@@ -334,8 +346,8 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
             logWarn('scheduleAllOverdueOpenToToday', `-> moveFromCalToCal from ${thisNoteDateStr} to ${todayDateStr} not successful`)
           }
         } else {
-          CommandBar.showLoading(true, `Scheduling item ${c} to today`, c / totalOverdue)
-          para.content = `${removeDateTagsAndToday(para.content)} >today`
+          CommandBar.showLoading(true, `Scheduling item ${c} to ${newDateStr}`, c / totalOverdue)
+          para.content = `${removeDateTagsAndToday(para.content)} >${newDateStr}`
           logDebug('scheduleAllOverdueOpenToToday', `- scheduling referenced para {${para.content}} from note ${para.note?.filename ?? '?'}`)
           numberChanged++
           thisNote.updateParagraph(para)
@@ -352,7 +364,7 @@ export async function scheduleAllOverdueOpenToToday(refreshDashboard: boolean = 
     if (refreshDashboard && numberChanged > 0) {
       logInfo('scheduleAllOverdueOpenToToday', `moved/scheduled ${String(numberChanged)} overdue items to today. Now will ...`)
       logDebug('scheduleAllOverdueOpenToToday', `-------- Refresh -------------------`)
-      await showDashboard('refresh')
+      await showDashboardReact('refresh')
     }
     return numberChanged
   }

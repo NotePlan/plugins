@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 4.4.2024 for v1.1.2 by @jgclark
+// Last updated 18.4.2024 for v1.2.1 by @SirTristam
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,7 +11,7 @@ import {
   getSettings,
   moveItemBetweenCalendarNotes
 } from './dashboardHelpers'
-import { showDashboard } from './HTMLGeneratorGrid'
+import { showDashboardReact } from './reactMain'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import {
   calcOffsetDateStr,
@@ -86,7 +86,7 @@ export async function onMessageFromHTMLView(type: string, data: any): any {
         await bridgeChangeCheckbox(data) // data is a string
         break
       case 'refresh':
-        await showDashboard() // no await needed, I think
+        await showDashboardReact() // no await needed, I think
         break
       case 'runPluginCommand':
         await runPluginCommand(data) // no await needed, I think
@@ -126,7 +126,7 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
     logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
     DataStore.setPreference('Dashboard-filterPriorityItems', state)
     // having changed this pref, refresh the dashboard
-    await showDashboard()
+    await showDashboardReact()
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -166,7 +166,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          await showDashboardReact('refresh')
         }
         break
       }
@@ -183,7 +183,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          await showDashboardReact('refresh')
         }
         break
       }
@@ -200,7 +200,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          await showDashboardReact('refresh')
         }
         break
       }
@@ -217,7 +217,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          await showDashboardReact('refresh')
         }
         break
       }
@@ -234,7 +234,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         } else {
           logWarn('bCDI / cancelChecklist', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          await showDashboardReact('refresh')
         }
         break
       }
@@ -248,7 +248,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         sendToHTMLWindow(windowId, 'toggleType', data)
         // Only use if necessary:
         // logDebug('bCDI', '---------------- refresh ---------------')
-        // await showDashboard('refresh')
+        // await showDashboardReact('refresh')
         break
       }
       case 'cyclePriorityStateUp': {
@@ -264,7 +264,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           const updatedContent = cyclePriorityStateUp(para)
           logDebug('bCDI / cyclePriorityStateUp', `cycling priority -> {${updatedContent}}`)
 
-          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (HTMLGeneratorGrid::) it is simpler to ask for a refresh. = await showDashboard('refresh')
+          // Ideally we would update the content in place, but so much of the logic for this is unhelpfully on the plugin side (HTMLGeneratorGrid::) it is simpler to ask for a refresh. = await showDashboardReact('refresh')
           // Note: But this doesn't work, because of race condition.
           // So we better try that logic after all.
           const updatedData = {
@@ -338,7 +338,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           //   sendToHTMLWindow(windowId, 'updateItemContent', updatedData) // unencoded
           // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboard('refresh')
+          await showDashboardReact('refresh')
 
         } else {
           logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
@@ -370,7 +370,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         break
       }
       case 'reviewFinished': {
-      // Mimic the /finish review command.
+        // Mimic the /finish review command.
         const note = await DataStore.projectNoteByFilename(filename)
         if (note) {
           logDebug('bCDI / review', `-> reviewFinished on ID ${ID} in filename ${filename}`)
@@ -481,7 +481,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         const newHeadingLevel = await getSettingFromAnotherPlugin("jgclark.QuickCapture", "headingLevel", 2)
         logDebug('moveToNote', `newHeadingLevel: ${newHeadingLevel}`)
         if (itemType === "task") {
-          addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel) 
+          addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
         } else {
           addChecklistToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
         }
@@ -548,7 +548,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         if (res) {
           logDebug('moveFromCalToCal', `-> appeared to move item succesfully`)
           // Unfortunately we seem to have a race condition here, as the following doesn't remove the item
-          // await showDashboard()
+          // await showDashboardReact()
           // So instead send a message to delete the row in the dashboard
           sendToHTMLWindow(windowId, 'removeItem', { itemID: ID })
         } else {
@@ -560,6 +560,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'updateTaskDate': {
         // Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)
         const dateInterval = data.controlStr
+        const config = await getSettings()
         // const startDateStr = ''
         let newDateStr = ''
         if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
@@ -567,8 +568,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           break
         }
         if (dateInterval === 't') {
-          // Special case to change to '>today'
-          newDateStr = 'today'
+          // Special case to change to '>today' (or the actual date equivalent)
+          newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
           logDebug('bridgeClickDashboardItem', `move task in ${filename} -> 'today'`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
@@ -605,7 +606,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
             // refresh whole display, as we don't know which if any section the moved task might need to be added to
             logDebug('bridgeClickDashboardItem', `------------ refresh ------------`)
-            await showDashboard()
+            await showDashboardReact()
           } else {
             logWarn('bridgeClickDashboardItem', `- can't find note to update to {${changedLine}}`)
           }
