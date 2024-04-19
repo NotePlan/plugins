@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 4.4.2024 for v1.1.2 by @jgclark
+// Last updated 18.4.2024 for v1.2.1 by @SirTristam
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -568,7 +568,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           break
         }
         if (dateInterval === 't') {
-          // Special case to change to '>today'
+          // Special case to change to '>today' (or the actual date equivalent)
           newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
           logDebug('bridgeClickDashboardItem', `move task in ${filename} -> 'today'`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
