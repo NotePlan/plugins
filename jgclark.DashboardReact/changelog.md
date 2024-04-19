@@ -6,4 +6,5 @@ For more details see the [plugin's documentation](https://github.com/NotePlan/pl
 ## [2.0.0-a1] @jgclark 2024-04-07
 - Brought across demoDashboard.js to experiment with forming JSON to sent to React
 
-## [1.0.0-a7] @dwertheimer
+## [1.2.1] - 2024-04-18 by @SirTristam
+- Add option to use the current date instead of '>today' to schedule tasks for today

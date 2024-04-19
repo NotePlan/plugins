@@ -267,6 +267,14 @@
       "required": true
     },
     {
+      "key": "useTodayDate",
+      "title": "Use 'today' to schedule tasks for today?",
+      "description": "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
       "key": "dashboardTheme",
       "title": "Theme to use for Dashboard",
       "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.\nLeave blank to use your current Theme.",
