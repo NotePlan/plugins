@@ -23,7 +23,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 import { displayTitle } from '@helpers/general'
-import { sendToHTMLWindow } from '@helpers/HTMLView'
+import { getGlobalSharedData, sendToHTMLWindow } from '@helpers/HTMLView'
 import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import {
   cyclePriorityStateDown,
@@ -64,6 +64,9 @@ type SettingDataObject = { settingName: string, state: string }
 
 const windowCustomId = `${pluginJson['plugin.id']}.main`
 
+// TEST: New for React
+const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId 
+
 //-----------------------------------------------------------------
 
 /**
@@ -74,11 +77,18 @@ const windowCustomId = `${pluginJson['plugin.id']}.main`
  * @param {string} type - the type of action the HTML view wants the plugin to perform
  * @param {any} data - the data that the HTML view sent to the plugin
  */
-export async function onMessageFromHTMLView(type: string, data: any): any {
+export async function onMessageFromHTMLView(actionType: string, data: any): any {
   try {
-    logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${type}:`)
+    logDebug(pluginJson, `onMessageFromHTMLView dispatching data to ${actionType}:`)
     // clo(data, 'onMessageFromHTMLView dispatching data object:')
-    switch (type) {
+
+    // TEST: New things for React copied from @DW version
+    let reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
+    clo(reactWindowData, `Plugin onMessageFromHTMLView reactWindowData=`)
+    if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
+
+
+    switch (actionType) {
       case 'onClickDashboardItem':
         await bridgeClickDashboardItem(data) // data is an array and could be multiple items. but in this case, we know we only need the first item which is an object
         break
@@ -92,9 +102,18 @@ export async function onMessageFromHTMLView(type: string, data: any): any {
         await runPluginCommand(data) // no await needed, I think
         break
       default:
-        logError(pluginJson, `onMessageFromHTMLView(): unknown ${type} cannot be dispatched`)
+        logError(pluginJson, `onMessageFromHTMLView(): unknown ${actionType} cannot be dispatched`)
         break
     }
+
+    // TEST: New things for React copied from @DW version
+    if (reactWindowData) {
+      const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
+      clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
+      sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
+    }
+
+
     return {} // any function called by invoke... should return something (anything) to keep NP from reporting an error in the console
   } catch (error) {
     logError(pluginJson, JSP(error))

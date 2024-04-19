@@ -32,6 +32,8 @@ function showTimeAgo() {
   } else {
     output = String(Math.round(diff / 60.0 / 24.0 / 30.4 / 365.0)) + ' yrs ago'
   }
+  console.log(`showTimeAgo(): new output = ${output}`) // ✅
+  // FIXME(@dwertheimer: why does this next line not work in the React version? It worked before.
   document.getElementById('timer').innerHTML = output
   setTimeout(showTimeAgo, 30000) // call again in 30s
 }

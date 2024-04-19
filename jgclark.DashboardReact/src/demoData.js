@@ -113,7 +113,7 @@ export const openYesterdayParas: Array<TSectionItem> = [
       "filename": thisFilename,
       "type": "checklist",
       "priority": 0,
-      "content": "update SW contract following review comments",
+      "content": "update contract for [[Staff Induction (SW)]] following review comments",
       "prefix": "* ",
     }
   }

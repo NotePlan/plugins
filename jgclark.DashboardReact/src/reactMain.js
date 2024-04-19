@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main file (for React v2.0.0+)
-// Last updated 16.4.2024 for v2.0.0 by @jgclark
+// Last updated 19.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -11,6 +11,7 @@ import {
   getSettings,
   type dashboardConfigType,
 } from './dashboardHelpers'
+// import { bridgeClickDashboardItem, bridgeChangeCheckbox, runPluginCommand } from './pluginToHTMLBridge'
 import type { TSection } from './types'
 import {
   getTodaySectionData,
@@ -29,6 +30,7 @@ import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '@helpe
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
 import { isDone } from '@helpers/utils'
+import { getWindowFromId } from '@helpers/NPWindows'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
@@ -49,7 +51,7 @@ const commsBridge = `
 <script type="text/javascript" src="../np.Shared/pluginToHTMLErrorBridge.js"></script>
 <script>
 /* you must set this before you import the CommsBridge file */
-const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin which will receive the comms from HTML
+const receivingPluginID = jgclark.DashboardReact"; // the plugin ID of the plugin which will receive the comms from HTML
 // That plugin should have a function NAMED onMessageFromHTMLView (in the plugin.json and exported in the plugin's index.js)
 // this onMessageFromHTMLView will receive any arguments you send using the sendToPlugin() command in the HTML window
 
@@ -105,19 +107,20 @@ export async function showDashboardReact(callMode: string = 'full', demoMode: bo
     const windowOptions = {
       windowTitle: data.title,
       customId: WEBVIEW_WINDOW_ID,
+      makeModal: false,
+      savedFilename: `../../${pluginJson['plugin.id']}/dashboard-react.html`, /* for saving a debug version of the html file */
+      shouldFocus: callMode !== 'refresh', /* focus window every time (unless this is a refresh) */
       headerTags: `${resourceLinksInHeader}\n<meta name="startTime" content="${String(Date.now())}">`,
       generalCSSIn: generateCSSFromTheme(config.dashboardTheme), // either use dashboard-specific theme name, or get general CSS set automatically from current theme
       specificCSS: '', // set in separate CSS file referenced in header
-      makeModal: false,
+      preBodyScript: `
+      <script type="text/javascript" src="./showTimeAgo.js"></script>
+`, // some extra pre-JS
       bodyOptions: 'onload="showTimeAgo()"',
-      preBodyScript: '', // no extra pre-JS
-      savedFilename: `../../${pluginJson['plugin.id']}/dashboard-react.html`, /* for saving a debug version of the html file */
-      shouldFocus: callMode !== 'refresh', /* focus window every time (unless this is a refresh) */
       // postBodyScript: `${commsBridge}
       postBodyScript: `
       <script type="text/javascript" src="../np.Shared/encodeDecode.js"></script>
       <script type="text/javascript" src="../np.Shared/shortcut.js"></script>
-      <script type="text/javascript" src="./showTimeAgo.js"></script>
       <script type="text/javascript" src="./dashboardShortcuts.js"></script>
       <script type="text/javascript" src="./dashboardEvents.js"></script>
 `
@@ -197,17 +200,6 @@ async function getAllSectionsData(config: dashboardConfigType, demoMode: boolean
   if (config.showOverdueTaskSection) data.push(await getOverdueSectionData(config, demoMode))
   data.push(await getProjectSectionData(config, demoMode))
 
-  // // Send doneCount through as a special type item:
-  // data.push({
-  //   ID: doneCount,
-  //   name: 'Done',
-  //   sectionType: 'COUNT',
-  //   description: ``,
-  //   FAIconClass: '',
-  //   sectionTitleClass: '',
-  //   sectionFilename: ''
-  // })
-
   return data
 }
 
@@ -268,6 +260,7 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
     logError(pluginJson, JSP(error))
   }
 }
+
 
 /**
  * An example handler function that is called when someone clicks a button in the React Window

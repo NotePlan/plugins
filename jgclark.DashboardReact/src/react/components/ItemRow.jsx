@@ -184,7 +184,7 @@ function ItemRow(inputObj: Props): React$Node {
       )
     }
   } catch (error) {
-    console.error(`ItemRow ❗️ERROR❗️ ${error.message}`)
+    console.error(`❗️ERROR❗️ ItemRow: ${error.message}`)
   }
 }
 
@@ -201,7 +201,7 @@ function makeNoteTitleWithOpenActionFromFilename(item: TSectionItem, noteTitle: 
     // Pass request back to plugin, as a single object
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID: '${item.ID}', type: 'showNoteInEditorFromFilename', encodedFilename: '${encodeURIComponent(item.itemFilename)}', encodedContent: ''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   } catch (error) {
-    console.error(`ItemRow::makeNoteTitleWithOpenActionFromFilename: ❗️ERROR❗️  ${error.message} for input '${noteTitle}'`)
+    console.error(`❗️ERROR❗️ ItemRow::makeNoteTitleWithOpenActionFromFilename: ${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
 }
