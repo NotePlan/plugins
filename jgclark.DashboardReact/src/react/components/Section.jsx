@@ -4,7 +4,7 @@
 // Last updated 15.4.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
-import type { TSection } from '../../types.js'
+import type { TSection, TSectionItem } from '../../types.js'
 import CommandButton from './CommandButton.jsx'
 import ItemGrid from './ItemGrid.jsx'
 import { useAppContext } from './AppContext.jsx'
@@ -20,7 +20,7 @@ type SectionProps = {
 function Section(inputObj: SectionProps): React$Node {
   try {
     const { section } = inputObj
-    const items = section.sectionItems
+    const items: Array<TSectionItem> = section.sectionItems
     const { pluginData } = useAppContext()
     const config = pluginData.settings
     // clo(config)
@@ -36,14 +36,21 @@ function Section(inputObj: SectionProps): React$Node {
         console.log(`Section 0 doesn't have any sectionItems, so display congrats message`)
         items.push({
           ID: '0-Congrats',
-          type: 'congrats',
-          content: `Nothing to do: take a break <i class="fa-regular fa-mug"></i>`, // earlier tried fa-party-horn
+          itemType: 'congrats',
+          itemFilename: '',
+          itemNoteTitle: '',
+          noteType: 'Notes', // for sake of something
+          para: {
+            filename: '',
+            type: 'text', // for sake of something
+            content: `Nothing to do: take a break <i class="fa-regular fa-mug"></i>`, // earlier tried fa-party-horn
+          },
           rawContent: ``,
           filename: '',
         })
       }
     } else {
-      console.log(`Section: ${section.ID} / ${section.sectionType} with ${section.sectionItems.length} items`)
+      console.info(`Section: ${section.ID} / ${section.sectionType} with ${section.sectionItems.length} items`)
     }
 
     // Produce set of actionButtons, if present
@@ -74,7 +81,7 @@ function Section(inputObj: SectionProps): React$Node {
     const filteredOut = (section.totalCount)
       ? section.totalCount - itemsToShow.length
       : items.length - itemsToShow.length
-    const limitApplied = (section.totalCount > itemsToShow.length)
+    const limitApplied = ((section.totalCount ?? 0) > itemsToShow.length)
     console.log(`- selected ${itemsToShow.length} visible items, with ${String(filteredOut)} filtered out (and potentially using maxTasksToShowInSection ${String(limit)})`)
 
     // Send an extra line if we've applied filtering/limit
@@ -121,7 +128,7 @@ function Section(inputObj: SectionProps): React$Node {
       </div>
     )
   } catch (error) {
-    console.log(`❗️ERROR❗️: ${error.message}`)
+    console.error(`❗️ERROR❗️: ${error.message}`)
   }
 }
 export default Section
