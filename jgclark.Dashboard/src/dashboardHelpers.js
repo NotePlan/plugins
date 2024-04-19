@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 6.4.2024 for v1.1.4 by @jgclark
+// Last updated 18.4.2024 for v1.2.1 by @SitTristam
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
@@ -136,6 +136,7 @@ export type dashboardConfigType = {
   updateTagMentionsOnTrigger: boolean,
   _logLevel: string,
   triggerLogging: boolean,
+  useTodayDate: boolean,
   // filterPriorityItems: boolean, // now kept in a DataStore.preference key
 }
 
