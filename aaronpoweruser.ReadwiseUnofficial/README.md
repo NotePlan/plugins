@@ -22,7 +22,7 @@ A sync engine for readwise
 - Images are not handled gracefully
 
 
-## Comands
+## Commands
 
 ### //Readwise sync
 
@@ -31,12 +31,12 @@ Downloads new highlights since last sync
 ### //Readwise rebuild
 
 ** Only needs to be used if highlights are deleted) **
-Downloads all highlights (if they already exisit they will be duplicated)
+Downloads all highlights (if they already exist they will be duplicated)
 
 
 ### //Readwise Daily review
 
-Downloads daily reviews (does not mark as read).
+Downloads daily reviews (does not mark as read) with links to note and author.
 Can be added to a note with templates using
 
 ```
@@ -72,11 +72,11 @@ Group all highlights in under the readwise folder or having them separated by co
 ### Group supplemental highlights separately
 
 ** Ignored if group by type is disabled **
-Group all highlights together or keep supplemental (readwise generated) highlights seperate.
+Group all highlights together or keep supplemental (readwise generated) highlights separate.
 
 ### Sync log
 
-A note that has all highlights synced during a sync.
+A note that has all highlights synced during a sync with dated references.
 
 ## Latest Updates
 
