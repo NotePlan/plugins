@@ -123,17 +123,8 @@ async function getReadwiseDailyReview(): Promise<string> {
     const response = await fetch(url, options)
     const highlights = JSON.parse(response).highlights
 
-    highlights.map((highlight) => {
-      let formattedHighlight = ''
-      if (DataStore.settings.showLinkToHighlight === true) {
-        if (highlight.highlight_url !== null) {
-          formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}](${highlight.highlight_url}), ${highlight.author}`
-        } else {
-          formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}, ${highlight.author}]`
-        }
-      } else {
-        formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [${highlight.title}, ${highlight.author}]`
-      }
+    await highlights.map((highlight) => {
+      const formattedHighlight = `${highlight.text.replace(/\n/g, ' ')} [ [[${highlight.title}]], [[${escapeTwitterHandle(highlight.author)}]] ]`
       highlightString += `> ${formattedHighlight}\n`
     })
     if (highlightString.length > 1) { // remove the last newline

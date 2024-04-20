@@ -4,7 +4,7 @@
   "noteplan.minAppVersion": "3.4.0",
   "plugin.id": "aaronpoweruser.ReadwiseUnofficial",
   "plugin.name": "📚 Readwise Unofficial",
-  "plugin.version": "1.1.0",
+  "plugin.version": "1.1.1",
   "plugin.lastUpdateInfo": "Add a sync log note. \nAdd support for daily reviews via templates",
   "plugin.description": "A sync plugin for Readwise",
   "plugin.author": "aaronpoweruser",
