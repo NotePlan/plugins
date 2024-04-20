@@ -5,17 +5,15 @@
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
 
-## [1.0.3] Readwise 2024-04-12 (aaronpoweruser)
-- Added a sync log.
+## [1.1.0] Readwise 2024-04-19 (aaronpoweruser)
 - Refactor
-- Fixed alert dialog count being wrong
-- Fixed illgal characters in titles.
-
-## [1.0.2] Readwise 2024-04-11 (aaronpoweruser)
+- Added a sync log see [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md).
+- Fixed alert dialog count being wrong sometimes.
+- Fixed illegal characters and newlines in titles.
 - Add support for daily reviews via template.
 
 ## [1.0.1] Readwise 2023-08-20 (aaronpoweruser)
-* [#452] Fix pagination issue for users with large libaries thanks @TobiasMende
+* [#452] Fix pagination issue for users with large libraries thanks @TobiasMende
 
 ## [1.0.0] Readwise  2023-02-07 (aaronpoweruser)
 * public release

@@ -25,11 +25,11 @@ export async function checkAccessToken(): void {
  */
 export function buildReadwiseNoteTitle(source: any): string {
   if (source.readable_title !== '') {
-    return source.readable_title.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1')
+    return source.readable_title.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1').replace("\n", "")
   } else if (source.title !== '') {
-    return source.title.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1')
+    return source.title.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1').replace("\n", "")
   } else {
-    return source.author.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1')
+    return source.author.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1').replace("\n", "")
   }
 }
 
@@ -102,7 +102,7 @@ export function removeEmptyLines(note: ?Tnote): void {
  * @returns {string} - the escaped Twitter handle
  */
 export function escapeTwitterHandle(handle: string): string {
-  if (handle.includes(' on Twitter')) {
+  if (handle.startsWith('@') && handle.endsWith(' on Twitter')) {
     return handle.replace('@', 'Twitter/@').replace(' on Twitter', '')
   }
   return handle
