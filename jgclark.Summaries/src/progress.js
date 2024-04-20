@@ -114,9 +114,10 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
     const paramProgressMentions = await getTagParamsFromString(params, 'progressMentions', '')
     const paramProgressMentionsTotal = await getTagParamsFromString(params, 'progressMentionsTotal', '')
     const paramProgressMentionsAverage = await getTagParamsFromString(params, 'progressMentionsAverage', '')
+    const paramProgressRefNote = await getTagParamsFromString(params, 'progressChecklistReferenceNote', '')
 
     // If we have any of these params, then override all the mentions/hashtags settings
-    const useParamTerms = (paramProgressYesNo || paramProgressHashtags || paramProgressHashtagsTotal || paramProgressHashtagsAverage || paramProgressMentions || paramProgressMentionsTotal || paramProgressMentionsAverage)
+    const useParamTerms = (paramProgressYesNo || paramProgressHashtags || paramProgressHashtagsTotal || paramProgressHashtagsAverage || paramProgressMentions || paramProgressMentionsTotal || paramProgressMentionsAverage || paramProgressRefNote)
     if (useParamTerms) {
       settingsForGO = {
         GOYesNo: paramProgressYesNo,
@@ -128,6 +129,7 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
         GOMentionsTotal: paramProgressMentionsTotal,
         GOMentionsAverage: paramProgressMentionsAverage,
         GOMentionsExclude: [],
+        GOChecklistRefNote: paramProgressRefNote,
       }
     } else {
       settingsForGO = {
@@ -140,6 +142,7 @@ export async function makeProgressUpdate(paramsIn: any = '', source: string = 'c
         GOMentionsTotal: config.progressMentionsTotal,
         GOMentionsAverage: config.progressMentionsAverage,
         GOMentionsExclude: [],
+        GOChecklistRefNote: config.progressChecklistReferenceNote,
       }
     }
 
