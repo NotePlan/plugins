@@ -225,31 +225,25 @@ export async function updateReactWindowData(actionType: string, data: any = null
  */
 export async function onMessageFromHTMLView(actionType: string, data: any): Promise<any> {
   try {
+    let newData = null
     logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
     // clo(data, `Plugin onMessageFromHTMLView data=`)
-    let reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
+    const reactWindowData = await getGlobalSharedData(WEBVIEW_WINDOW_ID) // get the current data from the React Window
     if (data.passThroughVars) reactWindowData.passThroughVars = { ...reactWindowData.passThroughVars, ...data.passThroughVars }
     switch (actionType) {
       /* best practice here is not to actually do the processing but to call a function based on what the actionType was sent by React */
-      case 'refresh': {
-        const data = await getInitialDataForReactWindowObjectForReactView(demoMode)
-        clo(reactWindowData, `\n\n\nPlugin onMessageFromHTMLView reactWindowData=`)
-        clo(data, `\n\n\nPlugin onMessageFromHTMLView data=`)
-        reactWindowData = { ...reactWindowData, ...{ pluginData: data } }
-        throw 'stoppping'
-        break
-      }
+
       // NOTE: SO THAT JGCLARK DOESN'T HAVE TO RE-INVENT THE WHEEL HERE, WE WILL JUST CALL THE PRE-EXISTING FUNCTION bridgeDashboardItem
       // every time
       default:
-        reactWindowData = (await bridgeClickDashboardItem(data)) || reactWindowData // the processing function can update the reactWindowData object and return it
+        newData = (await bridgeClickDashboardItem(data)) || reactWindowData // the processing function can update the reactWindowData object and return it
         // await sendBannerMessage(WEBVIEW_WINDOW_ID, `Plugin received an unknown actionType: "${actionType}" command with data:\n${JSON.stringify(data)}`)
         break
     }
-    if (reactWindowData) {
+    if (newData) {
       const updateText = `After ${actionType}, data was updated` /* this is just a string for debugging so you know what changed in the React Window */
       // clo(reactWindowData, `Plugin onMessageFromHTMLView after updating window data,reactWindowData=`)
-      sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', reactWindowData, updateText) // note this will cause the React Window to re-render with the currentJSData
+      sendToHTMLWindow(WEBVIEW_WINDOW_ID, 'SET_DATA', newData, updateText) // note this will cause the React Window to re-render with the currentJSData
     }
     return {} // this return value is ignored but needs to exist or we get an error
   } catch (error) {
