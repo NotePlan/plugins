@@ -82,11 +82,11 @@ export function WebView({ data, dispatch }: Props): Node {
    * Fires after components draw
    */
   useEffect(() => {
-    // logDebug(`Webview: useEffect: data changed. data: ${JSON.stringify(data)}`)
-    logDebug(`Webview: useEffect: data changed.`)
     if (data?.passThroughVars?.lastWindowScrollTop !== undefined && data.passThroughVars.lastWindowScrollTop !== window.scrollY) {
-      debug && logDebug(`Webview: useEffect: data changed. Scrolling to ${String(data.lastWindowScrollTop)}`)
+      debug && logDebug(`Webview: FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(data.lastWindowScrollTop)}`)
       window.scrollTo(0, data.passThroughVars.lastWindowScrollTop)
+    } else {
+      logDebug(`Webview: FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`)
     }
   }, [data])
 
@@ -129,8 +129,9 @@ export function WebView({ data, dispatch }: Props): Node {
    */
   const sendActionToPlugin = (command: string, dataToSend: any) => {
     const newData = addPassthroughVars(data) // save scroll position and other data in data object at root level
-    dispatch('UPDATE_DATA', newData) // save the data at the Root React Component level, which will give the plugin access to this data also
-    sendToPlugin([command, dataToSend]) // send action to plugin
+    logDebug(`Webview: sendActionToPlugin: command:${command} dataToSend:${JSON.stringify(dataToSend)}`)
+    dispatch('UPDATE_DATA', newData, '') // save the data at the Root React Component level, which will give the plugin access to this data also
+    sendToPlugin([command, dataToSend, '']) // send action to plugin
   }
 
   /**
@@ -139,11 +140,12 @@ export function WebView({ data, dispatch }: Props): Node {
    * In that case, don't call this directly, use sendActionToPlugin() instead
    * @param {[command:string,data:any,additionalDetails:string]} param0
    */
-  const sendToPlugin = ([command, data, additionalDetails = '']) => {
+  const sendToPlugin = ([command, data, additionalDetails = '']: [string, any, string]) => {
     if (!command) throw new Error('sendToPlugin: command must be called with a string')
     logDebug(`Webview: sendToPlugin: ${JSON.stringify(command)} ${additionalDetails}`, command, data, additionalDetails)
     if (!data) throw new Error('sendToPlugin: data must be called with an object')
-    dispatch('SEND_TO_PLUGIN', [command, data], `WebView: sendToPlugin: ${String(command)} ${additionalDetails}`)
+    console.log(`WebView: sendToPlugin: command:${command} data=${JSON.stringify(data)} `)
+    dispatch('SEND_TO_PLUGIN', [command, data], `WebView sending: sendToPlugin: ${String(command)} ${additionalDetails} ${JSON.stringify(data)}`)
   }
 
   /**

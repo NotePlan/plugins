@@ -1,5 +1,6 @@
 // @flow
 import React from 'react'
+import { getTimeAgo } from '../support/showTimeAgo.js'
 import Button from './Button.jsx'
 import { useAppContext } from './AppContext.jsx'
 
@@ -13,6 +14,16 @@ type Props = {
 const Header = ({ lastUpdated }: Props): React$Node => {
   const { reactSettings, updateReactSettings, sendActionToPlugin /*, sendToPlugin, dispatch, pluginData, */ } = useAppContext()
 
+  // Deal with timeAgo timer section
+  const [timeAgo, setTimeAgo] = useState(getTimeAgo(lastUpdated))
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeAgo(getTimeAgo(lastUpdated))
+    }, 10000) // Update every 10 seconds
+
+    return () => clearInterval(timer) // Clear interval on component unmount
+  }, [lastUpdated])
+
   const handleCheckboxClick = (e) => {
     const isChecked = e?.target.checked || false
     console.log(`Checkbox clicked. setting in global Context reactSettings.filterPriorityItems to ${String(isChecked)}`)
@@ -21,7 +32,7 @@ const Header = ({ lastUpdated }: Props): React$Node => {
 
   const handleRefreshClick = () => {
     console.log('Refresh button clicked')
-    sendActionToPlugin('refresh', {})
+    sendActionToPlugin('refresh', { type: 'refresh' })
   }
 
   const calculateTimeSince = () => {
@@ -31,13 +42,9 @@ const Header = ({ lastUpdated }: Props): React$Node => {
   return (
     <div className="header">
       <div className="lastUpdated">
-        Last updated: <span id="timer"></span>
-        {' '}
+        Last updated: <span id="timer">{timeAgo}</span>
       </div>
-      <Button
-        text={'Refresh'}
-        clickHandler={handleRefreshClick}
-        className="PCButton" />
+      <Button text={'Refresh'} clickHandler={handleRefreshClick} className="PCButton" />
       <div className="totalCounts">
         <span id="totalDoneCount">0</span> items closed
       </div>

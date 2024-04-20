@@ -1,7 +1,19 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
-
+## [2.0.0-a2] @jgclark 2024-04-19
+- ShowTimeAgo:
+    - moved showTimeAgo from a free-standing JS to being part of the Header react component
+    - moved file from requiredFiles to react/support)
+    - removed the body onLoad that loads it -- now loads when the Header loads
+    - removed it from preBodyScript
+- Actions not working: You were correct. It was fairly simple. The command we need to use to talk to the plugin from React is sendActionToPlugin(), but to have access to that command/function, we need to pull it out of the React context. So each component that needs to talk to the plugin should:
+    a) import { useAppContext } from './AppContext.jsx'
+    and then inside the component:
+    b)  const { sendActionToPlugin } = useAppContext()
+    c) then in any click handler you can call it like:
+        `onClick={() => sendActionToPlugin('showNoteInEditor', dataObjectToPassToFunction)}`
+    d) the catcher/router on the other side is in reactMain.js, onMessageFromHTMLView() where there is a 'case' statement for each command fires off a command. Since you already have a function for that, bridgeClickDashboardItem(), I just put a default routing in onMessageFromHTMLView() to send everything to your function
 
 ## [2.0.0-a1] @jgclark 2024-04-07
 - Brought across demoDashboard.js to experiment with forming JSON to sent to React

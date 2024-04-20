@@ -36,7 +36,7 @@ const defaultContextValue: AppContextType = {
 }
 
 type Props = {
-  sendActionToPlugin: (command: string, dataToSend: any) => void,
+  sendActionToPlugin: (command: string, dataToSend: any, additionalDetails?: string) => void,
   sendToPlugin: (command: string, dataToSend: any) => void,
   dispatch: (command: string, dataToSend: any, messageForLog?: string) => void,
   pluginData: Object,
