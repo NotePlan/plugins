@@ -13,6 +13,9 @@ A sync engine for readwise
 - Set download folder
 - Front matter support
 - NotePlan tags
+
+![General features](docs/ReadwiseSync.png)
+
 ### Todo
 * Index note
 * Image support (needs Noteplan API update)
@@ -40,15 +43,17 @@ Downloads daily reviews (does not mark as read) with links to note and author.
 Can be added to a note with templates using
 
 ```
-<%- await DataStore.invokePluginCommandByName("Readwise Daily Review","aaronpoweruser.ReadwiseUnofficial")  %>
+<%- await DataStore.invokePluginCommandByName("Readwise Daily Review","aaronpoweruser.ReadwiseUnofficial") %>
 ```
+
+![Daily review](docs/dailyReview.png)
 
 
 ## Settings
 
 These commands require configuration.
 
-### Access Token (*required)
+### Access Token (*required*)
 
 1. Go to the [Readwise](readwise.io/access_token).
 2. Copy and paste that token to plugin settings.
@@ -71,12 +76,14 @@ Group all highlights in under the readwise folder or having them separated by co
 
 ### Group supplemental highlights separately
 
-** Ignored if group by type is disabled **
+**Ignored if group by type is disabled**
 Group all highlights together or keep supplemental (readwise generated) highlights separate.
 
 ### Sync log
 
 A note that has all highlights synced during a sync with dated references.
+
+![Sync log](docs/syncLog.png)
 
 ## Latest Updates
 
