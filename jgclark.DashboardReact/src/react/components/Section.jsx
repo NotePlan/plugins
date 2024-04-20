@@ -25,7 +25,7 @@ function Section(inputObj: SectionProps): React$Node {
     const config = pluginData.settings
     // clo(config)
 
-    if (!section || !section.ID) {
+    if (!section || isNaN(section.ID)) {
       throw new Error(`❓Section doesn't exist.`)
     } else if ((!section.sectionItems || section.sectionItems.length === 0)) {
       if (section.ID !== 0) {

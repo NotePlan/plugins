@@ -118,7 +118,9 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
     description: `{count} from ${todayDateLocale}`,
     FAIconClass: "fa-light fa-calendar-star",
     sectionTitleClass: "sidebarDaily", sectionFilename: thisFilename,
-    sectionItems: items, generated: new Date(),
+    sectionItems: items,
+    // Note: this often gets stringified to a string, but isn't underneath
+    generated: new Date(),
     actionButtons: [
       { actionFunctionName: "addTask", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to today's note", display: '<i class= "fa-regular fa-circle-plus sidebarDaily" ></i> ', actionFunctionParam: thisFilename },
       { actionFunctionName: "addChecklist", actionPluginID: "jgclark.DashboardReact", tooltip: "Add a new task to today's note", display: '<i class= "fa-regular fa-square-plus sidebarDaily" ></i> ', actionFunctionParam: thisFilename },
@@ -189,7 +191,7 @@ export function getYesterdaySectionData(config: dashboardConfigType, useDemoData
     sectionTitleClass: "sidebarDaily", sectionFilename: thisFilename,
     sectionItems: items, generated: new Date(),
     actionButtons: [
-      { actionFunctionName: "schedule yesterday to today", actionPluginID: "jgclark.DashboardReact", tooltip: 'Move or schedule all open items from yesteday to today', display: 'All <i class="fa - solid fa- right - long"></i> Today', actionFunctionParam: 'true' /* refresh afterwards */ },
+      { actionFunctionName: "schedule yesterday to today", actionPluginID: "jgclark.DashboardReact", tooltip: 'Move or schedule all open items from yesteday to today', display: 'All <i class="fa-solid fa-right-long"></i> Today', actionFunctionParam: 'true' /* refresh afterwards */ },
     ]
   }
 

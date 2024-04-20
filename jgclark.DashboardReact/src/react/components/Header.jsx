@@ -19,7 +19,7 @@ const Header = ({ lastUpdated }: Props): React$Node => {
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeAgo(getTimeAgo(lastUpdated))
-    }, 10000) // Update every 10 seconds
+    }, 30000) // Update every 30 seconds
 
     return () => clearInterval(timer) // Clear interval on component unmount
   }, [lastUpdated])

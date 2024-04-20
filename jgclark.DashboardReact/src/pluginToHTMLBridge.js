@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 18.4.2024 for v1.2.1 by @SirTristam
+// Last updated 20.4.2024 for v2.0.0 by @SirTristam
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -11,7 +11,7 @@ import {
   getSettings,
   moveItemBetweenCalendarNotes
 } from './dashboardHelpers'
-import { showDashboardReact } from './reactMain'
+// import { showDashboardReact } from './reactMain'
 import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import {
   calcOffsetDateStr,
@@ -96,7 +96,8 @@ export async function onMessageFromHTMLView(actionType: string, data: any): any 
         await bridgeChangeCheckbox(data) // data is a string
         break
       case 'refresh':
-        await showDashboardReact() // no await needed, I think
+        logWarn('onMessageFromHTMLView', `'refresh' is currently turned off in onMessageFromHTMLView to avoid circular dependency`)
+        // await showDashboardReact() // no await needed, I think
         break
       case 'runPluginCommand':
         await runPluginCommand(data) // no await needed, I think
@@ -145,7 +146,7 @@ export async function bridgeChangeCheckbox(data: SettingDataObject) {
     logDebug('pluginToHTMLBridge/bridgeChangeCheckbox', `- settingName: ${settingName}, state: ${state}`)
     DataStore.setPreference('Dashboard-filterPriorityItems', state)
     // having changed this pref, refresh the dashboard
-    await showDashboardReact()
+    // await showDashboardReact()
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
@@ -184,8 +185,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'completeTask', data)
         } else {
           logWarn('bCDI / completeTask', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardReact('refresh')
+          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+          // await showDashboardReact('refresh')
         }
         break
       }
@@ -201,8 +202,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'completeTask', data)
         } else {
           logWarn('bCDI / completeTaskThen', `-> unsuccessful call to completeItemEarlier(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardReact('refresh')
+          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+          // await showDashboardReact('refresh')
         }
         break
       }
@@ -218,8 +219,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'cancelTask', data)
         } else {
           logWarn('bCDI / cancelTask', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardReact('refresh')
+          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+          // await showDashboardReact('refresh')
         }
         break
       }
@@ -235,8 +236,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'completeChecklist', data)
         } else {
           logWarn('bCDI / completeChecklist', `-> unsuccessful call to completeItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardReact('refresh')
+          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+          // await showDashboardReact('refresh')
         }
         break
       }
@@ -252,8 +253,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           sendToHTMLWindow(windowId, 'cancelChecklist', data)
         } else {
           logWarn('bCDI / cancelChecklist', `-> unsuccessful call to cancelItem(). Will trigger a refresh of the dashboard.`)
-          logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardReact('refresh')
+          logWarn('bCDI', '------- refresh turned off at the moment ---------------')
+          // await showDashboardReact('refresh')
         }
         break
       }
@@ -266,7 +267,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         // Update display in Dashboard too
         sendToHTMLWindow(windowId, 'toggleType', data)
         // Only use if necessary:
-        // logDebug('bCDI', '---------------- refresh ---------------')
+        // Warnbug('bCDI', '------- refr turned off at the momentesh ---------------')
         // await showDashboardReact('refresh')
         break
       }
@@ -357,7 +358,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           //   sendToHTMLWindow(windowId, 'updateItemContent', updatedData) // unencoded
           // Note: now too complex to easily do in place, so do a visual change, and then do a full refresh
           logDebug('bCDI', '---------------- refresh ---------------')
-          await showDashboardReact('refresh')
+          // await showDashboardReact('refresh')
 
         } else {
           logWarn('bCDI / updateItemContent', `-> unable to find para {${content}} in filename ${filename}`)
