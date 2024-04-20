@@ -102,7 +102,7 @@ export function removeEmptyLines(note: ?Tnote): void {
  * @returns {string} - the escaped Twitter handle
  */
 export function escapeTwitterHandle(handle: string): string {
-  if (handle.includes(' on Twitter')) {
+  if (handle.startsWith('@') && handle.endsWith(' on Twitter')) {
     return handle.replace('@', 'Twitter/@').replace(' on Twitter', '')
   }
   return handle
