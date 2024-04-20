@@ -132,7 +132,7 @@ export async function makeTodayProgress(itemsToShowArr: Array<string> = [], sour
       GOMentionsTotal: (mentionsToShow.length > 0) ? mentionsToShow : [],
       GOMentionsAverage: [],
       GOMentionsExclude: [],
-      GOChecklistRefNote: string,
+      GOChecklistRefNote: "",
     }
 
     const startTime = new Date()
