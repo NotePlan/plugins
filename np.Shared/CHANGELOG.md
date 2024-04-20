@@ -2,6 +2,18 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
+## [0.5.3] - 2024-04-19 @dwertheimer
+
+- Decrease error logging
+
+## [0.5.2] - 2024-04-12 @dwertheimer
+
+- Improve error logging in React root component
+
+## [0.4.8] - 2024-04-01 @jgclark
+
+- add 'shortcut.js' script
+
 ## [0.4.7] - 2023-10-16 @dwertheimer
 
 - minor updates to Root's WebView debug wrapper

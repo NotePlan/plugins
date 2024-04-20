@@ -72,6 +72,62 @@ export async function toggleMonthSection(): Promise<void> {
 }
 
 /**
+ * Toggle showing the 'Tomorrow' section of the dashboard, by changing the setting file
+ * and then refreshing the dashboard.
+ */
+export async function toggleTomorrowSection(): Promise<void> {
+  try {
+    // Get plugin settings
+    const config: dashboardConfigType = await getSettings()
+    // logDebug('toggleTomorrowSection', `starting with existing value ${String(config.showTomorrowSection)}`)
+
+    if (config == null || Object.keys(config).length === 0) {
+      throw new Error(
+        `Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`,
+      )
+    }
+    config.showTomorrowSection = !config.showTomorrowSection
+
+    // Save it back
+    const res = await saveSettings(pluginID, config)
+    // logDebug('toggleTomorrowSection', `result -> ${String(res)}`)
+    logDebug('toggleTomorrowSection', `-> new value ${String(config.showTomorrowSection)}`)
+    logDebug('toggleTomorrowSection', `------- now Refresh ---------`)
+    await showDashboard()
+  } catch (error) {
+    logError(pluginJson, `toggleTomorrowSection: ${error.name}: ${error.message}`)
+  }
+}
+
+/**
+ * Toggle showing the 'Quarter' section of the dashboard, by changing the setting file
+ * and then refreshing the dashboard.
+ */
+export async function toggleQuarterSection(): Promise<void> {
+  try {
+    // Get plugin settings
+    const config: dashboardConfigType = await getSettings()
+    // logDebug('toggleQuarterSection', `starting with existing value ${String(config.showQuarterSection)}`)
+
+    if (config == null || Object.keys(config).length === 0) {
+      throw new Error(
+        `Cannot find settings for the '${pluginID}' plugin. Please make sure you have installed it from the Plugin Preferences pane.`,
+      )
+    }
+    config.showQuarterSection = !config.showQuarterSection
+
+    // Save it back
+    const res = await saveSettings(pluginID, config)
+    // logDebug('toggleQuarterSection', `result -> ${String(res)}`)
+    logDebug('toggleQuarterSection', `-> new value ${String(config.showQuarterSection)}`)
+    logDebug('toggleQuarterSection', `------- now Refresh ---------`)
+    await showDashboard()
+  } catch (error) {
+    logError(pluginJson, `toggleQuarterSection: ${error.name}: ${error.message}`)
+  }
+}
+
+/**
  * Toggle showing the 'Week' section of the dashboard, by changing the setting file
  * and then refreshing the dashboard.
  */
@@ -141,6 +197,7 @@ export async function turnOnAllSections(): Promise<void> {
       )
     }
     config.showYesterdaySection = true
+    config.showTomorrowSection = true
     config.showWeekSection = true
     config.showMonthSection = true
     config.showQuarterSection = true

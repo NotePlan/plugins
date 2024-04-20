@@ -1,14 +1,18 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Bridging functions for Dashboard plugin
-// Last updated 22.3.2024 for v1.0.0 by @jgclark
+// Last updated 18.4.2024 for v1.2.1 by @SirTristam
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
 import { addChecklistToNoteHeading, addTaskToNoteHeading } from '../../jgclark.QuickCapture/src/quickCapture'
 import { finishReviewForNote, skipReviewForNote } from '../../jgclark.Reviews/src/reviews'
-import { getSettings } from './dashboardHelpers'
+import {
+  getSettings,
+  moveItemBetweenCalendarNotes
+} from './dashboardHelpers'
 import { showDashboard } from './HTMLGeneratorGrid'
+import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import {
   calcOffsetDateStr,
   getDateStringFromCalendarFilename,
@@ -24,7 +28,7 @@ import { projectNotesSortedByChanged, getNoteByFilename } from '@helpers/note'
 import {
   cyclePriorityStateDown,
   cyclePriorityStateUp,
-  getTaskPriority
+  getTaskPriority,
 } from '@helpers/paragraph'
 import { getNPWeekData, type NotePlanWeekInfo } from '@helpers/NPdateTime'
 import {
@@ -33,7 +37,6 @@ import {
   completeItemEarlier,
   findParaFromStringAndFilename,
   highlightParagraphInEditor,
-  moveItemBetweenCalendarNotes,
   toggleTaskChecklistParaType,
   unscheduleItem,
 } from '@helpers/NPParagraph'
@@ -471,14 +474,16 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
         // Ask to which heading to add the selectedParas
         const headingToFind = await chooseHeading(destNote, true, true, false)
-        logDebug('noteToNote', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
+        logDebug('moveToNote', `- Moving to note '${displayTitle(destNote)}' under heading: '${headingToFind}'`)
 
         // Add text to the new location in destination note
-        // Requires QuickCapture plugin, o
+        // Use 'headingLevel' ("Heading level for new Headings") from the setting in QuickCapture if present (or default to 2)
+        const newHeadingLevel = await getSettingFromAnotherPlugin("jgclark.QuickCapture", "headingLevel", 2)
+        logDebug('moveToNote', `newHeadingLevel: ${newHeadingLevel}`)
         if (itemType === "task") {
-          addTaskToNoteHeading(destNote.title, headingToFind, content)
+          addTaskToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel) 
         } else {
-          addChecklistToNoteHeading(destNote.title, headingToFind, content)
+          addChecklistToNoteHeading(destNote.title, headingToFind, content, newHeadingLevel)
         }
         // Ask for cache refresh for this note
         DataStore.updateCache(destNote, false)
@@ -487,13 +492,13 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         const origNote = getNoteByFilename(filename)
         const origPara = findParaFromStringAndFilename(filename, content)
         if (origNote && origPara) {
-          logDebug('noteToNote', `- Removing 1 para from original note ${filename}`)
+          logDebug('moveToNote', `- Removing 1 para from original note ${filename}`)
           origNote.removeParagraph(origPara)
         } else {
-          logWarn('noteToNote', `couldn't remove para {${content}} from original note ${filename} because note or paragraph couldn't be found`)
+          logWarn('moveToNote', `couldn't remove para {${content}} from original note ${filename} because note or paragraph couldn't be found`)
         }
         // Send a message to update the row in the dashboard
-        logDebug('noteToNote', `- Sending request to window to update`)
+        logDebug('moveToNote', `- Sending request to window to update`)
         sendToHTMLWindow(windowId, 'updateItemFilename', { itemID: ID, filename: destNote.filename })
 
         // Ask for cache refresh for this note
@@ -509,7 +514,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
         let startDateStr = ''
         let newDateStr = ''
         if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
-          logError('bridgeClickDashboardItem', `bad move date interval: ${dateInterval}`)
+          logError('moveFromCalToCal', `bad move date interval: ${dateInterval}`)
           break
         }
         if (dateInterval === 't') {
@@ -517,7 +522,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
 
           startDateStr = getDateStringFromCalendarFilename(filename, true)
           newDateStr = getTodaysDateHyphenated()
-          logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> 'today'`)
+          logDebug('moveFromCalToCal', `move task from ${startDateStr} -> 'today'`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character
 
@@ -531,23 +536,23 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
             const NPWeekData = getNPWeekData(startDateStr, offsetNum, 'week')
             if (NPWeekData) {
               newDateStr = NPWeekData.weekString
-              logDebug('bridgeClickDashboardItem', `- used NPWeekData instead -> ${newDateStr}`)
+              logDebug('moveFromCalToCal', `- used NPWeekData instead -> ${newDateStr}`)
             } else {
-              throw new Error(`Error moving task from ${filename} (${startDateStr}) with offset ${String(offsetNum)}`)
+              throw new Error(`Can't get NPWeekData for '${String(offsetNum)}w' when moving task from ${filename} (${startDateStr})`)
             }
           }
-          logDebug('bridgeClickDashboardItem', `move task from ${startDateStr} -> ${newDateStr}`)
+          logDebug('moveFromCalToCal', `move task from ${startDateStr} -> ${newDateStr}`)
         }
         // Do the actual move
-        const res = moveItemBetweenCalendarNotes(startDateStr, newDateStr, content, config.newTaskSectionHeading ?? '')
+        const res = await moveItemBetweenCalendarNotes(startDateStr, newDateStr, content, config.newTaskSectionHeading ?? '')
         if (res) {
-          logDebug('bridgeClickDashboardItem', `-> appeared to move item succesfully`)
+          logDebug('moveFromCalToCal', `-> appeared to move item succesfully`)
           // Unfortunately we seem to have a race condition here, as the following doesn't remove the item
           // await showDashboard()
           // So instead send a message to delete the row in the dashboard
           sendToHTMLWindow(windowId, 'removeItem', { itemID: ID })
         } else {
-          logWarn('bridgeClickDashboardItem', `-> moveFromCalToCal to ${newDateStr} not successful`)
+          logWarn('moveFromCalToCal', `-> moveFromCalToCal to ${newDateStr} not successful`)
         }
         break
       }
@@ -555,6 +560,7 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
       case 'updateTaskDate': {
         // Instruction from a 'changeDateButton' to change date on a task (in a project note or calendar note)
         const dateInterval = data.controlStr
+        const config = await getSettings()
         // const startDateStr = ''
         let newDateStr = ''
         if (dateInterval !== 't' && !dateInterval.match(RE_DATE_INTERVAL)) {
@@ -562,8 +568,8 @@ export async function bridgeClickDashboardItem(data: MessageDataObject) {
           break
         }
         if (dateInterval === 't') {
-          // Special case to change to '>today'
-          newDateStr = 'today'
+          // Special case to change to '>today' (or the actual date equivalent)
+          newDateStr = config.useTodayDate ? 'today' : getTodaysDateHyphenated()
           logDebug('bridgeClickDashboardItem', `move task in ${filename} -> 'today'`)
         } else if (dateInterval.match(RE_DATE_INTERVAL)) {
           const offsetUnit = dateInterval.charAt(dateInterval.length - 1) // get last character

@@ -3,6 +3,7 @@
 import pluginJson from '../plugin.json'
 import { getGlobalSharedData, sendToHTMLWindow, sendBannerMessage } from '../../helpers/HTMLView'
 import { log, logError, logDebug, timer, clo, JSP } from '@helpers/dev'
+import { getWindowFromId } from '@helpers/NPWindows'
 
 const WEBVIEW_WINDOW_ID = `${pluginJson['plugin.id']} React Window` // will be used as the customId for your window
 // you can leave it like this or if you plan to open multiple windows, make it more specific per window
@@ -14,6 +15,7 @@ export type PassedData = {
   pluginData: any /* Your plugin's data to pass on first launch (or edited later) */,
   ENV_MODE?: 'development' | 'production',
   debug: boolean /* set based on ENV_MODE above */,
+  logProfilingMessage: boolean /* whether you want to see profiling messages on React redraws (not super interesting) */,
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
   componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
   passThroughVars?: any /* any data you want to pass through to the React Window */,
@@ -31,6 +33,7 @@ export function getInitialDataForReactWindowObjectForReactView(): PassedData {
   const dataToPass: PassedData = {
     pluginData,
     title: REACT_WINDOW_TITLE,
+    logProfilingMessage: false,
     debug: ENV_MODE === 'development' ? true : false,
     ENV_MODE,
     returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },
@@ -59,11 +62,22 @@ export function getInitialDataForReactWindow(): { [string]: mixed } {
 
 /**
  * Router function that receives requests from the React Window and routes them to the appropriate function
+ * Typically based on a user interaction in the React Window
  * (e.g. handleSubmitButtonClick example below)
  * Here's where you will process any other commands+data that comes back from the React Window
+ * How it works:
+ * let reactWindowData...reaches out to the React window and get the most current pluginData that it's using to render.
+ * This is the data that you initially built and passed to the window in the initial call (with a few additions you don't need to worry about)
+ * Then in the case statements, we pass that data to a function which will act on the particular action type,
+ * and you edit the part of the data object that needs to be edited: typically `reactWindowData.pluginData.XXX`
+ * and that function IMPORTANTLY returns a modified reactWindowData object after acting on the action (this should be the full object used to render the React Window)
+ * That new updated reactWindowData object is sent back to the React window basically saying "hey, the data has changed, re-render as necessary!"
+ * and React will look through the data and find the parts that have changed and re-draw only those parts of the window
+ * @param {string} actionType - the reducer-type action to be dispatched
+ * @param {any} data - the relevant sent from the React Window (could be anything the plugin needs to act on the actionType)
  * @author @dwertheimer
  */
-export async function onMessageFromHTMLView(actionType: string, data: any): Promise<any> {
+export async function onMessageFromHTMLView(actionType: string, data: any = null): Promise<any> {
   try {
     logDebug(pluginJson, `NP Plugin return path (onMessageFromHTMLView) received actionType="${actionType}" (typeof=${typeof actionType})  (typeof data=${typeof data})`)
     clo(data, `Plugin onMessageFromHTMLView data=`)
@@ -89,6 +103,23 @@ export async function onMessageFromHTMLView(actionType: string, data: any): Prom
   } catch (error) {
     logError(pluginJson, JSP(error))
   }
+}
+
+/**
+ * Update the data in the React Window (and cause it to re-draw as necessary with the new data)
+ * This is likely most relevant when a trigger has been sent from a NotePlan window, but could be used anytime a plugin wants to update the data in the React Window
+ * This is exactly the same as onMessageFromHTMLView, but named updateReactWindowData to clarify that the plugin is updating the data in the React Window
+ * rather than a user interaction having triggered it (the result is the same)
+ * @param {string} actionType - the reducer-type action to be dispatched -- see onMessageFromHTMLView above
+ * @param {any} data - any data that the router (specified in onMessageFromHTMLView) needs -- may be nothing
+ * @returns {Promise<any>} - does not return anything important
+ */
+export async function updateReactWindowData(actionType: string, data: any = null): Promise<any> {
+  if (!getWindowFromId(WEBVIEW_WINDOW_ID)) {
+    logError(pluginJson, `updateReactWindowData('${actionType}'): Window with ID ${WEBVIEW_WINDOW_ID} not found. Could not update data.`)
+    return
+  }
+  return await onMessageFromHTMLView(actionType, data)
 }
 
 /**

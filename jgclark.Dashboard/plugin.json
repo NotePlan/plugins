@@ -8,15 +8,21 @@
   "plugin.author": "Jonathan Clark",
   "plugin.url": "https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/",
   "plugin.changelog": "https://github.com/NotePlan/plugins/blob/main/jgclark.Dashboard/CHANGELOG.md",
-  "plugin.version": "1.0.0",
-  "plugin.lastUpdateInfo": "1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
+  "plugin.version": "1.2.1",
+  "plugin.lastUpdateInfo": "1.2.1: Add ability to schedule to today using the specific date\n1.2.0: add support for use on iPhones. Updating settings will refresh Dashboard.\n1.1.3: small fixes\n1.1.1: polish and bug fixes.\n1.1.0: add new 'Tomorrow' section (off by default). Fix to Overdue missing Calendar notes, markdown links. Layout tweaks.\n1.0.1: fix refresion with checklist items\n1.0.0: rewrite of layout engine, and many new features and some fixes. Please see documentation for all the details.",
+  "plugin.dependsOn": [
+    {
+      "id": "np.Shared",
+      "minVersion": "0.4.8"
+    }
+  ],
   "plugin.requiredFiles": [
     "dashboard.css",
     "dashboardDialog.css",
     "dashboardEvents.js",
     "debounce.js",
     "HTMLWinCommsSwitchboard.js",
-    "shortcut.js",
+    "dashboardShortcuts.js",
     "showTimeAgo.js"
   ],
   "plugin.requiredSharedFiles": [
@@ -28,7 +34,8 @@
     "fa-regular-400.woff2",
     "fa-solid-900.woff2",
     "pluginToHTMLCommsBridge.js",
-    "encodeDecode.js"
+    "encodeDecode.js",
+    "shortcut.js"
   ],
   "plugin.script": "script.js",
   "plugin.isRemote": "false",
@@ -88,6 +95,12 @@
       "hidden": true
     },
     {
+      "name": "schedule today to tomorrow",
+      "description": "schedule all open items from today to tomorrow",
+      "jsFunction": "scheduleAllTodayTomorrow",
+      "hidden": true
+    },
+    {
       "name": "schedule overdue to today",
       "description": "schedule all overdue items to today",
       "jsFunction": "scheduleAllOverdueOpenToToday",
@@ -112,6 +125,24 @@
       "hidden": true
     },
     {
+      "name": "toggleQuarterSection",
+      "description": "toggle whether Quarter section is shown",
+      "jsFunction": "toggleQuarterSection",
+      "hidden": true
+    },
+    {
+      "name": "toggleTomorrowSection",
+      "description": "toggle whether Tomorrow section is shown",
+      "jsFunction": "toggleTomorrowSection",
+      "hidden": true
+    },
+    {
+      "name": "toggleWeekSection",
+      "description": "toggle whether Week section is shown",
+      "jsFunction": "toggleWeekSection",
+      "hidden": true
+    },
+    {
       "name": "toggleWeekSection",
       "description": "toggle whether Week section is shown",
       "jsFunction": "toggleWeekSection",
@@ -121,6 +152,18 @@
       "name": "turnOnAllSections",
       "description": "turn on all sections",
       "jsFunction": "turnOnAllSections",
+      "hidden": true
+    },
+    {
+      "name": "versionCheck",
+      "description": "test: version check",
+      "jsFunction": "versionCheck",
+      "hidden": true
+    },
+    {
+      "name": "onUpdateOrInstall",
+      "description": "test: onUpdateOrInstall",
+      "jsFunction": "onUpdateOrInstall",
       "hidden": true
     },
     {
@@ -239,6 +282,14 @@
       "required": true
     },
     {
+      "key": "useTodayDate",
+      "title": "Use 'today' to schedule tasks for today?",
+      "description": "When scheduling a task for today, if this is set this will use '>today' to schedule the task; if it is not set it will use the current date.",
+      "type": "bool",
+      "default": true,
+      "required": true
+    },
+    {
       "key": "dashboardTheme",
       "title": "Theme to use for Dashboard",
       "description": "If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme.\nLeave blank to use your current Theme.",
@@ -257,6 +308,14 @@
       "key": "showYesterdaySection",
       "title": "Show section for Yesterday?",
       "description": "Whether to show a 'Yesterday' section for Yesterday's open items, after the 'Today' section.",
+      "type": "bool",
+      "default": false,
+      "required": true
+    },
+    {
+      "key": "showTomorrowSection",
+      "title": "Show section for Tomorrow?",
+      "description": "Whether to show a 'Tomorrow' section for Tomorrow's open items, after the 'Today' section.",
       "type": "bool",
       "default": false,
       "required": true

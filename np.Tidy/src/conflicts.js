@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Jonathan Clark
-// Last updated 19.3.2024 for v0.9.2+ by @jgclark
+// Last updated 10.4.2024 for v0.12.1 by @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,7 +14,11 @@ import {
   nowLocaleShortDateTime,
 } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, overrideSettingsWithEncodedTypedArgs, timer } from '@helpers/dev'
-import { getFolderListMinusExclusions, getFolderFromFilename } from '@helpers/folders'
+import {
+  getFolderListMinusExclusions,
+  getFolderFromFilename,
+  getJustFilenameFromFullFilename,
+} from '@helpers/folders'
 import {
   createOpenOrDeleteNoteCallbackUrl,
   createPrettyRunPluginLink,
@@ -22,7 +26,10 @@ import {
   displayTitle,
   getTagParamsFromString,
 } from '@helpers/general'
-import { getProjectNotesInFolder } from '@helpers/note'
+import {
+  allNotesSortedByTitle,
+  getProjectNotesInFolder,
+} from '@helpers/note'
 import { noteOpenInEditor } from '@helpers/NPWindows'
 import { contentRangeToString } from '@helpers/paragraph'
 import { showMessage } from "@helpers/userInput"
@@ -31,8 +38,12 @@ const pluginID = 'np.Tidy'
 
 //----------------------------------------------------------------------------
 
+const enoughDifference = 100 // 100 bytes
+const conflictedCopiesBaseFolder = '@Conflicted Copies' // folder to use
+
 type conflictDetails = {
   note: TNote,
+  type: NoteType,
   url: string, // = full mac/iOS filepath and filename
   filename: string, // = just filename
   content: string
@@ -56,14 +67,16 @@ async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise
     logDebug(pluginJson, `getConflictedNotes() starting`)
 
     const outputArray: Array<conflictDetails> = []
-    let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
-    logDebug('getConflictedNotes', `- Found ${relevantFolderList.length} folders to check`)
+    // let relevantFolderList = getFolderListMinusExclusions(foldersToExclude, true, true)
+    // logDebug('getConflictedNotes', `- Found ${relevantFolderList.length} folders to check`)
     // Get all notes to check
-    let notes: Array<TNote> = []
-    for (const thisFolder of relevantFolderList) {
-      const theseNotes = getProjectNotesInFolder(thisFolder)
-      notes = notes.concat(theseNotes)
-    }
+    // let notes: Array<TNote> = []
+    // for (const thisFolder of relevantFolderList) {
+    //   const theseNotes = getProjectNotesInFolder(thisFolder)
+    //   notes = notes.concat(theseNotes)
+    // }
+    let notes = allNotesSortedByTitle(foldersToExclude)
+    logDebug('getConflictedNotes', `- Will check all ${notes.length} notes`)
 
     // Get all conflicts
     const conflictedNotes = notes.filter(n => (n.conflictedVersion != null))
@@ -76,6 +89,7 @@ async function getConflictedNotes(foldersToExclude: Array<string> = []): Promise
         // clo(cv, 'conflictedVersion = ')
         outputArray.push({
           note: cn,
+          type: cn.type,
           filename: cn.filename, // needs to be main note not .conflict version
           url: cn.conflictedVersion.url,
           content: cn.conflictedVersion.content
@@ -103,6 +117,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
     logDebug(pluginJson, `listConflicts: Starting with params '${params}' on ${machineName}`)
     let config = await getSettings()
     const outputFilename = config.conflictNoteFilename ?? 'Conflicted Notes.md'
+    let copiesMade = 0
 
     // Decide whether to run silently
     const runSilently: boolean = await getTagParamsFromString(params, 'runSilently', false)
@@ -119,7 +134,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
     if (conflictedNotes.length === 0) {
       logDebug('listConflicts', `No notes with conflicts found (in ${timer(startTime)}).`)
       if (!runSilently) {
-        await showMessage(`No notes with conflicts found! 🥳`)
+        await showMessage(`No notes with conflicts found! 🥳\nI will remove any previous Conflict List note.`)
       }
       // remove old conflicted note list (if it exists)
       const res = DataStore.moveNote(outputFilename, '@Trash')
@@ -135,7 +150,7 @@ export async function listConflicts(params: string = ''): Promise<void> {
     const outputArray = []
 
     // Start with an x-callback link under the title to allow this to be refreshed easily
-    outputArray.push(`# Conflicted notes on ${machineName}`)
+    outputArray.push(`# ⚠️ Conflicted notes on ${machineName}`)
     const xCallbackRefreshButton = createPrettyRunPluginLink('🔄 Click to refresh', 'np.Tidy', 'List conflicted notes', [])
     const summaryLine = `Found ${conflictedNotes.length} conflicts on ${machineName} at ${nowLocaleShortDateTime()}. ${xCallbackRefreshButton}`
     outputArray.push(summaryLine)
@@ -146,9 +161,14 @@ export async function listConflicts(params: string = ''): Promise<void> {
 
       const thisFolder = cn.filename.includes('/') ? getFolderFromFilename(cn.filename) : '(root)'
       const mainContent = cn.note.content ?? ''
+
       // Make some button links for main note
       const openMe = createOpenOrDeleteNoteCallbackUrl(cn.filename, 'filename', '', 'splitView', false)
-      outputArray.push(`${thisFolder}/**${titleToDisplay}**`)
+      if (cn.type === 'Calendar') {
+        outputArray.push(`**${titleToDisplay}**`)
+      } else {
+        outputArray.push(`${thisFolder}/**${titleToDisplay}**`)
+      }
       outputArray.push(`- Main note (${cn.filename}): ${String(cn.note.paragraphs?.length ?? 0)} lines, ${String(cn.content?.length ?? 0)} bytes (created ${relativeDateFromDate(cn.note.createdDate)}, updated ${relativeDateFromDate(cn.note.changedDate)}) [open note](${openMe})`)
 
       // Write out details for the conflicted version
@@ -161,8 +181,8 @@ export async function listConflicts(params: string = ''): Promise<void> {
       const allDiffRanges = NotePlan.stringDiff(cvContent, mainContent)
       const totalDiffBytes = allDiffRanges.reduce((a, b) => a + Math.abs(b.length), 0)
       if (totalDiffBytes > 0) {
-        const percentDiff = percentWithTerm(totalDiffBytes, greaterSize, 'chars')
-        outputArray.push(`- ${percentDiff} difference between them (from ${String(allDiffRanges.length)} areas)`)
+        const percentDiffStr = percentWithTerm(totalDiffBytes, greaterSize, 'chars')
+        outputArray.push(`- ${percentDiffStr} difference between them (from ${String(allDiffRanges.length)} areas)`)
         // Write allDiffRanges to debug log
         logDebug('listConflicts', 'Here are the areas of difference:')
         for (const thisDiffRange of allDiffRanges) {
@@ -175,9 +195,22 @@ export async function listConflicts(params: string = ''): Promise<void> {
       const resolveCurrentButton = createPrettyRunPluginLink('Keep main note version', 'np.Tidy', 'resolveConflictWithCurrentVersion', [cn.filename])
       const resolveOtherButton = createPrettyRunPluginLink('Keep other note version', 'np.Tidy', 'resolveConflictWithOtherVersion', [cn.filename])
       outputArray.push(`- ${resolveCurrentButton} ${resolveOtherButton}`)
+
+      // If there is enough difference in Project Notes, then make a copy of the conflicted version in a special folder
+      // TODO: remove first check after TEST:
+      if (cn.type === 'Notes' && config.savePreviousVersion && (totalDiffBytes >= enoughDifference)) {
+        // Copy conflicted version to '@Conflicted Copies' folder
+        const conflictedCopiesFolderToUse = conflictedCopiesBaseFolder + '/' + getFolderFromFilename(cn.filename)
+        const filenamePartWithoutExtension = getJustFilenameFromFullFilename(cn.filename, true)
+        const copyFilename = `${filenamePartWithoutExtension}.conflict-from-${machineName}.${DataStore.defaultFileExtension}`
+        const copyResultingFilename = DataStore.newNoteWithContent(cvContent, conflictedCopiesFolderToUse, copyFilename)
+        logDebug('listConflicts', `Saved conflicted version to ${copyResultingFilename}`)
+        outputArray.push(`- Saved conflicted version to '${copyResultingFilename}'`)
+        copiesMade++
+      }
     }
 
-    // If note is not open in an editor already, write to and open the note. Otherwise just update note.
+    // If list note is not open in an editor already, write to and open the note. Otherwise just update note.
     if (!noteOpenInEditor(outputFilename)) {
       const resultingNote = await Editor.openNoteByFilename(outputFilename, false, 0, 0, true, true, outputArray.join('\n'))
     } else {
@@ -188,6 +221,15 @@ export async function listConflicts(params: string = ''): Promise<void> {
         throw new Error(`Couldn't find note '${outputFilename}' to write to`)
       }
     }
+
+    if (!runSilently) {
+      if (copiesMade > 0) {
+        await showMessage(`List of ${String(conflictedNotes.length)} conflicted notes written to '${outputFilename}' and ${copiesMade} conflicted copies of Project notes saved to '${conflictedCopiesBaseFolder}' folder`)
+      } else {
+        await showMessage(`List of ${String(conflictedNotes.length)} conflicted notes written to '${outputFilename}'`)
+      }
+    }
+
   }
   catch (err) {
     logError('listConflicts', JSP(err))

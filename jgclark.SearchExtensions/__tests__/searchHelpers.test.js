@@ -463,23 +463,23 @@ describe('searchHelpers.js tests', () => {
 
     describe('skipping these tests as removed modifyQuotedTermsToAndedTerms functionality', () => {
       test.skip('"1 John", 1Jn (do modify)', () => {
-        const result = normaliseSearchTerms('"1 John" 1Jn', true)
+        const result = normaliseSearchTerms('"1 John" 1Jn')
         expect(result).toEqual(['+1', '+John', '1Jn'])
       })
       test.skip('mix of quoted and unquoted terms (do modify)', () => {
-        const result = normaliseSearchTerms('-term1 "term two" !term3', true)
+        const result = normaliseSearchTerms('-term1 "term two" !term3')
         expect(result).toEqual(['-term1', '+term', '+two', '!term3'])
       })
       test.skip('terms with apostrophes in quoted terms (do modify)', () => {
-        const result = normaliseSearchTerms('-term1 "couldn\'t possibly" !term3', true)
+        const result = normaliseSearchTerms('-term1 "couldn\'t possibly" !term3')
         expect(result).toEqual(['-term1', "+couldn't", '+possibly', '!term3'])
       })
       test.skip('mix of quoted and unquoted terms (do modify)', () => {
-        const result = normaliseSearchTerms(`bob "xxx" 'yyy' "asd'sa" 'bob two' "" hello`, true)
+        const result = normaliseSearchTerms(`bob "xxx" 'yyy' "asd'sa" 'bob two' "" hello`)
         expect(result).toEqual(['bob', 'xxx', 'yyy', "asd'sa", '+bob', '+two', 'hello'])
       })
       test.skip('mix of quoted and unquoted terms and operators (do modify)', () => {
-        const result = normaliseSearchTerms('+bob "xxx",\'yyy\', !"asd\'sa" -\'bob two\' "" !hello', true)
+        const result = normaliseSearchTerms('+bob "xxx",\'yyy\', !"asd\'sa" -\'bob two\' "" !hello')
         expect(result).toEqual(['+bob', 'xxx', "'yyy'", "!asd'sa", '-bob', 'two', '!hello'])
       })
     })

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Tidy plugin
 // Jonathan Clark
-// Last updated 27.8.2023 for v0.9.0, @jgclark
+// Last updated 6.4.2024 for v0.12.0, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -29,6 +29,7 @@ export type TidyConfig = {
   removeFoldersToExclude: Array<string>,
   runRemoveBlankNotes: boolean,
   runConflictFinderCommand: boolean,
+  savePreviousVersion: boolean,
   runDuplicateFinderCommand: boolean,
   runFileRootNotesCommand: boolean,
   runRemoveOrphansCommand: boolean,

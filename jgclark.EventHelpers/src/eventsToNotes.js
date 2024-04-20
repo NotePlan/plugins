@@ -1,7 +1,7 @@
 // @flow
 // ----------------------------------------------------------------------------
 // Command to bring calendar events into notes
-// Last updated 4.12.2022 for v0.19.4, by @jgclark
+// Last updated 30.3.2024 for v0.19.4+, by @jgclark
 // @jgclark, with additions by @dwertheimer, @weyert, @m1well, @akrabat
 // ----------------------------------------------------------------------------
 
@@ -19,6 +19,7 @@ import {
 } from '@helpers/dateTime'
 import { clo, logDebug, logError } from '@helpers/dev'
 import { getTagParamsFromString } from '@helpers/general'
+import { toNPLocaleDateString } from '@helpers/NPdateTime'
 import { showMessage } from '@helpers/userInput'
 
 /**
@@ -76,7 +77,7 @@ export async function listDaysEvents(paramString: string = ''): Promise<string> 
       // Add heading if wanted, or if doing more than 1 day
       if (daysToCover > 1) {
         // $FlowIgnore[incompatible-call]
-        const localisedDateStr = toLocaleDateString(getDateFromUnhyphenatedDateString(dateStr))
+        const localisedDateStr = toNPLocaleDateString(getDateFromUnhyphenatedDateString(dateStr))
         outputArray.push(config.eventsHeading !== '' ? `${config.eventsHeading} for ${localisedDateStr}` : `### for ${localisedDateStr}`)
       } else {
         if (config.eventsHeading !== '' && includeHeadings) {
@@ -197,7 +198,7 @@ export async function listMatchingDaysEvents(
       // Add heading if wanted, or if doing more than 1 day
       if (daysToCover > 1) {
         // $FlowIgnore[incompatible-call]
-        const localisedDateStr = toLocaleDateString(getDateFromUnhyphenatedDateString(dateStr))
+        const localisedDateStr = toNPLocaleDateString(getDateFromUnhyphenatedDateString(dateStr))
         outputArray.push(config.matchingEventsHeading !== '' ? `${config.matchingEventsHeading} for ${localisedDateStr}` : `### for ${localisedDateStr}`)
       } else {
         if (config.matchingEventsHeading !== '' && includeHeadings) {

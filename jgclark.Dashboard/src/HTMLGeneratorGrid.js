@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin main functions
-// Last updated 26.3.2024 for v1.0.0 by @jgclark
+// Last updated 6.4.2024 for v1.1.4 by @jgclark
 //-----------------------------------------------------------------------------
 
 import moment from 'moment/min/moment-with-locales'
@@ -15,10 +15,8 @@ import { getDemoDataForDashboard } from './demoDashboard'
 import {
   addNoteOpenLinkToString,
   getSettings,
-  // makeFakeCallbackButton,
   makeNoteTitleWithOpenActionFromFilename,
   makeParaContentToLookLikeNPDisplayInHTML,
-  makeRealCallbackButton,
   type Section,
   type SectionItem,
 } from './dashboardHelpers'
@@ -29,7 +27,10 @@ import {
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { displayTitle } from '@helpers/general'
-import { showHTMLV2 } from '@helpers/HTMLView'
+import {
+  makePluginCommandButton,
+  showHTMLV2,
+} from '@helpers/HTMLView'
 import { addTrigger } from '@helpers/NPFrontMatter'
 import { checkForRequiredSharedFiles } from '@helpers/NPRequiredFiles'
 import { generateCSSFromTheme } from '@helpers/NPThemeToCSS'
@@ -45,60 +46,25 @@ const windowCustomId = `${pluginJson['plugin.id']}.main`
 
 // Note: this "../np.Shared" path works to the flattened np.Shared structure, but it does *not* work when running the locally-written copy of the HTML output file.
 export const resourceLinksInHeader = `
+<!-- Tell the browser to render the page at 1x to make it work on iOS -->
+<!-- And give minimum 'width=450,' to help with dialog -->
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
 <!-- Load in Dashboard-specific CSS -->
-<link href="dashboard.css" rel="stylesheet">
-<link href="dashboardDialog.css" rel="stylesheet">
+<link href="./dashboard.css" rel="stylesheet">
+<link href="./dashboardDialog.css" rel="stylesheet">
 
 <!-- Load in fontawesome assets from np.Shared (licensed for NotePlan) -->
 <link href="../np.Shared/fontawesome.css" rel="stylesheet">
 <link href="../np.Shared/regular.min.flat4NP.css" rel="stylesheet">
 <link href="../np.Shared/solid.min.flat4NP.css" rel="stylesheet">
 <link href="../np.Shared/light.min.flat4NP.css" rel="stylesheet">
-`
 
-/**
- * Script to add some keyboard shortcuts to control the dashboard. (Meta=Cmd here.)
- */
-const shortcutsScript = `
-<!-- shortcuts script -->
-<script type="text/javascript" src="./shortcut.js"></script>
-<script>
-<!-- send 'turnOnAllSections' command -->
-shortcut.add("a", function() {
-  console.log("Shortcut 'a' triggered: will call turnOnAllSections command");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'turnOnAllSections', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
+<!-- Load in other scripts from np.Shared -->
+<script type="text/javascript" src="../np.Shared/shortcut.js"></script>
 
-<!-- send 'toggleOverdueSection' command -->
-shortcut.add("o", function() {
-  console.log("Shortcut 'o' triggered: will call toggleOverdueSection command");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleOverdueSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
-
-<!-- send 'toggleMonthSection' command -->
-shortcut.add("m", function() {
-  console.log("Shortcut 'm' triggered: will call toggleMonthSection command");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleMonthSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
-
-<!-- for this need to simulate checkboxClick -->
-shortcut.add("p", function() {
-  console.log("Shortcut 'p' triggered: will call togglePriorityFilter");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'togglePriorityFilter', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
-
-<!-- send 'refresh' command -->
-shortcut.add("r", function() {
-  console.log("Shortcut 'r' triggered: will call refresh");
-  sendMessageToPlugin('refresh', {});
-});
-
-<!-- send 'toggleWeekSection' command -->
-shortcut.add("w", function() {
-  console.log("Shortcut 'w' triggered: will call toggleWeekSection command");
-  sendMessageToPlugin('runPluginCommand', { commandName: 'toggleWeekSection', pluginID: 'jgclark.Dashboard', commandArgs: [] });
-});
-</script>
+<!-- Load in other scripts from this plugin -->
+<script type="text/javascript" src="./dashboardShortcuts.js"></script>
 `
 
 const commsBridge = `
@@ -160,11 +126,11 @@ const receivingPluginID = "jgclark.Dashboard"; // the plugin ID of the plugin wh
  */
 export async function showDemoDashboard(): Promise<void> {
   // Check to stop it running on iOS
-  if (NotePlan.environment.platform === 'iOS') {
-    logWarn(pluginJson, `Sorry: Dashboard won't run on the small screen of iPhones.`)
-    await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
-    return
-  }
+  // if (NotePlan.environment.platform === 'iOS') {
+  //   logWarn(pluginJson, `Sorry: Dashboard won't run on the small screen of iPhones.`)
+  //   await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
+  //   return
+  // }
 
   await showDashboard('manual', true)
 }
@@ -200,12 +166,12 @@ export async function refreshDashboard(): Promise<void> {
  */
 export async function showDashboard(callType: string = 'manual', demoMode: boolean = false): Promise<void> {
   try {
-    // Check to stop it running on iOS
-    if (NotePlan.environment.platform === 'iOS') {
-      logWarn(pluginJson, `Sorry: Dashboard won't run on the small screen of iPhones.`)
-      await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
-      return
-    }
+    // // Check to stop it running on iOS
+    // if (NotePlan.environment.platform === 'iOS') {
+    //   logWarn(pluginJson, `Sorry: Dashboard won't run on the small screen of iPhones.`)
+    //   await showMessage(`Sorry: Dashboard won't run on the small screen of iPhones`)
+    //   return
+    // }
 
     logDebug(pluginJson, `showDashboard() started ${demoMode ? '*and will use demo data*' : ''}`)
 
@@ -281,7 +247,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       // Prepare outer col 1 (section icon + title + description)
       const sectionNameWithPossibleLink = section.filename ? addNoteOpenLinkToString(section, section.name) : section.name
       outputArray.push(
-        `    <div class="sectionInfo">\n      <span class="${section.sectionTitleClass} sectionName"><i class="sectionIcon ${section.FAIconClass}"></i>${sectionNameWithPossibleLink}</span>`,
+        `    <div class="sectionInfo">\n      <div class="${section.sectionTitleClass} sectionName"><i class="sectionIcon ${section.FAIconClass}"></i>${sectionNameWithPossibleLink}</div>`,
       )
 
       if (items.length > 0) {
@@ -306,79 +272,89 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
         // Add extra buttons if there are placeholders here
         if (section.description.includes('{addItems}')) {
-          const xcbButton1 = makeRealCallbackButton(
+          const durationName = (section.sectionType === 'DT') ? 'today'
+            : (section.sectionType === 'W') ? 'this week'
+              : (section.sectionType === 'M') ? 'this month' : '(error)'
+          const PCButton1 = makePluginCommandButton(
             `<i class="fa-regular fa-circle-plus ${section.sectionTitleClass}"></i>`,
             'jgclark.Dashboard',
             'addTask',
             section.filename,
-            'Add a new task to today\'s note')
-          const xcbButton2 = makeRealCallbackButton(
+            `Add a new task to ${durationName}'s note`)
+          const PCButton2 = makePluginCommandButton(
             `<i class="fa-regular fa-square-plus ${section.sectionTitleClass}"></i>`,
             'jgclark.Dashboard',
             'addChecklist',
             section.filename,
-            'Add a new checklist to today\'s note')
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItems}', `${xcbButton1}&nbsp;${xcbButton2}`)
+            `Add a new checklist to ${durationName}'s note`)
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItems}', `${PCButton1}&nbsp;${PCButton2}`)
         }
 
         if (section.description.includes('{addItemsNextPeriod}')) {
-          // Also add 'add to tomorrow' buttons
-          // TODO: Broaden to allow on week, month as well
           const durationType = (section.sectionType === 'DT') ? 'day'
             : (section.sectionType === 'W') ? 'week'
               : (section.sectionType === 'M') ? 'month' : '(error)'
           const nextPeriodFilename = DataStore.calendarNoteByDate(new moment().add(1, durationType).toDate(), durationType)?.filename
           logDebug('showDashboard', nextPeriodFilename)
           if (nextPeriodFilename) {
-            const xcbButton1 = makeRealCallbackButton(
+            const PCButton1 = makePluginCommandButton(
               `<i class="fa-regular fa-circle-arrow-right ${section.sectionTitleClass}"></i>`,
               'jgclark.Dashboard',
               'addTask',
               nextPeriodFilename,
               `Add a new task to note for next ${durationType}`)
-            const xcbButton2 = makeRealCallbackButton(
+            const PCButton2 = makePluginCommandButton(
               `<i class="fa-regular fa-square-arrow-right ${section.sectionTitleClass}"></i>`,
               'jgclark.Dashboard',
               'addChecklist',
               nextPeriodFilename,
               `Add a new checklist to note for next ${durationType}`)
-            sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItemsNextPeriod}', `${xcbButton1}&nbsp;${xcbButton2}`)
+            sectionDescriptionToUse = sectionDescriptionToUse.replace('{addItemsNextPeriod}', `${PCButton1}&nbsp;${PCButton2}`)
           }
         }
 
         if (section.description.includes('{scheduleAllYesterdayToday}')) {
-          const xcbButton = makeRealCallbackButton(
-            'All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today',
+          const PCButton = makePluginCommandButton(
+            'All\u00A0<i class="fa-solid fa-right-long"></i>\u00A0Today',
             'jgclark.Dashboard',
             'schedule yesterday to today',
             'true', // = refresh afterwards
             'Move or schedule all open items from yesteday to today')
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllYesterdayToday}', xcbButton)
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllYesterdayToday}', PCButton)
         }
         if (section.description.includes('{scheduleAllOverdueToday}')) {
-          const xcbButton = makeRealCallbackButton(
-            'All\u00A0<i class="fa-regular fa-right"></i>\u00A0Today',
+          const PCButton = makePluginCommandButton(
+            'All\u00A0<i class="fa-solid fa-right-long"></i>\u00A0Today',
             'jgclark.Dashboard',
             'schedule overdue to today',
             'true', // = refresh afterwards
             'Move or schedule all overdue items to today')
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllOverdueToday}', xcbButton)
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllOverdueToday}', PCButton)
+        }
+        if (section.description.includes('{scheduleAllTodayTomorrow}')) {
+          const PCButton = makePluginCommandButton(
+            'All\u00A0Today\u00A0<i class="fa-solid fa-right-long"></i>\u00A0Tomorrow',
+            'jgclark.Dashboard',
+            'schedule today to tomorrow',
+            'true', // = refresh afterwards
+            'Move or schedule all remaining open items to tomorrow')
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{scheduleAllTodayTomorrow}', PCButton)
         }
 
         if (section.description.includes('{startReviews}')) {
-          const xcbButton = makeRealCallbackButton(
-            '<i class="fa-solid fa-play"></i>\u00A0Start\u00A0Reviews',
+          const PCButton = makePluginCommandButton(
+            '<i class="fa-regular fa-play"></i>\u00A0Start\u00A0Reviews',
             'jgclark.Reviews',
             'start reviews',
             '',
             'Start reviewing your project notes')
-          sectionDescriptionToUse = sectionDescriptionToUse.replace('{startReviews}', xcbButton)
+          sectionDescriptionToUse = sectionDescriptionToUse.replace('{startReviews}', PCButton)
         }
 
-        outputArray.push(`        <span class="sectionDescription">${sectionDescriptionToUse}`)
+        outputArray.push(`        <div class="sectionDescription">${sectionDescriptionToUse}`)
       }
       // Close sectionInfo
-      outputArray.push(`      </span>\n    </div>\n`)
+      outputArray.push(`      </div>\n    </div>\n`)
 
       // Start outer col 2, which is an inner grid
       outputArray.push(`    <!--- Section ${String(sectionNumber)}: ${section.name} Items Grid --->`)
@@ -454,7 +430,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
             }
             let itemDetails = `        <div class="sectionItemContent sectionItem">\n`
             itemDetails += `          <a class="content">${paraContent}</a>\n`
-            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'task', noteType:'${thisNoteType}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({OS: '${NotePlan.environment.platform}', itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'task', noteType:'${thisNoteType}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
             itemDetails += `        </div>\n      </div>\n`
             outputArray.push(itemDetails)
             totalOpenItems++
@@ -477,7 +453,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
             let itemDetails = `        <div class="sectionItemContent sectionItem">\n`
             itemDetails += `          <a class="content">${paraContent}</a>`
-            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'checklist', noteType:'${thisNoteType}}')"><i class="fa-light fa-edit pad-left"></i></a>\n`
+            itemDetails += `          <a class="dialogTrigger" onclick="showItemControlDialog({OS: '${NotePlan.environment.platform}', itemID:'${item.ID}', sectionType:'${section.sectionType}', reschedOrMove:'${reschedOrMove}', itemType:'checklist', noteType:'${thisNoteType}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
             itemDetails += `        </div>\n      </div>`
             outputArray.push(itemDetails)
             totalOpenItems++
@@ -505,7 +481,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 
               let itemDetails = `        <div class="sectionItemContent sectionItem" data-encoded-filename="${encodedFilename}">\n`
               itemDetails += `          <a class="content">${paraContent}</a>`
-              itemDetails += `          <a class="dialogTrigger" onclick="showProjectControlDialog({itemID:'${item.ID}', encodedTitle:'${encodeRFC3986URIComponent(itemNoteTitle)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+              itemDetails += `          <a class="dialogTrigger" onclick="showProjectControlDialog({OS: '${NotePlan.environment.platform}', itemID:'${item.ID}', encodedTitle:'${encodeRFC3986URIComponent(itemNoteTitle)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
               itemDetails += `        </div>\n      </div>`
               outputArray.push(itemDetails)
               totalOpenItems++
@@ -537,7 +513,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     )}</span> items closed</div>`
 
     // Write time and refresh info
-    const refreshXCallbackButton = makeRealCallbackButton(
+    const refreshXCallbackButton = makePluginCommandButton(
       `<i class="fa-regular fa-arrow-rotate-right"></i> Refresh`,
       'jgclark.Dashboard',
       'show dashboard',
@@ -557,6 +533,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     // Note: in the future the draft spec for CSS Anchor Positioning could be helpful for positioning this dialog relative to other things
     const taskDialogHTML = `
   <!----------- Single dialog that can be shown for any task-based item ----------->
+  <!-- TEST: removal of this
   <script type="text/javascript">
     function updateContent() {
     console.log("Called updateContent")
@@ -565,6 +542,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     console.log("-> "+ updatedContent)
   }
   </script>
+  -->
 
   <dialog id="itemControlDialog" class="itemControlDialog" aria-labelledby="Actions Dialog"
     aria-describedby="Actions that can be taken on items">
@@ -573,35 +551,37 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
       <div class="buttonGrid" id="itemDialogButtons">
         <div>For</div>
         <div class="dialogDescription">
-          <!--<form name="updateContent" action="javascript:updateItemContent()">-->
-            <!--<label for="dialogItemContent">For</label>-->
-            <input type="text" id="dialogItemContent" class="fullTextInput" />
-            <!--<input type="submit" value="Update" class="submitButton" />-->
-            <button class="updateItemContentButton" data-control-str="update">Update</button>
-          <!--</form>--></div>
+          <input type="text" id="dialogItemContent" class="fullTextInput" />
+          <button class="updateItemContentButton" data-control-str="update">Update</button>
+        </div>
         <div>Move to</div>
         <div id="itemControlDialogMoveControls">
-          <button class="changeDateButton" data-control-str="t">today</button>
-          <button class="changeDateButton" data-control-str="+1d">+1d</button>
-          <button class="changeDateButton" data-control-str="+1b">+1b</button>
-          <button class="changeDateButton" data-control-str="+2d">+2d</button>
-          <button class="changeDateButton" data-control-str="+0w">this week</button>
-          <button class="changeDateButton" data-control-str="+1w">+1w</button>
-          <button class="changeDateButton" data-control-str="+2w">+2w</button>
-          <button class="changeDateButton" data-control-str="+0m">this month</button>
-          <button class="changeDateButton" data-control-str="+0q">this quarter</button>
+          <button class="PCButton" data-control-str="t">today</button>
+          <button class="PCButton" data-control-str="+1d">+1d</button>
+          <button class="PCButton" data-control-str="+1b">+1b</button>
+          <button class="PCButton" data-control-str="+2d">+2d</button>
+          <button class="PCButton" data-control-str="+0w">this week</button>
+          <button class="PCButton" data-control-str="+1w">+1w</button>
+          <button class="PCButton" data-control-str="+2w">+2w</button>
+          <button class="PCButton" data-control-str="+0m">this month</button>
+          <button class="PCButton" data-control-str="+0q">this quarter</button>
         </div>
         <div>Other controls</div>
         <div id="itemControlDialogOtherControls">
-          <button class="moveNoteButton" data-control-str="movetonote">Move to note</button>
-          <button class="priorityButton" data-control-str="priup">Increase Priority</button>
-          <button class="priorityButton" data-control-str="pridown">Decrease Priority</button>
-          <button class="toggleTypeButton" data-control-str="tog">Toggle Type</button>
-          <button class="completeThenButton" data-control-str="ct">Complete Then</button>
-          <button class="unscheduleButton" data-control-str="unsched">Unschedule</button>
+          <button class="PCButton" data-control-str="cancel">Cancel</button><!-- mainly for iOS -->
+          <button class="PCButton" data-control-str="movetonote">Move to <i class="fa-regular fa-file-lines"></i></button>
+          <button class="PCButton" data-control-str="priup"><i class="fa-regular fa-arrow-up"></i> Priority</button>
+          <button class="PCButton" data-control-str="pridown"><i class="fa-regular fa-arrow-down"></i> Priority</button>
+          <button class="PCButton" data-control-str="tog">Toggle Type</button>
+          <button class="PCButton" data-control-str="ct">Complete Then</button>
+          <button class="PCButton" data-control-str="unsched">Unschedule</button>
         </div>
+<!--
+        <div>Dialog</div>
+        <div><span id="winDebugDetails"></span></div>
+-->
         <div></div>
-        <div><form onsubmit="closeDialog()"><button type="submit" class="mainButton">Close</button></form></div>
+        <div><form><button id="closeButton" class="mainButton">Close</button></form></div>
       </div>
     </div>
   </dialog>
@@ -617,16 +597,16 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     <div class="dialogTitle">For <i class="pad-left pad-right fa-regular fa-file-lines"></i><b><span id="dialogProjectNote">?</span></b></div>
     <div class="dialogBody">
       <div class="buttonGrid" id="projectDialogButtons">
-        <div>Project controls</div>
+        <div>Project Reviews</div>
         <div id="projectControlDialogProjectControls">
-          <button class="reviewFinishedButton" data-control-str="reviewed">Finish Review</button>
-          <button class="skipReviewButton" data-control-str="nr+1w">Skip 1w</button>
-          <button class="skipReviewButton" data-control-str="nr+2w">Skip 2w</button>
-          <button class="skipReviewButton" data-control-str="nr+1m">Skip 1m</button>
-          <button class="skipReviewButton" data-control-str="nr+1q">Skip 1q</button>
+          <button data-control-str="finish"><i class="fa-regular fa-calendar-check"></i> Finish Review</button>
+          <button data-control-str="nr+1w"><i class="fa-solid fa-forward"></i> Skip 1w</button>
+          <button data-control-str="nr+2w"><i class="fa-solid fa-forward"></i> Skip 2w</button>
+          <button data-control-str="nr+1m"><i class="fa-solid fa-forward"></i> Skip 1m</button>
+          <button data-control-str="nr+1q"><i class="fa-solid fa-forward"></i> Skip 1q</button>
         </div>
         <div></div>
-        <div><form onsubmit="closeDialog()"><button type="submit" class="mainButton">Close</button></form></div>
+        <div><form><button id="closeButton" class="mainButton">Close</button></form></div>
         </div>
       </div>
     </div>
@@ -638,7 +618,7 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
     // Show in an HTML window, and save a copy as file
     // Set filename for HTML copy if _logLevel set to DEBUG
     const windowTitle = `Dashboard (${totalOpenItems} items)`
-    const filenameHTMLCopy = config._logLevel === 'DEBUG' || config._logLevel === 'INFO' ? '../../jgclark.Dashboard/dashboard-grid.html' : '' // TODO(later): change back
+    const filenameHTMLCopy = config._logLevel === 'DEBUG' || config._logLevel === 'INFO' ? '../../jgclark.Dashboard/dashboard-grid.html' : ''
 
     const winOptions = {
       windowTitle: windowTitle,
@@ -654,7 +634,8 @@ export async function showDashboard(callType: string = 'manual', demoMode: boole
 ` +
         `<script type="text/javascript" src="./showTimeAgo.js"></script>` + 
         `<script type="text/javascript" src="./dashboardEvents.js"></script>
-      `}${commsBridge}${shortcutsScript}`,
+      `}${commsBridge}`,
+      // + shortcutsScript
       // + resizeListenerScript
       // + unloadListenerScript
       savedFilename: filenameHTMLCopy,

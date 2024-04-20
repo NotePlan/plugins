@@ -11,7 +11,7 @@ import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
 // ---------------------------------------------------------
 // Constants and Types
 
-let baseFontSize = 14
+let baseFontSize = 14 // updated later
 
 // ---------------------------------------------------------
 
@@ -80,13 +80,20 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     let tempSel = []
     const rootSel = [] // for special :root selector which sets variables picked up in several places below
     let styleObj: Object
-    const isLightTheme = themeJSON.style === 'Light'
+    // const isLightTheme = themeJSON.style === 'Light' // used to be used
 
     // Set 'html':
-    // - main font size
-    // set global variable
-    const fsPref = DataStore.preference('fontSize')
-    baseFontSize = (fsPref && !isNaN(Number(fsPref))) ? Number(fsPref) : 14
+    // - main font size (as global variable) from:
+    //   - theme body, or
+    //   - user's NP Editor setting
+    //   - or default to 14
+    const userFSPref = DataStore.preference('fontSize')
+    const themeFSPref = themeJSON?.styles?.body?.size ?? NaN
+    baseFontSize =
+      (themeFSPref && !isNaN(Number(themeFSPref))) ? Number(themeFSPref)
+        : (userFSPref && !isNaN(Number(userFSPref))) ? Number(userFSPref)
+          : 14
+    // logDebug('generateCSSFromTheme', `baseFontSize -> ${String(baseFontSize)}`)
     const bgMainColor = themeJSON?.editor?.backgroundColor ?? '#1D1E1F'
     tempSel.push(`background: var(--bg-main-color)`)
     output.push(makeCSSSelector('html', tempSel))
@@ -162,64 +169,47 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
     }
     // NP doesn't support H5 styling
 
-    // Set core table features from theme
+    // Set core colour features from theme
     const altColor = RGBColourConvert(themeJSON.editor?.altBackgroundColor) ?? '#2E2F30'
     rootSel.push(`--bg-alt-color: ${altColor}`)
     const tintColor = RGBColourConvert(themeJSON.editor?.tintColor) ?? '#E9C0A2'
     rootSel.push(`--tint-color: ${tintColor}`)
 
-    // Set core button style from macOS based on dark or light:
-    // Similarly for fake-buttons (i.e. from <a href ...>)
-    if (isLightTheme) {
-      output.push(makeCSSSelector('button, input', [
-        'color: var(--fg-main-color)',
-        'background-color: #FFFFFF',
-        `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
-        // 'font-size: 1.0rem',
-        'font-weight: 500',
-        'border-radius: 4px',
-      ]))
-      output.push(
-        makeCSSSelector('.fake-button a', [
-          'color: var(--fg-main-color)',
-          'background-color: #FFFFFF',
-          // 'font-size: 1.0rem',
-          'font-weight: 500',
-          'text-decoration: none',
-          'border-color: #DFE0E0',
-          'border-radius: 4px',
-          'box-shadow: 0 1px 1px #CBCBCB',
-          'padding: 1px 7px 1px 7px',
-          'margin: 2px 4px',
-          'white-space: nowrap', // no wrapping (i.e. line break) within the button display
-        ]),
-      )
-    } else {
-      // dark theme
-      output.push(makeCSSSelector('button, input', [
-        'color: var(--fg-main-color)',
-        'background-color: #5E5E5E',
-        `font-family: "${bodyFont}"`, // needs to repeat for potentially-native controls
-        // 'font-size: 1.0rem',
-        'font-weight: 500',
-        'border-radius: 4px',
-      ]))
-      output.push(
-        makeCSSSelector('.fake-button a', [
-          'color: var(--fg-main-color)',
-          'background-color: #5E5E5E',
-          // 'font-size: 1.0rem',
-          'font-weight: 500',
-          'text-decoration: none',
-          'border-color: #5E5E5E',
-          'border-radius: 4px',
-          'box-shadow: 0 -1px 1px #6F6F6F',
-          'padding: 1px 7px 1px 7px',
-          'margin: 2px 4px',
-          'white-space: nowrap', // no wrapping (i.e. line break) within the button display
-        ]),
-      )
-    }
+    // Set font for native controls (otherwise will go to Apple default)
+    output.push(makeCSSSelector('button, input', [
+      `font-family: "${bodyFont}"`,
+    ]))
+
+    // Set a few styles here that require computed light and dark settings
+    // Note: Now found a way to do this just in CSS so moved to plugins
+    // if (isLightTheme) {
+    //   output.push(makeCSSSelector('button, input', [
+    //     'color: var(--fg-main-color)',
+    //     'background-color: var(--bg-alt-color)',
+    //   ]))
+    //   output.push(
+    //     makeCSSSelector('.fake-button a', [
+    //       'color: var(--fg-main-color)',
+    //       'background-color: var(--bg-alt-color)',
+    //       'border-color: #DFE0E0',
+    //       'box-shadow: 0 1px 1px #CBCBCB',
+    //     ]),
+    //   )
+    // } else {
+    //   // dark theme
+    //   output.push(makeCSSSelector('button, input', [
+    //     'color: var(--fg-main-color)',
+    //     'background-color: var(--bg-alt-color)',
+    //   ]))
+    //   output.push(
+    //     makeCSSSelector('.fake-button a', [
+    //       'color: var(--fg-main-color)',
+    //       'background-color: var(--bg-alt-color)',
+    //       'border-color: #5E5E5E',
+    //       'box-shadow: 0 -1px 1px #6F6F6F',
+    //     ]),
+    //   )
+    // }
 
     // Set italic text if present
     tempSel = []
@@ -293,6 +283,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.hashtag', tempSel))
+      // Also save just the foreground colour to root
+      rootSel.push(`--hashtag-color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
     }
 
     // Set class for mentions ('attag') if present
@@ -305,6 +297,8 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel.push('padding-inline: 3px')
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.attag', tempSel))
+      // Also save just the foreground colour to root
+      rootSel.push(`--attag-color: ${RGBColourConvert(styleObj.color ?? 'inherit')}`)
     }
 
     // Set class for `pre-formatted text` ('code') if present
@@ -393,6 +387,16 @@ export function generateCSSFromTheme(themeNameIn: string = ''): string {
       tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
       output.push(makeCSSSelector('.priority4', tempSel))
     }
+
+    // Set class for Time Blocks if present
+    // Note: fudges size down in the samw way that NP seems to under the hood
+    tempSel = []
+    tempSel.push(`color: ${RGBColourConvert(themeJSON.editor.timeBlockColor) ?? 'inherit'}`)
+    tempSel.push(`font-family: "Menlo-Regular"`)
+    const smallerFontSize = Math.round(baseFontSize * 0.84)
+    tempSel.push(`font-size: ${smallerFontSize}px;`)
+    tempSel = tempSel.concat(convertStyleObjectBlock(styleObj))
+    output.push(makeCSSSelector('.timeBlock', tempSel))
 
     // Now put the important info and rootSel at the start of the output
     output.unshift(makeCSSSelector(':root', rootSel))
@@ -578,7 +582,11 @@ export function textDecorationFromNP(selector: string, value: number): string {
  * @returns {string} size including 'rem' units
  */
 export function pxToRem(thisFontSize: number, baseFontSize: number): string {
-  const output = `${String((thisFontSize / baseFontSize).toPrecision(2))}rem`
+  let rem = (thisFontSize / baseFontSize)
+  // Note: Need to apply fudge to get it closer to actual size seen in NP Editor
+  rem *= 0.95
+  const output = `${String(rem.toPrecision(2))}rem`
+  // logInfo('pxToRem', `${thisFontSize}px -> ${output}`)
   return output
 }
 
@@ -679,7 +687,15 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
       translatedWeight = '600'
       break
     }
+    case 'demibold': {
+      translatedWeight = '600'
+      break
+    }
     case 'semi-bold': {
+      translatedWeight = '600'
+      break
+    }
+    case 'semibold': {
       translatedWeight = '600'
       break
     }
@@ -727,7 +743,7 @@ export function fontPropertiesFromNP(fontNameNP: string): Array<string> {
   }
 
   outputArr.push(`font-family: "${translatedFamily}"`)
-  outputArr.push(`font-weight: "${translatedWeight}"`)
+  outputArr.push(`font-weight: ${translatedWeight}`)
   outputArr.push(`font-style: "${translatedStyle}"`)
   // logDebug('translateFontNameNPToCSS', `${fontNameNP} ->  ${outputArr.toString()}`)
   return outputArr

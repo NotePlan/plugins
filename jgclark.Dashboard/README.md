@@ -1,5 +1,5 @@
 # 🎛 Dashboard plugin
-<img alt="Example of Dashboard window" src="Dashboard-1.0.0-medium@2x.png" />
+<img alt="Example of Dashboard window" src="Dashboard-1.0.0-medium@2x.png" width="700px"/>
 
 This plugin provides a **dashboard window** that in one place shows a compact list of:
 - open tasks and checklists from today's note
@@ -9,11 +9,15 @@ This plugin provides a **dashboard window** that in one place shows a compact li
 - all open tasks and checklists that contain a particular @tag or #mention of your choosing. This can gives "deferred date" functionality (see below).
 - next few notes to review (if you use the "Projects and Reviews" plugin)
 
+
+Here's a [great video from user George Crump](https://youtu.be/dMULdFtTh2k) that shows it in action:
+    [<img width="500px" alt="thumbnail" src="./georgec-Dashboard-walk-through-thumbnail.jpeg">](https://youtu.be/dMULdFtTh2k)
+
 To open this run the **/show dashboard** command (aliases 'db' or 'sdb'). It automatically picks up the Theme from NotePlan and mimics it as far as possible (you're welcome).
 
 There are many different [Settings](#settings) to tailor what is shown according to your preferences.
 
-[<img width="120px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
+[<img width="150px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 
 ## Interacting with items in the Dashboard
 All tasks and checklists shown in the Dashboard view can be marked as **complete** by clicking in its usual open circle or square:
@@ -31,6 +35,7 @@ You can make many more changes by clicking on the **pencil** icon after each tas
 - `+1b` moves to the next business day's note (which ignores weekends)
 - `+1w` moves to next week's note etc.
 - `this week` moves to this week's note etc.
+- `cancel` cancels the task/checklist
 - `move to note` opens the command bar asking which note + heading you want to move this item to
 - `priority ↑` increases the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
 - `priority ↓` decreasas the priority of the current item (i.e. the start of the underlying item goes from none -> `!` -> `!!` -> `!!!` -> `>>`)
@@ -45,7 +50,6 @@ You also have the ability to update the text of the item itself.
 Other notes:
 - _This requires the separate 'Shared Resources' plugin to be installed_.
 - The Dashboard doesn't use NotePlan's normal editor, but a more flexible HTML-based display. Behind the scenes it cleverly translates your current NotePlan theme into its CSS equivalent. (You're welcome.)
-- The plugin cannot work effectively on an **iPhone**-sized device, so it is disabled there.  On an **iPad** windows can't float in the same way as they can on macOS, so it's less useful, but it still works.
 - The display is responsive: switching from narrow to normal to multi-column layout depending how wide you set it.
 - The items are shown sorted first by greatest priority, and then by increasing time (where there is a time block).
 - It de-dupes items that would appear twice in a list where the lines are sync'd together.
@@ -64,10 +68,12 @@ The 'action buttons' available in this section are:
 ### Keyboard control
 New in v1.0 is the ability to change what is shown by typing one of the following keys:
 - <kbd>r</kbd>: refresh display
+- <kbd>a</kbd>: turn on all available sections
+- <kbd>t</kbd>: toggle showing Tomorrow section
 - <kbd>w</kbd>: toggle showing Week section
 - <kbd>m</kbd>: toggle showing Month section
+- <kbd>q</kbd>: toggle showing Quarter section
 - <kbd>o</kbd>: toggle showing Overdue section
-- <kbd>a</kbd>: turn on all available sections
 
 Note: these only work when the Dashboard window has focus (you have clicked in it).
 
@@ -78,7 +84,9 @@ These shortcuts are also available as x-callback calls. To use these append the 
 | refresh | refresh |
 | toggle week | toggleWeekSection |
 | toggle month | toggleMonthSection |
+| toggle quarter | toggleQuarterSection |
 | toggle overdue | toggleOverdueSection |
+| toggle overdue | toggleTomorrowSection |
 | turn on all sections | turnOnAllSections |
 
 ### Updating the Dashboard automatically
@@ -107,8 +115,9 @@ These settings change some of how it displays:
 - Exclude checklists that include time blocks?: Whether to stop display of open checklists that contain a time block.
 - Include folder name? Whether to include the folder name when showing a note link
 - Max number of items to show in a section?: The Dashboard isn't designed to show very large numbers of tasks. This gives the maximum number of items that will be shown at one time in the Overdue and Tag sections. (Default: 30)
-- Section heading to add/move new tasks under: When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under.\nIf the heading isn't present, it will be added at the top of the note.\nIf this is left empty, then new tasks will appear at the top of the note.
+- Section heading to add/move new tasks under: When moving an item to a different calendar note, or adding a new item, this sets the Section heading to add it under. If the heading isn't present, it will be added using the settings from the QuickCapture plugin (if installed).\nIf this is left empty, then new tasks will appear at the top of the note.
 - Reschedule items in place, rather than move them?: When updating the due date on an open item in a calendar note, if set this will update its scheduled date in its current note, rather than move it.
+- Use 'today' to schedule tasks for today?: You can have tasks scheduled for today to use '>today' or the current date. If you use '>today', the task will automatically move to tomorrow if not completed. If you use the current date, the task will not automatically move and will show as an overdue task. 
 - Theme to use for Dashboard: If this is set to a valid Theme name from among those you have installed, this Theme will be used instead of your current Theme. Leave blank to use your current Theme.
 - Show section for Yesterday? Allows this to be always turned on/off.
 - Show section for Week? Allows this to be always turned on/off.
@@ -122,7 +131,7 @@ These settings change some of how it displays:
 ## Support
 If you find an issue with this plugin, or would like to suggest new features for it, please raise an ['Issue' of a Bug or Feature Request](https://github.com/NotePlan/plugins/issues).
 
-I'm not part of the NotePlan team, but I've spent at least 4 working weeks on this particular plugin so far. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:
+I'm not part of the NotePlan team, but I've spent at least 4.5 working weeks on this particular plugin so far. So if you would like to support my late-night hobby extending NotePlan through writing these plugins, you can through:
 
 [<img width="200px" alt="Buy Me A Coffee" src="https://www.buymeacoffee.com/assets/img/guidelines/download-assets-sm-2.svg">](https://www.buymeacoffee.com/revjgc)
 

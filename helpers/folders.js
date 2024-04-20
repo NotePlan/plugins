@@ -96,7 +96,7 @@ export function getFolderListMinusExclusions(
     // Get all folders as array of strings (other than @Trash). Also remove root as a special case
     const fullFolderList = DataStore.folders
     let excludeRoot = forceExcludeRootFolder
-    logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`)
+    // logDebug('folders / filteredFolderList', `Starting to filter the ${fullFolderList.length} DataStore.folders with exclusions [${exclusions.toString()}] and forceExcludeRootFolder ${String(forceExcludeRootFolder)}`)
 
     // if excludeSpecialFolders, filter fullFolderList to only folders that don't start with the character '@' (special folders)
     const reducedFolderList = (excludeSpecialFolders)
@@ -128,16 +128,15 @@ export function getFolderListMinusExclusions(
     reducedTerminatedWithSlash = reducedTerminatedWithSlash.filter((folder) => !exclusionsTerminatedWithSlash.some((ee) => folder.startsWith(ee)))
     // logDebug('getFolderListMinusExclusions', `- after exclusions reducedTerminatedWithSlash: ${reducedTerminatedWithSlash.length} folders: ${reducedTerminatedWithSlash.toString()}\n`)
 
-
     // now remove trailing slash characters
-    const outputList = reducedTerminatedWithSlash.map((folder) => (folder.endsWith('/') ? folder.slice(0, -1) : folder))
+    const outputList = reducedTerminatedWithSlash.map((folder) => (folder !== '/' && folder.endsWith('/') ? folder.slice(0, -1) : folder))
 
     // remove root folder if wanted
     if (excludeRoot) {
       const itemToRemove = outputList.indexOf('/')
       outputList.splice(itemToRemove, 1)
     }
-    logDebug('getFolderListMinusExclusions', `-> outputList: ${outputList.length} items: [${outputList.toString()}] with excludeRoot? ${String(excludeRoot)}`)
+    logDebug('folders/getFolderListMinusExclusions', `-> outputList: ${outputList.length} items: [${outputList.toString()}] with excludeRoot? ${String(excludeRoot)}`)
     return outputList
 
   } catch (error) {
@@ -170,15 +169,23 @@ export function getFolderFromFilename(fullFilename: string): string {
 }
 
 /**
- * Get the folder name from the full NP (project) note filename, without leading or trailing slash.
+ * Get the folder name from the full NP (project) note filename, without leading or trailing slash. 
+ * Optionally remove file extension
  * @author @jgclark
  * @param {string} fullFilename - full filename to get folder name part from
+ * @param {boolean} removeExtension?
  * @returns {string} folder/subfolder name
  */
-export function getJustFilenameFromFullFilename(fullFilename: string): string {
+export function getJustFilenameFromFullFilename(fullFilename: string, removeExtension: boolean = false): string {
   try {
-    const filenameParts = fullFilename.split('/')
-    return filenameParts.slice(-1, filenameParts.length).join('')
+    const filepathParts = fullFilename.split('/')
+    const filenamePart = filepathParts.slice(-1, filepathParts.length).join('')
+    if (removeExtension) {
+      const fileNameWithoutExtension = filenamePart.replace(/\.[^/.]+$/, '')
+      return fileNameWithoutExtension
+    } else {
+      return filenamePart
+    }
   } catch (error) {
     logError('folders/getFolderFromFilename', `Error getting folder from filename '${fullFilename}: ${error.message}`)
     return '(error)'

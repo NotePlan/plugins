@@ -1,6 +1,44 @@
 # What's changed in 🎛 Dashboard plugin?
 For more details see the [plugin's documentation](https://github.com/NotePlan/plugins/tree/main/jgclark.Dashboard/).
 
+## [1.2.1] - 2024-04-18 by @SirTristam
+- Add option to use the current date instead of '>today' to schedule tasks for today
+
+## [1.2.0] - 2024-04-07
+- updates to allow Dashboard to run on iOS devices (now that the control dialog has replaced the hover mechanism)
+- added 'Cancel' button to control dialog (as an alternative to the ⌘-click facility which is missing on iOS devices)
+- after you change Dashboard settings, it will automatically refresh the Dashboard if its open (requires NP 3.11beta or later)
+
+## [1.1.3] - 2024-04-04
+- Now offers to download 'Shared Resources' plugin (which it relies upon) if it isn't already
+- When needing to create a new Heading for a moved task, now correctly uses 'headingLevel' from QuickCapture settings (if installed) (thanks @Stacey)
+
+## [1.1.2] - 2024-04-03
+- callback to toggle showing Quarter section (for @George65)
+
+## [1.1.1] - 2024-04-02
+### New
+- now shows time blocks as your theme does
+### Improved
+- theming improvements
+### Fixes
+- keyboard controls are now disabled when the control dialog is showing (thx @drb)
+
+## [1.1.0] - 2024-03-28
+### New
+- added 'Tomorrow' section. This can be toggled on/off with 't' shortcut. (This is off by default: go to settings to turn it on.)
+- added move 'All Today → Tomorrow' button in Today section
+### Improved
+- now finds tasks from notes in the root folder (thx @drb)
+- wider layout uses full width
+### Fixes
+- fixed regression ignoring calendar notes in Overdue section (thx @dwertheimer)
+- fixed text in some tooltips (thx @drb)
+- fixed display of markdown links with very long URLs (thx @dwertheimer)
+
+## [1.0.1] - 2024-03-27
+- fix regression with checklist items
+
 ## [1.0.0] - 2024-03-26
 Complete re-write of the display, and added significant new features:
 - replaced the 'hover bar' with a proper dialog box, opened by clicking on a new pencil icon after every item. This has more space to make clearer buttons, and more of them:
@@ -32,6 +70,7 @@ Complete re-write of the display, and added significant new features:
 - fixed problem in Tag section sometimes ignoring open scheduled items (reported by @George65)
 - fixed problem in Tag section if its 'Ignore items...' setting was blank  (reported by @George65)
 - bracketed part of @mentions with brackets are now themed like the rest of the @mention
+
 <!-- 
 ## [1.0.0-a9] - 2024-03-25 (unreleased)
 - improve horizontal positioning of control dialog on narrow windows

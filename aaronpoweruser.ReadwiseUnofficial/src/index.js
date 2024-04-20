@@ -1,6 +1,6 @@
 // @flow
 
-export { readwiseSync, readwiseRebuild } from './NPReadwise'
+export { readwiseSync, readwiseRebuild, readwiseDailyReview } from './NPReadwise'
 
 // FETCH mocking for offline testing
 // If you want to use external server calls in your plugin, it can be useful to mock the server responses

@@ -11,6 +11,7 @@ This Plugin lets you do the following sorts of things:
 - count the times you've met with staff member `@alice` this year so far
 - sum the length of your `@run`s in the last quarter
 - get a breakdown of how you're spending your week by tracking minutes across various areas (e.g. in a daily note - `@email(30)`; `@email(10)`; `@coding(45)`; `@writing(30)` or `#words/90`)
+- track completion of a reference checklist template
 - show a heatmap chart of your `@sleep` stats
 
   ![Heatmap example](heatmap-work-0164.png)
@@ -55,6 +56,23 @@ Note: According to [several](https://wiki.mobileread.com/wiki/List_of_fonts_incl
 All notes in the special folders (@Archive, @Templates and @Trash) are **ignored**.  Others can be excluded too using the `foldersToExclude` setting.
 
 Note: **Why use `@run(...)` (mentions) rather than `#run(...)` (hashtags)**? Well, it just felt more right to use `@run(...)` as there are already `@done(...)` and `@repeat(...)` mentions in use in NotePlan that include a value in the brackets. And in NotePlan, hashtags that end with a number ignore the fractional part (e.g. `#run/5.3` ignores the `.3`) but they are not ignored inside `@run(5.3)`.  However, you _can_ use a `#hashtag/value` if you don't mind this limitation.
+
+## Tracking checklist completetion
+
+To track checklist completion you must create a referance checklist in the template folder:
+
+![alt text](checklist-1.png)
+
+Add the title of this template to settings:
+
+![alt text](checklist.png)
+
+If you want to use this template in another note it can be imported using
+`<%- import("Daily tasks”) -%>`
+
+Completion is tracked using the 'appendProgressUpdate' command
+
+![alt text](checklist-2.png)
 
 ## 'heatmap for complete tasks' command
 This displays a 'heatmap' chart of many tasks you've completed on each day (see example above). It uses the `@done(...)` dates in all daily, weekly and project notes over the number of weeks you specify to look back (via the 'Chart Duration (in weeks)' setting). If you set this to 0, the plugin will generate a sensible longish period between 6 and 12 months.  It also counts completed tasks without `@done(...)` dates on Calendar notes, and assumes the tasks were completed on the day or start of week in question.

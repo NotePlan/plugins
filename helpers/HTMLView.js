@@ -2,7 +2,7 @@
 // ---------------------------------------------------------
 // HTML helper functions for use with HTMLView API
 // by @jgclark, @dwertheimer
-// Last updated 5.9.2023 by @jgclark
+// Last updated 1.4.2024 by @jgclark
 // ---------------------------------------------------------
 
 import { clo, logDebug, logError, logInfo, logWarn, JSP } from '@helpers/dev'
@@ -10,6 +10,10 @@ import { getStoredWindowRect, isHTMLWindowOpen, storeWindowRect } from '@helpers
 import { generateCSSFromTheme, RGBColourConvert } from '@helpers/NPThemeToCSS'
 import { isTermInNotelinkOrURI } from '@helpers/paragraph'
 import { RE_EVENT_LINK, RE_SYNC_MARKER } from '@helpers/regex'
+import {
+  getTimeBlockString,
+  isTimeBlockLine
+} from '@helpers/timeblocks'
 
 // ---------------------------------------------------------
 // Constants and Types
@@ -39,8 +43,8 @@ export type HtmlWindowOptions = {
 // Meta tags to always apply:
 // - to make windows always responsive
 const fixedMetaTags = `
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 `
 
 // ---------------------------------------------------------
@@ -63,7 +67,7 @@ const fixedMetaTags = `
 export function getCallbackCodeString(jsFunctionName: string, commandName: string = '%%commandName%%', pluginID: string = '%%pluginID%%', returnPathFuncName: string = ''): string {
   const haveNotePlanExecute = JSON.stringify(`(async function() { await DataStore.invokePluginCommandByName("${commandName}", "${pluginID}", %%commandArgs%%);})()`)
   // logDebug(`getCallbackCodeString: In HTML Code, use "${commandName}" to send data to NP, and use a func named <returnPathFuncName> to receive data back from NP`)
-  //TODO: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
+  // Note: could use "runCode()" as shorthand for the longer postMessage version below, but it does the same thing
   // "${returnPathFuncName}" was the onHandle, but since that function doesn't really do anything, I'm not sending it
   return `
     // This is a callback bridge from HTML to the plugin
@@ -890,6 +894,19 @@ export function convertHighlightsToHTML(input: string): string {
   return output
 }
 
+// Display time blocks with .timeBlock style
+// Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+// WARNING: can't be used from React, as this calls a DataStore function
+export function convertTimeBlockToHTML(input: string): string {
+  let output = input
+  if (isTimeBlockLine(input)) {
+    const timeBlockPart = getTimeBlockString(input)
+    logDebug(`found time block '${timeBlockPart}'`)
+    output = output.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+  }
+  return output
+}
+
 // Display underlined with .underlined style
 // TODO: regex isn't quite right. But can't get original one to work for reasons I can't understand
 // But does cope with lone ~ in URLs
@@ -937,34 +954,66 @@ export function convertNPBlockIDToHTML(input: string): string {
 }
 
 /**
- * Truncate visible part of HTML string, without breaking the HTML tags
+ * Truncate visible part of HTML string, without breaking the HTML tags, or markdown links.
  * @param {string} htmlIn
  * @param {number} maxLength of output
  * @param {boolean} dots - add ellipsis to end?
  * @returns {string} truncated HTML
+ * TODO: write tests for this
  */
 export function truncateHTML(htmlIn: string, maxLength: number, dots: boolean = true): string {
-  let holdCounter = false
+  let inHTMLTag = false
+  let inMDLink = false
   let truncatedHTML = ''
-  let limit = maxLength
+  let lengthLeft = maxLength
   for (let index = 0; index < htmlIn.length; index++) {
-    if (!limit || limit === 0) {
+    if (!lengthLeft || lengthLeft === 0) {
+    // no lengthLeft: stop processing
       break
     }
-    if (htmlIn[index] === '<') {
-      holdCounter = true
+    if (htmlIn[index] === '<' && htmlIn.slice(index).includes('>')) {
+      // if we've started an HTML tag stop counting
+      // logDebug('truncateHTML', `started HTML tag at ${String(index)}`)
+      inHTMLTag = true
     }
-    if (!holdCounter) {
-      limit--
+    if (htmlIn[index] === '[' && htmlIn.slice(index).match(/\]\(.*\)/)) {
+      // if we've started a MD link tag stop counting
+      // logDebug('truncateHTML', `started MD link at ${String(index)}`)
+      inMDLink = true
     }
-    if (htmlIn[index] === '>') {
-      holdCounter = false
+    if (!inHTMLTag && !inMDLink) {
+      lengthLeft--
+    }
+    if (htmlIn[index] === '>' && inHTMLTag) {
+      // logDebug('truncateHTML', `stopped HTML tag at ${String(index)}`)
+      inHTMLTag = false
+    }
+    if (htmlIn[index] === ')' && inMDLink) {
+      // logDebug('truncateHTML', `stopped MD link at ${String(index)}`)
+      inMDLink = false
     }
     truncatedHTML += htmlIn[index]
   }
   if (dots) {
     truncatedHTML = `${truncatedHTML} …`
   }
-  // logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
+  logDebug('truncateHTML', `{${htmlIn}} -> {${truncatedHTML}}`)
   return truncatedHTML
+}
+
+/**
+ * Make HTML for a real button that is used to call a plugin's command, by sending params for a invokePluginCommandByName() call
+ * Note: follows earlier makeRealCallbackButton()
+ * @param {string} buttonText to display on button
+ * @param {string} pluginName of command to call
+ * @param {string} commandName to call when button is 'clicked'
+ * @param {string} commandArgs (may be empty)
+ * @param {string?} tooltipText to hover display next to button
+ * @returns {string}
+ */
+export function makePluginCommandButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
+  const output = (tooltipText)
+    ? `<button class="PCButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}</button>`
+    : `<button class="PCButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}" >${buttonText}</button>`
+  return output
 }

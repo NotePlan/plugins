@@ -669,8 +669,9 @@ declare class DataStore {
    * Note: Available from v3.5.2
    * @param {PluginObject}
    * @param {boolean}
+   * @return {Promise<PluginObject>} the pluginObject of the installed plugin
    */
-  static installPlugin(pluginObject: PluginObject, showLoading?: boolean): Promise<void>;
+  static installPlugin(pluginObject: PluginObject, showLoading?: boolean): Promise<PluginObject>;
   /**
    * Returns all installed plugins as PluginObject(s).
    * Note: Available from v3.5.2

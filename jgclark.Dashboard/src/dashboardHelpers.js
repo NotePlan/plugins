@@ -1,18 +1,22 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Dashboard plugin helper functions
-// Last updated 26.3.2024 for v1.0.0 by @jgclark
+// Last updated 18.4.2024 for v1.2.1 by @SitTristam
 //-----------------------------------------------------------------------------
 
 // import moment from 'moment/min/moment-with-locales'
 import pluginJson from '../plugin.json'
 // import { showDashboard } from './HTMLGeneratorGrid'
+import { getSettingFromAnotherPlugin } from '@helpers/NPConfiguration'
 import { clo, JSP, logDebug, logError, logInfo, logWarn, timer } from '@helpers/dev'
 import {
   getAPIDateStrFromDisplayDateStr,
   includesScheduledFutureDate,
 } from '@helpers/dateTime'
-import { createRunPluginCallbackUrl, displayTitle } from "@helpers/general"
+import {
+  createRunPluginCallbackUrl,
+  displayTitle,
+} from "@helpers/general"
 import {
   simplifyNPEventLinksForHTML,
   simplifyInlineImagesForHTML,
@@ -20,6 +24,7 @@ import {
   convertMentionsToHTML,
   convertPreformattedToHTML,
   convertStrikethroughToHTML,
+  convertTimeBlockToHTML,
   convertUnderlinedToHTML,
   convertHighlightsToHTML,
   convertNPBlockIDToHTML,
@@ -29,9 +34,14 @@ import {
 import { filterOutParasInExcludeFolders } from '@helpers/note'
 import { getReferencedParagraphs } from '@helpers/NPnote'
 import {
+  findEndOfActivePartOfNote,
+  findHeadingStartsWith,
+  findStartOfActivePartOfNote,
   getTaskPriority,
   removeTaskPriorityIndicators,
+  smartPrependPara,
 } from '@helpers/paragraph'
+import { findParaFromStringAndFilename } from '@helpers/NPParagraph'
 import {
   RE_ARROW_DATES_G,
   RE_SCHEDULED_DATES_G,
@@ -50,7 +60,10 @@ import {
   stripTodaysDateRefsFromString
 } from '@helpers/stringTransforms'
 import { getTimeBlockString, isTimeBlockPara } from '@helpers/timeblocks'
-import { showMessage } from '@helpers/userInput'
+import {
+  displayTitleWithRelDate,
+  showMessage
+} from '@helpers/userInput'
 import {
   isOpen, isOpenTask, isOpenNotScheduled, isOpenTaskNotScheduled,
   removeDuplicates
@@ -63,7 +76,7 @@ import {
 export type Section = {
   ID: number,
   name: string, // 'Today', 'This Week', 'This Month' ... 'Projects', 'Done'
-  sectionType: '' | 'DT' | 'DY' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG' | 'PROJ', // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
+  sectionType: 'DT' | 'DY' | 'DO' | 'W' | 'M' | 'Q' | 'Y' | 'OVERDUE' | 'TAG' | 'PROJ' | 'COUNT', // where DT = today, DY = yesterday, TAG = Tag, PROJ = Projects section
   description: string,
   FAIconClass: string,
   sectionTitleClass: string,
@@ -104,11 +117,13 @@ export type dashboardConfigType = {
   includeFolderName: boolean,
   includeTaskContext: boolean,
   newTaskSectionHeading: string,
+  headingLevel: number,
   rescheduleNotMove: boolean,
   autoAddTrigger: boolean,
   excludeChecklistsWithTimeblocks: boolean,
   excludeTasksWithTimeblocks: boolean,
   showYesterdaySection: boolean,
+  showTomorrowSection: boolean,
   showWeekSection: boolean,
   showMonthSection: boolean,
   showQuarterSection: boolean,
@@ -121,6 +136,7 @@ export type dashboardConfigType = {
   updateTagMentionsOnTrigger: boolean,
   _logLevel: string,
   triggerLogging: boolean,
+  useTodayDate: boolean,
   // filterPriorityItems: boolean, // now kept in a DataStore.preference key
 }
 
@@ -151,6 +167,7 @@ export async function getSettings(): Promise<any> {
       DataStore.setPreference('Dashboard-filterPriorityItems', false)
     }
     // logDebug(pluginJson, `filter? -> ${String(DataStore.preference('Dashboard-filterPriorityItems'))}`)
+
     return config
   } catch (err) {
     logError(pluginJson, `${err.name}: ${err.message}`)
@@ -192,7 +209,7 @@ export function reduceParagraphs(origParas: Array<TParagraph>): Array<ReducedPar
 //-----------------------------------------------------------------
 
 /**
- * Return list(s) of open task/checklist paragraphs from the current calendar note of type 'timePeriodName'.
+ * Return list(s) of open task/checklist paragraphs in calendar note of type 'timePeriodName', or scheduled to that same date.
  * Various config.* items are used:
  * - ignoreFolders? for folders to ignore for referenced notes
  * - separateSectionForReferencedNotes? if true, then two arrays will be returned: first from the calendar note; the second from references to that calendar note. If false, then both are included in a combined list (with the second being an empty array).
@@ -231,11 +248,11 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Need to filter out non-open task types for following function, and any scheduled tasks (with a >date) and any blank tasks.
     // Now also allow to ignore checklist items.
-    // TODO: this operation is 100ms
+    // Note: this operation is 100ms
     let openParas = (config.ignoreChecklistItems)
       ? parasToUse.filter((p) => isOpenTaskNotScheduled(p) && p.content.trim() !== '')
       : parasToUse.filter((p) => isOpenNotScheduled(p) && p.content.trim() !== '')
-    logDebug('getOpenItemParasForCurrent...', `After 'isOpenNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
+    logDebug('getOpenItemParasForCurrent...', `After 'isOpenTaskNotScheduled + not blank' filter: ${openParas.length} paras (after ${timer(startTime)})`)
     const tempSize = openParas.length
 
     // Filter out any future-scheduled tasks from this calendar note
@@ -271,11 +288,10 @@ export function getOpenItemParasForCurrentTimePeriod(
     // -------------------------------------------------------------
     // Get list of open tasks/checklists scheduled/referenced to this period from other notes, and of the right paragraph type
     // (This is 2-3x quicker than part above)
-    // TODO: the getReferencedParagraphs() operation take 70-140ms
-    // FIXME: Why not finding all items?
+    // Note: the getReferencedParagraphs() operation take 70-140ms
     let refParas: Array<TParagraph> = []
     if (timePeriodNote) {
-      // Now also allow to ignore checklist items.
+      // Allow to ignore checklist items.
       refParas = (config.ignoreChecklistItems)
         ? getReferencedParagraphs(timePeriodNote, false).filter(isOpenTask)
         // try make this a single filter
@@ -284,7 +300,7 @@ export function getOpenItemParasForCurrentTimePeriod(
     logDebug('getOpenItemParasForCurrent...', `- got ${refParas.length} open referenced after ${timer(startTime)}`)
 
     // Remove items referenced from items in 'ignoreFolders'
-    refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders)
+    refParas = filterOutParasInExcludeFolders(refParas, config.ignoreFolders, true)
     // logDebug('getOpenItemParasForCurrent...', `- after 'ignore' filter: ${refParas.length} paras (after ${timer(startTime)})`)
     // Remove possible dupes from sync'd lines
     refParas = eliminateDuplicateSyncedParagraphs(refParas)
@@ -296,7 +312,8 @@ export function getOpenItemParasForCurrentTimePeriod(
 
     // Sort the list by priority then time block, otherwise leaving order the same
     // Then decide whether to return two separate arrays, or one combined one
-    // TODO: This takes 100ms
+    // Note: This takes 100ms
+    // TODO: extend to deal with 12hr (AM/PM) time blocks
     if (config.separateSectionForReferencedNotes) {
       const sortedOpenParas = sortListBy(openParas, ['-priority', 'timeStr'])
       const sortedRefParas = sortListBy(refParas, ['-priority', 'timeStr'])
@@ -319,6 +336,28 @@ export function getOpenItemParasForCurrentTimePeriod(
 }
 
 /**
+ * TODO: use me above?
+ * Parses and sorts dates from items based on the content field.
+ * @author @jgclark, @dwertheimer, ChatGPT
+ * @param {Array<TParagraph>} items - Array of Paragraphs with a content field.
+ * @returns {Array<TParagraph>} - Array of Paragraphs sorted by the computed start time represented in the text, ignoring ones that do not contain times.
+ */
+function parseAndSortDates(items: Array<TParagraph>): Array<ParsedTextDateRange> {
+  const withDates = items
+    .map(item => ({
+      item,
+      date: Calendar.parseDateText(item.content)[0]?.start ?? null
+    })) // Map each item to an object including both the item and the parsed start date.
+    .filter(({ date }) => date != null) // Filter out items without a valid start date.
+
+  // Sort the intermediate structure by the start date and map back to the original items.
+  const sortedItems = withDates.sort((a, b) => a.date - b.date)
+    .map(({ item }) => item)
+
+  return sortedItems
+}
+
+/**
  * @params {dashboardConfigType} config Settings
  * @returns {}
  */
@@ -328,10 +367,9 @@ export async function getRelevantOverdueTasks(config: dashboardConfigType, yeste
     const overdueParas: $ReadOnlyArray<TParagraph> = await DataStore.listOverdueTasks() // note: does not include open checklist items
     logInfo('getRelevantOverdueTasks', `Found ${overdueParas.length} overdue items in ${timer(thisStartTime)}`)
 
-    // Remove items referenced from items in 'ignoreFolders'
-    // let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders)
-    // $FlowFixMe(incompatible-call) returns $ReadOnlyArray type
-    let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders)
+    // Remove items referenced from items in 'ignoreFolders' (but keep calendar note matches)
+    // $FlowIgnore(incompatible-call) returns $ReadOnlyArray type
+    let filteredOverdueParas: Array<TParagraph> = filterOutParasInExcludeFolders(overdueParas, config.ignoreFolders, true)
     logDebug('getRelevantOverdueTasks', `- ${filteredOverdueParas.length} paras after excluding @special + [${String(config.ignoreFolders)}] folders`)
 
     // Remove items that appear in this section twice (which can happen if a task is in a calendar note and scheduled to that same date)
@@ -425,6 +463,9 @@ export function makeParaContentToLookLikeNPDisplayInHTML(
 
     // Display pre-formatted with .code style
     output = convertPreformattedToHTML(output)
+
+    // Display time blocks with .timeBlock style
+    output = convertTimeBlockToHTML(output)
 
     // Display strikethrough with .strikethrough style
     output = convertStrikethroughToHTML(output)
@@ -617,6 +658,8 @@ export function makeNoteTitleWithOpenActionFromNPDateStr(NPDateStr: string, item
 }
 
 /**
+ * FIXME: write some tests
+ * FIXME: extend to allow AM/PM times as well
  * Extend the paragraph object with a .timeStr property which comes from the start time of a time block, or else 'none' (which will then sort after times)
  * Note: Not fully internationalised (but then I don't think the rest of NP accepts non-Western numerals)
  * @tests in dashboardHelpers.test.js
@@ -657,6 +700,7 @@ export function extendParaToAddStartTime(paras: Array<TParagraph>): Array<any> {
 }
 
 /**
+ * WARNING: DEPRECATED in favour of newer makePluginCommandButton() in HTMLView.js
  * Make HTML for a 'fake' button that is used to call (via x-callback) one of this plugin's commands.
  * Note: this is not a real button, bcause at the time I started this real <button> wouldn't work in NP HTML views, and Eduard didn't know why.
  * @param {string} buttonText to display on button
@@ -675,7 +719,8 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
 }
 
 /**
- * Make HTML for a real button that is used to call  one of this plugin's commands.
+ * WARNING: DEPRECATED in favour of newer makePluginCommandButton() in HTMLView.js
+ * Make HTML for a real button that is used to call one of this plugin's commands.
  * Note: this is not a real button, bcause at the time I started this real <button> wouldn't work in NP HTML views, and Eduard didn't know why.
  * V2: send params for an invokePluginCommandByName call
  * V1: send URL for x-callback
@@ -687,13 +732,91 @@ export function makeFakeCallbackButton(buttonText: string, pluginName: string, c
  * @returns {string}
  */
 export function makeRealCallbackButton(buttonText: string, pluginName: string, commandName: string, commandArgs: string, tooltipText: string = ''): string {
-  // const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
-  // let output = (tooltipText)
-  // ? `<button class="XCBButton tooltip"><a href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></button>`
-  // : `<button class="XCBButton"><a href="${xcallbackURL}">${buttonText}</a></button>`
+  const xcallbackURL = createRunPluginCallbackUrl(pluginName, commandName, commandArgs)
   const output = (tooltipText)
-    // ? `<button class="XCBButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}<span class="tooltiptext">${tooltipText}</span></button>`
-    ? `<button class="XCBButton tooltip" data-tooltip="${tooltipText}" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${String(commandArgs)}">${buttonText}</button>`
-    : `<button class="XCBButton" data-plugin-id="${pluginName}" data-command="${commandName}" data-command-args="${commandArgs}" >${buttonText}</button>`
+    ? `<button class="XCBButton tooltip"><a href="${xcallbackURL}">${buttonText}</a><span class="tooltiptext">${tooltipText}</span></button>`
+    : `<button class="XCBButton"><a href="${xcallbackURL}">${buttonText}</a></button>`
   return output
+}
+
+/**
+ * Move a task or checklist from one calendar note to another.
+ * It's designed to be used when the para itself is not available; the para will try to be identified from its filename and content, and it will throw an error if it fails.
+ * If 'headingToPlaceUnder' is provided, para is added after it (with heading being created at effective top of note if necessary).
+ * If 'headingToPlaceUnder' the para will be *prepended* to the effective top of the destination note.
+ * @author @jgclark
+ * @param {"task" | "checklist"} todoTypeName 'English' name of type of todo
+ * @param {string} NPFromDateStr from date (the usual NP calendar date strings, plus YYYYMMDD)
+ * @param {string} NPToDateStr to date (the usual NP calendar date strings, plus YYYYMMDD)
+ * @param {string} paraContent content of the para to move.
+ * @param {string?} headingToPlaceUnder which will be created if necessary
+ * @returns {boolean} success?
+ */
+export async function moveItemBetweenCalendarNotes(NPFromDateStr: string, NPToDateStr: string, paraContent: string, headingToPlaceUnder: string = ''): Promise<boolean> {
+  logDebug(pluginJson, `starting moveItemBetweenCalendarNotes for ${NPFromDateStr} to ${NPToDateStr} under heading '${headingToPlaceUnder}'`)
+  try {
+    // Get calendar note to use
+    const fromNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPFromDateStr))
+    const toNote = DataStore.calendarNoteByDateString(getAPIDateStrFromDisplayDateStr(NPToDateStr))
+    // Don't proceed unless we have valid from/to notes
+    if (!fromNote || !toNote) {
+      logError('moveItemBetweenCalendarNotes', `- Can't get calendar note for ${NPFromDateStr} and/or ${NPToDateStr}`)
+      return false
+    }
+
+    // find para in the fromNote
+    const possiblePara: TParagraph | boolean = findParaFromStringAndFilename(fromNote.filename, paraContent)
+    if (typeof possiblePara === 'boolean') {
+      throw new Error('moveItemBetweenCalendarNotes: no para found')
+    }
+    const itemType = possiblePara?.type
+
+    // add to toNote
+    if (headingToPlaceUnder === '') {
+      logDebug('moveItemBetweenCalendarNotes', `- Prepending type ${itemType} '${paraContent}' to '${displayTitle(toNote)}'`)
+      smartPrependPara(toNote, paraContent, itemType)
+    } else {
+      logDebug('moveItemBetweenCalendarNotes', `- Adding under heading '${headingToPlaceUnder}' in '${displayTitle(toNote)}'`)
+      // Note: this doesn't allow setting heading level ...
+      // toNote.addParagraphBelowHeadingTitle(paraContent, itemType, headingToPlaceUnder, false, true)
+      // so replace with one half of /qath:
+      const shouldAppend = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'shouldAppend', false)
+      const matchedHeading = findHeadingStartsWith(toNote, headingToPlaceUnder)
+      logDebug('addTextToNoteHeading', `Adding line '${paraContent}' to '${displayTitleWithRelDate(toNote)}' below matchedHeading '${matchedHeading}' (heading was '${headingToPlaceUnder}')`)
+      if (matchedHeading !== '') {
+        // Heading does exist in note already
+        toNote.addParagraphBelowHeadingTitle(
+          paraContent,
+          itemType,
+          (matchedHeading !== '') ? matchedHeading : headingToPlaceUnder,
+          shouldAppend, // NB: since 0.12 treated as position for all notes, not just inbox
+          true, // create heading if needed (possible if supplied via headingArg)
+        )
+      } else {
+        const headingLevel = await getSettingFromAnotherPlugin('jgclark.QuickCapture', 'headingLevel', 2)
+        const headingMarkers = '#'.repeat(headingLevel)
+        const headingToUse = `${headingMarkers} ${headingToPlaceUnder}`
+        const insertionIndex = shouldAppend
+          ? findEndOfActivePartOfNote(toNote) + 1
+          : findStartOfActivePartOfNote(toNote)
+        logDebug('moveItemBetweenCalendarNotes', `- adding new heading '${headingToUse}' at line index ${insertionIndex} ${shouldAppend ? 'at end' : 'at start'}`)
+        toNote.insertParagraph(headingToUse, insertionIndex, 'text') // can't use 'title' type as it doesn't allow headingLevel to be set
+        logDebug('moveItemBetweenCalendarNotes', `- then adding text '${paraContent}' after `)
+        toNote.insertParagraph(paraContent, insertionIndex + 1, itemType)
+      }
+    }
+
+    // Assuming that's not thrown an error, now remove from fromNote
+    logDebug('moveItemBetweenCalendarNotes', `- Removing line from '${displayTitle(fromNote)}'`)
+    fromNote.removeParagraph(possiblePara)
+
+    // Ask for cache refresh for these notes
+    DataStore.updateCache(fromNote, false)
+    DataStore.updateCache(toNote, false)
+
+    return true
+  } catch (err) {
+    logError('moveItemBetweenCalendarNotes', `${err.name}: ${err.message} moving {${paraContent}} from ${NPFromDateStr} to ${NPToDateStr}`)
+    return false
+  }
 }

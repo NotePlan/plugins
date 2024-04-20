@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Progress update for Today only
 // Jonathan Clark, @jgclark
-// Last updated 10.11.2023 for v0.20.1, @jgclark
+// Last updated 30.3.2024 for v0.20.1+, @jgclark
 //-----------------------------------------------------------------------------
 
 import pluginJson from '../plugin.json'
@@ -14,20 +14,20 @@ import {
   type SummariesConfig,
 } from './summaryHelpers'
 import {
-  hyphenatedDate,
-  toLocaleDateString,
+  // hyphenatedDate,
   todaysDateISOString,
-  unhyphenatedDate,
-  withinDateRange
+  // unhyphenatedDate,
+  // withinDateRange
 } from '@helpers/dateTime'
-import { getPeriodStartEndDates } from '@helpers/NPDateTime'
+import { toNPLocaleDateString, } from '@helpers/NPdateTime'
 import {
   clo, logDebug, logError, logInfo, logWarn, timer,
-  overrideSettingsWithEncodedTypedArgs,
+  // overrideSettingsWithEncodedTypedArgs,
 } from '@helpers/dev'
 import {
   // CaseInsensitiveMap,
-  createPrettyRunPluginLink, createRunPluginCallbackUrl, displayTitle,
+  createPrettyRunPluginLink,
+  // createRunPluginCallbackUrl, displayTitle,
   formatWithFields,
   getTagParamsFromString,
 } from '@helpers/general'
@@ -77,9 +77,9 @@ export async function todayProgress(itemsToShowArg?: string, headingArg?: string
     logDebug('makeTodayProgress()', `itemsToShowArr '${String(itemsToShowArr)}'`)
 
     if (typeof headingArg === 'string') {
-      const summaryStr: string = await makeTodayProgress(itemsToShowArr, 'command', headingArg)
+      const _summaryStr: string = await makeTodayProgress(itemsToShowArr, 'command', headingArg)
     } else {
-      const summaryStr: string = await makeTodayProgress(itemsToShowArr, 'command')
+      const _summaryStr: string = await makeTodayProgress(itemsToShowArr, 'command')
     }
     // NB: don't need to do anything with output
   }
@@ -103,13 +103,13 @@ export async function todayProgress(itemsToShowArg?: string, headingArg?: string
 export async function makeTodayProgress(itemsToShowArr: Array<string> = [], source: string = 'command', headingArg?: string): Promise<string> {
   try {
     // Get config setting
-    let config: SummariesConfig = await getSummariesSettings()
+    const config: SummariesConfig = await getSummariesSettings()
 
     // Only interested in today!
-    const period = 'daily'
+    // const period = 'daily'
     const fromDateStr = todaysDateISOString
     const toDateStr = todaysDateISOString
-    const periodString = toLocaleDateString(new Date())
+    const periodString = toNPLocaleDateString(new Date())
 
     const heading = (typeof headingArg === 'string') ? headingArg : config.todayProgressHeading // this test means we can pass an empty heading, that can be distinguished from no headingArg
     logDebug('makeTodayProgress', `Starting with itemsToShowArr '${String(itemsToShowArr)}' for ${fromDateStr} heading '${heading}' from source ${source}`)
@@ -122,7 +122,7 @@ export async function makeTodayProgress(itemsToShowArr: Array<string> = [], sour
     logDebug('makeMentionsToShow', mentionsToShow)
     const hashtagsToShow = itemsToShow.filter((f) => f.startsWith('#'))
 
-    let settingsForGO: OccurrencesToLookFor = {
+    const settingsForGO: OccurrencesToLookFor = {
       GOYesNo: [],
       GOHashtagsCount: [],
       GOHashtagsTotal: (hashtagsToShow.length > 0) ? hashtagsToShow : [],
@@ -132,6 +132,7 @@ export async function makeTodayProgress(itemsToShowArr: Array<string> = [], sour
       GOMentionsTotal: (mentionsToShow.length > 0) ? mentionsToShow : [],
       GOMentionsAverage: [],
       GOMentionsExclude: [],
+      GOChecklistRefNote: "",
     }
 
     const startTime = new Date()

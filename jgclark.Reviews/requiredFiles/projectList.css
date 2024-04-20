@@ -1,7 +1,9 @@
 /* CSS specific to reviewList() from jgclark.Reviews plugin */
 
 body {
-  padding: 0rem 0.25rem; /* a little breathing room around whole content */
+  /* a little breathing room around whole content */
+  padding: 0rem 0.25rem; 
+  /* reset as theme inflates it */
 }
 /* add space below to better balance with spacing around H3 headings */
 table {
@@ -55,28 +57,119 @@ table tbody tr:first-child {
 table tbody tr:last-child {
   border-bottom: 1px solid var(--tint-color);
 }
+/* turn off outer table left border */
 table tr td:first-child {
-  border-left: 0px; /* turn off outer table left border */
+  border-left: 0px;
 }
+/* turn off outer table left border */
 table tr th:first-child {
-  border-left: 0px; /* turn off outer table left border */
+  border-left: 0px; 
 }
 /* turn off outer table right borders */
 table tr td:last-child, table tr th:last-child {
   border-right: 0px;
 }
-/* make noteTitles bold */
+
+/* allow multi-column flow: set max columns and min width, and some other bits and pieces */
+.multi-cols {
+  column-count: 3; column-width: 30rem; column-gap: 2rem; column-rule: 1px dotted var(--tint-color);
+}
+
+/* -------------------------------------------------------- */
+@layer A { /* all buttons, but at lower priority */
+	button, input {
+		background-color: var(--bg-main-color);
+		color: var(--fg-main-color);
+		border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
+		box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
+    border-radius: 4px;
+    font-weight: 500;
+	}
+}
+
+/* Show click pointer over buttons and equivalent */
+button, .fake-button, .clickTarget {
+	cursor: pointer;
+}
+
+/* For buttons that trigger callbacks */
+.PCButton {
+	color: var(--fg-main-color);
+	background-color: var(--bg-main-color);
+  /* add a clearer border to all buttons (compared to Dashboard main window) */
+  border: 1px solid rgb(from var(--fg-main-color) r g b / 0.7);
+	box-shadow: 1px 1px 1px 0px rgb(from var(--fg-main-color) r g b / 0.3);
+	padding: 2px 3px 0px 3px;
+	margin: 0px 2px; /* a little L and R */
+	white-space: nowrap;
+	cursor: pointer;
+	font-size: 0.85rem;
+}
+
+/* .fake-button a {
+  color: var(--fg-main-color);
+  background-color: #FFFFFF; 
+  font-weight: 500;
+  text-decoration: none;
+  border-color: #DFE0E0;
+  border-radius: 4px;
+  margin: 2px 1px;
+  padding: 1px 4px;
+  box-shadow: 0 1px 1px #CBCBCB;
+  white-space: nowrap;
+} */
+/* Add tooltips to these buttons, thanks to CSS-only technique at https://www.youtube.com/watch?v=M4lQwiUvGlY&t=157s */
+.tooltip {
+	position: relative;
+	/* cursor: help; */
+}
+.tooltip::before, .tooltip::after {
+	position: absolute;
+	left: 50%;
+	/* opacity:0;  -- problem is that this interferes with cursor selection because it still grabs cursor -- so switching to display: instead */
+	display: none;
+	transition: all ease 0.3s;
+	transition-delay: 0.8;
+}
+/* Set tooltip little bit*/
+.tooltip::before {
+	content: "";
+	border-width: 10px 8px 0 8px;
+	border-style: solid;
+	border-color: var(--bg-main-color) transparent transparent transparent;
+	margin-left: -8px;
+	top: -12px;
+}
+.tooltip::after {
+	content: attr(data-tooltip);
+	margin-left: -10px;
+	padding: 0.3rem;
+	top: -12px;
+	font-size: 0.85rem;
+	color: var(--fg-main-color);
+	background: var(--bg-main-color);
+	border: 1px solid var(--tint-color);
+	border-radius: 6px;
+	transform: translateY(-100%);
+}
+
+.tooltip:hover::before, .tooltip:hover::after {
+	/* opacity: 1; */
+	display: block;
+}
+
+/* -------------------------------------------------------- */
+/* make noteTitles bold and coloured */
 .noteTitle {
-  font-weight: 700; text-decoration: none;
+  color: var(--tint-color);
+  font-weight: 700; 
+  text-decoration: none;
 }
 /* make noteTitle links underlined on mouse hover */
 .noteTitle a:hover {
   text-decoration: underline;
 }
-/* allow multi-column flow: set max columns and min width, and some other bits and pieces */
-.multi-cols {
-  column-count: 3; column-width: 30rem; column-gap: 2rem; column-rule: 1px dotted var(--tint-color);
-}
+
 /* set fa icon colour to tint color */
 i.fa-solid, i.fa-regular {
   color: var(--tint-color);
@@ -109,6 +202,15 @@ i.fa-solid, i.fa-regular {
 .circle-icon {
   font-size: 1.8rem;
 }
+/* add space before/after icons */
+.pad-left {
+	padding-left: 0.2rem;
+}
+.pad-right {
+	padding-right: 0.2em;
+}
+
+/* -------------------------------------------------------- */
 /* Tooltip block */
 .tooltip { position: relative; display: inline-block; }
 /* Tooltip text */
@@ -127,7 +229,7 @@ i.fa-solid, i.fa-regular {
 /* from [Pure CSS3 iOS switch checkbox.](https://codeburst.io/pure-css3-input-as-the-ios-checkbox-8b6347d5cefb) */
 input.apple-switch {
   position: relative;
-  -webkit-appearance: none;
+  -webkit-appearance: none; /* FIXME: deprecated approach */
   outline: none;
   width: 2.0rem; /* 50px; */
   height: 1.1rem; /* 30px; */

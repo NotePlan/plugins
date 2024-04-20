@@ -213,7 +213,7 @@ export function findOpenTodosInNote(note: TNote, includeAllTodos: boolean = fals
 }
 
 /**
- * Get the paragraphs in the note which are tagged for today (or this week) that may not actually be in the current note.
+ * Get the paragraphs in 'note' which are scheduled for date of the 'calendar' note.
  * @author @dwertheimer extended by @jgclark
  * @param {CoreNoteFields} calendar note to look for links to (the note or Editor)
  * @param {CoreNoteFields} includeHeadings? (default to true for backwards compatibility)
@@ -489,9 +489,9 @@ export function findNotesMatchingHashtag(
   if (alsoSearchCalendarNotes) {
     notesToSearch = notesToSearch.concat(DataStore.calendarNotes)
   }
-  logDebug('NPnote/findNotesMatchingHashtag', `starting with ${notesToSearch.length} notes (${notesToSearchIn ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
+  // logDebug('NPnote/findNotesMatchingHashtag', `starting with ${notesToSearch.length} notes (${notesToSearchIn ? 'from the notesToSearchIn param' : 'from DataStore.projectNotes'} ${alsoSearchCalendarNotes ? '+ calendar notes)' : ')'}`)
 
-  const startTime = new Date()
+  // const startTime = new Date()
   let projectNotesInFolder: Array<TNote>
   // If folder given (not empty) then filter using it
   if (folder && folder !== '') {
@@ -507,7 +507,7 @@ export function findNotesMatchingHashtag(
     projectNotesInFolder = notesToSearch.slice()
   }
   // logDebug(`NPnote/findNotesMatchingHashtag`,`tag:${tag} folder:${String(folder)} includeSubfolders:${String(includeSubfolders)} tagsToExclude:${String(tagsToExclude)} for ${String(projectNotesInFolder.length)} notes`)
-  logDebug('NPnote/findNotesMatchingHashtag', `>> projectNotes filtering took ${timer(startTime)}`)
+  // logDebug('NPnote/findNotesMatchingHashtag', `>> projectNotes filtering took ${timer(startTime)}`)
 
   // Filter by tag (and now mentions as well, if requested)
   let projectNotesWithTag: Array<TNote>

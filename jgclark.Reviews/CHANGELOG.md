@@ -3,6 +3,15 @@ See [website README for more details](https://github.com/NotePlan/plugins/tree/m
 <!-- - resize action -->
 <!-- checkboxes for only display overdue, and showing finished items -->
 
+## [0.14.0] - 2024-04-???
+### Added
+- edit icon after each Project in the 'rich' style of Project List, that allows all the commands to be run without using the control bar at the top of the window
+- trying to sort depdency management ???
+- after you change settings for this plugin, it will automatically refresh the rich Project List view if its open (requires NP 3.11beta or later)
+
+### Improved
+- sizes of headings and text in the 'rich' style of Project List should better match those of text in the NP editor windows for your chosen theme
+
 ## [0.13.2] - 2024-03-19
 - replace the "time" that Project List was updated with a "time since"
 - clarified how the 'Folders to include in reviews' and 'Folders to ignore in reviews' settings work. (If the first is set, the second is ignored.) This also fixes project notes in the root folder being included when they shouldn't. (Reported by @dwertheimer.)

@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------------
 // Helper functions for Review plugin
 // @jgclark
-// Last updated 17.3.2024 for v0.13.1+, @jgclark
+// Last updated 30.3.2024 for v0.14.0, @jgclark
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -12,32 +12,26 @@ import pluginJson from '../plugin.json'
 import { checkString } from '@helpers/checkType'
 import {
   calcOffsetDate,
-  // calcOffsetDateStr,
   daysBetween,
   getDateFromUnhyphenatedDateString,
   getDateObjFromDateString,
   getJSDateStartOfToday,
-  // hyphenatedDateString,
   includesScheduledFutureDate,
   RE_ISO_DATE, RE_YYYYMMDD_DATE,
-  // relativeDateFromDate,
   todaysDateISOString,
   toISODateString,
-  // unhyphenateString
 } from '@helpers/dateTime'
 import { localeRelativeDateFromNumber } from '@helpers/NPdateTime'
 import { clo, JSP, logDebug, logError, logInfo, logWarn } from '@helpers/dev'
 import { getFolderFromFilename } from '@helpers/folders'
 import { createOpenOrDeleteNoteCallbackUrl, createRunPluginCallbackUrl, displayTitle, getContentFromBrackets, getStringFromList } from '@helpers/general'
 import {
-  // getCallbackCodeString,
-  // makeSVGPauseIcon,
   makeSVGPercentRing,
   redToGreenInterpolation,
-  // rgbToHex
 } from '@helpers/HTMLView'
 import { noteHasFrontMatter, setFrontMatterVars } from '@helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote, findStartOfActivePartOfNote } from '@helpers/paragraph'
+import { encodeRFC3986URIComponent } from '@helpers/stringTransforms'
 import {
   getInputTrimmed,
   inputIntegerBounded,
@@ -74,6 +68,7 @@ export type ReviewConfig = {
   nextReviewMentionStr: string,
   width: number,
   height: number,
+  archiveUsingFolderStructure: boolean,
   _logLevel: string
 }
 
@@ -109,26 +104,26 @@ export async function getReviewSettings(): Promise<?ReviewConfig> {
     // TODO(later): include this when checkboxes do work
     // // Set local pref Reviews-DisplayOnlyDue to default false if it doesn't exist already
     // let savedValue = DataStore.preference('Reviews-DisplayOnlyDue')
-    // // logDebug(pluginJson, `DisplayOnlyDue? savedValue: ${String(savedValue)}`)
+    // // logDebug('getReviewSettings', `DisplayOnlyDue? savedValue: ${String(savedValue)}`)
     // if (!savedValue) {
     //   DataStore.setPreference('Reviews-DisplayOnlyDue', false)
     // }
-    logDebug(pluginJson, `Reviews-DisplayOnlyDue? = ${String(DataStore.preference('Reviews-DisplayOnlyDue'))}`)
+    logDebug('getReviewSettings', `Reviews-DisplayOnlyDue? = ${String(DataStore.preference('Reviews-DisplayOnlyDue'))}`)
 
     // TODO(later): remove this when checkboxes do work
     DataStore.setPreference('Reviews-DisplayFinished', config.displayFinished)
     // Set local pref Reviews-DisplayFinished to default true if it doesn't exist already
     // TODO(later): include this when checkboxes do work
     // savedValue = DataStore.preference('Reviews-DisplayFinished')
-    // // logDebug(pluginJson, `DisplayFinished? savedValue: ${String(savedValue)}`)
+    // // logDebug('getReviewSettings', `DisplayFinished? savedValue: ${String(savedValue)}`)
     // if (!savedValue) {
     //   DataStore.setPreference('Reviews-DisplayFinished', true)
     // }
-    logDebug(pluginJson, `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
+    logDebug('getReviewSettings', `Reviews-DisplayFinished? = ${String(DataStore.preference('Reviews-DisplayFinished'))}`)
 
     return config
   } catch (err) {
-    logError(pluginJson, `${err.name}: ${err.message}`)
+    logError('getReviewSettings', `${err.name}: ${err.message}`)
     await showMessage(err.message)
     return null
   }
@@ -483,6 +478,7 @@ export class Project {
       }
 
       // count tasks (includes both tasks and checklists)
+      // Note: excludes future tasks -- perhaps this wasnts to be an optional decision?
       this.openTasks = paras.filter(isOpen).length
       this.completedTasks = paras.filter(isDone).length
       this.waitingTasks = paras.filter(isOpen).filter((p) => p.content.match('#waiting')).length
@@ -672,12 +668,22 @@ export class Project {
       // Update the project's metadata
       this.lastProgressComment = `${comment} (today)`
       // logDebug('Project::addProgressLine', `-> line ${String(insertionIndex)}: ${this.percentComplete} / '${this.lastProgressComment}'`)
-
-      // And write it to the Editor
       const newProgressLine = `Progress: ${percentStr}@${todaysDateISOString}: ${comment}`
-      Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
-      // Also updateCache otherwise the
-      await saveEditorToCache(null)
+
+      // And write it to the Editor (if the note is open in it) ...
+      if (Editor && Editor.note && Editor.note.filename === this.note.filename) {
+        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to Editor at ${String(insertionIndex)}`)
+        Editor.insertParagraph(newProgressLine, insertionIndex, 'text')
+        // Also updateCache to make changes more quickly available elsewhere
+        await DataStore.updateCache(Editor)
+      }
+      // ... or the project's note
+      else {
+        logDebug('Project::addProgressLine', `Writing '${newProgressLine}' to project note '${this.note.filename}' at ${String(insertionIndex)}`)
+        this.note.insertParagraph(newProgressLine, insertionIndex, 'text')
+        // Also updateCache
+        await DataStore.updateCache(this.note)
+      }
     } catch (error) {
       logError(`Project::addProgressLine`, JSP(error))
     }
@@ -733,7 +739,10 @@ export class Project {
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      await saveEditorToCache(null)
+      // await saveEditorToCache(null)
+      // TEST:
+      DataStore.updateCache(this.note)
+
       const newMSL = this.machineSummaryLine()
       logDebug('completeProject', `- returning mSL '${newMSL}'`)
       return newMSL
@@ -769,7 +778,10 @@ export class Project {
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      await saveEditorToCache(null)
+      // await saveEditorToCache(null)
+      // TEST:
+      DataStore.updateCache(this.note)
+
       const newMSL = this.machineSummaryLine()
       logDebug('cancelProject', `- returning mSL '${newMSL}'`)
       return newMSL
@@ -805,7 +817,10 @@ export class Project {
       // Note: Will need updating when supporting frontmatter for metadata
       this.metadataPara.content = newMetadataLine
       Editor.updateParagraph(this.metadataPara)
-      await saveEditorToCache(null)
+      // await saveEditorToCache(null)
+      // TEST:
+      DataStore.updateCache(this.note)
+
       const newMSL = this.machineSummaryLine()
       logDebug('togglePauseProject', `- returning newMSL '${newMSL}'`)
       return newMSL
@@ -889,7 +904,7 @@ export class Project {
         // const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(this.title, "title", "", "splitView", false)
         // Method 1b: x-callback using filename
         const noteOpenActionURL = createOpenOrDeleteNoteCallbackUrl(this.filename, "filename", "", null, false)
-        const noteTitleWithOpenAction = `<span class="noteTitle"><a href="${noteOpenActionURL}"><i class="fa-regular fa-file-lines"></i> ${folderNamePart}${titlePart}</a></span>`
+        const noteTitleWithOpenAction = `<span class="noteTitle"><a href="${noteOpenActionURL}"><i class="fa-regular fa-file-lines pad-right"></i> ${folderNamePart}${titlePart}</a></span>`
         // TODO: if possible change to use internal links: see method in Dashboard
         // see discussion at https://discord.com/channels/763107030223290449/1007295214102269982/1016443125302034452
         // const noteTitleWithOpenAction = `<button onclick=openNote()>${folderNamePart}${titlePart}</button>`
@@ -938,134 +953,132 @@ export class Project {
     const totalTasksStr = (this.completedTasks + this.openTasks).toLocaleString()
     const statsProgress = `${thisPercent} done (of ${totalTasksStr} ${(this.completedTasks + this.openTasks > 1) ? 'tasks' : 'task'})`
 
-    switch (style) {
-      case 'Rich':
-        output = '\t<tr>\n\t\t'
+    if (style === 'Rich') {
+      output = '\t<tr>\n\t\t'
 
-        // Column 1: circle indicator
-        if (this.isCompleted) {
-          output += `<td class="first-col-indicator checked">${this.addFAIcon('fa-solid fa-circle-check')}</td>` // ('checked' gives colour)
-        }
-        else if (this.isCancelled) {
-          output += `<td class="first-col-indicator cancelled">${this.addFAIcon('fa-solid fa-circle-xmark')}</td>` // ('cancelled' gives colour)
-        }
-        else if (this.isPaused) {
-          output += `<td class="first-col-indicator">${this.addFAIcon("fa-solid fa-circle-pause", "#888888")}</td>`
-        }
-        else if (this.percentComplete === 0 || isNaN(this.percentComplete)) {
-          output += `<td class="first-col-indicator">${this.addSVGPercentRing(100, '#FF000088', '0')}</td>`
-        }
-        else {
-          output += `<td class="first-col-indicator">${this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete))}</td>`
-        }
+      // Column 1: circle indicator
+      if (this.isCompleted) {
+        output += `<td class="first-col-indicator checked">${this.addFAIcon('fa-solid fa-circle-check')}</td>` // ('checked' gives colour)
+      }
+      else if (this.isCancelled) {
+        output += `<td class="first-col-indicator cancelled">${this.addFAIcon('fa-solid fa-circle-xmark')}</td>` // ('cancelled' gives colour)
+      }
+      else if (this.isPaused) {
+        output += `<td class="first-col-indicator">${this.addFAIcon("fa-solid fa-circle-pause", "#888888")}</td>`
+      }
+      else if (this.percentComplete === 0 || isNaN(this.percentComplete)) {
+        output += `<td class="first-col-indicator">${this.addSVGPercentRing(100, '#FF000088', '0')}</td>`
+      }
+      else {
+        output += `<td class="first-col-indicator">${this.addSVGPercentRing(this.percentComplete, 'multicol', String(this.percentComplete))}</td>`
+      }
 
-        // Column 2a: Project name / link
-        if (this.isCompleted || this.isCancelled || this.isPaused) {
-          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
-        }
-        else if (this.percentComplete === 0 || isNaN(this.percentComplete)) {
-          output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}`
-        } else {
-          output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}`
-        }
+      // Column 2a: Project name / link / edit dialog trigger button
+      const editButton = `          <a class="dialogTrigger" onclick="showProjectControlDialog({encodedFilename: '${encodeRFC3986URIComponent(this.filename)}'})"><i class="fa-light fa-edit pad-left"></i></a>\n`
+      if (this.isCompleted || this.isCancelled || this.isPaused) {
+        output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}&nbsp;${editButton}`
+      }
+      else if (this.percentComplete === 0 || isNaN(this.percentComplete)) {
+        output += `<td>${this.decoratedProjectTitle(style, includeFolderName)}&nbsp;${editButton}`
+      } else {
+        output += `\n\t\t\t<td>${this.decoratedProjectTitle(style, includeFolderName)}&nbsp;${editButton}`
+      }
 
-        // Column 2b: progress information
-        if (displayProgress && !this.isCompleted && !this.isCancelled) {
-          // logDebug('Project::detailedSummaryLine', `'${this.lastProgressComment}' / ${statsProgress} for ${this.title}`)
-          // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
-          if (displayDates) {
-            if (this.lastProgressComment !== '') {
-              output = `${output}<br />${this.lastProgressComment}</td>`
-            } else {
-              output = `${output}<br />${statsProgress}</td>`
-            }
+      // Column 2b: progress information
+      if (displayProgress && !this.isCompleted && !this.isCancelled) {
+        // logDebug('Project::detailedSummaryLine', `'${this.lastProgressComment}' / ${statsProgress} for ${this.title}`)
+        // Add this.lastProgressComment (if it exists) on line under title (and project is still open)
+        if (displayDates) {
+          if (this.lastProgressComment !== '') {
+            output = `${output}<br />${this.lastProgressComment}</td>`
           } else {
-            // write progress in next cell instead
-            if (this.lastProgressComment !== '') {
-              output += `</td>\n\t\t\t<td>${this.lastProgressComment}</td>`
-            } else {
-              output += `</td>\n\t\t\t<td>${statsProgress}</td>`
-            }
-          }
-        }
-
-        // Columns 3/4: date information
-        if (displayDates && !this.isPaused) {
-          if (this.isCompleted) {
-            // "completed after X"
-            const completionRef = (this.completedDuration)
-              ? this.completedDuration
-              : "completed"
-            output += `<td colspan=2 class="checked">Completed ${completionRef}</td>`
-          } else if (this.isCancelled) {
-            // "cancelled X ago"
-            const cancellationRef = (this.cancelledDuration)
-              ? this.cancelledDuration
-              : "cancelled"
-            output += `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td>`
-          }
-          if (!this.isCompleted && !this.isCancelled) {
-            output = (this.nextReviewDays != null && !isNaN(this.nextReviewDays))
-              ? (this.nextReviewDays > 0)
-                ? `${output}<td>${localeRelativeDateFromNumber(this.nextReviewDays)}</td>`
-                : `${output}<td><p><b>${localeRelativeDateFromNumber(this.nextReviewDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
-              : `${output}<td></td>`
-            output = (this.dueDays != null && !isNaN(this.dueDays))
-              ? (this.dueDays > 0)
-                ? `${output}<td>${localeRelativeDateFromNumber(this.dueDays)}</td>`
-                : `${output}<td><p><b>${localeRelativeDateFromNumber(this.dueDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
-              : `${output}<td></td>`
+            output = `${output}<br />${statsProgress}</td>`
           }
         } else {
-          output += '<td></td><td></td>' // to avoid layout inconsistencies
+          // write progress in next cell instead
+          if (this.lastProgressComment !== '') {
+            output += `</td>\n\t\t\t<td>${this.lastProgressComment}</td>`
+          } else {
+            output += `</td>\n\t\t\t<td>${statsProgress}</td>`
+          }
         }
-        output += '\n\t</tr>'
-        break
+      }
 
-      case 'Markdown':
-        output = '- '
-        output += `${this.decoratedProjectTitle(style, includeFolderName)}`
-        // logDebug('', `${this.decoratedProjectTitle(style, includeFolderName)}`)
-        if (displayDates && !this.isPaused) {
-          if (this.isCompleted) {
-            // completed after X or cancelled X ago, depending
-            const completionRef = (this.completedDuration)
-              ? this.completedDuration
-              : "completed"
-            output += `\t(Completed ${completionRef})`
-          } else if (this.isCancelled) {
-            // completed after X or cancelled X ago, depending
-            const cancellationRef = (this.cancelledDuration)
-              ? this.cancelledDuration
-              : "cancelled"
-            output += `\t(Cancelled ${cancellationRef})`
-          }
+      // Columns 3/4: date information
+      if (displayDates && !this.isPaused) {
+        if (this.isCompleted) {
+          // "completed after X"
+          const completionRef = (this.completedDuration)
+            ? this.completedDuration
+            : "completed"
+          output += `<td colspan=2 class="checked">Completed ${completionRef}</td>`
+        } else if (this.isCancelled) {
+          // "cancelled X ago"
+          const cancellationRef = (this.cancelledDuration)
+            ? this.cancelledDuration
+            : "cancelled"
+          output += `<td colspan=2 class="cancelled">Cancelled ${cancellationRef}</td>`
         }
-        if (displayProgress && !this.isCompleted && !this.isCancelled) {
-          // const thisPercent = (isNaN(this.percentComplete)) ? '' : ` (${this.percentComplete}%)`
-          // Show progress comment if available ...
-          if (this.lastProgressComment !== '' && !this.isCompleted && !this.isCancelled) {
-            output += `\t${thisPercent} done: ${this.lastProgressComment}`
-          }
-          // ... else show stats
-          else {
-            output += `\t${statsProgress}`
-            // Older more detailed stats:
-            // output += `\tc${this.completedTasks.toLocaleString()}${thisPercent} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
-          }
+        if (!this.isCompleted && !this.isCancelled) {
+          output = (this.nextReviewDays != null && !isNaN(this.nextReviewDays))
+            ? (this.nextReviewDays > 0)
+              ? `${output}<td>${localeRelativeDateFromNumber(this.nextReviewDays)}</td>`
+              : `${output}<td><p><b>${localeRelativeDateFromNumber(this.nextReviewDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
+            : `${output}<td></td>`
+          output = (this.dueDays != null && !isNaN(this.dueDays))
+            ? (this.dueDays > 0)
+              ? `${output}<td>${localeRelativeDateFromNumber(this.dueDays)}</td>`
+              : `${output}<td><p><b>${localeRelativeDateFromNumber(this.dueDays)}</b></p></td>` // the <p>...</p> is needed to trigger bold colouring (if set)
+            : `${output}<td></td>`
         }
-        if (displayDates && !this.isPaused && !this.isCompleted && !this.isCancelled) {
-          output = (this.dueDays != null && !isNaN(this.dueDays)) ? `${output}\tdue ${localeRelativeDateFromNumber(this.dueDays)}` : output
-          output =
-            (this.nextReviewDays != null && !isNaN(this.nextReviewDays))
-              ? this.nextReviewDays > 0
+      } else {
+        output += '<td></td><td></td>' // to avoid layout inconsistencies
+      }
+      output += '\n\t</tr>'
+    }
+
+    else if (style === 'Markdown') {
+      output = '- '
+      output += `${this.decoratedProjectTitle(style, includeFolderName)}`
+      // logDebug('', `${this.decoratedProjectTitle(style, includeFolderName)}`)
+      if (displayDates && !this.isPaused) {
+        if (this.isCompleted) {
+          // completed after X or cancelled X ago, depending
+          const completionRef = (this.completedDuration)
+            ? this.completedDuration
+            : "completed"
+          output += `\t(Completed ${completionRef})`
+        } else if (this.isCancelled) {
+          // completed after X or cancelled X ago, depending
+          const cancellationRef = (this.cancelledDuration)
+            ? this.cancelledDuration
+            : "cancelled"
+          output += `\t(Cancelled ${cancellationRef})`
+        }
+      }
+      if (displayProgress && !this.isCompleted && !this.isCancelled) {
+        // const thisPercent = (isNaN(this.percentComplete)) ? '' : ` (${this.percentComplete}%)`
+        // Show progress comment if available ...
+        if (this.lastProgressComment !== '' && !this.isCompleted && !this.isCancelled) {
+          output += `\t${thisPercent} done: ${this.lastProgressComment}`
+        }
+        // ... else show stats
+        else {
+          output += `\t${statsProgress}`
+          // Older more detailed stats:
+          // output += `\tc${this.completedTasks.toLocaleString()}${thisPercent} / o${this.openTasks} / w${this.waitingTasks} / f${this.futureTasks}`
+        }
+      }
+      if (displayDates && !this.isPaused && !this.isCompleted && !this.isCancelled) {
+        output = (this.dueDays != null && !isNaN(this.dueDays)) ? `${output}\tdue ${localeRelativeDateFromNumber(this.dueDays)}` : output
+        output =
+          (this.nextReviewDays != null && !isNaN(this.nextReviewDays))
+            ? this.nextReviewDays > 0
               ? `${output}\tReview ${localeRelativeDateFromNumber(this.nextReviewDays)}`
               : `${output}\tReview due **${localeRelativeDateFromNumber(this.nextReviewDays)}**`
             : output
-        }
-        break
-
-      default:
+      }
+    } else {
         logWarn('Project::detailedSummaryLine', `Unknown style '${style}'; nothing returned.`)
         output = ''
     }
