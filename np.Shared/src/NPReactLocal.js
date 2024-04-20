@@ -143,7 +143,7 @@ export function openReactWindow(globalData: any = null, windowOptions?: HtmlWind
     // globalSharedData is a global variable in the HTML window
     const globalSharedDataScriptStr = `
       <script type="text/javascript" >
-        console.log('HTML: Updating globalSharedData');
+        console.log('JS baked into page HTML: Setting globalSharedData');
         globalSharedData = ${JSON.stringify(globalSharedData)};
       </script>
     `
