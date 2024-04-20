@@ -15,6 +15,7 @@ export type PassedData = {
   pluginData: any /* Your plugin's data to pass on first launch (or edited later) */,
   ENV_MODE?: 'development' | 'production',
   debug: boolean /* set based on ENV_MODE above */,
+  logProfilingMessage: boolean /* whether you want to see profiling messages on React redraws (not super interesting) */,
   returnPluginCommand: { id: string, command: string } /* plugin jsFunction that will receive comms back from the React window */,
   componentPath: string /* the path to the rolled up webview bundle. should be ../pluginID/react.c.WebView.bundle.* */,
   passThroughVars?: any /* any data you want to pass through to the React Window */,
@@ -32,6 +33,7 @@ export function getInitialDataForReactWindowObjectForReactView(): PassedData {
   const dataToPass: PassedData = {
     pluginData,
     title: REACT_WINDOW_TITLE,
+    logProfilingMessage: false,
     debug: ENV_MODE === 'development' ? true : false,
     ENV_MODE,
     returnPluginCommand: { id: pluginJson['plugin.id'], command: 'onMessageFromHTMLView' },

@@ -6,7 +6,6 @@ declare var globalSharedData: any
 declare var WebView: any
 declare function runPluginCommand(command: string, id: string, args: Array<any>): void
 declare function sendMessageToPlugin(Array<string | any>): void
-type Props = {}
 
 /****************************************************************************************************************************
  *                             NOTES
@@ -31,9 +30,7 @@ import { JSP, formatReactError } from '@helpers/dev'
 
 // color this component's output differently in the console
 const consoleStyle = 'background: #222; color: #62AFEC'
-const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
-const logSubtle = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'color: #6D6962', ...args)
-const logTemp = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
+const logDebug = (msg: string, ...args: Array<any>) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args)
 
 const ROOT_DEBUG = false
 
@@ -50,19 +47,19 @@ const myErrorLogger = (e: Error, i: { componentStack: string }) => {
 // this is the global data object that is passed from the plugin in JS
 // the globalSharedData object is passed at window load time from the plugin, so you can use it for initial state
 // globalSharedData = { data: {}, returnPluginCommand: {command: "", id: ""}
-const { lastUpdated = null, returnPluginCommand = {}, debug = false, ENV_MODE } = globalSharedData
+const { lastUpdated = null, /* returnPluginCommand = {},*/ debug = false, /*ENV_MODE,*/ logProfilingMessage = false } = globalSharedData
 if (typeof globalSharedData === 'undefined' || !globalSharedData) logDebug('Root: Root: globalSharedData is undefined', globalSharedData)
 if (typeof globalSharedData === 'undefined') throw (`Root: globalSharedData is undefined. You must define this field in the initial data passed to the plugin`, globalSharedData)
 if (typeof globalSharedData.lastUpdated === 'undefined') throw `Root: globalSharedData.lastUpdated is undefined`
 
-export function Root(props: Props): Node {
+export function Root(/* props: Props */): Node {
   /****************************************************************************************************************************
    *                             HOOKS
    ****************************************************************************************************************************/
 
   const [npData, setNPData] = React.useState(globalSharedData) // set it from initial data
   const [warning, setWarning] = React.useState({ warn: false, msg: '', color: 'w3-pale-red' })
-  const [messageFromPlugin, setMessageFromPlugin] = React.useState({})
+  // const [setMessageFromPlugin] = React.useState({})
   const [history, setHistory] = React.useState([lastUpdated])
   const tempSavedClicksRef = React.useRef([]) //temporarily store the clicks in the webview
 
@@ -85,10 +82,9 @@ export function Root(props: Props): Node {
    * Saves to the history state so you can see it in the UI
    * @param {Event} e
    */
-  const onClickCapture = (e) => {
+  const onClickCapture = (e: any) => {
     if (!debug) return
-    logDebug(`Root: onClickCapture: ${e.target.tagName} ${e.target.className}`)
-    logDebug(`Root: onClickCapture ${e.type} ${e.target.outerText} e=`, e)
+    logDebug(`Root: User ${e.type}-ed on "${e.target.outerText}" (${e.target.tagName}.${e.target.className})`)
     // Note: cannot setHistory because the page will refresh and any open dropdown will close, so let's just temp store it until we can write it
     tempSavedClicksRef.current.push({ date: new Date().toLocaleDateString(), msg: `UI_CLICK ${e.type} ${e.target.outerText}` })
   }
@@ -99,9 +95,11 @@ export function Root(props: Props): Node {
    * @param {any} data
    * @param {string} - description of this action for logging
    */
-  const dispatch = (action: string, data: any, actionDescriptionForLog? = '') => {
+  const dispatch = (action: string, data: any, actionDescriptionForLog?: string = '') => {
     const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
-    data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
+    // console.log(`Root: Received dispatch request: "${desc}", data=${JSON.stringify(data, null, 2)}`)
+    // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
+    const event = new MessageEvent('message', { type: action, payload: data })
     onMessageReceived({ data: { type: action, payload: data } }) // dispatch the message to the reducer
   }
 
@@ -110,22 +108,27 @@ export function Root(props: Props): Node {
    * @param {Event} event
    * @returns {boolean}
    */
-  const shouldIgnoreMessage = (event) => {
-    const { origin, source, data } = event
+  const shouldIgnoreMessage = (event: MessageEvent): boolean => {
+    const { /* origin, source, */ data } = event
     // logDebug(
     //   `Root: shouldIgnoreMessage origin=${origin} source=${source} data=${JSON.stringify(data)} data.source=${
     //     data?.source
     //   } /react-devtools/.test(data?.source=${/react-devtools/.test(data?.source)}}`,
     // )
-    return (typeof data === 'string' && data?.startsWith('setImmediate$')) || (typeof data === 'object' && data?.hasOwnProperty('iframeSrc')) || /react-devtools/.test(data?.source)
+    return (
+      (typeof data === 'string' && data?.startsWith('setImmediate$')) ||
+      (typeof data === 'object' && data?.hasOwnProperty('iframeSrc')) ||
+      (typeof data === 'object' && typeof data?.source === 'string' && /react-devtools/.test(data?.source))
+    )
   }
 
   /**
    * This is effectively a reducer we will use to process messages from the plugin
    * And also from components down the tree, using the dispatch command
    */
-  const onMessageReceived = (event: MessageEvent | { data: { type: string, payload: any } }) => {
+  const onMessageReceived = (event: MessageEvent) => {
     const { data } = event
+    // console.log(`Root: onMessageReceived ${event.type} data: ${JSON.stringify(data, null, 2)}`)
     if (!shouldIgnoreMessage(event) && data) {
       // const str = JSON.stringify(event, null, 4)
       try {
@@ -134,7 +137,8 @@ export function Root(props: Props): Node {
         if (!type) throw (`onMessageReceived: event.data.type is undefined`, event.data)
         if (!payload) throw (`onMessageReceived: event.data.payload is undefined`, event.data)
         if (type && payload) {
-          logDebug(`Root: onMessageReceived: ${type} payload:${JSON.stringify(payload, null, 2)}`)
+          logDebug(`Root: onMessageReceived: ${type}`)
+          // logDebug(`Root: onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
           // Spread existing state into new object to keep it immutable
           // TODO: ideally, you would use a reducer here
           if (type === 'SHOW_BANNER') payload.lastUpdated.msg += `: ${payload.msg}`
@@ -161,13 +165,13 @@ export function Root(props: Props): Node {
               // logDebug(`Root: onMessageReceived: SHOW_BANNER: sent: ${JSON.stringify(warnObj)}`)
               break
             case 'SEND_TO_PLUGIN':
+              logDebug(`Root: onMessageReceived: SEND_TO_PLUGIN: payload ${JSON.stringify(payload, null, 2)}`)
               sendToPlugin(payload)
               break
             case 'RETURN_VALUE' /* function called returned a value */:
-              //FIXME: changing this prop is forcing refresh of all children, resetting data
-              // same is true for message banner
               logDebug(`Root: onMessageReceived: processing payload`)
-              setMessageFromPlugin(payload)
+              // $FlowIgnore
+              // setMessageFromPlugin(payload)
               break
             default:
               break
@@ -206,7 +210,7 @@ export function Root(props: Props): Node {
    * Callback passed to child components that allows them to put a message in the banner
    * This function should not be called directly by child components, but rather via the dispatch function dispatch('SHOW_BANNER', payload)
    */
-  const showBanner = (msg, color = 'w3-pale-red', border = 'w3-border-red') => {
+  const showBanner = (msg: string, color: string = 'w3-pale-red', border: string = 'w3-border-red') => {
     const warnObj = { warn: true, msg, color, border }
     logDebug(`Root: showBanner: sending: ${JSON.stringify(warnObj)}`)
     setWarning(warnObj)
@@ -239,11 +243,13 @@ export function Root(props: Props): Node {
    * @param {*} startTime
    * @param {*} commitTime
    */
-  function onRender(id, phase, actualDuration, baseDuration, startTime, commitTime, interactions) {
+  function onRender(id: string, phase: string, actualDuration: number, baseDuration: number, startTime: number, commitTime: number, interactions: Set<any>) {
     // DBW: MOST OF THIS INFO IS NOT INTERESTING. ONLY THE PHASE IS
     // Much better data is available in the React Dev Tools but only when the page is open in a browser
-    logSubtle(
-      `\n===================\nPROFILING:${id} phase=${phase} actualDuration=${actualDuration} baseDuration=${baseDuration} startTime=${startTime} commitTime=${commitTime}\n===================\n`,
+    logDebug(
+      `\n===================\nPROFILING:${id} phase=${phase} actualDuration=${actualDuration} baseDuration=${baseDuration} startTime=${startTime} commitTime=${commitTime} ${String(
+        interactions,
+      )}\n===================\n`,
     )
   }
 
@@ -269,7 +275,7 @@ export function Root(props: Props): Node {
     <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => {}} onError={myErrorLogger}>
       <div className="Root" onClickCapture={onClickCapture}>
         <MessageBanner warn={warning.warn} msg={warning.msg} color={warning.color} border={warning.border} hide={hideBanner}></MessageBanner>
-        {debug ? (
+        {logProfilingMessage ? (
           <Profiler id="MemoizedWebView" onRender={onRender}>
             <MemoizedWebView
               dispatch={dispatch}
