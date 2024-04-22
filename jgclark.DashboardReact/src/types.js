@@ -1,7 +1,7 @@
 // @flow
 //-----------------------------------------------------------------------------
 // Types for Dashboard code
-// Last updated 12.4.2024 for v2.0.0 by @jgclark
+// Last updated 22.4.2024 for v2.0.0 by @jgclark
 //-----------------------------------------------------------------------------
 
 // This is just here for reference to keep track of what fields are used in the local reactSettings
@@ -47,6 +47,8 @@ export type TParagraphForDashboard = {
   priority?: number,
   blockId?: string,
   timeStr?: String,
+  startTime?: string,
+  endTime?: string,
   changedDate?: Date,
 }
 
