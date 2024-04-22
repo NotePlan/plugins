@@ -55,6 +55,7 @@ import {
 } from '@helpers/NPnote'
 import { sortListBy } from '@helpers/sorting'
 import { eliminateDuplicateSyncedParagraphs } from '@helpers/syncedCopies'
+import { getTimeBlockString } from '@helpers/timeblocks'
 import { isOpen } from '@helpers/utils'
 
 //-----------------------------------------------------------------
@@ -109,6 +110,19 @@ export function getTodaySectionData(config: dashboardConfigType, useDemoData: bo
       logInfo('getDataForDashboard', `- finished finding daily items from ${filenameDateStr} after ${timer(startTime)}`)
     } else {
       logDebug('getDataForDashboard', `No daily note found for filename '${currentDailyNote?.filename ?? 'error'}'`)
+    }
+  }
+
+  // Now find time blocks and save start and end times
+  // TODO: support 12-hour times as well
+  for (const item of items) {
+    const para = item.para
+    if (!para) { throw new Error(`No para found for item ${item.ID}`) }
+    const timeBlock = getTimeBlockString(para.content)
+    if (timeBlock) {
+      const [startTime, endTime] = timeBlock.split('-')
+      para.startTime = startTime
+      para.endTime = endTime ?? '' // might not have an end time
     }
   }
 

@@ -1,7 +1,7 @@
 // @flow
 //--------------------------------------------------------------------------
 // Dashboard React component to show the main item content in an ItemRow.
-// Last updated 19.4.2024 for v2.0.0 by @jgclark
+// Last updated 22.4.2024 for v2.0.0 by @jgclark
 //--------------------------------------------------------------------------
 import React from 'react'
 import {
@@ -12,7 +12,9 @@ import type { TSection, TSectionItem } from '../../types.js'
 import {
   getAPIDateStrFromDisplayDateStr,
   includesScheduledFutureDate,
+
 } from '@helpers/dateTime'
+import { logDebug, logError } from '@helpers/reactDev'
 import {
   simplifyNPEventLinksForHTML,
   simplifyInlineImagesForHTML,
@@ -38,6 +40,13 @@ import {
   stripThisWeeksDateRefsFromString,
   stripTodaysDateRefsFromString
 } from '@helpers/stringTransforms'
+import {
+  findLongestStringInArray,
+  // getTimeBlockString,
+  isTimeBlockLine,
+  RE_TIMEBLOCK_APP,
+} from '@helpers/timeblocks'
+
 
 type Props = {
   item: TSectionItem,
@@ -52,7 +61,7 @@ function ItemContent(inputObj: Props): React$Node {
   const para = item.para
   // const itemType = para.type
 
-  console.log(`ItemContent for '${para?.content ?? '<error>'}'`)
+  console.log(`ItemContent for ${item.ID}: '${para?.content ?? '<error>'}'`)
 
   // compute the things we need later
   const mainContent = makeParaContentToLookLikeNPDisplayInReact(item, 140) // TODO: other cases for this
@@ -134,8 +143,10 @@ function makeParaContentToLookLikeNPDisplayInReact(
     output = convertPreformattedToHTML(output)
 
     // Display time blocks with .timeBlock style
-    // TODO:
-    // output = convertTimeBlockToHTML(output)
+    if (thisItem.para.startTime) {
+      logDebug('makeParaContent...', `🕰️ found startTime '${thisItem.para.startTime}'`)
+      output = convertTimeBlockToHTML(output)
+    }
 
     // Display strikethrough with .strikethrough style
     output = convertStrikethroughToHTML(output)
@@ -218,7 +229,7 @@ function makeParaContentToLookLikeNPDisplayInReact(
     return output
   }
   catch (error) {
-    console.error(`❗️ERROR❗️ ItemContent::makeParaContentToLookLikeNPDisplayInReact ${error.message}`)
+    logError(`makeParaContentToLookLikeNPDisplayInReact`, `❗️ERROR❗️ ${error.message}`)
     return ''
   }
 }
@@ -295,7 +306,7 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
     return `<a class="noteTitle sectionItem" onClick="onClickDashboardItem({itemID:'fake', type:'showNoteInEditorFromTitle', encodedFilename:'${encodeURIComponent(noteTitle)}', encodedContent:''})"><i class="fa-regular fa-file-lines pad-right"></i> ${noteTitle}</a>`
   }
   catch (error) {
-    console.error(`❗️ERROR❗️ ItemContent::makeNoteTitleWithOpenActionFromTitle: ${error.message} for input '${noteTitle}'`)
+    logError('makeNoteTitleWithOpenActionFromTitle', `❗️ERROR❗️ ${error.message} for input '${noteTitle}'`)
     return '(error)'
   }
 }
@@ -319,5 +330,41 @@ export function makeNoteTitleWithOpenActionFromTitle(noteTitle: string): string 
 //     return '(error)'
 //   }
 // }
+
+// Display time blocks with .timeBlock style
+// Note: uses definition of time block syntax from plugin helpers, not directly from NP itself. So it may vary slightly.
+// Note: this is forked from HTMLView, but with some changes to work with React (avoiding calling a DataStore function)
+function convertTimeBlockToHTML(input: string): string {
+  // let timeblockTextMustContainString = 'with'
+  // let output = input
+  // if (isTimeBlockLine(input, timeblockTextMustContainString)) {
+  const timeBlockPart = getTimeBlockString(input)
+  logDebug('convertTimeBlockToHTML', `🕰️ found time block '${timeBlockPart}'`)
+  let output = input.replace(timeBlockPart, `<span class="timeBlock">${timeBlockPart}</span>`)
+  // }
+  return output
+}
+
+/**
+ * Get the timeblock portion of a timeblock line (also is a way to check if it's a timeblock line)
+ * Does not return the text after the timeblock (you can use isTimeBlockLine to check if it's a timeblock line)
+ * @tests available for jest
+ * @author @dwertheimer
+ *
+ * @param {string} contentString
+ * @returns {string} the time portion of the timeblock line
+ */
+const getTimeBlockString = (contentString: string): string => {
+  logDebug('getTimeBlockString', `for '${contentString}'...`)
+  const matchedStrings = []
+  if (contentString) {
+    const reMatch: Array<string> = contentString.match(RE_TIMEBLOCK_APP) ?? []
+    if (contentString && reMatch && reMatch.length) {
+      matchedStrings.push(reMatch[0].trim())
+    }
+  }
+  // matchedStrings could have several matches, so find the longest one
+  return matchedStrings.length ? findLongestStringInArray(matchedStrings) : ''
+}
 
 export default ItemContent

@@ -3,6 +3,7 @@
 // Timeblocking support constants and functions
 // ------------------------------------------------------------------------------------
 
+import { logDebug } from './dev'
 import { isTermInURL } from './paragraph'
 
 // import { getTime } from "date-fns";
@@ -148,12 +149,14 @@ export const RE_TIMEBLOCK_FOR_THEMES = `${RE_ALLOWED_TIME_BLOCK_LINE_START}${RE_
  * @author @dwertheimer
  *
  * @param {string} contentString
+ * @param {string?} mustContainStringArg? if not given, then will read from NP app setting instead
  * @returns {boolean}
  */
 export function isTimeBlockLine(contentString: string, mustContainStringArg: string = ''): boolean {
   try {
     // Get the setting from arg or from NP setting
     const mustContainString = (mustContainStringArg && typeof mustContainStringArg === "string") ? mustContainStringArg : DataStore.preference("timeblockTextMustContainString")
+    // logDebug('isTimeBlockLine', `🕰️ isTimeBlockLine: mustContainString = ${String(mustContainString)}`)
     // Following works around a bug when the preference isn't being set at all at the start.
     if (typeof mustContainString === "string" && mustContainString !== '') {
       const res1 = contentString.includes(mustContainString)

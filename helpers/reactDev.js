@@ -66,8 +66,10 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
   return { r, g, b }
 }
 
-// export const logSubtle = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #6D6962', ...args)
-// export const logTemp = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
+export const logSubtle = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #6D6962', ...args)
+
+export const logTemp = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
+
 /**
  * A prettier version of logDebug
  * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text
@@ -83,3 +85,12 @@ export const logDebug = (componentName: string, detail: string, ...args: any): v
     `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`,
     ...args,
   )
+
+/**
+ * Logs an error message to the console.. (Similar to above.)
+ * @param {string} componentName The error message to log.
+ * @param {string} detail The detail of the error message.
+ * @param {...any} args The arguments to log.
+ */
+export const logError = (componentName: string, detail: string, ...args: any): void =>
+  console.error(`${window.webkit ? `${componentName}: ${detail ?? ''}` : `%c${componentName}: ${detail || ''}`}`, `${window.webkit ? '' : `color: #F00; background: #FFF`}`, ...args)

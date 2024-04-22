@@ -32,12 +32,13 @@ function ItemRow(inputObj: Props): React$Node {
     const itemType = item.itemType
     const sectionType = thisSection.sectionType
 
-    console.log(`ItemRow for section ${sectionType}#${thisSection.ID}:${itemType}`)
+    // console.log(`ItemRow for section ${sectionType}#${thisSection.ID}:${itemType}`)
 
     // -------------------------------------------------------
     if (itemType === 'review') {
       // Display a Project item
       const itemFilename = item.itemFilename
+      // $FlowIgnore(cannot-resolve-name)
       const encodedItemFilename = encodeRFC3986URIComponent(itemFilename)
       // console.log(`- 'review': ${itemFilename}`)
       const noteTitle = item.itemNoteTitle ?? '<no title>'
