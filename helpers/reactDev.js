@@ -70,12 +70,16 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
 // export const logTemp = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
 /**
  * A prettier version of logDebug
- * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the component
+ * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text
  * Uses the same color for each call in a component (based on the first param)
- * @param {string} componentName (optional but recommended), e.g. "ItemGrid" -- try to use the same for each call in a component
- * @param {string} detail text to display
- * @param  {...any} args other args (optional) -- will display in browser, not NotePlan
+ * @param {string} componentName|fullString (recommended that you use the first param for a component name), e.g. "ItemGrid" -- try to use the same first param for each call in a component
+ * @param {string} detail other text (detail) to display (does display in NotePlan also)
+ * @param  {...any} args other args (optional) -- will display in browser, not NotePlan -- could be object or text
  * @returns {void}
  */
-export const logDebug = (msg: string, detail: string, ...args: any): void =>
-  console.log(`${window.webkit ? `${msg}: ${detail ?? ''}` : `%c${msg}: ${detail || ''}`}`, `${window.webkit ? '' : `color: #000; background: ${stringToColor(msg)}`}`, ...args)
+export const logDebug = (componentName: string, detail: string, ...args: any): void =>
+  console.log(
+    `${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}%c`}`,
+    `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`,
+    ...args,
+  )
