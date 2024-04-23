@@ -5,6 +5,12 @@
 See Plugin [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md) for details on available commands and use case.
 
 
+## [1.1.2] Readwise 2024-04-22 (aaronpoweruser)
+- Fix Sync log dates not respecting time zones.
+
+## [1.1.1] Readwise 2024-04-20 (aaronpoweruser)
+- Fix internal links in daily reviews.
+
 ## [1.1.0] Readwise 2024-04-19 (aaronpoweruser)
 - Refactor
 - Added a sync log see [README](https://github.com/NotePlan/plugins/blob/main/aaronpoweruser.ReadwiseUnofficial/README.md).
