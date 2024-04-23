@@ -3,7 +3,7 @@ import pluginJson from '../plugin.json'
 import { setFrontMatterVars } from '../../helpers/NPFrontMatter'
 import { findEndOfActivePartOfNote } from '../../helpers/paragraph'
 import { buildReadwiseFrontMatter, buildReadwiseMetadataHeading, buildReadwiseNoteTitle, removeEmptyLines } from './NPReadwiseHelpers'
-import { writeReadwiseSyncLogLine } from './NPReadwisesync'
+import { writeReadwiseSyncLogLine } from './NPReadwiseSync'
 import { logDebug, logError } from '@helpers/dev'
 import { getOrMakeNote } from '@helpers/note'
 
