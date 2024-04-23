@@ -25,11 +25,20 @@ export async function checkAccessToken(): void {
  */
 export function buildReadwiseNoteTitle(source: any): string {
   if (source.readable_title !== '') {
-    return source.readable_title.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1').replace("\n", "")
+    return source.readable_title
+      .replace(/\/*$/, '')
+      .replace(/^(.+)\/[^\/]*?$/, '$1')
+      .replace('\n', '')
   } else if (source.title !== '') {
-    return source.title.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1').replace("\n", "")
+    return source.title
+      .replace(/\/*$/, '')
+      .replace(/^(.+)\/[^\/]*?$/, '$1')
+      .replace('\n', '')
   } else {
-    return source.author.replace(/\/*$/, '').replace(/^(.+)\/[^\/]*?$/, '$1').replace("\n", "")
+    return source.author
+      .replace(/\/*$/, '')
+      .replace(/^(.+)\/[^\/]*?$/, '$1')
+      .replace('\n', '')
   }
 }
 
@@ -106,4 +115,14 @@ export function escapeTwitterHandle(handle: string): string {
     return handle.replace('@', 'Twitter/@').replace(' on Twitter', '')
   }
   return handle
+}
+
+/**
+ * Gets the date in iso format with the local timezone
+ * @returns {string} - the local date
+ */
+export function getLocalDate(): string {
+  const local_dateTime_in_mills = new Date().setHours(new Date().getHours() - new Date().getTimezoneOffset() / 60)
+  const local_dateTime = new Date(local_dateTime_in_mills).toISOString()
+  return local_dateTime.split('T')[0]
 }
