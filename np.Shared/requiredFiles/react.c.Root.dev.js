@@ -371,24 +371,92 @@ var RootBundle = (function (exports, React$1) {
     }, /*#__PURE__*/React.createElement("h1", null, "Something went wrong in React:"), /*#__PURE__*/React.createElement("pre", null, formatted.name, ": ", formatted.message), /*#__PURE__*/React.createElement("p", null), /*#__PURE__*/React.createElement("p", null, "See more detail in the console"));
   };
 
+  // Functions which can be imported into any React Component
+
+  /****************************************************************************************************************************
+   *                             CONSOLE LOGGING
+   ****************************************************************************************************************************/
+  // color this component's output differently in the console
+  /**
+   * Generates a readable RGB color from a string's hash.
+   * The color is guaranteed to be light enough to be readable on a white background.
+   * @param {string} input The input string to hash.
+   * @returns {string} The RGB color in the format 'rgb(r, g, b)'.
+   */
+  function stringToColor(input) {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+      hash = input.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = (hash & 0x00ffffff).toString(16).toUpperCase();
+    const hexColor = `#${`000000${color}`.slice(-6)}`;
+    const rgb = hexToRgb(hexColor);
+
+    // Adjust the brightness to ensure the color is not too dark
+    const brightnessAdjusted = adjustBrightness(rgb.r, rgb.g, rgb.b);
+    return `rgb(${brightnessAdjusted.r}, ${brightnessAdjusted.g}, ${brightnessAdjusted.b})`;
+  }
+
+  /**
+   * Converts a hex color to an RGB object.
+   * @param {string} hex The hex color string.
+   * @returns {{r: number, g: number, b: number}} RGB representation.
+   */
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return {
+      r,
+      g,
+      b
+    };
+  }
+
+  /**
+   * Adjusts the brightness of the color to ensure good readability on a white background.
+   * @param {number} r Red component of the color.
+   * @param {number} g Green component of the color.
+   * @param {number} b Blue component of the color.
+   * @returns {{r: number, g: number, b: number}} Brightened RGB color.
+   */
+  function adjustBrightness(_r, _g, _b) {
+    const luminance = 0.2126 * _r + 0.7152 * _g + 0.0722 * _b;
+    const brightnessFactor = luminance < 128 ? 0.5 : 0.25;
+    const r = Math.floor(Math.min(255, _r + brightnessFactor * 255));
+    const g = Math.floor(Math.min(255, _g + brightnessFactor * 255));
+    const b = Math.floor(Math.min(255, _b + brightnessFactor * 255));
+    return {
+      r,
+      g,
+      b
+    };
+  }
+  /**
+   * A prettier version of logDebug
+   * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text
+   * Uses the same color for each call in a component (based on the first param)
+   * @param {string} componentName|fullString (recommended that you use the first param for a component name), e.g. "ItemGrid" -- try to use the same first param for each call in a component
+   * @param {string} detail other text (detail) to display (does display in NotePlan also)
+   * @param  {...any} args other args (optional) -- will display in browser, not NotePlan -- could be object or text
+   * @returns {void}
+   */
+  const logDebug = (componentName, detail, ...args) => console.log(`${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`, `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`, ...args);
+
   /****************************************************************************************************************************
    *                             ROOT COMPONENT
    ****************************************************************************************************************************/
-
-  // color this component's output differently in the console
-  const consoleStyle = 'background: #222; color: #62AFEC';
-  const logDebug = (msg, ...args) => console.log(`${window.webkit ? '' : '%c'}${msg}`, consoleStyle, ...args);
 
   // used by the ErrorBoundary component to write out the error to the log
   const myErrorLogger = (e, i) => {
     const error = formatReactError(e, i.componentStack);
     console.log(`${window.webkit ? '' : '%c'}React error trapped by Root::ErrorBoundary; error=${JSP(error, 2)}`, 'background: #ff0000; color: #ffffff');
   };
+  logDebug(`Root`, `loading file outside component code`);
 
   /****************************************************************************************************************************
    *                             globalSharedData
    ****************************************************************************************************************************/
-
   // this is the global data object that is passed from the plugin in JS
   // the globalSharedData object is passed at window load time from the plugin, so you can use it for initial state
   // globalSharedData = { data: {}, returnPluginCommand: {command: "", id: ""}
@@ -402,27 +470,29 @@ var RootBundle = (function (exports, React$1) {
   if (typeof globalSharedData.lastUpdated === 'undefined') throw `Root: globalSharedData.lastUpdated is undefined`;
   function Root( /* props: Props */
   ) {
+    logDebug(`Root`, `inside component`);
+
     /****************************************************************************************************************************
      *                             HOOKS
      ****************************************************************************************************************************/
 
-    const [npData, setNPData] = React__default["default"].useState(globalSharedData); // set it from initial data
-    const [warning, setWarning] = React__default["default"].useState({
+    const [npData, setNPData] = React$1.useState(globalSharedData); // set it from initial data
+    const [reactSettings, setReactSettings] = React$1.useState({});
+    const [warning, setWarning] = React$1.useState({
       warn: false,
       msg: '',
       color: 'w3-pale-red'
     });
-    // const [setMessageFromPlugin] = React.useState({})
-    const [history, setHistory] = React__default["default"].useState([lastUpdated]);
+    // const [setMessageFromPlugin] = useState({})
+    const [history, setHistory] = React$1.useState([lastUpdated]);
     const tempSavedClicksRef = React__default["default"].useRef([]); //temporarily store the clicks in the webview
 
     /****************************************************************************************************************************
      *                             VARIABLES
      ****************************************************************************************************************************/
-
-    const MemoizedWebView = /*#__PURE__*/React__default["default"].memo(WebView);
+    const MemoizedWebView = WebView; // React.memo(WebView)
     // const Profiler = React.Profiler
-    debug && logDebug(`Root: Running in Debug mode. Note: <React.StrictMode> is enabled which will run effects twice each time they are rendered. This is to help find bugs in your code.`);
+    debug && logDebug(`Root`, ` Running in Debug mode. Note: <React.StrictMode> is enabled which will run effects twice each time they are rendered. This is to help find bugs in your code.`);
 
     /****************************************************************************************************************************
      *                             HANDLERS
@@ -436,7 +506,7 @@ var RootBundle = (function (exports, React$1) {
      */
     const onClickCapture = e => {
       if (!debug) return;
-      logDebug(`Root: User ${e.type}-ed on "${e.target.outerText}" (${e.target.tagName}.${e.target.className})`);
+      logDebug(`Root`, ` User ${e.type}-ed on "${e.target.outerText}" (${e.target.tagName}.${e.target.className})`);
       // Note: cannot setHistory because the page will refresh and any open dropdown will close, so let's just temp store it until we can write it
       tempSavedClicksRef.current.push({
         date: new Date().toLocaleDateString(),
@@ -445,24 +515,24 @@ var RootBundle = (function (exports, React$1) {
     };
 
     /**
-     * handler/dispatcher for child components to update the master data object or show a banner message
-     * @param {'SET_TITLE'|'[SET|UPDATE]_DATA'|'SHOW_BANNER'} action
-     * @param {any} data
-     * @param {string} - description of this action for logging
+     * Dispatcher for child components to update the master data object or show a banner message.
+     * @param {'SET_TITLE'|'[SET|UPDATE]_DATA'|'SHOW_BANNER'} action - The action type to dispatch.
+     * @param {any} data - The data associated with the action.
+     * @param {string} [actionDescriptionForLog] - Optional description of the action for logging purposes.
      */
-    const dispatch = (action, data, actionDescriptionForLog = '') => {
+    // eslint-disable-next-line no-unused-vars
+    const dispatch = (action, data, actionDescriptionForLog) => {
+      // const desc = `${action}${actionDescriptionForLog ? `: ${actionDescriptionForLog}` : ''}`
       // console.log(`Root: Received dispatch request: "${desc}", data=${JSON.stringify(data, null, 2)}`)
       // data.lastUpdated = { msg: desc, date: new Date().toLocaleString() }
-      new MessageEvent('message', {
-        type: action,
-        payload: data
-      });
-      onMessageReceived({
+      const event = new MessageEvent('message', {
         data: {
           type: action,
           payload: data
         }
-      }); // dispatch the message to the reducer
+      });
+      onMessageReceived(event);
+      // onMessageReceived({ data: { type: action, payload: data } }) // dispatch the message to the reducer
     };
 
     /**
@@ -502,14 +572,14 @@ var RootBundle = (function (exports, React$1) {
           if (!type) throw `onMessageReceived: event.data.type is undefined`, event.data;
           if (!payload) throw `onMessageReceived: event.data.payload is undefined`, event.data;
           if (type && payload) {
-            logDebug(`Root: onMessageReceived: ${type}`);
-            // logDebug(`Root: onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
+            logDebug(`Root`, ` onMessageReceived: ${type}`);
+            // logDebug(`Root`,` onMessageReceived: payload:${JSON.stringify(payload, null, 2)}`)
             // Spread existing state into new object to keep it immutable
             // TODO: ideally, you would use a reducer here
             if (type === 'SHOW_BANNER') payload.lastUpdated.msg += `: ${payload.msg}`;
             setHistory(prevData => [...prevData, ...tempSavedClicksRef.current, payload.lastUpdated]);
             tempSavedClicksRef.current = [];
-            // logDebug(`Root: onMessageReceived reducer Action type: ${type || ''} payload: ${JSON.stringify(payload, null, 2)}`)
+            // logDebug(`Root`,` onMessageReceived reducer Action type: ${type || ''} payload: ${JSON.stringify(payload, null, 2)}`)
             switch (type) {
               case 'SET_TITLE':
                 // Note this works because we are using payload.title in npData
@@ -526,21 +596,21 @@ var RootBundle = (function (exports, React$1) {
                   ...globalSharedData,
                   ...payload
                 };
-                logDebug('Root: SET_DATA after setting globalSharedData=', globalSharedData);
+                logDebug(`Root`, `SET_DATA after setting globalSharedData=`, globalSharedData);
                 break;
               case 'SHOW_BANNER':
                 showBanner(payload.msg, payload.color, payload.border);
                 // const warnObj = { warn: true, msg: payload.msg, color: payload.color ?? 'w3-pale-red', border: payload.border ?? 'w3-border-red' }
-                // logDebug(`Root: onMessageReceived: SHOW_BANNER: sending: ${JSON.stringify(warnObj)}`)
+                // logDebug(`Root`,` onMessageReceived: SHOW_BANNER: sending: ${JSON.stringify(warnObj)}`)
                 // setWarning(warnObj)
-                // logDebug(`Root: onMessageReceived: SHOW_BANNER: sent: ${JSON.stringify(warnObj)}`)
+                // logDebug(`Root`,` onMessageReceived: SHOW_BANNER: sent: ${JSON.stringify(warnObj)}`)
                 break;
               case 'SEND_TO_PLUGIN':
-                logDebug(`Root: onMessageReceived: SEND_TO_PLUGIN: payload ${JSON.stringify(payload, null, 2)}`);
+                logDebug(`Root`, ` onMessageReceived: SEND_TO_PLUGIN: payload ${JSON.stringify(payload, null, 2)}`);
                 sendToPlugin(payload);
                 break;
               case 'RETURN_VALUE' /* function called returned a value */:
-                logDebug(`Root: onMessageReceived: processing payload`);
+                logDebug(`Root`, ` onMessageReceived: processing payload`);
                 // $FlowIgnore
                 // setMessageFromPlugin(payload)
                 break;
@@ -548,35 +618,41 @@ var RootBundle = (function (exports, React$1) {
                 break;
             }
           } else {
-            logDebug(`Root: onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event);
+            logDebug(`Root`, ` onMessageReceived: called but event.data.type and/or event.data.payload is undefined`, event);
           }
         } catch (error) {
-          logDebug(`Root: onMessageReceived: error=${JSON.stringify(error)}error=${JSON.stringify(error)}`);
+          logDebug(`Root`, ` onMessageReceived: error=${JSON.stringify(error)}error=${JSON.stringify(error)}`);
         }
       }
     };
 
     /**
-     * send runplugin command (specified in globalData) to NotePlan to process data
-     * This function should not be called directly by child components, but rather via the dispatch function dispatch('SEND_TO_PLUGIN', payload)
+     * Send data back to the plugin to update the data in the plugin
+     * This could cause a refresh of the Webview if the plugin sends back new data, so we want to save any passthrough data first
+     * (for example, scroll position)
+     * This function should not be called directly by child components, but rather via the sendActionToPlugin()
      * returnPluginCommand var with {command && id} should be sent in the initial data payload in HTML
      * @param {Array<any>} args to send to NotePlan (typically an array with two items: ["actionName",{an object payload, e.g. row, field, value}])
      * @example sendToPlugin({ choice: action, rows: selectedRows })
      *
      */
-    const sendToPlugin = React__default["default"].useCallback(args => {
+    const sendToPlugin = React__default["default"].useCallback(([action, data, additionalDetails = '']) => {
       const returnPluginCommand = globalSharedData.returnPluginCommand || 'undefined';
       if (returnPluginCommand === 'undefined' || !returnPluginCommand?.command || !returnPluginCommand?.id) {
         throw 'returnPluginCommand variable is not passed correctly to set up comms bridge. Check your data object which you are sending to invoke React';
       }
       if (!returnPluginCommand?.command) throw 'returnPluginCommand.cmd is not defined in the intial data passed to the plugin';
       if (!returnPluginCommand?.id) throw 'returnPluginCommand.id is not defined in the intial data passed to the plugin';
+      if (!action) throw new Error('sendToPlugin: command/action must be called with a string');
+      logDebug(`Root`, ` sendToPlugin: ${JSON.stringify(action)} ${additionalDetails}`, action, data, additionalDetails);
+      if (!data) throw new Error('sendToPlugin: data must be called with an object');
+      console.log(`Root`, ` sendToPlugin: command:${action} data=${JSON.stringify(data)} `);
       const {
         command,
         id
       } = returnPluginCommand; // this comes from the initial data passed to the plugin
-      runPluginCommand(command, id, args);
-    }, []);
+      runPluginCommand(command, id, [action, data, additionalDetails]);
+    }, [globalSharedData]);
 
     /**
      * Callback passed to child components that allows them to put a message in the banner
@@ -589,7 +665,7 @@ var RootBundle = (function (exports, React$1) {
         color,
         border
       };
-      logDebug(`Root: showBanner: sending: ${JSON.stringify(warnObj)}`);
+      logDebug(`Root`, ` showBanner: sending: ${JSON.stringify(warnObj)}`);
       setWarning(warnObj);
     };
 
@@ -608,7 +684,7 @@ var RootBundle = (function (exports, React$1) {
      * For debugging purposes, send a message to the plugin to test the comms bridge
      */
     const testCommsBridge = () => {
-      logDebug(`Root: _Root: testCommsBridge`);
+      logDebug(`Root`, ` _Root: testCommsBridge`);
       // send some info to the plugin
       // first param is the action type and the rest are data (can be any form you want)
       // data.foo = 'bar'
@@ -627,7 +703,7 @@ var RootBundle = (function (exports, React$1) {
     function onRender(id, phase, actualDuration, baseDuration, startTime, commitTime, interactions) {
       // DBW: MOST OF THIS INFO IS NOT INTERESTING. ONLY THE PHASE IS
       // Much better data is available in the React Dev Tools but only when the page is open in a browser
-      logDebug(`\n===================\nPROFILING:${id} phase=${phase} actualDuration=${actualDuration} baseDuration=${baseDuration} startTime=${startTime} commitTime=${commitTime} ${String(interactions)}\n===================\n`);
+      logDebug(`Root`, `\n===================\nPROFILING:${id} phase=${phase} actualDuration=${actualDuration} baseDuration=${baseDuration} startTime=${startTime} commitTime=${commitTime} ${String(interactions)}\n===================\n`);
     }
 
     /****************************************************************************************************************************
@@ -640,9 +716,27 @@ var RootBundle = (function (exports, React$1) {
     React$1.useEffect(() => {
       // the name of this function is important. it corresponds with the Bridge call in the HTMLView
       // I don't recommend changing this function name here or in the bridge
+      logDebug(`Root`, `effect setting up eventListener`);
       window.addEventListener('message', onMessageReceived);
       return () => window.removeEventListener('message', onMessageReceived);
     }, []);
+
+    /**
+     * Save scrollbar position
+     * When the data changes, console.log it so we know and scroll the window
+     * Fires after components draw
+     */
+    React$1.useEffect(() => {
+      if (npData?.passThroughVars?.lastWindowScrollTop !== undefined && npData.passThroughVars.lastWindowScrollTop !== window.scrollY) {
+        debug && logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. Scrolling to ${String(npData.lastWindowScrollTop)}`);
+        window.scrollTo(0, npData.passThroughVars.lastWindowScrollTop);
+      } else {
+        logDebug(`Root`, ` FYI, underlying data has changed, picked up by useEffect. No scroll info to restore, so doing nothing.`);
+      }
+    }, [npData]);
+    React$1.useEffect(() => {
+      logDebug('Root', `Noticed a change in reactSettings: ${JSON.stringify(reactSettings)}`);
+    }, [reactSettings]);
 
     /****************************************************************************************************************************
      *                             RENDER
@@ -652,7 +746,7 @@ var RootBundle = (function (exports, React$1) {
       FallbackComponent: ErrorFallback,
       onReset: () => {},
       onError: myErrorLogger
-    }, /*#__PURE__*/React__default["default"].createElement("div", {
+    }, /*#__PURE__*/React__default["default"].createElement("p", null, "this file was updated"), /*#__PURE__*/React__default["default"].createElement("div", {
       className: "Root",
       onClickCapture: onClickCapture
     }, /*#__PURE__*/React__default["default"].createElement(MessageBanner, {
@@ -666,16 +760,14 @@ var RootBundle = (function (exports, React$1) {
       onRender: onRender
     }, /*#__PURE__*/React__default["default"].createElement(MemoizedWebView, {
       dispatch: dispatch,
-      data: npData
-      /*
-        sendToPlugin={sendToPlugin}
-        messageFromPlugin={messageFromPlugin}
-        ackMessageFromPlugin={ackMessageFromPlugin}
-        showBanner={showBanner}
-        */
+      data: npData,
+      reactSettings: reactSettings,
+      setReactSettings: setReactSettings
     })) : /*#__PURE__*/React__default["default"].createElement(MemoizedWebView, {
       data: npData,
-      dispatch: dispatch
+      dispatch: dispatch,
+      reactSettings: reactSettings,
+      setReactSettings: setReactSettings
     }), (debug) && /*#__PURE__*/React__default["default"].createElement(React__default["default"].StrictMode, null, /*#__PURE__*/React__default["default"].createElement("div", {
       className: "w3-container w3-red w3-margin-top"
     }, "Debugging Data (Plugin passed debug:true at window open)"), /*#__PURE__*/React__default["default"].createElement("div", null, /*#__PURE__*/React__default["default"].createElement("span", {
@@ -691,7 +783,7 @@ var RootBundle = (function (exports, React$1) {
       className: "w3-button w3-black",
       onClick: () => dispatch('SHOW_BANNER', {
         msg: 'Banner test succeeded'
-      }, `banner test`)
+      })
     }, "Local Banner Display Test"), /*#__PURE__*/React__default["default"].createElement("div", {
       className: "w3-button w3-black",
       onClick: testCommsBridge

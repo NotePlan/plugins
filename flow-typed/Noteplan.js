@@ -2101,4 +2101,4 @@ declare function fetch(url: string, options?: FetchOptions): Promise<string> /* 
 
 // Every function made available must be assigned to `globalThis`
 // This type ensures that only functions are made available as plugins
-declare var globalThis: { [string]: () => mixed, document: mixed }
+declare var globalThis: { [string]: () => mixed, document: mixed, [string]: mixed } | null

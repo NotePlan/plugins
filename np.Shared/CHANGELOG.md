@@ -2,7 +2,11 @@
 
 See [Shared Plugin's README](https://github.com/NotePlan/plugins/blob/main/np.Shared/README.md) for details on this plugin.
 
-## [0.5.4] - 2024-04-19 @dwertheimer
+## [0.5.4] - @dwertheimer
+
+- Work on Root React and react settings saved at root level
+
+## [0.5.3] - 2024-04-19 @dwertheimer
 
 - Decrease error logging
 
