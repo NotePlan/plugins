@@ -81,7 +81,7 @@ export const logTemp = (msg: string, ...args: any) => console.log(`${window.webk
  */
 export const logDebug = (componentName: string, detail: string, ...args: any): void =>
   console.log(
-    `${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}%c`}`,
+    `${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`,
     `${window.webkit ? '' : `color: #000; background: ${stringToColor(componentName)}`}`,
     ...args,
   )
@@ -92,5 +92,9 @@ export const logDebug = (componentName: string, detail: string, ...args: any): v
  * @param {string} detail The detail of the error message.
  * @param {...any} args The arguments to log.
  */
-export const logError = (componentName: string, detail: string, ...args: any): void =>
-  console.error(`${window.webkit ? `${componentName}: ${detail ?? ''}` : `%c${componentName}: ${detail || ''}`}`, `${window.webkit ? '' : `color: #F00; background: #FFF`}`, ...args)
+export const logError = (componentName: string, detail?: string = '', ...args: any): void =>
+  console.error(
+    `${window.webkit ? `${componentName}${detail ? `: ${detail} ` : ''}` : `%c${componentName}${detail ? `: ${detail} ` : ''}`}`,
+    `${window.webkit ? '' : `color: #F00; background: #FFF`}`,
+    ...args,
+  )
