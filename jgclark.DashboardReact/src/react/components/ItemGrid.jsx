@@ -32,9 +32,7 @@ function ItemGrid(inputObj: Props): React$Node {
   // const filteredOut = items.length - visibleItems.length
   // console.log(`- selected ${visibleItems.length} visible items, with ${String(filteredOut)} filtered out`)
 
-  const visibleItems = items?.map((item, index) => (
-    <ItemRow key={index} item={item} thisSection={thisSection} />
-  )) ?? []
+  const visibleItems = items?.map((item, index) => <ItemRow key={index} item={item} thisSection={thisSection} />) ?? []
 
   // // TODO: equivalent of:
   // if (filteredOut > 0) {
@@ -53,8 +51,7 @@ function ItemGrid(inputObj: Props): React$Node {
 
   return (
     // FIXME: find a way to include this <!--- Section ${String(sectionNumber)}: ${section.name} Items Grid --->`
-    <div className="sectionItemsGrid"
-      id={`${thisSection.ID}-Section`}>
+    <div className="sectionItemsGrid" id={`${thisSection.ID}-Section`}>
       {visibleItems}
     </div>
   )

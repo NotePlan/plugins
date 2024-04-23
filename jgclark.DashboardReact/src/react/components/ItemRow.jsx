@@ -7,9 +7,9 @@
 import React from 'react'
 import type { TSection, TSectionItem, TParagraphForDashboard } from '../../types.js'
 import { onClickDashboardItem } from '../../../requiredFiles/HTMLWinCommsSwitchboard.js'
-import { useAppContext } from './AppContext.jsx'
 import ItemContent from './ItemContent.jsx'
 import ItemNoteLink from './ItemNoteLink.jsx'
+import { useAppContext } from './AppContext.jsx'
 import { getFolderFromFilename } from '@helpers/folders'
 import { clo } from '@helpers/dev'
 
@@ -43,7 +43,7 @@ function ItemRow(inputObj: Props): React$Node {
       // console.log(`- 'review': ${itemFilename}`)
       const noteTitle = item.itemNoteTitle ?? '<no title>'
       // console.log(`- making notelink with ${itemFilename}, ${noteTitle}`)
-      const folderNamePart = config.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
+      const folderNamePart = config?.includeFolderName && getFolderFromFilename(itemFilename) !== '' ? `${getFolderFromFilename(itemFilename)} / ` : ''
       // console.log(`- folderNamePart = ${folderNamePart}`)
 
       const projectContent = `${folderNamePart}${makeNoteTitleWithOpenActionFromFilename(item, noteTitle)}`
@@ -162,7 +162,7 @@ function ItemRow(inputObj: Props): React$Node {
 
           <div className="sectionItemContent sectionItem">
             <ItemContent item={item} />
-            {config.includeTaskContext ? <ItemNoteLink item={item} thisSection={thisSection} /> : null}
+            {config?.includeTaskContext ? <ItemNoteLink item={item} thisSection={thisSection} /> : null}
             <a
               className="dialogTrigger"
               // $FlowIgnore(cannot-resolve-name)

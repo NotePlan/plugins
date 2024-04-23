@@ -1,30 +1,39 @@
 // @flow
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import Header from './Header.jsx'
 import Section from './Section.jsx'
 import Dialog from './Dialog.jsx'
-import { useAppContext } from './AppContext.jsx'
-
-// import { useAppContext } from './AppContext.jsx'
+import { useAppContext, type ReactSettings } from './AppContext.jsx'
+import { logDebug } from '@helpers/reactDev.js'
 
 type Props = {
   pluginData: Object /* the data that was sent from the plugin in the field "pluginData" */,
 }
+
+// Settings which are local to the React window
+const defaultReactSettings: ReactSettings = {
+  filterPriorityItems: false,
+  dialogData: { isOpen: false, isTask: true },
+}
+
+logDebug(`Dashboard`, `loading file outside component code`)
 
 /**
  * Dashboard component aggregating data and layout for the dashboard.
  */
 function Dashboard({ pluginData }: Props): React$Node {
   //   const { sendActionToPlugin, sendToPlugin, dispatch, pluginData }  = useAppContext()
-  const { reactSettings, updateReactSettings } = useAppContext()
+  logDebug(`Dashboard`, `inside component code`)
+
+  const { reactSettings, setReactSettings } = useAppContext()
 
   const { sections, lastUpdated } = pluginData
   console.log('Dashboard: pluginData:', pluginData)
-  const { dialogData } = reactSettings
+  const { dialogData } = reactSettings ?? {}
 
   const setDialogOpen = (isOpen: boolean) => {
-    updateReactSettings({ ...reactSettings, dialogData: { isOpen } })
+    setReactSettings((prev) => ({ ...prev, dialogData: { isOpen } }))
   }
 
   const dashboardContainerStyle = {
@@ -32,13 +41,25 @@ function Dashboard({ pluginData }: Props): React$Node {
     width: '100vw',
   }
 
-  const handleDialogOpen = () => {
-    setDialogOpen(true)
-  }
+  useEffect(() => logDebug(`Dashboard`, `basic effect running with no deps`), [])
+
+  // set up dialogData in reactSettings if it doesn't exist
+  useEffect(() => {
+    // Ensure basic reactSettings exists
+    if (!reactSettings) {
+      logDebug(`Dashboard:`, `reactSettings was null. Setting to: ${JSON.stringify(defaultReactSettings, null, 2)}`)
+      if (setReactSettings) {
+        setReactSettings((prev) => ({ ...prev, status: 'Dashboard Loaded' }))
+      }
+    }
+  }, [])
+
+  // const handleDialogOpen = () => {
+  //   setDialogOpen(true)
+  // }
   const handleDialogClose = () => {
     setDialogOpen(false)
   }
-
   return (
     <div style={dashboardContainerStyle}>
       {/* CSS for this part is in dashboard.css */}
@@ -49,7 +70,7 @@ function Dashboard({ pluginData }: Props): React$Node {
           <Section key={index} section={section} />
         ))}
       </div>
-      <Dialog onClose={handleDialogClose} isOpen={dialogData?.isOpen} />
+      <Dialog onClose={handleDialogClose} isOpen={dialogData?.isOpen} isTask={dialogData?.isTask} />
     </div>
   )
 }
