@@ -33,7 +33,7 @@ Downloads new highlights since last sync
 
 ### //Readwise rebuild
 
-** Only needs to be used if highlights are deleted) **
+**Only needs to be used if highlights are deleted**
 Downloads all highlights (if they already exist they will be duplicated)
 
 

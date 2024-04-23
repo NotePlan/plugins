@@ -1,3 +1,4 @@
+import { getLocalDate } from './NPReadwiseHelpers'
 import { getOrMakeNote } from '@helpers/note'
 
 const SYNC_LOG_TOKEN = 'readWiseToken'
@@ -17,12 +18,12 @@ export async function writeReadwiseSyncLogLine(title: string, count: number): Pr
   }
 }
 
-export async function finishReadwiseSyncLog(downloadHiglightCount: number, updatedSourceCount: number): Promise<void> {
+export async function finishReadwiseSyncLog(downloadHighlightCount: number, updatedSourceCount: number): Promise<void> {
   if (DataStore.settings.writeSyncLog === true) {
     const outputNote = await getOrMakeNote(SYNC_NOTE_TITLE, DataStore.settings.baseFolder, '')
     const dateString =
-      `[[${new Date().toISOString().split('T')[0]}]] ${new Date().toLocaleTimeString([], { timeStyle: 'short' })} ` +
-      `— synced ${downloadHiglightCount} highlights from ${updatedSourceCount} documents.`
+      `[[${getLocalDate()}]] ${new Date().toLocaleTimeString([], { timeStyle: 'short' })} ` +
+      `— synced ${downloadHighlightCount} highlights from ${updatedSourceCount} documents.`
     outputNote.content = outputNote?.content?.replace(SYNC_LOG_TOKEN, dateString)
   }
 }
