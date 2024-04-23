@@ -3,10 +3,10 @@ import { showMessage } from '../../helpers/userInput'
 import pluginJson from '../plugin.json'
 import { checkAccessToken, escapeTwitterHandle } from './NPReadwiseHelpers'
 import { parseHighlightsAndWriteToNote } from './NPReadwiseNotes'
-import { startReadwiseSyncLog, finishReadwiseSyncLog } from './NPReadwisesync'
+import { startReadwiseSyncLog, finishReadwiseSyncLog } from './NPReadwiseSync'
 import { log, logDebug, logError } from '@helpers/dev'
 
-const LAST_SYNÇ_TIME = 'last_sync_time'
+const LAST_SYNC_TIME = 'last_sync_time'
 
 /**
  * Syncs new readwise highlights
@@ -57,7 +57,7 @@ async function handleReadwiseSync(response: any): Promise<void> {
  */
 async function getReadwise(force: boolean): Promise<any> {
   const accessToken = DataStore.settings.accessToken ?? ''
-  let lastFetchTime = DataStore.loadData(LAST_SYNÇ_TIME, true) ?? ''
+  let lastFetchTime = DataStore.loadData(LAST_SYNC_TIME, true) ?? ''
   if (DataStore.settings.forceSync === 'true' || force === true) {
     lastFetchTime = ''
   }
@@ -87,7 +87,7 @@ async function doReadWiseFetch(accessToken: string, lastFetchTime: string, downl
       },
     }
     const response = await fetch(url, options)
-    DataStore.saveData(new Date().toISOString(), LAST_SYNÇ_TIME, true)
+    DataStore.saveData(new Date().toISOString(), LAST_SYNC_TIME, true)
 
     const parsedJson = JSON.parse(response)
     // DataStore.saveData(JSON.stringify(Json), 'readwise_data.json', true)

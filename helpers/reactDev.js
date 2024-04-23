@@ -65,11 +65,6 @@ function adjustBrightness(_r: number, _g: number, _b: number): { r: number, g: n
   const b = Math.floor(Math.min(255, _b + brightnessFactor * 255))
   return { r, g, b }
 }
-
-export const logSubtle = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #6D6962', ...args)
-
-export const logTemp = (msg: string, ...args: any) => console.log(`${window.webkit ? '' : '%c'}${msg}`, 'background: #fff; color: #000', ...args)
-
 /**
  * A prettier version of logDebug
  * Looks the same in the NotePlan console, but when debugging in a browser, it colors results with a color based on the componentName text
